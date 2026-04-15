@@ -15,6 +15,7 @@ import { RoleAuthGuard } from './auth/guards/role.guard';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { BullModule } from '@nestjs/bull';
 import { SessionModule } from './session/session.module';
+import { PatientsModule } from './patients/patients.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SessionModule } from './session/session.module';
     UserModule,
     CloudinaryModule,
     SessionModule,
+    PatientsModule,
   ],
   controllers: [AppController],
   providers: [
