@@ -1,5 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { HeadContent, Outlet, Scripts, createRootRoute } from '@tanstack/react-router';
+import { HeadContent, Outlet, Scripts, createRootRoute, useNavigate, useLocation } from '@tanstack/react-router';
+import { useEffect } from 'react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 import { queryClient } from '@/lib/query-client';
 import appCss from '../styles.css?url';
@@ -45,6 +47,21 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const { accessToken } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const isPublicRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
+    
+    if (!accessToken && !isPublicRoute && location.pathname !== '/') {
+      navigate({ to: '/login', replace: true });
+    } else if (accessToken && isPublicRoute) {
+      // If user is logged in but tries to access login page, redirect to their panel or dashboard
+      navigate({ to: '/reports', replace: true }); 
+    }
+  }, [accessToken, location.pathname, navigate]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

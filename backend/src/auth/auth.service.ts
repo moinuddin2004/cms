@@ -5,10 +5,10 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterCommand } from './command/register.command';
-import { LoginCommand } from './command/login.command';
+import { RegisterRequestDto } from './dto/request/register-request.dto';
+import { LoginRequestDto } from './dto/request/login-request.dto';
 import { UserService } from 'src/user/user.service';
-import { AuthTokenDto } from './dto/auth.token.dto';
+import { AuthTokenDto } from './dto/response/auth.token.dto';
 import { JwtTokenService } from './jwt.service';
 import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/common/services/mail.service';
@@ -60,39 +60,32 @@ export class AuthService {
    */
   @Transactional()
   async register(
-    cmd: RegisterCommand,
+    dto: RegisterRequestDto,
     manager?: EntityManager,
   ): Promise<{ message: string }> {
     this.logger.info(
-      `Registering user with email: ${cmd.email}`,
+      `Registering user with email: ${dto.email}`,
       AuthService.name,
     );
 
-    const user = await this.userService.createLocalUser(cmd);
-
-    const token = this.jwtService.sign(
-      { userUuid: user.uuid },
-      { secret: process.env.EMAIL_TOKEN_SECRET, expiresIn: '1h' },
-    );
-
-    await this.mailService.sendEmailVerification(user.email, token);
+    const user = await this.userService.createLocalUser(dto);
 
     this.logger.info(
-      `Verification email sent to: ${user.email}`,
+      `Registration complete for: ${user.email}`,
       AuthService.name,
     );
-    return { message: 'Verification email sent' };
+    return { message: 'Registration successful' };
   }
 
   /**
    * Login with email and password.
    * Creates a new session and returns access token with session-specific refresh token in cookie.
    */
-  async login(cmd: LoginCommand, req: Request, res: Response): Promise<AuthTokenDto> {
-    this.logger.info(`Login attempt for: ${cmd.email}`, AuthService.name);
+  async login(dto: LoginRequestDto, req: Request, res: Response): Promise<AuthTokenDto> {
+    this.logger.info(`Login attempt for: ${dto.email}`, AuthService.name);
 
     // Validate user credentials
-    const user = await this.userService.validateUser(cmd.email, cmd.password);
+    const user = await this.userService.validateUser(dto.email, dto.password);
 
     // Check account status
     this.validateAccountStatus(user, req);
@@ -112,9 +105,9 @@ export class AuthService {
     // Log successful login
     await this.securityLogService.logLoginSuccess(user.uuid, session.uuid, req);
 
-    this.logger.info(`Login successful for: ${cmd.email}`, AuthService.name);
+    this.logger.info(`Login successful for: ${dto.email}`, AuthService.name);
 
-    return AuthTokenDto.toDto({ accessToken }, user);
+    return AuthTokenDto.toDto({ accessToken, refreshToken, sessionId: session.uuid }, user);
   }
 
   /**
@@ -210,7 +203,7 @@ export class AuthService {
     // Update cookie with new refresh token
     this.setSessionCookie(res, sessionId, rotated.refreshToken);
 
-    return AuthTokenDto.toDto({ accessToken }, user);
+    return AuthTokenDto.toDto({ accessToken, refreshToken: rotated.refreshToken, sessionId }, user);
   }
 
   /**
@@ -261,86 +254,12 @@ export class AuthService {
       isNewUser,
     );
 
-    const tokens = AuthTokenDto.toDto({ accessToken }, user);
+    const tokens = AuthTokenDto.toDto({ accessToken, refreshToken, sessionId: session.uuid }, user);
 
     return { tokens, refreshToken, sessionId: session.uuid, isNewUser };
   }
 
-  /**
-   * Verify email address.
-   */
-  async verifyEmail(token: string) {
-    this.logger.debug(`Verifying email with token`, AuthService.name);
 
-    try {
-      const payload: any = this.jwtService.verify(token, {
-        secret: process.env.EMAIL_TOKEN_SECRET,
-      });
-
-      const user = await this.userRepository.findOneBy({
-        uuid: payload.userUuid,
-      });
-      if (!user)
-        throw new ValidationFailedException(
-          'Invalid user',
-          `user not found: ${payload.userUuid}`,
-        );
-
-      // Update user verification status
-      user.isVerified = true;
-      user.status = AccountStatus.ACTIVE;
-      await this.userRepository.update(user.uuid, {
-        isVerified: true,
-        status: AccountStatus.ACTIVE,
-      });
-
-      this.logger.info(
-        `Email verified for user: ${user.email}`,
-        AuthService.name,
-      );
-      return { message: 'Email verified successfully' };
-    } catch (err) {
-      this.logger.error(
-        'Email verification failed',
-        err.message,
-        AuthService.name,
-      );
-      throw new BadRequestException('Invalid or expired token');
-    }
-  }
-
-  /**
-   * Resend verification email.
-   */
-  async resendVerificationEmail(email: string): Promise<{ message: string }> {
-    this.logger.debug(`Resending verification email to: ${email}`, AuthService.name);
-
-    const user = await this.userRepository.findOneBy({ email });
-
-    if (!user) {
-      // Don't reveal if email exists for security
-      return { message: 'If the email exists and is unverified, a verification link will be sent' };
-    }
-
-    if (user.isVerified) {
-      throw new BadRequestException('Email is already verified');
-    }
-
-    // Generate new verification token
-    const token = this.jwtService.sign(
-      { userUuid: user.uuid },
-      { secret: process.env.EMAIL_TOKEN_SECRET, expiresIn: '1h' },
-    );
-
-    await this.mailService.sendEmailVerification(user.email, token);
-
-    this.logger.info(
-      `Verification email resent to: ${user.email}`,
-      AuthService.name,
-    );
-
-    return { message: 'Verification email sent' };
-  }
 
   /**
    * Initiate password reset flow.
@@ -534,13 +453,6 @@ export class AuthService {
    */
   private validateAccountStatus(user: User, req: Request): void {
     switch (user.status) {
-      case AccountStatus.UNVERIFIED:
-        if (!user.isVerified) {
-          this.securityLogService.logLoginFailed(user.email, req, 'Email not verified');
-          throw new ForbiddenException('Please verify your email before logging in');
-        }
-        break;
-
       case AccountStatus.SUSPENDED:
         this.securityLogService.logLoginFailed(user.email, req, 'Account suspended');
         throw new ForbiddenException('Your account has been suspended. Please contact support.');

@@ -3,6 +3,8 @@ import { DataSource } from 'typeorm';
 import { config } from 'dotenv';
 import { User } from './user/entities/user.model';
 import { Patient } from './patients/entities/patient.entity';
+import { UserSession } from './session/entities/user-session.entity';
+import { SecurityLog } from './auth/entities/SecurityLog';
 
 // Load environment variables
 config();
@@ -16,6 +18,8 @@ export const AppDataSource = new DataSource({
   entities: [
     User,
     Patient,
+    UserSession,
+    SecurityLog,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

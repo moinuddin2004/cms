@@ -6,12 +6,14 @@ export class AuthTokenDto {
     user: UserDto
     accessToken: string;
     refreshToken?: string;
+    sessionId?: string;
 
     public static toDto(token: TokensDto, user: User): AuthTokenDto {
         return {
             user: UserDto.toDto(user),
             accessToken: token.accessToken,
-            refreshToken: token.refreshToken
+            refreshToken: token.refreshToken,
+            sessionId: token.sessionId
         }
     }
 }

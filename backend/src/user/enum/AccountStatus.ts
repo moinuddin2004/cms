@@ -8,11 +8,6 @@ export enum AccountStatus {
      */
     ACTIVE = 'active',
 
-    /**
-     * Account created but email not yet verified.
-     * Limited functionality until verification.
-     */
-    UNVERIFIED = 'unverified',
 
     /**
      * Account has been suspended by admin.

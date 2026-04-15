@@ -13,10 +13,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterCommand } from './command/register.command';
-import { LoginCommand } from './command/login.command';
-import { ForgotPasswordCommand } from './command/forgotPassword.command';
-import { ResetPasswordCommand } from './command/resetPassword.command';
+import { RegisterRequestDto } from './dto/request/register-request.dto';
+import { LoginRequestDto } from './dto/request/login-request.dto';
+import { ForgotPasswordRequestDto } from './dto/request/forgot-password-request.dto';
+import { ResetPasswordRequestDto } from './dto/request/reset-password-request.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Request, Response } from 'express';
@@ -52,9 +52,9 @@ export class AuthController {
   @Post('register')
   @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 3600 }) // 5 signups per hour
-  async register(@Body() body: RegisterCommand) {
+  async register(@Body() body: RegisterRequestDto) {
     const result = await this.authService.register(body);
-    return ResponseWrapper.success(result, 'Verification email sent');
+    return ResponseWrapper.success(result, 'Registration successful');
   }
 
   /**
@@ -65,7 +65,7 @@ export class AuthController {
   @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 900 }) // 5 attempts per 15 min
   async login(
-    @Body() body: LoginCommand,
+    @Body() body: LoginRequestDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -230,10 +230,10 @@ export class AuthController {
   @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 3, windowSeconds: 3600 }) // 3 requests per hour
   async forgotPassword(
-    @Body() command: ForgotPasswordCommand,
+    @Body() dto: ForgotPasswordRequestDto,
     @Req() req: Request,
   ) {
-    const result = await this.authService.forgotPassword(command.email, req);
+    const result = await this.authService.forgotPassword(dto.email, req);
     return ResponseWrapper.success(result, 'Reset link sent');
   }
 
@@ -243,38 +243,17 @@ export class AuthController {
   @Public()
   @Patch('reset-password')
   async resetPassword(
-    @Body() command: ResetPasswordCommand,
+    @Body() dto: ResetPasswordRequestDto,
     @Req() req: Request,
   ) {
     const result = await this.authService.resetPassword(
-      command.token,
-      command.newPassword,
+      dto.token,
+      dto.newPassword,
       req,
     );
     return ResponseWrapper.success(result, 'Password reset successfully');
   }
 
-  /**
-   * Verify email with token.
-   */
-  @Public()
-  @Get('verify-email')
-  async verifyEmail(@Query('token') token: string) {
-    const result = await this.authService.verifyEmail(token);
-    return ResponseWrapper.success(result, 'Email verified');
-  }
-
-  /**
-   * Resend verification email.
-   */
-  @Public()
-  @Post('resend-verification')
-  @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 }) // 3 requests per hour
-  async resendVerification(@Body() body: { email: string }) {
-    const result = await this.authService.resendVerificationEmail(body.email);
-    return ResponseWrapper.success(result, 'Verification email sent');
-  }
 
   // ==================== OAUTH PROVIDERS ====================
 

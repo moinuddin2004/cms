@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { RegisterCommand } from 'src/auth/command/register.command';
+import { RegisterRequestDto } from 'src/auth/dto/request/register-request.dto';
 import * as bcrypt from 'bcrypt';
 import { ValidationFailedException } from 'src/common/exceptions/ValidationFailedException';
 import { RequestContextService } from 'src/common/services/request-context.service';
@@ -8,7 +8,7 @@ import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { User } from './entities/user.model';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RoleEnum } from './enum/RoleEnum';
+import { Role } from './enum/role.enum';
 import { UserLevel } from './enum/UserLevel';
 import { AccountStatus } from './enum/AccountStatus';
 
@@ -21,7 +21,7 @@ export class UserService {
     private readonly logger: AppLogger,
   ) { }
 
-  async createLocalUser(command: RegisterCommand): Promise<User> {
+  async createLocalUser(command: RegisterRequestDto): Promise<User> {
     const { email, password, name } = command;
 
     this.logger.info(`Creating local user: ${email}`, UserService.name);
@@ -49,10 +49,9 @@ export class UserService {
       name,
       password: hashedPassword,
       provider: ProviderEnum.LOCAL,
-      isVerified: false,
-      role: RoleEnum.USER,
+      role: Role.ADMIN,
       level: UserLevel.BEGINNER,
-      status: AccountStatus.UNVERIFIED, // Set initial status
+      status: AccountStatus.ACTIVE,
     });
     const savedUser = await this.userRepository.save(user);
     this.logger.info(
@@ -87,7 +86,7 @@ export class UserService {
     email: string;
     name: string;
     provider: ProviderEnum;
-  }) {
+  }): Promise<User> {
     this.logger.info(
       `Upserting OAuth user: ${oauthPayload.email}`,
       UserService.name,
@@ -97,12 +96,12 @@ export class UserService {
       email: oauthPayload.email,
     });
     if (!user) {
-      user = this.userRepository.create({ ...oauthPayload });
+      user = this.userRepository.create({ ...oauthPayload, status: AccountStatus.ACTIVE });
       user = await this.userRepository.save(user);
       this.logger.info(`OAuth user created: ${user.email}`, UserService.name);
     }
 
-    return user;
+    return user!;
   }
 
   async createOAuthUser(profile: {
@@ -116,9 +115,8 @@ export class UserService {
     );
     const user = this.userRepository.create({
       ...profile,
-      isVerified: true, // OAuth users are pre-verified
       status: AccountStatus.ACTIVE, // Active since verified by OAuth provider
-      role: RoleEnum.USER,
+      role: Role.ADMIN,
       level: UserLevel.BEGINNER,
     });
     return this.userRepository.save(user);

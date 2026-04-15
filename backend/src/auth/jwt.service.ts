@@ -3,8 +3,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { TokensDto } from './dto/token.dto';
-import { Mongoose , Types } from 'mongoose';
+import { TokensDto } from './dto/response/token.dto';
 
 
 @Injectable()
@@ -14,13 +13,13 @@ export class JwtTokenService {
     private readonly config: ConfigService,
   ) {}
 
-  async generateTokens(userUuid: Types.ObjectId | String , email: string, role:string): Promise<TokensDto> {
+  async generateTokens(userUuid: string, email: string, role: string): Promise<TokensDto> {
     const payload = { sub: userUuid, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(payload, {
         secret: this.config.get('JWT_ACCESS_SECRET'),
-        expiresIn: '7h',
+        expiresIn: '15m',
       }),
       this.jwt.signAsync(payload, {
         secret: this.config.get('JWT_REFRESH_SECRET'),

@@ -1,11 +1,11 @@
 import { User } from '../entities/user.model';
-import { RoleEnum } from '../enum/RoleEnum';
+import { Role } from '../enum/role.enum';
 
 export class UserDto {
   userUuid: string;
   email: string;
   name: string;
-  role: RoleEnum;
+  role: Role;
   avatarUrl?: string;
 
   public static toDto(user: User): UserDto {
