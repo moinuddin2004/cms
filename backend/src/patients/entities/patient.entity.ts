@@ -5,21 +5,42 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Gender } from '../enums/gender.enum';
 import { BloodGroup } from '../enums/blood-group.enum';
+import { Organization } from 'src/organizations/entities/organization.entity';
 
 @Entity({ name: 'patients' })
 @Index(['patientId'], { unique: true })
 @Index(['phone'], { unique: true })
 @Index(['isActive'])
 @Index(['fullName'])
+@Index(['organizationId', 'isActive'])
 export class Patient {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ name: 'patient_id', type: 'varchar', length: 20, unique: true })
   patientId: string;
+
+  /**
+   * Organization this patient belongs to.
+   * Patients are scoped by organization — they can visit multiple locations within the same org.
+   */
+  @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'organization_id' })
+  organization: Organization;
+
+  @Column({ name: 'organization_id', type: 'uuid' })
+  organizationId: string;
+
+  /**
+   * Optional FK to users table — if the patient has a login account.
+   */
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId: string | null;
 
   @Column({ name: 'full_name', type: 'varchar', length: 255 })
   fullName: string;
@@ -61,13 +82,28 @@ export class Patient {
   @Column({ name: 'allergies', type: 'jsonb', default: '[]' })
   allergies: string[];
 
-  @Column({ name: 'emergency_name', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'emergency_name',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   emergencyName: string | null;
 
-  @Column({ name: 'emergency_phone', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'emergency_phone',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   emergencyPhone: string | null;
 
-  @Column({ name: 'emergency_relation', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'emergency_relation',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   emergencyRelation: string | null;
 
   @Column({ name: 'referred_by', type: 'varchar', length: 255, nullable: true })

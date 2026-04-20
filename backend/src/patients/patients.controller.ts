@@ -64,9 +64,6 @@ export class PatientsController {
   @Patch(':id/deactivate')
   async deactivate(@Param('id', ParseUUIDPipe) id: string) {
     const patient = await this.patientsService.deactivate(id);
-    return ResponseWrapper.success(
-      patient,
-      'Patient deactivated successfully',
-    );
+    return ResponseWrapper.success(patient, 'Patient deactivated successfully');
   }
 }

@@ -7,10 +7,8 @@ import {
   Index,
 } from 'typeorm';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
-import { Role } from 'src/user/enum/role.enum';
-import { UserLevel } from '../enum/UserLevel';
+import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { AccountStatus } from '../enum/AccountStatus';
-
 
 @Entity({ name: 'users' })
 @Index(['status'])
@@ -24,6 +22,9 @@ export class User {
   @Column({ name: 'name', type: 'varchar', length: 255, nullable: true })
   name?: string;
 
+  @Column({ name: 'phone', type: 'varchar', length: 20, nullable: true })
+  phone?: string;
+
   @Column({ name: 'avatar_url', type: 'varchar', length: 500, nullable: true })
   avatarUrl?: string;
 
@@ -33,10 +34,19 @@ export class User {
   @Column({ name: 'password_reset_token', type: 'varchar', nullable: true })
   passwordResetToken?: string | null;
 
-  @Column({ name: 'password_reset_expires', type: 'timestamptz', nullable: true })
+  @Column({
+    name: 'password_reset_expires',
+    type: 'timestamptz',
+    nullable: true,
+  })
   passwordResetExpires?: Date | null;
 
-  @Column({ name: 'provider', type: 'enum', enum: ProviderEnum, default: ProviderEnum.LOCAL })
+  @Column({
+    name: 'provider',
+    type: 'enum',
+    enum: ProviderEnum,
+    default: ProviderEnum.LOCAL,
+  })
   provider: ProviderEnum;
 
   /**
@@ -46,11 +56,18 @@ export class User {
   @Column({ name: 'refresh_token', type: 'varchar', nullable: true })
   refreshToken?: string | null;
 
-  @Column({ name: 'role', type: 'enum', enum: Role, default: Role.ADMIN })
-  role: Role;
-
-  @Column({ name: 'level', type: 'enum', enum: UserLevel, default: UserLevel.BEGINNER })
-  level: UserLevel;
+  /**
+   * Global role — only super_admin has a value here.
+   * Normal users have null (their access is determined by organization_admins / user_locations).
+   */
+  @Column({
+    name: 'global_role',
+    type: 'enum',
+    enum: GlobalRole,
+    nullable: true,
+    default: null,
+  })
+  globalRole: GlobalRole | null;
 
   /**
    * Account status for lifecycle management.
@@ -60,9 +77,25 @@ export class User {
     name: 'status',
     type: 'enum',
     enum: AccountStatus,
-    default: AccountStatus.ACTIVE
+    default: AccountStatus.ACTIVE,
   })
   status: AccountStatus;
+
+  /**
+   * Last accessed organization — for UX continuity.
+   */
+  @Column({
+    name: 'last_accessed_organization_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  lastAccessedOrganizationId?: string | null;
+
+  /**
+   * Last accessed location — for UX continuity.
+   */
+  @Column({ name: 'last_accessed_location_id', type: 'uuid', nullable: true })
+  lastAccessedLocationId?: string | null;
 
   /**
    * Timestamp when account was soft-deleted.
@@ -88,4 +121,3 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }
-

@@ -4,8 +4,8 @@ import { SessionService } from './session.service';
 import { UserSession } from './entities/user-session.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([UserSession])],
-    providers: [SessionService],
-    exports: [SessionService, TypeOrmModule],
+  imports: [TypeOrmModule.forFeature([UserSession])],
+  providers: [SessionService],
+  exports: [SessionService, TypeOrmModule],
 })
-export class SessionModule { }
+export class SessionModule {}

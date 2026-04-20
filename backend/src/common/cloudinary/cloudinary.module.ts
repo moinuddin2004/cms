@@ -5,8 +5,7 @@ import { AppLogger } from '../services/logger.service';
 
 @Global()
 @Module({
-    providers: [CloudinaryProvider, CloudinaryService, AppLogger],
-    exports: [CloudinaryService],
+  providers: [CloudinaryProvider, CloudinaryService, AppLogger],
+  exports: [CloudinaryService],
 })
-export class CloudinaryModule { }
-
+export class CloudinaryModule {}

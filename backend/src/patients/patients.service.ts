@@ -8,7 +8,11 @@ import { Repository, Not } from 'typeorm';
 import { Patient } from './entities/patient.entity';
 import { CreatePatientDto } from './dto/request/create-patient.dto';
 import { UpdatePatientDto } from './dto/request/update-patient.dto';
-import { PatientQueryDto, PatientSortBy, SortOrder } from './dto/request/patient-query.dto';
+import {
+  PatientQueryDto,
+  PatientSortBy,
+  SortOrder,
+} from './dto/request/patient-query.dto';
 import { PatientResponseDto } from './dto/response/patient-response.dto';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { AppLogger } from 'src/common/services/logger.service';
@@ -29,10 +33,7 @@ export class PatientsService {
     const result = await this.patientRepository
       .createQueryBuilder('patient')
       .select('patient.patientId', 'patientId')
-      .orderBy(
-        "CAST(SUBSTRING(patient.patient_id FROM 4) AS INTEGER)",
-        'DESC',
-      )
+      .orderBy('CAST(SUBSTRING(patient.patient_id FROM 4) AS INTEGER)', 'DESC')
       .limit(1)
       .getRawOne();
 
@@ -168,10 +169,7 @@ export class PatientsService {
   /**
    * Updates a patient with phone uniqueness validation.
    */
-  async update(
-    id: string,
-    dto: UpdatePatientDto,
-  ): Promise<PatientResponseDto> {
+  async update(id: string, dto: UpdatePatientDto): Promise<PatientResponseDto> {
     this.logger.info(`Updating patient: ${id}`, PatientsService.name);
 
     const patient = await this.patientRepository.findOne({ where: { id } });

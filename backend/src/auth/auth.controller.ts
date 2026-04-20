@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  Query,
   Req,
   Res,
   UseGuards,
@@ -21,21 +20,52 @@ import { AuthGuard } from '@nestjs/passport';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/publicDecorator';
+import { ContextFree } from 'src/common/decorators/context-free.decorator';
 import { RateLimiterGuard, RateLimit } from './guards/rate-limiter.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { SessionService } from '../session/session.service';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsBoolean,
+  MinLength,
+  IsUUID,
+} from 'class-validator';
 
 /**
- * DTOs for new endpoints
+ * DTOs for password management endpoints
  */
-class ChangePasswordCommand {
+class ChangePasswordDto {
+  @IsNotEmpty()
+  @IsString()
   currentPassword: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(6)
   newPassword: string;
+
+  @IsOptional()
+  @IsBoolean()
   revokeOtherSessions?: boolean;
 }
 
-class AddPasswordCommand {
+class AddPasswordDto {
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(6)
   newPassword: string;
+}
+
+class SelectLocationDto {
+  @IsNotEmpty()
+  @IsUUID()
+  organizationId: string;
+
+  @IsNotEmpty()
+  @IsUUID()
+  locationId: string;
 }
 
 @Controller('auth')
@@ -43,7 +73,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
-  ) { }
+  ) {}
 
   /**
    * Register a new user with email/password.
@@ -51,7 +81,7 @@ export class AuthController {
   @Public()
   @Post('register')
   @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 5, windowSeconds: 3600 }) // 5 signups per hour
+  @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   async register(@Body() body: RegisterRequestDto) {
     const result = await this.authService.register(body);
     return ResponseWrapper.success(result, 'Registration successful');
@@ -59,11 +89,12 @@ export class AuthController {
 
   /**
    * Login with email/password.
+   * Returns user profile, access token, and location context.
    */
   @Public()
   @Post('login')
   @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 5, windowSeconds: 900 }) // 5 attempts per 15 min
+  @RateLimit({ maxAttempts: 5, windowSeconds: 900 })
   async login(
     @Body() body: LoginRequestDto,
     @Req() req: Request,
@@ -74,7 +105,37 @@ export class AuthController {
   }
 
   /**
-   * Refresh access token.
+   * Select a location after login (when user has multiple accessible locations).
+   */
+  @ContextFree()
+  @Post('select-location')
+  @UseGuards(JwtAuthGuard)
+  async selectLocation(@Body() body: SelectLocationDto, @Req() req: any) {
+    const result = await this.authService.selectLocation(
+      req.user.uuid,
+      body.organizationId,
+      body.locationId,
+    );
+    return ResponseWrapper.success(result, 'Location selected');
+  }
+
+  /**
+   * Switch to a different location during an active session.
+   */
+  @ContextFree()
+  @Post('switch-location')
+  @UseGuards(JwtAuthGuard)
+  async switchLocation(@Body() body: SelectLocationDto, @Req() req: any) {
+    const result = await this.authService.switchLocation(
+      req.user.uuid,
+      body.organizationId,
+      body.locationId,
+    );
+    return ResponseWrapper.success(result, 'Location switched');
+  }
+
+  /**
+   * Refresh access token using httpOnly cookie.
    */
   @Public()
   @Post('refresh')
@@ -87,8 +148,9 @@ export class AuthController {
   }
 
   /**
-   * Get current user info.
+   * Get current user info with accessible locations.
    */
+  @ContextFree()
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async me(@Req() req: any) {
@@ -99,11 +161,9 @@ export class AuthController {
   /**
    * Logout from current session.
    */
+  @Public()
   @Post('logout')
-  async logout(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.logout(req, res);
     return ResponseWrapper.success(result, 'Logged out successfully');
   }
@@ -111,12 +171,10 @@ export class AuthController {
   /**
    * Logout from all devices/sessions.
    */
+  @ContextFree()
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
-  async logoutAll(
-    @Req() req: any,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async logoutAll(@Req() req: any, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.logoutAll(req.user.uuid, req, res);
     return ResponseWrapper.success(result, 'Logged out from all devices');
   }
@@ -126,17 +184,15 @@ export class AuthController {
   /**
    * Get all active sessions for current user.
    */
+  @ContextFree()
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
   async getSessions(@Req() req: any) {
     const sessions = await this.sessionService.getUserSessions(req.user.uuid);
 
-    // Get current session ID from cookie
-    const currentSessionCookie = req.cookies['refresh_token'];
-    const currentSessionId = currentSessionCookie ? currentSessionCookie.split(':')[0] : null;
+    const currentSessionId = req.user.sessionId;
 
-    // Map sessions to DTOs with isCurrent flag
-    const sessionsDto = sessions.map(session => ({
+    const sessionsDto = sessions.map((session) => ({
       id: session.uuid,
       device: session.device,
       browser: session.browser,
@@ -154,13 +210,10 @@ export class AuthController {
   /**
    * Revoke a specific session.
    */
+  @ContextFree()
   @Delete('sessions/:id')
   @UseGuards(JwtAuthGuard)
-  async revokeSession(
-    @Param('id') sessionId: string,
-    @Req() req: any,
-  ) {
-    // Verify the session belongs to the current user
+  async revokeSession(@Param('id') sessionId: string, @Req() req: any) {
     const session = await this.sessionService.getSessionById(sessionId);
 
     if (!session || session.userId !== req.user.uuid) {
@@ -174,14 +227,19 @@ export class AuthController {
   /**
    * Revoke all sessions except current.
    */
+  @ContextFree()
   @Post('sessions/revoke-all')
   @UseGuards(JwtAuthGuard)
   async revokeAllSessions(@Req() req: any) {
-    const currentSessionCookie = req.cookies['refresh_token'];
-    const currentSessionId = currentSessionCookie ? currentSessionCookie.split(':')[0] : null;
-
-    const count = await this.sessionService.revokeAllSessions(req.user.uuid, currentSessionId);
-    return ResponseWrapper.success({ sessionsRevoked: count }, 'All other sessions revoked');
+    const currentSessionId = req.user.sessionId;
+    const count = await this.sessionService.revokeAllSessions(
+      req.user.uuid,
+      currentSessionId,
+    );
+    return ResponseWrapper.success(
+      { sessionsRevoked: count },
+      'All other sessions revoked',
+    );
   }
 
   // ==================== PASSWORD MANAGEMENT ====================
@@ -189,12 +247,10 @@ export class AuthController {
   /**
    * Change password for authenticated user.
    */
+  @ContextFree()
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
-  async changePassword(
-    @Body() body: ChangePasswordCommand,
-    @Req() req: any,
-  ) {
+  async changePassword(@Body() body: ChangePasswordDto, @Req() req: any) {
     const result = await this.authService.changePassword(
       req.user.uuid,
       body.currentPassword,
@@ -208,12 +264,10 @@ export class AuthController {
   /**
    * Add password to OAuth-only account.
    */
+  @ContextFree()
   @Post('add-password')
   @UseGuards(JwtAuthGuard)
-  async addPassword(
-    @Body() body: AddPasswordCommand,
-    @Req() req: any,
-  ) {
+  async addPassword(@Body() body: AddPasswordDto, @Req() req: any) {
     const result = await this.authService.addPassword(
       req.user.uuid,
       body.newPassword,
@@ -228,7 +282,7 @@ export class AuthController {
   @Public()
   @Post('forgot-password')
   @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 }) // 3 requests per hour
+  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
   async forgotPassword(
     @Body() dto: ForgotPasswordRequestDto,
     @Req() req: Request,
@@ -254,12 +308,8 @@ export class AuthController {
     return ResponseWrapper.success(result, 'Password reset successfully');
   }
 
-
   // ==================== OAUTH PROVIDERS ====================
 
-  /**
-   * Initiate Google OAuth login.
-   */
   @Public()
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -267,9 +317,6 @@ export class AuthController {
     return ResponseWrapper.success(null, 'Redirecting to Google...');
   }
 
-  /**
-   * Google OAuth callback.
-   */
   @Public()
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
@@ -279,7 +326,6 @@ export class AuthController {
       req,
     );
 
-    // Set session cookie
     const cookieValue = `${sessionId}:${refreshToken}`;
     res.cookie('refresh_token', cookieValue, {
       httpOnly: true,
@@ -295,9 +341,6 @@ export class AuthController {
     );
   }
 
-  /**
-   * Initiate GitHub OAuth login.
-   */
   @Public()
   @Get('github')
   @UseGuards(AuthGuard('github'))
@@ -305,9 +348,6 @@ export class AuthController {
     return ResponseWrapper.success(null, 'Redirecting to GitHub...');
   }
 
-  /**
-   * GitHub OAuth callback.
-   */
   @Public()
   @Get('github/callback')
   @UseGuards(AuthGuard('github'))
@@ -317,7 +357,6 @@ export class AuthController {
       req,
     );
 
-    // Set session cookie
     const cookieValue = `${sessionId}:${refreshToken}`;
     res.cookie('refresh_token', cookieValue, {
       httpOnly: true,

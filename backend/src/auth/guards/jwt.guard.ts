@@ -1,4 +1,8 @@
-import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { PUBLIC_ROUTES } from '../constants/public-routes';
 import { Reflector } from '@nestjs/core';
@@ -20,12 +24,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
       if (routeMethod !== method) return false;
 
-
       const regexPattern =
         '^' +
-        routePath
-          .replace(/\*\*/g, '[^\\s/]+')
-          .replace(/\//g, '\\/') +
+        routePath.replace(/\*\*/g, '[^\\s/]+').replace(/\//g, '\\/') +
         '$';
 
       const regex = new RegExp(regexPattern);
@@ -42,37 +43,68 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
     if (err || !user) {
       const request = context.switchToHttp().getRequest<Request>();
-      const authHeader = request.headers['authorization'] || request.headers['Authorization'];
+      const authHeader =
+        request.headers['authorization'] || request.headers['Authorization'];
 
-      if (!authHeader || typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-        throw new UnauthorizedException('No token provided. Please include a valid JWT token in the Authorization header.');
+      if (
+        !authHeader ||
+        typeof authHeader !== 'string' ||
+        !authHeader.startsWith('Bearer ')
+      ) {
+        throw new UnauthorizedException(
+          'No token provided. Please include a valid JWT token in the Authorization header.',
+        );
       }
 
       // Check for expired token in info object
-      if (info?.name === 'TokenExpiredError' || info?.message === 'jwt expired') {
-        throw new UnauthorizedException('Token has expired. Please refresh your token.');
+      if (
+        info?.name === 'TokenExpiredError' ||
+        info?.message === 'jwt expired'
+      ) {
+        throw new UnauthorizedException(
+          'Token has expired. Please refresh your token.',
+        );
       }
 
       // Check for expired token in error object
-      if (err?.name === 'TokenExpiredError' || err?.message?.includes('expired')) {
-        throw new UnauthorizedException('Token has expired. Please refresh your token.');
+      if (
+        err?.name === 'TokenExpiredError' ||
+        err?.message?.includes('expired')
+      ) {
+        throw new UnauthorizedException(
+          'Token has expired. Please refresh your token.',
+        );
       }
 
       // Check for invalid token
-      if (info?.name === 'JsonWebTokenError' || err?.name === 'JsonWebTokenError') {
-        throw new UnauthorizedException('Invalid token. Please provide a valid JWT token.');
+      if (
+        info?.name === 'JsonWebTokenError' ||
+        err?.name === 'JsonWebTokenError'
+      ) {
+        throw new UnauthorizedException(
+          'Invalid token. Please provide a valid JWT token.',
+        );
       }
 
       // Check for other error messages
       if (info?.message) {
-        throw new UnauthorizedException(`Authentication failed: ${info.message}`);
+        throw new UnauthorizedException(
+          `Authentication failed: ${info.message}`,
+        );
       }
 
       if (err?.message && !err.message.includes('expired')) {
-        throw new UnauthorizedException(`Authentication failed: ${err.message}`);
+        throw new UnauthorizedException(
+          `Authentication failed: ${err.message}`,
+        );
       }
 
-      throw err || new UnauthorizedException('Authentication failed. Please provide a valid token.');
+      throw (
+        err ||
+        new UnauthorizedException(
+          'Authentication failed. Please provide a valid token.',
+        )
+      );
     }
     return user;
   }

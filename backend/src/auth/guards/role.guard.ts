@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PUBLIC_ROUTES } from '../constants/public-routes';
 import { ROLE_BASED_ROUTES } from '../constants/role-routes';
@@ -6,7 +11,7 @@ import { Role } from 'src/user/enum/role.enum';
 
 @Injectable()
 export class RoleAuthGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<any>();
@@ -31,7 +36,7 @@ export class RoleAuthGuard implements CanActivate {
     };
 
     // Check Public Routes
-    const isPublic = PUBLIC_ROUTES.some(route => {
+    const isPublic = PUBLIC_ROUTES.some((route) => {
       if (route.method.toUpperCase() !== method) return false;
 
       const regex = buildRegex(route.path);
@@ -41,7 +46,7 @@ export class RoleAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     // Check Role-based Routes
-    const route = ROLE_BASED_ROUTES.find(r => {
+    const route = ROLE_BASED_ROUTES.find((r) => {
       if (r.method.toUpperCase() !== method) return false;
 
       const regex = buildRegex(r.path);
@@ -55,7 +60,9 @@ export class RoleAuthGuard implements CanActivate {
       console.log('Is Public:', isPublic);
       console.log('Searching in ROLE_BASED_ROUTES...');
       // Optional: log if we find something close
-      const closeMatch = ROLE_BASED_ROUTES.find(r => r.path.includes('literacy'));
+      const closeMatch = ROLE_BASED_ROUTES.find((r) =>
+        r.path.includes('literacy'),
+      );
       console.log('Close match found:', closeMatch);
 
       throw new ForbiddenException('Access rule not defined for this route');

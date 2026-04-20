@@ -1,10 +1,13 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { HeadContent, Outlet, Scripts, createRootRoute, useNavigate, useLocation } from '@tanstack/react-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
-
+import { Toaster } from 'sonner';
 import { queryClient } from '@/lib/query-client';
+import apiClient from '@/lib/api';
 import appCss from '../styles.css?url';
+
+const PUBLIC_PATHS = ['/login', '/register', '/forgot-password', '/reset-password', '/select-location'];
 
 export const Route = createRootRoute({
   head: () => ({
@@ -47,24 +50,104 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  const { accessToken } = useAuthStore();
+  const { isAuthenticated, setAuth, clearAuth, requiresLocationSelection, requiresOrgSelection, activeLocationId } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isInitializing, setIsInitializing] = useState(true);
 
+  // On mount, attempt silent refresh to restore session from cookie
   useEffect(() => {
-    const isPublicRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
-    
-    if (!accessToken && !isPublicRoute && location.pathname !== '/') {
+    const tryRestoreSession = async () => {
+      if (isAuthenticated) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const res = await apiClient.post('/auth/refresh');
+        if (res.data?.isSuccess && res.data.data) {
+          const {
+            user,
+            accessToken,
+            isSuperAdmin,
+            accessSource,
+            requiresOrgSelection: reqOrgSel,
+            requiresLocationSelection: reqLocSel,
+            accessibleOrganizations,
+            activeOrganizationId,
+            activeLocationId: actLocId,
+          } = res.data.data;
+          
+          setAuth({
+            user,
+            accessToken,
+            isSuperAdmin,
+            accessSource,
+            requiresOrgSelection: reqOrgSel,
+            requiresLocationSelection: reqLocSel,
+            accessibleOrganizations,
+            activeOrganizationId,
+            activeLocationId: actLocId,
+          });
+        }
+      } catch {
+        // No valid session — stay unauthenticated
+        clearAuth();
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    tryRestoreSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Route protection + location context validation
+  useEffect(() => {
+    if (isInitializing) return;
+
+    const isPublicRoute = PUBLIC_PATHS.some(path => location.pathname.startsWith(path));
+    const isSelectLocationPage = location.pathname === '/select-location';
+
+    const needsSelection = requiresOrgSelection || requiresLocationSelection;
+
+    if (!isAuthenticated && !isPublicRoute && location.pathname !== '/') {
       navigate({ to: '/login', replace: true });
-    } else if (accessToken && isPublicRoute) {
-      // If user is logged in but tries to access login page, redirect to their panel or dashboard
-      navigate({ to: '/reports', replace: true }); 
+    } else if (isAuthenticated && isPublicRoute && !isSelectLocationPage) {
+      navigate({ to: '/dashboard', replace: true });
+    } else if (isAuthenticated && !isPublicRoute && !activeLocationId && needsSelection) {
+      // Authenticated but no location selected — redirect to selector
+      navigate({ to: '/select-location' as any, replace: true });
+    } else if (isAuthenticated && isSelectLocationPage && activeLocationId && !needsSelection) {
+      // Already has a location selected — skip selector
+      navigate({ to: '/dashboard', replace: true });
     }
-  }, [accessToken, location.pathname, navigate]);
+  }, [isAuthenticated, location.pathname, navigate, isInitializing, activeLocationId, requiresLocationSelection, requiresOrgSelection]);
+
+  // Show nothing while initializing (attempting silent refresh)
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-pulse">
+            <span className="text-white font-bold text-lg">M</span>
+          </div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{
+          duration: 4000,
+        }}
+      />
     </QueryClientProvider>
   );
 }

@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 
 /** Trend direction for stat cards */
 export type TrendDirection = 'up' | 'down';
@@ -10,7 +9,7 @@ export interface StatCardData {
     subLabel: string;
     percentageChange: number;
     trend: TrendDirection;
-    icon: ReactNode;
+    icon: string;
 }
 
 /** Single data point for the analytics chart */

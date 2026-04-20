@@ -10,20 +10,27 @@ import { LoginRequestDto } from './dto/request/login-request.dto';
 import { UserService } from 'src/user/user.service';
 import { AuthTokenDto } from './dto/response/auth.token.dto';
 import { JwtTokenService } from './jwt.service';
-import { JwtService } from '@nestjs/jwt';
 import { MailService } from 'src/common/services/mail.service';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { ValidationFailedException } from 'src/common/exceptions/ValidationFailedException';
 import { Transactional } from 'src/common/decorators/TransactionalDecorator';
 import { AppLogger } from 'src/common/services/logger.service';
 import { ProviderEnum } from './enum/ProviderEnum';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../user/entities/user.model';
+import { User } from '../user/entities/user.entity';
 import { Response, Request } from 'express';
 import { SecurityLogService } from './security-log.service';
 import { AccountStatus } from '../user/enum/AccountStatus';
 import { SessionService } from '../session/session.service';
+import {
+  AuthorizationService,
+  AccessibleOrganization,
+} from './services/authorization.service';
+
+const BCRYPT_SALT_ROUNDS = 12;
+const PASSWORD_RESET_EXPIRY_MINUTES = 15;
 
 /**
  * Cookie options for refresh token.
@@ -37,8 +44,23 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
 };
 
 /**
- * Enhanced AuthService with session management, security logging,
- * and account status validation.
+ * Login response with location selection context.
+ */
+export interface LoginResponse {
+  user: any;
+  accessToken: string;
+  isSuperAdmin: boolean;
+  accessSource: 'super_admin' | 'owner' | 'employee' | null;
+  requiresOrgSelection: boolean;
+  requiresLocationSelection: boolean;
+  accessibleOrganizations: AccessibleOrganization[];
+  activeOrganizationId: string | null;
+  activeLocationId: string | null;
+}
+
+/**
+ * Production-grade AuthService with session management, security logging,
+ * crypto-based password reset, account status validation, and location selection.
  */
 @Injectable()
 export class AuthService {
@@ -46,13 +68,13 @@ export class AuthService {
     private readonly userService: UserService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly jwtService: JwtService,
     private readonly jwtTokenService: JwtTokenService,
     private readonly mailService: MailService,
     private readonly logger: AppLogger,
     private readonly dataSource: DataSource,
     private readonly securityLogService: SecurityLogService,
     private readonly sessionService: SessionService,
+    private readonly authorizationService: AuthorizationService,
   ) { }
 
   /**
@@ -79,9 +101,14 @@ export class AuthService {
 
   /**
    * Login with email and password.
-   * Creates a new session and returns access token with session-specific refresh token in cookie.
+   * Creates a new session, resolves accessible locations, and
+   * returns whether location selection is required.
    */
-  async login(dto: LoginRequestDto, req: Request, res: Response): Promise<AuthTokenDto> {
+  async login(
+    dto: LoginRequestDto,
+    req: Request,
+    res: Response,
+  ): Promise<LoginResponse> {
     this.logger.info(`Login attempt for: ${dto.email}`, AuthService.name);
 
     // Validate user credentials
@@ -90,16 +117,68 @@ export class AuthService {
     // Check account status
     this.validateAccountStatus(user, req);
 
-    // Create a new session
+    // Create a new session (enforces max 5 sessions)
     const { session, refreshToken } = await this.sessionService.createSession(
       user.uuid,
       req,
     );
 
-    // Generate access token
-    const accessToken = await this.generateAccessToken(user);
+    // Resolve user's accessible organizations and locations
+    const accessInfo = await this.authorizationService.resolveUserAccess(
+      user.uuid,
+    );
 
-    // Store session ID and refresh token in cookie
+    // Smart selector logic
+    const orgCount = accessInfo.accessibleOrganizations.length;
+    const totalLocations = accessInfo.accessibleOrganizations.reduce(
+      (count, org) => count + org.locations.length,
+      0,
+    );
+
+    // Determine what selection the user needs
+    let requiresOrgSelection = false;
+    let requiresLocationSelection = false;
+    let activeOrgId: string | null = null;
+    let activeLocId: string | null = null;
+
+    if (accessInfo.isSuperAdmin) {
+      // Super admin always picks org first, then location
+      requiresOrgSelection = orgCount > 0;
+      requiresLocationSelection = false; // will pick after org
+    } else if (orgCount === 0) {
+      // No access at all
+    } else if (orgCount === 1) {
+      const org = accessInfo.accessibleOrganizations[0];
+      activeOrgId = org.id;
+      if (org.locations.length === 1) {
+        // Single org, single location → auto-select
+        activeLocId = org.locations[0].id;
+        await this.userService.updateLastAccessed(
+          user.uuid,
+          activeOrgId,
+          activeLocId,
+        );
+      } else if (org.locations.length > 1) {
+        // Single org, multiple locations → show location selector
+        requiresLocationSelection = true;
+      }
+    } else {
+      // Multiple orgs → show org selector first
+      requiresOrgSelection = true;
+    }
+
+    // Use last accessed as fallback if no auto-selection happened
+    if (!activeOrgId && accessInfo.defaultOrganizationId) {
+      activeOrgId = accessInfo.defaultOrganizationId;
+    }
+    if (!activeLocId && accessInfo.defaultLocationId) {
+      activeLocId = accessInfo.defaultLocationId;
+    }
+
+    // Generate access token with globalRole
+    const accessToken = await this.generateAccessToken(user, session.uuid);
+
+    // Store session ID and refresh token in httpOnly cookie
     this.setSessionCookie(res, session.uuid, refreshToken);
 
     // Log successful login
@@ -107,7 +186,96 @@ export class AuthService {
 
     this.logger.info(`Login successful for: ${dto.email}`, AuthService.name);
 
-    return AuthTokenDto.toDto({ accessToken, refreshToken, sessionId: session.uuid }, user);
+    return {
+      user: AuthTokenDto.toDto(accessToken, user).user,
+      accessToken,
+      isSuperAdmin: accessInfo.isSuperAdmin,
+      accessSource: accessInfo.accessSource,
+      requiresOrgSelection,
+      requiresLocationSelection,
+      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      activeOrganizationId: activeOrgId,
+      activeLocationId: activeLocId,
+    };
+  }
+
+  /**
+   * Select a location after login.
+   * Called when a user has multiple accessible locations.
+   */
+  async selectLocation(
+    userId: string,
+    organizationId: string,
+    locationId: string,
+  ): Promise<{ activeOrganizationId: string; activeLocationId: string }> {
+    // Validate access
+    const hasAccess = await this.authorizationService.validateAccess(
+      userId,
+      organizationId,
+      locationId,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this location');
+    }
+
+    // Save last accessed context
+    await this.userService.updateLastAccessed(
+      userId,
+      organizationId,
+      locationId,
+    );
+
+    return {
+      activeOrganizationId: organizationId,
+      activeLocationId: locationId,
+    };
+  }
+
+  /**
+   * Switch to a different location during an active session.
+   * Re-validates access and updates last accessed context.
+   */
+  async switchLocation(
+    userId: string,
+    organizationId: string,
+    locationId: string,
+  ): Promise<{
+    activeOrganizationId: string;
+    activeLocationId: string;
+    permissions: any;
+  }> {
+    // Validate access
+    const hasAccess = await this.authorizationService.validateAccess(
+      userId,
+      organizationId,
+      locationId,
+    );
+
+    if (!hasAccess) {
+      throw new ForbiddenException('You do not have access to this location');
+    }
+
+    // Get permissions at new location
+    const permissions =
+      await this.authorizationService.getUserPermissionsAtLocation(
+        userId,
+        organizationId,
+        locationId,
+      );
+
+    // Save last accessed context
+    await this.userService.updateLastAccessed(
+      userId,
+      organizationId,
+      locationId,
+    );
+
+    return {
+      activeOrganizationId: organizationId,
+      activeLocationId: locationId,
+      permissions,
+    };
   }
 
   /**
@@ -119,7 +287,6 @@ export class AuthService {
     const sessionId = this.getSessionIdFromCookie(req);
 
     if (sessionId) {
-      // Get session to find user
       const session = await this.sessionService.getSessionById(sessionId);
       if (session) {
         await this.sessionService.revokeSession(sessionId);
@@ -138,18 +305,27 @@ export class AuthService {
   /**
    * Logout from all devices/sessions.
    */
-  async logoutAll(userId: string, req: Request, res: Response): Promise<{ message: string; sessionsRevoked: number }> {
-    this.logger.info(`Logout all attempt for user: ${userId}`, AuthService.name);
+  async logoutAll(
+    userId: string,
+    req: Request,
+    res: Response,
+  ): Promise<{ message: string; sessionsRevoked: number }> {
+    this.logger.info(
+      `Logout all attempt for user: ${userId}`,
+      AuthService.name,
+    );
 
     const count = await this.sessionService.revokeAllSessions(userId);
 
-    // Log the event
     await this.securityLogService.logLogoutAll(userId, count, req);
 
     // Clear current session cookie
     this.clearSessionCookie(res);
 
-    this.logger.info(`Logout all successful: ${count} sessions revoked`, AuthService.name);
+    this.logger.info(
+      `Logout all successful: ${count} sessions revoked`,
+      AuthService.name,
+    );
 
     return { message: 'Logged out from all devices', sessionsRevoked: count };
   }
@@ -158,7 +334,7 @@ export class AuthService {
    * Refresh access token using session-specific refresh token.
    * Implements token rotation for enhanced security.
    */
-  async refreshTokens(req: Request, res: Response): Promise<AuthTokenDto> {
+  async refreshTokens(req: Request, res: Response): Promise<LoginResponse> {
     const { sessionId, refreshToken } = this.getSessionDataFromCookie(req);
 
     if (!sessionId || !refreshToken) {
@@ -167,7 +343,10 @@ export class AuthService {
     }
 
     // Validate session and refresh token
-    const session = await this.sessionService.validateSession(sessionId, refreshToken);
+    const session = await this.sessionService.validateSession(
+      sessionId,
+      refreshToken,
+    );
 
     if (!session) {
       this.clearSessionCookie(res);
@@ -198,17 +377,48 @@ export class AuthService {
     }
 
     // Generate new access token
-    const accessToken = await this.generateAccessToken(user);
+    const accessToken = await this.generateAccessToken(user, sessionId);
 
     // Update cookie with new refresh token
     this.setSessionCookie(res, sessionId, rotated.refreshToken);
 
-    return AuthTokenDto.toDto({ accessToken, refreshToken: rotated.refreshToken, sessionId }, user);
+    // Resolve access info for the refreshed user
+    const accessInfo = await this.authorizationService.resolveUserAccess(
+      user.uuid,
+    );
+    const orgCount = accessInfo.accessibleOrganizations.length;
+    const totalLocations = accessInfo.accessibleOrganizations.reduce(
+      (count, org) => count + org.locations.length,
+      0,
+    );
+
+    const hasActiveContext = !!(
+      user.lastAccessedOrganizationId && user.lastAccessedLocationId
+    );
+
+    return {
+      user: AuthTokenDto.toDto(accessToken, user).user,
+      accessToken,
+      isSuperAdmin: accessInfo.isSuperAdmin,
+      accessSource: accessInfo.accessSource,
+      requiresOrgSelection:
+        !hasActiveContext &&
+        (accessInfo.isSuperAdmin ? orgCount > 0 : orgCount > 1),
+      requiresLocationSelection:
+        !hasActiveContext &&
+        !accessInfo.isSuperAdmin &&
+        orgCount === 1 &&
+        totalLocations > 1,
+      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      activeOrganizationId:
+        user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
+      activeLocationId:
+        user.lastAccessedLocationId || accessInfo.defaultLocationId,
+    };
   }
 
   /**
    * Handle OAuth login/signup.
-   * Creates or links OAuth account and creates a session.
    */
   async handleOAuthLogin(
     profile: {
@@ -218,7 +428,12 @@ export class AuthService {
       providerId?: string;
     },
     req: Request,
-  ): Promise<{ tokens: AuthTokenDto; refreshToken: string; sessionId: string; isNewUser: boolean }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    sessionId: string;
+    isNewUser: boolean;
+  }> {
     this.logger.info(
       `OAuth login from ${profile.provider} for ${profile.email}`,
       AuthService.name,
@@ -243,7 +458,7 @@ export class AuthService {
     );
 
     // Generate access token
-    const accessToken = await this.generateAccessToken(user);
+    const accessToken = await this.generateAccessToken(user, session.uuid);
 
     // Log OAuth login
     await this.securityLogService.logOAuthLogin(
@@ -254,12 +469,8 @@ export class AuthService {
       isNewUser,
     );
 
-    const tokens = AuthTokenDto.toDto({ accessToken, refreshToken, sessionId: session.uuid }, user);
-
-    return { tokens, refreshToken, sessionId: session.uuid, isNewUser };
+    return { accessToken, refreshToken, sessionId: session.uuid, isNewUser };
   }
-
-
 
   /**
    * Initiate password reset flow.
@@ -273,23 +484,25 @@ export class AuthService {
 
     const user = await this.userRepository.findOneBy({ email });
     if (!user) {
-      // Don't reveal if email exists
       await this.securityLogService.logPasswordResetRequest(email, req);
       return { message: 'If the email exists, a reset link will be sent' };
     }
 
-    const token = this.jwtService.sign(
-      { userUuid: user.uuid },
-      { secret: process.env.RESET_TOKEN_SECRET, expiresIn: '15m' },
-    );
+    const rawToken = crypto.randomUUID();
+    const tokenHash = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
 
-    const passwordResetExpires = new Date(Date.now() + 15 * 60 * 1000);
+    const passwordResetExpires = new Date(
+      Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000,
+    );
     await this.userRepository.update(user.uuid, {
-      passwordResetToken: token,
+      passwordResetToken: tokenHash,
       passwordResetExpires,
     });
 
-    await this.mailService.sendPasswordReset(user.email, token);
+    await this.mailService.sendPasswordReset(user.email, rawToken);
     await this.securityLogService.logPasswordResetRequest(email, req);
 
     this.logger.info(
@@ -301,17 +514,19 @@ export class AuthService {
 
   /**
    * Reset password using token.
-   * Invalidates all existing sessions for security.
    */
   async resetPassword(token: string, newPassword: string, req?: Request) {
     this.logger.debug(`Resetting password with token`, AuthService.name);
 
-    let payload: any;
-    try {
-      payload = this.jwtService.verify(token, {
-        secret: process.env.RESET_TOKEN_SECRET,
-      });
-    } catch {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.passwordResetToken = :tokenHash', { tokenHash })
+      .andWhere('user.passwordResetExpires > :now', { now: new Date() })
+      .getOne();
+
+    if (!user) {
       this.logger.warn(
         'Reset password failed due to invalid/expired token',
         AuthService.name,
@@ -319,26 +534,7 @@ export class AuthService {
       throw new ValidationFailedException('Invalid or expired token');
     }
 
-    const user = await this.userRepository.findOneBy({
-      uuid: payload.userUuid,
-    });
-    if (!user) throw new NotFoundException('User not found');
-
-    if (
-      !user.passwordResetToken ||
-      user.passwordResetToken !== token ||
-      !user.passwordResetExpires ||
-      user.passwordResetExpires.getTime() < Date.now()
-    ) {
-      this.logger.warn(
-        'Token mismatch or expired during password reset',
-        AuthService.name,
-      );
-      throw new ValidationFailedException('Invalid or expired token');
-    }
-
-    // Update password
-    user.password = await bcrypt.hash(newPassword, 10);
+    user.password = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     user.passwordResetToken = null;
     user.passwordResetExpires = null;
     await this.userRepository.update(user.uuid, {
@@ -347,14 +543,12 @@ export class AuthService {
       passwordResetExpires: null,
     });
 
-    // Revoke all sessions for security
     const revokedCount = await this.sessionService.revokeAllSessions(user.uuid);
     this.logger.info(
       `Revoked ${revokedCount} sessions after password reset for user: ${user.uuid}`,
       AuthService.name,
     );
 
-    // Log the event
     await this.securityLogService.logPasswordResetSuccess(user.uuid, req);
 
     this.logger.info(
@@ -377,7 +571,6 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({ uuid: userId });
     if (!user) throw new NotFoundException('User not found');
 
-    // Verify current password
     if (user.password) {
       const isValid = await bcrypt.compare(currentPassword, user.password);
       if (!isValid) {
@@ -385,23 +578,24 @@ export class AuthService {
       }
     }
 
-    // Validate new password
     if (newPassword.length < 6) {
-      throw new ValidationFailedException('Password must be at least 6 characters');
+      throw new ValidationFailedException(
+        'Password must be at least 6 characters',
+      );
     }
 
-    // Update password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     await this.userRepository.update(userId, { password: hashedPassword });
 
-    // Optionally revoke other sessions
     let sessionsRevoked = 0;
     if (revokeOtherSessions) {
       const currentSessionId = this.getSessionIdFromCookie(req);
-      sessionsRevoked = await this.sessionService.revokeAllSessions(userId, currentSessionId ?? undefined);
+      sessionsRevoked = await this.sessionService.revokeAllSessions(
+        userId,
+        currentSessionId ?? undefined,
+      );
     }
 
-    // Log the event
     await this.securityLogService.logPasswordChange(userId, req);
 
     return {
@@ -426,26 +620,62 @@ export class AuthService {
     }
 
     if (newPassword.length < 6) {
-      throw new ValidationFailedException('Password must be at least 6 characters');
+      throw new ValidationFailedException(
+        'Password must be at least 6 characters',
+      );
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     await this.userRepository.update(userId, { password: hashedPassword });
 
-    this.logger.info(`Password added to OAuth account: ${user.uuid}`, AuthService.name);
+    this.logger.info(
+      `Password added to OAuth account: ${user.uuid}`,
+      AuthService.name,
+    );
 
     return { message: 'Password added successfully' };
   }
 
   /**
-   * Get current user info.
+   * Get current user info with accessible locations.
    */
-  async getCurrentUser(userId: string): Promise<AuthTokenDto> {
+  async getCurrentUser(userId: string) {
     const user = await this.userRepository.findOneBy({ uuid: userId });
     if (!user) throw new NotFoundException('User not found');
 
     const accessToken = await this.generateAccessToken(user);
-    return AuthTokenDto.toDto({ accessToken }, user);
+    const accessInfo = await this.authorizationService.resolveUserAccess(
+      user.uuid,
+    );
+    const orgCount = accessInfo.accessibleOrganizations.length;
+    const totalLocations = accessInfo.accessibleOrganizations.reduce(
+      (count, org) => count + org.locations.length,
+      0,
+    );
+
+    const hasActiveContext = !!(
+      user.lastAccessedOrganizationId && user.lastAccessedLocationId
+    );
+
+    return {
+      user: AuthTokenDto.toDto(accessToken, user).user,
+      accessToken,
+      isSuperAdmin: accessInfo.isSuperAdmin,
+      accessSource: accessInfo.accessSource,
+      requiresOrgSelection:
+        !hasActiveContext &&
+        (accessInfo.isSuperAdmin ? orgCount > 0 : orgCount > 1),
+      requiresLocationSelection:
+        !hasActiveContext &&
+        !accessInfo.isSuperAdmin &&
+        orgCount === 1 &&
+        totalLocations > 1,
+      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      activeOrganizationId:
+        user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
+      activeLocationId:
+        user.lastAccessedLocationId || accessInfo.defaultLocationId,
+    };
   }
 
   /**
@@ -454,11 +684,21 @@ export class AuthService {
   private validateAccountStatus(user: User, req: Request): void {
     switch (user.status) {
       case AccountStatus.SUSPENDED:
-        this.securityLogService.logLoginFailed(user.email, req, 'Account suspended');
-        throw new ForbiddenException('Your account has been suspended. Please contact support.');
+        this.securityLogService.logLoginFailed(
+          user.email,
+          req,
+          'Account suspended',
+        );
+        throw new ForbiddenException(
+          'Your account has been suspended. Please contact support.',
+        );
 
       case AccountStatus.DELETED:
-        this.securityLogService.logLoginFailed(user.email, req, 'Account deleted');
+        this.securityLogService.logLoginFailed(
+          user.email,
+          req,
+          'Account deleted',
+        );
         throw new ForbiddenException('This account has been deleted.');
     }
   }
@@ -466,20 +706,26 @@ export class AuthService {
   /**
    * Generate access token for user.
    */
-  private async generateAccessToken(user: User): Promise<string> {
-    const tokens = await this.jwtTokenService.generateTokens(
+  private async generateAccessToken(
+    user: User,
+    sessionId?: string,
+  ): Promise<string> {
+    return this.jwtTokenService.generateAccessToken(
       user.uuid,
       user.email,
-      user.role,
+      user.globalRole,
+      sessionId,
     );
-    return tokens.accessToken;
   }
 
   /**
    * Set session cookie with session ID and refresh token.
    */
-  private setSessionCookie(res: Response, sessionId: string, refreshToken: string): void {
-    // Store both session ID and refresh token in cookie
+  private setSessionCookie(
+    res: Response,
+    sessionId: string,
+    refreshToken: string,
+  ): void {
     const cookieValue = `${sessionId}:${refreshToken}`;
     res.cookie('refresh_token', cookieValue, REFRESH_TOKEN_COOKIE_OPTIONS);
   }
@@ -509,7 +755,10 @@ export class AuthService {
   /**
    * Get session data (ID and refresh token) from cookie.
    */
-  private getSessionDataFromCookie(req: Request): { sessionId: string | null; refreshToken: string | null } {
+  private getSessionDataFromCookie(req: Request): {
+    sessionId: string | null;
+    refreshToken: string | null;
+  } {
     const cookie = req.cookies['refresh_token'];
     if (!cookie) return { sessionId: null, refreshToken: null };
 
@@ -518,7 +767,7 @@ export class AuthService {
 
     return {
       sessionId: parts[0],
-      refreshToken: parts.slice(1).join(':'), // In case token contains ':'
+      refreshToken: parts.slice(1).join(':'),
     };
   }
 }

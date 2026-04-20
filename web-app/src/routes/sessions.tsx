@@ -1,24 +1,24 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SessionManagement } from '@/features/auth/components/SessionManagement'
-import { useAuthStore } from '@/store/useAuthStore'
-import { Navigate } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router';
+import { useAuthStore } from '@/store/useAuthStore';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { SessionManagement } from '@/features/auth/components/SessionManagement';
 
 export const Route = createFileRoute('/sessions')({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  const { accessToken } = useAuthStore()
+  const { accessToken } = useAuthStore();
 
   if (!accessToken) {
-      return <Navigate to="/login" />
+    return <Navigate to="/login" />;
   }
 
   return (
-    <div className="min-h-screen bg-muted/40 p-8 pt-20">
+    <DashboardLayout title="Active Sessions">
       <div className="max-w-4xl mx-auto">
         <SessionManagement />
       </div>
-    </div>
-  )
+    </DashboardLayout>
+  );
 }

@@ -7,17 +7,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     // @ts-ignore
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), // read from Authorization: Bearer <token>
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_ACCESS_SECRET, // your secret
+      secretOrKey: process.env.JWT_ACCESS_SECRET,
     });
   }
 
   async validate(payload: any) {
-    // payload is what you signed (e.g. { sub: userId, email })
-    console.log({payload});
-  
-    
-    return { uuid: payload.sub, email: payload.email, role: payload.role };
+    return {
+      uuid: payload.sub,
+      email: payload.email,
+      globalRole: payload.globalRole || null,
+      sessionId: payload.sessionId,
+    };
   }
 }

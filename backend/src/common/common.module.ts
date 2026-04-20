@@ -8,8 +8,15 @@ import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [],
-  providers: [MailService, RequestContextService, AppLogger, SubmissionGateway, JwtStrategy, JwtService],
+  providers: [
+    MailService,
+    RequestContextService,
+    AppLogger,
+    SubmissionGateway,
+    JwtStrategy,
+    JwtService,
+  ],
   exports: [MailService, RequestContextService, AppLogger, SubmissionGateway],
   controllers: [],
 })
-export class CommonModule { }
+export class CommonModule {}

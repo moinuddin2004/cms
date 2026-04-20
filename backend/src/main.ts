@@ -14,7 +14,7 @@ async function bootstrap() {
     new ValidationPipe({
       transform: true,
       transformOptions: { enableImplicitConversion: true },
-    })
+    }),
   );
   app.useGlobalFilters(new GlobalExceptionFilter(app.get(AppLogger)));
   app.enableCors({ origin: 'http://localhost:3000', credentials: true });

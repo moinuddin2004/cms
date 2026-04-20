@@ -32,7 +32,11 @@ export class PatientResponseDto {
     dto.patientId = patient.patientId;
     dto.fullName = patient.fullName;
     dto.phone = patient.phone;
-    dto.dob = patient.dob ? (patient.dob instanceof Date ? patient.dob.toISOString().split('T')[0] : String(patient.dob).split('T')[0]) : null;
+    dto.dob = patient.dob
+      ? patient.dob instanceof Date
+        ? patient.dob.toISOString().split('T')[0]
+        : String(patient.dob).split('T')[0]
+      : null;
     dto.gender = patient.gender;
     dto.bloodGroup = patient.bloodGroup;
     dto.email = patient.email;

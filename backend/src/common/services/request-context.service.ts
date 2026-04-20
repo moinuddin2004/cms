@@ -1,7 +1,7 @@
 // src/common/request-context.service.ts
 import { Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
-import { User } from '../../user/entities/user.model';
+import { User } from '../../user/entities/user.entity';
 
 type Store = {
   user: User;

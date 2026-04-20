@@ -7,6 +7,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useUIStore } from '@/store/ui-store';
+import { LocationSwitcher } from '@/components/layout/LocationSwitcher';
 
 interface TopbarProps {
     title: string;
@@ -26,7 +27,10 @@ export function Topbar({ title }: TopbarProps) {
 
     return (
         <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6">
-            <h1 className="text-xl font-bold text-foreground">{title}</h1>
+            <div className="flex items-center gap-4">
+                <h1 className="text-xl font-bold text-foreground">{title}</h1>
+                <LocationSwitcher />
+            </div>
 
             <div className="flex items-center gap-3">
                 <Button variant="outline" size="sm" className="gap-2">

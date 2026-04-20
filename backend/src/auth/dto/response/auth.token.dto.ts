@@ -1,19 +1,14 @@
-import { User } from "src/user/entities/user.model";
-import { TokensDto } from "./token.dto";
-import { UserDto } from "src/user/dto/user.dto";
+import { User } from 'src/user/entities/user.entity';
+import { UserDto } from 'src/user/dto/user.dto';
 
 export class AuthTokenDto {
-    user: UserDto
-    accessToken: string;
-    refreshToken?: string;
-    sessionId?: string;
+  user: UserDto;
+  accessToken: string;
 
-    public static toDto(token: TokensDto, user: User): AuthTokenDto {
-        return {
-            user: UserDto.toDto(user),
-            accessToken: token.accessToken,
-            refreshToken: token.refreshToken,
-            sessionId: token.sessionId
-        }
-    }
+  public static toDto(accessToken: string, user: User): AuthTokenDto {
+    return {
+      user: UserDto.toDto(user),
+      accessToken,
+    };
+  }
 }

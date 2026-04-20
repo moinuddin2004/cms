@@ -1,4 +1,12 @@
-import { IsOptional, IsString, IsEnum, IsBoolean, IsInt, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsBoolean,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { Gender } from '../../enums/gender.enum';
 import { BloodGroup } from '../../enums/blood-group.enum';
@@ -33,12 +41,12 @@ export class PatientQueryDto {
   search?: string;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsEnum(Gender)
   gender?: Gender;
 
   @IsOptional()
-  @Transform(({ value }) => value === '' ? undefined : value)
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsEnum(BloodGroup)
   bloodGroup?: BloodGroup;
 

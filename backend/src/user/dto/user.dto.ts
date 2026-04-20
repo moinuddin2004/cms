@@ -1,20 +1,21 @@
-import { User } from '../entities/user.model';
-import { Role } from '../enum/role.enum';
+import { User } from '../entities/user.entity';
 
 export class UserDto {
   userUuid: string;
   email: string;
   name: string;
-  role: Role;
+  globalRole: string | null;
   avatarUrl?: string;
+  phone?: string;
 
   public static toDto(user: User): UserDto {
     return {
       userUuid: user.uuid,
       email: user.email,
       name: user.name || '',
-      role: user.role,
+      globalRole: user.globalRole || null,
       avatarUrl: user.avatarUrl,
+      phone: user.phone,
     };
   }
 }

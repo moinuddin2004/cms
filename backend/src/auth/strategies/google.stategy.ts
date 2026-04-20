@@ -6,37 +6,37 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
-    constructor(private configService: ConfigService) {
-        const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
-        const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
+  constructor(private configService: ConfigService) {
+    const clientID = configService.get<string>('GOOGLE_CLIENT_ID');
+    const clientSecret = configService.get<string>('GOOGLE_CLIENT_SECRET');
 
-        if (!clientID || !clientSecret) {
-            throw new Error('Google OAuth credentials not found');
-        }
-
-        super({
-            clientID,
-            clientSecret,
-            callbackURL: 'http://localhost:5000/auth/google/callback',
-            scope: ['email', 'profile'],
-            passReqToCallback: true,
-        });
+    if (!clientID || !clientSecret) {
+      throw new Error('Google OAuth credentials not found');
     }
 
-    async validate(
-        req: Request,
-        accessToken: string,
-        refreshToken: string,
-        profile: Profile,
-        done: Function,
-    ): Promise<any> {
-        const user = {
-            email: profile.emails?.[0]?.value,
-            name: profile.displayName,
-            provider: 'google',
-            googleId: profile.id,
-        };
+    super({
+      clientID,
+      clientSecret,
+      callbackURL: 'http://localhost:5000/auth/google/callback',
+      scope: ['email', 'profile'],
+      passReqToCallback: true,
+    });
+  }
 
-        done(null, user);
-    }
+  async validate(
+    req: Request,
+    accessToken: string,
+    refreshToken: string,
+    profile: Profile,
+    done: Function,
+  ): Promise<any> {
+    const user = {
+      email: profile.emails?.[0]?.value,
+      name: profile.displayName,
+      provider: 'google',
+      googleId: profile.id,
+    };
+
+    done(null, user);
+  }
 }

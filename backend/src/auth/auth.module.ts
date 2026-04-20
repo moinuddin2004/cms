@@ -15,19 +15,35 @@ import { SecurityLogService } from './security-log.service';
 import { SecurityLog } from './entities/SecurityLog';
 import { OAuthProvider } from './entities/OAuthProvider';
 import { RateLimiterGuard } from './guards/rate-limiter.guard';
-import { APP_GUARD } from '@nestjs/core';
 import { Reflector } from '@nestjs/core';
 import { SessionModule } from 'src/session/session.module';
+import { AuthorizationService } from './services/authorization.service';
+
+// Entities needed by AuthorizationService
+import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
+import { Organization } from 'src/organizations/entities/organization.entity';
+import { Location } from 'src/locations/entities/location.entity';
+import { Employee } from 'src/employees/entities/employee.entity';
+import { EmployeeLocationAssignment } from 'src/employees/entities/employee-location-assignment.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([SecurityLog, OAuthProvider]),
+    TypeOrmModule.forFeature([
+      SecurityLog,
+      OAuthProvider,
+      OrganizationOwnership,
+      Organization,
+      Location,
+      Employee,
+      EmployeeLocationAssignment,
+    ]),
     UserModule,
     CommonModule,
     SessionModule,
   ],
   providers: [
     AuthService,
+    AuthorizationService,
     JwtTokenService,
     UserService,
     NestJwtService,
@@ -39,8 +55,7 @@ import { SessionModule } from 'src/session/session.module';
     RateLimiterGuard,
     Reflector,
   ],
-  exports: [JwtStrategy, SecurityLogService],
+  exports: [JwtStrategy, SecurityLogService, AuthorizationService],
   controllers: [AuthController],
 })
-export class AuthModule { }
-
+export class AuthModule {}

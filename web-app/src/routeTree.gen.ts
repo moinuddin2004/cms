@@ -9,11 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
+import { Route as SelectLocationRouteImport } from './routes/select-location'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,10 +26,27 @@ import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as PatientsPatientIdRouteImport } from './routes/patients/$patientId'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId.edit'
+import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
+import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
 
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SessionsRoute = SessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectLocationRoute = SelectLocationRouteImport.update({
+  id: '/select-location',
+  path: '/select-location',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -42,9 +64,19 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrganizationsRoute = OrganizationsRouteImport.update({
+  id: '/organizations',
+  path: '/organizations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationsRoute = LocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
@@ -82,33 +114,57 @@ const PatientsPatientIdEditRoute = PatientsPatientIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => PatientsPatientIdRoute,
 } as any)
+const OrganizationsIdSettingsRoute = OrganizationsIdSettingsRouteImport.update({
+  id: '/organizations_/$id/settings',
+  path: '/organizations/$id/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LocationsIdSettingsRoute = LocationsIdSettingsRouteImport.update({
+  id: '/locations_/$id/settings',
+  path: '/locations/$id/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
   '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
+  '/locations/$id/settings': typeof LocationsIdSettingsRoute
+  '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
   '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients': typeof PatientsIndexRoute
+  '/locations/$id/settings': typeof LocationsIdSettingsRoute
+  '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
 }
 export interface FileRoutesById {
@@ -116,14 +172,21 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
+  '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
+  '/organizations': typeof OrganizationsRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
+  '/settings': typeof SettingsRoute
+  '/users': typeof UsersRoute
   '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
+  '/locations_/$id/settings': typeof LocationsIdSettingsRoute
+  '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
 }
 export interface FileRouteTypes {
@@ -132,42 +195,63 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/forgot-password'
+    | '/locations'
     | '/login'
+    | '/organizations'
     | '/register'
     | '/reports'
     | '/reset-password'
+    | '/select-location'
     | '/sessions'
+    | '/settings'
+    | '/users'
     | '/patients/$patientId'
     | '/patients/new'
     | '/patients/'
+    | '/locations/$id/settings'
+    | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/dashboard'
     | '/forgot-password'
+    | '/locations'
     | '/login'
+    | '/organizations'
     | '/register'
     | '/reports'
     | '/reset-password'
+    | '/select-location'
     | '/sessions'
+    | '/settings'
+    | '/users'
     | '/patients/$patientId'
     | '/patients/new'
     | '/patients'
+    | '/locations/$id/settings'
+    | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/forgot-password'
+    | '/locations'
     | '/login'
+    | '/organizations'
     | '/register'
     | '/reports'
     | '/reset-password'
+    | '/select-location'
     | '/sessions'
+    | '/settings'
+    | '/users'
     | '/patients/$patientId'
     | '/patients/new'
     | '/patients/'
+    | '/locations_/$id/settings'
+    | '/organizations_/$id/settings'
     | '/patients/$patientId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -175,23 +259,51 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
+  OrganizationsRoute: typeof OrganizationsRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SelectLocationRoute: typeof SelectLocationRoute
   SessionsRoute: typeof SessionsRoute
+  SettingsRoute: typeof SettingsRoute
+  UsersRoute: typeof UsersRoute
   PatientsPatientIdRoute: typeof PatientsPatientIdRouteWithChildren
   PatientsNewRoute: typeof PatientsNewRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
+  LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
+  OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sessions': {
       id: '/sessions'
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof SessionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select-location': {
+      id: '/select-location'
+      path: '/select-location'
+      fullPath: '/select-location'
+      preLoaderRoute: typeof SelectLocationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -215,11 +327,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/organizations': {
+      id: '/organizations'
+      path: '/organizations'
+      fullPath: '/organizations'
+      preLoaderRoute: typeof OrganizationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/locations': {
+      id: '/locations'
+      path: '/locations'
+      fullPath: '/locations'
+      preLoaderRoute: typeof LocationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -271,6 +397,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsPatientIdEditRouteImport
       parentRoute: typeof PatientsPatientIdRoute
     }
+    '/organizations_/$id/settings': {
+      id: '/organizations_/$id/settings'
+      path: '/organizations/$id/settings'
+      fullPath: '/organizations/$id/settings'
+      preLoaderRoute: typeof OrganizationsIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/locations_/$id/settings': {
+      id: '/locations_/$id/settings'
+      path: '/locations/$id/settings'
+      fullPath: '/locations/$id/settings'
+      preLoaderRoute: typeof LocationsIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -289,14 +429,21 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
+  OrganizationsRoute: OrganizationsRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SelectLocationRoute: SelectLocationRoute,
   SessionsRoute: SessionsRoute,
+  SettingsRoute: SettingsRoute,
+  UsersRoute: UsersRoute,
   PatientsPatientIdRoute: PatientsPatientIdRouteWithChildren,
   PatientsNewRoute: PatientsNewRoute,
   PatientsIndexRoute: PatientsIndexRoute,
+  LocationsIdSettingsRoute: LocationsIdSettingsRoute,
+  OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
