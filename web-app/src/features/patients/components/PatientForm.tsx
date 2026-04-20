@@ -19,7 +19,11 @@ import { usePatientStore } from '@/store/patient-store';
 import {
   GENDER_OPTIONS,
   BLOOD_GROUP_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
+  SOURCE_OPTIONS,
   FORM_STEPS,
+  CommunicationPreference,
+  Language,
   type PatientFormData,
   type Patient,
 } from '../types';
@@ -35,19 +39,31 @@ interface PatientFormProps {
 const EMPTY_FORM: PatientFormData = {
   fullName: '',
   phone: '',
+  whatsappNumber: '',
   dob: '',
   gender: undefined,
   bloodGroup: undefined,
+  maritalStatus: undefined,
+  cnic: '',
   email: '',
-  address: '',
   city: '',
-  referredBy: '',
+  address: '',
+  preferredLanguage: Language.URDU,
+  communicationPref: CommunicationPreference.WHATSAPP,
+  source: undefined,
+  referredByText: '',
   occupation: '',
+  internalNotes: '',
+  tags: [],
+  isMinor: false,
+  guardianName: '',
+  guardianPhone: '',
+  guardianRelation: '',
   medicalHistory: '',
-  allergies: [],
-  emergencyName: '',
-  emergencyPhone: '',
-  emergencyRelation: '',
+  allergies: '',
+  emergencyContactName: '',
+  emergencyContactPhone: '',
+  emergencyContactRelation: '',
 };
 
 export function PatientForm({
@@ -60,7 +76,6 @@ export function PatientForm({
   const { currentStep, setCurrentStep, formDraft, setFormDraft, clearFormDraft } =
     usePatientStore();
 
-  // Build initial values from: default (edit) → draft (create auto-save) → empty
   const initialValues: PatientFormData = defaultValues
     ? mapPatientToForm(defaultValues)
     : formDraft
@@ -75,13 +90,12 @@ export function PatientForm({
     },
   });
 
-  // Auto-save draft to Zustand (only in create mode)
   const saveDraft = useCallback(() => {
     if (mode === 'create') {
       const values = form.state.values;
       setFormDraft(values);
     }
-  }, [mode, form, setFormDraft]);
+  }, [mode, form.state.values, setFormDraft]);
 
   useEffect(() => {
     const interval = setInterval(saveDraft, 3000);
@@ -107,7 +121,7 @@ export function PatientForm({
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-8">
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-2">
         {FORM_STEPS.map((step, i) => (
@@ -119,17 +133,17 @@ export function PatientForm({
                 setCurrentStep(i);
               }}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
                 i === currentStep
                   ? 'bg-brand-600 text-white shadow-sm'
                   : i < currentStep
                     ? 'bg-brand-100 text-brand-700'
-                    : 'bg-muted text-muted-foreground',
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80',
               )}
             >
               <span
                 className={cn(
-                  'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                  'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors',
                   i === currentStep
                     ? 'bg-white/20 text-white'
                     : i < currentStep
@@ -144,7 +158,7 @@ export function PatientForm({
             {i < FORM_STEPS.length - 1 && (
               <div
                 className={cn(
-                  'w-8 h-px',
+                  'w-8 h-px transition-colors duration-300',
                   i < currentStep ? 'bg-brand-400' : 'bg-border',
                 )}
               />
@@ -162,9 +176,9 @@ export function PatientForm({
           }
         }}
       >
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">
+        <Card className="border-muted shadow-sm overflow-hidden">
+          <CardHeader className="bg-muted/30 border-b pb-4">
+            <CardTitle className="text-xl text-primary">
               {FORM_STEPS[currentStep].title}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -172,17 +186,15 @@ export function PatientForm({
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-5">
-            {/* Step 0: Basic Info */}
+          <CardContent className="p-6 space-y-6">
+            {/* Step 0: Basic & Contact Info */}
             {currentStep === 0 && (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <form.Field name="fullName">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="fullName">
-                          Full Name <span className="text-destructive">*</span>
-                        </Label>
+                        <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
                         <Input
                           id="fullName"
                           value={field.state.value}
@@ -190,9 +202,20 @@ export function PatientForm({
                           onBlur={field.handleBlur}
                           placeholder="John Doe"
                         />
-                        {field.state.meta.errors?.length > 0 && (
-                          <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
+                      </div>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="cnic">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="cnic">CNIC</Label>
+                        <Input
+                          id="cnic"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="42101-1234567-1"
+                        />
                       </div>
                     )}
                   </form.Field>
@@ -200,25 +223,31 @@ export function PatientForm({
                   <form.Field name="phone">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="phone">
-                          Phone <span className="text-destructive">*</span>
-                        </Label>
+                        <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
                         <Input
                           id="phone"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          onBlur={field.handleBlur}
-                          placeholder="+92 300 1234567"
+                          placeholder="03001234567"
                         />
-                        {field.state.meta.errors?.length > 0 && (
-                          <p className="text-xs text-destructive">{field.state.meta.errors[0]}</p>
-                        )}
                       </div>
                     )}
                   </form.Field>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <form.Field name="whatsappNumber">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                        <Input
+                          id="whatsappNumber"
+                          value={field.state.value}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          placeholder="03001234567"
+                        />
+                      </div>
+                    )}
+                  </form.Field>
+
                   <form.Field name="dob">
                     {(field) => (
                       <div className="space-y-1.5">
@@ -246,9 +275,7 @@ export function PatientForm({
                           </SelectTrigger>
                           <SelectContent>
                             {GENDER_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -269,9 +296,28 @@ export function PatientForm({
                           </SelectTrigger>
                           <SelectContent>
                             {BLOOD_GROUP_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="maritalStatus">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="maritalStatus">Marital Status</Label>
+                        <Select
+                          value={field.state.value || ''}
+                          onValueChange={(v) => field.handleChange(v as PatientFormData['maritalStatus'])}
+                        >
+                          <SelectTrigger id="maritalStatus">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MARITAL_STATUS_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -280,7 +326,7 @@ export function PatientForm({
                   </form.Field>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
                   <form.Field name="email">
                     {(field) => (
                       <div className="space-y-1.5">
@@ -319,24 +365,98 @@ export function PatientForm({
                         id="address"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="Full address"
+                        placeholder="Full residential address"
                         rows={2}
                       />
                     </div>
                   )}
                 </form.Field>
+              </div>
+            )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <form.Field name="referredBy">
+            {/* Step 1: Clinic Info */}
+            {currentStep === 1 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <form.Field name="source">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="referredBy">Referred By</Label>
+                        <Label htmlFor="source">How did they hear about us?</Label>
+                        <Select
+                          value={field.state.value || ''}
+                          onValueChange={(v) => field.handleChange(v as PatientFormData['source'])}
+                        >
+                          <SelectTrigger id="source">
+                            <SelectValue placeholder="Select Source" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SOURCE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="referredByText">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="referredByText">Referral Notes (Name/Doctor)</Label>
                         <Input
-                          id="referredBy"
+                          id="referredByText"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
-                          placeholder="Dr. Name / Friend"
+                          placeholder="Dr. Ahmed / Friend"
                         />
+                      </div>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="preferredLanguage">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label>Preferred Language</Label>
+                        <div className="flex items-center gap-4 mt-2">
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="radio"
+                              name="preferredLanguage"
+                              checked={field.state.value === Language.URDU}
+                              onChange={() => field.handleChange(Language.URDU)}
+                            /> Urdu
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="radio"
+                              name="preferredLanguage"
+                              checked={field.state.value === Language.ENGLISH}
+                              onChange={() => field.handleChange(Language.ENGLISH)}
+                            /> English
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </form.Field>
+
+                  <form.Field name="communicationPref">
+                    {(field) => (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="communicationPref">Communication Preference</Label>
+                        <Select
+                          value={field.state.value || ''}
+                          onValueChange={(v) => field.handleChange(v as CommunicationPreference)}
+                        >
+                          <SelectTrigger id="communicationPref">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={CommunicationPreference.WHATSAPP}>WhatsApp</SelectItem>
+                            <SelectItem value={CommunicationPreference.SMS}>SMS</SelectItem>
+                            <SelectItem value={CommunicationPreference.CALL}>Call</SelectItem>
+                            <SelectItem value={CommunicationPreference.EMAIL}>Email</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </form.Field>
@@ -355,16 +475,115 @@ export function PatientForm({
                     )}
                   </form.Field>
                 </div>
-              </>
+
+                <form.Field name="tags">
+                  {(field) => (
+                    <TagInput
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      label="Patient Tags (VIP, Anxious, etc.)"
+                    />
+                  )}
+                </form.Field>
+
+                <form.Field name="internalNotes">
+                  {(field) => (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="internalNotes">Internal Clinic Notes</Label>
+                      <Textarea
+                        id="internalNotes"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="Private notes for staff only..."
+                        rows={3}
+                      />
+                    </div>
+                  )}
+                </form.Field>
+              </div>
             )}
 
-            {/* Step 1: Medical Info */}
-            {currentStep === 1 && (
-              <>
+            {/* Step 2: Guardian Info */}
+            {currentStep === 2 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <form.Field name="isMinor">
+                  {(field) => (
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm bg-muted/10">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Is Patient a Minor?</Label>
+                        <p className="text-sm text-muted-foreground text-pretty">
+                          Enable this if the patient is underage and requires a guardian's consent.
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                         {/* Fallback styling for a switch-like checkbox if switch component is missing */}
+                         <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={field.state.value} 
+                            onChange={(e) => field.handleChange(e.target.checked)} 
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </form.Field>
+
+                <form.Subscribe selector={(state) => state.values.isMinor}>
+                  {(isMinor) => isMinor && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 border rounded-lg bg-orange-50/30 border-brand-100">
+                      <form.Field name="guardianName">
+                        {(field) => (
+                          <div className="space-y-1.5 md:col-span-2">
+                            <Label htmlFor="guardianName">Guardian Name <span className="text-destructive">*</span></Label>
+                            <Input
+                              id="guardianName"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field name="guardianPhone">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="guardianPhone">Guardian Phone</Label>
+                            <Input
+                              id="guardianPhone"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                            />
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field name="guardianRelation">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="guardianRelation">Relation to Patient</Label>
+                            <Input
+                              id="guardianRelation"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              placeholder="Father, Mother, etc."
+                            />
+                          </div>
+                        )}
+                      </form.Field>
+                    </div>
+                  )}
+                </form.Subscribe>
+              </div>
+            )}
+
+            {/* Step 3: Emergency & Medical History */}
+            {currentStep === 3 && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <form.Field name="medicalHistory">
                   {(field) => (
                     <div className="space-y-1.5">
-                      <Label htmlFor="medicalHistory">Medical History</Label>
+                      <Label htmlFor="medicalHistory">General Medical History</Label>
                       <Textarea
                         id="medicalHistory"
                         value={field.state.value}
@@ -378,70 +597,75 @@ export function PatientForm({
 
                 <form.Field name="allergies">
                   {(field) => (
-                    <AllergyInput
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                    />
-                  )}
-                </form.Field>
-              </>
-            )}
-
-            {/* Step 2: Emergency Contact */}
-            {currentStep === 2 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <form.Field name="emergencyName">
-                  {(field) => (
                     <div className="space-y-1.5">
-                      <Label htmlFor="emergencyName">Contact Name</Label>
+                      <Label htmlFor="allergies">Known Allergies</Label>
                       <Input
-                        id="emergencyName"
+                        id="allergies"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="Emergency contact name"
+                        placeholder="Penicillin, Peanuts, Latex... (Comma separated)"
                       />
                     </div>
                   )}
                 </form.Field>
 
-                <form.Field name="emergencyPhone">
-                  {(field) => (
-                    <div className="space-y-1.5">
-                      <Label htmlFor="emergencyPhone">Contact Phone</Label>
-                      <Input
-                        id="emergencyPhone"
-                        value={field.state.value}
-                        onChange={(e) => field.handleChange(e.target.value)}
-                        placeholder="+92 300 1234567"
-                      />
-                    </div>
-                  )}
-                </form.Field>
+                <div className="pt-4 border-t">
+                  <h4 className="text-sm font-semibold mb-4 text-primary">Emergency Contact</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form.Field name="emergencyContactName">
+                      {(field) => (
+                        <div className="space-y-1.5">
+                          <Label htmlFor="emergencyContactName">Contact Name</Label>
+                          <Input
+                            id="emergencyContactName"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            placeholder="Emergency contact name"
+                          />
+                        </div>
+                      )}
+                    </form.Field>
 
-                <form.Field name="emergencyRelation">
-                  {(field) => (
-                    <div className="space-y-1.5 md:col-span-2">
-                      <Label htmlFor="emergencyRelation">Relationship</Label>
-                      <Select
-                        value={field.state.value || ''}
-                        onValueChange={(v) => field.handleChange(v)}
-                      >
-                        <SelectTrigger id="emergencyRelation">
-                          <SelectValue placeholder="Select relationship" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'].map(
-                            (rel) => (
-                              <SelectItem key={rel} value={rel}>
-                                {rel}
-                              </SelectItem>
-                            ),
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </form.Field>
+                    <form.Field name="emergencyContactPhone">
+                      {(field) => (
+                        <div className="space-y-1.5">
+                          <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                          <Input
+                            id="emergencyContactPhone"
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value)}
+                            placeholder="03001234567"
+                          />
+                        </div>
+                      )}
+                    </form.Field>
+
+                    <form.Field name="emergencyContactRelation">
+                      {(field) => (
+                        <div className="space-y-1.5 md:col-span-2">
+                          <Label htmlFor="emergencyContactRelation">Relationship</Label>
+                          <Select
+                            value={field.state.value || ''}
+                            onValueChange={(v) => field.handleChange(v)}
+                          >
+                            <SelectTrigger id="emergencyContactRelation">
+                              <SelectValue placeholder="Select relationship" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'].map(
+                                (rel) => (
+                                  <SelectItem key={rel} value={rel}>
+                                    {rel}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </form.Field>
+                  </div>
+                </div>
               </div>
             )}
           </CardContent>
@@ -453,6 +677,7 @@ export function PatientForm({
             type="button"
             variant="outline"
             onClick={currentStep === 0 ? handleCancel : goPrev}
+            className="w-28"
           >
             {currentStep === 0 ? (
               'Cancel'
@@ -464,13 +689,13 @@ export function PatientForm({
           </Button>
 
           {currentStep < FORM_STEPS.length - 1 ? (
-            <Button type="button" onClick={goNext}>
+            <Button type="button" onClick={goNext} className="w-28">
               Next <ChevronRight size={16} className="ml-1" />
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} className="min-w-32">
               {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
-              {mode === 'create' ? 'Create Patient' : 'Save Changes'}
+              {mode === 'create' ? 'Save Patient' : 'Update Details'}
             </Button>
           )}
         </div>
@@ -479,20 +704,22 @@ export function PatientForm({
   );
 }
 
-// ─── Allergy Tag Input ──────────────────────────────────────────────
+// ─── Tag Input ──────────────────────────────────────────────
 
-function AllergyInput({
+function TagInput({
   value,
   onChange,
+  label = "Tags"
 }: {
   value: string[];
   onChange: (val: string[]) => void;
+  label?: string;
 }) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const input = e.currentTarget;
-      const trimmed = input.value.trim();
+      const trimmed = input.value.trim().replace(/,/g, '');
       if (trimmed && !value.includes(trimmed)) {
         onChange([...value, trimmed]);
       }
@@ -506,26 +733,25 @@ function AllergyInput({
 
   return (
     <div className="space-y-1.5">
-      <Label htmlFor="allergies">Allergies</Label>
+      <Label>{label}</Label>
       <Input
-        id="allergies"
-        placeholder="Type and press Enter to add..."
+        placeholder="Type and press Enter to add tag..."
         onKeyDown={handleKeyDown}
       />
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {value.map((allergy) => (
+          {value.map((tag) => (
             <Badge
-              key={allergy}
+              key={tag}
               variant="secondary"
-              className="gap-1 pr-1 cursor-pointer"
+              className="gap-1 pr-1 cursor-pointer bg-brand-100 text-brand-700 hover:bg-brand-200"
             >
-              {allergy}
+              {tag}
               <button
                 type="button"
-                onClick={() => removeTag(allergy)}
-                className="ml-0.5 hover:text-destructive transition-colors"
-                aria-label={`Remove ${allergy}`}
+                onClick={() => removeTag(tag)}
+                className="ml-0.5 hover:text-destructive transition-colors focus:outline-none"
+                aria-label={`Remove ${tag}`}
               >
                 <X size={12} />
               </button>
@@ -543,18 +769,30 @@ function mapPatientToForm(patient: Patient): PatientFormData {
   return {
     fullName: patient.fullName,
     phone: patient.phone,
+    whatsappNumber: patient.whatsappNumber || '',
     dob: patient.dob || '',
-    gender: patient.gender as PatientFormData['gender'],
-    bloodGroup: patient.bloodGroup as PatientFormData['bloodGroup'],
+    gender: patient.gender || undefined,
+    bloodGroup: patient.bloodGroup || undefined,
+    maritalStatus: patient.maritalStatus || undefined,
+    cnic: patient.cnic || '',
     email: patient.email || '',
-    address: patient.address || '',
     city: patient.city || '',
-    referredBy: patient.referredBy || '',
+    address: patient.address || '',
+    preferredLanguage: patient.preferredLanguage || Language.URDU,
+    communicationPref: patient.communicationPref || CommunicationPreference.WHATSAPP,
+    source: patient.source || undefined,
+    referredByText: patient.referredByText || '',
     occupation: patient.occupation || '',
+    internalNotes: patient.internalNotes || '',
+    tags: patient.tags || [],
+    isMinor: patient.isMinor || false,
+    guardianName: patient.guardianName || '',
+    guardianPhone: patient.guardianPhone || '',
+    guardianRelation: patient.guardianRelation || '',
     medicalHistory: patient.medicalHistory || '',
-    allergies: patient.allergies || [],
-    emergencyName: patient.emergencyName || '',
-    emergencyPhone: patient.emergencyPhone || '',
-    emergencyRelation: patient.emergencyRelation || '',
+    allergies: patient.allergies || '',
+    emergencyContactName: patient.emergencyContactName || '',
+    emergencyContactPhone: patient.emergencyContactPhone || '',
+    emergencyContactRelation: patient.emergencyContactRelation || '',
   };
 }

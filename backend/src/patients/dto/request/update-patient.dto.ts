@@ -6,19 +6,23 @@ import {
   IsArray,
   IsBoolean,
   IsDateString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { Gender } from '../../enums/gender.enum';
 import { BloodGroup } from '../../enums/blood-group.enum';
+import { MaritalStatus } from '../../enums/marital-status.enum';
+import { Language } from '../../enums/language.enum';
+import { CommunicationPreference } from '../../enums/communication-preference.enum';
+import { PatientSource } from '../../enums/patient-source.enum';
 
 /**
- * Update Patient DTO — all fields explicitly listed for future scalability.
- * Every field is optional for partial updates.
+ * Update Patient DTO — all fields optional for partial updates.
  */
 export class UpdatePatientDto {
   @IsOptional()
   @IsString()
-  @MaxLength(255)
+  @MaxLength(150)
   fullName?: string;
 
   @IsOptional()
@@ -31,16 +35,35 @@ export class UpdatePatientDto {
   dob?: string;
 
   @IsOptional()
-  @IsEnum(Gender, { message: 'Gender must be one of: male, female, other' })
+  @IsEnum(Gender)
   gender?: Gender;
 
   @IsOptional()
-  @IsEnum(BloodGroup, { message: 'Invalid blood group' })
+  @IsEnum(BloodGroup)
   bloodGroup?: BloodGroup;
 
   @IsOptional()
-  @IsEmail({}, { message: 'Invalid email address' })
-  @MaxLength(255)
+  @IsEnum(MaritalStatus)
+  maritalStatus?: MaritalStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  occupation?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(15)
+  cnic?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  whatsappNumber?: string;
+
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(150)
   email?: string;
 
   @IsOptional()
@@ -53,40 +76,90 @@ export class UpdatePatientDto {
   city?: string;
 
   @IsOptional()
-  @IsString()
-  medicalHistory?: string;
+  @IsEnum(Language)
+  preferredLanguage?: Language;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  allergies?: string[];
+  @IsEnum(CommunicationPreference)
+  communicationPref?: CommunicationPreference;
+
+  @IsOptional()
+  @IsUUID()
+  primaryLocationId?: string;
+
+  @IsOptional()
+  @IsEnum(PatientSource)
+  source?: PatientSource;
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  emergencyName?: string;
+  @MaxLength(200)
+  referredByText?: string;
+
+  @IsOptional()
+  @IsString()
+  profilePictureUrl?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isMinor?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  guardianName?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(20)
-  emergencyPhone?: string;
+  guardianPhone?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(100)
-  emergencyRelation?: string;
+  @MaxLength(50)
+  guardianRelation?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  referredBy?: string;
+  medicalHistory?: string;
 
   @IsOptional()
   @IsString()
-  @MaxLength(255)
-  occupation?: string;
+  allergies?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  emergencyContactName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  emergencyContactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  emergencyContactRelation?: string;
+
+  @IsOptional()
+  @IsString()
+  internalNotes?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isBlacklisted?: boolean;
+
+  @IsOptional()
+  @IsString()
+  blacklistReason?: string;
 }

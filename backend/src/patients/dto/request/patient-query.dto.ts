@@ -10,11 +10,12 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { Gender } from '../../enums/gender.enum';
 import { BloodGroup } from '../../enums/blood-group.enum';
+import { PatientSource } from '../../enums/patient-source.enum';
 
 export enum PatientSortBy {
   CREATED_AT = 'createdAt',
   FULL_NAME = 'fullName',
-  PATIENT_ID = 'patientId',
+  PATIENT_NUMBER = 'patientNumber',
 }
 
 export enum SortOrder {
@@ -51,9 +52,32 @@ export class PatientQueryDto {
   bloodGroup?: BloodGroup;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsEnum(PatientSource)
+  source?: PatientSource;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @IsOptional()
+  @IsString()
+  tag?: string;
+
+  @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isBlacklisted?: boolean;
+
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isMinor?: boolean;
 
   @IsOptional()
   @IsEnum(PatientSortBy)
