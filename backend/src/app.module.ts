@@ -15,6 +15,7 @@ import { PatientsModule } from './patients/patients.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { LocationsModule } from './locations/locations.module';
 import { EmployeesModule } from './employees/employees.module';
+import { PayrollModule } from './payroll/payroll.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -67,6 +68,7 @@ import { EmployeeLocationAssignment } from './employees/entities/employee-locati
     OrganizationsModule,
     LocationsModule,
     EmployeesModule,
+    PayrollModule,
     // Domain modules
     PatientsModule,
   ],

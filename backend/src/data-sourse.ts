@@ -21,6 +21,10 @@ import { Employee } from './employees/entities/employee.entity';
 import { EmployeeSchedule } from './employees/entities/employee-schedule.entity';
 import { EmployeeLocationAssignment } from './employees/entities/employee-location-assignment.entity';
 import { EmploymentRole } from './employees/entities/employment-role.entity';
+import { EmployeeSalary } from './employees/entities/employee-salary.entity';
+
+// Payroll entities
+import { PayrollRecord } from './payroll/entities/payroll-record.entity';
 
 // Domain entities
 import { Chair } from './chairs/entities/chair.entity';
@@ -59,6 +63,9 @@ export const AppDataSource = new DataSource({
     EmployeeSchedule,
     EmployeeLocationAssignment,
     EmploymentRole,
+    EmployeeSalary,
+    // Payroll
+    PayrollRecord,
     // Domain
     Chair,
     Appointment,

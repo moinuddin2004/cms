@@ -110,9 +110,9 @@ const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientsPatientIdEditRoute = PatientsPatientIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => PatientsPatientIdRoute,
+  id: '/patients/$patientId/edit',
+  path: '/patients/$patientId/edit',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const OrganizationsIdSettingsRoute = OrganizationsIdSettingsRouteImport.update({
   id: '/organizations_/$id/settings',
@@ -273,6 +273,7 @@ export interface RootRouteChildren {
   PatientsIndexRoute: typeof PatientsIndexRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
+  PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
 
@@ -392,10 +393,10 @@ declare module '@tanstack/react-router' {
     }
     '/patients/$patientId/edit': {
       id: '/patients/$patientId/edit'
-      path: '/edit'
+      path: '/patients/$patientId/edit'
       fullPath: '/patients/$patientId/edit'
       preLoaderRoute: typeof PatientsPatientIdEditRouteImport
-      parentRoute: typeof PatientsPatientIdRoute
+      parentRoute: typeof rootRouteImport
     }
     '/organizations_/$id/settings': {
       id: '/organizations_/$id/settings'
@@ -432,6 +433,7 @@ const rootRouteChildren: RootRouteChildren = {
   PatientsIndexRoute: PatientsIndexRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
+  PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
 export const routeTree = rootRouteImport
