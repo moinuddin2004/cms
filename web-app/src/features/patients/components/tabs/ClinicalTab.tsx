@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, ClipboardList, Printer, Calendar } from 'lucide-react';
 import { usePrescriptions } from '../../hooks/usePatientSubEntities';
 import type { Patient, PatientPrescription } from '../../types';
+import { PrescriptionFormDialog } from './PrescriptionFormDialog';
 
 export function ClinicalTab({ patient }: { patient: Patient }) {
   const { data: prescriptions = [], isLoading } = usePrescriptions(patient.id);
@@ -21,7 +22,7 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
                </h3>
                <p className="text-sm text-muted-foreground">History of prescribed medications.</p>
             </div>
-            <Button size="sm">New Rx</Button>
+            <PrescriptionFormDialog patientId={patient.id} />
          </div>
 
          {isLoading ? (

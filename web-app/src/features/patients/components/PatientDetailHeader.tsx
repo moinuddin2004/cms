@@ -1,8 +1,8 @@
 import { Link } from '@tanstack/react-router';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Pencil, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import type { Patient } from '../types';
 
 interface PatientDetailHeaderProps {
@@ -61,7 +61,7 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
               </Badge>
             </div>
             <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-              <span className="font-mono">{patient.patientId}</span>
+              <span className="font-mono">{patient.patientNumber}</span>
               {patient.dob && <span>{getAge(patient.dob)}</span>}
               {patient.gender && (
                 <span className="capitalize">{patient.gender}</span>
@@ -85,12 +85,13 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
           </div>
         </div>
 
-        <Button asChild variant="outline" id="edit-patient-btn">
-          <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
-            <Pencil size={14} className="mr-1.5" />
-            Edit Patient
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
+              <Pencil size={14} className="mr-2" /> Edit Details
+            </Link>
+          </Button>
+        </div>
       </div>
     </div>
   );

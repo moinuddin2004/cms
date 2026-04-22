@@ -187,3 +187,8 @@ export async function createPatientInsurance(patientId: string, payload: any): P
   const { data } = await api.post(`/patients/${patientId}/insurance`, payload);
   return data.data;
 }
+
+export async function createPatientCommunication(patientId: string, payload: any): Promise<PatientCommunication> {
+  const { data } = await api.post(`/patients/${patientId}/communications`, payload);
+  return data.data;
+}

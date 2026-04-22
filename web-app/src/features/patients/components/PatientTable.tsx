@@ -69,7 +69,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
                 >
                   {p.fullName}
                 </Link>
-                <p className="text-xs text-muted-foreground">{p.patientId}</p>
+                <p className="text-xs text-muted-foreground">{p.patientNumber}</p>
               </div>
             </div>
           );

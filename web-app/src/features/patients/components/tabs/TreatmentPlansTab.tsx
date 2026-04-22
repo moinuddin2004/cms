@@ -8,8 +8,9 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionTrigger,
 } from '@/components/ui/accordion';
+import { TreatmentPlanFormDialog } from './TreatmentPlanFormDialog';
+import { PlanItemFormDialog } from './PlanItemFormDialog';
 
 export function TreatmentPlansTab({ patient }: { patient: Patient }) {
   const { data: plans = [], isLoading } = useTreatmentPlans(patient.id);
@@ -24,9 +25,7 @@ export function TreatmentPlansTab({ patient }: { patient: Patient }) {
             </h3>
             <p className="text-sm text-muted-foreground">Comprehensive multi-session plans and estimates.</p>
          </div>
-         <Button size="sm">
-            <Plus className="mr-2" size={16} /> New Plan
-         </Button>
+         <TreatmentPlanFormDialog patientId={patient.id} />
       </div>
 
       {isLoading ? (
@@ -118,9 +117,7 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
                   </table>
                </div>
                <div className="mt-4 flex justify-end">
-                  <Button variant="outline" size="sm">
-                     <Plus size={14} className="mr-1.5" /> Add Procedure
-                  </Button>
+                  <PlanItemFormDialog patientId={plan.patientId} planId={plan.id} />
                </div>
             </div>
          </AccordionContent>

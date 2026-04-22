@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Plus, Stethoscope, Clock, Save } from 'lucide-react';
 import { useTeethCharts, useCreateTeethChart } from '../../hooks/usePatientSubEntities';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { Patient, PatientTeethChart } from '../../types';
 
 const TEETH_UPPER = [
@@ -113,6 +114,8 @@ function NewChartForm({
    const [notes, setNotes] = useState('');
    const [activeCondition, setActiveCondition] = useState<string>('HEALTHY');
 
+   const { user } = useAuthStore();
+
    const handleToothClick = (toothId: number) => {
       setChartData(prev => ({
          ...prev,
@@ -121,13 +124,14 @@ function NewChartForm({
    };
 
    const handleSubmit = () => {
+      if (!user?.uuid) return;
       mutate({
          patientId,
          chartData,
          notes,
          isInitialChart: false, // Could be derived based on if it's the first chart
-         locationId: 'default', // TODO: Get from store context
-         dentistId: 'system' // TODO: Get from auth context
+         locationId: user.activeLocationId || 'default', 
+         dentistId: user.uuid
       }, {
          onSuccess
       });

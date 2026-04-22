@@ -1,21 +1,21 @@
-import { useEffect, useCallback } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { useForm } from '@tanstack/react-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
+import { useForm } from '@tanstack/react-form'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
-import { usePatientStore } from '@/store/patient-store';
+} from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
+import { usePatientStore } from '@/store/patient-store'
 import {
   GENDER_OPTIONS,
   BLOOD_GROUP_OPTIONS,
@@ -24,16 +24,17 @@ import {
   FORM_STEPS,
   CommunicationPreference,
   Language,
+  PatientSource,
   type PatientFormData,
   type Patient,
-} from '../types';
-import { cn } from '@/lib/utils';
+} from '../types'
+import { cn } from '@/lib/utils'
 
 interface PatientFormProps {
-  defaultValues?: Patient | null;
-  onSubmit: (data: PatientFormData) => Promise<void>;
-  isSubmitting: boolean;
-  mode: 'create' | 'edit';
+  defaultValues?: Patient | null
+  onSubmit: (data: PatientFormData) => Promise<void>
+  isSubmitting: boolean
+  mode: 'create' | 'edit'
 }
 
 const EMPTY_FORM: PatientFormData = {
@@ -50,7 +51,7 @@ const EMPTY_FORM: PatientFormData = {
   address: '',
   preferredLanguage: Language.URDU,
   communicationPref: CommunicationPreference.WHATSAPP,
-  source: undefined,
+  source: PatientSource.WALK_IN,
   referredByText: '',
   occupation: '',
   internalNotes: '',
@@ -64,7 +65,7 @@ const EMPTY_FORM: PatientFormData = {
   emergencyContactName: '',
   emergencyContactPhone: '',
   emergencyContactRelation: '',
-};
+}
 
 export function PatientForm({
   defaultValues,
@@ -72,53 +73,72 @@ export function PatientForm({
   isSubmitting,
   mode,
 }: PatientFormProps) {
-  const navigate = useNavigate();
-  const { currentStep, setCurrentStep, formDraft, setFormDraft, clearFormDraft } =
-    usePatientStore();
+  const navigate = useNavigate()
+  const {
+    currentStep,
+    setCurrentStep,
+    formDraft,
+    setFormDraft,
+    clearFormDraft,
+  } = usePatientStore()
 
   const initialValues: PatientFormData = defaultValues
     ? mapPatientToForm(defaultValues)
     : formDraft
       ? { ...EMPTY_FORM, ...formDraft }
-      : { ...EMPTY_FORM };
+      : { ...EMPTY_FORM }
 
   const form = useForm({
     defaultValues: initialValues,
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
-      clearFormDraft();
+      await onSubmit(value)
+      if (mode === 'create') {
+        clearFormDraft()
+      }
     },
-  });
+  })
 
   const saveDraft = useCallback(() => {
     if (mode === 'create') {
-      const values = form.state.values;
-      setFormDraft(values);
+      const values = form.state.values
+      setFormDraft(values)
     }
-  }, [mode, form.state.values, setFormDraft]);
+  }, [mode, form.state.values, setFormDraft])
 
   useEffect(() => {
-    const interval = setInterval(saveDraft, 3000);
-    return () => clearInterval(interval);
-  }, [saveDraft]);
+    const interval = setInterval(saveDraft, 3000)
+    return () => clearInterval(interval)
+  }, [saveDraft])
+
+  // Reset to step 0 when entering edit mode
+  useEffect(() => {
+    if (mode === 'edit') {
+      setCurrentStep(0)
+    }
+  }, [mode, setCurrentStep])
 
   const goNext = () => {
     if (currentStep < FORM_STEPS.length - 1) {
-      saveDraft();
-      setCurrentStep(currentStep + 1);
+      saveDraft()
+      setCurrentStep(currentStep + 1)
     }
-  };
+  }
 
   const goPrev = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep(currentStep - 1)
     }
-  };
+  }
 
   const handleCancel = () => {
-    clearFormDraft();
-    navigate({ to: '/patients' });
-  };
+    if (mode === 'create') {
+      clearFormDraft()
+    } else {
+      // If editing, just reset the step index so next time we open a form it starts at 0
+      setCurrentStep(0)
+    }
+    navigate({ to: '/patients' })
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -129,8 +149,8 @@ export function PatientForm({
             <button
               type="button"
               onClick={() => {
-                saveDraft();
-                setCurrentStep(i);
+                saveDraft()
+                setCurrentStep(i)
               }}
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
@@ -169,10 +189,10 @@ export function PatientForm({
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault()
+          e.stopPropagation()
           if (currentStep === FORM_STEPS.length - 1) {
-            form.handleSubmit();
+            form.handleSubmit()
           }
         }}
       >
@@ -194,7 +214,9 @@ export function PatientForm({
                   <form.Field name="fullName">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="fullName">
+                          Full Name <span className="text-destructive">*</span>
+                        </Label>
                         <Input
                           id="fullName"
                           value={field.state.value}
@@ -223,7 +245,10 @@ export function PatientForm({
                   <form.Field name="phone">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+                        <Label htmlFor="phone">
+                          Phone Number{' '}
+                          <span className="text-destructive">*</span>
+                        </Label>
                         <Input
                           id="phone"
                           value={field.state.value}
@@ -268,14 +293,18 @@ export function PatientForm({
                         <Label htmlFor="gender">Gender</Label>
                         <Select
                           value={field.state.value || ''}
-                          onValueChange={(v) => field.handleChange(v as PatientFormData['gender'])}
+                          onValueChange={(v) =>
+                            field.handleChange(v as PatientFormData['gender'])
+                          }
                         >
                           <SelectTrigger id="gender">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
                             {GENDER_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -289,14 +318,20 @@ export function PatientForm({
                         <Label htmlFor="bloodGroup">Blood Group</Label>
                         <Select
                           value={field.state.value || ''}
-                          onValueChange={(v) => field.handleChange(v as PatientFormData['bloodGroup'])}
+                          onValueChange={(v) =>
+                            field.handleChange(
+                              v as PatientFormData['bloodGroup'],
+                            )
+                          }
                         >
                           <SelectTrigger id="bloodGroup">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
                             {BLOOD_GROUP_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -310,14 +345,20 @@ export function PatientForm({
                         <Label htmlFor="maritalStatus">Marital Status</Label>
                         <Select
                           value={field.state.value || ''}
-                          onValueChange={(v) => field.handleChange(v as PatientFormData['maritalStatus'])}
+                          onValueChange={(v) =>
+                            field.handleChange(
+                              v as PatientFormData['maritalStatus'],
+                            )
+                          }
                         >
                           <SelectTrigger id="maritalStatus">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
                             {MARITAL_STATUS_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -381,17 +422,23 @@ export function PatientForm({
                   <form.Field name="source">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="source">How did they hear about us?</Label>
+                        <Label htmlFor="source">
+                          How did they hear about us?
+                        </Label>
                         <Select
                           value={field.state.value || ''}
-                          onValueChange={(v) => field.handleChange(v as PatientFormData['source'])}
+                          onValueChange={(v) =>
+                            field.handleChange(v as PatientFormData['source'])
+                          }
                         >
                           <SelectTrigger id="source">
                             <SelectValue placeholder="Select Source" />
                           </SelectTrigger>
                           <SelectContent>
                             {SOURCE_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -402,7 +449,9 @@ export function PatientForm({
                   <form.Field name="referredByText">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="referredByText">Referral Notes (Name/Doctor)</Label>
+                        <Label htmlFor="referredByText">
+                          Referral Notes (Name/Doctor)
+                        </Label>
                         <Input
                           id="referredByText"
                           value={field.state.value}
@@ -424,15 +473,19 @@ export function PatientForm({
                               name="preferredLanguage"
                               checked={field.state.value === Language.URDU}
                               onChange={() => field.handleChange(Language.URDU)}
-                            /> Urdu
+                            />{' '}
+                            Urdu
                           </label>
                           <label className="flex items-center gap-2 text-sm">
                             <input
                               type="radio"
                               name="preferredLanguage"
                               checked={field.state.value === Language.ENGLISH}
-                              onChange={() => field.handleChange(Language.ENGLISH)}
-                            /> English
+                              onChange={() =>
+                                field.handleChange(Language.ENGLISH)
+                              }
+                            />{' '}
+                            English
                           </label>
                         </div>
                       </div>
@@ -442,19 +495,33 @@ export function PatientForm({
                   <form.Field name="communicationPref">
                     {(field) => (
                       <div className="space-y-1.5">
-                        <Label htmlFor="communicationPref">Communication Preference</Label>
+                        <Label htmlFor="communicationPref">
+                          Communication Preference
+                        </Label>
                         <Select
                           value={field.state.value || ''}
-                          onValueChange={(v) => field.handleChange(v as CommunicationPreference)}
+                          onValueChange={(v) =>
+                            field.handleChange(v as CommunicationPreference)
+                          }
                         >
                           <SelectTrigger id="communicationPref">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value={CommunicationPreference.WHATSAPP}>WhatsApp</SelectItem>
-                            <SelectItem value={CommunicationPreference.SMS}>SMS</SelectItem>
-                            <SelectItem value={CommunicationPreference.CALL}>Call</SelectItem>
-                            <SelectItem value={CommunicationPreference.EMAIL}>Email</SelectItem>
+                            <SelectItem
+                              value={CommunicationPreference.WHATSAPP}
+                            >
+                              WhatsApp
+                            </SelectItem>
+                            <SelectItem value={CommunicationPreference.SMS}>
+                              SMS
+                            </SelectItem>
+                            <SelectItem value={CommunicationPreference.CALL}>
+                              Call
+                            </SelectItem>
+                            <SelectItem value={CommunicationPreference.EMAIL}>
+                              Email
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -489,7 +556,9 @@ export function PatientForm({
                 <form.Field name="internalNotes">
                   {(field) => (
                     <div className="space-y-1.5">
-                      <Label htmlFor="internalNotes">Internal Clinic Notes</Label>
+                      <Label htmlFor="internalNotes">
+                        Internal Clinic Notes
+                      </Label>
                       <Textarea
                         id="internalNotes"
                         value={field.state.value}
@@ -512,17 +581,20 @@ export function PatientForm({
                       <div className="space-y-0.5">
                         <Label className="text-base">Is Patient a Minor?</Label>
                         <p className="text-sm text-muted-foreground text-pretty">
-                          Enable this if the patient is underage and requires a guardian's consent.
+                          Enable this if the patient is underage and requires a
+                          guardian's consent.
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                         {/* Fallback styling for a switch-like checkbox if switch component is missing */}
-                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer" 
-                            checked={field.state.value} 
-                            onChange={(e) => field.handleChange(e.target.checked)} 
+                        {/* Fallback styling for a switch-like checkbox if switch component is missing */}
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={field.state.value}
+                            onChange={(e) =>
+                              field.handleChange(e.target.checked)
+                            }
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-600"></div>
                         </label>
@@ -532,47 +604,62 @@ export function PatientForm({
                 </form.Field>
 
                 <form.Subscribe selector={(state) => state.values.isMinor}>
-                  {(isMinor) => isMinor && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 border rounded-lg bg-orange-50/30 border-brand-100">
-                      <form.Field name="guardianName">
-                        {(field) => (
-                          <div className="space-y-1.5 md:col-span-2">
-                            <Label htmlFor="guardianName">Guardian Name <span className="text-destructive">*</span></Label>
-                            <Input
-                              id="guardianName"
-                              value={field.state.value}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                          </div>
-                        )}
-                      </form.Field>
-                      <form.Field name="guardianPhone">
-                        {(field) => (
-                          <div className="space-y-1.5">
-                            <Label htmlFor="guardianPhone">Guardian Phone</Label>
-                            <Input
-                              id="guardianPhone"
-                              value={field.state.value}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                            />
-                          </div>
-                        )}
-                      </form.Field>
-                      <form.Field name="guardianRelation">
-                        {(field) => (
-                          <div className="space-y-1.5">
-                            <Label htmlFor="guardianRelation">Relation to Patient</Label>
-                            <Input
-                              id="guardianRelation"
-                              value={field.state.value}
-                              onChange={(e) => field.handleChange(e.target.value)}
-                              placeholder="Father, Mother, etc."
-                            />
-                          </div>
-                        )}
-                      </form.Field>
-                    </div>
-                  )}
+                  {(isMinor) =>
+                    isMinor && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 p-4 border rounded-lg bg-orange-50/30 border-brand-100">
+                        <form.Field name="guardianName">
+                          {(field) => (
+                            <div className="space-y-1.5 md:col-span-2">
+                              <Label htmlFor="guardianName">
+                                Guardian Name{' '}
+                                <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="guardianName"
+                                value={field.state.value}
+                                onChange={(e) =>
+                                  field.handleChange(e.target.value)
+                                }
+                              />
+                            </div>
+                          )}
+                        </form.Field>
+                        <form.Field name="guardianPhone">
+                          {(field) => (
+                            <div className="space-y-1.5">
+                              <Label htmlFor="guardianPhone">
+                                Guardian Phone
+                              </Label>
+                              <Input
+                                id="guardianPhone"
+                                value={field.state.value}
+                                onChange={(e) =>
+                                  field.handleChange(e.target.value)
+                                }
+                              />
+                            </div>
+                          )}
+                        </form.Field>
+                        <form.Field name="guardianRelation">
+                          {(field) => (
+                            <div className="space-y-1.5">
+                              <Label htmlFor="guardianRelation">
+                                Relation to Patient
+                              </Label>
+                              <Input
+                                id="guardianRelation"
+                                value={field.state.value}
+                                onChange={(e) =>
+                                  field.handleChange(e.target.value)
+                                }
+                                placeholder="Father, Mother, etc."
+                              />
+                            </div>
+                          )}
+                        </form.Field>
+                      </div>
+                    )
+                  }
                 </form.Subscribe>
               </div>
             )}
@@ -583,7 +670,9 @@ export function PatientForm({
                 <form.Field name="medicalHistory">
                   {(field) => (
                     <div className="space-y-1.5">
-                      <Label htmlFor="medicalHistory">General Medical History</Label>
+                      <Label htmlFor="medicalHistory">
+                        General Medical History
+                      </Label>
                       <Textarea
                         id="medicalHistory"
                         value={field.state.value}
@@ -610,12 +699,16 @@ export function PatientForm({
                 </form.Field>
 
                 <div className="pt-4 border-t">
-                  <h4 className="text-sm font-semibold mb-4 text-primary">Emergency Contact</h4>
+                  <h4 className="text-sm font-semibold mb-4 text-primary">
+                    Emergency Contact
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <form.Field name="emergencyContactName">
                       {(field) => (
                         <div className="space-y-1.5">
-                          <Label htmlFor="emergencyContactName">Contact Name</Label>
+                          <Label htmlFor="emergencyContactName">
+                            Contact Name
+                          </Label>
                           <Input
                             id="emergencyContactName"
                             value={field.state.value}
@@ -629,7 +722,9 @@ export function PatientForm({
                     <form.Field name="emergencyContactPhone">
                       {(field) => (
                         <div className="space-y-1.5">
-                          <Label htmlFor="emergencyContactPhone">Contact Phone</Label>
+                          <Label htmlFor="emergencyContactPhone">
+                            Contact Phone
+                          </Label>
                           <Input
                             id="emergencyContactPhone"
                             value={field.state.value}
@@ -643,7 +738,9 @@ export function PatientForm({
                     <form.Field name="emergencyContactRelation">
                       {(field) => (
                         <div className="space-y-1.5 md:col-span-2">
-                          <Label htmlFor="emergencyContactRelation">Relationship</Label>
+                          <Label htmlFor="emergencyContactRelation">
+                            Relationship
+                          </Label>
                           <Select
                             value={field.state.value || ''}
                             onValueChange={(v) => field.handleChange(v)}
@@ -652,13 +749,18 @@ export function PatientForm({
                               <SelectValue placeholder="Select relationship" />
                             </SelectTrigger>
                             <SelectContent>
-                              {['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'].map(
-                                (rel) => (
-                                  <SelectItem key={rel} value={rel}>
-                                    {rel}
-                                  </SelectItem>
-                                ),
-                              )}
+                              {[
+                                'Spouse',
+                                'Parent',
+                                'Sibling',
+                                'Child',
+                                'Friend',
+                                'Other',
+                              ].map((rel) => (
+                                <SelectItem key={rel} value={rel}>
+                                  {rel}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -694,14 +796,16 @@ export function PatientForm({
             </Button>
           ) : (
             <Button type="submit" disabled={isSubmitting} className="min-w-32">
-              {isSubmitting && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 size={16} className="mr-2 animate-spin" />
+              )}
               {mode === 'create' ? 'Save Patient' : 'Update Details'}
             </Button>
           )}
         </div>
       </form>
     </div>
-  );
+  )
 }
 
 // ─── Tag Input ──────────────────────────────────────────────
@@ -709,27 +813,27 @@ export function PatientForm({
 function TagInput({
   value,
   onChange,
-  label = "Tags"
+  label = 'Tags',
 }: {
-  value: string[];
-  onChange: (val: string[]) => void;
-  label?: string;
+  value: string[]
+  onChange: (val: string[]) => void
+  label?: string
 }) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault();
-      const input = e.currentTarget;
-      const trimmed = input.value.trim().replace(/,/g, '');
+      e.preventDefault()
+      const input = e.currentTarget
+      const trimmed = input.value.trim().replace(/,/g, '')
       if (trimmed && !value.includes(trimmed)) {
-        onChange([...value, trimmed]);
+        onChange([...value, trimmed])
       }
-      input.value = '';
+      input.value = ''
     }
-  };
+  }
 
   const removeTag = (tag: string) => {
-    onChange(value.filter((t) => t !== tag));
-  };
+    onChange(value.filter((t) => t !== tag))
+  }
 
   return (
     <div className="space-y-1.5">
@@ -760,7 +864,7 @@ function TagInput({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -779,8 +883,9 @@ function mapPatientToForm(patient: Patient): PatientFormData {
     city: patient.city || '',
     address: patient.address || '',
     preferredLanguage: patient.preferredLanguage || Language.URDU,
-    communicationPref: patient.communicationPref || CommunicationPreference.WHATSAPP,
-    source: patient.source || undefined,
+    communicationPref:
+      patient.communicationPref || CommunicationPreference.WHATSAPP,
+    source: patient.source || PatientSource.WALK_IN,
     referredByText: patient.referredByText || '',
     occupation: patient.occupation || '',
     internalNotes: patient.internalNotes || '',
@@ -794,5 +899,5 @@ function mapPatientToForm(patient: Patient): PatientFormData {
     emergencyContactName: patient.emergencyContactName || '',
     emergencyContactPhone: patient.emergencyContactPhone || '',
     emergencyContactRelation: patient.emergencyContactRelation || '',
-  };
+  }
 }

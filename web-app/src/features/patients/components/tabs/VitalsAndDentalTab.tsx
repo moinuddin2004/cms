@@ -1,12 +1,22 @@
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useForm } from '@tanstack/react-form';
 import { Loader2, Plus, Activity, Droplets } from 'lucide-react';
 import { useVitals, useDentalInfo, useUpsertDentalInfo, useCreateVitals } from '../../hooks/usePatientSubEntities';
-import type { Patient, PatientVitals } from '../../types';
+import type { Patient, PatientVitals, PatientDentalInfo } from '../../types';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
   const { data: vitals = [], isLoading: loadingVitals } = useVitals(patient.id);
@@ -68,7 +78,7 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
               {loadingDental ? (
                  <div className="flex justify-center p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
               ) : (
-                 <p className="text-sm text-muted-foreground">Detailed Dental Info form will be rendered here to upsert dental state (brushing frequency, gum condition, etc.)</p>
+                 <DentalInfoForm patientId={patient.id} existing={dentalInfo ?? undefined} />
               )}
            </CardContent>
          </Card>
@@ -114,6 +124,8 @@ function VitalCard({ vital }: { vital: PatientVitals }) {
 function VitalsForm({ patientId }: { patientId: string }) {
    const { mutate, isPending } = useCreateVitals();
 
+   const { user } = useAuthStore();
+
    const form = useForm({
       defaultValues: {
          bpSystolic: undefined as number | undefined,
@@ -124,10 +136,11 @@ function VitalsForm({ patientId }: { patientId: string }) {
          heightCm: undefined as number | undefined,
       },
       onSubmit: async ({ value }) => {
+         if (!user?.uuid) return;
          mutate({
             patientId,
             ...value,
-            recordedBy: 'system' // Should be current user later
+            recordedBy: user.uuid
          });
       }
    });
@@ -184,4 +197,199 @@ function VitalsForm({ patientId }: { patientId: string }) {
          </div>
       </form>
    )
+}
+
+function DentalInfoForm({ patientId, existing }: { patientId: string; existing?: PatientDentalInfo }) {
+   const { mutate, isPending } = useUpsertDentalInfo();
+
+   const form = useForm({
+      defaultValues: {
+         gumCondition: existing?.gumCondition || GumCondition.HEALTHY,
+         brushingFrequency: existing?.brushingFrequency || BrushingFrequency.UNKNOWN,
+         flossingFrequency: existing?.flossingFrequency || FlossingFrequency.UNKNOWN,
+         teethSensitivity: existing?.teethSensitivity ?? false,
+         sensitivityNotes: existing?.sensitivityNotes || '',
+         smokingStatus: existing?.smokingStatus ?? false,
+         tobaccoChewing: existing?.tobaccoChewing ?? false,
+         orthodonticHistory: existing?.orthodonticHistory ?? false,
+         orthodonticNotes: existing?.orthodonticNotes || '',
+         teethConditionNotes: existing?.teethConditionNotes || '',
+         previousExtractions: existing?.previousExtractions || '',
+         previousSurgeries: existing?.previousSurgeries || '',
+         dentistNotes: existing?.dentistNotes || '',
+      },
+      onSubmit: async ({ value }) => {
+         mutate({ patientId, ...value });
+      }
+   });
+
+   return (
+      <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); form.handleSubmit(); }}>
+         <div className="space-y-4">
+            {/* Dropdowns Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+               <form.Field name="gumCondition">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Gum Condition</Label>
+                        <Select value={field.state.value} onValueChange={(v) => field.handleChange(v as GumCondition)}>
+                           <SelectTrigger><SelectValue /></SelectTrigger>
+                           <SelectContent>
+                              {Object.values(GumCondition).map(v => (
+                                 <SelectItem key={v} value={v} className="capitalize">{v.replace('_', ' ')}</SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="brushingFrequency">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Brushing Frequency</Label>
+                        <Select value={field.state.value} onValueChange={(v) => field.handleChange(v as BrushingFrequency)}>
+                           <SelectTrigger><SelectValue /></SelectTrigger>
+                           <SelectContent>
+                              {Object.values(BrushingFrequency).map(v => (
+                                 <SelectItem key={v} value={v} className="capitalize">{v.replace('_', ' ')}</SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="flossingFrequency">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Flossing Frequency</Label>
+                        <Select value={field.state.value} onValueChange={(v) => field.handleChange(v as FlossingFrequency)}>
+                           <SelectTrigger><SelectValue /></SelectTrigger>
+                           <SelectContent>
+                              {Object.values(FlossingFrequency).map(v => (
+                                 <SelectItem key={v} value={v} className="capitalize">{v.replace('_', ' ')}</SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+                  )}
+               </form.Field>
+            </div>
+
+            {/* Checkboxes Row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+               <form.Field name="teethSensitivity">
+                  {(field) => (
+                     <div className="flex items-center gap-2">
+                        <Checkbox
+                           id="teethSensitivity"
+                           checked={field.state.value}
+                           onCheckedChange={(v) => field.handleChange(!!v)}
+                        />
+                        <Label htmlFor="teethSensitivity" className="text-xs cursor-pointer">Teeth Sensitivity</Label>
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="smokingStatus">
+                  {(field) => (
+                     <div className="flex items-center gap-2">
+                        <Checkbox
+                           id="smokingStatus"
+                           checked={field.state.value}
+                           onCheckedChange={(v) => field.handleChange(!!v)}
+                        />
+                        <Label htmlFor="smokingStatus" className="text-xs cursor-pointer">Smoker</Label>
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="tobaccoChewing">
+                  {(field) => (
+                     <div className="flex items-center gap-2">
+                        <Checkbox
+                           id="tobaccoChewing"
+                           checked={field.state.value}
+                           onCheckedChange={(v) => field.handleChange(!!v)}
+                        />
+                        <Label htmlFor="tobaccoChewing" className="text-xs cursor-pointer">Tobacco Chewing</Label>
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="orthodonticHistory">
+                  {(field) => (
+                     <div className="flex items-center gap-2">
+                        <Checkbox
+                           id="orthodonticHistory"
+                           checked={field.state.value}
+                           onCheckedChange={(v) => field.handleChange(!!v)}
+                        />
+                        <Label htmlFor="orthodonticHistory" className="text-xs cursor-pointer">Orthodontic History</Label>
+                     </div>
+                  )}
+               </form.Field>
+            </div>
+
+            {/* Text Areas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+               <form.Field name="teethConditionNotes">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Teeth Condition Notes</Label>
+                        <Textarea
+                           value={field.state.value}
+                           onChange={e => field.handleChange(e.target.value)}
+                           placeholder="General teeth condition..."
+                           className="resize-none h-20"
+                        />
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="previousExtractions">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Previous Extractions</Label>
+                        <Textarea
+                           value={field.state.value}
+                           onChange={e => field.handleChange(e.target.value)}
+                           placeholder="List previous extractions..."
+                           className="resize-none h-20"
+                        />
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="previousSurgeries">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Previous Surgeries</Label>
+                        <Textarea
+                           value={field.state.value}
+                           onChange={e => field.handleChange(e.target.value)}
+                           placeholder="Any previous dental surgeries..."
+                           className="resize-none h-20"
+                        />
+                     </div>
+                  )}
+               </form.Field>
+               <form.Field name="dentistNotes">
+                  {(field) => (
+                     <div className="space-y-1">
+                        <Label className="text-xs">Dentist Notes</Label>
+                        <Textarea
+                           value={field.state.value}
+                           onChange={e => field.handleChange(e.target.value)}
+                           placeholder="Additional dentist observations..."
+                           className="resize-none h-20"
+                        />
+                     </div>
+                  )}
+               </form.Field>
+            </div>
+
+            <div className="flex justify-end pt-2">
+               <Button type="submit" size="sm" disabled={isPending}>
+                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {existing ? 'Update Dental Info' : 'Save Dental Info'}
+               </Button>
+            </div>
+         </div>
+      </form>
+   );
 }

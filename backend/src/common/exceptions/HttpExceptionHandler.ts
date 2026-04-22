@@ -38,7 +38,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     this.logger.error(
       `Exception thrown: ${exception}`,
-      exception instanceof Error ? exception.stack : '',
+      exception instanceof HttpException ? JSON.stringify(exception.getResponse()) : (exception instanceof Error ? exception.stack : ''),
       request.url,
     );
 

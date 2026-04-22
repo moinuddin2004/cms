@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, FileUp, Shield, Trash2, ShieldAlert } from 'lucide-react';
-import type { Patient } from '../../types';
+import { FolderOpen, FileUp, Shield, Trash2, ShieldAlert, Loader2, FileText } from 'lucide-react';
+import { useInsurance, useDocuments } from '../../hooks/usePatientSubEntities';
+import type { Patient, PatientDocument, PatientInsurance } from '../../types';
+import { DocumentFormDialog } from './DocumentFormDialog';
 
 export function AdminTab({ patient }: { patient: Patient }) {
+  const { data: insuranceList = [], isLoading: loadingInsurance } = useInsurance(patient.id);
+  const { data: documents = [], isLoading: loadingDocs } = useDocuments(patient.id);
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 animate-in fade-in duration-300">
@@ -16,13 +20,24 @@ export function AdminTab({ patient }: { patient: Patient }) {
                <FolderOpen className="text-brand-600" size={16} />
                Patient Documents & Scans
             </CardTitle>
-            <Button size="sm"><FileUp size={14} className="mr-2" /> Upload File</Button>
+            <DocumentFormDialog patientId={patient.id} />
          </CardHeader>
          <CardContent className="pt-6">
-            <div className="min-h-[150px] border-dashed border-2 rounded-lg flex flex-col items-center justify-center text-muted-foreground">
-               <FolderOpen size={32} className="opacity-20 mb-2" />
-               <p className="text-sm">Drag and drop X-Rays, Scans, and external lab reports here</p>
-            </div>
+            {loadingDocs ? (
+               <div className="flex justify-center p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
+            ) : documents.length === 0 ? (
+               <div className="min-h-[150px] border-dashed border-2 rounded-lg flex flex-col items-center justify-center text-muted-foreground">
+                  <FolderOpen size={32} className="opacity-20 mb-2" />
+                  <p className="text-sm">No documents uploaded yet</p>
+                  <p className="text-xs mt-1">Upload X-Rays, Scans, and external lab reports</p>
+               </div>
+            ) : (
+               <div className="space-y-2">
+                  {documents.map((doc) => (
+                     <DocumentRow key={doc.id} document={doc} />
+                  ))}
+               </div>
+            )}
          </CardContent>
       </Card>
 
@@ -31,12 +46,21 @@ export function AdminTab({ patient }: { patient: Patient }) {
          <CardHeader className="pb-2 border-b">
             <CardTitle className="text-md flex items-center gap-2">
                <Shield className="text-blue-600" size={16} />
-               Insurance Claim info
+               Insurance Information
             </CardTitle>
          </CardHeader>
          <CardContent className="pt-4 space-y-3">
-            <InfoRow label="Insurance Provider" value={patient.insuranceProvider} />
-            <InfoRow label="Policy Number" value={patient.insurancePolicyNo} />
+            {loadingInsurance ? (
+               <div className="flex justify-center p-4"><Loader2 className="animate-spin text-muted-foreground" /></div>
+            ) : insuranceList.length === 0 ? (
+               <p className="text-sm text-muted-foreground italic text-center py-4">
+                  No insurance records on file.
+               </p>
+            ) : (
+               insuranceList.map((ins) => (
+                  <InsuranceCard key={ins.id} insurance={ins} />
+               ))
+            )}
          </CardContent>
       </Card>
 
@@ -75,6 +99,62 @@ export function AdminTab({ patient }: { patient: Patient }) {
   );
 }
 
+function DocumentRow({ document }: { document: PatientDocument }) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-muted rounded-md">
+          <FileText size={16} className="text-muted-foreground" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">{document.fileName}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+              {document.documentType.replace('_', ' ')}
+            </Badge>
+            {document.toothNumber && (
+              <span className="text-[10px] text-muted-foreground">Tooth #{document.toothNumber}</span>
+            )}
+            <span className="text-[10px] text-muted-foreground">
+              {new Date(document.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+      </div>
+      {document.fileSizeBytes && (
+        <span className="text-xs text-muted-foreground">
+          {(document.fileSizeBytes / 1024).toFixed(0)} KB
+        </span>
+      )}
+    </div>
+  );
+}
+
+function InsuranceCard({ insurance }: { insurance: PatientInsurance }) {
+  return (
+    <div className="border rounded-lg p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">{insurance.providerName}</p>
+        <Badge
+          variant={insurance.isActive ? 'default' : 'secondary'}
+          className={insurance.isActive
+            ? 'bg-green-100 text-green-700 hover:bg-green-100'
+            : 'bg-muted text-muted-foreground'
+          }
+        >
+          {insurance.isActive ? 'Active' : 'Inactive'}
+        </Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm">
+        <InfoRow label="Policy Number" value={insurance.policyNumber} />
+        <InfoRow label="Plan" value={insurance.planName} />
+        <InfoRow label="Coverage" value={insurance.coveragePercentage ? `${insurance.coveragePercentage}%` : null} />
+        <InfoRow label="Valid Until" value={insurance.validUntil ? new Date(insurance.validUntil).toLocaleDateString() : null} />
+      </div>
+    </div>
+  );
+}
+
 function InfoRow({
   label,
   value,
@@ -83,10 +163,10 @@ function InfoRow({
   value: string | null | undefined;
 }) {
   return (
-    <div className="flex justify-between items-center border-b pb-2 last:border-0 last:pb-0">
+    <div>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="text-sm font-semibold">
-        {value || <span className="text-muted-foreground font-normal italic">Not provided</span>}
+      <p className="text-sm font-medium mt-0.5">
+        {value || <span className="text-muted-foreground font-normal italic">—</span>}
       </p>
     </div>
   );

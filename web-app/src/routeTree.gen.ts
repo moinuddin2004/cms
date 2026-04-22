@@ -24,7 +24,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
-import { Route as PatientsPatientIdRouteImport } from './routes/patients/$patientId'
+import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId.edit'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
@@ -104,9 +104,9 @@ const PatientsNewRoute = PatientsNewRouteImport.update({
   path: '/patients/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PatientsPatientIdRoute = PatientsPatientIdRouteImport.update({
-  id: '/patients/$patientId',
-  path: '/patients/$patientId',
+const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
+  id: '/patients/$patientId/',
+  path: '/patients/$patientId/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientsPatientIdEditRoute = PatientsPatientIdEditRouteImport.update({
@@ -139,12 +139,12 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -160,12 +160,12 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients': typeof PatientsIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -182,12 +182,12 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/patients/$patientId': typeof PatientsPatientIdRouteWithChildren
   '/patients/new': typeof PatientsNewRoute
   '/patients/': typeof PatientsIndexRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -205,12 +205,12 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/patients/$patientId'
     | '/patients/new'
     | '/patients/'
     | '/locations/$id/settings'
     | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
+    | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -226,12 +226,12 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/patients/$patientId'
     | '/patients/new'
     | '/patients'
     | '/locations/$id/settings'
     | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
+    | '/patients/$patientId'
   id:
     | '__root__'
     | '/'
@@ -247,12 +247,12 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/patients/$patientId'
     | '/patients/new'
     | '/patients/'
     | '/locations_/$id/settings'
     | '/organizations_/$id/settings'
     | '/patients/$patientId/edit'
+    | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -269,11 +269,11 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
-  PatientsPatientIdRoute: typeof PatientsPatientIdRouteWithChildren
   PatientsNewRoute: typeof PatientsNewRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
+  PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -383,11 +383,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/patients/$patientId': {
-      id: '/patients/$patientId'
+    '/patients/$patientId/': {
+      id: '/patients/$patientId/'
       path: '/patients/$patientId'
-      fullPath: '/patients/$patientId'
-      preLoaderRoute: typeof PatientsPatientIdRouteImport
+      fullPath: '/patients/$patientId/'
+      preLoaderRoute: typeof PatientsPatientIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/$patientId/edit': {
@@ -414,17 +414,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface PatientsPatientIdRouteChildren {
-  PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
-}
-
-const PatientsPatientIdRouteChildren: PatientsPatientIdRouteChildren = {
-  PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
-}
-
-const PatientsPatientIdRouteWithChildren =
-  PatientsPatientIdRoute._addFileChildren(PatientsPatientIdRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
@@ -439,11 +428,11 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
-  PatientsPatientIdRoute: PatientsPatientIdRouteWithChildren,
   PatientsNewRoute: PatientsNewRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
+  PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

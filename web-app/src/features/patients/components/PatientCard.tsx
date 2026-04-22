@@ -54,7 +54,7 @@ export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
                 {patient.fullName}
               </Link>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {patient.patientId}
+                {patient.patientNumber}
                 {patient.dob && ` · ${getAge(patient.dob)}`}
               </p>
             </div>

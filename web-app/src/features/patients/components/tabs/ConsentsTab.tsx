@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, FileSignature, AlertTriangle, Printer } from 'lucide-react';
 import { useConsents } from '../../hooks/usePatientSubEntities';
 import type { Patient, PatientConsent } from '../../types';
+import { ConsentFormDialog } from './ConsentFormDialog';
 
 export function ConsentsTab({ patient }: { patient: Patient }) {
   const { data: consents = [], isLoading } = useConsents(patient.id);
@@ -20,9 +21,7 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
                <AlertTriangle size={14} /> Consents are immutable. Once signed and captured, they cannot be deleted or modified.
             </p>
          </div>
-         <Button size="sm">
-            Capture Signature
-         </Button>
+         <ConsentFormDialog patientId={patient.id} isMinor={patient.isMinor} />
       </div>
 
       {isLoading ? (
@@ -45,12 +44,7 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
 
 function ConsentCard({ consent, isMinor }: { consent: PatientConsent, isMinor?: boolean }) {
    return (
-      <Card className={`relative overflow-hidden shadow-sm ${consent.status !== 'signed' ? 'bg-muted/50 border-dashed' : 'border-brand-200'}`}>
-         {consent.status === 'revoked' && (
-            <div className="absolute top-4 right-4 rotate-12 opacity-80 z-10 pointer-events-none">
-               <Badge variant="destructive" className="px-3 py-1 text-xs uppercase tracking-wider font-bold">REVOKED</Badge>
-            </div>
-         )}
+      <Card className={`relative overflow-hidden shadow-sm ${!consent.isAgreed ? 'bg-muted/50 border-dashed' : 'border-brand-200'}`}>
          <CardHeader className="pb-2 border-b bg-muted/20">
             <div className="flex justify-between items-start">
                <div>
@@ -58,10 +52,10 @@ function ConsentCard({ consent, isMinor }: { consent: PatientConsent, isMinor?: 
                      {consent.consentType.replace('_', ' ')}
                   </CardTitle>
                   <CardDescription className="text-[10px] mt-1 font-mono uppercase">
-                     {consent.consentId}
+                     v{consent.consentVersion}
                   </CardDescription>
                </div>
-               {consent.status === 'signed' && (
+               {consent.isAgreed && (
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted" title="Print/Download PDF">
                      <Printer size={14} />
                   </Button>
@@ -71,28 +65,44 @@ function ConsentCard({ consent, isMinor }: { consent: PatientConsent, isMinor?: 
          <CardContent className="pt-3 text-sm">
             <div className="grid grid-cols-2 gap-y-2 mb-3">
                <div>
-                  <p className="text-xs text-muted-foreground">Signed Date</p>
-                  <p className="font-medium">{consent.signedAt ? new Date(consent.signedAt).toLocaleDateString() : 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge
+                     variant={consent.isAgreed ? 'default' : 'secondary'}
+                     className={consent.isAgreed
+                        ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                        : 'bg-muted text-muted-foreground'
+                     }
+                  >
+                     {consent.isAgreed ? 'Agreed' : 'Pending'}
+                  </Badge>
+               </div>
+               <div>
+                  <p className="text-xs text-muted-foreground">Agreed Date</p>
+                  <p className="font-medium">{consent.agreedAt ? new Date(consent.agreedAt).toLocaleDateString() : 'N/A'}</p>
+               </div>
+               <div>
+                  <p className="text-xs text-muted-foreground">Signed By</p>
+                  <p className="font-medium">{consent.signedByName || '—'}</p>
                </div>
                <div>
                   <p className="text-xs text-muted-foreground">Signatory Type</p>
                   <p className="font-medium text-xs uppercase bg-muted px-2 py-0.5 rounded-sm inline-block">
-                     {isMinor ? 'GUARDIAN' : 'PATIENT'}
+                     {consent.signedByType || (isMinor ? 'GUARDIAN' : 'PATIENT')}
                   </p>
                </div>
-               {consent.signedByGuardianName && (
-                  <div className="col-span-2 mt-1 bg-amber-50 p-2 rounded border border-amber-100">
-                     <p className="text-xs text-muted-foreground">Guardian Info</p>
-                     <p className="font-medium">{consent.signedByGuardianName} ({consent.guardianRelation})</p>
+               {consent.witnessedBy && (
+                  <div className="col-span-2 mt-1">
+                     <p className="text-xs text-muted-foreground">Witnessed By</p>
+                     <p className="font-medium">{consent.witnessedBy}</p>
                   </div>
                )}
             </div>
             
             <div className="mt-4 p-3 border rounded-lg bg-background">
-               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Signature Base64</p>
-               {consent.signatureData ? (
+               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">Signature</p>
+               {consent.signatureUrl ? (
                   <div className="h-12 border bg-muted/10 w-full rounded flex items-center justify-center italic text-xs text-muted-foreground overflow-hidden px-2 whitespace-nowrap text-ellipsis">
-                     {consent.signatureData.substring(0, 40)}...
+                     {consent.signatureUrl.substring(0, 40)}...
                   </div>
                ) : (
                   <p className="text-xs italic text-muted-foreground">No signature data captured.</p>

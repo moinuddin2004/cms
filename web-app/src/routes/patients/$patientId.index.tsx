@@ -6,7 +6,7 @@ import { usePatient } from '@/features/patients/hooks/usePatient';
 import { PatientDetailHeader } from '@/features/patients/components/PatientDetailHeader';
 import { PatientDetailTabs } from '@/features/patients/components/PatientDetailTabs';
 
-export const Route = createFileRoute('/patients/$patientId')({
+export const Route = createFileRoute('/patients/$patientId/')({
   component: PatientDetailPage,
 });
 
