@@ -4,8 +4,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { useEmployee } from '@/hooks/useEmployees'
-import { useEmployeePayroll } from '@/hooks/usePayroll'
+import {
+  useEmployee,
+  useEmployeePayroll,
+  UpdateSalaryModal,
+  MarkPaidModal,
+  GeneratePayrollModal,
+  PayrollTable,
+  type PayrollRecord,
+} from '@/features/employees'
 import {
   formatCurrency,
   formatDate,
@@ -20,11 +27,6 @@ import {
   Receipt,
 } from 'lucide-react'
 import { useState } from 'react'
-import { UpdateSalaryModal } from '@/components/employees/UpdateSalaryModal'
-import { MarkPaidModal } from '@/components/employees/MarkPaidModal'
-import { GeneratePayrollModal } from '@/components/employees/GeneratePayrollModal'
-import { PayrollTable } from '@/components/employees/PayrollTable'
-import type { PayrollRecord } from '@/types/employee.types'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/employees/$id')({
