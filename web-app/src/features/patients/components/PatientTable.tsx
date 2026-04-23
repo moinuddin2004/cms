@@ -154,41 +154,30 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         cell: ({ row }) => {
           const p = row.original
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="flex items-center justify-end gap-1">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+                <Link to="/patients/$patientId" params={{ patientId: p.id }}>
+                  <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+                <Link to="/patients/$patientId/edit" params={{ patientId: p.id }}>
+                  <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              {p.isActive && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0"
-                  aria-label={`Actions for ${p.fullName}`}
+                  className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    if (confirm('Deactivate this patient?')) onDeactivate(p.id)
+                  }}
                 >
-                  <MoreHorizontal size={14} />
+                  <UserX className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to="/patients/$patientId" params={{ patientId: p.id }}>
-                    <Eye size={14} className="mr-2" /> View
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/patients/$patientId/edit"
-                    params={{ patientId: p.id }}
-                  >
-                    <Pencil size={14} className="mr-2" /> Edit
-                  </Link>
-                </DropdownMenuItem>
-                {p.isActive && (
-                  <DropdownMenuItem
-                    onClick={() => onDeactivate(p.id)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <UserX size={14} className="mr-2" /> Deactivate
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
           )
         },
       },

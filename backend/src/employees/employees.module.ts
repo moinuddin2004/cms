@@ -7,6 +7,8 @@ import { EmployeeLocationAssignment } from './entities/employee-location-assignm
 import { EmploymentRole } from './entities/employment-role.entity';
 import { EmployeesController } from './employees.controller';
 import { EmployeesService } from './employees.service';
+import { EmploymentRolesController } from './employment-roles.controller';
+import { EmploymentRolesService } from './employment-roles.service';
 
 @Module({
   imports: [
@@ -18,8 +20,8 @@ import { EmployeesService } from './employees.service';
       EmploymentRole,
     ]),
   ],
-  controllers: [EmployeesController],
-  providers: [EmployeesService],
-  exports: [EmployeesService],
+  controllers: [EmployeesController, EmploymentRolesController],
+  providers: [EmployeesService, EmploymentRolesService],
+  exports: [EmployeesService, EmploymentRolesService],
 })
 export class EmployeesModule {}

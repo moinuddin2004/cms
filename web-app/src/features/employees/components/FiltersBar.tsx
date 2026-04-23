@@ -6,8 +6,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { RotateCcw } from 'lucide-react'
+import { RotateCcw, Loader2 } from 'lucide-react'
 import { EMPLOYMENT_TYPE_OPTIONS, STATUS_OPTIONS } from '../types'
+import { useEmploymentRoles } from '../hooks/useEmploymentRoles'
 
 interface FiltersBarProps {
   role: string
@@ -28,6 +29,7 @@ export function FiltersBar({
   onStatusChange,
   onReset,
 }: FiltersBarProps) {
+  const { data: roles = [], isLoading: isLoadingRoles } = useEmploymentRoles()
   const hasActiveFilters = role || employmentType || status
 
   return (
@@ -35,19 +37,29 @@ export function FiltersBar({
       {/* Role Filter */}
       <Select value={role} onValueChange={onRoleChange}>
         <SelectTrigger
-          className="w-[140px] h-9"
+          className="w-[160px] h-9"
           aria-label="Filter by role"
           id="filter-role"
         >
-          <SelectValue placeholder="All Roles" />
+          {isLoadingRoles ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span className="text-xs">Loading...</span>
+            </div>
+          ) : (
+            <SelectValue placeholder="All Roles" />
+          )}
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="dentist">Dentist</SelectItem>
-          <SelectItem value="receptionist">Receptionist</SelectItem>
-          <SelectItem value="assistant">Assistant</SelectItem>
-          <SelectItem value="hygienist">Hygienist</SelectItem>
+          <SelectItem value="all">All Roles</SelectItem>
+          {roles.map((r) => (
+            <SelectItem key={r.id} value={r.slug}>
+              {r.name}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
+
 
       {/* Employment Type Filter */}
       <Select value={employmentType} onValueChange={onEmploymentTypeChange}>

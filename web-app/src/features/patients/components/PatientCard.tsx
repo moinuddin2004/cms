@@ -4,16 +4,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   Eye,
   Pencil,
   UserX,
-  MoreVertical,
   Phone,
   Mail,
   MapPin,
@@ -80,44 +73,30 @@ export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
               {patient.isActive ? 'Active' : 'Inactive'}
             </Badge>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+                <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+                <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              {patient.isActive && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label="Patient actions"
+                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    if (confirm('Deactivate this patient?')) onDeactivate(patient.id)
+                  }}
                 >
-                  <MoreVertical size={14} />
+                  <UserX className="h-3.5 w-3.5" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/patients/$patientId"
-                    params={{ patientId: patient.id }}
-                  >
-                    <Eye size={14} className="mr-2" /> View
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/patients/$patientId/edit"
-                    params={{ patientId: patient.id }}
-                  >
-                    <Pencil size={14} className="mr-2" /> Edit
-                  </Link>
-                </DropdownMenuItem>
-                {patient.isActive && (
-                  <DropdownMenuItem
-                    onClick={() => onDeactivate(patient.id)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <UserX size={14} className="mr-2" /> Deactivate
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+            </div>
           </div>
         </div>
 

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
+import { EmploymentRolesManager } from './EmploymentRolesManager'
 
 interface OrganizationSettings {
   id: string
@@ -161,6 +162,8 @@ export function OrganizationSettingsFeature({
           </div>
         </CardContent>
       </Card>
+
+      <EmploymentRolesManager />
 
       <Card>
         <CardHeader>

@@ -95,27 +95,17 @@ export class EmployeesService {
       .createQueryBuilder('e')
       .leftJoinAndSelect('e.employmentRole', 'role')
       .leftJoinAndSelect('e.primaryLocation', 'loc')
-      .leftJoin(
-        'employee_salaries',
-        'sal',
-        'sal.employee_id = e.id AND sal.is_current = true',
-      )
-      .addSelect([
-        'sal.id',
-        'sal.gross_salary',
-        'sal.effective_from',
-      ])
       .where('e.organization_id = :organizationId', { organizationId });
 
     // Filter by primary location from header
     if (locationId) {
-      qb.andWhere('e.primary_location_id = :locationId', { locationId });
+      qb.andWhere('e.primaryLocationId = :locationId', { locationId });
     }
 
     // Search
     if (search?.trim()) {
       qb.andWhere(
-        '(e.full_name ILIKE :search OR e.phone ILIKE :search OR e.employee_code ILIKE :search)',
+        '(e.fullName ILIKE :search OR e.phone ILIKE :search OR e.employeeCode ILIKE :search)',
         { search: `%${search.trim()}%` },
       );
     }
@@ -127,10 +117,10 @@ export class EmployeesService {
 
     // isActive filter
     if (isActive !== undefined) {
-      qb.andWhere('e.is_active = :isActive', { isActive });
+      qb.andWhere('e.isActive = :isActive', { isActive });
     }
 
-    qb.orderBy('e.created_at', 'DESC');
+    qb.orderBy('e.createdAt', 'DESC');
     qb.skip((page - 1) * limit).take(limit);
 
     const [employees, total] = await qb.getManyAndCount();

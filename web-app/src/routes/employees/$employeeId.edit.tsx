@@ -9,21 +9,21 @@ import {
 import { toast } from 'sonner'
 import { ChevronLeft, Loader2 } from 'lucide-react'
 
-export const Route = createFileRoute('/employees/$id/edit')({
+export const Route = createFileRoute('/employees/$employeeId/edit')({
   component: EditEmployeePage,
 })
 
 function EditEmployeePage() {
-  const { id } = Route.useParams()
+  const { employeeId } = Route.useParams()
   const navigate = useNavigate()
-  const { data: employee, isLoading: isEmployeeLoading } = useEmployee(id)
-  const updateMutation = useUpdateEmployee(id)
+  const { data: employee, isLoading: isEmployeeLoading } = useEmployee(employeeId)
+  const updateMutation = useUpdateEmployee(employeeId)
 
   async function onSubmit(data: EmployeeFormData) {
     try {
       await updateMutation.mutateAsync(data)
       toast.success('Employee updated successfully')
-      navigate({ to: `/employees/${id}` })
+      navigate({ to: '/employees/$employeeId', params: { employeeId } })
     } catch (error) {
       toast.error('Failed to update employee')
     }
@@ -43,7 +43,8 @@ function EditEmployeePage() {
     <DashboardLayout title={`Edit ${employee?.fullName || 'Employee'}`}>
       <div className="max-w-3xl mx-auto space-y-4">
         <Link
-          to={`/employees/${id}`}
+          to="/employees/$employeeId"
+          params={{ employeeId }}
           className="flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
@@ -55,7 +56,7 @@ function EditEmployeePage() {
           defaultValues={employee}
           onSubmit={onSubmit}
           isPending={updateMutation.isPending}
-          onCancel={() => navigate({ to: `/employees/${id}` })}
+          onCancel={() => navigate({ to: `/employees` })}
         />
       </div>
     </DashboardLayout>

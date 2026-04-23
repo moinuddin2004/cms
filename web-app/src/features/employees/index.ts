@@ -21,6 +21,7 @@ export * from './hooks/useEmployee'
 export * from './hooks/useCreateEmployee'
 export * from './hooks/useUpdateEmployee'
 export * from './hooks/useDeactivateEmployee'
+export * from './hooks/useEmploymentRoles'
 
 // Hooks (Salary & Payroll)
 export * from './hooks/useSetSalary'

@@ -9,6 +9,7 @@ import {
   IsBoolean,
   IsDateString,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { Gender, EmploymentType } from '../enums/employee.enums';
 
 export class CreateEmployeeDto {
@@ -59,6 +60,7 @@ export class CreateEmployeeDto {
   hasPortalAccess?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @IsUUID()
   userId?: string;
 

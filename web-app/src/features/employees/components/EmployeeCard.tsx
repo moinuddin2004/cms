@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import { getEmploymentTypeLabel, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { Phone, Calendar, MapPin } from 'lucide-react'
+import { Phone, Calendar, MapPin, Eye, Pencil, UserX } from 'lucide-react'
 import type { Employee } from '../types'
 
 interface EmployeeCardProps {
@@ -28,8 +28,8 @@ export function EmployeeCard({ employee, onDeactivate }: EmployeeCardProps) {
           <EmployeeAvatar name={employee.fullName} className="w-11 h-11" />
           <div className="flex-1 min-w-0">
             <Link
-              to="/employees/$id"
-              params={{ id: employee.id }}
+              to="/employees/$employeeId"
+              params={{ employeeId: employee.id }}
               className="font-semibold text-sm text-foreground hover:text-brand-600 transition-colors block truncate"
             >
               {employee.fullName}
@@ -38,17 +38,44 @@ export function EmployeeCard({ employee, onDeactivate }: EmployeeCardProps) {
               {employee.designation}
             </p>
           </div>
-          <Badge
-            variant={employee.isActive ? 'default' : 'secondary'}
-            className={cn(
-              'text-[10px] px-1.5 shrink-0',
-              employee.isActive
-                ? 'bg-status-success/10 text-status-success border-status-success/20 hover:bg-status-success/10'
-                : 'bg-muted text-muted-foreground',
-            )}
-          >
-            {employee.isActive ? 'Active' : 'Inactive'}
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge
+              variant={employee.isActive ? 'default' : 'secondary'}
+              className={cn(
+                'text-[10px] px-1.5 shrink-0',
+                employee.isActive
+                  ? 'bg-status-success/10 text-status-success border-status-success/20 hover:bg-status-success/10'
+                  : 'bg-muted text-muted-foreground',
+              )}
+            >
+              {employee.isActive ? 'Active' : 'Inactive'}
+            </Badge>
+
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+                <Link to="/employees/$employeeId" params={{ employeeId: employee.id }}>
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+                <Link to="/employees/$employeeId/edit" params={{ employeeId: employee.id }}>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                </Link>
+              </Button>
+              {employee.isActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    if (confirm('Deactivate this employee?')) onDeactivate(employee.id)
+                  }}
+                >
+                  <UserX className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-2 text-xs text-muted-foreground mb-4">

@@ -29,15 +29,15 @@ import {
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
-export const Route = createFileRoute('/employees/$id')({
+export const Route = createFileRoute('/employees/$employeeId/')({
   component: EmployeeDetailPage,
 })
 
 function EmployeeDetailPage() {
-  const { id } = Route.useParams()
+  const { employeeId } = Route.useParams()
   const navigate = useNavigate()
-  const { data: employee, isLoading: isEmployeeLoading } = useEmployee(id)
-  const { data: payroll, isLoading: isPayrollLoading } = useEmployeePayroll(id)
+  const { data: employee, isLoading: isEmployeeLoading } = useEmployee(employeeId)
+  const { data: payroll, isLoading: isPayrollLoading } = useEmployeePayroll(employeeId)
 
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false)
   const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] = useState(false)
@@ -102,7 +102,7 @@ function EmployeeDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ to: `/employees/${id}/edit` })}
+            onClick={() => navigate({ to: '/employees/$employeeId/edit', params: { employeeId } })}
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -277,7 +277,7 @@ function EmployeeDetailPage() {
       </div>
 
       <UpdateSalaryModal
-        employeeId={id}
+        employeeId={employeeId}
         isOpen={isSalaryModalOpen}
         onOpenChange={setIsSalaryModalOpen}
         currentSalary={employee.currentSalary?.grossSalary}

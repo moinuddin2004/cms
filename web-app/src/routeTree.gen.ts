@@ -26,12 +26,12 @@ import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
-import { Route as EmployeesIdRouteImport } from './routes/employees/$id'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
+import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
 import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId.edit'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
-import { Route as EmployeesIdEditRouteImport } from './routes/employees/$id.edit'
+import { Route as EmployeesEmployeeIdEditRouteImport } from './routes/employees/$employeeId.edit'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -118,16 +118,17 @@ const EmployeesCreateRoute = EmployeesCreateRouteImport.update({
   path: '/employees/create',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmployeesIdRoute = EmployeesIdRouteImport.update({
-  id: '/employees/$id',
-  path: '/employees/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   id: '/patients/$patientId/',
   path: '/patients/$patientId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmployeesEmployeeIdIndexRoute =
+  EmployeesEmployeeIdIndexRouteImport.update({
+    id: '/employees/$employeeId/',
+    path: '/employees/$employeeId/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PatientsPatientIdEditRoute = PatientsPatientIdEditRouteImport.update({
   id: '/patients/$patientId/edit',
   path: '/patients/$patientId/edit',
@@ -143,10 +144,10 @@ const LocationsIdSettingsRoute = LocationsIdSettingsRouteImport.update({
   path: '/locations/$id/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmployeesIdEditRoute = EmployeesIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => EmployeesIdRoute,
+const EmployeesEmployeeIdEditRoute = EmployeesEmployeeIdEditRouteImport.update({
+  id: '/employees/$employeeId/edit',
+  path: '/employees/$employeeId/edit',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -163,15 +164,15 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/employees/$id': typeof EmployeesIdRouteWithChildren
   '/employees/create': typeof EmployeesCreateRoute
   '/patients/new': typeof PatientsNewRoute
   '/employees/': typeof EmployeesIndexRoute
   '/patients/': typeof PatientsIndexRoute
-  '/employees/$id/edit': typeof EmployeesIdEditRoute
+  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -188,15 +189,15 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/employees/$id': typeof EmployeesIdRouteWithChildren
   '/employees/create': typeof EmployeesCreateRoute
   '/patients/new': typeof PatientsNewRoute
   '/employees': typeof EmployeesIndexRoute
   '/patients': typeof PatientsIndexRoute
-  '/employees/$id/edit': typeof EmployeesIdEditRoute
+  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/employees/$employeeId': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRoutesById {
@@ -214,15 +215,15 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
-  '/employees/$id': typeof EmployeesIdRouteWithChildren
   '/employees/create': typeof EmployeesCreateRoute
   '/patients/new': typeof PatientsNewRoute
   '/employees/': typeof EmployeesIndexRoute
   '/patients/': typeof PatientsIndexRoute
-  '/employees/$id/edit': typeof EmployeesIdEditRoute
+  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
   '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
+  '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -241,15 +242,15 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/employees/$id'
     | '/employees/create'
     | '/patients/new'
     | '/employees/'
     | '/patients/'
-    | '/employees/$id/edit'
+    | '/employees/$employeeId/edit'
     | '/locations/$id/settings'
     | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
+    | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -266,15 +267,15 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/employees/$id'
     | '/employees/create'
     | '/patients/new'
     | '/employees'
     | '/patients'
-    | '/employees/$id/edit'
+    | '/employees/$employeeId/edit'
     | '/locations/$id/settings'
     | '/organizations/$id/settings'
     | '/patients/$patientId/edit'
+    | '/employees/$employeeId'
     | '/patients/$patientId'
   id:
     | '__root__'
@@ -291,15 +292,15 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
-    | '/employees/$id'
     | '/employees/create'
     | '/patients/new'
     | '/employees/'
     | '/patients/'
-    | '/employees/$id/edit'
+    | '/employees/$employeeId/edit'
     | '/locations_/$id/settings'
     | '/organizations_/$id/settings'
     | '/patients/$patientId/edit'
+    | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
 }
@@ -317,14 +318,15 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
-  EmployeesIdRoute: typeof EmployeesIdRouteWithChildren
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   PatientsNewRoute: typeof PatientsNewRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
+  EmployeesEmployeeIdEditRoute: typeof EmployeesEmployeeIdEditRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
   PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
+  EmployeesEmployeeIdIndexRoute: typeof EmployeesEmployeeIdIndexRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
 
@@ -449,18 +451,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/employees/$id': {
-      id: '/employees/$id'
-      path: '/employees/$id'
-      fullPath: '/employees/$id'
-      preLoaderRoute: typeof EmployeesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/patients/$patientId/': {
       id: '/patients/$patientId/'
       path: '/patients/$patientId'
       fullPath: '/patients/$patientId/'
       preLoaderRoute: typeof PatientsPatientIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employees/$employeeId/': {
+      id: '/employees/$employeeId/'
+      path: '/employees/$employeeId'
+      fullPath: '/employees/$employeeId/'
+      preLoaderRoute: typeof EmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/$patientId/edit': {
@@ -484,27 +486,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocationsIdSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/employees/$id/edit': {
-      id: '/employees/$id/edit'
-      path: '/edit'
-      fullPath: '/employees/$id/edit'
-      preLoaderRoute: typeof EmployeesIdEditRouteImport
-      parentRoute: typeof EmployeesIdRoute
+    '/employees/$employeeId/edit': {
+      id: '/employees/$employeeId/edit'
+      path: '/employees/$employeeId/edit'
+      fullPath: '/employees/$employeeId/edit'
+      preLoaderRoute: typeof EmployeesEmployeeIdEditRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface EmployeesIdRouteChildren {
-  EmployeesIdEditRoute: typeof EmployeesIdEditRoute
-}
-
-const EmployeesIdRouteChildren: EmployeesIdRouteChildren = {
-  EmployeesIdEditRoute: EmployeesIdEditRoute,
-}
-
-const EmployeesIdRouteWithChildren = EmployeesIdRoute._addFileChildren(
-  EmployeesIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -520,14 +510,15 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
-  EmployeesIdRoute: EmployeesIdRouteWithChildren,
   EmployeesCreateRoute: EmployeesCreateRoute,
   PatientsNewRoute: PatientsNewRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
+  EmployeesEmployeeIdEditRoute: EmployeesEmployeeIdEditRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
   PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
+  EmployeesEmployeeIdIndexRoute: EmployeesEmployeeIdIndexRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
 export const routeTree = rootRouteImport

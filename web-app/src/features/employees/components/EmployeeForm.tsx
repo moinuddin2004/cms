@@ -29,6 +29,7 @@ import {
   type EmployeeFormData,
   type Employee,
   GENDER_OPTIONS,
+  EmploymentType,
   EMPLOYMENT_TYPE_OPTIONS,
 } from '../types'
 
@@ -55,7 +56,7 @@ export function EmployeeForm({
     queryFn: () => apiClient.get('/employment-roles').then((r) => r.data.data),
   })
 
-  const form = useForm<EmployeeFormData>({
+  const form = useForm<EmployeeFormData, any, EmployeeFormData>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
       fullName: '',
@@ -63,7 +64,7 @@ export function EmployeeForm({
       cnic: '',
       designation: '',
       employmentRoleId: '',
-      employmentType: 'full_time',
+      employmentType: EmploymentType.FULL_TIME,
       joiningDate: new Date().toISOString().split('T')[0],
       primaryLocationId: activeLocationId || '',
       hasPortalAccess: false,
@@ -80,7 +81,7 @@ export function EmployeeForm({
         phone: defaultValues.phone,
         cnic: defaultValues.cnic || '',
         designation: defaultValues.designation,
-        employmentRoleId: defaultValues.employmentRole?.id || '',
+        employmentRoleId: defaultValues.employmentRoleId || '',
         employmentType: defaultValues.employmentType,
         joiningDate: defaultValues.joiningDate?.split('T')[0] || '',
         primaryLocationId: defaultValues.primaryLocationId || activeLocationId || '',

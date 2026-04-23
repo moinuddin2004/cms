@@ -136,17 +136,17 @@ export interface PayrollRecord {
 export const employeeFormSchema = z.object({
   fullName: z.string().min(2, 'Full name is required').max(255),
   phone: z.string().min(10, 'Valid phone number is required').max(20),
-  cnic: z.string().max(20).optional().default(''),
+  cnic: z.string().max(20).optional().transform(v => v === '' ? undefined : v),
   designation: z.string().min(2, 'Designation is required').max(100),
   employmentRoleId: z.string().min(1, 'Role is required'),
   employmentType: z.nativeEnum(EmploymentType).default(EmploymentType.FULL_TIME),
   joiningDate: z.string().min(1, 'Joining date is required'),
   primaryLocationId: z.string().min(1, 'Location is required'),
   gender: z.nativeEnum(Gender).optional(),
-  dob: z.string().optional().default(''),
+  dob: z.string().optional().transform(v => v === '' ? undefined : v),
   hasPortalAccess: z.boolean().default(false),
-  profilePictureUrl: z.string().optional().default(''),
-  userId: z.string().optional().default(''),
+  profilePictureUrl: z.string().optional().transform(v => v === '' ? undefined : v),
+  userId: z.string().optional().transform(v => v === '' ? undefined : v),
 })
 
 export type EmployeeFormData = z.infer<typeof employeeFormSchema>
