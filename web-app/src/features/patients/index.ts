@@ -1,16 +1,16 @@
-export { SearchInput } from './components/SearchInput';
-export { FiltersBar } from './components/FiltersBar';
-export { PatientCard } from './components/PatientCard';
-export { PatientTable } from './components/PatientTable';
-export { PatientForm } from './components/PatientForm';
-export { PatientListHeader } from './components/PatientListHeader';
-export { PatientDetailHeader } from './components/PatientDetailHeader';
-export { PatientDetailTabs } from './components/PatientDetailTabs';
-export { PaginationBar } from './components/PaginationBar';
-export { usePatients } from './hooks/usePatients';
-export { usePatient } from './hooks/usePatient';
-export { useCreatePatient } from './hooks/useCreatePatient';
-export { useUpdatePatient } from './hooks/useUpdatePatient';
-export { useDeactivatePatient } from './hooks/useDeactivatePatient';
-export { useCheckPhone } from './hooks/useCheckPhone';
-export type * from './types';
+export { SearchInput } from './components/SearchInput'
+export { FiltersBar } from './components/FiltersBar'
+export { PatientCard } from './components/PatientCard'
+export { PatientTable } from './components/PatientTable'
+export { PatientForm } from './components/PatientForm'
+export { PatientListHeader } from './components/PatientListHeader'
+export { PatientDetailHeader } from './components/PatientDetailHeader'
+export { PatientDetailTabs } from './components/PatientDetailTabs'
+export { PaginationBar } from './components/PaginationBar'
+export { usePatients } from './hooks/usePatients'
+export { usePatient } from './hooks/usePatient'
+export { useCreatePatient } from './hooks/useCreatePatient'
+export { useUpdatePatient } from './hooks/useUpdatePatient'
+export { useDeactivatePatient } from './hooks/useDeactivatePatient'
+export { useCheckPhone } from './hooks/useCheckPhone'
+export type * from './types'

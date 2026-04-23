@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useMemo } from 'react'
+import { Link } from '@tanstack/react-router'
 import {
   useReactTable,
   getCoreRowModel,
   flexRender,
   type ColumnDef,
-} from '@tanstack/react-table';
+} from '@tanstack/react-table'
 import {
   Table,
   TableBody,
@@ -13,22 +13,22 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Eye, Pencil, UserX, MoreHorizontal } from 'lucide-react';
-import type { Patient } from '../types';
+} from '@/components/ui/dropdown-menu'
+import { Eye, Pencil, UserX, MoreHorizontal } from 'lucide-react'
+import type { Patient } from '../types'
 
 interface PatientTableProps {
-  patients: Patient[];
-  onDeactivate: (id: string) => void;
+  patients: Patient[]
+  onDeactivate: (id: string) => void
 }
 
 function getInitials(name: string): string {
@@ -37,13 +37,13 @@ function getInitials(name: string): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 function getAge(dob: string | null): string {
-  if (!dob) return '—';
-  const diff = Date.now() - new Date(dob).getTime();
-  return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))}`;
+  if (!dob) return '—'
+  const diff = Date.now() - new Date(dob).getTime()
+  return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))}`
 }
 
 export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
@@ -53,7 +53,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         accessorKey: 'fullName',
         header: 'Patient',
         cell: ({ row }) => {
-          const p = row.original;
+          const p = row.original
           return (
             <div className="flex items-center gap-3">
               <Avatar className="w-8 h-8">
@@ -69,10 +69,12 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
                 >
                   {p.fullName}
                 </Link>
-                <p className="text-xs text-muted-foreground">{p.patientNumber}</p>
+                <p className="text-xs text-muted-foreground">
+                  {p.patientNumber}
+                </p>
               </div>
             </div>
-          );
+          )
         },
       },
       {
@@ -93,45 +95,45 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         accessorKey: 'gender',
         header: 'Gender',
         cell: ({ getValue }) => {
-          const v = getValue<string | null>();
+          const v = getValue<string | null>()
           return v ? (
             <span className="text-sm capitalize">{v}</span>
           ) : (
             <span className="text-sm text-muted-foreground">—</span>
-          );
+          )
         },
       },
       {
         accessorKey: 'bloodGroup',
         header: 'Blood',
         cell: ({ getValue }) => {
-          const v = getValue<string | null>();
+          const v = getValue<string | null>()
           return v ? (
             <Badge variant="outline" className="text-xs font-medium">
               {v}
             </Badge>
           ) : (
             <span className="text-sm text-muted-foreground">—</span>
-          );
+          )
         },
       },
       {
         accessorKey: 'city',
         header: 'City',
         cell: ({ getValue }) => {
-          const v = getValue<string | null>();
+          const v = getValue<string | null>()
           return (
             <span className="text-sm">
               {v || <span className="text-muted-foreground">—</span>}
             </span>
-          );
+          )
         },
       },
       {
         accessorKey: 'isActive',
         header: 'Status',
         cell: ({ getValue }) => {
-          const active = getValue<boolean>();
+          const active = getValue<boolean>()
           return (
             <Badge
               variant={active ? 'default' : 'secondary'}
@@ -143,14 +145,14 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
             >
               {active ? 'Active' : 'Inactive'}
             </Badge>
-          );
+          )
         },
       },
       {
         id: 'actions',
         header: '',
         cell: ({ row }) => {
-          const p = row.original;
+          const p = row.original
           return (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -170,7 +172,10 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/patients/$patientId/edit" params={{ patientId: p.id }}>
+                  <Link
+                    to="/patients/$patientId/edit"
+                    params={{ patientId: p.id }}
+                  >
                     <Pencil size={14} className="mr-2" /> Edit
                   </Link>
                 </DropdownMenuItem>
@@ -184,30 +189,39 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          );
+          )
         },
       },
     ],
     [onDeactivate],
-  );
+  )
 
   const table = useReactTable({
     data: patients,
     columns,
     getCoreRowModel: getCoreRowModel(),
-  });
+  })
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
+            <TableRow
+              key={headerGroup.id}
+              className="bg-muted/40 hover:bg-muted/40"
+            >
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id} className="text-xs font-semibold uppercase tracking-wider">
+                <TableHead
+                  key={header.id}
+                  className="text-xs font-semibold uppercase tracking-wider"
+                >
                   {header.isPlaceholder
                     ? null
-                    : flexRender(header.column.columnDef.header, header.getContext())}
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
                 </TableHead>
               ))}
             </TableRow>
@@ -216,7 +230,10 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         <TableBody>
           {table.getRowModel().rows.length > 0 ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
+              <TableRow
+                key={row.id}
+                className="hover:bg-muted/20 transition-colors"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="py-3">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -237,5 +254,5 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         </TableBody>
       </Table>
     </div>
-  );
+  )
 }

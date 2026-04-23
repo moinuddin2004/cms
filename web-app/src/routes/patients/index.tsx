@@ -1,27 +1,27 @@
-import { useState, useCallback } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePatients } from '@/features/patients/hooks/usePatients';
-import { useDeactivatePatient } from '@/features/patients/hooks/useDeactivatePatient';
-import { usePatientStore } from '@/store/patient-store';
-import { SearchInput } from '@/features/patients/components/SearchInput';
-import { FiltersBar } from '@/features/patients/components/FiltersBar';
-import { PatientCard } from '@/features/patients/components/PatientCard';
-import { PatientTable } from '@/features/patients/components/PatientTable';
-import { PatientListHeader } from '@/features/patients/components/PatientListHeader';
-import { PaginationBar } from '@/features/patients/components/PaginationBar';
-import type { PatientListParams } from '@/features/patients/types';
-import { Users } from 'lucide-react';
+import { useState, useCallback } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { usePatients } from '@/features/patients/hooks/usePatients'
+import { useDeactivatePatient } from '@/features/patients/hooks/useDeactivatePatient'
+import { usePatientStore } from '@/store/patient-store'
+import { SearchInput } from '@/features/patients/components/SearchInput'
+import { FiltersBar } from '@/features/patients/components/FiltersBar'
+import { PatientCard } from '@/features/patients/components/PatientCard'
+import { PatientTable } from '@/features/patients/components/PatientTable'
+import { PatientListHeader } from '@/features/patients/components/PatientListHeader'
+import { PaginationBar } from '@/features/patients/components/PaginationBar'
+import type { PatientListParams } from '@/features/patients/types'
+import { Users } from 'lucide-react'
 
 export const Route = createFileRoute('/patients/')({
   component: PatientsListPage,
-});
+})
 
 function PatientsListPage() {
-  const { viewMode } = usePatientStore();
-  const deactivateMutation = useDeactivatePatient();
+  const { viewMode } = usePatientStore()
+  const deactivateMutation = useDeactivatePatient()
 
   // Query params state
   const [params, setParams] = useState<PatientListParams>({
@@ -33,20 +33,23 @@ function PatientsListPage() {
     isActive: undefined,
     sortBy: 'createdAt',
     sortOrder: 'DESC',
-  });
+  })
 
-  const { data, isLoading, isError } = usePatients(params);
+  const { data, isLoading, isError } = usePatients(params)
 
   const updateParam = useCallback(
-    <K extends keyof PatientListParams>(key: K, value: PatientListParams[K]) => {
+    <K extends keyof PatientListParams>(
+      key: K,
+      value: PatientListParams[K],
+    ) => {
       setParams((prev) => ({
         ...prev,
         [key]: value,
         ...(key !== 'page' ? { page: 1 } : {}), // Reset page on filter change
-      }));
+      }))
     },
     [],
-  );
+  )
 
   const resetFilters = useCallback(() => {
     setParams((prev) => ({
@@ -55,17 +58,17 @@ function PatientsListPage() {
       bloodGroup: '',
       isActive: undefined,
       page: 1,
-    }));
-  }, []);
+    }))
+  }, [])
 
   const handleDeactivate = useCallback(
     (id: string) => {
       if (window.confirm('Are you sure you want to deactivate this patient?')) {
-        deactivateMutation.mutate(id);
+        deactivateMutation.mutate(id)
       }
     },
     [deactivateMutation],
-  );
+  )
 
   return (
     <DashboardLayout title="Patients">
@@ -87,15 +90,10 @@ function PatientsListPage() {
                 bloodGroup={params.bloodGroup || ''}
                 onBloodGroupChange={(v) => updateParam('bloodGroup', v)}
                 status={
-                  params.isActive === undefined
-                    ? ''
-                    : String(params.isActive)
+                  params.isActive === undefined ? '' : String(params.isActive)
                 }
                 onStatusChange={(v) =>
-                  updateParam(
-                    'isActive',
-                    v === '' ? undefined : v === 'true',
-                  )
+                  updateParam('isActive', v === '' ? undefined : v === 'true')
                 }
                 onReset={resetFilters}
               />
@@ -138,7 +136,7 @@ function PatientsListPage() {
               total={data.total}
               onPageChange={(p) => updateParam('page', p)}
               onLimitChange={(l) => {
-                setParams((prev) => ({ ...prev, limit: l, page: 1 }));
+                setParams((prev) => ({ ...prev, limit: l, page: 1 }))
               }}
             />
           </>
@@ -147,7 +145,7 @@ function PatientsListPage() {
         )}
       </div>
     </DashboardLayout>
-  );
+  )
 }
 
 function EmptyState() {
@@ -166,7 +164,7 @@ function EmptyState() {
         </p>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function LoadingSkeleton({ view }: { view: string }) {
@@ -179,7 +177,7 @@ function LoadingSkeleton({ view }: { view: string }) {
           ))}
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -200,5 +198,5 @@ function LoadingSkeleton({ view }: { view: string }) {
         </Card>
       ))}
     </div>
-  );
+  )
 }

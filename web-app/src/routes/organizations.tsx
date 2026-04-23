@@ -1,18 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { OrganizationManagementView } from '@/features/organizations/OrganizationManagementView';
-import { useAuthStore } from '@/store/useAuthStore';
-import { Navigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { OrganizationManagementView } from '@/features/organizations/OrganizationManagementView'
+import { useAuthStore } from '@/store/useAuthStore'
+import { Navigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/organizations')({
   component: OrganizationsRouteComponent,
-});
+})
 
 function OrganizationsRouteComponent() {
-  const { isSuperAdmin } = useAuthStore();
+  const { isSuperAdmin } = useAuthStore()
 
   if (!isSuperAdmin) {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" />
   }
 
   return (
@@ -21,5 +21,5 @@ function OrganizationsRouteComponent() {
         <OrganizationManagementView />
       </div>
     </DashboardLayout>
-  );
+  )
 }

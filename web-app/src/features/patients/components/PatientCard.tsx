@@ -1,20 +1,28 @@
-import { Link } from '@tanstack/react-router';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Link } from '@tanstack/react-router'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Eye, Pencil, UserX, MoreVertical, Phone, Mail, MapPin } from 'lucide-react';
-import type { Patient } from '../types';
+} from '@/components/ui/dropdown-menu'
+import {
+  Eye,
+  Pencil,
+  UserX,
+  MoreVertical,
+  Phone,
+  Mail,
+  MapPin,
+} from 'lucide-react'
+import type { Patient } from '../types'
 
 interface PatientCardProps {
-  patient: Patient;
-  onDeactivate: (id: string) => void;
+  patient: Patient
+  onDeactivate: (id: string) => void
 }
 
 function getInitials(name: string): string {
@@ -23,14 +31,14 @@ function getInitials(name: string): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 function getAge(dob: string | null): string {
-  if (!dob) return '—';
-  const diff = Date.now() - new Date(dob).getTime();
-  const age = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000));
-  return `${age}y`;
+  if (!dob) return '—'
+  const diff = Date.now() - new Date(dob).getTime()
+  const age = Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))
+  return `${age}y`
 }
 
 export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
@@ -85,12 +93,18 @@ export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
+                  <Link
+                    to="/patients/$patientId"
+                    params={{ patientId: patient.id }}
+                  >
                     <Eye size={14} className="mr-2" /> View
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
+                  <Link
+                    to="/patients/$patientId/edit"
+                    params={{ patientId: patient.id }}
+                  >
                     <Pencil size={14} className="mr-2" /> Edit
                   </Link>
                 </DropdownMenuItem>
@@ -137,5 +151,5 @@ export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

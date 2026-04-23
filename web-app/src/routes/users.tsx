@@ -1,10 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { UserManagementView } from '@/features/users/UserManagementView';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { createFileRoute } from '@tanstack/react-router'
+import { UserManagementView } from '@/features/users/UserManagementView'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
 
 export const Route = createFileRoute('/users')({
   component: UserRouteComponent,
-});
+})
 
 function UserRouteComponent() {
   return (
@@ -13,5 +13,5 @@ function UserRouteComponent() {
         <UserManagementView />
       </div>
     </DashboardLayout>
-  );
+  )
 }

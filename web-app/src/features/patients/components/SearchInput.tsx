@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useCallback } from 'react'
+import { Search, X } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 
 interface SearchInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  debounceMs?: number;
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  debounceMs?: number
 }
 
 export function SearchInput({
@@ -15,27 +15,27 @@ export function SearchInput({
   placeholder = 'Search by name or phone...',
   debounceMs = 300,
 }: SearchInputProps) {
-  const [localValue, setLocalValue] = useState(value);
+  const [localValue, setLocalValue] = useState(value)
 
   // Sync external value changes
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    setLocalValue(value)
+  }, [value])
 
   // Debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       if (localValue !== value) {
-        onChange(localValue);
+        onChange(localValue)
       }
-    }, debounceMs);
-    return () => clearTimeout(timer);
-  }, [localValue, debounceMs, onChange, value]);
+    }, debounceMs)
+    return () => clearTimeout(timer)
+  }, [localValue, debounceMs, onChange, value])
 
   const handleClear = useCallback(() => {
-    setLocalValue('');
-    onChange('');
-  }, [onChange]);
+    setLocalValue('')
+    onChange('')
+  }, [onChange])
 
   return (
     <div className="relative w-full max-w-sm">
@@ -63,5 +63,5 @@ export function SearchInput({
         </button>
       )}
     </div>
-  );
+  )
 }

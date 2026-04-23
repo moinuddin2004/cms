@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 // ─── Enums (Matching Backend) ───────────────────────────────────────
 
@@ -184,7 +184,7 @@ export const GENDER_OPTIONS = [
   { label: 'Male', value: Gender.MALE },
   { label: 'Female', value: Gender.FEMALE },
   { label: 'Other', value: Gender.OTHER },
-] as const;
+] as const
 
 export const BLOOD_GROUP_OPTIONS = [
   { label: 'A+', value: BloodGroup.A_POS },
@@ -195,7 +195,7 @@ export const BLOOD_GROUP_OPTIONS = [
   { label: 'AB-', value: BloodGroup.AB_NEG },
   { label: 'O+', value: BloodGroup.O_POS },
   { label: 'O-', value: BloodGroup.O_NEG },
-] as const;
+] as const
 
 export const SOURCE_OPTIONS = [
   { label: 'Walk In', value: PatientSource.WALK_IN },
@@ -204,329 +204,329 @@ export const SOURCE_OPTIONS = [
   { label: 'Social Media', value: PatientSource.SOCIAL_MEDIA },
   { label: 'Google Search', value: PatientSource.GOOGLE },
   { label: 'Other', value: PatientSource.OTHER },
-] as const;
+] as const
 
 export const MARITAL_STATUS_OPTIONS = [
   { label: 'Single', value: MaritalStatus.SINGLE },
   { label: 'Married', value: MaritalStatus.MARRIED },
   { label: 'Divorced', value: MaritalStatus.DIVORCED },
   { label: 'Widowed', value: MaritalStatus.WIDOWED },
-] as const;
+] as const
 
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 
 // ─── API Response Types ─────────────────────────────────────────────
 
 export interface Patient {
-  id: string;
-  patientNumber: string;
-  organizationId: string;
-  fullName: string;
-  phone: string;
-  dob: string | null;
-  gender: Gender | null;
-  bloodGroup: BloodGroup | null;
-  maritalStatus: MaritalStatus | null;
-  occupation: string | null;
-  cnic: string | null;
-  whatsappNumber: string | null;
-  email: string | null;
-  address: string | null;
-  city: string | null;
-  preferredLanguage: Language;
-  communicationPref: CommunicationPreference;
-  primaryLocationId: string | null;
-  source: PatientSource;
-  referredByText: string | null;
-  profilePictureUrl: string | null;
-  isMinor: boolean;
-  guardianName: string | null;
-  guardianPhone: string | null;
-  guardianRelation: string | null;
-  medicalHistory: string | null;
-  allergies: string | null; // Note: Currently string[] in UI, parsing needed if backend is string
-  emergencyContactName: string | null;
-  emergencyContactPhone: string | null;
-  emergencyContactRelation: string | null;
-  internalNotes: string | null;
-  tags: string[];
-  isActive: boolean;
-  isBlacklisted: boolean;
-  blacklistReason: string | null;
-  userId: string | null;
-  createdBy: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  patientNumber: string
+  organizationId: string
+  fullName: string
+  phone: string
+  dob: string | null
+  gender: Gender | null
+  bloodGroup: BloodGroup | null
+  maritalStatus: MaritalStatus | null
+  occupation: string | null
+  cnic: string | null
+  whatsappNumber: string | null
+  email: string | null
+  address: string | null
+  city: string | null
+  preferredLanguage: Language
+  communicationPref: CommunicationPreference
+  primaryLocationId: string | null
+  source: PatientSource
+  referredByText: string | null
+  profilePictureUrl: string | null
+  isMinor: boolean
+  guardianName: string | null
+  guardianPhone: string | null
+  guardianRelation: string | null
+  medicalHistory: string | null
+  allergies: string | null // Note: Currently string[] in UI, parsing needed if backend is string
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
+  emergencyContactRelation: string | null
+  internalNotes: string | null
+  tags: string[]
+  isActive: boolean
+  isBlacklisted: boolean
+  blacklistReason: string | null
+  userId: string | null
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientVisit {
-  id: string;
-  patientId: string;
-  locationId: string;
-  firstVisitDate: string | null;
-  lastVisitDate: string | null;
-  visitCount: number;
-  totalSpent: number;
-  isPreferredLocation: boolean;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  firstVisitDate: string | null
+  lastVisitDate: string | null
+  visitCount: number
+  totalSpent: number
+  isPreferredLocation: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientDentalInfo {
-  id: string;
-  patientId: string;
-  lastDentalCheckup: string | null;
-  teethConditionNotes: string | null;
-  gumCondition: GumCondition;
-  teethSensitivity: boolean;
-  sensitivityNotes: string | null;
-  brushingFrequency: BrushingFrequency;
-  flossingFrequency: FlossingFrequency;
-  smokingStatus: boolean;
-  tobaccoChewing: boolean;
-  orthodonticHistory: boolean;
-  orthodonticNotes: string | null;
-  prostheticsInfo: string | null;
-  previousExtractions: string | null;
-  previousSurgeries: string | null;
-  xrayNotes: string | null;
-  dentistNotes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  patientId: string
+  lastDentalCheckup: string | null
+  teethConditionNotes: string | null
+  gumCondition: GumCondition
+  teethSensitivity: boolean
+  sensitivityNotes: string | null
+  brushingFrequency: BrushingFrequency
+  flossingFrequency: FlossingFrequency
+  smokingStatus: boolean
+  tobaccoChewing: boolean
+  orthodonticHistory: boolean
+  orthodonticNotes: string | null
+  prostheticsInfo: string | null
+  previousExtractions: string | null
+  previousSurgeries: string | null
+  xrayNotes: string | null
+  dentistNotes: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientTeethChart {
-  id: string;
-  patientId: string;
-  locationId: string;
-  dentistId: string;
-  appointmentId: string | null;
-  chartData: Record<string, any>;
-  periodontalChart: Record<string, any> | null;
-  notes: string | null;
-  isInitialChart: boolean;
-  recordedAt: string;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  dentistId: string
+  appointmentId: string | null
+  chartData: Record<string, any>
+  periodontalChart: Record<string, any> | null
+  notes: string | null
+  isInitialChart: boolean
+  recordedAt: string
+  createdAt: string
 }
 
 export interface PatientVitals {
-  id: string;
-  patientId: string;
-  locationId: string;
-  appointmentId: string | null;
-  recordedBy: string;
-  bpSystolic: number | null;
-  bpDiastolic: number | null;
-  pulseRate: number | null;
-  temperature: number | null;
-  oxygenSaturation: number | null;
-  weightKg: number | null;
-  heightCm: number | null;
-  bmi: number | null;
-  isDiabetic: boolean;
-  isHypertensive: boolean;
-  isPregnant: boolean;
-  isOnBloodThinners: boolean;
-  isOnAntibiotics: boolean;
-  anesthesiaType: string | null;
-  anesthesiaDose: string | null;
-  anesthesiaAdministeredBy: string | null;
-  notes: string | null;
-  recordedAt: string;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  appointmentId: string | null
+  recordedBy: string
+  bpSystolic: number | null
+  bpDiastolic: number | null
+  pulseRate: number | null
+  temperature: number | null
+  oxygenSaturation: number | null
+  weightKg: number | null
+  heightCm: number | null
+  bmi: number | null
+  isDiabetic: boolean
+  isHypertensive: boolean
+  isPregnant: boolean
+  isOnBloodThinners: boolean
+  isOnAntibiotics: boolean
+  anesthesiaType: string | null
+  anesthesiaDose: string | null
+  anesthesiaAdministeredBy: string | null
+  notes: string | null
+  recordedAt: string
+  createdAt: string
 }
 
 export interface TreatmentPlanItem {
-  id: string;
-  planId: string;
-  procedureName: string;
-  procedureCode: string | null;
-  toothNumber: string | null;
-  toothSurface: string | null;
-  estimatedSessions: number;
-  completedSessions: number;
-  estimatedCost: number | null;
-  status: PlanItemStatus;
-  sequenceOrder: number;
-  assignedTo: string | null;
-  clinicalNotes: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  planId: string
+  procedureName: string
+  procedureCode: string | null
+  toothNumber: string | null
+  toothSurface: string | null
+  estimatedSessions: number
+  completedSessions: number
+  estimatedCost: number | null
+  status: PlanItemStatus
+  sequenceOrder: number
+  assignedTo: string | null
+  clinicalNotes: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientTreatmentPlan {
-  id: string;
-  patientId: string;
-  locationId: string;
-  dentistId: string;
-  planNumber: string;
-  planName: string;
-  description: string | null;
-  estimatedCost: number | null;
-  discountAmount: number;
-  finalEstimatedCost: number | null;
-  status: TreatmentPlanStatus;
-  startDate: string | null;
-  expectedEndDate: string | null;
-  actualEndDate: string | null;
-  patientAccepted: boolean;
-  patientAcceptedAt: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
-  items?: TreatmentPlanItem[];
+  id: string
+  patientId: string
+  locationId: string
+  dentistId: string
+  planNumber: string
+  planName: string
+  description: string | null
+  estimatedCost: number | null
+  discountAmount: number
+  finalEstimatedCost: number | null
+  status: TreatmentPlanStatus
+  startDate: string | null
+  expectedEndDate: string | null
+  actualEndDate: string | null
+  patientAccepted: boolean
+  patientAcceptedAt: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+  items?: TreatmentPlanItem[]
 }
 
 export interface PatientPrescription {
-  id: string;
-  patientId: string;
-  locationId: string;
-  prescribedBy: string;
-  appointmentId: string | null;
-  prescriptionNumber: string;
-  prescriptionDate: string;
-  chiefComplaint: string | null;
-  diagnosis: string | null;
-  medications: Record<string, any>[];
-  specialInstructions: string | null;
-  followUpDate: string | null;
-  isPrinted: boolean;
-  printedAt: string | null;
-  printCount: number;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  prescribedBy: string
+  appointmentId: string | null
+  prescriptionNumber: string
+  prescriptionDate: string
+  chiefComplaint: string | null
+  diagnosis: string | null
+  medications: Record<string, any>[]
+  specialInstructions: string | null
+  followUpDate: string | null
+  isPrinted: boolean
+  printedAt: string | null
+  printCount: number
+  createdAt: string
 }
 
 export interface PatientDocument {
-  id: string;
-  patientId: string;
-  locationId: string;
-  appointmentId: string | null;
-  documentType: DocumentType;
-  fileName: string;
-  fileUrl: string;
-  thumbnailUrl: string | null;
-  fileSizeBytes: number | null;
-  mimeType: string | null;
-  notes: string | null;
-  toothNumber: string | null;
-  takenDate: string | null;
-  isVisibleToPatient: boolean;
-  uploadedBy: string;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  appointmentId: string | null
+  documentType: DocumentType
+  fileName: string
+  fileUrl: string
+  thumbnailUrl: string | null
+  fileSizeBytes: number | null
+  mimeType: string | null
+  notes: string | null
+  toothNumber: string | null
+  takenDate: string | null
+  isVisibleToPatient: boolean
+  uploadedBy: string
+  createdAt: string
 }
 
 export interface PatientConsent {
-  id: string;
-  patientId: string;
-  locationId: string;
-  appointmentId: string | null;
-  consentType: ConsentType;
-  consentVersion: string;
-  consentText: string;
-  isAgreed: boolean;
-  agreedAt: string;
-  signedByName: string;
-  signedByType: string;
-  witnessedBy: string | null;
-  signatureUrl: string | null;
-  ipAddress: string | null;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  appointmentId: string | null
+  consentType: ConsentType
+  consentVersion: string
+  consentText: string
+  isAgreed: boolean
+  agreedAt: string
+  signedByName: string
+  signedByType: string
+  witnessedBy: string | null
+  signatureUrl: string | null
+  ipAddress: string | null
+  createdAt: string
 }
 
 export interface PatientCommunication {
-  id: string;
-  patientId: string;
-  locationId: string;
-  appointmentId: string | null;
-  type: CommType;
-  direction: CommDirection;
-  purpose: CommPurpose;
-  subject: string | null;
-  messageBody: string | null;
-  status: CommStatus;
-  sentAt: string | null;
-  deliveredAt: string | null;
-  readAt: string | null;
-  sentBy: string | null;
-  isAutomated: boolean;
-  automationTrigger: string | null;
-  externalMessageId: string | null;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  appointmentId: string | null
+  type: CommType
+  direction: CommDirection
+  purpose: CommPurpose
+  subject: string | null
+  messageBody: string | null
+  status: CommStatus
+  sentAt: string | null
+  deliveredAt: string | null
+  readAt: string | null
+  sentBy: string | null
+  isAutomated: boolean
+  automationTrigger: string | null
+  externalMessageId: string | null
+  createdAt: string
 }
 
 export interface PatientRecall {
-  id: string;
-  patientId: string;
-  locationId: string;
-  dentistId: string | null;
-  appointmentId: string | null;
-  recallType: RecallType;
-  customName: string | null;
-  dueDate: string;
-  firstReminderSentAt: string | null;
-  secondReminderSentAt: string | null;
-  thirdReminderSentAt: string | null;
-  status: RecallStatus;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  dentistId: string | null
+  appointmentId: string | null
+  recallType: RecallType
+  customName: string | null
+  dueDate: string
+  firstReminderSentAt: string | null
+  secondReminderSentAt: string | null
+  thirdReminderSentAt: string | null
+  status: RecallStatus
+  notes: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientReferral {
-  id: string;
-  referringPatientId: string;
-  referredPatientId: string | null;
-  referredName: string | null;
-  referredPhone: string | null;
-  referralDate: string;
-  rewardGiven: boolean;
-  rewardAmount: number | null;
-  rewardType: string | null;
-  rewardGivenAt: string | null;
-  status: ReferralStatus;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  referringPatientId: string
+  referredPatientId: string | null
+  referredName: string | null
+  referredPhone: string | null
+  referralDate: string
+  rewardGiven: boolean
+  rewardAmount: number | null
+  rewardType: string | null
+  rewardGivenAt: string | null
+  status: ReferralStatus
+  notes: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PatientFeedback {
-  id: string;
-  patientId: string;
-  locationId: string;
-  appointmentId: string | null;
-  dentistId: string | null;
-  rating: number;
-  category: FeedbackCategory;
-  feedbackText: string | null;
-  isAnonymous: boolean;
-  isPublished: boolean;
-  responseText: string | null;
-  respondedBy: string | null;
-  respondedAt: string | null;
-  createdAt: string;
+  id: string
+  patientId: string
+  locationId: string
+  appointmentId: string | null
+  dentistId: string | null
+  rating: number
+  category: FeedbackCategory
+  feedbackText: string | null
+  isAnonymous: boolean
+  isPublished: boolean
+  responseText: string | null
+  respondedBy: string | null
+  respondedAt: string | null
+  createdAt: string
 }
 
 export interface PatientInsurance {
-  id: string;
-  patientId: string;
-  providerName: string;
-  planName: string | null;
-  policyNumber: string;
-  policyHolderName: string | null;
-  groupNumber: string | null;
-  coverageDetails: string | null;
-  coveragePercentage: number;
-  maxAnnualBenefit: number | null;
-  usedBenefit: number;
-  validFrom: string | null;
-  validUntil: string | null;
-  isActive: boolean;
-  cardFrontUrl: string | null;
-  cardBackUrl: string | null;
-  notes: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  patientId: string
+  providerName: string
+  planName: string | null
+  policyNumber: string
+  policyHolderName: string | null
+  groupNumber: string | null
+  coverageDetails: string | null
+  coveragePercentage: number
+  maxAnnualBenefit: number | null
+  usedBenefit: number
+  validFrom: string | null
+  validUntil: string | null
+  isActive: boolean
+  cardFrontUrl: string | null
+  cardBackUrl: string | null
+  notes: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 // ─── Zod Schemas For Patient Form ───────────────────────────────────
@@ -545,8 +545,11 @@ export const patientFormSchema = z.object({
   city: z.string().max(100).optional().default(''),
   address: z.string().optional().default(''),
   preferredLanguage: z.nativeEnum(Language).optional().default(Language.URDU),
-  communicationPref: z.nativeEnum(CommunicationPreference).optional().default(CommunicationPreference.WHATSAPP),
-  
+  communicationPref: z
+    .nativeEnum(CommunicationPreference)
+    .optional()
+    .default(CommunicationPreference.WHATSAPP),
+
   // Source & Clinic
   source: z.nativeEnum(PatientSource).optional().default(PatientSource.WALK_IN),
   referredByText: z.string().max(200).optional().default(''),
@@ -566,39 +569,39 @@ export const patientFormSchema = z.object({
   emergencyContactName: z.string().max(150).optional().default(''),
   emergencyContactPhone: z.string().max(20).optional().default(''),
   emergencyContactRelation: z.string().max(50).optional().default(''),
-});
+})
 
-export type PatientFormData = z.infer<typeof patientFormSchema>;
+export type PatientFormData = z.infer<typeof patientFormSchema>
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export interface ApiResponse<T> {
-  data: T;
-  message: string;
-  isSuccess: boolean;
-  httpStatusCode: number;
+  data: T
+  message: string
+  isSuccess: boolean
+  httpStatusCode: number
 }
 
 export interface PatientListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  gender?: string;
-  bloodGroup?: string;
-  source?: string;
-  city?: string;
-  tag?: string;
-  isActive?: boolean;
-  isBlacklisted?: boolean;
-  isMinor?: boolean;
-  sortBy?: 'createdAt' | 'fullName' | 'patientNumber';
-  sortOrder?: 'ASC' | 'DESC';
+  page?: number
+  limit?: number
+  search?: string
+  gender?: string
+  bloodGroup?: string
+  source?: string
+  city?: string
+  tag?: string
+  isActive?: boolean
+  isBlacklisted?: boolean
+  isMinor?: boolean
+  sortBy?: 'createdAt' | 'fullName' | 'patientNumber'
+  sortOrder?: 'ASC' | 'DESC'
 }
 
 // ─── Form Step Config ───────────────────────────────────────────────
@@ -608,4 +611,4 @@ export const FORM_STEPS = [
   { id: 1, title: 'Clinic Info', description: 'Source & Clinic Notes' },
   { id: 2, title: 'Guardian', description: 'Minor / Guardian Information' },
   { id: 3, title: 'Emergency', description: 'Medical History & Emergency' },
-] as const;
+] as const

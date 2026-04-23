@@ -1,15 +1,15 @@
-import { Link } from '@tanstack/react-router';
-import { Button } from '@/components/ui/button';
-import { LayoutGrid, Table2, Plus, Users } from 'lucide-react';
-import { usePatientStore, type ViewMode } from '@/store/patient-store';
-import { cn } from '@/lib/utils';
+import { Link } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import { LayoutGrid, Table2, Plus, Users } from 'lucide-react'
+import { usePatientStore, type ViewMode } from '@/store/patient-store'
+import { cn } from '@/lib/utils'
 
 interface PatientListHeaderProps {
-  totalCount: number;
+  totalCount: number
 }
 
 export function PatientListHeader({ totalCount }: PatientListHeaderProps) {
-  const { viewMode, setViewMode } = usePatientStore();
+  const { viewMode, setViewMode } = usePatientStore()
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-4">
@@ -51,7 +51,7 @@ export function PatientListHeader({ totalCount }: PatientListHeaderProps) {
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
 function ToggleButton({
@@ -60,10 +60,10 @@ function ToggleButton({
   icon,
   label,
 }: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
 }) {
   return (
     <button
@@ -79,5 +79,5 @@ function ToggleButton({
     >
       {icon}
     </button>
-  );
+  )
 }

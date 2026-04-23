@@ -1,10 +1,16 @@
-import { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useNavigate } from '@tanstack/react-router';
-import apiClient from '@/lib/api';
-import { toast } from 'sonner';
+import { useState, useMemo } from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useNavigate } from '@tanstack/react-router'
+import apiClient from '@/lib/api'
+import { toast } from 'sonner'
 import {
   Building2,
   MapPin,
@@ -13,75 +19,73 @@ import {
   ChevronRight,
   Star,
   ArrowLeft,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-type Step = 'org' | 'location';
+type Step = 'org' | 'location'
 
 export function LocationSelector() {
-  const {
-    accessibleOrganizations,
-    user,
-    isSuperAdmin,
-    setLocationContext,
-  } = useAuthStore();
-  const navigate = useNavigate();
+  const { accessibleOrganizations, user, isSuperAdmin, setLocationContext } =
+    useAuthStore()
+  const navigate = useNavigate()
 
   // Figure out initial step
-  const needsOrgStep = isSuperAdmin || accessibleOrganizations.length > 1;
-  const [step, setStep] = useState<Step>(needsOrgStep ? 'org' : 'location');
+  const needsOrgStep = isSuperAdmin || accessibleOrganizations.length > 1
+  const [step, setStep] = useState<Step>(needsOrgStep ? 'org' : 'location')
   const [selectedOrgId, setSelectedOrgId] = useState<string | null>(
     needsOrgStep ? null : accessibleOrganizations[0]?.id || null,
-  );
-  const [selectedLocId, setSelectedLocId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  )
+  const [selectedLocId, setSelectedLocId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const selectedOrg = useMemo(
     () => accessibleOrganizations.find((o) => o.id === selectedOrgId),
     [accessibleOrganizations, selectedOrgId],
-  );
+  )
 
   const handleOrgSelect = (orgId: string) => {
-    setSelectedOrgId(orgId);
-    setSelectedLocId(null);
-    const org = accessibleOrganizations.find((o) => o.id === orgId);
+    setSelectedOrgId(orgId)
+    setSelectedLocId(null)
+    const org = accessibleOrganizations.find((o) => o.id === orgId)
     if (org && org.locations.length === 1) {
       // Auto-select single location and submit
-      setSelectedLocId(org.locations[0].id);
-      handleSubmit(orgId, org.locations[0].id);
+      setSelectedLocId(org.locations[0].id)
+      handleSubmit(orgId, org.locations[0].id)
     } else {
-      setStep('location');
+      setStep('location')
     }
-  };
+  }
 
   const handleSubmit = async (orgId?: string, locId?: string) => {
-    const finalOrgId = orgId || selectedOrgId;
-    const finalLocId = locId || selectedLocId;
-    if (!finalOrgId || !finalLocId) return;
+    const finalOrgId = orgId || selectedOrgId
+    const finalLocId = locId || selectedLocId
+    if (!finalOrgId || !finalLocId) return
 
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
       const res = await apiClient.post('/auth/select-location', {
         organizationId: finalOrgId,
         locationId: finalLocId,
-      });
+      })
 
       if (res.data?.isSuccess) {
-        setLocationContext(finalOrgId, finalLocId);
-        const orgName = accessibleOrganizations.find((o) => o.id === finalOrgId)?.name;
+        setLocationContext(finalOrgId, finalLocId)
+        const orgName = accessibleOrganizations.find(
+          (o) => o.id === finalOrgId,
+        )?.name
         toast.success('Location selected', {
           description: `You're now working in ${orgName}`,
-        });
-        navigate({ to: '/dashboard' });
+        })
+        navigate({ to: '/dashboard' })
       }
     } catch (err: any) {
       toast.error('Failed to select location', {
         description: err.response?.data?.message || 'Please try again',
-      });
+      })
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
@@ -90,7 +94,9 @@ export function LocationSelector() {
         <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
           <Stethoscope className="w-7 h-7 text-white" />
         </div>
-        <span className="text-xl font-bold text-foreground tracking-tight">MedTrackr</span>
+        <span className="text-xl font-bold text-foreground tracking-tight">
+          MedTrackr
+        </span>
       </div>
 
       <Card className="w-full max-w-[520px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
@@ -137,7 +143,8 @@ export function LocationSelector() {
                       {org.name}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {org.locations.length} location{org.locations.length !== 1 ? 's' : ''}
+                      {org.locations.length} location
+                      {org.locations.length !== 1 ? 's' : ''}
                     </span>
                   </div>
                   <ChevronRight className="w-5 h-5 shrink-0 text-muted-foreground/40" />
@@ -155,8 +162,8 @@ export function LocationSelector() {
                   type="button"
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
                   onClick={() => {
-                    setStep('org');
-                    setSelectedLocId(null);
+                    setStep('org')
+                    setSelectedLocId(null)
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -172,7 +179,7 @@ export function LocationSelector() {
 
               {/* Location cards */}
               {selectedOrg.locations.map((loc) => {
-                const isSelected = selectedLocId === loc.id;
+                const isSelected = selectedLocId === loc.id
                 return (
                   <button
                     key={loc.id}
@@ -208,16 +215,20 @@ export function LocationSelector() {
                           </span>
                         )}
                       </div>
-                      <span className="text-sm text-muted-foreground">{loc.code}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {loc.code}
+                      </span>
                     </div>
                     <ChevronRight
                       className={cn(
                         'w-5 h-5 shrink-0 transition-colors',
-                        isSelected ? 'text-primary' : 'text-muted-foreground/40',
+                        isSelected
+                          ? 'text-primary'
+                          : 'text-muted-foreground/40',
                       )}
                     />
                   </button>
-                );
+                )
               })}
 
               {/* Submit button */}
@@ -240,5 +251,5 @@ export function LocationSelector() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

@@ -1,97 +1,110 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import apiClient from '@/lib/api';
-import { Monitor, Smartphone, Globe, LogOut, Loader2, Shield } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useEffect, useState } from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import apiClient from '@/lib/api'
+import {
+  Monitor,
+  Smartphone,
+  Globe,
+  LogOut,
+  Loader2,
+  Shield,
+} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { toast } from 'sonner'
+import { useAuthStore } from '@/store/useAuthStore'
 
 interface Session {
-  id: string;
-  device: string | null;
-  browser: string | null;
-  os: string | null;
-  ipAddress: string | null;
-  location: string | null;
-  isCurrent: boolean;
-  createdAt: string;
-  lastActiveAt: string;
+  id: string
+  device: string | null
+  browser: string | null
+  os: string | null
+  ipAddress: string | null
+  location: string | null
+  isCurrent: boolean
+  createdAt: string
+  lastActiveAt: string
 }
 
 function timeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const date = new Date(dateString)
+  const now = new Date()
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
-  if (seconds < 60) return 'Just now';
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`;
-  return date.toLocaleDateString();
+  if (seconds < 60) return 'Just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`
+  return date.toLocaleDateString()
 }
 
 export function SessionManagement() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-  const { clearAuth } = useAuthStore();
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  const { clearAuth } = useAuthStore()
 
   const fetchSessions = async () => {
     try {
-      const res = await apiClient.get('/auth/sessions');
-      setSessions(res.data.data);
+      const res = await apiClient.get('/auth/sessions')
+      setSessions(res.data.data)
     } catch (err) {
-      toast.error('Failed to load sessions');
+      toast.error('Failed to load sessions')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchSessions();
-  }, []);
+    fetchSessions()
+  }, [])
 
   const revokeSession = async (id: string, isCurrent: boolean) => {
-    setActionLoadingId(id);
+    setActionLoadingId(id)
     try {
       if (isCurrent) {
-        await apiClient.post('/auth/logout');
-        clearAuth();
-        toast.success('Signed out successfully');
-        window.location.href = '/login';
+        await apiClient.post('/auth/logout')
+        clearAuth()
+        toast.success('Signed out successfully')
+        window.location.href = '/login'
       } else {
-        await apiClient.delete(`/auth/sessions/${id}`);
-        setSessions(prev => prev.filter(s => s.id !== id));
-        toast.success('Session revoked');
+        await apiClient.delete(`/auth/sessions/${id}`)
+        setSessions((prev) => prev.filter((s) => s.id !== id))
+        toast.success('Session revoked')
       }
     } catch (err) {
-      toast.error('Failed to revoke session');
+      toast.error('Failed to revoke session')
     } finally {
-      setActionLoadingId(null);
+      setActionLoadingId(null)
     }
-  };
+  }
 
   const revokeAllOtherSessions = async () => {
-    setActionLoadingId('all-others');
+    setActionLoadingId('all-others')
     try {
-      await apiClient.post('/auth/sessions/revoke-all');
-      toast.success('All other sessions revoked');
-      fetchSessions();
+      await apiClient.post('/auth/sessions/revoke-all')
+      toast.success('All other sessions revoked')
+      fetchSessions()
     } catch (err) {
-      toast.error('Failed to revoke sessions');
+      toast.error('Failed to revoke sessions')
     } finally {
-      setActionLoadingId(null);
+      setActionLoadingId(null)
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex justify-center p-12">
         <Loader2 className="animate-spin text-primary w-8 h-8" />
       </div>
-    );
+    )
   }
 
   return (
@@ -102,7 +115,9 @@ export function SessionManagement() {
             <Shield className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-lg font-semibold">Active Sessions</CardTitle>
+            <CardTitle className="text-lg font-semibold">
+              Active Sessions
+            </CardTitle>
             <CardDescription className="text-sm">
               Manage your active sessions across browsers and devices
             </CardDescription>
@@ -131,15 +146,20 @@ export function SessionManagement() {
               className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-muted/20 hover:bg-muted/40 transition-colors group"
             >
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full transition-colors ${
-                  session.isCurrent
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-muted text-muted-foreground group-hover:text-foreground'
-                }`}>
-                  {session.device?.toLowerCase().includes('mobile') || session.device?.toLowerCase().includes('iphone') || session.device?.toLowerCase().includes('android')
-                    ? <Smartphone className="h-5 w-5" />
-                    : <Monitor className="h-5 w-5" />
-                  }
+                <div
+                  className={`p-3 rounded-full transition-colors ${
+                    session.isCurrent
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-muted text-muted-foreground group-hover:text-foreground'
+                  }`}
+                >
+                  {session.device?.toLowerCase().includes('mobile') ||
+                  session.device?.toLowerCase().includes('iphone') ||
+                  session.device?.toLowerCase().includes('android') ? (
+                    <Smartphone className="h-5 w-5" />
+                  ) : (
+                    <Monitor className="h-5 w-5" />
+                  )}
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -182,10 +202,12 @@ export function SessionManagement() {
             </div>
           ))}
           {sessions.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">No active sessions found.</p>
+            <p className="text-center text-muted-foreground py-8">
+              No active sessions found.
+            </p>
           )}
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

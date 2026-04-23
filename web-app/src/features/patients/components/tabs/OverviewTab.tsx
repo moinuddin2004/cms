@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Heart, ShieldAlert, FileText, User } from 'lucide-react';
-import type { Patient } from '../../types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { AlertTriangle, Heart, ShieldAlert, FileText, User } from 'lucide-react'
+import type { Patient } from '../../types'
 
 export function OverviewTab({ patient }: { patient: Patient }) {
   return (
@@ -63,49 +63,54 @@ export function OverviewTab({ patient }: { patient: Patient }) {
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div>
-             <p className="text-xs font-medium text-muted-foreground mb-2">
+            <p className="text-xs font-medium text-muted-foreground mb-2">
               Patient Tags
             </p>
             {patient.tags && patient.tags.length > 0 ? (
-               <div className="flex flex-wrap gap-1.5">
-               {patient.tags.map((tag) => (
-                 <Badge
-                   key={tag}
-                   variant="outline"
-                   className="bg-brand-50 text-brand-700"
-                 >
-                   {tag}
-                 </Badge>
-               ))}
-             </div>
-            ): (
+              <div className="flex flex-wrap gap-1.5">
+                {patient.tags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant="outline"
+                    className="bg-brand-50 text-brand-700"
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
               <p className="text-sm text-muted-foreground italic">
                 No tags added
               </p>
             )}
           </div>
-          
+
           {(patient.isMinor || patient.isBlacklisted) && (
-             <div className="space-y-2 mt-2">
-                {patient.isMinor && (
-                   <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-100">
-                     <ShieldAlert size={16} className="mt-0.5 shrink-0" />
-                     <div>
-                       <p className="text-xs font-semibold">Minor Patient</p>
-                       <p className="text-xs">Guardian required for consent: {patient.guardianName} ({patient.guardianRelation}) - {patient.guardianPhone}</p>
-                     </div>
-                   </div>
-                )}
-                {patient.isBlacklisted && (
-                   <div className="flex items-start gap-2 bg-destructive/10 text-destructive p-3 rounded-lg border border-destructive/20">
-                     <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                     <div>
-                       <p className="text-xs font-semibold">Blacklisted Patient</p>
-                       <p className="text-xs">Reason: {patient.blacklistReason || 'Not specified'}</p>
-                     </div>
-                   </div>
-                )}
-             </div>
+            <div className="space-y-2 mt-2">
+              {patient.isMinor && (
+                <div className="flex items-start gap-2 bg-blue-50 text-blue-800 p-3 rounded-lg border border-blue-100">
+                  <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold">Minor Patient</p>
+                    <p className="text-xs">
+                      Guardian required for consent: {patient.guardianName} (
+                      {patient.guardianRelation}) - {patient.guardianPhone}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {patient.isBlacklisted && (
+                <div className="flex items-start gap-2 bg-destructive/10 text-destructive p-3 rounded-lg border border-destructive/20">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold">Blacklisted Patient</p>
+                    <p className="text-xs">
+                      Reason: {patient.blacklistReason || 'Not specified'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -123,7 +128,10 @@ export function OverviewTab({ patient }: { patient: Patient }) {
             <div className="grid grid-cols-2 gap-4">
               <InfoRow label="Name" value={patient.emergencyContactName} />
               <InfoRow label="Phone" value={patient.emergencyContactPhone} />
-              <InfoRow label="Relation" value={patient.emergencyContactRelation} />
+              <InfoRow
+                label="Relation"
+                value={patient.emergencyContactRelation}
+              />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground italic">
@@ -143,33 +151,33 @@ export function OverviewTab({ patient }: { patient: Patient }) {
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-             <InfoRow label="CNIC" value={patient.cnic} />
-             <InfoRow label="Marital Status" value={patient.maritalStatus} />
-             <InfoRow label="Occupation" value={patient.occupation} />
-             <InfoRow label="Source" value={patient.source?.replace('_', ' ')} />
+            <InfoRow label="CNIC" value={patient.cnic} />
+            <InfoRow label="Marital Status" value={patient.maritalStatus} />
+            <InfoRow label="Occupation" value={patient.occupation} />
+            <InfoRow label="Source" value={patient.source?.replace('_', ' ')} />
           </div>
           {patient.internalNotes && (
-             <div className="mt-4 pt-4 border-t">
-               <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
-                 <FileText size={12} /> Internal Notes
-               </p>
-               <p className="text-sm text-muted-foreground italic bg-muted/50 p-3 rounded-lg border">
-                 {patient.internalNotes}
-               </p>
-             </div>
+            <div className="mt-4 pt-4 border-t">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                <FileText size={12} /> Internal Notes
+              </p>
+              <p className="text-sm text-muted-foreground italic bg-muted/50 p-3 rounded-lg border">
+                {patient.internalNotes}
+              </p>
+            </div>
           )}
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
 function InfoRow({
   label,
   value,
 }: {
-  label: string;
-  value: string | null | undefined;
+  label: string
+  value: string | null | undefined
 }) {
   return (
     <div>
@@ -178,5 +186,5 @@ function InfoRow({
         {value || <span className="text-muted-foreground font-normal">—</span>}
       </p>
     </div>
-  );
+  )
 }

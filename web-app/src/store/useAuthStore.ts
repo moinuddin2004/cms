@@ -1,62 +1,62 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 
 interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  accessSource: 'super_admin' | 'owner' | 'employee';
-  locations: Location[];
+  id: string
+  name: string
+  slug: string
+  accessSource: 'super_admin' | 'owner' | 'employee'
+  locations: Location[]
 }
 
 interface Location {
-  id: string;
-  name: string;
-  code: string;
-  isMainBranch: boolean;
-  accessSource: 'super_admin' | 'owner' | 'employee';
-  isPrimary: boolean;
+  id: string
+  name: string
+  code: string
+  isMainBranch: boolean
+  accessSource: 'super_admin' | 'owner' | 'employee'
+  isPrimary: boolean
 }
 
 interface User {
-  uuid: string;
-  userUuid?: string;
-  email: string;
-  name: string;
-  globalRole: string | null;
-  avatarUrl?: string;
+  uuid: string
+  userUuid?: string
+  email: string
+  name: string
+  globalRole: string | null
+  avatarUrl?: string
 }
 
 interface AuthState {
-  user: User | null;
-  accessToken: string | null;
-  isAuthenticated: boolean;
-  
-  // Access context
-  isSuperAdmin: boolean;
-  accessSource: 'super_admin' | 'owner' | 'employee' | null;
-  requiresOrgSelection: boolean;
-  requiresLocationSelection: boolean;
-  accessibleOrganizations: Organization[];
-  activeOrganizationId: string | null;
-  activeLocationId: string | null;
+  user: User | null
+  accessToken: string | null
+  isAuthenticated: boolean
 
-  setAuth: (data: { 
-    user: User; 
-    accessToken: string;
-    isSuperAdmin?: boolean;
-    accessSource?: 'super_admin' | 'owner' | 'employee' | null;
-    requiresOrgSelection?: boolean;
-    requiresLocationSelection?: boolean;
-    accessibleOrganizations?: Organization[];
-    activeOrganizationId?: string | null;
-    activeLocationId?: string | null;
-  }) => void;
-  
-  setAccessToken: (token: string) => void;
-  
-  setLocationContext: (orgId: string, locId: string) => void;
-  
-  clearAuth: () => void;
+  // Access context
+  isSuperAdmin: boolean
+  accessSource: 'super_admin' | 'owner' | 'employee' | null
+  requiresOrgSelection: boolean
+  requiresLocationSelection: boolean
+  accessibleOrganizations: Organization[]
+  activeOrganizationId: string | null
+  activeLocationId: string | null
+
+  setAuth: (data: {
+    user: User
+    accessToken: string
+    isSuperAdmin?: boolean
+    accessSource?: 'super_admin' | 'owner' | 'employee' | null
+    requiresOrgSelection?: boolean
+    requiresLocationSelection?: boolean
+    accessibleOrganizations?: Organization[]
+    activeOrganizationId?: string | null
+    activeLocationId?: string | null
+  }) => void
+
+  setAccessToken: (token: string) => void
+
+  setLocationContext: (orgId: string, locId: string) => void
+
+  clearAuth: () => void
 }
 
 /**
@@ -68,7 +68,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
-  
+
   isSuperAdmin: false,
   accessSource: null,
   requiresOrgSelection: false,
@@ -96,22 +96,21 @@ export const useAuthStore = create<AuthState>()((set) => ({
       activeOrganizationId: data.activeOrganizationId || null,
       activeLocationId: data.activeLocationId || null,
     }),
-    
-  setAccessToken: (token) =>
-    set({ accessToken: token }),
-    
+
+  setAccessToken: (token) => set({ accessToken: token }),
+
   setLocationContext: (orgId, locId) =>
-    set({ 
-      activeOrganizationId: orgId, 
+    set({
+      activeOrganizationId: orgId,
       activeLocationId: locId,
       requiresOrgSelection: false,
       requiresLocationSelection: false,
     }),
-    
+
   clearAuth: () =>
-    set({ 
-      user: null, 
-      accessToken: null, 
+    set({
+      user: null,
+      accessToken: null,
       isAuthenticated: false,
       isSuperAdmin: false,
       accessSource: null,
@@ -121,4 +120,4 @@ export const useAuthStore = create<AuthState>()((set) => ({
       activeOrganizationId: null,
       activeLocationId: null,
     }),
-}));
+}))

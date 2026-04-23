@@ -1,25 +1,32 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from '@tanstack/react-router';
-import { useForm } from '@tanstack/react-form';
-import { z } from 'zod';
-import apiClient from '@/lib/api';
-import { toast } from 'sonner';
-import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react';
+import { useState } from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { useNavigate } from '@tanstack/react-router'
+import { useForm } from '@tanstack/react-form'
+import { z } from 'zod'
+import apiClient from '@/lib/api'
+import { toast } from 'sonner'
+import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+})
 
 export function RegisterForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [globalError, setGlobalError] = useState('');
-  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false)
+  const [globalError, setGlobalError] = useState('')
+  const navigate = useNavigate()
 
   const form = useForm({
     defaultValues: {
@@ -28,29 +35,31 @@ export function RegisterForm() {
       password: '',
     },
     onSubmit: async ({ value }) => {
-      setGlobalError('');
+      setGlobalError('')
       try {
-        const parsed = registerSchema.parse(value);
-        const response = await apiClient.post('/auth/register', parsed);
+        const parsed = registerSchema.parse(value)
+        const response = await apiClient.post('/auth/register', parsed)
 
         if (response.data?.isSuccess) {
           toast.success('Account created!', {
             description: 'Please sign in with your new credentials',
-          });
-          navigate({ to: '/login' });
+          })
+          navigate({ to: '/login' })
         }
       } catch (err: any) {
         if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message);
+          setGlobalError(err.issues[0].message)
         } else {
-          const msg = err.response?.data?.message;
+          const msg = err.response?.data?.message
           setGlobalError(
-            Array.isArray(msg) ? msg[0] : msg || 'Registration failed. Please try again.'
-          );
+            Array.isArray(msg)
+              ? msg[0]
+              : msg || 'Registration failed. Please try again.',
+          )
         }
       }
     },
-  });
+  })
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
@@ -59,21 +68,25 @@ export function RegisterForm() {
         <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
           <Stethoscope className="w-7 h-7 text-white" />
         </div>
-        <span className="text-xl font-bold text-foreground tracking-tight">MedTrackr</span>
+        <span className="text-xl font-bold text-foreground tracking-tight">
+          MedTrackr
+        </span>
       </div>
 
       <Card className="w-full max-w-[420px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
         <CardHeader className="space-y-1 text-center pb-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">Create an account</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Create an account
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
             Enter your details to get started
           </CardDescription>
         </CardHeader>
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
+            e.preventDefault()
+            e.stopPropagation()
+            form.handleSubmit()
           }}
         >
           <CardContent className="space-y-4 pt-2">
@@ -138,7 +151,11 @@ export function RegisterForm() {
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                   {/* Password strength indicator */}
@@ -190,27 +207,29 @@ export function RegisterForm() {
         </form>
       </Card>
     </div>
-  );
+  )
 }
 
 /** Password strength indicator bar */
 function PasswordStrength({ password }: { password: string }) {
-  const getStrength = (pwd: string): { level: number; text: string; color: string } => {
-    let score = 0;
-    if (pwd.length >= 6) score++;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  const getStrength = (
+    pwd: string,
+  ): { level: number; text: string; color: string } => {
+    let score = 0
+    if (pwd.length >= 6) score++
+    if (pwd.length >= 8) score++
+    if (/[A-Z]/.test(pwd)) score++
+    if (/[0-9]/.test(pwd)) score++
+    if (/[^A-Za-z0-9]/.test(pwd)) score++
 
-    if (score <= 1) return { level: 1, text: 'Weak', color: 'bg-red-500' };
-    if (score <= 2) return { level: 2, text: 'Fair', color: 'bg-orange-500' };
-    if (score <= 3) return { level: 3, text: 'Good', color: 'bg-yellow-500' };
-    if (score <= 4) return { level: 4, text: 'Strong', color: 'bg-emerald-500' };
-    return { level: 5, text: 'Very Strong', color: 'bg-green-600' };
-  };
+    if (score <= 1) return { level: 1, text: 'Weak', color: 'bg-red-500' }
+    if (score <= 2) return { level: 2, text: 'Fair', color: 'bg-orange-500' }
+    if (score <= 3) return { level: 3, text: 'Good', color: 'bg-yellow-500' }
+    if (score <= 4) return { level: 4, text: 'Strong', color: 'bg-emerald-500' }
+    return { level: 5, text: 'Very Strong', color: 'bg-green-600' }
+  }
 
-  const strength = getStrength(password);
+  const strength = getStrength(password)
 
   return (
     <div className="space-y-1.5">
@@ -224,7 +243,9 @@ function PasswordStrength({ password }: { password: string }) {
           />
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">Password strength: <span className="font-medium">{strength.text}</span></p>
+      <p className="text-xs text-muted-foreground">
+        Password strength: <span className="font-medium">{strength.text}</span>
+      </p>
     </div>
-  );
+  )
 }

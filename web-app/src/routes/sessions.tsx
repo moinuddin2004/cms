@@ -1,17 +1,17 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router';
-import { useAuthStore } from '@/store/useAuthStore';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { SessionManagement } from '@/features/auth/components/SessionManagement';
+import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { useAuthStore } from '@/store/useAuthStore'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { SessionManagement } from '@/features/auth/components/SessionManagement'
 
 export const Route = createFileRoute('/sessions')({
   component: RouteComponent,
-});
+})
 
 function RouteComponent() {
-  const { accessToken } = useAuthStore();
+  const { accessToken } = useAuthStore()
 
   if (!accessToken) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" />
   }
 
   return (
@@ -20,5 +20,5 @@ function RouteComponent() {
         <SessionManagement />
       </div>
     </DashboardLayout>
-  );
+  )
 }

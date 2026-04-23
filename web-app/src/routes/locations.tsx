@@ -1,18 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { LocationManagementView } from '@/features/locations/LocationManagementView';
-import { useAuthStore } from '@/store/useAuthStore';
-import { Navigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { LocationManagementView } from '@/features/locations/LocationManagementView'
+import { useAuthStore } from '@/store/useAuthStore'
+import { Navigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/locations')({
   component: LocationsRouteComponent,
-});
+})
 
 function LocationsRouteComponent() {
-  const { isSuperAdmin, accessSource } = useAuthStore();
+  const { isSuperAdmin, accessSource } = useAuthStore()
 
   if (!isSuperAdmin && accessSource !== 'owner') {
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" />
   }
 
   return (
@@ -21,5 +21,5 @@ function LocationsRouteComponent() {
         <LocationManagementView />
       </div>
     </DashboardLayout>
-  );
+  )
 }

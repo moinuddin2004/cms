@@ -4,19 +4,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
-import { GENDER_OPTIONS, BLOOD_GROUP_OPTIONS } from '../types';
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { RotateCcw } from 'lucide-react'
+import { GENDER_OPTIONS, BLOOD_GROUP_OPTIONS } from '../types'
 
 interface FiltersBarProps {
-  gender: string;
-  onGenderChange: (value: string) => void;
-  bloodGroup: string;
-  onBloodGroupChange: (value: string) => void;
-  status: string;
-  onStatusChange: (value: string) => void;
-  onReset: () => void;
+  gender: string
+  onGenderChange: (value: string) => void
+  bloodGroup: string
+  onBloodGroupChange: (value: string) => void
+  status: string
+  onStatusChange: (value: string) => void
+  onReset: () => void
 }
 
 export function FiltersBar({
@@ -28,13 +28,17 @@ export function FiltersBar({
   onStatusChange,
   onReset,
 }: FiltersBarProps) {
-  const hasActiveFilters = gender || bloodGroup || status;
+  const hasActiveFilters = gender || bloodGroup || status
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
       {/* Gender Filter */}
       <Select value={gender} onValueChange={onGenderChange}>
-        <SelectTrigger className="w-[140px] h-9" aria-label="Filter by gender" id="filter-gender">
+        <SelectTrigger
+          className="w-[140px] h-9"
+          aria-label="Filter by gender"
+          id="filter-gender"
+        >
           <SelectValue placeholder="Gender" />
         </SelectTrigger>
         <SelectContent>
@@ -48,7 +52,11 @@ export function FiltersBar({
 
       {/* Blood Group Filter */}
       <Select value={bloodGroup} onValueChange={onBloodGroupChange}>
-        <SelectTrigger className="w-[140px] h-9" aria-label="Filter by blood group" id="filter-blood-group">
+        <SelectTrigger
+          className="w-[140px] h-9"
+          aria-label="Filter by blood group"
+          id="filter-blood-group"
+        >
           <SelectValue placeholder="Blood Group" />
         </SelectTrigger>
         <SelectContent>
@@ -62,7 +70,11 @@ export function FiltersBar({
 
       {/* Status Filter */}
       <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger className="w-[140px] h-9" aria-label="Filter by status" id="filter-status">
+        <SelectTrigger
+          className="w-[140px] h-9"
+          aria-label="Filter by status"
+          id="filter-status"
+        >
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -86,5 +98,5 @@ export function FiltersBar({
         </Button>
       )}
     </div>
-  );
+  )
 }

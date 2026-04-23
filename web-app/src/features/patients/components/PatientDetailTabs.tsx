@@ -1,24 +1,24 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Stethoscope,
   ClipboardList,
   FolderOpen,
   Activity,
   MessageCircle,
-  FileSignature
-} from 'lucide-react';
-import type { Patient } from '../types';
-import { OverviewTab } from './tabs/OverviewTab';
-import { VitalsAndDentalTab } from './tabs/VitalsAndDentalTab';
-import { TeethChartTab } from './tabs/TeethChartTab';
-import { TreatmentPlansTab } from './tabs/TreatmentPlansTab';
-import { ClinicalTab } from './tabs/ClinicalTab';
-import { ConsentsTab } from './tabs/ConsentsTab';
-import { CrmTab } from './tabs/CrmTab';
-import { AdminTab } from './tabs/AdminTab';
+  FileSignature,
+} from 'lucide-react'
+import type { Patient } from '../types'
+import { OverviewTab } from './tabs/OverviewTab'
+import { VitalsAndDentalTab } from './tabs/VitalsAndDentalTab'
+import { TeethChartTab } from './tabs/TeethChartTab'
+import { TreatmentPlansTab } from './tabs/TreatmentPlansTab'
+import { ClinicalTab } from './tabs/ClinicalTab'
+import { ConsentsTab } from './tabs/ConsentsTab'
+import { CrmTab } from './tabs/CrmTab'
+import { AdminTab } from './tabs/AdminTab'
 
 interface PatientDetailTabsProps {
-  patient: Patient;
+  patient: Patient
 }
 
 export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
@@ -90,5 +90,5 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
         <CrmTab patient={patient} />
       </TabsContent>
     </Tabs>
-  );
+  )
 }

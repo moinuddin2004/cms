@@ -1,36 +1,27 @@
-export const formatCurrency = (amount: number, currency: string = 'PKR') => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+export const formatCurrency = (amount: number) =>
+  `PKR ${amount.toLocaleString('en-PK')}`
 
-export const formatDate = (dateString: string | Date | undefined) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return 'Invalid Date';
-  return new Intl.DateTimeFormat('en-US', {
+export const formatDate = (date: string | Date | undefined) => {
+  if (!date) return '—'
+  return new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(date);
-};
+  })
+}
 
-export const formatInitials = (name: string) => {
-  if (!name) return '?';
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-};
+export const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
-export const formatEmploymentType = (type: string) => {
-  const map: Record<string, string> = {
+export const getEmploymentTypeLabel = (type: string) =>
+  ({
     full_time: 'Full Time',
     part_time: 'Part Time',
+    visiting: 'Visiting',
     contract: 'Contract',
-    intern: 'Intern',
-  };
-  return map[type] || type;
-};
+  })[type] ?? type

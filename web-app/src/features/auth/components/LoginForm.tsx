@@ -1,26 +1,33 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useNavigate } from '@tanstack/react-router';
-import { useForm } from '@tanstack/react-form';
-import { z } from 'zod';
-import apiClient from '@/lib/api';
-import { toast } from 'sonner';
-import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react';
+import { useState } from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { useAuthStore } from '@/store/useAuthStore'
+import { useNavigate } from '@tanstack/react-router'
+import { useForm } from '@tanstack/react-form'
+import { z } from 'zod'
+import apiClient from '@/lib/api'
+import { toast } from 'sonner'
+import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+})
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [globalError, setGlobalError] = useState('');
-  const setAuth = useAuthStore((state) => state.setAuth);
-  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false)
+  const [globalError, setGlobalError] = useState('')
+  const setAuth = useAuthStore((state) => state.setAuth)
+  const navigate = useNavigate()
 
   const form = useForm({
     defaultValues: {
@@ -28,24 +35,24 @@ export function LoginForm() {
       password: '',
     },
     onSubmit: async ({ value }) => {
-      setGlobalError('');
+      setGlobalError('')
       try {
-        const parsed = loginSchema.parse(value);
-        const response = await apiClient.post('/auth/login', parsed);
+        const parsed = loginSchema.parse(value)
+        const response = await apiClient.post('/auth/login', parsed)
 
         if (response.data?.isSuccess) {
-          const { 
-            user, 
-            accessToken, 
+          const {
+            user,
+            accessToken,
             isSuperAdmin,
             accessSource,
             requiresOrgSelection,
-            requiresLocationSelection, 
-            accessibleOrganizations, 
-            activeOrganizationId, 
-            activeLocationId 
-          } = response.data.data;
-          
+            requiresLocationSelection,
+            accessibleOrganizations,
+            activeOrganizationId,
+            activeLocationId,
+          } = response.data.data
+
           setAuth({
             user,
             accessToken,
@@ -56,31 +63,33 @@ export function LoginForm() {
             accessibleOrganizations,
             activeOrganizationId,
             activeLocationId,
-          });
-          
+          })
+
           toast.success('Welcome back!', {
             description: `Logged in as ${user.name || user.email}`,
-          });
-          
+          })
+
           // Redirect based on what selection is needed
           if (requiresOrgSelection || requiresLocationSelection) {
-            navigate({ to: '/select-location' });
+            navigate({ to: '/select-location' })
           } else {
-            navigate({ to: '/dashboard' });
+            navigate({ to: '/dashboard' })
           }
         }
       } catch (err: any) {
         if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message);
+          setGlobalError(err.issues[0].message)
         } else {
-          const msg = err.response?.data?.message;
+          const msg = err.response?.data?.message
           setGlobalError(
-            Array.isArray(msg) ? msg[0] : msg || 'Failed to login. Please try again.'
-          );
+            Array.isArray(msg)
+              ? msg[0]
+              : msg || 'Failed to login. Please try again.',
+          )
         }
       }
     },
-  });
+  })
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
@@ -89,21 +98,25 @@ export function LoginForm() {
         <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
           <Stethoscope className="w-7 h-7 text-white" />
         </div>
-        <span className="text-xl font-bold text-foreground tracking-tight">MedTrackr</span>
+        <span className="text-xl font-bold text-foreground tracking-tight">
+          MedTrackr
+        </span>
       </div>
 
       <Card className="w-full max-w-[420px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
         <CardHeader className="space-y-1 text-center pb-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Welcome back
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
             Enter your credentials to access your clinic
           </CardDescription>
         </CardHeader>
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
+            e.preventDefault()
+            e.stopPropagation()
+            form.handleSubmit()
           }}
         >
           <CardContent className="space-y-4 pt-2">
@@ -160,7 +173,11 @@ export function LoginForm() {
                       onClick={() => setShowPassword(!showPassword)}
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -208,5 +225,5 @@ export function LoginForm() {
         </form>
       </Card>
     </div>
-  );
+  )
 }

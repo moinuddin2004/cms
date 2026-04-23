@@ -1,49 +1,60 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { useAuthStore } from '@/store/useAuthStore';
-import { Navigate } from '@tanstack/react-router';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { SessionManagement } from '@/features/auth/components/SessionManagement';
-import { useForm } from '@tanstack/react-form';
-import { z } from 'zod';
-import apiClient from '@/lib/api';
-import { toast } from 'sonner';
-import { useState } from 'react';
-import { Eye, EyeOff, Loader2, User, Shield, Monitor } from 'lucide-react';
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { useAuthStore } from '@/store/useAuthStore'
+import { Navigate } from '@tanstack/react-router'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { SessionManagement } from '@/features/auth/components/SessionManagement'
+import { useForm } from '@tanstack/react-form'
+import { z } from 'zod'
+import apiClient from '@/lib/api'
+import { toast } from 'sonner'
+import { useState } from 'react'
+import { Eye, EyeOff, Loader2, User, Shield, Monitor } from 'lucide-react'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
-});
+})
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN: 'bg-blue-100 text-blue-700 border-blue-200',
   DENTIST: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   RECEPTIONIST: 'bg-purple-100 text-purple-700 border-purple-200',
-};
+}
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN: 'Administrator',
   DENTIST: 'Dentist',
   RECEPTIONIST: 'Receptionist',
-};
+}
 
 function SettingsPage() {
-  const { accessToken, user } = useAuthStore();
+  const { accessToken, user } = useAuthStore()
 
   if (!accessToken) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" />
   }
 
   const getInitials = (name?: string) => {
-    if (!name) return 'U';
-    return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
-  };
+    if (!name) return 'U'
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   return (
     <DashboardLayout title="Settings">
@@ -58,7 +69,9 @@ function SettingsPage() {
                 </AvatarFallback>
               </Avatar>
               <div className="space-y-1.5">
-                <h2 className="text-2xl font-bold text-foreground">{user?.name || 'User'}</h2>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {user?.name || 'User'}
+                </h2>
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
                 <Badge
                   variant="outline"
@@ -74,15 +87,24 @@ function SettingsPage() {
         {/* Tabs */}
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="bg-muted/50 rounded-lg p-1 h-auto">
-            <TabsTrigger value="profile" className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2">
+            <TabsTrigger
+              value="profile"
+              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+            >
               <User className="h-4 w-4" />
               Personal Info
             </TabsTrigger>
-            <TabsTrigger value="security" className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2">
+            <TabsTrigger
+              value="security"
+              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+            >
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2">
+            <TabsTrigger
+              value="sessions"
+              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+            >
               <Monitor className="h-4 w-4" />
               Sessions
             </TabsTrigger>
@@ -105,12 +127,12 @@ function SettingsPage() {
         </Tabs>
       </div>
     </DashboardLayout>
-  );
+  )
 }
 
 /** Personal Info Tab */
 function ProfileTab() {
-  const { user } = useAuthStore();
+  const { user } = useAuthStore()
 
   return (
     <Card className="shadow-sm border-border/50 rounded-xl">
@@ -121,15 +143,21 @@ function ProfileTab() {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wide">Full Name</Label>
+            <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+              Full Name
+            </Label>
             <p className="text-sm font-medium">{user?.name || '—'}</p>
           </div>
           <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wide">Email Address</Label>
+            <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+              Email Address
+            </Label>
             <p className="text-sm font-medium">{user?.email || '—'}</p>
           </div>
           <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wide">Role</Label>
+            <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+              Role
+            </Label>
             <div>
               <Badge
                 variant="outline"
@@ -140,29 +168,35 @@ function ProfileTab() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs uppercase tracking-wide">User ID</Label>
-            <p className="text-sm font-mono text-muted-foreground">{user?.uuid?.slice(0, 8)}...</p>
+            <Label className="text-muted-foreground text-xs uppercase tracking-wide">
+              User ID
+            </Label>
+            <p className="text-sm font-mono text-muted-foreground">
+              {user?.uuid?.slice(0, 8)}...
+            </p>
           </div>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 /** Security Tab — Change Password */
 function SecurityTab() {
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [globalError, setGlobalError] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [globalError, setGlobalError] = useState('')
 
-  const changePasswordSchema = z.object({
-    currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Please confirm your password'),
-  }).refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
+  const changePasswordSchema = z
+    .object({
+      currentPassword: z.string().min(1, 'Current password is required'),
+      newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+      confirmPassword: z.string().min(6, 'Please confirm your password'),
+    })
+    .refine((data) => data.newPassword === data.confirmPassword, {
+      message: 'Passwords do not match',
+      path: ['confirmPassword'],
+    })
 
   const form = useForm({
     defaultValues: {
@@ -171,41 +205,45 @@ function SecurityTab() {
       confirmPassword: '',
     },
     onSubmit: async ({ value }) => {
-      setGlobalError('');
+      setGlobalError('')
       try {
-        const parsed = changePasswordSchema.parse(value);
+        const parsed = changePasswordSchema.parse(value)
         await apiClient.post('/auth/change-password', {
           currentPassword: parsed.currentPassword,
           newPassword: parsed.newPassword,
           revokeOtherSessions: true,
-        });
-        toast.success('Password changed!', { description: 'Other sessions have been revoked.' });
-        form.reset();
+        })
+        toast.success('Password changed!', {
+          description: 'Other sessions have been revoked.',
+        })
+        form.reset()
       } catch (err: any) {
         if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message);
+          setGlobalError(err.issues[0].message)
         } else {
-          const msg = err.response?.data?.message;
+          const msg = err.response?.data?.message
           setGlobalError(
-            Array.isArray(msg) ? msg[0] : msg || 'Failed to change password'
-          );
+            Array.isArray(msg) ? msg[0] : msg || 'Failed to change password',
+          )
         }
       }
     },
-  });
+  })
 
   return (
     <Card className="shadow-sm border-border/50 rounded-xl">
       <CardHeader>
         <CardTitle className="text-lg">Change Password</CardTitle>
-        <CardDescription>Update your password. Other sessions will be revoked for security.</CardDescription>
+        <CardDescription>
+          Update your password. Other sessions will be revoked for security.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <form
           onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
+            e.preventDefault()
+            e.stopPropagation()
+            form.handleSubmit()
           }}
           className="space-y-5 max-w-md"
         >
@@ -231,7 +269,11 @@ function SecurityTab() {
                     onClick={() => setShowCurrent(!showCurrent)}
                     tabIndex={-1}
                   >
-                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showCurrent ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -260,10 +302,16 @@ function SecurityTab() {
                     onClick={() => setShowNew(!showNew)}
                     tabIndex={-1}
                   >
-                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showNew ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
-                {field.state.value && <PasswordStrength password={field.state.value} />}
+                {field.state.value && (
+                  <PasswordStrength password={field.state.value} />
+                )}
               </div>
             )}
           </form.Field>
@@ -295,7 +343,10 @@ function SecurityTab() {
             {(isSubmitting) => (
               <Button type="submit" disabled={isSubmitting} className="h-10">
                 {isSubmitting ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...</>
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />{' '}
+                    Updating...
+                  </>
                 ) : (
                   'Update Password'
                 )}
@@ -305,26 +356,26 @@ function SecurityTab() {
         </form>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function PasswordStrength({ password }: { password: string }) {
   const getStrength = (pwd: string) => {
-    let score = 0;
-    if (pwd.length >= 6) score++;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    let score = 0
+    if (pwd.length >= 6) score++
+    if (pwd.length >= 8) score++
+    if (/[A-Z]/.test(pwd)) score++
+    if (/[0-9]/.test(pwd)) score++
+    if (/[^A-Za-z0-9]/.test(pwd)) score++
 
-    if (score <= 1) return { level: 1, text: 'Weak', color: 'bg-red-500' };
-    if (score <= 2) return { level: 2, text: 'Fair', color: 'bg-orange-500' };
-    if (score <= 3) return { level: 3, text: 'Good', color: 'bg-yellow-500' };
-    if (score <= 4) return { level: 4, text: 'Strong', color: 'bg-emerald-500' };
-    return { level: 5, text: 'Very Strong', color: 'bg-green-600' };
-  };
+    if (score <= 1) return { level: 1, text: 'Weak', color: 'bg-red-500' }
+    if (score <= 2) return { level: 2, text: 'Fair', color: 'bg-orange-500' }
+    if (score <= 3) return { level: 3, text: 'Good', color: 'bg-yellow-500' }
+    if (score <= 4) return { level: 4, text: 'Strong', color: 'bg-emerald-500' }
+    return { level: 5, text: 'Very Strong', color: 'bg-green-600' }
+  }
 
-  const strength = getStrength(password);
+  const strength = getStrength(password)
 
   return (
     <div className="space-y-1.5">
@@ -338,7 +389,9 @@ function PasswordStrength({ password }: { password: string }) {
           />
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">Strength: <span className="font-medium">{strength.text}</span></p>
+      <p className="text-xs text-muted-foreground">
+        Strength: <span className="font-medium">{strength.text}</span>
+      </p>
     </div>
-  );
+  )
 }

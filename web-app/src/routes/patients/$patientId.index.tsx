@@ -1,18 +1,18 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePatient } from '@/features/patients/hooks/usePatient';
-import { PatientDetailHeader } from '@/features/patients/components/PatientDetailHeader';
-import { PatientDetailTabs } from '@/features/patients/components/PatientDetailTabs';
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { usePatient } from '@/features/patients/hooks/usePatient'
+import { PatientDetailHeader } from '@/features/patients/components/PatientDetailHeader'
+import { PatientDetailTabs } from '@/features/patients/components/PatientDetailTabs'
 
 export const Route = createFileRoute('/patients/$patientId/')({
   component: PatientDetailPage,
-});
+})
 
 function PatientDetailPage() {
-  const { patientId } = Route.useParams();
-  const { data: patient, isLoading, isError } = usePatient(patientId);
+  const { patientId } = Route.useParams()
+  const { data: patient, isLoading, isError } = usePatient(patientId)
 
   return (
     <DashboardLayout title="Patient Details">
@@ -31,7 +31,7 @@ function PatientDetailPage() {
         </>
       )}
     </DashboardLayout>
-  );
+  )
 }
 
 function DetailSkeleton() {
@@ -51,5 +51,5 @@ function DetailSkeleton() {
         <Skeleton className="h-48" />
       </div>
     </div>
-  );
+  )
 }

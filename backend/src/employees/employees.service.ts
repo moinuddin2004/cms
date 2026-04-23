@@ -21,7 +21,7 @@ export class EmployeesService {
     @InjectRepository(EmployeeSalary)
     private readonly salaryRepo: Repository<EmployeeSalary>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   // ═══════════════════════════════════════════════════════════
   // HELPERS

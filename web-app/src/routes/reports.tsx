@@ -1,30 +1,30 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { StatCard } from '@/features/dashboard/components/StatCard';
-import { AnalyticsChartCard } from '@/features/dashboard/components/AnalyticsChartCard';
-import { SpendingBreakdownCard } from '@/features/dashboard/components/SpendingBreakdownCard';
-import { AppointmentsTable } from '@/features/dashboard/components/AppointmentsTable';
+import { createFileRoute } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { StatCard } from '@/features/dashboard/components/StatCard'
+import { AnalyticsChartCard } from '@/features/dashboard/components/AnalyticsChartCard'
+import { SpendingBreakdownCard } from '@/features/dashboard/components/SpendingBreakdownCard'
+import { AppointmentsTable } from '@/features/dashboard/components/AppointmentsTable'
 import {
   StatCardSkeleton,
   ChartCardSkeleton,
   SpendingCardSkeleton,
   TableSkeleton,
-} from '@/features/dashboard/components/DashboardSkeletons';
-import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats';
-import { useDashboardChart } from '@/features/dashboard/hooks/useDashboardChart';
-import { useSpendingBreakdown } from '@/features/dashboard/hooks/useSpendingBreakdown';
-import { useDashboardAppointments } from '@/features/dashboard/hooks/useDashboardAppointments';
-import { Card, CardContent } from '@/components/ui/card';
+} from '@/features/dashboard/components/DashboardSkeletons'
+import { useDashboardStats } from '@/features/dashboard/hooks/useDashboardStats'
+import { useDashboardChart } from '@/features/dashboard/hooks/useDashboardChart'
+import { useSpendingBreakdown } from '@/features/dashboard/hooks/useSpendingBreakdown'
+import { useDashboardAppointments } from '@/features/dashboard/hooks/useDashboardAppointments'
+import { Card, CardContent } from '@/components/ui/card'
 
 export const Route = createFileRoute('/reports')({
   component: ReportsPage,
-});
+})
 
 function ReportsPage() {
-  const statsQuery = useDashboardStats();
-  const chartQuery = useDashboardChart();
-  const spendingQuery = useSpendingBreakdown();
-  const appointmentsQuery = useDashboardAppointments();
+  const statsQuery = useDashboardStats()
+  const chartQuery = useDashboardChart()
+  const spendingQuery = useSpendingBreakdown()
+  const appointmentsQuery = useDashboardAppointments()
 
   return (
     <DashboardLayout title="Report & Analytics">
@@ -32,7 +32,9 @@ function ReportsPage() {
         {/* Stat Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statsQuery.isLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <StatCardSkeleton key={i} />)
+            Array.from({ length: 4 }).map((_, i) => (
+              <StatCardSkeleton key={i} />
+            ))
           ) : statsQuery.isError ? (
             <Card className="col-span-full">
               <CardContent className="p-6 text-center text-destructive">
@@ -98,5 +100,5 @@ function ReportsPage() {
         </Card>
       </div>
     </DashboardLayout>
-  );
+  )
 }

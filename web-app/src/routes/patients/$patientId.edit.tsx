@@ -1,26 +1,26 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { PatientForm } from '@/features/patients/components/PatientForm';
-import { usePatient } from '@/features/patients/hooks/usePatient';
-import { useUpdatePatient } from '@/features/patients/hooks/useUpdatePatient';
-import type { PatientFormData } from '@/features/patients/types';
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { PatientForm } from '@/features/patients/components/PatientForm'
+import { usePatient } from '@/features/patients/hooks/usePatient'
+import { useUpdatePatient } from '@/features/patients/hooks/useUpdatePatient'
+import type { PatientFormData } from '@/features/patients/types'
 
 export const Route = createFileRoute('/patients/$patientId/edit')({
   component: EditPatientPage,
-});
+})
 
 function EditPatientPage() {
-  const { patientId } = Route.useParams();
-  const navigate = useNavigate();
-  const { data: patient, isLoading, isError } = usePatient(patientId);
-  const updateMutation = useUpdatePatient(patientId);
+  const { patientId } = Route.useParams()
+  const navigate = useNavigate()
+  const { data: patient, isLoading, isError } = usePatient(patientId)
+  const updateMutation = useUpdatePatient(patientId)
 
   const handleSubmit = async (data: PatientFormData) => {
-    await updateMutation.mutateAsync(data);
-    navigate({ to: '/patients/$patientId', params: { patientId } });
-  };
+    await updateMutation.mutateAsync(data)
+    navigate({ to: '/patients/$patientId', params: { patientId } })
+  }
 
   if (isLoading) {
     return (
@@ -30,7 +30,7 @@ function EditPatientPage() {
           <Skeleton className="h-64 w-full" />
         </div>
       </DashboardLayout>
-    );
+    )
   }
 
   if (isError || !patient) {
@@ -42,7 +42,7 @@ function EditPatientPage() {
           </CardContent>
         </Card>
       </DashboardLayout>
-    );
+    )
   }
 
   return (
@@ -54,5 +54,5 @@ function EditPatientPage() {
         mode="edit"
       />
     </DashboardLayout>
-  );
+  )
 }

@@ -1,18 +1,18 @@
-import { Link } from '@tanstack/react-router';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Phone, Mail, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { Patient } from '../types';
+import { Link } from '@tanstack/react-router'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ArrowLeft, Phone, Mail, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import type { Patient } from '../types'
 
 interface PatientDetailHeaderProps {
-  patient: Patient;
+  patient: Patient
 }
 
 function getAge(dob: string | null): string {
-  if (!dob) return '—';
-  const diff = Date.now() - new Date(dob).getTime();
-  return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))} years`;
+  if (!dob) return '—'
+  const diff = Date.now() - new Date(dob).getTime()
+  return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))} years`
 }
 
 function getInitials(name: string): string {
@@ -21,7 +21,7 @@ function getInitials(name: string): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
+    .slice(0, 2)
 }
 
 export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
@@ -87,12 +87,15 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
+            <Link
+              to="/patients/$patientId/edit"
+              params={{ patientId: patient.id }}
+            >
               <Pencil size={14} className="mr-2" /> Edit Details
             </Link>
           </Button>
         </div>
       </div>
     </div>
-  );
+  )
 }
