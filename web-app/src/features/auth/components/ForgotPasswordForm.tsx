@@ -53,7 +53,7 @@ export function ForgotPasswordForm() {
   if (success) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
-        <Card className="w-full max-w-[420px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
+        <Card className="w-full max-w-[420px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
           <CardHeader className="text-center space-y-4 pt-8">
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
               <MailCheck className="w-8 h-8 text-primary" />
@@ -90,7 +90,7 @@ export function ForgotPasswordForm() {
         </span>
       </div>
 
-      <Card className="w-full max-w-[420px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
+      <Card className="w-full max-w-[420px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
         <CardHeader className="space-y-1 text-center pb-2">
           <CardTitle className="text-2xl font-bold tracking-tight">
             Forgot Password

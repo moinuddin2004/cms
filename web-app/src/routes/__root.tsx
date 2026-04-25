@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
+import { useTheme } from '@/hooks/useTheme'
 import appCss from '../styles.css?url'
 
 const PUBLIC_PATHS = [
@@ -21,6 +22,20 @@ const PUBLIC_PATHS = [
   '/reset-password',
   '/select-location',
 ]
+
+// Inline script to prevent flash of wrong theme on initial load.
+// Runs synchronously before any React hydration / first paint.
+const THEME_INIT_SCRIPT = `
+(function() {
+  try {
+    var theme = localStorage.getItem('theme') || 'system';
+    var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  } catch(e) {}
+})();
+`
 
 export const Route = createRootRoute({
   head: () => ({
@@ -50,9 +65,11 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Prevent theme flash — must run before body renders */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -74,6 +91,9 @@ function RootComponent() {
   const navigate = useNavigate()
   const location = useLocation()
   const [isInitializing, setIsInitializing] = useState(true)
+
+  // Initialize theme on app load — keeps dark class in sync
+  useTheme()
 
   // On mount, attempt silent refresh to restore session from cookie
   useEffect(() => {
@@ -166,7 +186,7 @@ function RootComponent() {
   // Show nothing while initializing (attempting silent refresh)
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-pulse">
             <span className="text-white font-bold text-lg">M</span>
@@ -184,6 +204,7 @@ function RootComponent() {
         position="top-right"
         richColors
         closeButton
+        theme="system"
         toastOptions={{
           duration: 4000,
         }}

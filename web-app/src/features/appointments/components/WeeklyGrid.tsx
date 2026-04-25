@@ -62,14 +62,14 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   return (
-    <div className="flex-1 overflow-auto border rounded-xl bg-white">
+    <div className="flex-1 overflow-auto border rounded-xl bg-card">
       {/* Header Columns */}
-      <div className="sticky top-0 z-20 bg-white border-b flex">
-        <div className="w-[64px] flex-shrink-0 border-r bg-gray-50/80" />
+      <div className="sticky top-0 z-20 bg-card border-b flex">
+        <div className="w-[64px] flex-shrink-0 border-r bg-muted/80" />
         {weekDays.map((date, i) => {
           const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
           return (
-            <div key={i} className={`flex-1 min-w-[120px] p-2 border-r last:border-r-0 text-center ${isToday ? 'bg-blue-50/30' : 'bg-gray-50/80'}`}>
+            <div key={i} className={`flex-1 min-w-[120px] p-2 border-r last:border-r-0 text-center ${isToday ? 'bg-primary/10' : 'bg-muted/80'}`}>
               <p className="text-xs font-semibold text-muted-foreground uppercase">{WEEKDAYS[i]}</p>
               <p className={`text-sm font-bold ${isToday ? 'text-primary' : 'text-foreground'}`}>{date.getDate()}</p>
             </div>
@@ -80,7 +80,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
       {/* Grid Body */}
       <div className="relative flex">
         {/* Time Labels */}
-        <div className="w-[64px] flex-shrink-0 relative border-r bg-gray-50/50">
+        <div className="w-[64px] flex-shrink-0 relative border-r bg-muted/50">
           {HOURS.map((hour) => (
             <div key={hour} className="border-b border-dashed border-gray-100 flex items-start justify-end pr-2 pt-0.5" style={{ height: HOUR_HEIGHT }}>
               <span className="text-[10px] font-medium text-muted-foreground tabular-nums">

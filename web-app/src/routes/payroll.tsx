@@ -37,7 +37,7 @@ function PayrollPage() {
       subtitle="Manage monthly payroll for this location"
       actions={
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white rounded-md border shadow-sm px-2 py-1">
+          <div className="flex items-center gap-2 bg-card rounded-md border shadow-sm px-2 py-1">
             <Select
               value={String(month)}
               onValueChange={(v) => setMonth(Number(v))}
@@ -117,7 +117,7 @@ function PayrollPage() {
                   {isLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin mt-2 text-muted-foreground" />
                   ) : (
-                    <h3 className="text-2xl font-bold mt-1 text-emerald-600">
+                    <h3 className="text-2xl font-bold mt-1 text-status-success">
                       {formatCurrency(payrollData?.summary.paidAmount || 0)}
                     </h3>
                   )}
@@ -139,7 +139,7 @@ function PayrollPage() {
                   {isLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin mt-2 text-muted-foreground" />
                   ) : (
-                    <h3 className="text-2xl font-bold mt-1 text-amber-600">
+                    <h3 className="text-2xl font-bold mt-1 text-status-warning">
                       {formatCurrency(payrollData?.summary.pendingAmount || 0)}
                     </h3>
                   )}
@@ -161,7 +161,7 @@ function PayrollPage() {
                   {isLoading ? (
                     <Loader2 className="h-6 w-6 animate-spin mt-2 text-muted-foreground" />
                   ) : (
-                    <h3 className="text-2xl font-bold mt-1 text-red-600">
+                    <h3 className="text-2xl font-bold mt-1 text-status-error">
                       {payrollData?.summary.onHoldCount || 0}
                     </h3>
                   )}

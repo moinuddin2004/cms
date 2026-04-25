@@ -90,7 +90,7 @@ export function OrganizationSettingsFeature({
           <div className="flex items-center justify-between border-b pb-4">
             <div>
               <Label className="text-base">Allow Location Override</Label>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 If enabled, locations can have their own custom settings. If
                 disabled, they will inherit these organization settings and
                 their local settings will be disabled.

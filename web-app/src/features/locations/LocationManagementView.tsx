@@ -142,7 +142,7 @@ export function LocationManagementView() {
           <h1 className="text-2xl font-bold tracking-tight">
             Location Management
           </h1>
-          <p className="text-sm text-gray-500">Manage clinics and branches.</p>
+          <p className="text-sm text-muted-foreground">Manage clinics and branches.</p>
         </div>
         <Button onClick={handleCreateNew}>
           <Plus className="mr-2 h-4 w-4" />
@@ -150,7 +150,7 @@ export function LocationManagementView() {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -186,7 +186,7 @@ export function LocationManagementView() {
                 <TableRow key={loc.id}>
                   <TableCell className="font-medium">
                     {loc.name}
-                    <div className="text-xs text-gray-500">{loc.code}</div>
+                    <div className="text-xs text-muted-foreground">{loc.code}</div>
                   </TableCell>
                   {isSuperAdmin && (
                     <TableCell>{loc.organization?.name || 'Unknown'}</TableCell>
@@ -195,7 +195,7 @@ export function LocationManagementView() {
                   <TableCell>{loc.phone || 'N/A'}</TableCell>
                   <TableCell>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${loc.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${loc.isActive ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}
                     >
                       {loc.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -226,7 +226,7 @@ export function LocationManagementView() {
                             deactivateMutation.mutate(loc.id)
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </TableCell>

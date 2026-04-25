@@ -85,7 +85,7 @@ export function LocationSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="gap-2 h-9 px-3 border-border/60 bg-white/60 hover:bg-white/90 transition-all"
+          className="gap-2 h-9 px-3 border-border/60 bg-background/60 hover:bg-background/90 transition-all"
           disabled={isLoading}
         >
           {isLoading ? (

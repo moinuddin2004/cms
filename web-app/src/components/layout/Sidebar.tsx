@@ -69,10 +69,10 @@ const bottomNavItems: NavItem[] = [
 ]
 
 const ROLE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-blue-100 text-blue-700',
-  DENTIST: 'bg-emerald-100 text-emerald-700',
-  RECEPTIONIST: 'bg-purple-100 text-purple-700',
-  SUPER_ADMIN: 'bg-slate-800 text-white',
+  ADMIN: 'bg-blue-500/10 text-blue-400',
+  DENTIST: 'bg-emerald-500/10 text-emerald-400',
+  RECEPTIONIST: 'bg-purple-500/10 text-purple-400',
+  SUPER_ADMIN: 'bg-slate-500/20 text-slate-300',
 }
 
 export function Sidebar() {
@@ -111,7 +111,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'fixed top-0 left-0 z-40 h-screen flex flex-col bg-white border-r border-border transition-all duration-300',
+        'fixed top-0 left-0 z-40 h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300',
         sidebarCollapsed
           ? 'w-[var(--spacing-sidebar-collapsed)]'
           : 'w-[var(--spacing-sidebar)]',
@@ -245,7 +245,7 @@ export function Sidebar() {
                 className={cn(
                   'text-[10px] px-1.5 py-0 h-4 font-medium',
                   ROLE_COLORS[user?.globalRole || ''] ||
-                    'bg-gray-100 text-gray-600',
+                    'bg-muted text-muted-foreground',
                 )}
               >
                 {user?.globalRole || 'Member'}

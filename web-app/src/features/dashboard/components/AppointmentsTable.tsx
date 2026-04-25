@@ -19,10 +19,10 @@ interface AppointmentsTableProps {
 }
 
 const statusStyles: Record<AppointmentStatus, string> = {
-  Completed: 'bg-green-50 text-green-700 border-green-200',
-  'No Show': 'bg-red-50 text-red-700 border-red-200',
-  Scheduled: 'bg-blue-50 text-blue-700 border-blue-200',
-  Cancelled: 'bg-gray-50 text-gray-700 border-gray-200',
+  Completed: 'bg-status-success/10 text-status-success border-status-success/20',
+  'No Show': 'bg-status-error/10 text-status-error border-status-error/20',
+  Scheduled: 'bg-status-info/10 text-status-info border-status-info/20',
+  Cancelled: 'bg-muted text-muted-foreground border-border',
 }
 
 function getInitials(name: string): string {
@@ -107,10 +107,10 @@ export const AppointmentsTable = memo(function AppointmentsTable({
               <span
                 className={cn(
                   'w-1.5 h-1.5 rounded-full mr-1.5',
-                  status === 'Completed' && 'bg-green-500',
-                  status === 'No Show' && 'bg-red-500',
-                  status === 'Scheduled' && 'bg-blue-500',
-                  status === 'Cancelled' && 'bg-gray-500',
+                  status === 'Completed' && 'bg-status-success',
+                  status === 'No Show' && 'bg-status-error',
+                  status === 'Scheduled' && 'bg-status-info',
+                  status === 'Cancelled' && 'bg-muted-foreground',
                 )}
               />
               {status}

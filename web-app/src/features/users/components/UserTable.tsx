@@ -27,13 +27,13 @@ export function UserTable({
 }: UserTableProps) {
   const getRoleIcon = (role: string | null) => {
     if (role === 'super_admin')
-      return <ShieldAlert className="w-4 h-4 mr-1 text-red-500" />
-    return <UserIcon className="w-4 h-4 mr-1 text-blue-500" />
+      return <ShieldAlert className="w-4 h-4 mr-1 text-destructive" />
+    return <UserIcon className="w-4 h-4 mr-1 text-primary" />
   }
 
   if (isLoading) {
     return (
-      <div className="text-center p-8 text-sm text-gray-500">
+      <div className="text-center p-8 text-sm text-muted-foreground">
         Loading users...
       </div>
     )
@@ -41,7 +41,7 @@ export function UserTable({
 
   if (users.length === 0) {
     return (
-      <div className="text-center p-8 text-sm text-gray-500">
+      <div className="text-center p-8 text-sm text-muted-foreground">
         No users found.
       </div>
     )
@@ -67,9 +67,9 @@ export function UserTable({
                   <span className="font-medium text-sm">
                     {user.name || 'Unknown Name'}
                   </span>
-                  <span className="text-xs text-gray-500">{user.email}</span>
+                  <span className="text-xs text-muted-foreground">{user.email}</span>
                   {user.phone && (
-                    <span className="text-xs text-gray-400">{user.phone}</span>
+                    <span className="text-xs text-muted-foreground/60">{user.phone}</span>
                   )}
                 </div>
               </TableCell>
@@ -94,7 +94,7 @@ export function UserTable({
                   {user.status}
                 </Badge>
               </TableCell>
-              <TableCell className="text-sm text-gray-500">
+              <TableCell className="text-sm text-muted-foreground">
                 {user.createdAt
                   ? format(new Date(user.createdAt), 'MMM dd, yyyy')
                   : 'N/A'}
@@ -105,14 +105,14 @@ export function UserTable({
                   size="icon"
                   onClick={() => onEdit(user)}
                 >
-                  <Edit className="w-4 h-4 text-gray-600" />
+                  <Edit className="w-4 h-4 text-muted-foreground" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onDelete(user)}
                 >
-                  <Trash className="w-4 h-4 text-red-600" />
+                  <Trash className="w-4 h-4 text-destructive" />
                 </Button>
               </TableCell>
             </TableRow>

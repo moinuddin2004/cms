@@ -48,8 +48,8 @@ const STAT_ITEMS = [
     key: 'noShow',
     label: 'No-Show',
     icon: UserX,
-    color: 'text-gray-600',
-    bg: 'bg-gray-50',
+    color: 'text-muted-foreground',
+    bg: 'bg-muted',
   },
   {
     key: 'completionRate',

@@ -129,7 +129,7 @@ export function OrganizationManagementView() {
           <h1 className="text-2xl font-bold tracking-tight">
             Organization Management
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Super Admin oversight of all clinics.
           </p>
         </div>
@@ -139,7 +139,7 @@ export function OrganizationManagementView() {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-white">
+      <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -171,7 +171,7 @@ export function OrganizationManagementView() {
                   <TableCell>{org.subscriptionPlan}</TableCell>
                   <TableCell>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${org.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+                      className={`px-2 py-1 rounded-full text-xs font-semibold ${org.isActive ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}
                     >
                       {org.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -202,7 +202,7 @@ export function OrganizationManagementView() {
                             deactivateMutation.mutate(org.id)
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-red-500" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </TableCell>

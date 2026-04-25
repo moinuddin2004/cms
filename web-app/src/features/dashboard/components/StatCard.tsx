@@ -43,7 +43,7 @@ export const StatCard = memo(function StatCard({
   icon,
 }: StatCardProps) {
   const IconComponent = iconMap[icon] || Users
-  const iconClasses = iconBgMap[icon] || 'bg-gray-50 text-gray-600'
+  const iconClasses = iconBgMap[icon] || 'bg-muted text-muted-foreground'
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -61,8 +61,8 @@ export const StatCard = memo(function StatCard({
                 className={cn(
                   'inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded',
                   trend === 'up'
-                    ? 'text-green-700 bg-green-50'
-                    : 'text-red-700 bg-red-50',
+                    ? 'text-status-success bg-status-success/10'
+                    : 'text-status-error bg-status-error/10',
                 )}
               >
                 {percentageChange}%

@@ -38,9 +38,9 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
   const today = new Date()
 
   return (
-    <div className="flex-1 flex flex-col border rounded-xl bg-white overflow-hidden">
+    <div className="flex-1 flex flex-col border rounded-xl bg-card overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-7 border-b bg-gray-50/80">
+      <div className="grid grid-cols-7 border-b bg-muted/80">
         {WEEKDAYS.map((day) => (
           <div key={day} className="p-2 text-center text-xs font-semibold text-muted-foreground border-r last:border-r-0">
             {day}
@@ -51,7 +51,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
       {/* Grid */}
       <div className="flex-1 grid grid-cols-7 auto-rows-fr">
         {Array.from({ length: startEmptyCells }).map((_, i) => (
-          <div key={`empty-${i}`} className="border-r border-b bg-gray-50/30" />
+          <div key={`empty-${i}`} className="border-r border-b bg-muted/30" />
         ))}
         
         {days.map(({ date, appointments }) => {
@@ -60,7 +60,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
           return (
             <div 
               key={date.toISOString()} 
-              className={`border-r border-b p-1.5 flex flex-col min-h-[100px] hover:bg-gray-50 cursor-pointer ${isToday ? 'bg-blue-50/30' : ''}`}
+              className={`border-r border-b p-1.5 flex flex-col min-h-[100px] hover:bg-muted cursor-pointer ${isToday ? 'bg-primary/10' : ''}`}
               onClick={() => {
                 const clickDate = new Date(date)
                 clickDate.setHours(9, 0, 0, 0)
@@ -106,7 +106,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
         
         {/* Fill remaining cells to complete the grid */}
         {Array.from({ length: (7 - ((startEmptyCells + days.length) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="border-r border-b bg-gray-50/30" />
+          <div key={`end-empty-${i}`} className="border-r border-b bg-muted/30" />
         ))}
       </div>
     </div>

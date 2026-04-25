@@ -73,7 +73,7 @@ export function RegisterForm() {
         </span>
       </div>
 
-      <Card className="w-full max-w-[420px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
+      <Card className="w-full max-w-[420px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
         <CardHeader className="space-y-1 text-center pb-2">
           <CardTitle className="text-2xl font-bold tracking-tight">
             Create an account

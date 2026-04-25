@@ -58,7 +58,7 @@ export const SpendingBreakdownCard = memo(function SpendingBreakdownCard({
                 minimumFractionDigits: 2,
               })}
             </span>
-            <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600">
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-status-success">
               +{data.percentageChange}%
               <TrendingUp size={14} />
             </span>

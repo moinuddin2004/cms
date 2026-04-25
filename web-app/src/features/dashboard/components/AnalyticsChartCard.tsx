@@ -103,18 +103,18 @@ export const AnalyticsChartCard = memo(function AnalyticsChartCard({
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
-                stroke="#e2e8f0"
+                stroke="var(--border)"
               />
               <XAxis
                 dataKey="month"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
                 tickFormatter={(v: number) => `$${v}`}
               />
               <Tooltip

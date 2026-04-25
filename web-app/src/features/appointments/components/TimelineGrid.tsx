@@ -73,19 +73,19 @@ export function TimelineGrid({
   const colWidth = doctors.length <= 3 ? 'minmax(220px, 1fr)' : 'minmax(180px, 1fr)'
 
   return (
-    <div className="flex-1 overflow-auto border rounded-xl bg-white">
+    <div className="flex-1 overflow-auto border rounded-xl bg-card">
       {/* Doctor Header Columns */}
       <div
-        className="sticky top-0 z-20 bg-white border-b grid"
+        className="sticky top-0 z-20 bg-card border-b grid"
         style={{
           gridTemplateColumns: `64px repeat(${doctors.length}, ${colWidth})`,
         }}
       >
-        <div className="p-3 border-r bg-gray-50/80" />
+        <div className="p-3 border-r bg-muted/80" />
         {doctors.map((doc) => (
           <div
             key={doc.id}
-            className="px-3 py-3 border-r last:border-r-0 flex items-center gap-2.5 bg-gray-50/80"
+            className="px-3 py-3 border-r last:border-r-0 flex items-center gap-2.5 bg-muted/80"
           >
             <Avatar className="w-8 h-8 flex-shrink-0">
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
@@ -112,7 +112,7 @@ export function TimelineGrid({
         }}
       >
         {/* Time Labels */}
-        <div className="relative border-r bg-gray-50/50">
+        <div className="relative border-r bg-muted/50">
           {HOURS.map((hour) => (
             <div
               key={hour}

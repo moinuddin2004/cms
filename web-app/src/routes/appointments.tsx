@@ -190,7 +190,7 @@ function AppointmentsPage() {
         <StatsCards stats={stats} isLoading={loadingStats} />
 
         {/* ── Toolbar ───────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border rounded-xl px-4 py-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card border rounded-xl px-4 py-3">
           {/* Date navigation */}
           <div className="flex items-center gap-2">
             <Button
@@ -237,7 +237,7 @@ function AppointmentsPage() {
                     'px-3 py-1.5 text-xs font-medium transition-colors',
                     calendarView === view
                       ? 'bg-primary text-primary-foreground'
-                      : 'bg-white text-muted-foreground hover:bg-accent',
+                      : 'bg-card text-muted-foreground hover:bg-accent',
                   )}
                 >
                   {VIEW_LABELS[view]}
@@ -268,7 +268,7 @@ function AppointmentsPage() {
                   'px-2.5 py-1.5 text-xs font-medium transition-colors',
                   viewMode === 'calendar'
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-white text-muted-foreground hover:bg-accent',
+                    : 'bg-card text-muted-foreground hover:bg-accent',
                 )}
               >
                 <CalendarDays className="w-3.5 h-3.5" />
@@ -279,7 +279,7 @@ function AppointmentsPage() {
                   'px-2.5 py-1.5 text-xs font-medium transition-colors',
                   viewMode === 'list'
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-white text-muted-foreground hover:bg-accent',
+                    : 'bg-card text-muted-foreground hover:bg-accent',
                 )}
               >
                 <List className="w-3.5 h-3.5" />
@@ -297,7 +297,7 @@ function AppointmentsPage() {
           /* ── List View ──────────────────────────────── */
           <div className="flex-1 overflow-auto">
             {appointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center gap-3 bg-white border rounded-xl py-16">
+              <div className="flex flex-col items-center justify-center text-center gap-3 bg-card border rounded-xl py-16">
                 <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
                 <p className="text-muted-foreground">
                   No appointments found.

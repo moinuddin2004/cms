@@ -99,7 +99,7 @@ export function LocationSelector() {
         </span>
       </div>
 
-      <Card className="w-full max-w-[520px] shadow-xl border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
+      <Card className="w-full max-w-[520px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
         <CardHeader className="text-center pb-2">
           <CardTitle className="text-2xl font-bold tracking-tight">
             {step === 'org' ? 'Select Organization' : 'Select Location'}
@@ -124,7 +124,7 @@ export function LocationSelector() {
                     'hover:border-primary/40 hover:bg-primary/5 cursor-pointer',
                     selectedOrgId === org.id
                       ? 'border-primary bg-primary/10 shadow-sm'
-                      : 'border-border bg-white',
+                      : 'border-border bg-card',
                   )}
                   onClick={() => handleOrgSelect(org.id)}
                 >
@@ -189,7 +189,7 @@ export function LocationSelector() {
                       'hover:border-primary/40 hover:bg-primary/5 cursor-pointer',
                       isSelected
                         ? 'border-primary bg-primary/10 shadow-sm'
-                        : 'border-border bg-white',
+                        : 'border-border bg-card',
                     )}
                     onClick={() => setSelectedLocId(loc.id)}
                   >

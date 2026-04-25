@@ -490,15 +490,15 @@ export function FullCalendarView({
 
   return (
     <div
-      className="flex-1 bg-white border rounded-xl overflow-hidden fc-wrapper"
+      className="flex-1 bg-card border rounded-xl overflow-hidden fc-wrapper"
       style={{ minHeight: 600 }}
     >
       <style>{`
         .fc-wrapper .fc {
-          --fc-border-color: #e5e7eb;
-          --fc-today-bg-color: #eff6ff;
-          --fc-page-bg-color: #ffffff;
-          --fc-neutral-bg-color: #f9fafb;
+          --fc-border-color: var(--border);
+          --fc-today-bg-color: var(--accent);
+          --fc-page-bg-color: var(--background);
+          --fc-neutral-bg-color: var(--muted);
           --fc-event-border-color: transparent;
           font-family: 'Inter', system-ui, sans-serif;
         }
@@ -507,27 +507,27 @@ export function FullCalendarView({
         }
         .fc-wrapper .fc .fc-col-header-cell {
           padding: 10px 4px;
-          background: #f9fafb;
+          background: var(--muted);
           font-size: 12px;
           font-weight: 600;
-          color: #6b7280;
+          color: var(--muted-foreground);
           text-transform: uppercase;
           letter-spacing: 0.025em;
         }
         /* ─── Resource column header ─── */
         .fc-wrapper .fc .fc-resource-header {
-          background: linear-gradient(to bottom, #f8fafc, #f1f5f9) !important;
+          background: var(--muted) !important;
         }
         .fc-wrapper .fc .fc-datagrid-cell-frame {
           padding: 4px 8px;
         }
         .fc-wrapper .fc .fc-resource-group {
-          background: #f8fafc;
+          background: var(--muted);
         }
         .fc-wrapper .fc .fc-col-header-cell.fc-resource {
           padding: 8px 4px;
-          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
-          border-bottom: 2px solid #e2e8f0;
+          background: var(--muted);
+          border-bottom: 2px solid var(--border);
         }
         /* ─── Time grid slots ─── */
         .fc-wrapper .fc .fc-timegrid-slot {
@@ -535,7 +535,7 @@ export function FullCalendarView({
         }
         .fc-wrapper .fc .fc-timegrid-slot-label {
           font-size: 10px;
-          color: #9ca3af;
+          color: var(--muted-foreground);
           font-weight: 500;
           vertical-align: top;
           padding-top: 2px;
@@ -549,7 +549,7 @@ export function FullCalendarView({
           transition: box-shadow 0.15s, transform 0.15s;
         }
         .fc-wrapper .fc .fc-timegrid-event:hover {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
           transform: translateY(-1px);
           z-index: 10 !important;
         }
@@ -564,8 +564,8 @@ export function FullCalendarView({
           padding: 6px 8px;
         }
         .fc-wrapper .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
-          background: #3b82f6;
-          color: white;
+          background: var(--primary);
+          color: var(--primary-foreground);
           border-radius: 50%;
           width: 28px;
           height: 28px;
@@ -599,14 +599,14 @@ export function FullCalendarView({
           border: none;
         }
         .fc-wrapper .fc td, .fc-wrapper .fc th {
-          border-color: #f3f4f6;
+          border-color: var(--border);
         }
         .fc-wrapper .fc .fc-timegrid-event .fc-event-main {
           padding: 0;
         }
         /* Resource column borders */
         .fc-wrapper .fc .fc-timegrid-col {
-          border-right: 1px solid #e5e7eb;
+          border-right: 1px solid var(--border);
         }
         .fc-wrapper .fc .fc-timegrid-col:last-child {
           border-right: none;

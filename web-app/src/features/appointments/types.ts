@@ -67,7 +67,7 @@ export const STATUS_BG_COLORS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.IN_PROGRESS]: 'bg-amber-50 border-amber-200 text-amber-700',
   [AppointmentStatus.COMPLETED]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   [AppointmentStatus.CANCELLED]: 'bg-red-50 border-red-200 text-red-700',
-  [AppointmentStatus.NO_SHOW]: 'bg-gray-50 border-gray-200 text-gray-700',
+  [AppointmentStatus.NO_SHOW]: 'bg-status-error/10 border-status-error/20 text-status-error',
   [AppointmentStatus.RESCHEDULED]: 'bg-cyan-50 border-cyan-200 text-cyan-700',
 }
 

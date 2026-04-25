@@ -17,7 +17,7 @@ export function Topbar({}: TopbarProps) {
   )
 
   return (
-    <header className="h-16 bg-white/80 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-6 sticky top-0 z-50">
+    <header className="h-16 bg-background/80 backdrop-blur-md border-b border-border/60 flex items-center justify-between px-6 sticky top-0 z-50">
       {/* Left: Spacer to keep center perfectly aligned */}
       <div className="flex-1" />
 

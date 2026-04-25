@@ -21,16 +21,28 @@ import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
 import { useState } from 'react'
-import { Eye, EyeOff, Loader2, User, Shield, Monitor } from 'lucide-react'
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  User,
+  Shield,
+  Monitor,
+  Sun,
+  Moon,
+  Palette,
+} from 'lucide-react'
+import { useTheme, type Theme } from '@/hooks/useTheme'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage,
 })
 
 const ROLE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-blue-100 text-blue-700 border-blue-200',
-  DENTIST: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  RECEPTIONIST: 'bg-purple-100 text-purple-700 border-purple-200',
+  ADMIN: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  DENTIST: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  RECEPTIONIST: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -64,7 +76,7 @@ function SettingsPage() {
           <CardContent className="p-6">
             <div className="flex items-center gap-5">
               <Avatar className="w-20 h-20">
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-emerald-100 text-primary text-2xl font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-primary text-2xl font-bold">
                   {getInitials(user?.name)}
                 </AvatarFallback>
               </Avatar>
@@ -75,7 +87,7 @@ function SettingsPage() {
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
                 <Badge
                   variant="outline"
-                  className={`text-xs font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-gray-100 text-gray-600'}`}
+                  className={`text-xs font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-muted text-muted-foreground'}`}
                 >
                   {ROLE_LABELS[user?.role || ''] || user?.role || 'Member'}
                 </Badge>
@@ -89,21 +101,28 @@ function SettingsPage() {
           <TabsList className="bg-muted/50 rounded-lg p-1 h-auto">
             <TabsTrigger
               value="profile"
-              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+              className="gap-2 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2"
             >
               <User className="h-4 w-4" />
               Personal Info
             </TabsTrigger>
             <TabsTrigger
+              value="appearance"
+              className="gap-2 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2"
+            >
+              <Palette className="h-4 w-4" />
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger
               value="security"
-              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+              className="gap-2 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2"
             >
               <Shield className="h-4 w-4" />
               Security
             </TabsTrigger>
             <TabsTrigger
               value="sessions"
-              className="gap-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+              className="gap-2 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2"
             >
               <Monitor className="h-4 w-4" />
               Sessions
@@ -113,6 +132,11 @@ function SettingsPage() {
           {/* Tab: Personal Info */}
           <TabsContent value="profile">
             <ProfileTab />
+          </TabsContent>
+
+          {/* Tab: Appearance */}
+          <TabsContent value="appearance">
+            <AppearanceTab />
           </TabsContent>
 
           {/* Tab: Security */}
@@ -127,6 +151,116 @@ function SettingsPage() {
         </Tabs>
       </div>
     </DashboardLayout>
+  )
+}
+
+/** Appearance Tab — Theme Switcher */
+function AppearanceTab() {
+  const { theme, setTheme } = useTheme()
+
+  const themeOptions: {
+    value: Theme
+    label: string
+    description: string
+    icon: React.ElementType
+  }[] = [
+    {
+      value: 'light',
+      label: 'Light',
+      description: 'Clean and bright interface',
+      icon: Sun,
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      description: 'Easy on the eyes',
+      icon: Moon,
+    },
+    {
+      value: 'system',
+      label: 'System',
+      description: 'Follows your OS setting',
+      icon: Monitor,
+    },
+  ]
+
+  return (
+    <Card className="shadow-sm border-border/50 rounded-xl">
+      <CardHeader>
+        <CardTitle className="text-lg">Appearance</CardTitle>
+        <CardDescription>
+          Choose how MedTrackr looks for you. Select a theme that suits your
+          preference.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {themeOptions.map((option) => {
+            const isActive = theme === option.value
+            const Icon = option.icon
+
+            return (
+              <button
+                key={option.value}
+                id={`theme-option-${option.value}`}
+                onClick={() => setTheme(option.value)}
+                className={cn(
+                  'group relative flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all duration-200 cursor-pointer',
+                  'hover:shadow-md hover:scale-[1.02]',
+                  isActive
+                    ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
+                    : 'border-border bg-card hover:border-border/80',
+                )}
+              >
+                {/* Active indicator dot */}
+                {isActive && (
+                  <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+                )}
+
+                {/* Icon */}
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-xl flex items-center justify-center transition-colors',
+                    isActive
+                      ? 'bg-primary/15 text-primary'
+                      : 'bg-muted text-muted-foreground group-hover:bg-accent group-hover:text-accent-foreground',
+                  )}
+                >
+                  <Icon className="w-6 h-6" />
+                </div>
+
+                {/* Label */}
+                <div className="text-center">
+                  <p
+                    className={cn(
+                      'font-semibold text-sm',
+                      isActive ? 'text-primary' : 'text-foreground',
+                    )}
+                  >
+                    {option.label}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {option.description}
+                  </p>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Current theme indicator */}
+        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <span>
+            Currently using{' '}
+            <span className="font-medium text-foreground">
+              {theme.charAt(0).toUpperCase() + theme.slice(1)}
+            </span>{' '}
+            theme
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -161,7 +295,7 @@ function ProfileTab() {
             <div>
               <Badge
                 variant="outline"
-                className={`font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-gray-100 text-gray-600'}`}
+                className={`font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-muted text-muted-foreground'}`}
               >
                 {ROLE_LABELS[user?.role || ''] || user?.role || 'Member'}
               </Badge>

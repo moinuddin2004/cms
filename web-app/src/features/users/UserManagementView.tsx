@@ -63,7 +63,7 @@ export function UserManagementView() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Manage system access across roles and organizations.
           </p>
         </div>

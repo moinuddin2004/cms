@@ -58,7 +58,7 @@ const SELECTION_COLORS: Record<string, string> = {
   HEALTHY: 'bg-green-100 text-green-700 border-green-300',
   CARIES: 'bg-red-100 text-red-700 border-red-300',
   FILLED: 'bg-blue-100 text-blue-700 border-blue-300',
-  MISSING: 'bg-gray-200 text-gray-500 border-gray-400 opacity-50',
+  MISSING: 'bg-muted text-muted-foreground border-border opacity-50',
   CROWN: 'bg-purple-100 text-purple-700 border-purple-300',
   EXTRACTION_NEEDED: 'bg-orange-100 text-orange-700 border-orange-300',
 }
