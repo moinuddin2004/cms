@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -7,65 +8,132 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import { useGeneratePayroll } from '../hooks/useGeneratePayroll'
-import { useAuthStore } from '@/store/useAuthStore'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Zap, AlertCircle } from 'lucide-react'
 
 interface GeneratePayrollModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  month: number
-  year: number
 }
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
 
 export function GeneratePayrollModal({
   isOpen,
   onOpenChange,
-  month,
-  year,
 }: GeneratePayrollModalProps) {
+  const now = new Date()
+  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(now.getFullYear())
   const generateMutation = useGeneratePayroll()
-  const { activeLocationId } = useAuthStore()
 
-  const monthName = new Date(year, month - 1).toLocaleString('default', {
-    month: 'long',
-  })
-
-  async function onGenerate() {
-    if (!activeLocationId) return
+  async function handleGenerate() {
     try {
-      await generateMutation.mutateAsync({
-        month,
-        year,
-        locationId: activeLocationId,
-      })
-      toast.success(`Payroll generated for ${monthName} ${year}`)
+      const result = await generateMutation.mutateAsync({ month, year })
+      const messages: string[] = []
+      if (result.generated > 0)
+        messages.push(`✅ ${result.generated} payroll records created`)
+      if (result.skipped > 0)
+        messages.push(`⏭️ ${result.skipped} already existed`)
+      if (result.noSalary?.length > 0)
+        messages.push(
+          `⚠️ No salary set: ${result.noSalary.join(', ')}`,
+        )
+      toast.success(messages.join('\n') || 'Payroll generated')
       onOpenChange(false)
-    } catch (error) {
-      toast.error('Failed to generate payroll')
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || 'Failed to generate payroll',
+      )
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
-          <DialogTitle>Generate Payroll</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary" />
+            Generate Payroll
+          </DialogTitle>
           <DialogDescription>
-            Generate payroll for {monthName} {year}? This will create pending
-            records for all active employees.
+            Generate payroll records for all active employees at this
+            location for the selected month.
           </DialogDescription>
         </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Month</Label>
+              <Select
+                value={String(month)}
+                onValueChange={(v) => setMonth(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((name, idx) => (
+                    <SelectItem key={idx + 1} value={String(idx + 1)}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Year</Label>
+              <Select
+                value={String(year)}
+                onValueChange={(v) => setYear(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map(
+                    (y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 text-amber-800 text-xs">
+            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+            <span>
+              Only employees with a salary configured and active at this
+              location will have payroll records generated. Existing records
+              for the same month are skipped.
+            </span>
+          </div>
+        </div>
         <DialogFooter>
           <Button
-            type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
-          <Button onClick={onGenerate} disabled={generateMutation.isPending}>
+          <Button
+            onClick={handleGenerate}
+            disabled={generateMutation.isPending}
+          >
             {generateMutation.isPending && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}

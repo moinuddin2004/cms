@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { generatePayroll } from '../services/payroll.api'
 import { PAYROLL_KEY } from './useEmployeePayroll'
+import { LOCATION_PAYROLL_KEY } from './useLocationPayroll'
 
 export function useGeneratePayroll() {
   const queryClient = useQueryClient()
@@ -9,6 +10,7 @@ export function useGeneratePayroll() {
     mutationFn: generatePayroll,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [PAYROLL_KEY] })
+      queryClient.invalidateQueries({ queryKey: [LOCATION_PAYROLL_KEY] })
     },
   })
 }

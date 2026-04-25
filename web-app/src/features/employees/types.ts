@@ -55,6 +55,24 @@ export const PAYMENT_METHOD_OPTIONS = [
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
 
+// ─── Schedule Helpers ───────────────────────────────────────────────
+
+export const DAY_NAMES = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday',
+  'Thursday', 'Friday', 'Saturday',
+] as const
+
+export const DAY_SHORT = [
+  'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+] as const
+
+export const SLOT_OPTIONS = [
+  { value: 15, label: '15 minutes' },
+  { value: 30, label: '30 minutes' },
+  { value: 45, label: '45 minutes' },
+  { value: 60, label: '1 hour' },
+]
+
 // ─── API Response Types ─────────────────────────────────────────────
 
 export interface EmploymentRole {
@@ -67,59 +85,53 @@ export interface EmploymentRole {
 }
 
 export interface CurrentSalary {
-  id: string
   grossSalary: number
-  effectiveFrom: string
-  effectiveUntil: string | null
-  isCurrent: boolean
-  notes: string | null
-  createdBy: string
-  createdAt: string
+  effectiveFrom?: string
 }
 
 export interface Employee {
   id: string
-  organizationId: string
-  employeeCode: string
   fullName: string
   phone: string
   cnic: string | null
   gender: Gender | null
   dob: string | null
   profilePictureUrl: string | null
-  designation: string
-  employmentRoleId: string
-  employmentRole: EmploymentRole | null
-  employmentType: EmploymentType
-  joiningDate: string
-  primaryLocationId: string
-  primaryLocation: { id: string; name: string } | null
-  hasPortalAccess: boolean
-  userId: string | null
   isActive: boolean
-  createdBy: string
-  createdAt: string
-  updatedAt: string
+  // Assignment fields (flattened from backend)
+  assignmentId?: string
+  designation: string
+  employmentType: EmploymentType
+  employeeCode: string
+  joiningDate: string
+  grossSalary: number | null
+  hasPortalAccess: boolean
+  isPrimary: boolean
+  userId: string | null
+  organizationId?: string
+  primaryLocationId?: string
+  primaryLocation?: { id: string; name: string } | null
+  employmentRoleId?: string
+  employmentRole: EmploymentRole | null
+  createdBy?: string
+  createdAt?: string
+  updatedAt?: string
   currentSalary: CurrentSalary | null
 }
 
-export interface EmployeeSalary {
-  id: string
-  employeeId: string
-  organizationId: string
-  grossSalary: number
-  effectiveFrom: string
-  effectiveUntil: string | null
-  isCurrent: boolean
-  notes: string | null
-  createdBy: string
-  createdAt: string
-  updatedAt: string
+export interface ScheduleDay {
+  id?: string
+  dayOfWeek: number // 0-6
+  isWorking: boolean
+  startTime: string | null // "09:00"
+  endTime: string | null // "17:00"
+  slotDuration: number
 }
 
 export interface PayrollRecord {
   id: string
   employeeId: string
+  employee?: { fullName: string; employeeCode?: string }
   month: number
   year: number
   periodLabel: string
@@ -131,30 +143,56 @@ export interface PayrollRecord {
   notes: string | null
 }
 
+export interface PayrollSummary {
+  totalEmployees: number
+  totalAmount: number
+  paidCount: number
+  pendingCount: number
+  onHoldCount?: number
+  paidAmount: number
+  pendingAmount: number
+}
+
+export interface LocationPayrollResponse {
+  records: PayrollRecord[]
+  summary: PayrollSummary
+}
+
+export interface GeneratePayrollResult {
+  generated: number
+  skipped: number
+  noSalary: string[]
+  records: PayrollRecord[]
+}
+
 // ─── Zod Schemas ────────────────────────────────────────────────────
 
 export const employeeFormSchema = z.object({
   fullName: z.string().min(2, 'Full name is required').max(255),
   phone: z.string().min(10, 'Valid phone number is required').max(20),
-  cnic: z.string().max(20).optional().transform(v => v === '' ? undefined : v),
+  cnic: z.string().max(20).optional().transform((v) => (v === '' ? undefined : v)),
   designation: z.string().min(2, 'Designation is required').max(100),
   employmentRoleId: z.string().min(1, 'Role is required'),
   employmentType: z.nativeEnum(EmploymentType).default(EmploymentType.FULL_TIME),
   joiningDate: z.string().min(1, 'Joining date is required'),
-  primaryLocationId: z.string().min(1, 'Location is required'),
   gender: z.nativeEnum(Gender).optional(),
-  dob: z.string().optional().transform(v => v === '' ? undefined : v),
+  dob: z.string().optional().transform((v) => (v === '' ? undefined : v)),
   hasPortalAccess: z.boolean().default(false),
-  profilePictureUrl: z.string().optional().transform(v => v === '' ? undefined : v),
-  userId: z.string().optional().transform(v => v === '' ? undefined : v),
+  profilePictureUrl: z
+    .string()
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  userId: z
+    .string()
+    .optional()
+    .transform((v) => (v === '' ? undefined : v)),
+  grossSalary: z.coerce.number().min(0).optional(),
 })
 
 export type EmployeeFormData = z.infer<typeof employeeFormSchema>
 
 export const salaryFormSchema = z.object({
   grossSalary: z.coerce.number().min(1, 'Salary must be a positive number'),
-  effectiveFrom: z.string().min(1, 'Effective date is required'),
-  notes: z.string().optional(),
 })
 
 export type SalaryFormData = z.infer<typeof salaryFormSchema>

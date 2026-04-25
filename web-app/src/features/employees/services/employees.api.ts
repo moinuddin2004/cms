@@ -3,7 +3,6 @@ import type {
   Employee,
   EmployeeFormData,
   EmployeeListParams,
-  EmployeeSalary,
   PaginatedResponse,
   SalaryFormData,
 } from '../types'
@@ -43,17 +42,10 @@ export async function deactivateEmployee(id: string): Promise<void> {
 
 // ─── Salary Management ──────────────────────────────────────────────
 
-export async function setSalary(
+export async function updateSalary(
   employeeId: string,
   payload: SalaryFormData,
-): Promise<EmployeeSalary> {
-  const { data } = await api.post(`/employees/${employeeId}/salary`, payload)
-  return data.data
-}
-
-export async function fetchSalaryHistory(
-  employeeId: string,
-): Promise<EmployeeSalary[]> {
-  const { data } = await api.get(`/employees/${employeeId}/salary-history`)
+): Promise<any> {
+  const { data } = await api.patch(`/employees/${employeeId}/salary`, payload)
   return data.data
 }

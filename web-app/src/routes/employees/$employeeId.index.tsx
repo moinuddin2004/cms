@@ -8,10 +8,9 @@ import {
   useEmployee,
   useEmployeePayroll,
   UpdateSalaryModal,
-  MarkPaidModal,
   GeneratePayrollModal,
   PayrollTable,
-  type PayrollRecord,
+  ScheduleTab,
 } from '@/features/employees'
 import {
   formatCurrency,
@@ -40,11 +39,7 @@ function EmployeeDetailPage() {
   const { data: payroll, isLoading: isPayrollLoading } = useEmployeePayroll(employeeId)
 
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false)
-  const [isMarkPaidModalOpen, setIsMarkPaidModalOpen] = useState(false)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
-  const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(
-    null,
-  )
 
   if (isEmployeeLoading) {
     return (
@@ -73,7 +68,7 @@ function EmployeeDetailPage() {
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
   const currentMonthRecord = payroll?.find(
-    (p: PayrollRecord) => p.month === currentMonth && p.year === currentYear,
+    (p: any) => p.month === currentMonth && p.year === currentYear,
   )
 
   return (
@@ -120,8 +115,9 @@ function EmployeeDetailPage() {
         </Link>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+          <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
             <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
           </TabsList>
 
@@ -224,6 +220,10 @@ function EmployeeDetailPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="schedule" className="mt-6">
+            <ScheduleTab employeeId={employeeId} />
+          </TabsContent>
+
           <TabsContent value="payroll" className="mt-6 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Payroll History</h3>
@@ -244,13 +244,7 @@ function EmployeeDetailPage() {
                 ))}
               </div>
             ) : payroll && payroll.length > 0 ? (
-              <PayrollTable
-                records={payroll}
-                onMarkPaid={(record) => {
-                  setSelectedRecord(record)
-                  setIsMarkPaidModalOpen(true)
-                }}
-              />
+              <PayrollTable records={payroll} />
             ) : (
               <div className="flex flex-col items-center justify-center py-12 gap-4 border rounded-lg bg-slate-50/50">
                 <div className="rounded-full bg-white p-6 border shadow-sm">
@@ -283,17 +277,9 @@ function EmployeeDetailPage() {
         currentSalary={employee.currentSalary?.grossSalary}
       />
 
-      <MarkPaidModal
-        record={selectedRecord}
-        isOpen={isMarkPaidModalOpen}
-        onOpenChange={setIsMarkPaidModalOpen}
-      />
-
       <GeneratePayrollModal
         isOpen={isGenerateModalOpen}
         onOpenChange={setIsGenerateModalOpen}
-        month={currentMonth}
-        year={currentYear}
       />
     </DashboardLayout>
   )

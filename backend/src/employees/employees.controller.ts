@@ -15,7 +15,7 @@ import {
 import { EmployeesService } from './employees.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { SetSalaryDto } from './dto/set-salary.dto';
+import { UpdateSalaryDto } from './dto/update-salary.dto';
 import { EmployeeFilterDto } from './dto/employee-filter.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
@@ -54,7 +54,7 @@ export class EmployeesController {
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.employeesService.findOne(id, ctx.organizationId);
+    const data = await this.employeesService.findOne(id, ctx);
     return ResponseWrapper.success(data, 'Employee retrieved successfully');
   }
 
@@ -73,7 +73,7 @@ export class EmployeesController {
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.employeesService.deactivate(id, ctx.organizationId);
+    const data = await this.employeesService.deactivate(id, ctx);
     return ResponseWrapper.success(data, 'Employee deactivated successfully');
   }
 
@@ -81,32 +81,13 @@ export class EmployeesController {
   // SALARY MANAGEMENT
   // ═══════════════════════════════════════════════════════════
 
-  @Post(':id/salary')
-  @HttpCode(HttpStatus.CREATED)
-  async setSalary(
+  @Patch(':id/salary')
+  async updateSalary(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: SetSalaryDto,
-    @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
-  ) {
-    const data = await this.employeesService.setSalary(
-      id,
-      ctx,
-      dto,
-      req.user?.uuid,
-    );
-    return ResponseWrapper.success(data, 'Salary set successfully');
-  }
-
-  @Get(':id/salary-history')
-  async getSalaryHistory(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateSalaryDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.employeesService.getSalaryHistory(
-      id,
-      ctx.organizationId,
-    );
-    return ResponseWrapper.success(data, 'Salary history retrieved successfully');
+    const data = await this.employeesService.updateSalary(id, ctx, dto);
+    return ResponseWrapper.success(data, 'Salary updated successfully');
   }
 }

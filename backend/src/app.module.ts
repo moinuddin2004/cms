@@ -16,6 +16,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { LocationsModule } from './locations/locations.module';
 import { EmployeesModule } from './employees/employees.module';
 import { PayrollModule } from './payroll/payroll.module';
+import { AppointmentsModule } from './appointments/appointments.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -24,7 +25,7 @@ import { OrganizationOwnership } from './organizations/entities/organization-own
 import { Organization } from './organizations/entities/organization.entity';
 import { Location } from './locations/entities/location.entity';
 import { Employee } from './employees/entities/employee.entity';
-import { EmployeeLocationAssignment } from './employees/entities/employee-location-assignment.entity';
+import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org-location-assignment.entity';
 
 @Module({
   imports: [
@@ -52,7 +53,7 @@ import { EmployeeLocationAssignment } from './employees/entities/employee-locati
       Organization,
       Location,
       Employee,
-      EmployeeLocationAssignment,
+      EmployeeOrgLocationAssignment,
     ]),
     BullModule.forRoot({
       // @ts-ignore
@@ -71,6 +72,7 @@ import { EmployeeLocationAssignment } from './employees/entities/employee-locati
     PayrollModule,
     // Domain modules
     PatientsModule,
+    AppointmentsModule,
   ],
   controllers: [AppController],
   providers: [

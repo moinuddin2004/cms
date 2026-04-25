@@ -24,7 +24,7 @@ import { OrganizationOwnership } from 'src/organizations/entities/organization-o
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
-import { EmployeeLocationAssignment } from 'src/employees/entities/employee-location-assignment.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 
 @Module({
   imports: [
@@ -35,7 +35,7 @@ import { EmployeeLocationAssignment } from 'src/employees/entities/employee-loca
       Organization,
       Location,
       Employee,
-      EmployeeLocationAssignment,
+      EmployeeOrgLocationAssignment,
     ]),
     UserModule,
     CommonModule,

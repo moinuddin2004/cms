@@ -14,6 +14,7 @@ export * from './components/MarkPaidModal'
 export * from './components/GeneratePayrollModal'
 export * from './components/PayrollTable'
 export * from './components/PayrollStatusBadge'
+export * from './components/ScheduleTab'
 
 // Hooks (Employees)
 export * from './hooks/useEmployees'
@@ -25,7 +26,11 @@ export * from './hooks/useEmploymentRoles'
 
 // Hooks (Salary & Payroll)
 export * from './hooks/useSetSalary'
-export * from './hooks/useSalaryHistory'
 export * from './hooks/useEmployeePayroll'
 export * from './hooks/useGeneratePayroll'
 export * from './hooks/useMarkPaid'
+export * from './hooks/useLocationPayroll'
+
+// Hooks (Schedule)
+export * from './hooks/useEmployeeSchedule'
+export * from './hooks/useSetSchedule'

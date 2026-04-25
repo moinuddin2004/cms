@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Employee } from './entities/employee.entity';
-import { EmployeeSalary } from './entities/employee-salary.entity';
+import { EmployeeOrgLocationAssignment } from './entities/employee-org-location-assignment.entity';
 import { EmployeeSchedule } from './entities/employee-schedule.entity';
-import { EmployeeLocationAssignment } from './entities/employee-location-assignment.entity';
 import { EmploymentRole } from './entities/employment-role.entity';
 import { EmployeesController } from './employees.controller';
+import { ScheduleController } from './schedule.controller';
 import { EmployeesService } from './employees.service';
+import { ScheduleService } from './schedule.service';
 import { EmploymentRolesController } from './employment-roles.controller';
 import { EmploymentRolesService } from './employment-roles.service';
 
@@ -14,14 +15,13 @@ import { EmploymentRolesService } from './employment-roles.service';
   imports: [
     TypeOrmModule.forFeature([
       Employee,
-      EmployeeSalary,
+      EmployeeOrgLocationAssignment,
       EmployeeSchedule,
-      EmployeeLocationAssignment,
       EmploymentRole,
     ]),
   ],
-  controllers: [EmployeesController, EmploymentRolesController],
-  providers: [EmployeesService, EmploymentRolesService],
-  exports: [EmployeesService, EmploymentRolesService],
+  controllers: [EmployeesController, ScheduleController, EmploymentRolesController],
+  providers: [EmployeesService, ScheduleService, EmploymentRolesService],
+  exports: [EmployeesService, ScheduleService, EmploymentRolesService],
 })
 export class EmployeesModule {}

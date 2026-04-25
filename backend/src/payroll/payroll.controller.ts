@@ -33,6 +33,23 @@ export class PayrollController {
     return ResponseWrapper.success(data, 'Payroll generated successfully');
   }
 
+  @Get('location')
+  async findByLocation(
+    @Query('month') month: string,
+    @Query('year') year: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.payrollService.findByLocation(
+      ctx,
+      parseInt(month, 10),
+      parseInt(year, 10),
+    );
+    return ResponseWrapper.success(
+      data,
+      'Location payroll records retrieved successfully',
+    );
+  }
+
   @Get('employee/:id')
   async findByEmployee(
     @Param('id', ParseUUIDPipe) id: string,
@@ -45,25 +62,6 @@ export class PayrollController {
     return ResponseWrapper.success(
       data,
       'Employee payroll records retrieved successfully',
-    );
-  }
-
-  @Get('location')
-  async findByLocation(
-    @Query('locationId', ParseUUIDPipe) locationId: string,
-    @Query('month') month: string,
-    @Query('year') year: string,
-    @ActiveTenant() ctx: TenantContext,
-  ) {
-    const data = await this.payrollService.findByLocation(
-      locationId,
-      parseInt(month, 10),
-      parseInt(year, 10),
-      ctx.organizationId,
-    );
-    return ResponseWrapper.success(
-      data,
-      'Location payroll records retrieved successfully',
     );
   }
 

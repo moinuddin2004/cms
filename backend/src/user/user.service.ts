@@ -12,7 +12,7 @@ import { AccountStatus } from './enum/AccountStatus';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
-import { Employee } from 'src/employees/entities/employee.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import {
   ForbiddenException,
   BadRequestException,
@@ -177,7 +177,7 @@ export class UserService {
 
       // If the contextUser is an employee, they are not allowed
       const isEmployeeContext = await this.userRepository.manager.findOne(
-        Employee,
+        EmployeeOrgLocationAssignment,
         { where: { userId: contextUser.uuid } },
       );
       if (isEmployeeContext) {
@@ -216,9 +216,9 @@ export class UserService {
         query.andWhere('owner.organizationId = :orgId', { orgId });
       }
     } else if (type === 'employee') {
-      query.innerJoin(Employee, 'employee', 'employee.userId = user.uuid');
+      query.innerJoin(EmployeeOrgLocationAssignment, 'assignment', 'assignment.userId = user.uuid');
       if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN && orgId) {
-        query.andWhere('employee.organizationId = :orgId', { orgId });
+        query.andWhere('assignment.organizationId = :orgId', { orgId });
       }
     }
 
@@ -328,7 +328,7 @@ export class UserService {
         { where: { userId: targetUserId, organizationId: orgId } },
       );
       const targetIsEmployee = await this.userRepository.manager.findOne(
-        Employee,
+        EmployeeOrgLocationAssignment,
         { where: { userId: targetUserId, organizationId: orgId } },
       );
 
@@ -388,7 +388,7 @@ export class UserService {
         { where: { userId: targetUserId, organizationId: orgId } },
       );
       const targetIsEmployee = await this.userRepository.manager.findOne(
-        Employee,
+        EmployeeOrgLocationAssignment,
         { where: { userId: targetUserId, organizationId: orgId } },
       );
 

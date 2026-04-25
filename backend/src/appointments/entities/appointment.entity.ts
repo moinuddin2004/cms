@@ -12,7 +12,6 @@ import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
-import { Chair } from 'src/chairs/entities/chair.entity';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 
@@ -20,11 +19,14 @@ import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 @Index(['locationId', 'startTime'])
 @Index(['organizationId'])
 @Index(['patientId'])
-@Index(['employeeId'])
+@Index(['doctorId'])
 @Index(['status'])
+@Index(['doctorId', 'startTime', 'endTime']) // Critical for global conflict check
 export class Appointment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  // ─── Organization & Location ──────────────────────────────────
 
   @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'organization_id' })
@@ -40,6 +42,8 @@ export class Appointment {
   @Column({ name: 'location_id', type: 'uuid' })
   locationId: string;
 
+  // ─── Patient ──────────────────────────────────────────────────
+
   @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'patient_id' })
   patient: Patient;
@@ -47,22 +51,16 @@ export class Appointment {
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string;
 
+  // ─── Doctor (Employee) ────────────────────────────────────────
+
   @ManyToOne(() => Employee, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'employee_id' })
-  employee: Employee | null;
+  @JoinColumn({ name: 'doctor_id' })
+  doctor: Employee | null;
 
-  @Column({ name: 'employee_id', type: 'uuid', nullable: true })
-  employeeId: string | null;
+  @Column({ name: 'doctor_id', type: 'uuid', nullable: true })
+  doctorId: string | null;
 
-  @ManyToOne(() => Chair, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'chair_id' })
-  chair: Chair | null;
-
-  @Column({ name: 'chair_id', type: 'uuid', nullable: true })
-  chairId: string | null;
-
-  @Column({ name: 'title', type: 'varchar', length: 255, nullable: true })
-  title: string | null;
+  // ─── Appointment Details ──────────────────────────────────────
 
   @Column({
     name: 'type',
@@ -89,11 +87,23 @@ export class Appointment {
   @Column({ name: 'duration_minutes', type: 'int', default: 30 })
   durationMinutes: number;
 
+  // ─── Flags ────────────────────────────────────────────────────
+
   @Column({ name: 'is_walk_in', type: 'boolean', default: false })
   isWalkIn: boolean;
 
+  @Column({ name: 'is_emergency', type: 'boolean', default: false })
+  isEmergency: boolean;
+
+  // ─── Notes & Cancellation ─────────────────────────────────────
+
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
+
+  @Column({ name: 'cancel_reason', type: 'text', nullable: true })
+  cancelReason: string | null;
+
+  // ─── Audit ────────────────────────────────────────────────────
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string | null;

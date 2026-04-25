@@ -13,18 +13,9 @@ import { PayrollStatus } from './enums/payroll.enums';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 const MONTH_NAMES = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
+  'January', 'February', 'March', 'April',
+  'May', 'June', 'July', 'August',
+  'September', 'October', 'November', 'December',
 ];
 
 @Injectable()
@@ -50,8 +41,8 @@ export class PayrollService {
     noSalary: string[];
     records: PayrollRecord[];
   }> {
-    const { month, year, locationId } = dto;
-    const { organizationId } = ctx;
+    const { month, year } = dto;
+    const { organizationId, locationId } = ctx;
 
     // 1. Validate: month/year not in future
     const now = new Date();
@@ -64,11 +55,12 @@ export class PayrollService {
       );
     }
 
-    // 2. Get all active employees for given location
-    const employees = await this.employeesService.getActiveEmployeesByLocation(
-      locationId,
-      organizationId,
-    );
+    // 2. Get active assignments for current location
+    const assignments =
+      await this.employeesService.getActiveAssignmentsByLocation(
+        locationId,
+        organizationId,
+      );
 
     const periodLabel = `${MONTH_NAMES[month - 1]} ${year}`;
 
@@ -82,11 +74,11 @@ export class PayrollService {
       const noSalary: string[] = [];
       const records: PayrollRecord[] = [];
 
-      for (const employee of employees) {
-        // 3a. Check if payroll record already exists
+      for (const assignment of assignments) {
+        // 3a. Check if payroll already exists (UNIQUE per employee per month globally)
         const existing = await queryRunner.manager.findOne(PayrollRecord, {
           where: {
-            employeeId: employee.id,
+            employeeId: assignment.employeeId,
             month,
             year,
           },
@@ -97,25 +89,21 @@ export class PayrollService {
           continue;
         }
 
-        // 3b. Get current salary
-        const currentSalary = await this.employeesService.getCurrentSalary(
-          employee.id,
-        );
-
-        if (!currentSalary) {
-          noSalary.push(employee.fullName);
+        // 3b. Check grossSalary exists on this assignment
+        if (!assignment.grossSalary) {
+          noSalary.push(assignment.employee.fullName);
           continue;
         }
 
         // 3c. Create PayrollRecord with salary SNAPSHOT
         const record = queryRunner.manager.create(PayrollRecord, {
-          employeeId: employee.id,
+          employeeId: assignment.employeeId,
           organizationId,
           locationId,
           month,
           year,
           periodLabel,
-          salaryAmount: currentSalary.grossSalary,
+          salaryAmount: assignment.grossSalary,
           status: PayrollStatus.PENDING,
           createdBy: userId,
         });
@@ -137,32 +125,17 @@ export class PayrollService {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // FIND BY EMPLOYEE
-  // ═══════════════════════════════════════════════════════════
-
-  async findByEmployee(
-    employeeId: string,
-    organizationId: string,
-  ): Promise<PayrollRecord[]> {
-    return this.payrollRepo.find({
-      where: { employeeId, organizationId },
-      order: { year: 'DESC', month: 'DESC' },
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════
   // FIND BY LOCATION
   // ═══════════════════════════════════════════════════════════
 
   async findByLocation(
-    locationId: string,
+    ctx: TenantContext,
     month: number,
     year: number,
-    organizationId: string,
   ): Promise<{
     records: PayrollRecord[];
     summary: {
-      total: number;
+      totalEmployees: number;
       totalAmount: number;
       paidCount: number;
       pendingCount: number;
@@ -171,6 +144,8 @@ export class PayrollService {
       pendingAmount: number;
     };
   }> {
+    const { organizationId, locationId } = ctx;
+
     const records = await this.payrollRepo.find({
       where: { locationId, month, year, organizationId },
       relations: ['employee'],
@@ -180,7 +155,7 @@ export class PayrollService {
     const summary = records.reduce(
       (acc, r) => {
         const amount = Number(r.salaryAmount);
-        acc.total++;
+        acc.totalEmployees++;
         acc.totalAmount += amount;
 
         if (r.status === PayrollStatus.PAID) {
@@ -196,7 +171,7 @@ export class PayrollService {
         return acc;
       },
       {
-        total: 0,
+        totalEmployees: 0,
         totalAmount: 0,
         paidCount: 0,
         pendingCount: 0,
@@ -207,6 +182,20 @@ export class PayrollService {
     );
 
     return { records, summary };
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIND BY EMPLOYEE
+  // ═══════════════════════════════════════════════════════════
+
+  async findByEmployee(
+    employeeId: string,
+    organizationId: string,
+  ): Promise<PayrollRecord[]> {
+    return this.payrollRepo.find({
+      where: { employeeId, organizationId },
+      order: { year: 'DESC', month: 'DESC' },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════

@@ -19,9 +19,8 @@ import { LocationSettings } from './locations/entities/location-settings.entity'
 // Employee entities
 import { Employee } from './employees/entities/employee.entity';
 import { EmployeeSchedule } from './employees/entities/employee-schedule.entity';
-import { EmployeeLocationAssignment } from './employees/entities/employee-location-assignment.entity';
+import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org-location-assignment.entity';
 import { EmploymentRole } from './employees/entities/employment-role.entity';
-import { EmployeeSalary } from './employees/entities/employee-salary.entity';
 
 // Payroll entities
 import { PayrollRecord } from './payroll/entities/payroll-record.entity';
@@ -61,9 +60,8 @@ export const AppDataSource = new DataSource({
     // Employee
     Employee,
     EmployeeSchedule,
-    EmployeeLocationAssignment,
+    EmployeeOrgLocationAssignment,
     EmploymentRole,
-    EmployeeSalary,
     // Payroll
     PayrollRecord,
     // Domain

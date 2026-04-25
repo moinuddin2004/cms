@@ -18,8 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { useSetSalary } from '../hooks/useSetSalary'
+import { useUpdateSalary } from '../hooks/useSetSalary'
 import { salaryFormSchema, type SalaryFormData } from '../types'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -37,20 +36,18 @@ export function UpdateSalaryModal({
   onOpenChange,
   currentSalary,
 }: UpdateSalaryModalProps) {
-  const setSalaryMutation = useSetSalary(employeeId)
+  const updateSalaryMutation = useUpdateSalary(employeeId)
 
   const form = useForm<SalaryFormData>({
     resolver: zodResolver(salaryFormSchema),
     defaultValues: {
       grossSalary: currentSalary || 0,
-      effectiveFrom: new Date().toISOString().split('T')[0],
-      notes: '',
     },
   })
 
   async function onSubmit(data: SalaryFormData) {
     try {
-      await setSalaryMutation.mutateAsync(data)
+      await updateSalaryMutation.mutateAsync(data)
       toast.success('Salary updated')
       onOpenChange(false)
       form.reset()
@@ -65,7 +62,7 @@ export function UpdateSalaryModal({
         <DialogHeader>
           <DialogTitle>Update Salary</DialogTitle>
           <DialogDescription>
-            Set new gross salary for this employee
+            Set new gross salary for this employee at this location
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -96,32 +93,6 @@ export function UpdateSalaryModal({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="effectiveFrom"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Effective From</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="e.g., Annual increment" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <DialogFooter>
               <Button
                 type="button"
@@ -130,8 +101,11 @@ export function UpdateSalaryModal({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={setSalaryMutation.isPending}>
-                {setSalaryMutation.isPending && (
+              <Button
+                type="submit"
+                disabled={updateSalaryMutation.isPending}
+              >
+                {updateSalaryMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 Save Changes

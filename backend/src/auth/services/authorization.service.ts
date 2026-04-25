@@ -6,7 +6,7 @@ import { OrganizationOwnership } from 'src/organizations/entities/organization-o
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
-import { EmployeeLocationAssignment } from 'src/employees/entities/employee-location-assignment.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 
 /**
@@ -70,8 +70,8 @@ export class AuthorizationService {
     private readonly locationRepo: Repository<Location>,
     @InjectRepository(Employee)
     private readonly employeeRepo: Repository<Employee>,
-    @InjectRepository(EmployeeLocationAssignment)
-    private readonly assignmentRepo: Repository<EmployeeLocationAssignment>,
+    @InjectRepository(EmployeeOrgLocationAssignment)
+    private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
   ) { }
 
   /**
@@ -197,42 +197,36 @@ export class AuthorizationService {
       });
     }
 
-    // 2. Employee entries — only assigned locations
-    const employees = await this.employeeRepo.find({
+    // 2. Employee entries — query assignments directly (userId/hasPortalAccess now live on assignments)
+    const assignments = await this.assignmentRepo.find({
       where: { userId, hasPortalAccess: true, isActive: true },
-      relations: ['organization'],
+      relations: ['organization', 'location'],
     });
 
-    for (const emp of employees) {
-      if (!emp.organization?.isActive) continue;
+    for (const asgn of assignments) {
+      if (!asgn.organization?.isActive) continue;
       primaryAccessSource = primaryAccessSource || 'employee';
 
       // If user is already owner of this org, skip (owner has full access)
       if (
-        orgMap.has(emp.organizationId) &&
-        orgMap.get(emp.organizationId)!.accessSource === 'owner'
+        orgMap.has(asgn.organizationId) &&
+        orgMap.get(asgn.organizationId)!.accessSource === 'owner'
       ) {
         continue;
       }
 
-      const assignments = await this.assignmentRepo.find({
-        where: { employeeId: emp.id, isActive: true },
-        relations: ['location'],
-      });
-
-      if (!orgMap.has(emp.organizationId)) {
-        orgMap.set(emp.organizationId, {
-          id: emp.organizationId,
-          name: emp.organization.name,
-          slug: emp.organization.slug,
+      if (!orgMap.has(asgn.organizationId)) {
+        orgMap.set(asgn.organizationId, {
+          id: asgn.organizationId,
+          name: asgn.organization.name,
+          slug: asgn.organization.slug,
           accessSource: 'employee',
           locations: [],
         });
       }
 
-      const org = orgMap.get(emp.organizationId)!;
-      for (const asgn of assignments) {
-        if (!asgn.location?.isActive) continue;
+      const org = orgMap.get(asgn.organizationId)!;
+      if (asgn.location?.isActive) {
         // Don't add duplicate locations
         if (!org.locations.find((l) => l.id === asgn.locationId)) {
           org.locations.push({
@@ -240,7 +234,7 @@ export class AuthorizationService {
             name: asgn.location.name,
             code: asgn.location.code,
             accessSource: 'employee',
-            isPrimary: asgn.isPrimaryLocation,
+            isPrimary: asgn.isPrimary,
             isMainBranch: asgn.location.isMainBranch,
             timezone: asgn.location.timezone,
           });
@@ -308,16 +302,13 @@ export class AuthorizationService {
       return !!location;
     }
 
-    // Employee: check employee_location_assignments
-    const employee = await this.employeeRepo.findOne({
-      where: { userId, organizationId, hasPortalAccess: true, isActive: true },
-    });
-    if (!employee) return false;
-
+    // Employee: check assignments directly (userId/hasPortalAccess now on assignments)
     const assignment = await this.assignmentRepo.findOne({
       where: {
-        employeeId: employee.id,
+        userId,
+        organizationId,
         locationId,
+        hasPortalAccess: true,
         isActive: true,
       },
     });
@@ -342,15 +333,15 @@ export class AuthorizationService {
       return this.fullPermissions();
     }
 
-    // Employee: get permissions from employment_role
-    const employee = await this.employeeRepo.findOne({
-      where: { userId, organizationId, hasPortalAccess: true, isActive: true },
-    });
-
-    if (!employee) return this.noPermissions();
-
+    // Employee: get permissions from employment_role via assignment
     const assignment = await this.assignmentRepo.findOne({
-      where: { employeeId: employee.id, locationId, isActive: true },
+      where: {
+        userId,
+        organizationId,
+        locationId,
+        hasPortalAccess: true,
+        isActive: true,
+      },
       relations: ['employmentRole'],
     });
 

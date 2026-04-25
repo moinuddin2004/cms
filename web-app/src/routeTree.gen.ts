@@ -16,11 +16,13 @@ import { Route as SelectLocationRouteImport } from './routes/select-location'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AppointmentsRouteImport } from './routes/appointments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
@@ -68,6 +70,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PayrollRoute = PayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrganizationsRoute = OrganizationsRouteImport.update({
   id: '/organizations',
   path: '/organizations',
@@ -91,6 +98,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppointmentsRoute = AppointmentsRouteImport.update({
+  id: '/appointments',
+  path: '/appointments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -152,11 +164,13 @@ const EmployeesEmployeeIdEditRoute = EmployeesEmployeeIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
+  '/payroll': typeof PayrollRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -177,11 +191,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
+  '/payroll': typeof PayrollRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -203,11 +219,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/appointments': typeof AppointmentsRoute
   '/dashboard': typeof DashboardRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/organizations': typeof OrganizationsRoute
+  '/payroll': typeof PayrollRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -230,11 +248,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/appointments'
     | '/dashboard'
     | '/forgot-password'
     | '/locations'
     | '/login'
     | '/organizations'
+    | '/payroll'
     | '/register'
     | '/reports'
     | '/reset-password'
@@ -255,11 +275,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/appointments'
     | '/dashboard'
     | '/forgot-password'
     | '/locations'
     | '/login'
     | '/organizations'
+    | '/payroll'
     | '/register'
     | '/reports'
     | '/reset-password'
@@ -280,11 +302,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/appointments'
     | '/dashboard'
     | '/forgot-password'
     | '/locations'
     | '/login'
     | '/organizations'
+    | '/payroll'
     | '/register'
     | '/reports'
     | '/reset-password'
@@ -306,11 +330,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppointmentsRoute: typeof AppointmentsRoute
   DashboardRoute: typeof DashboardRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
   OrganizationsRoute: typeof OrganizationsRoute
+  PayrollRoute: typeof PayrollRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -381,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payroll': {
+      id: '/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof PayrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations': {
       id: '/organizations'
       path: '/organizations'
@@ -414,6 +447,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/appointments': {
+      id: '/appointments'
+      path: '/appointments'
+      fullPath: '/appointments'
+      preLoaderRoute: typeof AppointmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -498,11 +538,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppointmentsRoute: AppointmentsRoute,
   DashboardRoute: DashboardRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
   OrganizationsRoute: OrganizationsRoute,
+  PayrollRoute: PayrollRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,

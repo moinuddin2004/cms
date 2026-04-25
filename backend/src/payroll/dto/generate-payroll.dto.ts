@@ -1,18 +1,14 @@
-import { IsNumber, IsNotEmpty, Min, Max, IsUUID } from 'class-validator';
+import { IsInt, IsNotEmpty, Min, Max } from 'class-validator';
 
 export class GeneratePayrollDto {
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
   @Min(1)
   @Max(12)
   month: number;
 
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
   @Min(2020)
   year: number;
-
-  @IsUUID()
-  @IsNotEmpty()
-  locationId: string;
 }

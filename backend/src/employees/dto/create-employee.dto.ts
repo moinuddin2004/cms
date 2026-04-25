@@ -5,12 +5,9 @@ import {
   MaxLength,
   IsOptional,
   IsEnum,
-  IsUUID,
-  IsBoolean,
   IsDateString,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { Gender, EmploymentType } from '../enums/employee.enums';
+import { Gender } from '../enums/employee.enums';
 
 export class CreateEmployeeDto {
   @IsString()
@@ -35,36 +32,38 @@ export class CreateEmployeeDto {
   @IsDateString()
   dob?: string;
 
+  @IsOptional()
+  @IsString()
+  profilePictureUrl?: string;
+
+  // ── Assignment fields (for initial assignment at current location) ──
+
   @IsString()
   @IsNotEmpty()
   designation: string;
 
-  @IsUUID()
-  @IsNotEmpty()
-  employmentRoleId: string;
-
-  @IsEnum(EmploymentType)
-  @IsNotEmpty()
-  employmentType: EmploymentType;
-
-  @IsDateString()
-  @IsNotEmpty()
-  joiningDate: string;
-
-  @IsUUID()
-  @IsNotEmpty()
-  primaryLocationId: string;
-
   @IsOptional()
-  @IsBoolean()
-  hasPortalAccess?: boolean;
-
-  @IsOptional()
-  @Transform(({ value }) => (value === '' ? null : value))
-  @IsUUID()
-  userId?: string;
+  @IsString()
+  employmentRoleId?: string;
 
   @IsOptional()
   @IsString()
-  profilePictureUrl?: string;
+  employmentType?: string;
+
+  @IsOptional()
+  @IsDateString()
+  joiningDate?: string;
+
+  @IsOptional()
+  grossSalary?: number;
+
+  @IsOptional()
+  hasPortalAccess?: boolean;
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
+
+  @IsOptional()
+  isPrimary?: boolean;
 }
