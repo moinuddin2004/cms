@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
 import {
   ChevronLeft,
   ChevronRight,
@@ -21,10 +20,10 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAppointments } from '@/features/appointments/hooks/useAppointments'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { useAppointmentStats } from '@/features/appointments/hooks/useAppointmentStats'
+import { useQuery } from '@tanstack/react-query'
+import { fetchAvailability } from '@/features/appointments/services/appointments.api'
 import { useAppointmentStore } from '@/store/appointment-store'
-import { TimelineGrid } from '@/features/appointments/components/TimelineGrid'
-import { WeeklyGrid } from '@/features/appointments/components/WeeklyGrid'
-import { MonthlyGrid } from '@/features/appointments/components/MonthlyGrid'
+import { FullCalendarView } from '@/features/appointments/components/FullCalendarView'
 import { StatsCards } from '@/features/appointments/components/StatsCards'
 import { AppointmentModal } from '@/features/appointments/components/AppointmentModal'
 import { AppointmentCard } from '@/features/appointments/components/AppointmentCard'
@@ -38,31 +37,52 @@ export const Route = createFileRoute('/appointments')({
   component: AppointmentsPage,
 })
 
+type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'resourceTimeGridDay' | 'resourceTimeGridWeek'
+
+const VIEW_LABELS: Record<string, string> = {
+  dayGridMonth: 'Month',
+  resourceTimeGridWeek: 'Week',
+  resourceTimeGridDay: 'Day',
+}
+
 function AppointmentsPage() {
   const { selectedDate, setSelectedDate, openCreateModal } =
     useAppointmentStore()
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
-  const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month'>('day')
+  const [calendarView, setCalendarView] = useState<CalendarView>('resourceTimeGridDay')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Compute date range for the selected day/week/month
-  const dayStart = useMemo(() => {
-    const d = new Date(selectedDate)
-    if (dateFilter === 'week') d.setDate(d.getDate() - d.getDay())
-    else if (dateFilter === 'month') d.setDate(1)
-    d.setHours(0, 0, 0, 0)
-    return d.toISOString()
-  }, [selectedDate, dateFilter])
+  // ─── Compute date ranges based on calendar view ───────────────────
 
-  const dayEnd = useMemo(() => {
+  const { rangeStart, rangeEnd } = useMemo(() => {
     const d = new Date(selectedDate)
-    if (dateFilter === 'week') d.setDate(d.getDate() - d.getDay() + 6)
-    else if (dateFilter === 'month') d.setMonth(d.getMonth() + 1, 0)
-    d.setHours(23, 59, 59, 999)
-    return d.toISOString()
-  }, [selectedDate, dateFilter])
 
-  // Month range for stats
+    if (calendarView === 'dayGridMonth') {
+      // Fetch 6 weeks around the month (FullCalendar may show prev/next month days)
+      const start = new Date(d.getFullYear(), d.getMonth(), -7)
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 14)
+      return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+    }
+
+    if (calendarView === 'resourceTimeGridWeek' || calendarView === 'timeGridWeek') {
+      const start = new Date(d)
+      start.setDate(d.getDate() - d.getDay())
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setDate(start.getDate() + 6)
+      end.setHours(23, 59, 59, 999)
+      return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+    }
+
+    // Day
+    const start = new Date(d)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(d)
+    end.setHours(23, 59, 59, 999)
+    return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+  }, [selectedDate, calendarView])
+
+  // Stats range = current month
   const monthStart = useMemo(() => {
     const d = new Date(selectedDate)
     d.setDate(1)
@@ -77,38 +97,71 @@ function AppointmentsPage() {
     return d.toISOString()
   }, [selectedDate])
 
+  // ─── Data fetching ────────────────────────────────────────────────
+
   const { data: appointmentsData, isLoading: loadingAppts } = useAppointments({
-    startDate: dayStart,
-    endDate: dayEnd,
+    startDate: rangeStart,
+    endDate: rangeEnd,
     status: statusFilter !== 'all' ? (statusFilter as AppStatus) : undefined,
-    limit: 200,
+    limit: 500,
   })
 
   const { data: doctors = [], isLoading: loadingDoctors } = useDoctors()
+
   const { data: stats, isLoading: loadingStats } = useAppointmentStats(
     monthStart,
     monthEnd,
   )
 
+  const { data: availability = [] } = useQuery({
+    queryKey: ['appointment-availability', rangeStart, rangeEnd],
+    queryFn: () => fetchAvailability(rangeStart, rangeEnd),
+  })
+
   const appointments = appointmentsData?.data || []
 
-  const navigateDate = (dir: number) => {
-    const d = new Date(selectedDate)
-    d.setDate(d.getDate() + dir)
-    setSelectedDate(d)
-  }
+  // ─── Navigation helpers ───────────────────────────────────────────
+
+  const navigateDate = useCallback(
+    (dir: number) => {
+      const d = new Date(selectedDate)
+      if (calendarView === 'dayGridMonth') {
+        d.setMonth(d.getMonth() + dir)
+      } else if (calendarView === 'resourceTimeGridWeek' || calendarView === 'timeGridWeek') {
+        d.setDate(d.getDate() + dir * 7)
+      } else {
+        d.setDate(d.getDate() + dir)
+      }
+      setSelectedDate(d)
+    },
+    [selectedDate, calendarView, setSelectedDate],
+  )
 
   const goToToday = () => setSelectedDate(new Date())
 
   const isToday = selectedDate.toDateString() === new Date().toDateString()
 
-  const formatDate = (d: Date) =>
-    d.toLocaleDateString('en-US', {
+  const formatDateLabel = (d: Date) => {
+    if (calendarView === 'dayGridMonth') {
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+    }
+    if (calendarView === 'resourceTimeGridWeek' || calendarView === 'timeGridWeek') {
+      const weekStart = new Date(d)
+      weekStart.setDate(d.getDate() - d.getDay())
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 6)
+      const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+      return `${weekStart.toLocaleDateString('en-US', opts)} — ${weekEnd.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`
+    }
+    return d.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
     })
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────
 
   return (
     <DashboardLayout title="Appointments">
@@ -168,53 +221,29 @@ function AppointmentsPage() {
               <ChevronRight className="w-4 h-4" />
             </Button>
             <span className="text-sm font-semibold text-foreground ml-2">
-              {formatDate(selectedDate)}
+              {formatDateLabel(selectedDate)}
             </span>
           </div>
 
           {/* Filters & View */}
           <div className="flex items-center gap-2">
-            {/* View Mode Toggle (Day/Week/Month) */}
-            <div className="flex border rounded-lg overflow-hidden mr-2">
-              <button
-                onClick={() => setDateFilter('day')}
-                className={cn(
-                  'px-3 py-1.5 text-xs font-medium transition-colors',
-                  dateFilter === 'day' ? 'bg-primary text-primary-foreground' : 'bg-white text-muted-foreground hover:bg-accent'
-                )}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => setDateFilter('week')}
-                className={cn(
-                  'px-3 py-1.5 text-xs font-medium transition-colors',
-                  dateFilter === 'week' ? 'bg-primary text-primary-foreground' : 'bg-white text-muted-foreground hover:bg-accent'
-                )}
-              >
-                Week
-              </button>
-              <button
-                onClick={() => setDateFilter('month')}
-                className={cn(
-                  'px-3 py-1.5 text-xs font-medium transition-colors',
-                  dateFilter === 'month' ? 'bg-primary text-primary-foreground' : 'bg-white text-muted-foreground hover:bg-accent'
-                )}
-              >
-                Month
-              </button>
+            {/* Calendar View Toggle (Day/Week/Month) */}
+            <div className="flex border rounded-lg overflow-hidden mr-1">
+              {(Object.keys(VIEW_LABELS) as CalendarView[]).map((view) => (
+                <button
+                  key={view}
+                  onClick={() => setCalendarView(view)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-medium transition-colors',
+                    calendarView === view
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-white text-muted-foreground hover:bg-accent',
+                  )}
+                >
+                  {VIEW_LABELS[view]}
+                </button>
+              ))}
             </div>
-
-            {/* Date picker */}
-            <input
-              type="date"
-              value={selectedDate.toISOString().split('T')[0]}
-              onChange={(e) => {
-                if (e.target.value)
-                  setSelectedDate(new Date(e.target.value + 'T00:00:00'))
-              }}
-              className="h-8 px-2 text-xs border rounded-md bg-white"
-            />
 
             {/* Status filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -231,7 +260,7 @@ function AppointmentsPage() {
               </SelectContent>
             </Select>
 
-            {/* View toggle */}
+            {/* Calendar / List toggle */}
             <div className="flex border rounded-lg overflow-hidden">
               <button
                 onClick={() => setViewMode('calendar')}
@@ -271,7 +300,7 @@ function AppointmentsPage() {
               <div className="flex flex-col items-center justify-center text-center gap-3 bg-white border rounded-xl py-16">
                 <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
                 <p className="text-muted-foreground">
-                  No appointments for this {dateFilter}.
+                  No appointments found.
                 </p>
               </div>
             ) : (
@@ -284,25 +313,16 @@ function AppointmentsPage() {
               </div>
             )}
           </div>
-        ) : dateFilter === 'month' ? (
-          <MonthlyGrid appointments={appointments} selectedDate={selectedDate} />
-        ) : dateFilter === 'week' ? (
-          <WeeklyGrid appointments={appointments} selectedDate={selectedDate} />
-        ) : doctors.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 bg-white border rounded-xl py-16">
-            <CalendarDays className="w-12 h-12 text-muted-foreground/40" />
-            <p className="text-muted-foreground">
-              No doctors found at this location.
-            </p>
-            <p className="text-xs text-muted-foreground/60">
-              Assign employees to this location first.
-            </p>
-          </div>
         ) : (
-          <TimelineGrid
+          /* ── FullCalendar View ──────────────────────── */
+          <FullCalendarView
             appointments={appointments}
             doctors={doctors}
+            availability={availability}
             selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            onViewChange={(v) => setCalendarView(v as CalendarView)}
+            currentView={calendarView}
           />
         )}
       </div>

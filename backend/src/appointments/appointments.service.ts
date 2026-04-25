@@ -513,6 +513,88 @@ export class AppointmentsService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 7. AVAILABILITY (for calendar background events)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Returns doctor working hour blocks for a date range.
+   * Used by FullCalendar to render business hours / background events.
+   */
+  async getAvailability(
+    ctx: TenantContext,
+    doctorId?: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    // Get all doctors at this location
+    const doctors = await this.getDoctors(ctx);
+    const targetDoctors = doctorId
+      ? doctors.filter((d) => d.id === doctorId)
+      : doctors;
+
+    if (targetDoctors.length === 0) return [];
+
+    // Get schedules for target doctors
+    const doctorIds = targetDoctors.map((d) => d.id);
+    const schedules = await this.scheduleRepo
+      .createQueryBuilder('s')
+      .where('s.employee_id IN (:...doctorIds)', { doctorIds })
+      .andWhere('s.is_working = :isWorking', { isWorking: true })
+      .andWhere('s.is_active = :isActive', { isActive: true })
+      .getMany();
+
+    // Build a map: doctorId -> dayOfWeek -> schedule
+    const scheduleMap = new Map<string, Map<number, typeof schedules[0]>>();
+    for (const s of schedules) {
+      if (!scheduleMap.has(s.employeeId)) {
+        scheduleMap.set(s.employeeId, new Map());
+      }
+      scheduleMap.get(s.employeeId)!.set(s.dayOfWeek, s);
+    }
+
+    // Generate availability blocks for the date range
+    const start = startDate ? new Date(startDate) : new Date();
+    const end = endDate
+      ? new Date(endDate)
+      : new Date(start.getTime() + 7 * 86400000);
+    const blocks: any[] = [];
+
+    const current = new Date(start);
+    current.setHours(0, 0, 0, 0);
+
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+
+      for (const doc of targetDoctors) {
+        const daySchedule = scheduleMap.get(doc.id)?.get(dayOfWeek);
+        if (daySchedule && daySchedule.startTime && daySchedule.endTime) {
+          const [sh, sm] = daySchedule.startTime.split(':').map(Number);
+          const [eh, em] = daySchedule.endTime.split(':').map(Number);
+
+          const blockStart = new Date(current);
+          blockStart.setHours(sh, sm, 0, 0);
+
+          const blockEnd = new Date(current);
+          blockEnd.setHours(eh, em, 0, 0);
+
+          blocks.push({
+            doctorId: doc.id,
+            doctorName: doc.fullName,
+            start: blockStart.toISOString(),
+            end: blockEnd.toISOString(),
+            dayOfWeek,
+            slotDuration: daySchedule.slotDuration,
+          });
+        }
+      }
+
+      current.setDate(current.getDate() + 1);
+    }
+
+    return blocks;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // PRIVATE: SCHEDULE VALIDATION
   // ═══════════════════════════════════════════════════════════
 

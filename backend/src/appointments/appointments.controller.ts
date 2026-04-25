@@ -66,6 +66,22 @@ export class AppointmentsController {
     return ResponseWrapper.success(data, 'Stats retrieved successfully');
   }
 
+  @Get('availability')
+  async getAvailability(
+    @Query('doctorId') doctorId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.appointmentsService.getAvailability(
+      ctx,
+      doctorId,
+      startDate,
+      endDate,
+    );
+    return ResponseWrapper.success(data, 'Availability retrieved successfully');
+  }
+
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,

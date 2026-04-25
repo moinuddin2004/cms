@@ -94,3 +94,25 @@ export async function fetchAppointmentStats(
   })
   return data.data
 }
+
+// ─── Availability ───────────────────────────────────────────────────
+
+export interface AvailabilityBlock {
+  doctorId: string
+  doctorName: string
+  start: string
+  end: string
+  dayOfWeek: number
+  slotDuration: number
+}
+
+export async function fetchAvailability(
+  startDate: string,
+  endDate: string,
+  doctorId?: string,
+): Promise<AvailabilityBlock[]> {
+  const { data } = await api.get('/appointments/availability', {
+    params: { startDate, endDate, doctorId },
+  })
+  return data.data
+}
