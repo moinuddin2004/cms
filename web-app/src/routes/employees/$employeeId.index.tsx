@@ -12,6 +12,7 @@ import {
   PayrollTable,
   ScheduleTab,
   LeaveTable,
+  AvailabilityOverrideTab,
 } from '@/features/employees'
 import {
   formatCurrency,
@@ -222,8 +223,9 @@ function EmployeeDetailPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="schedule" className="mt-6">
+          <TabsContent value="schedule" className="mt-6 space-y-6">
             <ScheduleTab employeeId={employeeId} />
+            <AvailabilityOverrideTab employeeId={employeeId} />
           </TabsContent>
 
           <TabsContent value="leave" className="mt-6">

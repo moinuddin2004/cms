@@ -13,6 +13,9 @@ import { EmploymentRolesService } from './employment-roles.service';
 import { EmployeeLeave } from './entities/employee-leave.entity';
 import { LeaveController } from './leave.controller';
 import { LeaveService } from './leave.service';
+import { DoctorAvailabilityOverride } from './entities/doctor-availability-override.entity';
+import { AvailabilityOverrideController } from './availability-override.controller';
+import { AvailabilityOverrideService } from './availability-override.service';
 
 @Module({
   imports: [
@@ -22,6 +25,7 @@ import { LeaveService } from './leave.service';
       EmployeeSchedule,
       EmploymentRole,
       EmployeeLeave,
+      DoctorAvailabilityOverride,
     ]),
   ],
   controllers: [
@@ -29,18 +33,21 @@ import { LeaveService } from './leave.service';
     ScheduleController,
     EmploymentRolesController,
     LeaveController,
+    AvailabilityOverrideController,
   ],
   providers: [
     EmployeesService,
     ScheduleService,
     EmploymentRolesService,
     LeaveService,
+    AvailabilityOverrideService,
   ],
   exports: [
     EmployeesService,
     ScheduleService,
     EmploymentRolesService,
     LeaveService,
+    AvailabilityOverrideService,
   ],
 })
 export class EmployeesModule {}

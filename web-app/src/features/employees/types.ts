@@ -186,6 +186,24 @@ export interface LeaveBalance {
   byType: Record<string, number>
 }
 
+export interface OverrideHoursSlot {
+  startTime: string // "09:00"
+  endTime: string // "13:00"
+}
+
+export interface AvailabilityOverride {
+  id: string
+  employeeId: string
+  organizationId: string
+  locationId: string
+  date: string
+  isAvailable: boolean
+  reason: string | null
+  overrideHours: OverrideHoursSlot[] | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface LeaveFilterParams {
   employeeId?: string
   status?: LeaveStatus
@@ -282,6 +300,32 @@ export const leaveFormSchema = z
   })
 
 export type LeaveFormData = z.infer<typeof leaveFormSchema>
+
+export const overrideFormSchema = z
+  .object({
+    date: z.string().min(1, 'Date is required'),
+    isAvailable: z.boolean().default(false),
+    reason: z.string().optional(),
+    overrideHours: z
+      .array(
+        z.object({
+          startTime: z.string().min(1, 'Required'),
+          endTime: z.string().min(1, 'Required'),
+        }),
+      )
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      !data.overrideHours ||
+      data.overrideHours.every((s) => s.endTime > s.startTime),
+    {
+      message: 'End time must be after start time',
+      path: ['overrideHours'],
+    },
+  )
+
+export type OverrideFormData = z.infer<typeof overrideFormSchema>
 
 // ─── Query / Filter Params ──────────────────────────────────────────
 

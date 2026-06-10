@@ -17,6 +17,7 @@ export * from './components/PayrollStatusBadge'
 export * from './components/ScheduleTab'
 export * from './components/LeaveTable'
 export * from './components/LeaveFormDialog'
+export * from './components/AvailabilityOverrideTab'
 
 // Hooks (Employees)
 export * from './hooks/useEmployees'
@@ -39,3 +40,6 @@ export * from './hooks/useSetSchedule'
 
 // Hooks (Leave)
 export * from './hooks/useLeave'
+
+// Hooks (Availability Overrides)
+export * from './hooks/useAvailabilityOverrides'
