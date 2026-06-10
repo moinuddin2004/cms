@@ -11,6 +11,7 @@ import {
   GeneratePayrollModal,
   PayrollTable,
   ScheduleTab,
+  LeaveTable,
 } from '@/features/employees'
 import {
   formatCurrency,
@@ -115,9 +116,10 @@ function EmployeeDetailPage() {
         </Link>
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-[500px]">
+          <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="leave">Leave</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
           </TabsList>
 
@@ -222,6 +224,10 @@ function EmployeeDetailPage() {
 
           <TabsContent value="schedule" className="mt-6">
             <ScheduleTab employeeId={employeeId} />
+          </TabsContent>
+
+          <TabsContent value="leave" className="mt-6">
+            <LeaveTable employeeId={employeeId} />
           </TabsContent>
 
           <TabsContent value="payroll" className="mt-6 space-y-6">

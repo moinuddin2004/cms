@@ -10,3 +10,19 @@ export enum EmploymentType {
   VISITING = 'visiting',
   CONTRACT = 'contract',
 }
+
+export enum LeaveType {
+  ANNUAL = 'annual',
+  SICK = 'sick',
+  UNPAID = 'unpaid',
+  MATERNITY = 'maternity',
+  PATERNITY = 'paternity',
+  OTHER = 'other',
+}
+
+export enum LeaveStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+}

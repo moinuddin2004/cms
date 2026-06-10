@@ -15,6 +15,22 @@ export enum EmploymentType {
   CONTRACT = 'contract',
 }
 
+export enum LeaveType {
+  ANNUAL = 'annual',
+  SICK = 'sick',
+  UNPAID = 'unpaid',
+  MATERNITY = 'maternity',
+  PATERNITY = 'paternity',
+  OTHER = 'other',
+}
+
+export enum LeaveStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+}
+
 export enum PayrollStatus {
   PENDING = 'pending',
   PAID = 'paid',
@@ -54,6 +70,22 @@ export const PAYMENT_METHOD_OPTIONS = [
 ] as const
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
+
+export const LEAVE_TYPE_OPTIONS = [
+  { label: 'Annual', value: LeaveType.ANNUAL },
+  { label: 'Sick', value: LeaveType.SICK },
+  { label: 'Unpaid', value: LeaveType.UNPAID },
+  { label: 'Maternity', value: LeaveType.MATERNITY },
+  { label: 'Paternity', value: LeaveType.PATERNITY },
+  { label: 'Other', value: LeaveType.OTHER },
+] as const
+
+export const LEAVE_STATUS_OPTIONS = [
+  { label: 'Pending', value: LeaveStatus.PENDING },
+  { label: 'Approved', value: LeaveStatus.APPROVED },
+  { label: 'Rejected', value: LeaveStatus.REJECTED },
+  { label: 'Cancelled', value: LeaveStatus.CANCELLED },
+] as const
 
 // ─── Schedule Helpers ───────────────────────────────────────────────
 
@@ -126,6 +158,38 @@ export interface ScheduleDay {
   startTime: string | null // "09:00"
   endTime: string | null // "17:00"
   slotDuration: number
+}
+
+export interface EmployeeLeave {
+  id: string
+  employeeId: string
+  employee?: { id: string; fullName: string }
+  organizationId: string
+  locationId: string
+  leaveType: LeaveType
+  startDate: string
+  endDate: string
+  totalDays: number
+  status: LeaveStatus
+  reason: string | null
+  reviewNote: string | null
+  approvedBy: string | null
+  reviewedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LeaveBalance {
+  year: number
+  totalApprovedDays: number
+  pendingRequests: number
+  byType: Record<string, number>
+}
+
+export interface LeaveFilterParams {
+  employeeId?: string
+  status?: LeaveStatus
+  leaveType?: LeaveType
 }
 
 export interface PayrollRecord {
@@ -204,6 +268,20 @@ export const markPaidFormSchema = z.object({
 })
 
 export type MarkPaidFormData = z.infer<typeof markPaidFormSchema>
+
+export const leaveFormSchema = z
+  .object({
+    leaveType: z.nativeEnum(LeaveType),
+    startDate: z.string().min(1, 'Start date is required'),
+    endDate: z.string().min(1, 'End date is required'),
+    reason: z.string().optional(),
+  })
+  .refine((data) => data.endDate >= data.startDate, {
+    message: 'End date must be on or after start date',
+    path: ['endDate'],
+  })
+
+export type LeaveFormData = z.infer<typeof leaveFormSchema>
 
 // ─── Query / Filter Params ──────────────────────────────────────────
 
