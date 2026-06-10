@@ -40,6 +40,18 @@ export async function deactivateEmployee(id: string): Promise<void> {
   await api.patch(`/employees/${id}/deactivate`)
 }
 
+// ─── Portal Access ──────────────────────────────────────────────────
+
+export async function togglePortalAccess(
+  employeeId: string,
+  hasPortalAccess: boolean,
+): Promise<{ employeeId: string; hasPortalAccess: boolean }> {
+  const { data } = await api.patch(`/employees/${employeeId}/portal-access`, {
+    hasPortalAccess,
+  })
+  return data.data
+}
+
 // ─── Salary Management ──────────────────────────────────────────────
 
 export async function updateSalary(

@@ -17,6 +17,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateSalaryDto } from './dto/update-salary.dto';
 import { EmployeeFilterDto } from './dto/employee-filter.dto';
+import { TogglePortalAccessDto } from './dto/toggle-portal-access.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
@@ -75,6 +76,29 @@ export class EmployeesController {
   ) {
     const data = await this.employeesService.deactivate(id, ctx);
     return ResponseWrapper.success(data, 'Employee deactivated successfully');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // PORTAL ACCESS
+  // ═══════════════════════════════════════════════════════════
+
+  @Patch(':id/portal-access')
+  async togglePortalAccess(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: TogglePortalAccessDto,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.employeesService.togglePortalAccess(
+      id,
+      ctx,
+      dto.hasPortalAccess,
+    );
+    return ResponseWrapper.success(
+      data,
+      data.hasPortalAccess
+        ? 'Portal access enabled'
+        : 'Portal access disabled',
+    );
   }
 
   // ═══════════════════════════════════════════════════════════

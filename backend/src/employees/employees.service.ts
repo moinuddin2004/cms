@@ -313,6 +313,29 @@ export class EmployeesService {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // PORTAL ACCESS TOGGLE
+  // ═══════════════════════════════════════════════════════════
+
+  async togglePortalAccess(
+    employeeId: string,
+    ctx: TenantContext,
+    hasPortalAccess: boolean,
+  ): Promise<any> {
+    const assignment = await this.getAssignmentOrFail(
+      employeeId,
+      ctx.organizationId,
+      ctx.locationId,
+    );
+    assignment.hasPortalAccess = hasPortalAccess;
+    const saved = await this.assignmentRepo.save(assignment);
+    return {
+      employeeId,
+      assignmentId: saved.id,
+      hasPortalAccess: saved.hasPortalAccess,
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // UPDATE SALARY
   // ═══════════════════════════════════════════════════════════
 

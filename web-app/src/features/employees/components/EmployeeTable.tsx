@@ -16,15 +16,11 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Eye, Pencil, UserX, MoreHorizontal } from 'lucide-react'
+import { Eye, Pencil, UserX } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import type { Employee } from '../types'
 import { EmployeeAvatar } from './EmployeeAvatar'
+import { useTogglePortalAccess } from '../hooks/useTogglePortalAccess'
 import { getEmploymentTypeLabel, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +37,8 @@ const employmentTypeStyles: Record<string, string> = {
 }
 
 export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
+  const togglePortalMutation = useTogglePortalAccess()
+
   const columns = useMemo<ColumnDef<Employee>[]>(
     () => [
       {
@@ -53,8 +51,8 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
               <EmployeeAvatar name={e.fullName} className="w-8 h-8" />
               <div>
                 <Link
-                  to="/employees/$id"
-                  params={{ id: e.id }}
+                  to="/employees/$employeeId"
+                  params={{ employeeId: e.id }}
                   className="font-medium text-sm text-foreground hover:text-brand-600 transition-colors"
                 >
                   {e.fullName}
@@ -106,6 +104,26 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
             </span>
           ) : (
             <span className="text-sm text-muted-foreground">—</span>
+          )
+        },
+      },
+      {
+        accessorKey: 'hasPortalAccess',
+        header: 'Portal',
+        cell: ({ row }) => {
+          const e = row.original
+          return (
+            <Switch
+              checked={e.hasPortalAccess}
+              disabled={togglePortalMutation.isPending || !e.isActive}
+              onCheckedChange={(val) =>
+                togglePortalMutation.mutate({
+                  employeeId: e.id,
+                  hasPortalAccess: val,
+                })
+              }
+              aria-label="Toggle portal access"
+            />
           )
         },
       },
@@ -162,7 +180,7 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
         },
       },
     ],
-    [onDeactivate],
+    [onDeactivate, togglePortalMutation],
   )
 
   const table = useReactTable({
