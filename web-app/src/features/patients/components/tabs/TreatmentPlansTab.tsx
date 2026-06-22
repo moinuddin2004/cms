@@ -1,26 +1,62 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, Plus, Stethoscope, Banknote, Calendar } from 'lucide-react'
-import { useTreatmentPlans } from '../../hooks/usePatientSubEntities'
-import type {
-  Patient,
-  PatientTreatmentPlan,
-  TreatmentPlanItem,
+import {
+  Loader2,
+  Stethoscope,
+  Banknote,
+  Calendar,
+  Check,
+  Minus,
+  Plus,
+} from 'lucide-react'
+import {
+  useTreatmentPlans,
+  useUpdateTreatmentPlan,
+  useUpdateTreatmentPlanItem,
+} from '../../hooks/usePatientSubEntities'
+import {
+  TreatmentPlanStatus,
+  PlanItemStatus,
+  type Patient,
+  type PatientTreatmentPlan,
+  type TreatmentPlanItem,
 } from '../../types'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
+  AccordionTrigger,
 } from '@/components/ui/accordion'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { TreatmentPlanFormDialog } from './TreatmentPlanFormDialog'
 import { PlanItemFormDialog } from './PlanItemFormDialog'
+
+const PLAN_STATUS_STYLES: Record<string, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  proposed: 'bg-amber-100 text-amber-700',
+  active: 'bg-green-100 text-green-700',
+  completed: 'bg-blue-100 text-blue-700',
+  on_hold: 'bg-orange-100 text-orange-700',
+  cancelled: 'bg-red-100 text-red-700',
+}
+
+const ITEM_STATUS_STYLES: Record<string, string> = {
+  pending: 'bg-muted text-muted-foreground',
+  in_progress: 'bg-amber-100 text-amber-700',
+  completed: 'bg-green-100 text-green-700',
+  cancelled: 'bg-red-100 text-red-700',
+  skipped: 'bg-muted text-muted-foreground line-through',
+}
+
+const num = (v: number | string | null | undefined) =>
+  v == null ? 0 : typeof v === 'string' ? parseFloat(v) || 0 : v
 
 export function TreatmentPlansTab({ patient }: { patient: Patient }) {
   const { data: plans = [], isLoading } = useTreatmentPlans(patient.id)
@@ -65,6 +101,13 @@ export function TreatmentPlansTab({ patient }: { patient: Patient }) {
 }
 
 function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
+  const { mutate: updatePlan, isPending } = useUpdateTreatmentPlan()
+
+  const items = plan.items ?? []
+  const total = items.length
+  const done = items.filter((i) => i.status === PlanItemStatus.COMPLETED).length
+  const progress = total > 0 ? Math.round((done / total) * 100) : 0
+
   return (
     <AccordionItem
       value={plan.id}
@@ -81,34 +124,42 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
               <Badge
                 variant="secondary"
                 className={
-                  plan.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : plan.status === 'completed'
-                      ? 'bg-blue-100 text-blue-700'
-                      : plan.status === 'proposed'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-muted text-muted-foreground'
+                  PLAN_STATUS_STYLES[plan.status] ??
+                  'bg-muted text-muted-foreground'
                 }
               >
-                {plan.status.toUpperCase()}
+                {plan.status.replace('_', ' ').toUpperCase()}
               </Badge>
+              {plan.patientAccepted && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] h-5 bg-brand-50 text-brand-700"
+                >
+                  ACCEPTED
+                </Badge>
+              )}
             </div>
-            {plan.patientAccepted && (
-              <Badge
-                variant="outline"
-                className="text-[10px] h-5 bg-brand-50 text-brand-700"
-              >
-                ACCEPTED
-              </Badge>
+            {total > 0 && (
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="h-1.5 w-32 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-brand-500 transition-all"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  {done}/{total} done
+                </span>
+              </div>
             )}
           </div>
 
           <div className="flex flex-col items-end gap-1 mr-4">
             <div className="flex items-center gap-1 font-semibold text-brand-700">
               <Banknote size={14} /> Rs.{' '}
-              {plan.finalEstimatedCost?.toLocaleString() ||
-                plan.estimatedCost?.toLocaleString() ||
-                '0'}
+              {num(
+                plan.finalEstimatedCost ?? plan.estimatedCost,
+              ).toLocaleString()}
             </div>
             {plan.expectedEndDate && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -127,6 +178,66 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
             </p>
           )}
 
+          {/* Plan-level actions */}
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border bg-muted/20 p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">
+                Status
+              </span>
+              <Select
+                value={plan.status}
+                onValueChange={(v) =>
+                  updatePlan({
+                    patientId: plan.patientId,
+                    planId: plan.id,
+                    status: v,
+                  })
+                }
+              >
+                <SelectTrigger className="h-8 w-40 text-xs" disabled={isPending}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(TreatmentPlanStatus).map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize text-xs">
+                      {s.replace('_', ' ')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!plan.patientAccepted ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isPending}
+                onClick={() =>
+                  updatePlan({
+                    patientId: plan.patientId,
+                    planId: plan.id,
+                    patientAccepted: true,
+                    // Auto-activate a draft/proposed plan once the patient accepts.
+                    status:
+                      plan.status === TreatmentPlanStatus.DRAFT ||
+                      plan.status === TreatmentPlanStatus.PROPOSED
+                        ? TreatmentPlanStatus.ACTIVE
+                        : plan.status,
+                  })
+                }
+              >
+                <Check size={14} className="mr-1.5" /> Mark accepted & proceed
+              </Button>
+            ) : (
+              <span className="text-xs text-green-700 flex items-center gap-1">
+                <Check size={14} /> Patient accepted
+                {plan.patientAcceptedAt
+                  ? ` on ${new Date(plan.patientAcceptedAt).toLocaleDateString()}`
+                  : ''}
+              </span>
+            )}
+          </div>
+
           <div className="rounded-md border overflow-hidden">
             <table className="w-full text-sm text-left relative">
               <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
@@ -140,9 +251,14 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {plan.items && plan.items.length > 0 ? (
-                  plan.items.map((item) => (
-                    <PlanItemRow key={item.id} item={item} />
+                {items.length > 0 ? (
+                  items.map((item) => (
+                    <PlanItemRow
+                      key={item.id}
+                      item={item}
+                      patientId={plan.patientId}
+                      planId={plan.id}
+                    />
                   ))
                 ) : (
                   <tr>
@@ -166,7 +282,34 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
   )
 }
 
-function PlanItemRow({ item }: { item: TreatmentPlanItem }) {
+function PlanItemRow({
+  item,
+  patientId,
+  planId,
+}: {
+  item: TreatmentPlanItem
+  patientId: string
+  planId: string
+}) {
+  const { mutate: updateItem, isPending } = useUpdateTreatmentPlanItem()
+  const completed = num(item.completedSessions)
+  const estimated = num(item.estimatedSessions) || 1
+
+  const setSessions = (next: number) =>
+    updateItem({
+      patientId,
+      planId,
+      itemId: item.id,
+      completedSessions: Math.max(0, Math.min(next, estimated)),
+      // Auto-advance status as sessions progress.
+      status:
+        next >= estimated
+          ? PlanItemStatus.COMPLETED
+          : next > 0
+            ? PlanItemStatus.IN_PROGRESS
+            : item.status,
+    })
+
   return (
     <tr className="hover:bg-muted/30 transition-colors">
       <td className="px-4 py-2.5 font-medium">{item.sequenceOrder}</td>
@@ -185,16 +328,61 @@ function PlanItemRow({ item }: { item: TreatmentPlanItem }) {
           <span className="text-muted-foreground">-</span>
         )}
       </td>
-      <td className="px-4 py-2.5 text-xs text-muted-foreground">
-        {item.completedSessions} / {item.estimatedSessions}
+      <td className="px-4 py-2.5">
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            disabled={isPending || completed <= 0}
+            onClick={() => setSessions(completed - 1)}
+            aria-label="Decrease completed sessions"
+          >
+            <Minus size={12} />
+          </Button>
+          <span className="text-xs tabular-nums w-10 text-center text-muted-foreground">
+            {completed} / {estimated}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            disabled={isPending || completed >= estimated}
+            onClick={() => setSessions(completed + 1)}
+            aria-label="Increase completed sessions"
+          >
+            <Plus size={12} />
+          </Button>
+        </div>
       </td>
       <td className="px-4 py-2.5 font-medium">
-        Rs. {item.estimatedCost?.toLocaleString() || '0'}
+        Rs. {num(item.estimatedCost).toLocaleString()}
       </td>
       <td className="px-4 py-2.5">
-        <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-          {item.status.replace('_', ' ')}
-        </Badge>
+        <Select
+          value={item.status}
+          onValueChange={(v) =>
+            updateItem({ patientId, planId, itemId: item.id, status: v })
+          }
+        >
+          <SelectTrigger
+            className={`h-7 w-32 text-[11px] border-none ${
+              ITEM_STATUS_STYLES[item.status] ?? ''
+            }`}
+            disabled={isPending}
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.values(PlanItemStatus).map((s) => (
+              <SelectItem key={s} value={s} className="capitalize text-xs">
+                {s.replace('_', ' ')}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </td>
     </tr>
   )

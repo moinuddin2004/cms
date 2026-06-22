@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -5,7 +6,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { ConsumptionRecorder } from '@/features/inventory'
 import {
   MoreVertical,
   LogIn,
@@ -42,6 +51,7 @@ export function AppointmentCard({
   compact = false,
 }: AppointmentCardProps) {
   const { openEditModal } = useAppointmentStore()
+  const [recorderOpen, setRecorderOpen] = useState(false)
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
   const checkInMutation = useCheckIn()
@@ -161,9 +171,11 @@ export function AppointmentCard({
                 )}
                 {appointment.status === AppointmentStatus.IN_PROGRESS && (
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation()
-                      handleAction('completed', completeMutation)
+                      await handleAction('completed', completeMutation)
+                      // Offer optional consumption recording after completing
+                      setRecorderOpen(true)
                     }}
                   >
                     <CheckCircle className="w-3.5 h-3.5 mr-2" />
@@ -197,6 +209,31 @@ export function AppointmentCard({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Optional inventory consumption recording after completion */}
+      <Dialog open={recorderOpen} onOpenChange={setRecorderOpen}>
+        <DialogContent
+          className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle>Record Items Used</DialogTitle>
+            <DialogDescription>
+              Optionally record the supplies consumed during this appointment.
+              You can skip this if you don't track inventory.
+            </DialogDescription>
+          </DialogHeader>
+          {appointment.patientId && (
+            <ConsumptionRecorder
+              patientId={appointment.patientId}
+              appointmentId={appointment.id}
+              appointmentType={appointment.type}
+              onSaved={() => setRecorderOpen(false)}
+              onCancel={() => setRecorderOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

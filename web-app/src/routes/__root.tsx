@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
+import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
 import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
@@ -22,6 +23,10 @@ const PUBLIC_PATHS = [
   '/reset-password',
   '/select-location',
 ]
+
+// Super admins can visit these pages even without an active location context
+// so they can bootstrap the system (create first org/location)
+const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations']
 
 // Inline script to prevent flash of wrong theme on initial load.
 // Runs synchronously before any React hydration / first paint.
@@ -87,7 +92,15 @@ function RootComponent() {
     requiresLocationSelection,
     requiresOrgSelection,
     activeLocationId,
+    activeOrganizationId,
+    accessibleOrganizations,
+    isSuperAdmin,
   } = useAuthStore()
+
+  // Active org's specialty tags drive <SpecialtyGuard> across the app
+  const activeSpecialtyTags =
+    accessibleOrganizations.find((o) => o.id === activeOrganizationId)
+      ?.specialtyTags ?? ['general']
   const navigate = useNavigate()
   const location = useLocation()
   const [isInitializing, setIsInitializing] = useState(true)
@@ -162,8 +175,15 @@ function RootComponent() {
       !activeLocationId &&
       needsSelection
     ) {
-      // Authenticated but no location selected — redirect to selector
-      navigate({ to: '/select-location' as any, replace: true })
+      // Super admins on setup paths (orgs/locations) can proceed without a
+      // location — they need these pages to create the first org/location
+      const isSuperAdminSetupPath =
+        isSuperAdmin &&
+        SUPER_ADMIN_SETUP_PATHS.some((p) => location.pathname.startsWith(p))
+
+      if (!isSuperAdminSetupPath) {
+        navigate({ to: '/select-location' as any, replace: true })
+      }
     } else if (
       isAuthenticated &&
       isSelectLocationPage &&
@@ -181,6 +201,7 @@ function RootComponent() {
     activeLocationId,
     requiresLocationSelection,
     requiresOrgSelection,
+    isSuperAdmin,
   ])
 
   // Show nothing while initializing (attempting silent refresh)
@@ -199,7 +220,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <FeatureFlagsProvider
+        specialtyTags={activeSpecialtyTags}
+        enabled={isAuthenticated && !!activeLocationId}
+      >
+        <Outlet />
+      </FeatureFlagsProvider>
       <Toaster
         position="top-right"
         richColors

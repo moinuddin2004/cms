@@ -1,5 +1,4 @@
-import { useEffect, useCallback } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useState, useEffect, useRef } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +34,7 @@ interface PatientFormProps {
   onSubmit: (data: PatientFormData) => Promise<void>
   isSubmitting: boolean
   mode: 'create' | 'edit'
+  onCancel?: () => void
 }
 
 const EMPTY_FORM: PatientFormData = {
@@ -72,8 +72,8 @@ export function PatientForm({
   onSubmit,
   isSubmitting,
   mode,
+  onCancel,
 }: PatientFormProps) {
-  const navigate = useNavigate()
   const {
     currentStep,
     setCurrentStep,
@@ -81,6 +81,9 @@ export function PatientForm({
     setFormDraft,
     clearFormDraft,
   } = usePatientStore()
+
+  const isSubmittingRef = useRef(false)
+  const formValuesRef = useRef<PatientFormData | null>(null)
 
   const initialValues: PatientFormData = defaultValues
     ? mapPatientToForm(defaultValues)
@@ -91,41 +94,107 @@ export function PatientForm({
   const form = useForm({
     defaultValues: initialValues,
     onSubmit: async ({ value }) => {
-      await onSubmit(value)
-      if (mode === 'create') {
-        clearFormDraft()
+      isSubmittingRef.current = true
+      try {
+        await onSubmit(value)
+        if (mode === 'create') {
+          clearFormDraft()
+        }
+      } finally {
+        isSubmittingRef.current = false
       }
     },
   })
 
-  const saveDraft = useCallback(() => {
-    if (mode === 'create') {
-      const values = form.state.values
-      setFormDraft(values)
-    }
-  }, [mode, form.state.values, setFormDraft])
-
+  // Keep a ref to current form values so step-change draft saves don't depend
+  // on render timing. Draft is persisted only on explicit navigation (goNext /
+  // step buttons), never on a timer — so it never feels like the record is
+  // being saved while the user is still typing.
   useEffect(() => {
-    const interval = setInterval(saveDraft, 3000)
-    return () => clearInterval(interval)
-  }, [saveDraft])
+    formValuesRef.current = form.state.values
+  })
 
-  // Reset to step 0 when entering edit mode
   useEffect(() => {
     if (mode === 'edit') {
       setCurrentStep(0)
     }
   }, [mode, setCurrentStep])
 
+  const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({})
+
+  const isFutureDate = (d?: string) => !!d && new Date(d) > new Date()
+  const phoneOk = (p?: string) => !p || /^[0-9+\-\s()]{7,20}$/.test(p.trim())
+  const emailOk = (e?: string) =>
+    !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
+  const cnicOk = (c?: string) => !c || /^\d{5}-\d{7}-\d$/.test(c.trim())
+
+  // Validate a specific step's fields. Returns the list of errors.
+  const errorsForStep = (step: number): string[] => {
+    const v = form.state.values
+    const errors: string[] = []
+
+    if (step === 0) {
+      if (!v.fullName?.trim()) errors.push('Full Name is required')
+      if (!v.phone?.trim()) errors.push('Phone Number is required')
+      else if (!phoneOk(v.phone))
+        errors.push('Phone Number looks invalid (7–20 digits)')
+      if (!phoneOk(v.whatsappNumber)) errors.push('WhatsApp Number looks invalid')
+      if (!emailOk(v.email)) errors.push('Email address is invalid')
+      if (!cnicOk(v.cnic)) errors.push('CNIC must look like 42101-1234567-1')
+      if (isFutureDate(v.dob)) errors.push('Date of Birth cannot be in the future')
+    }
+
+    if (step === 2 && v.isMinor) {
+      if (!v.guardianName?.trim())
+        errors.push('Guardian Name is required for minor patients')
+      if (!phoneOk(v.guardianPhone)) errors.push('Guardian Phone looks invalid')
+    }
+
+    if (step === 3) {
+      if (!phoneOk(v.emergencyContactPhone))
+        errors.push('Emergency Contact Phone looks invalid')
+    }
+
+    return errors
+  }
+
+  const validateCurrentStep = (): boolean => {
+    const errors = errorsForStep(currentStep)
+    setStepErrors((prev) => ({ ...prev, [currentStep]: errors }))
+    return errors.length === 0
+  }
+
+  // Validate every step before the final submit; jump to the first bad step.
+  const validateAll = (): boolean => {
+    for (let s = 0; s < FORM_STEPS.length; s++) {
+      const errors = errorsForStep(s)
+      if (errors.length > 0) {
+        setStepErrors((prev) => ({ ...prev, [s]: errors }))
+        setCurrentStep(s)
+        return false
+      }
+    }
+    return true
+  }
+
+  const handleFinalSubmit = () => {
+    if (!validateAll()) return
+    form.handleSubmit()
+  }
+
   const goNext = () => {
+    if (!validateCurrentStep()) return
     if (currentStep < FORM_STEPS.length - 1) {
-      saveDraft()
+      if (mode === 'create' && formValuesRef.current) {
+        setFormDraft(formValuesRef.current)
+      }
       setCurrentStep(currentStep + 1)
     }
   }
 
   const goPrev = () => {
     if (currentStep > 0) {
+      setStepErrors((prev) => ({ ...prev, [currentStep]: [] }))
       setCurrentStep(currentStep - 1)
     }
   }
@@ -134,14 +203,15 @@ export function PatientForm({
     if (mode === 'create') {
       clearFormDraft()
     } else {
-      // If editing, just reset the step index so next time we open a form it starts at 0
       setCurrentStep(0)
     }
-    navigate({ to: '/patients' })
+    onCancel?.()
   }
 
+  const currentErrors = stepErrors[currentStep] || []
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="space-y-6">
       {/* Step Indicator */}
       <div className="flex items-center justify-center gap-2">
         {FORM_STEPS.map((step, i) => (
@@ -149,8 +219,12 @@ export function PatientForm({
             <button
               type="button"
               onClick={() => {
-                saveDraft()
-                setCurrentStep(i)
+                if (i < currentStep || validateCurrentStep()) {
+                  if (mode === 'create' && formValuesRef.current) {
+                    setFormDraft(formValuesRef.current)
+                  }
+                  setCurrentStep(i)
+                }
               }}
               className={cn(
                 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
@@ -187,13 +261,21 @@ export function PatientForm({
         ))}
       </div>
 
+      {/* Validation Errors */}
+      {currentErrors.length > 0 && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+          {currentErrors.map((err) => (
+            <p key={err} className="text-sm text-destructive">{err}</p>
+          ))}
+        </div>
+      )}
+
       <form
         onSubmit={(e) => {
+          // Never submit implicitly (e.g. pressing Enter in a field). The
+          // record is created only via the explicit "Save Patient" button.
           e.preventDefault()
           e.stopPropagation()
-          if (currentStep === FORM_STEPS.length - 1) {
-            form.handleSubmit()
-          }
         }}
       >
         <Card className="border-muted shadow-sm overflow-hidden">
@@ -586,7 +668,6 @@ export function PatientForm({
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        {/* Fallback styling for a switch-like checkbox if switch component is missing */}
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
@@ -795,7 +876,12 @@ export function PatientForm({
               Next <ChevronRight size={16} className="ml-1" />
             </Button>
           ) : (
-            <Button type="submit" disabled={isSubmitting} className="min-w-32">
+            <Button
+              type="button"
+              onClick={handleFinalSubmit}
+              disabled={isSubmitting}
+              className="min-w-32"
+            >
               {isSubmitting && (
                 <Loader2 size={16} className="mr-2 animate-spin" />
               )}

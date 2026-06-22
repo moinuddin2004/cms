@@ -24,6 +24,7 @@ import {
   CreateTreatmentPlanDto,
   UpdateTreatmentPlanDto,
   CreatePlanItemDto,
+  UpdatePlanItemDto,
   CreatePrescriptionDto,
   CreateDocumentDto,
   CreateConsentDto,
@@ -219,6 +220,24 @@ export class PatientsController {
   ) {
     const data = await this.patientsService.createPlanItem(id, planId, ctx, dto);
     return ResponseWrapper.success(data, 'Plan item added successfully');
+  }
+
+  @Patch(':id/treatment-plans/:planId/items/:itemId')
+  async updatePlanItem(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('planId', ParseUUIDPipe) planId: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Body() dto: UpdatePlanItemDto,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.updatePlanItem(
+      id,
+      planId,
+      itemId,
+      ctx.organizationId,
+      dto,
+    );
+    return ResponseWrapper.success(data, 'Plan item updated successfully');
   }
 
   // ═══════════════════════════════════════════════════════════

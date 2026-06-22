@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Loader2, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 
 export const Route = createFileRoute('/employees/')({
   component: EmployeeListPage,

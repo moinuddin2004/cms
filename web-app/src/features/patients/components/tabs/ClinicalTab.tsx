@@ -5,6 +5,7 @@ import { Loader2, ClipboardList, Printer, Calendar } from 'lucide-react'
 import { usePrescriptions } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientPrescription } from '../../types'
 import { PrescriptionFormDialog } from './PrescriptionFormDialog'
+import { printPrescription } from '../../utils/print'
 
 export function ClinicalTab({ patient }: { patient: Patient }) {
   const { data: prescriptions = [], isLoading } = usePrescriptions(patient.id)
@@ -37,7 +38,7 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {prescriptions.map((px) => (
-              <PrescriptionCard key={px.id} rx={px} />
+              <PrescriptionCard key={px.id} rx={px} patient={patient} />
             ))}
           </div>
         )}
@@ -46,7 +47,13 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
   )
 }
 
-function PrescriptionCard({ rx }: { rx: PatientPrescription }) {
+function PrescriptionCard({
+  rx,
+  patient,
+}: {
+  rx: PatientPrescription
+  patient: Patient
+}) {
   return (
     <Card className="shadow-sm border-l-4 border-l-brand-500 overflow-hidden">
       <CardHeader className="bg-muted/30 py-3 px-4 border-b">
@@ -78,6 +85,7 @@ function PrescriptionCard({ rx }: { rx: PatientPrescription }) {
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
               aria-label="Print Rx"
+              onClick={() => printPrescription(rx, patient)}
             >
               <Printer size={14} />
             </Button>

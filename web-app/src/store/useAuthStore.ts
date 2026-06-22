@@ -5,6 +5,7 @@ interface Organization {
   name: string
   slug: string
   accessSource: 'super_admin' | 'owner' | 'employee'
+  specialtyTags: string[]
   locations: Location[]
 }
 

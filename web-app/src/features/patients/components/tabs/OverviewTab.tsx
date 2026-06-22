@@ -1,11 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Heart, ShieldAlert, FileText, User } from 'lucide-react'
+import {
+  AlertTriangle,
+  Heart,
+  ShieldAlert,
+  FileText,
+  User,
+  Activity,
+} from 'lucide-react'
 import type { Patient } from '../../types'
+import { useVitals } from '../../hooks/usePatientSubEntities'
 
 export function OverviewTab({ patient }: { patient: Patient }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 animate-in fade-in duration-300">
+    <div className="space-y-4 mt-4 animate-in fade-in duration-300">
+      <LatestVitalsCard patientId={patient.id} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Medical Info */}
       <Card>
         <CardHeader className="pb-3 border-b">
@@ -168,7 +178,68 @@ export function OverviewTab({ patient }: { patient: Patient }) {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
+  )
+}
+
+function LatestVitalsCard({ patientId }: { patientId: string }) {
+  const { data: vitals = [] } = useVitals(patientId)
+  const latest = vitals[0]
+  if (!latest) return null
+
+  const metrics = [
+    {
+      label: 'BP',
+      value:
+        latest.bpSystolic || latest.bpDiastolic
+          ? `${latest.bpSystolic ?? '-'}/${latest.bpDiastolic ?? '-'}`
+          : null,
+    },
+    { label: 'Pulse', value: latest.pulseRate, unit: 'bpm' },
+    { label: 'Temp', value: latest.temperature, unit: '°C' },
+    { label: 'SpO₂', value: latest.oxygenSaturation, unit: '%' },
+    { label: 'Weight', value: latest.weightKg, unit: 'kg' },
+    { label: 'BMI', value: latest.bmi },
+  ].filter((m) => m.value !== null && m.value !== undefined && m.value !== '')
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 border-b">
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Activity size={16} className="text-brand-600" />
+            Latest Vitals
+          </span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {new Date(latest.recordedAt).toLocaleString()}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        {metrics.length > 0 ? (
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 text-center">
+            {metrics.map((m) => (
+              <div key={m.label}>
+                <p className="text-xs text-muted-foreground">{m.label}</p>
+                <p className="font-semibold text-base">
+                  {m.value}
+                  {m.unit ? (
+                    <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+                      {m.unit}
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground italic">
+            No measurements in the latest record.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

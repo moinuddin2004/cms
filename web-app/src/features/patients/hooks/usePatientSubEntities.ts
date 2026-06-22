@@ -1,5 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import * as api from '../services/patients.api'
+
+function errMsg(err: any, fallback: string): string {
+  return err?.response?.data?.message || fallback
+}
 
 // ─── Query Keys ─────────────────────────────────────────────────────
 
@@ -145,7 +150,9 @@ export function useUpsertDentalInfo() {
       api.upsertPatientDentalInfo(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.dentalInfo(patientId) })
+      toast.success('Dental info saved')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to save dental info')),
   })
 }
 
@@ -156,7 +163,9 @@ export function useCreateVitals() {
       api.createPatientVitals(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.vitals(patientId) })
+      toast.success('Vitals recorded')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to record vitals')),
   })
 }
 
@@ -167,7 +176,9 @@ export function useCreateTeethChart() {
       api.createPatientTeethChart(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.teethCharts(patientId) })
+      toast.success('Teeth chart saved')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to save teeth chart')),
   })
 }
 
@@ -180,7 +191,9 @@ export function useCreateTreatmentPlan() {
       queryClient.invalidateQueries({
         queryKey: keys.treatmentPlans(patientId),
       })
+      toast.success('Treatment plan created')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to create treatment plan')),
   })
 }
 
@@ -197,7 +210,48 @@ export function useCreateTreatmentPlanItem() {
       queryClient.invalidateQueries({
         queryKey: keys.treatmentPlans(patientId),
       })
+      toast.success('Procedure added')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to add procedure')),
+  })
+}
+
+export function useUpdateTreatmentPlan() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      patientId,
+      planId,
+      ...payload
+    }: { patientId: string; planId: string } & any) =>
+      api.updatePatientTreatmentPlan(patientId, planId, payload),
+    onSuccess: (_, { patientId }) => {
+      queryClient.invalidateQueries({
+        queryKey: keys.treatmentPlans(patientId),
+      })
+      toast.success('Treatment plan updated')
+    },
+    onError: (err) => toast.error(errMsg(err, 'Failed to update treatment plan')),
+  })
+}
+
+export function useUpdateTreatmentPlanItem() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      patientId,
+      planId,
+      itemId,
+      ...payload
+    }: { patientId: string; planId: string; itemId: string } & any) =>
+      api.updatePatientTreatmentPlanItem(patientId, planId, itemId, payload),
+    onSuccess: (_, { patientId }) => {
+      queryClient.invalidateQueries({
+        queryKey: keys.treatmentPlans(patientId),
+      })
+      toast.success('Procedure updated')
+    },
+    onError: (err) => toast.error(errMsg(err, 'Failed to update procedure')),
   })
 }
 
@@ -208,7 +262,9 @@ export function useCreatePrescription() {
       api.createPatientPrescription(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.prescriptions(patientId) })
+      toast.success('Prescription created')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to create prescription')),
   })
 }
 
@@ -219,7 +275,9 @@ export function useCreateDocument() {
       api.createPatientDocument(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.documents(patientId) })
+      toast.success('Document uploaded')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to upload document')),
   })
 }
 
@@ -230,7 +288,9 @@ export function useCreateConsent() {
       api.createPatientConsent(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.consents(patientId) })
+      toast.success('Consent recorded')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to record consent')),
   })
 }
 
@@ -241,7 +301,9 @@ export function useCreateRecall() {
       api.createPatientRecall(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.recalls(patientId) })
+      toast.success('Recall scheduled')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to schedule recall')),
   })
 }
 
@@ -252,7 +314,9 @@ export function useCreateInsurance() {
       api.createPatientInsurance(patientId, payload),
     onSuccess: (_, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.insurance(patientId) })
+      toast.success('Insurance added')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to add insurance')),
   })
 }
 
@@ -265,6 +329,8 @@ export function useCreateCommunication() {
       queryClient.invalidateQueries({
         queryKey: keys.communications(patientId),
       })
+      toast.success('Communication logged')
     },
+    onError: (err) => toast.error(errMsg(err, 'Failed to log communication')),
   })
 }

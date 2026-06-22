@@ -1,6 +1,7 @@
 import api from '@/lib/api'
 import type {
   MarkPaidFormData,
+  PayrollFormData,
   PayrollRecord,
   LocationPayrollResponse,
   GeneratePayrollResult,
@@ -42,4 +43,23 @@ export async function markPayrollPaid(
 
 export async function markPayrollOnHold(recordId: string): Promise<void> {
   await api.patch(`/payroll/${recordId}/mark-on-hold`)
+}
+
+export async function createPayroll(
+  payload: PayrollFormData,
+): Promise<PayrollRecord> {
+  const { data } = await api.post('/payroll', payload)
+  return data.data
+}
+
+export async function updatePayroll(
+  recordId: string,
+  payload: Partial<Omit<PayrollFormData, 'employeeId'>>,
+): Promise<PayrollRecord> {
+  const { data } = await api.patch(`/payroll/${recordId}`, payload)
+  return data.data
+}
+
+export async function deletePayroll(recordId: string): Promise<void> {
+  await api.delete(`/payroll/${recordId}`)
 }

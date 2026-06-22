@@ -1,6 +1,5 @@
 import api from '@/lib/api'
 import type {
-  ApiResponse,
   PaginatedResponse,
   Patient,
   PatientFormData,
@@ -224,6 +223,19 @@ export async function createPatientTreatmentPlanItem(
 ): Promise<TreatmentPlanItem> {
   const { data } = await api.post(
     `/patients/${patientId}/treatment-plans/${planId}/items`,
+    payload,
+  )
+  return data.data
+}
+
+export async function updatePatientTreatmentPlanItem(
+  patientId: string,
+  planId: string,
+  itemId: string,
+  payload: any,
+): Promise<TreatmentPlanItem> {
+  const { data } = await api.patch(
+    `/patients/${patientId}/treatment-plans/${planId}/items/${itemId}`,
     payload,
   )
   return data.data

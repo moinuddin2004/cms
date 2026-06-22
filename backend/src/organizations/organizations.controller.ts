@@ -1,3 +1,4 @@
+import { UpdateOrganizationSettingsDto } from './dto/update-organization-settings.dto';
 import {
   Controller,
   Get,
@@ -63,7 +64,7 @@ export class OrganizationsController {
   }
 
   @Patch(':id/settings')
-  async updateSettings(@Param('id') id: string, @Body() dto: any) {
+  async updateSettings(@Param('id') id: string, @Body() dto: UpdateOrganizationSettingsDto) {
     const settings = await this.orgService.updateSettings(id, dto);
     return ResponseWrapper.success(settings, 'Organization settings updated');
   }

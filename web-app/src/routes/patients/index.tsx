@@ -12,6 +12,7 @@ import { PatientCard } from '@/features/patients/components/PatientCard'
 import { PatientTable } from '@/features/patients/components/PatientTable'
 import { PatientListHeader } from '@/features/patients/components/PatientListHeader'
 import { PaginationBar } from '@/features/patients/components/PaginationBar'
+import { CreatePatientModal } from '@/features/patients/components/CreatePatientModal'
 import type { PatientListParams } from '@/features/patients/types'
 import { Users } from 'lucide-react'
 
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/patients/')({
 function PatientsListPage() {
   const { viewMode } = usePatientStore()
   const deactivateMutation = useDeactivatePatient()
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   // Query params state
   const [params, setParams] = useState<PatientListParams>({
@@ -45,7 +47,7 @@ function PatientsListPage() {
       setParams((prev) => ({
         ...prev,
         [key]: value,
-        ...(key !== 'page' ? { page: 1 } : {}), // Reset page on filter change
+        ...(key !== 'page' ? { page: 1 } : {}),
       }))
     },
     [],
@@ -74,7 +76,10 @@ function PatientsListPage() {
     <DashboardLayout title="Patients">
       <div className="space-y-5">
         {/* Header */}
-        <PatientListHeader totalCount={data?.total ?? 0} />
+        <PatientListHeader
+          totalCount={data?.total ?? 0}
+          onNewPatient={() => setShowCreateModal(true)}
+        />
 
         {/* Search & Filters */}
         <Card>
@@ -144,6 +149,12 @@ function PatientsListPage() {
           <EmptyState />
         )}
       </div>
+
+      {/* Create Patient Modal */}
+      <CreatePatientModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+      />
     </DashboardLayout>
   )
 }

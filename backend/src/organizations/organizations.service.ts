@@ -11,6 +11,7 @@ import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
 } from './dto/organization.dto';
+import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 
 @Injectable()
 export class OrganizationsService {
@@ -19,6 +20,7 @@ export class OrganizationsService {
     private readonly orgRepo: Repository<Organization>,
     @InjectRepository(OrganizationSettings)
     private readonly settingsRepo: Repository<OrganizationSettings>,
+    private readonly featureFlagsService: FeatureFlagsService,
   ) {}
 
   /**
@@ -37,7 +39,12 @@ export class OrganizationsService {
       ...dto,
       slug,
     });
-    return this.orgRepo.save(org);
+    const saved = await this.orgRepo.save(org);
+
+    // Seed default feature flags for the new organization
+    await this.featureFlagsService.seedFlagsForOrg(saved.id);
+
+    return saved;
   }
 
   /**

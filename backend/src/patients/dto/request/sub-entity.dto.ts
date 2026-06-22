@@ -129,6 +129,21 @@ export class CreatePlanItemDto {
   @IsOptional() @IsString() notes?: string;
 }
 
+export class UpdatePlanItemDto {
+  @IsOptional() @IsString() @MaxLength(200) procedureName?: string;
+  @IsOptional() @IsString() @MaxLength(20) procedureCode?: string;
+  @IsOptional() @IsString() @MaxLength(10) toothNumber?: string;
+  @IsOptional() @IsString() @MaxLength(50) toothSurface?: string;
+  @IsOptional() @IsInt() @Min(1) estimatedSessions?: number;
+  @IsOptional() @IsInt() @Min(0) completedSessions?: number;
+  @IsOptional() @IsNumber() estimatedCost?: number;
+  @IsOptional() @IsEnum(PlanItemStatus) status?: PlanItemStatus;
+  @IsOptional() @IsInt() @Min(1) sequenceOrder?: number;
+  @IsOptional() @IsUUID() assignedTo?: string;
+  @IsOptional() @IsString() clinicalNotes?: string;
+  @IsOptional() @IsString() notes?: string;
+}
+
 // ─── Prescriptions ────────────────────────────────────────
 
 export class CreatePrescriptionDto {

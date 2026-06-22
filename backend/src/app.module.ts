@@ -6,17 +6,23 @@ import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CloudinaryModule } from './common/cloudinary';
+import { StorageModule } from './common/storage/storage.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { TenantContextGuard } from './auth/guards/tenant-context.guard';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleModule } from '@nestjs/schedule';
 import { SessionModule } from './session/session.module';
+import { BillingModule } from './billing/billing.module';
 import { PatientsModule } from './patients/patients.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { LocationsModule } from './locations/locations.module';
 import { EmployeesModule } from './employees/employees.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
+import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
+import { InventoryModule } from './inventory/inventory.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -41,7 +47,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
           rejectUnauthorized: false, // Required for Neon's SSL connection
         },
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: configService.get('NODE_ENV') !== 'production',
         migrationsRun: true,
         migrations: ['dist/migrations/*.js'],
       }),
@@ -55,15 +61,20 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
       Employee,
       EmployeeOrgLocationAssignment,
     ]),
-    BullModule.forRoot({
-      // @ts-ignore
-      redis: { url: process.env.REDIS_URL || 'redis://localhost:6379' },
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        redis: configService.get('REDIS_URL') || 'redis://localhost:6379',
+      }),
+      inject: [ConfigService],
     }),
     BullModule.registerQueue({ name: 'submissions' }),
+    ScheduleModule.forRoot(),
     // Core modules
     AuthModule,
     UserModule,
     CloudinaryModule,
+    StorageModule,
     SessionModule,
     // Multi-tenant modules
     OrganizationsModule,
@@ -73,6 +84,9 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     // Domain modules
     PatientsModule,
     AppointmentsModule,
+    FeatureFlagsModule,
+    BillingModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [
@@ -84,8 +98,12 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     },
     {
       provide: APP_GUARD,
-      useClass: TenantContextGuard, // Then: validate tenant context (replaces RoleAuthGuard)
+      useClass: TenantContextGuard, // Then: validate tenant context
+    },
+    {
+      provide: APP_GUARD,
+      useClass: FeatureFlagGuard, // Finally: enforce @RequireFeature gating
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

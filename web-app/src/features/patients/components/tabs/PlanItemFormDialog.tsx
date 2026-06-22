@@ -36,10 +36,17 @@ export function PlanItemFormDialog({
         {
           patientId,
           planId,
-          ...value,
+          procedureName: value.procedureName.trim(),
+          procedureCode: value.procedureCode || undefined,
+          toothNumber: value.toothNumber || undefined,
+          estimatedSessions: value.estimatedSessions,
+          estimatedCost: value.estimatedCost,
         },
         {
-          onSuccess: () => setOpen(false),
+          onSuccess: () => {
+            form.reset()
+            setOpen(false)
+          },
         },
       )
     },
@@ -144,13 +151,19 @@ export function PlanItemFormDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending || !form.state.values.procedureName}
-            >
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Add
-            </Button>
+            <form.Subscribe selector={(s) => s.values.procedureName}>
+              {(procedureName) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !procedureName.trim()}
+                >
+                  {isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Add
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </DialogContent>

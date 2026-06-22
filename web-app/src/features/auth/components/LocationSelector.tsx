@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Star,
   ArrowLeft,
+  PlusCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -88,7 +89,7 @@ export function LocationSelector() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
       {/* Logo */}
       <div className="mb-8 flex flex-col items-center gap-3">
         <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
@@ -176,6 +177,29 @@ export function LocationSelector() {
                 <Building2 className="w-4 h-4" />
                 {selectedOrg.name}
               </div>
+
+              {/* No locations yet — super admin needs to create one first */}
+              {selectedOrg.locations.length === 0 && (
+                <div className="flex flex-col items-center gap-4 py-8 text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <MapPin className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">No locations yet</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Create a location for <span className="font-semibold">{selectedOrg.name}</span> to continue.
+                    </p>
+                  </div>
+                  <Button
+                    variant="default"
+                    className="gap-2"
+                    onClick={() => navigate({ to: '/locations' as any })}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Create First Location
+                  </Button>
+                </div>
+              )}
 
               {/* Location cards */}
               {selectedOrg.locations.map((loc) => {

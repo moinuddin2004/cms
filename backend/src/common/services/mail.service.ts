@@ -11,8 +11,12 @@ export class MailService {
     },
   });
 
+  private get frontendUrl(): string {
+    return process.env.FRONTEND_URL || 'http://localhost:3000';
+  }
+
   async sendEmailVerification(email: string, token: string) {
-    const url = `http://localhost:3000/auth/verify-email?token=${token}`;
+    const url = `${this.frontendUrl}/auth/verify-email?token=${token}`;
     return this.transporter.sendMail({
       to: email,
       subject: 'Verify your email',
@@ -21,7 +25,7 @@ export class MailService {
   }
 
   async sendPasswordReset(email: string, token: string) {
-    const url = `http://localhost:3000/auth/reset-password?token=${token}`;
+    const url = `${this.frontendUrl}/auth/reset-password?token=${token}`;
     return this.transporter.sendMail({
       to: email,
       subject: 'Reset your password',

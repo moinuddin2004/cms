@@ -4,21 +4,20 @@ import {
   Building2,
   LayoutDashboard,
   Users,
-  MessageSquare,
   CalendarDays,
-  UsersRound,
-  FileText,
-  BarChart3,
   CreditCard,
-  HelpCircle,
-  Bell,
+  Receipt,
+  Wallet,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
   Loader2,
   Shield,
+  Boxes,
 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { fetchLowStockItems } from '@/features/inventory/services/inventory.api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -33,7 +32,7 @@ interface NavItem {
   label: string
   icon: React.ElementType
   href: string
-  show?: (auth: ReturnType<typeof useAuthStore>) => boolean
+  show?: (auth: ReturnType<typeof useAuthStore.getState>) => boolean
 }
 
 const mainNavItems: NavItem[] = [
@@ -54,17 +53,13 @@ const mainNavItems: NavItem[] = [
   { label: 'Patients', icon: Users, href: '/patients' },
   { label: 'Employees', icon: Users, href: '/employees' },
   { label: 'Payroll', icon: CreditCard, href: '/payroll' },
-  { label: 'Message', icon: MessageSquare, href: '/messages' },
   { label: 'Appointments', icon: CalendarDays, href: '/appointments' },
-  { label: 'Teams', icon: UsersRound, href: '/teams' },
-  { label: 'Medical Records', icon: FileText, href: '/medical-records' },
-  { label: 'Reports', icon: BarChart3, href: '/reports' },
-  { label: 'Billing & Payments', icon: CreditCard, href: '/billing' },
+  { label: 'Inventory', icon: Boxes, href: '/inventory' },
+  { label: 'Invoices', icon: Receipt, href: '/invoices' },
+  { label: 'Expenses', icon: Wallet, href: '/expenses' },
 ]
 
 const bottomNavItems: NavItem[] = [
-  { label: 'Help', icon: HelpCircle, href: '/help' },
-  { label: 'Notification', icon: Bell, href: '/notifications' },
   { label: 'Settings', icon: Settings, href: '/settings' },
 ]
 
@@ -73,6 +68,24 @@ const ROLE_COLORS: Record<string, string> = {
   DENTIST: 'bg-emerald-500/10 text-emerald-400',
   RECEPTIONIST: 'bg-purple-500/10 text-purple-400',
   SUPER_ADMIN: 'bg-slate-500/20 text-slate-300',
+}
+
+function InventoryLowStockBadge() {
+  const { activeLocationId } = useAuthStore()
+  const { data: lowStock } = useQuery({
+    queryKey: ['inventory-low-stock'],
+    queryFn: fetchLowStockItems,
+    enabled: !!activeLocationId,
+    retry: false,
+    staleTime: 60_000,
+  })
+  const count = lowStock?.length ?? 0
+  if (count === 0) return null
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
+      {count}
+    </span>
+  )
 }
 
 export function Sidebar() {
@@ -164,7 +177,12 @@ export function Sidebar() {
                   title={sidebarCollapsed ? item.label : undefined}
                 >
                   <item.icon size={20} className="flex-shrink-0" />
-                  {!sidebarCollapsed && <span>{item.label}</span>}
+                  {!sidebarCollapsed && (
+                    <span className="flex-1">{item.label}</span>
+                  )}
+                  {item.href === '/inventory' && !sidebarCollapsed && (
+                    <InventoryLowStockBadge />
+                  )}
                 </Link>
               </li>
             )

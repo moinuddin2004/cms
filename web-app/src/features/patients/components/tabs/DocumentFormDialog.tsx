@@ -19,49 +19,88 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useForm } from '@tanstack/react-form'
+import { toast } from 'sonner'
 import { useCreateDocument } from '../../hooks/usePatientSubEntities'
+import { useUpload } from '../../hooks/useUpload'
 import { useAuthStore } from '@/store/useAuthStore'
 import { Loader2, FileUp } from 'lucide-react'
 import { DocumentType } from '../../types'
+import { FileUploadField } from '@/components/shared/FileUploadField'
 
 export function DocumentFormDialog({ patientId }: { patientId: string }) {
   const [open, setOpen] = useState(false)
+  const [file, setFile] = useState<File | null>(null)
   const { mutate, isPending } = useCreateDocument()
+  const { mutateAsync: upload, isPending: isUploading } = useUpload()
   const { user } = useAuthStore()
 
   const form = useForm({
     defaultValues: {
-      documentType: DocumentType.XRAY_IOPA,
+      documentType: DocumentType.XRAY,
       fileName: '',
-      fileUrl: '', // In a real app, this would come from a file upload service (e.g., S3)
       notes: '',
       toothNumber: '',
       isVisibleToPatient: true,
     },
     onSubmit: async ({ value }) => {
-      if (!user?.uuid) return
+      if (!user?.uuid) {
+        toast.error('Your session is missing — please sign in again.')
+        return
+      }
+      if (!file) {
+        toast.error('Please choose a file to upload.')
+        return
+      }
+
+      let uploaded
+      try {
+        uploaded = await upload({ file, folder: 'patient-documents' })
+      } catch {
+        return // toast already shown by useUpload
+      }
+
+      const isImage = uploaded.mimeType.startsWith('image/')
       mutate(
         {
           patientId,
-          ...value,
+          documentType: value.documentType,
+          fileName: value.fileName.trim() || uploaded.fileName,
+          fileUrl: uploaded.url,
+          thumbnailUrl: isImage ? uploaded.url : undefined,
+          fileSizeBytes: uploaded.sizeBytes,
+          mimeType: uploaded.mimeType,
+          notes: value.notes || undefined,
+          toothNumber: value.toothNumber || undefined,
+          isVisibleToPatient: value.isVisibleToPatient,
           uploadedBy: user.uuid,
-          fileUrl: value.fileUrl || 'https://example.com/dummy-file.pdf', // Fallback for testing
         },
         {
-          onSuccess: () => setOpen(false),
+          onSuccess: () => {
+            form.reset()
+            setFile(null)
+            setOpen(false)
+          },
         },
       )
     },
   })
 
+  const busy = isPending || isUploading
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (!o) setFile(null)
+      }}
+    >
       <DialogTrigger asChild>
         <Button size="sm">
           <FileUp size={14} className="mr-2" /> Upload File
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Upload Document</DialogTitle>
         </DialogHeader>
@@ -73,6 +112,17 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
           }}
           className="space-y-4 pt-4"
         >
+          <div className="space-y-2">
+            <Label>
+              File <span className="text-destructive">*</span>
+            </Label>
+            <FileUploadField
+              onFileSelected={setFile}
+              accept="image/*,application/pdf"
+              disabled={busy}
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <form.Field name="documentType">
               {(field) => (
@@ -114,30 +164,12 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
           <form.Field name="fileName">
             {(field) => (
               <div className="space-y-2">
-                <Label>File Name / Description</Label>
+                <Label>Title / Description</Label>
                 <Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  required
-                  placeholder="e.g. Pre-op X-Ray"
+                  placeholder="Defaults to the file name if left blank"
                 />
-              </div>
-            )}
-          </form.Field>
-
-          <form.Field name="fileUrl">
-            {(field) => (
-              <div className="space-y-2">
-                <Label>File URL (Simulated Upload)</Label>
-                <Input
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="https://..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  In a real app, this would be a file input that uploads to S3
-                  and returns a URL.
-                </p>
               </div>
             )}
           </form.Field>
@@ -183,12 +215,9 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending || !form.state.values.fileName}
-            >
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Upload
+            <Button type="submit" disabled={busy || !file}>
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isUploading ? 'Uploading…' : 'Upload'}
             </Button>
           </div>
         </form>

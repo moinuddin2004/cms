@@ -12,7 +12,7 @@ export class NotFoundException extends HttpException {
         message,
         devMessage,
       },
-      HttpStatus.BAD_REQUEST,
+      HttpStatus.NOT_FOUND,
     );
   }
 }

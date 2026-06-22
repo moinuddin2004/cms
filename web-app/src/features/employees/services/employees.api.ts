@@ -61,3 +61,12 @@ export async function updateSalary(
   const { data } = await api.patch(`/employees/${employeeId}/salary`, payload)
   return data.data
 }
+
+// ─── Salary History ─────────────────────────────────────────────────
+
+export async function fetchSalaryHistory(
+  employeeId: string,
+): Promise<any[]> {
+  const { data } = await api.get(`/employees/${employeeId}/salary-history`)
+  return data.data
+}

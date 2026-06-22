@@ -465,48 +465,31 @@ export class AppointmentsService {
   async getStats(ctx: TenantContext, startDate?: string, endDate?: string) {
     const qb = this.appointmentRepo
       .createQueryBuilder('a')
+      .select('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN a.status = '${AppointmentStatus.COMPLETED}' THEN 1 ELSE 0 END)`, 'completed')
+      .addSelect(`SUM(CASE WHEN a.status = '${AppointmentStatus.CANCELLED}' THEN 1 ELSE 0 END)`, 'cancelled')
+      .addSelect(`SUM(CASE WHEN a.status = '${AppointmentStatus.NO_SHOW}' THEN 1 ELSE 0 END)`, 'noShow')
+      .addSelect(`SUM(CASE WHEN a.status IN ('${AppointmentStatus.SCHEDULED}', '${AppointmentStatus.CONFIRMED}', '${AppointmentStatus.RESCHEDULED}') THEN 1 ELSE 0 END)`, 'scheduled')
+      .addSelect(`SUM(CASE WHEN a.status = '${AppointmentStatus.IN_PROGRESS}' THEN 1 ELSE 0 END)`, 'inProgress')
       .where('a.location_id = :locationId', { locationId: ctx.locationId });
 
     if (startDate) {
-      qb.andWhere('a.start_time >= :startDate', {
-        startDate: new Date(startDate),
-      });
+      qb.andWhere('a.start_time >= :startDate', { startDate: new Date(startDate) });
     }
     if (endDate) {
-      qb.andWhere('a.start_time <= :endDate', {
-        endDate: new Date(endDate),
-      });
+      qb.andWhere('a.start_time <= :endDate', { endDate: new Date(endDate) });
     }
 
-    const appointments = await qb.getMany();
-
-    const total = appointments.length;
-    const completed = appointments.filter(
-      (a) => a.status === AppointmentStatus.COMPLETED,
-    ).length;
-    const cancelled = appointments.filter(
-      (a) => a.status === AppointmentStatus.CANCELLED,
-    ).length;
-    const noShow = appointments.filter(
-      (a) => a.status === AppointmentStatus.NO_SHOW,
-    ).length;
-    const scheduled = appointments.filter(
-      (a) =>
-        a.status === AppointmentStatus.SCHEDULED ||
-        a.status === AppointmentStatus.CONFIRMED ||
-        a.status === AppointmentStatus.RESCHEDULED,
-    ).length;
-    const inProgress = appointments.filter(
-      (a) => a.status === AppointmentStatus.IN_PROGRESS,
-    ).length;
+    const raw = await qb.getRawOne();
+    const total = parseInt(raw.total, 10) || 0;
+    const completed = parseInt(raw.completed, 10) || 0;
+    const cancelled = parseInt(raw.cancelled, 10) || 0;
+    const noShow = parseInt(raw.noShow, 10) || 0;
+    const scheduled = parseInt(raw.scheduled, 10) || 0;
+    const inProgress = parseInt(raw.inProgress, 10) || 0;
 
     return {
-      total,
-      completed,
-      cancelled,
-      noShow,
-      scheduled,
-      inProgress,
+      total, completed, cancelled, noShow, scheduled, inProgress,
       completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
       noShowRate: total > 0 ? Math.round((noShow / total) * 100) : 0,
     };

@@ -18,6 +18,8 @@ import { User } from './entities/user.entity';
 import { AuthTokenDto } from '../auth/dto/response/auth.token.dto';
 import { TokensDto } from '../auth/dto/response/token.dto';
 import { UserDto } from './dto/user.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
 export class UserController {
@@ -57,7 +59,7 @@ export class UserController {
   @Post()
   async createUser(
     @Req() req,
-    @Body() body: any,
+    @Body() body: CreateUserDto,
     @Headers('x-organization-id') orgId: string,
   ) {
     return this.userService.createUser(req.user, body, orgId);
@@ -68,7 +70,7 @@ export class UserController {
   async updateUser(
     @Req() req,
     @Param('id') targetUserId: string,
-    @Body() body: any,
+    @Body() body: UpdateUserDto,
     @Headers('x-organization-id') orgId: string,
   ) {
     return this.userService.updateUser(req.user, targetUserId, body, orgId);

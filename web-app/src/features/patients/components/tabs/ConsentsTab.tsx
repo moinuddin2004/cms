@@ -11,6 +11,7 @@ import { Loader2, FileSignature, AlertTriangle, Printer } from 'lucide-react'
 import { useConsents } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientConsent } from '../../types'
 import { ConsentFormDialog } from './ConsentFormDialog'
+import { printConsent } from '../../utils/print'
 
 export function ConsentsTab({ patient }: { patient: Patient }) {
   const { data: consents = [], isLoading } = useConsents(patient.id)
@@ -47,6 +48,7 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
               key={consent.id}
               consent={consent}
               isMinor={patient.isMinor}
+              patient={patient}
             />
           ))}
         </div>
@@ -58,9 +60,11 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
 function ConsentCard({
   consent,
   isMinor,
+  patient,
 }: {
   consent: PatientConsent
   isMinor?: boolean
+  patient: Patient
 }) {
   return (
     <Card
@@ -82,6 +86,7 @@ function ConsentCard({
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:bg-muted"
               title="Print/Download PDF"
+              onClick={() => printConsent(consent, patient)}
             >
               <Printer size={14} />
             </Button>
@@ -134,9 +139,18 @@ function ConsentCard({
             Signature
           </p>
           {consent.signatureUrl ? (
-            <div className="h-12 border bg-muted/10 w-full rounded flex items-center justify-center italic text-xs text-muted-foreground overflow-hidden px-2 whitespace-nowrap text-ellipsis">
-              {consent.signatureUrl.substring(0, 40)}...
-            </div>
+            <a
+              href={consent.signatureUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open full signature"
+            >
+              <img
+                src={consent.signatureUrl}
+                alt="Signature"
+                className="h-16 w-full rounded border bg-white object-contain"
+              />
+            </a>
           ) : (
             <p className="text-xs italic text-muted-foreground">
               No signature data captured.

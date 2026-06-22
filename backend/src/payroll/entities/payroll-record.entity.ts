@@ -88,8 +88,8 @@ export class PayrollRecord {
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
 
-  @Column({ name: 'created_by', type: 'uuid' })
-  createdBy: string;
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

@@ -6,6 +6,7 @@ import { RequestContextService } from 'src/common/services/request-context.servi
 import { AppLogger } from 'src/common/services/logger.service';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { User } from './entities/user.entity';
+import { SessionService } from 'src/session/session.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AccountStatus } from './enum/AccountStatus';
@@ -23,6 +24,7 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly sessionService: SessionService,
     private readonly context: RequestContextService,
     private readonly logger: AppLogger,
   ) { }
@@ -264,8 +266,11 @@ export class UserService {
       throw new BadRequestException('User with email already exists');
     }
 
+    if (!body.password) {
+      throw new BadRequestException('Password is required');
+    }
     const hashedPassword = await bcrypt.hash(
-      body.password || 'defaultPassword123',
+      body.password,
       12,
     );
     user = this.userRepository.create({
@@ -402,6 +407,9 @@ export class UserService {
     targetUser.deletedAt = new Date();
     targetUser.status = AccountStatus.DELETED;
     await this.userRepository.save(targetUser);
+
+    // Revoke all active sessions for the deleted user
+    await this.sessionService.revokeAllSessions(targetUserId);
 
     return { deleted: true };
   }

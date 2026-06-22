@@ -42,6 +42,10 @@ export class Organization {
   @Column({ name: 'clinic_type', type: 'varchar', length: 100, nullable: true })
   clinicType: string | null;
 
+  /** Clinic specialties for feature relevance: general, dental, skin, ortho, physio, eye */
+  @Column({ name: 'specialty_tags', type: 'jsonb', default: '["general"]' })
+  specialtyTags: string[];
+
   @Column({
     name: 'timezone',
     type: 'varchar',

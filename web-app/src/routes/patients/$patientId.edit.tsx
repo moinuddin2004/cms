@@ -22,6 +22,10 @@ function EditPatientPage() {
     navigate({ to: '/patients/$patientId', params: { patientId } })
   }
 
+  const handleCancel = () => {
+    navigate({ to: '/patients/$patientId', params: { patientId } })
+  }
+
   if (isLoading) {
     return (
       <DashboardLayout title="Edit Patient">
@@ -47,12 +51,15 @@ function EditPatientPage() {
 
   return (
     <DashboardLayout title="Edit Patient">
-      <PatientForm
-        defaultValues={patient}
-        onSubmit={handleSubmit}
-        isSubmitting={updateMutation.isPending}
-        mode="edit"
-      />
+      <div className="max-w-3xl mx-auto">
+        <PatientForm
+          defaultValues={patient}
+          onSubmit={handleSubmit}
+          isSubmitting={updateMutation.isPending}
+          mode="edit"
+          onCancel={handleCancel}
+        />
+      </div>
     </DashboardLayout>
   )
 }

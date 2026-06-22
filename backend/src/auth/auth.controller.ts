@@ -335,7 +335,8 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    const redirectUrl = req.query.redirect || '/dashboard';
+    const redirect = (req.query.redirect as string) || '/dashboard';
+    const redirectUrl = (redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/dashboard';
     return res.redirect(
       `http://localhost:3000/?oauth=true&redirect=${redirectUrl}`,
     );
@@ -366,7 +367,8 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    const redirectUrl = req.query.redirect || '/dashboard';
+    const redirect = (req.query.redirect as string) || '/dashboard';
+    const redirectUrl = (redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/dashboard';
     return res.redirect(
       `http://localhost:3000/?oauth=true&redirect=${redirectUrl}`,
     );

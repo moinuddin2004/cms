@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit2, Trash2, Settings } from 'lucide-react'
+import { Plus, Edit2, Trash2, Settings, ToggleRight } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -180,6 +180,17 @@ export function OrganizationManagementView() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      title="Manage Features"
+                      onClick={() =>
+                        navigate({ to: `/organizations/${org.id}/features` })
+                      }
+                    >
+                      <ToggleRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Settings"
                       onClick={() =>
                         navigate({ to: `/organizations/${org.id}/settings` })
                       }

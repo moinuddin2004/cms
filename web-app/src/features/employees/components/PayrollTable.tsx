@@ -12,19 +12,36 @@ import { formatCurrency, formatDate } from '@/lib/formatters'
 import { PayrollStatusBadge } from './PayrollStatusBadge'
 import { Button } from '@/components/ui/button'
 import { MarkPaidModal } from './MarkPaidModal'
+import { useDeletePayroll } from '../hooks/useDeletePayroll'
+import { Pencil, Trash2 } from 'lucide-react'
 
 interface PayrollTableProps {
   records: PayrollRecord[]
   showEmployeeName?: boolean
+  onEdit?: (record: PayrollRecord) => void
 }
 
-export function PayrollTable({ records, showEmployeeName = false }: PayrollTableProps) {
-  const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(null)
+export function PayrollTable({
+  records,
+  showEmployeeName = false,
+  onEdit,
+}: PayrollTableProps) {
+  const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(
+    null,
+  )
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const deleteMutation = useDeletePayroll()
 
   const handleMarkPaidClick = (record: PayrollRecord) => {
     setSelectedRecord(record)
     setIsModalOpen(true)
+  }
+
+  const handleDelete = (record: PayrollRecord) => {
+    const ok = window.confirm(
+      `Delete the payroll record for ${record.employee?.fullName ?? 'this employee'} (${record.periodLabel})? This cannot be undone.`,
+    )
+    if (ok) deleteMutation.mutate(record.id)
   }
 
   return (
@@ -39,7 +56,7 @@ export function PayrollTable({ records, showEmployeeName = false }: PayrollTable
               <TableHead>Status</TableHead>
               <TableHead>Paid On</TableHead>
               <TableHead>Method</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -67,6 +84,14 @@ export function PayrollTable({ records, showEmployeeName = false }: PayrollTable
                   )}
                   <TableCell className={!showEmployeeName ? 'font-medium' : ''}>
                     {record.periodLabel}
+                    {record.notes && (
+                      <p
+                        className="text-xs text-muted-foreground truncate max-w-[220px]"
+                        title={record.notes}
+                      >
+                        {record.notes}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell>{formatCurrency(record.salaryAmount)}</TableCell>
                   <TableCell>
@@ -79,19 +104,38 @@ export function PayrollTable({ records, showEmployeeName = false }: PayrollTable
                     {record.paymentMethod?.replace('_', ' ') || '—'}
                   </TableCell>
                   <TableCell className="text-right">
-                    {record.status === 'paid' ? (
-                      <span className="text-sm font-medium text-green-600 px-3 py-1">
-                        ✓ Paid
-                      </span>
-                    ) : (
+                    <div className="flex items-center justify-end gap-1">
+                      {record.status !== 'paid' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleMarkPaidClick(record)}
+                        >
+                          Mark as Paid
+                        </Button>
+                      )}
+                      {onEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          aria-label="Edit payroll"
+                          onClick={() => onEdit(record)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleMarkPaidClick(record)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        aria-label="Delete payroll"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => handleDelete(record)}
                       >
-                        Mark as Paid
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -99,7 +143,7 @@ export function PayrollTable({ records, showEmployeeName = false }: PayrollTable
           </TableBody>
         </Table>
       </div>
-      
+
       <MarkPaidModal
         record={selectedRecord}
         isOpen={isModalOpen}

@@ -17,13 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Eye, Pencil, UserX, MoreHorizontal } from 'lucide-react'
+import { Eye, Pencil, UserX } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {

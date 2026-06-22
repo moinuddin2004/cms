@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
   IsDateString,
+  IsUUID,
 } from 'class-validator';
 import { Gender } from '../enums/employee.enums';
 
@@ -43,7 +44,7 @@ export class CreateEmployeeDto {
   designation: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID()
   employmentRoleId?: string;
 
   @IsOptional()

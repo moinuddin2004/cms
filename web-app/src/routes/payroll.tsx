@@ -3,9 +3,15 @@ import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useLocationPayroll, GeneratePayrollModal, PayrollTable } from '@/features/employees'
+import {
+  useLocationPayroll,
+  GeneratePayrollModal,
+  PayrollTable,
+  CreateEditPayrollModal,
+} from '@/features/employees'
+import type { PayrollRecord } from '@/features/employees'
 import { formatCurrency } from '@/lib/formatters'
-import { Coins, Calendar, Loader2, Play } from 'lucide-react'
+import { Coins, Calendar, Loader2, Play, Plus } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -28,8 +34,19 @@ function PayrollPage() {
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
+  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<PayrollRecord | null>(null)
 
   const { data: payrollData, isLoading } = useLocationPayroll(month, year)
+
+  const openCreate = () => {
+    setEditingRecord(null)
+    setIsPayrollModalOpen(true)
+  }
+  const openEdit = (record: PayrollRecord) => {
+    setEditingRecord(record)
+    setIsPayrollModalOpen(true)
+  }
 
   return (
     <DashboardLayout
@@ -72,6 +89,10 @@ function PayrollPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button variant="outline" onClick={openCreate}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Payroll
+          </Button>
           <Button onClick={() => setIsGenerateModalOpen(true)}>
             <Play className="h-4 w-4 mr-2" />
             Generate Payroll
@@ -190,9 +211,10 @@ function PayrollPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <PayrollTable 
-                records={payrollData?.records || []} 
+              <PayrollTable
+                records={payrollData?.records || []}
                 showEmployeeName={true}
+                onEdit={openEdit}
               />
             )}
           </CardContent>
@@ -202,6 +224,14 @@ function PayrollPage() {
       <GeneratePayrollModal
         isOpen={isGenerateModalOpen}
         onOpenChange={setIsGenerateModalOpen}
+      />
+
+      <CreateEditPayrollModal
+        record={editingRecord}
+        isOpen={isPayrollModalOpen}
+        onOpenChange={setIsPayrollModalOpen}
+        defaultMonth={month}
+        defaultYear={year}
       />
     </DashboardLayout>
   )

@@ -1,14 +1,14 @@
-import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { LayoutGrid, Table2, Plus, Users } from 'lucide-react'
-import { usePatientStore, type ViewMode } from '@/store/patient-store'
+import { usePatientStore } from '@/store/patient-store'
 import { cn } from '@/lib/utils'
 
 interface PatientListHeaderProps {
   totalCount: number
+  onNewPatient: () => void
 }
 
-export function PatientListHeader({ totalCount }: PatientListHeaderProps) {
+export function PatientListHeader({ totalCount, onNewPatient }: PatientListHeaderProps) {
   const { viewMode, setViewMode } = usePatientStore()
 
   return (
@@ -43,11 +43,9 @@ export function PatientListHeader({ totalCount }: PatientListHeaderProps) {
         </div>
 
         {/* New Patient Button */}
-        <Button asChild id="new-patient-btn">
-          <Link to="/patients/new">
-            <Plus size={16} className="mr-1.5" />
-            New Patient
-          </Link>
+        <Button onClick={onNewPatient} id="new-patient-btn">
+          <Plus size={16} className="mr-1.5" />
+          New Patient
         </Button>
       </div>
     </div>

@@ -13,9 +13,6 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({
   children,
-  title,
-  subtitle,
-  actions,
 }: DashboardLayoutProps) {
   const { sidebarCollapsed } = useUIStore()
 
@@ -30,7 +27,7 @@ export function DashboardLayout({
             : 'ml-[var(--spacing-sidebar)]',
         )}
       >
-        <Topbar title={title} subtitle={subtitle} actions={actions} />
+        <Topbar />
         <main className="p-6">{children}</main>
       </div>
     </div>

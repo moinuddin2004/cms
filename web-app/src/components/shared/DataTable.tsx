@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useCallback, memo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,

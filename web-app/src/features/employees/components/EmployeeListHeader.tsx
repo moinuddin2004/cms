@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { LayoutGrid, Table2, Plus, Users } from 'lucide-react'
-import { useEmployeeStore, type ViewMode } from '@/store/employee-store'
+import { useEmployeeStore } from '@/store/employee-store'
 import { cn } from '@/lib/utils'
 
 interface EmployeeListHeaderProps {

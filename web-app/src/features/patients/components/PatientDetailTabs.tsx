@@ -4,7 +4,6 @@ import {
   ClipboardList,
   FolderOpen,
   Activity,
-  MessageCircle,
   FileSignature,
 } from 'lucide-react'
 import type { Patient } from '../types'
@@ -14,8 +13,7 @@ import { TeethChartTab } from './tabs/TeethChartTab'
 import { TreatmentPlansTab } from './tabs/TreatmentPlansTab'
 import { ClinicalTab } from './tabs/ClinicalTab'
 import { ConsentsTab } from './tabs/ConsentsTab'
-import { CrmTab } from './tabs/CrmTab'
-import { AdminTab } from './tabs/AdminTab'
+import { FilesTab } from './tabs/FilesTab'
 
 interface PatientDetailTabsProps {
   patient: Patient
@@ -48,13 +46,9 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           <FileSignature size={14} className="mr-1.5" />
           Consents
         </TabsTrigger>
-        <TabsTrigger value="admin" className="text-sm">
+        <TabsTrigger value="files" className="text-sm">
           <FolderOpen size={14} className="mr-1.5" />
-          Admin & Files
-        </TabsTrigger>
-        <TabsTrigger value="crm" className="text-sm">
-          <MessageCircle size={14} className="mr-1.5" />
-          CRM
+          Files
         </TabsTrigger>
       </TabsList>
 
@@ -82,12 +76,8 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
         <ConsentsTab patient={patient} />
       </TabsContent>
 
-      <TabsContent value="admin">
-        <AdminTab patient={patient} />
-      </TabsContent>
-
-      <TabsContent value="crm">
-        <CrmTab patient={patient} />
+      <TabsContent value="files">
+        <FilesTab patient={patient} />
       </TabsContent>
     </Tabs>
   )

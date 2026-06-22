@@ -30,6 +30,7 @@ import { useMarkPaid } from '../hooks/useMarkPaid'
 import {
   markPaidFormSchema,
   type MarkPaidFormData,
+  PaymentMethod,
   PAYMENT_METHOD_OPTIONS,
 } from '../types'
 import { toast } from 'sonner'
@@ -57,7 +58,7 @@ export function MarkPaidModal({
   const form = useForm<MarkPaidFormData>({
     resolver: zodResolver(markPaidFormSchema),
     defaultValues: {
-      paymentMethod: 'bank_transfer',
+      paymentMethod: PaymentMethod.BANK_TRANSFER,
       paymentReference: '',
       notes: '',
     },

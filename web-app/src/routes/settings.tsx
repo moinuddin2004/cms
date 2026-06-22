@@ -87,9 +87,9 @@ function SettingsPage() {
                 <p className="text-sm text-muted-foreground">{user?.email}</p>
                 <Badge
                   variant="outline"
-                  className={`text-xs font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-muted text-muted-foreground'}`}
+                  className={`text-xs font-medium ${ROLE_COLORS[user?.globalRole || ''] || 'bg-muted text-muted-foreground'}`}
                 >
-                  {ROLE_LABELS[user?.role || ''] || user?.role || 'Member'}
+                  {ROLE_LABELS[user?.globalRole || ''] || user?.globalRole || 'Member'}
                 </Badge>
               </div>
             </div>
@@ -295,9 +295,9 @@ function ProfileTab() {
             <div>
               <Badge
                 variant="outline"
-                className={`font-medium ${ROLE_COLORS[user?.role || ''] || 'bg-muted text-muted-foreground'}`}
+                className={`font-medium ${ROLE_COLORS[user?.globalRole || ''] || 'bg-muted text-muted-foreground'}`}
               >
-                {ROLE_LABELS[user?.role || ''] || user?.role || 'Member'}
+                {ROLE_LABELS[user?.globalRole || ''] || user?.globalRole || 'Member'}
               </Badge>
             </div>
           </div>

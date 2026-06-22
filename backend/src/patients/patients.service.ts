@@ -38,6 +38,7 @@ import {
   CreateTreatmentPlanDto,
   UpdateTreatmentPlanDto,
   CreatePlanItemDto,
+  UpdatePlanItemDto,
   CreatePrescriptionDto,
   CreateDocumentDto,
   CreateConsentDto,
@@ -369,6 +370,29 @@ export class PatientsService {
     if (!plan) throw new NotFoundException('Treatment plan not found');
 
     const item = this.planItemRepo.create({ ...dto, planId });
+    return this.planItemRepo.save(item);
+  }
+
+  async updatePlanItem(
+    patientId: string,
+    planId: string,
+    itemId: string,
+    organizationId: string,
+    dto: UpdatePlanItemDto,
+  ) {
+    await this.getPatientOrFail(patientId, organizationId);
+    const plan = await this.treatmentPlanRepo.findOne({
+      where: { id: planId, patientId, organizationId },
+    });
+    if (!plan) throw new NotFoundException('Treatment plan not found');
+
+    const item = await this.planItemRepo.findOne({ where: { id: itemId, planId } });
+    if (!item) throw new NotFoundException('Plan item not found');
+
+    Object.assign(item, dto);
+    // Keep completed sessions within bounds of the estimate.
+    const estimate = dto.estimatedSessions ?? item.estimatedSessions;
+    if (item.completedSessions > estimate) item.completedSessions = estimate;
     return this.planItemRepo.save(item);
   }
 

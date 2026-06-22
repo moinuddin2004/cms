@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useForm } from '@tanstack/react-form'
 import { Loader2, Plus, Activity, Droplets } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   useVitals,
   useDentalInfo,
@@ -59,7 +60,6 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
           </div>
         )}
 
-        {/* Vitals Quick Form */}
         <Card className="mt-6 border-brand-100 bg-brand-50/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-md flex items-center gap-2">
@@ -88,7 +88,10 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
                 <Loader2 className="animate-spin text-muted-foreground" />
               </div>
             ) : (
+              // Re-key on the record id so the form re-initialises with the
+              // saved values once the upsert completes.
               <DentalInfoForm
+                key={dentalInfo?.id ?? 'new'}
                 patientId={patient.id}
                 existing={dentalInfo ?? undefined}
               />
@@ -108,38 +111,71 @@ function VitalCard({ vital }: { vital: PatientVitals }) {
           <span className="text-xs font-semibold text-muted-foreground">
             {new Date(vital.recordedAt).toLocaleString()}
           </span>
-          <span className="text-xs text-muted-foreground">
-            By: {vital.recordedBy}
-          </span>
         </div>
-        <div className="grid grid-cols-4 gap-2 text-center text-sm mt-3">
-          <div>
-            <p className="text-xs text-muted-foreground">BP</p>
-            <p className="font-semibold">
-              {vital.bpSystolic || '-'}/{vital.bpDiastolic || '-'}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Pulse</p>
-            <p className="font-semibold">{vital.pulseRate || '-'}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Temp</p>
-            <p className="font-semibold">{vital.temperature || '-'} °C</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">BMI</p>
-            <p className="font-semibold">{vital.bmi || '-'}</p>
-          </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-sm mt-3">
+          <Metric label="BP" value={`${vital.bpSystolic || '-'}/${vital.bpDiastolic || '-'}`} />
+          <Metric label="Pulse" value={vital.pulseRate} unit="bpm" />
+          <Metric label="Temp" value={vital.temperature} unit="°C" />
+          <Metric label="SpO₂" value={vital.oxygenSaturation} unit="%" />
+          <Metric label="Weight" value={vital.weightKg} unit="kg" />
+          <Metric label="BMI" value={vital.bmi} />
         </div>
+        {vital.notes && (
+          <p className="mt-3 text-xs text-muted-foreground border-t pt-2">
+            {vital.notes}
+          </p>
+        )}
       </CardContent>
     </Card>
   )
 }
 
+function Metric({
+  label,
+  value,
+  unit,
+}: {
+  label: string
+  value: number | string | null | undefined
+  unit?: string
+}) {
+  const display =
+    value === null || value === undefined || value === '' ? '-' : value
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-semibold">
+        {display}
+        {display !== '-' && unit ? (
+          <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+            {unit}
+          </span>
+        ) : null}
+      </p>
+    </div>
+  )
+}
+
+// Range guard: returns an error string or undefined. Empty is allowed (optional).
+function range(min: number, max: number, label: string) {
+  return ({ value }: { value: number | string | undefined }) => {
+    if (value === undefined || value === '') return undefined
+    const n = typeof value === 'string' ? Number(value) : value
+    if (Number.isNaN(n)) return undefined
+    if (n < min || n > max)
+      return `${label} must be between ${min} and ${max}`
+    return undefined
+  }
+}
+
+function FieldError({ errors }: { errors: Array<string | undefined> }) {
+  const msg = errors.find(Boolean)
+  if (!msg) return null
+  return <p className="text-[11px] text-destructive">{msg}</p>
+}
+
 function VitalsForm({ patientId }: { patientId: string }) {
   const { mutate, isPending } = useCreateVitals()
-
   const { user } = useAuthStore()
 
   const form = useForm({
@@ -148,18 +184,62 @@ function VitalsForm({ patientId }: { patientId: string }) {
       bpDiastolic: undefined as number | undefined,
       pulseRate: undefined as number | undefined,
       temperature: undefined as number | undefined,
+      oxygenSaturation: undefined as number | undefined,
       weightKg: undefined as number | undefined,
       heightCm: undefined as number | undefined,
+      notes: '' as string,
     },
     onSubmit: async ({ value }) => {
-      if (!user?.uuid) return
-      mutate({
-        patientId,
-        ...value,
-        recordedBy: user.uuid,
-      })
+      if (!user?.uuid) {
+        toast.error('Your session is missing — please sign in again.')
+        return
+      }
+      const { notes, ...vitals } = value
+      const hasAny = Object.values(vitals).some(
+        (v) => v !== undefined && !Number.isNaN(v),
+      )
+      if (!hasAny) {
+        toast.error('Enter at least one vital before saving.')
+        return
+      }
+      mutate(
+        {
+          patientId,
+          ...vitals,
+          notes: notes.trim() || undefined,
+          recordedBy: user.uuid,
+        },
+        { onSuccess: () => form.reset() },
+      )
     },
   })
+
+  const numField = (
+    name: keyof typeof form.state.values,
+    label: string,
+    placeholder: string,
+    validate: ReturnType<typeof range>,
+  ) => (
+    <form.Field name={name} validators={{ onChange: validate }}>
+      {(field) => (
+        <div className="space-y-1">
+          <Label className="text-xs">{label}</Label>
+          <Input
+            type="number"
+            value={field.state.value ?? ''}
+            onChange={(e) =>
+              field.handleChange(
+                e.target.value === '' ? undefined : Number(e.target.value),
+              )
+            }
+            onBlur={field.handleBlur}
+            placeholder={placeholder}
+          />
+          <FieldError errors={field.state.meta.errors} />
+        </div>
+      )}
+    </form.Field>
+  )
 
   return (
     <form
@@ -170,92 +250,40 @@ function VitalsForm({ patientId }: { patientId: string }) {
       }}
     >
       <div className="grid grid-cols-3 gap-3">
-        <form.Field name="bpSystolic">
-          {(field) => (
-            <div className="space-y-1">
-              <Label className="text-xs">Systolic</Label>
-              <Input
-                type="number"
-                value={field.state.value || ''}
-                onChange={(e) =>
-                  field.handleChange(Number(e.target.value) || undefined)
-                }
-                placeholder="120"
-              />
-            </div>
+        {numField('bpSystolic', 'Systolic', '120', range(50, 300, 'Systolic'))}
+        {numField(
+          'bpDiastolic',
+          'Diastolic',
+          '80',
+          range(30, 200, 'Diastolic'),
+        )}
+        {numField('pulseRate', 'Pulse (bpm)', '72', range(20, 250, 'Pulse'))}
+        {numField('temperature', 'Temp (°C)', '37', range(30, 45, 'Temp'))}
+        {numField('oxygenSaturation', 'SpO₂ (%)', '98', range(50, 100, 'SpO₂'))}
+        {numField('weightKg', 'Weight (kg)', '70', range(1, 500, 'Weight'))}
+        {numField('heightCm', 'Height (cm)', '175', range(20, 300, 'Height'))}
+      </div>
+      <form.Field name="notes">
+        {(field) => (
+          <div className="mt-3 space-y-1">
+            <Label className="text-xs">Notes</Label>
+            <Input
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              placeholder="Optional observations…"
+            />
+          </div>
+        )}
+      </form.Field>
+      <div className="mt-3 flex justify-end">
+        <form.Subscribe selector={(s) => s.isValid}>
+          {(isValid) => (
+            <Button type="submit" size="sm" disabled={isPending || !isValid}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Vitals
+            </Button>
           )}
-        </form.Field>
-        <form.Field name="bpDiastolic">
-          {(field) => (
-            <div className="space-y-1">
-              <Label className="text-xs">Diastolic</Label>
-              <Input
-                type="number"
-                value={field.state.value || ''}
-                onChange={(e) =>
-                  field.handleChange(Number(e.target.value) || undefined)
-                }
-                placeholder="80"
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="pulseRate">
-          {(field) => (
-            <div className="space-y-1">
-              <Label className="text-xs">Pulse (bpm)</Label>
-              <Input
-                type="number"
-                value={field.state.value || ''}
-                onChange={(e) =>
-                  field.handleChange(Number(e.target.value) || undefined)
-                }
-                placeholder="72"
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="weightKg">
-          {(field) => (
-            <div className="space-y-1">
-              <Label className="text-xs">Weight (kg)</Label>
-              <Input
-                type="number"
-                value={field.state.value || ''}
-                onChange={(e) =>
-                  field.handleChange(Number(e.target.value) || undefined)
-                }
-                placeholder="70"
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="heightCm">
-          {(field) => (
-            <div className="space-y-1">
-              <Label className="text-xs">Height (cm)</Label>
-              <Input
-                type="number"
-                value={field.state.value || ''}
-                onChange={(e) =>
-                  field.handleChange(Number(e.target.value) || undefined)
-                }
-                placeholder="175"
-              />
-            </div>
-          )}
-        </form.Field>
-        <div className="flex items-end">
-          <Button
-            type="submit"
-            className="w-full"
-            size="sm"
-            disabled={isPending}
-          >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Vitals
-          </Button>
-        </div>
+        </form.Subscribe>
       </div>
     </form>
   )
@@ -302,7 +330,6 @@ function DentalInfoForm({
       }}
     >
       <div className="space-y-4">
-        {/* Dropdowns Row */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <form.Field name="gumCondition">
             {(field) => (
@@ -376,7 +403,6 @@ function DentalInfoForm({
           </form.Field>
         </div>
 
-        {/* Checkboxes Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <form.Field name="teethSensitivity">
             {(field) => (
@@ -403,10 +429,7 @@ function DentalInfoForm({
                   checked={field.state.value}
                   onCheckedChange={(v) => field.handleChange(!!v)}
                 />
-                <Label
-                  htmlFor="smokingStatus"
-                  className="text-xs cursor-pointer"
-                >
+                <Label htmlFor="smokingStatus" className="text-xs cursor-pointer">
                   Smoker
                 </Label>
               </div>
@@ -448,7 +471,6 @@ function DentalInfoForm({
           </form.Field>
         </div>
 
-        {/* Text Areas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <form.Field name="teethConditionNotes">
             {(field) => (

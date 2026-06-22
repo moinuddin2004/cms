@@ -67,6 +67,12 @@ export const PAYMENT_METHOD_OPTIONS = [
   { label: 'Cash', value: PaymentMethod.CASH },
   { label: 'Bank Transfer', value: PaymentMethod.BANK_TRANSFER },
   { label: 'Cheque', value: PaymentMethod.CHEQUE },
+]
+
+export const PAYROLL_STATUS_OPTIONS = [
+  { label: 'Pending', value: PayrollStatus.PENDING },
+  { label: 'Paid', value: PayrollStatus.PAID },
+  { label: 'On Hold', value: PayrollStatus.ON_HOLD },
 ] as const
 
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const
@@ -268,6 +274,7 @@ export const employeeFormSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v === '' ? undefined : v)),
+  primaryLocationId: z.string().optional().transform((v) => (v === '' ? undefined : v)),
   grossSalary: z.coerce.number().min(0).optional(),
 })
 
@@ -286,6 +293,17 @@ export const markPaidFormSchema = z.object({
 })
 
 export type MarkPaidFormData = z.infer<typeof markPaidFormSchema>
+
+export const payrollFormSchema = z.object({
+  employeeId: z.string().min(1, 'Employee is required'),
+  month: z.coerce.number().min(1).max(12),
+  year: z.coerce.number().min(2020),
+  salaryAmount: z.coerce.number().min(0, 'Amount must be 0 or more'),
+  status: z.nativeEnum(PayrollStatus).default(PayrollStatus.PENDING),
+  notes: z.string().optional(),
+})
+
+export type PayrollFormData = z.infer<typeof payrollFormSchema>
 
 export const leaveFormSchema = z
   .object({

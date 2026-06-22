@@ -1,3 +1,4 @@
+import { UpdateLocationSettingsDto } from './dto/update-location-settings.dto';
 import {
   Controller,
   Get,
@@ -171,7 +172,7 @@ export class LocationsController {
   @Patch(':id/settings')
   async updateSettings(
     @Param('id') id: string,
-    @Body() dto: any,
+    @Body() dto: UpdateLocationSettingsDto,
     @Req() req: any,
   ) {
     const { orgId, isSA } = await this.getAuthorizedOrgId(req.user);

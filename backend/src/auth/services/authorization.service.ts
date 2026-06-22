@@ -17,6 +17,7 @@ export interface AccessibleOrganization {
   name: string;
   slug: string;
   accessSource: 'super_admin' | 'owner' | 'employee';
+  specialtyTags: string[];
   locations: AccessibleLocation[];
 }
 
@@ -138,6 +139,7 @@ export class AuthorizationService {
           name: org.name,
           slug: org.slug,
           accessSource: 'super_admin',
+          specialtyTags: org.specialtyTags ?? ['general'],
           locations: locations.map((loc) => ({
             id: loc.id,
             name: loc.name,
@@ -185,6 +187,7 @@ export class AuthorizationService {
         name: ow.organization.name,
         slug: ow.organization.slug,
         accessSource: 'owner',
+        specialtyTags: ow.organization.specialtyTags ?? ['general'],
         locations: locations.map((loc) => ({
           id: loc.id,
           name: loc.name,
@@ -221,6 +224,7 @@ export class AuthorizationService {
           name: asgn.organization.name,
           slug: asgn.organization.slug,
           accessSource: 'employee',
+          specialtyTags: asgn.organization.specialtyTags ?? ['general'],
           locations: [],
         });
       }
