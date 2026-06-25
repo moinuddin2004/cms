@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
@@ -20,7 +21,11 @@ import { CreateInvoiceDialog } from '@/features/billing/components/CreateInvoice
 import { InvoiceStatus, STATUS_BADGE } from '@/features/billing/types'
 
 export const Route = createFileRoute('/invoices/')({
-  component: InvoicesPage,
+  component: () => (
+    <RequireFeaturePage feature="billing.invoices">
+      <InvoicesPage />
+    </RequireFeaturePage>
+  ),
 })
 
 const STATUS_TABS: Array<{ label: string; value?: InvoiceStatus }> = [

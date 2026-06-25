@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,7 +22,11 @@ import {
 } from '@/components/ui/select'
 
 export const Route = createFileRoute('/payroll')({
-  component: PayrollPage,
+  component: () => (
+    <RequireFeaturePage feature="hr.payroll">
+      <PayrollPage />
+    </RequireFeaturePage>
+  ),
 })
 
 const MONTHS = [

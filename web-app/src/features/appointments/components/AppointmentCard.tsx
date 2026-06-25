@@ -18,6 +18,7 @@ import { ConsumptionRecorder } from '@/features/inventory'
 import {
   MoreVertical,
   LogIn,
+  Stethoscope,
   CheckCircle,
   XCircle,
   UserX,
@@ -34,6 +35,7 @@ import {
   useCancelAppointment,
   useNoShow,
   useCheckIn,
+  useStartAppointment,
   useCompleteAppointment,
   useConfirmAppointment,
 } from '@/features/appointments/hooks/useAppointmentActions'
@@ -55,6 +57,7 @@ export function AppointmentCard({
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
   const checkInMutation = useCheckIn()
+  const startMutation = useStartAppointment()
   const completeMutation = useCompleteAppointment()
   const confirmMutation = useConfirmAppointment()
 
@@ -158,7 +161,9 @@ export function AppointmentCard({
                     Confirm
                   </DropdownMenuItem>
                 )}
-                {appointment.status !== AppointmentStatus.IN_PROGRESS && (
+                {(appointment.status === AppointmentStatus.SCHEDULED ||
+                  appointment.status === AppointmentStatus.CONFIRMED ||
+                  appointment.status === AppointmentStatus.RESCHEDULED) && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation()
@@ -167,6 +172,17 @@ export function AppointmentCard({
                   >
                     <LogIn className="w-3.5 h-3.5 mr-2" />
                     Check In
+                  </DropdownMenuItem>
+                )}
+                {appointment.status === AppointmentStatus.CHECKED_IN && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAction('started', startMutation)
+                    }}
+                  >
+                    <Stethoscope className="w-3.5 h-3.5 mr-2" />
+                    Start
                   </DropdownMenuItem>
                 )}
                 {appointment.status === AppointmentStatus.IN_PROGRESS && (

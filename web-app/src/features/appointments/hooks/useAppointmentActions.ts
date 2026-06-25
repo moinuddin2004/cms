@@ -3,31 +3,41 @@ import {
   cancelAppointment,
   markNoShow,
   checkInAppointment,
+  startAppointment,
   completeAppointment,
   confirmAppointment,
 } from '../services/appointments.api'
+import type { CancelReason } from '../types'
 import { APPOINTMENTS_QUERY_KEY } from './useAppointments'
+import { QUEUE_QUERY_KEY } from './useQueue'
+
+function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_QUERY_KEY] })
+  queryClient.invalidateQueries({ queryKey: [QUEUE_QUERY_KEY] })
+  queryClient.invalidateQueries({ queryKey: ['appointment-stats'] })
+}
 
 function useStatusMutation(mutationFn: (id: string, ...args: any[]) => Promise<any>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: ['appointment-stats'] })
-    },
+    onSuccess: () => invalidateAll(queryClient),
   })
 }
 
 export function useCancelAppointment() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
-      cancelAppointment(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_QUERY_KEY] })
-      queryClient.invalidateQueries({ queryKey: ['appointment-stats'] })
-    },
+    mutationFn: ({
+      id,
+      reasonCode,
+      reason,
+    }: {
+      id: string
+      reasonCode?: CancelReason
+      reason?: string
+    }) => cancelAppointment(id, { reasonCode, reason }),
+    onSuccess: () => invalidateAll(queryClient),
   })
 }
 
@@ -37,6 +47,10 @@ export function useNoShow() {
 
 export function useCheckIn() {
   return useStatusMutation(checkInAppointment)
+}
+
+export function useStartAppointment() {
+  return useStatusMutation(startAppointment)
 }
 
 export function useCompleteAppointment() {

@@ -4,10 +4,12 @@ import type {
   AppointmentFormData,
   AppointmentListParams,
   AppointmentStats,
+  CancelReason,
   Doctor,
   PaginatedAppointments,
   ValidateAppointmentData,
   ValidationResult,
+  WalkInFormData,
 } from '../types'
 
 // ─── Appointments CRUD ──────────────────────────────────────────────
@@ -39,6 +41,21 @@ export async function updateAppointment(
   return data.data
 }
 
+export async function createWalkIn(
+  payload: WalkInFormData,
+): Promise<Appointment> {
+  const { data } = await api.post('/appointments/walk-in', payload)
+  return data.data
+}
+
+// ─── Today's Queue ──────────────────────────────────────────────────
+
+/** `date` is the client's local YYYY-MM-DD (defaults server-side to today). */
+export async function fetchQueue(date?: string): Promise<Appointment[]> {
+  const { data } = await api.get('/appointments/queue', { params: { date } })
+  return data.data
+}
+
 // ─── Validation ─────────────────────────────────────────────────────
 
 export async function validateAppointment(
@@ -52,9 +69,9 @@ export async function validateAppointment(
 
 export async function cancelAppointment(
   id: string,
-  reason?: string,
+  payload?: { reasonCode?: CancelReason; reason?: string },
 ): Promise<Appointment> {
-  const { data } = await api.patch(`/appointments/${id}/cancel`, { reason })
+  const { data } = await api.patch(`/appointments/${id}/cancel`, payload ?? {})
   return data.data
 }
 
@@ -65,6 +82,11 @@ export async function markNoShow(id: string): Promise<Appointment> {
 
 export async function checkInAppointment(id: string): Promise<Appointment> {
   const { data } = await api.patch(`/appointments/${id}/check-in`)
+  return data.data
+}
+
+export async function startAppointment(id: string): Promise<Appointment> {
+  const { data } = await api.patch(`/appointments/${id}/start`)
   return data.data
 }
 

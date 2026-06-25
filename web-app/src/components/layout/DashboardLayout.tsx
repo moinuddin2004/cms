@@ -13,8 +13,12 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({
   children,
+  title,
+  subtitle,
+  actions,
 }: DashboardLayoutProps) {
   const { sidebarCollapsed } = useUIStore()
+  const hasHeader = !!(title || subtitle || actions)
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -28,7 +32,28 @@ export function DashboardLayout({
         )}
       >
         <Topbar />
-        <main className="p-6">{children}</main>
+        <main className="p-6">
+          {hasHeader && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+              <div>
+                {title && (
+                  <h1 className="text-2xl font-bold text-foreground">
+                    {title}
+                  </h1>
+                )}
+                {subtitle && (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
+              </div>
+              {actions && (
+                <div className="flex items-center gap-2">{actions}</div>
+              )}
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </div>
   )

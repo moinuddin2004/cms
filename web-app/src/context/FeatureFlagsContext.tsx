@@ -52,6 +52,16 @@ export function useFeature(key: string): boolean {
 }
 
 /**
+ * Access to the full enabled-feature set plus loading state — used by the
+ * sidebar to hide nav items and by route guards to avoid a flash while the
+ * org's flags are still loading.
+ */
+export function useFeatures(): { features: Set<string>; isLoading: boolean } {
+  const { features, isLoading } = useContext(FeatureFlagsContext)
+  return { features, isLoading }
+}
+
+/**
  * Returns true if the active org has the given specialty tag.
  */
 export function useSpecialty(specialty: string): boolean {

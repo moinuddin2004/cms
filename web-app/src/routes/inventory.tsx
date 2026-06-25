@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -21,7 +22,11 @@ import {
 } from '@/features/inventory'
 
 export const Route = createFileRoute('/inventory')({
-  component: InventoryPage,
+  component: () => (
+    <RequireFeaturePage feature="inventory.core">
+      <InventoryPage />
+    </RequireFeaturePage>
+  ),
 })
 
 function InventoryPage() {

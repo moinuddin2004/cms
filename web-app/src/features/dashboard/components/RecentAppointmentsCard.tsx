@@ -25,7 +25,8 @@ interface Props {
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
-  [AppointmentStatus.IN_PROGRESS]: 'In Progress',
+  [AppointmentStatus.CHECKED_IN]: 'Waiting',
+  [AppointmentStatus.IN_PROGRESS]: 'In Room',
   [AppointmentStatus.COMPLETED]: 'Completed',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
   [AppointmentStatus.NO_SHOW]: 'No Show',

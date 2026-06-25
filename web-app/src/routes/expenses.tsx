@@ -1,4 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,7 +24,11 @@ import { ExpenseFormDialog } from '@/features/billing/components/ExpenseFormDial
 import { ExpenseCategory } from '@/features/billing/types'
 
 export const Route = createFileRoute('/expenses')({
-  component: ExpensesPage,
+  component: () => (
+    <RequireFeaturePage feature="billing.expenses">
+      <ExpensesPage />
+    </RequireFeaturePage>
+  ),
 })
 
 const CATEGORY_TABS: Array<{ label: string; value?: ExpenseCategory }> = [

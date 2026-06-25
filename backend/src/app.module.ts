@@ -23,6 +23,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
 import { InventoryModule } from './inventory/inventory.module';
+import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -87,6 +88,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     FeatureFlagsModule,
     BillingModule,
     InventoryModule,
+    PrescriptionsModule,
   ],
   controllers: [AppController],
   providers: [

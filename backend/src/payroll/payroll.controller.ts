@@ -22,8 +22,10 @@ import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+@RequireFeature('hr.payroll')
 @Controller('payroll')
 export class PayrollController {
   constructor(

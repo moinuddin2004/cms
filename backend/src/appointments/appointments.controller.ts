@@ -14,14 +14,17 @@ import {
 } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { CreateWalkInDto } from './dto/create-walk-in.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { ValidateAppointmentDto } from './dto/validate-appointment.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { AppointmentFilterDto } from './dto/appointment-filter.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+@RequireFeature('appointments.core')
 @Controller('appointments')
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
@@ -39,6 +42,30 @@ export class AppointmentsController {
   ) {
     const data = await this.appointmentsService.create(ctx, dto, req.user?.uuid);
     return ResponseWrapper.success(data, 'Appointment created successfully');
+  }
+
+  @Post('walk-in')
+  @HttpCode(HttpStatus.CREATED)
+  async createWalkIn(
+    @Body() dto: CreateWalkInDto,
+    @ActiveTenant() ctx: TenantContext,
+    @Req() req: any,
+  ) {
+    const data = await this.appointmentsService.createWalkIn(
+      ctx,
+      dto,
+      req.user?.uuid,
+    );
+    return ResponseWrapper.success(data, 'Walk-in checked in');
+  }
+
+  @Get('queue')
+  async getQueue(
+    @Query('date') date: string | undefined,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.appointmentsService.getQueue(ctx, date);
+    return ResponseWrapper.success(data, "Today's queue retrieved");
   }
 
   @Get()
@@ -149,6 +176,16 @@ export class AppointmentsController {
   ) {
     const data = await this.appointmentsService.checkIn(id, ctx, req.user?.uuid);
     return ResponseWrapper.success(data, 'Patient checked in');
+  }
+
+  @Patch(':id/start')
+  async start(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+    @Req() req: any,
+  ) {
+    const data = await this.appointmentsService.start(id, ctx, req.user?.uuid);
+    return ResponseWrapper.success(data, 'Consultation started');
   }
 
   @Patch(':id/complete')

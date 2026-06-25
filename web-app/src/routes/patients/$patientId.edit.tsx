@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,7 +9,11 @@ import { useUpdatePatient } from '@/features/patients/hooks/useUpdatePatient'
 import type { PatientFormData } from '@/features/patients/types'
 
 export const Route = createFileRoute('/patients/$patientId/edit')({
-  component: EditPatientPage,
+  component: () => (
+    <RequireFeaturePage feature="patients.core">
+      <EditPatientPage />
+    </RequireFeaturePage>
+  ),
 })
 
 function EditPatientPage() {

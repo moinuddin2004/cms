@@ -5,12 +5,27 @@ import { z } from 'zod'
 export enum AppointmentStatus {
   SCHEDULED = 'scheduled',
   CONFIRMED = 'confirmed',
+  /** Arrived, token assigned, waiting to be seen. */
+  CHECKED_IN = 'checked_in',
+  /** With the doctor ("in room"). */
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   NO_SHOW = 'no_show',
   RESCHEDULED = 'rescheduled',
 }
+
+export enum CancelReason {
+  NO_SHOW = 'no_show',
+  PATIENT_LEFT = 'patient_left',
+  OTHER = 'other',
+}
+
+export const CANCEL_REASON_OPTIONS = [
+  { label: 'No Show', value: CancelReason.NO_SHOW },
+  { label: 'Patient Left', value: CancelReason.PATIENT_LEFT },
+  { label: 'Other', value: CancelReason.OTHER },
+] as const
 
 export enum AppointmentType {
   CONSULTATION = 'consultation',
@@ -35,7 +50,8 @@ export const APPOINTMENT_TYPE_OPTIONS = [
 export const APPOINTMENT_STATUS_OPTIONS = [
   { label: 'Scheduled', value: AppointmentStatus.SCHEDULED },
   { label: 'Confirmed', value: AppointmentStatus.CONFIRMED },
-  { label: 'In Progress', value: AppointmentStatus.IN_PROGRESS },
+  { label: 'Checked In', value: AppointmentStatus.CHECKED_IN },
+  { label: 'In Room', value: AppointmentStatus.IN_PROGRESS },
   { label: 'Completed', value: AppointmentStatus.COMPLETED },
   { label: 'Cancelled', value: AppointmentStatus.CANCELLED },
   { label: 'No Show', value: AppointmentStatus.NO_SHOW },
@@ -54,7 +70,8 @@ export const DURATION_OPTIONS = [
 export const STATUS_COLORS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: '#3b82f6',
   [AppointmentStatus.CONFIRMED]: '#8b5cf6',
-  [AppointmentStatus.IN_PROGRESS]: '#f59e0b',
+  [AppointmentStatus.CHECKED_IN]: '#eab308',
+  [AppointmentStatus.IN_PROGRESS]: '#16a34a',
   [AppointmentStatus.COMPLETED]: '#22c55e',
   [AppointmentStatus.CANCELLED]: '#ef4444',
   [AppointmentStatus.NO_SHOW]: '#6b7280',
@@ -64,11 +81,24 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
 export const STATUS_BG_COLORS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'bg-blue-50 border-blue-200 text-blue-700',
   [AppointmentStatus.CONFIRMED]: 'bg-violet-50 border-violet-200 text-violet-700',
-  [AppointmentStatus.IN_PROGRESS]: 'bg-amber-50 border-amber-200 text-amber-700',
+  [AppointmentStatus.CHECKED_IN]: 'bg-amber-50 border-amber-200 text-amber-700',
+  [AppointmentStatus.IN_PROGRESS]: 'bg-green-50 border-green-300 text-green-700',
   [AppointmentStatus.COMPLETED]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   [AppointmentStatus.CANCELLED]: 'bg-red-50 border-red-200 text-red-700',
   [AppointmentStatus.NO_SHOW]: 'bg-status-error/10 border-status-error/20 text-status-error',
   [AppointmentStatus.RESCHEDULED]: 'bg-cyan-50 border-cyan-200 text-cyan-700',
+}
+
+/** Human label per status — used in the queue and badges. */
+export const STATUS_LABELS: Record<AppointmentStatus, string> = {
+  [AppointmentStatus.SCHEDULED]: 'Scheduled',
+  [AppointmentStatus.CONFIRMED]: 'Confirmed',
+  [AppointmentStatus.CHECKED_IN]: 'Waiting',
+  [AppointmentStatus.IN_PROGRESS]: 'In Room',
+  [AppointmentStatus.COMPLETED]: 'Completed',
+  [AppointmentStatus.CANCELLED]: 'Cancelled',
+  [AppointmentStatus.NO_SHOW]: 'No Show',
+  [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
 // ─── API Response Types ─────────────────────────────────────────────
@@ -99,10 +129,18 @@ export interface Appointment {
   startTime: string
   endTime: string
   durationMinutes: number
+  tokenNumber: number | null
+  tokenPrefix: string | null
+  reasonForVisit: string | null
   isWalkIn: boolean
   isEmergency: boolean
   notes: string | null
+  cancelReasonCode: CancelReason | null
   cancelReason: string | null
+  checkedInAt: string | null
+  inRoomAt: string | null
+  completedAt: string | null
+  cancelledAt: string | null
   createdBy: string | null
   updatedBy: string | null
   createdAt: string
@@ -111,6 +149,13 @@ export interface Appointment {
   patient?: AppointmentPatient
   doctor?: Doctor | null
   location?: { id: string; name: string }
+}
+
+/** "KHI-007" display label, or "—" when no token has been assigned yet. */
+export function formatToken(appt: Pick<Appointment, 'tokenNumber' | 'tokenPrefix'>): string {
+  if (appt.tokenNumber == null) return '—'
+  const prefix = appt.tokenPrefix || 'T'
+  return `${prefix}-${String(appt.tokenNumber).padStart(3, '0')}`
 }
 
 export interface ValidationResult {
@@ -126,9 +171,23 @@ export interface AppointmentStats {
   cancelled: number
   noShow: number
   scheduled: number
+  waiting: number
   inProgress: number
   completionRate: number
   noShowRate: number
+}
+
+export interface WalkInFormData {
+  patientId?: string
+  patientName?: string
+  patientPhone?: string
+  doctorId?: string
+  type?: AppointmentType
+  duration?: number
+  reasonForVisit?: string
+  notes?: string
+  isEmergency?: boolean
+  force?: boolean
 }
 
 export interface PaginatedAppointments {
@@ -146,6 +205,7 @@ export const appointmentFormSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   duration: z.coerce.number().min(5).max(480),
   type: z.nativeEnum(AppointmentType).default(AppointmentType.CONSULTATION),
+  reasonForVisit: z.string().optional(),
   notes: z.string().optional(),
   isWalkIn: z.boolean().default(false),
   isEmergency: z.boolean().default(false),
@@ -171,6 +231,8 @@ export interface AppointmentListParams {
   patientId?: string
   status?: AppointmentStatus
   type?: AppointmentType
+  /** ILIKE across patient name, phone, and patient number. */
+  search?: string
   page?: number
   limit?: number
 }

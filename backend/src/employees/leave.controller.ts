@@ -20,8 +20,10 @@ import {
 } from './dto/update-leave.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+@RequireFeature('hr.leave')
 @Controller('leaves')
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {}

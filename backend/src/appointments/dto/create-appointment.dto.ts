@@ -32,6 +32,10 @@ export class CreateAppointmentDto {
 
   @IsString()
   @IsOptional()
+  reasonForVisit?: string;
+
+  @IsString()
+  @IsOptional()
   notes?: string;
 
   @IsBoolean()

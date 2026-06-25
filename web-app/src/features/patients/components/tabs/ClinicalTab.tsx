@@ -1,48 +1,173 @@
+import { Link } from '@tanstack/react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, ClipboardList, Printer, Calendar } from 'lucide-react'
+import {
+  Loader2,
+  ClipboardList,
+  Printer,
+  Calendar,
+  Plus,
+  ExternalLink,
+  ChevronDown,
+  FileText,
+  History,
+} from 'lucide-react'
 import { usePrescriptions } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientPrescription } from '../../types'
 import { PrescriptionFormDialog } from './PrescriptionFormDialog'
 import { printPrescription } from '../../utils/print'
+import { usePrescriptionsByPatient } from '@/features/prescriptions'
 
 export function ClinicalTab({ patient }: { patient: Patient }) {
   const { data: prescriptions = [], isLoading } = usePrescriptions(patient.id)
+  const { data: newRxData } = usePrescriptionsByPatient(patient.id, 1, 20)
+  const newRxList = newRxData?.data ?? []
+  const newRxTotal = newRxData?.total ?? 0
+  const legacyCount = prescriptions.length
 
   return (
     <div className="space-y-6 mt-4 animate-in fade-in duration-300">
-      {/* Rx Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <ClipboardList className="text-brand-600" size={20} />
-              Prescriptions
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              History of prescribed medications.
-            </p>
+      {/* ── Primary: full prescription builder (Rx module) ───────────── */}
+      <Card className="shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <ClipboardList className="text-brand-600" size={20} />
+                Prescriptions
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Bilingual builder with templates, doctor signature, and printable PDF.
+              </p>
+            </div>
+            <Button asChild>
+              <Link
+                to={'/prescriptions/new' as any}
+                search={{ patientId: patient.id } as any}
+              >
+                <Plus className="h-4 w-4 mr-1.5" /> New Prescription
+              </Link>
+            </Button>
           </div>
-          <PrescriptionFormDialog patientId={patient.id} />
-        </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {newRxList.length === 0 ? (
+            <div className="p-10 text-center text-muted-foreground">
+              <FileText className="w-10 h-10 mx-auto opacity-30 mb-2" />
+              <p className="text-sm font-medium">No prescriptions yet</p>
+              <p className="text-xs mt-1">
+                Click "New Prescription" to create one with the full builder.
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y">
+              {newRxList.map((rx) => (
+                <li
+                  key={rx.id}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-md bg-brand-50 text-brand-700 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs font-semibold">
+                          {rx.prescriptionNumber}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={
+                            rx.status === 'FINALIZED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]'
+                              : rx.status === 'DRAFT'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 text-[10px]'
+                                : 'bg-blue-50 text-blue-700 border-blue-200 text-[10px]'
+                          }
+                        >
+                          {rx.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                        {new Date(rx.createdAt).toLocaleDateString('en-GB')}
+                        {rx.doctor?.fullName && ` · Dr. ${rx.doctor.fullName}`}
+                        {' · '}
+                        {rx.medicines?.length ?? 0} medicine
+                        {(rx.medicines?.length ?? 0) === 1 ? '' : 's'}
+                        {rx.diagnosis ? ` · ${rx.diagnosis}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link
+                      to={'/prescriptions/$prescriptionId' as any}
+                      params={{ prescriptionId: rx.id } as any}
+                    >
+                      Open <ExternalLink className="h-3 w-3 ml-1" />
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {newRxTotal > newRxList.length && (
+            <div className="px-4 py-2 text-center border-t text-xs text-muted-foreground">
+              Showing {newRxList.length} of {newRxTotal} —{' '}
+              <Link
+                to={'/prescriptions' as any}
+                search={{ patientId: patient.id } as any}
+                className="underline hover:text-foreground"
+              >
+                view all
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="animate-spin text-muted-foreground" />
+      {/* ── Legacy quick-Rx (collapsed, secondary) ───────────────────── */}
+      {(legacyCount > 0 || !isLoading) && (
+        <details className="group bg-muted/20 border rounded-lg [&_summary::-webkit-details-marker]:hidden">
+          <summary className="flex items-center justify-between cursor-pointer px-4 py-2.5 hover:bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">
+                Legacy quick-Rx history
+              </span>
+              {legacyCount > 0 && (
+                <Badge variant="secondary" className="text-[10px]">
+                  {legacyCount}
+                </Badge>
+              )}
+            </div>
+            <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="px-4 pt-1 pb-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                Older prescriptions saved in the simple form. Kept for reference.
+              </p>
+              <PrescriptionFormDialog patientId={patient.id} />
+            </div>
+            {isLoading ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="animate-spin text-muted-foreground" />
+              </div>
+            ) : legacyCount === 0 ? (
+              <p className="text-xs italic text-muted-foreground py-2">
+                No legacy prescriptions.
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {prescriptions.map((px) => (
+                  <PrescriptionCard key={px.id} rx={px} patient={patient} />
+                ))}
+              </div>
+            )}
           </div>
-        ) : prescriptions.length === 0 ? (
-          <Card className="min-h-[150px] flex flex-col items-center justify-center p-6 border-dashed bg-muted/20 text-muted-foreground text-center">
-            <p className="font-medium">No prescriptions found.</p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {prescriptions.map((px) => (
-              <PrescriptionCard key={px.id} rx={px} patient={patient} />
-            ))}
-          </div>
-        )}
-      </div>
+        </details>
+      )}
     </div>
   )
 }

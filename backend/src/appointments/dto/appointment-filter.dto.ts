@@ -1,4 +1,4 @@
-import { IsOptional, IsDateString, IsEnum, IsUUID, IsInt, Min } from 'class-validator';
+import { IsOptional, IsDateString, IsEnum, IsString, IsUUID, IsInt, Min, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';
@@ -27,6 +27,12 @@ export class AppointmentFilterDto {
   @IsOptional()
   @IsEnum(AppointmentType)
   type?: AppointmentType;
+
+  /** Free-text search across patient name, phone and patient number. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 
   @IsOptional()
   @Type(() => Number)

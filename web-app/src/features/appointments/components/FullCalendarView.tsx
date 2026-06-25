@@ -55,10 +55,15 @@ const STATUS_FC_COLORS: Record<
     border: '#8b5cf6',
     text: '#5b21b6',
   },
+  [AppointmentStatus.CHECKED_IN]: {
+    bg: '#fef9c3',
+    border: '#eab308',
+    text: '#854d0e',
+  },
   [AppointmentStatus.IN_PROGRESS]: {
-    bg: '#fef3c7',
-    border: '#f59e0b',
-    text: '#92400e',
+    bg: '#dcfce7',
+    border: '#16a34a',
+    text: '#166534',
   },
   [AppointmentStatus.COMPLETED]: {
     bg: '#dcfce7',
@@ -85,7 +90,8 @@ const STATUS_FC_COLORS: Record<
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
-  [AppointmentStatus.IN_PROGRESS]: 'In Progress',
+  [AppointmentStatus.CHECKED_IN]: 'Waiting',
+  [AppointmentStatus.IN_PROGRESS]: 'In Room',
   [AppointmentStatus.COMPLETED]: 'Completed',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
   [AppointmentStatus.NO_SHOW]: 'No Show',
@@ -116,7 +122,7 @@ export function FullCalendarView({
   currentView,
 }: FullCalendarViewProps) {
   const calendarRef = useRef<FullCalendar>(null)
-  const { openCreateModal, openEditModal } = useAppointmentStore()
+  const { openCreateModal, openDetailModal } = useAppointmentStore()
   const updateMutation = useUpdateAppointment()
 
   // ─── Is this a resource view? ─────────────────────────────────────
@@ -245,10 +251,12 @@ export function FullCalendarView({
     (clickInfo: EventClickArg) => {
       const appt = clickInfo.event.extendedProps.appointment as Appointment
       if (appt) {
-        openEditModal(appt.id)
+        // Open the read-only detail modal first; doctors can jump to Edit
+        // or the patient record from there.
+        openDetailModal(appt.id)
       }
     },
-    [openEditModal],
+    [openDetailModal],
   )
 
   const handleEventDrop = useCallback(
@@ -373,6 +381,11 @@ export function FullCalendarView({
               <TooltipTrigger asChild>
                 <div className="w-full h-full px-1.5 py-1 overflow-hidden cursor-pointer">
                   <div className="flex items-center gap-1">
+                    {appt.tokenNumber != null && (
+                      <span className="text-[9px] font-bold bg-black/10 rounded px-1 tabular-nums leading-tight">
+                        #{appt.tokenNumber}
+                      </span>
+                    )}
                     <span className="font-semibold text-[11px] truncate leading-tight">
                       {appt.patient?.fullName || 'Unknown'}
                     </span>
@@ -489,10 +502,7 @@ export function FullCalendarView({
   // ─── Render ───────────────────────────────────────────────────────
 
   return (
-    <div
-      className="flex-1 bg-card border rounded-xl overflow-hidden fc-wrapper"
-      style={{ minHeight: 600 }}
-    >
+    <div className="flex-1 bg-card border rounded-xl overflow-hidden fc-wrapper">
       <style>{`
         .fc-wrapper .fc {
           --fc-border-color: var(--border);
@@ -530,8 +540,10 @@ export function FullCalendarView({
           border-bottom: 2px solid var(--border);
         }
         /* ─── Time grid slots ─── */
+        /* 30-min slot at 28px → ~1344px for 24h, manageable inside a scroll
+           container without overwhelming the page. */
         .fc-wrapper .fc .fc-timegrid-slot {
-          height: 48px;
+          height: 28px;
         }
         .fc-wrapper .fc .fc-timegrid-slot-label {
           font-size: 10px;
@@ -627,17 +639,23 @@ export function FullCalendarView({
         events={allEvents}
         resources={resources}
         headerToolbar={false}
-        height="auto"
-        contentHeight="auto"
+        // Fixed height so the grid has its own scroll container — required
+        // for `scrollTime` to land at 8 AM instead of midnight when the user
+        // opens a 24-hour day/week view.
+        height={720}
         // ─── Resource settings ──────────────────────────
         resourceLabelContent={renderResourceLabel}
         resourceOrder="title"
         datesAboveResources={true}
         // ─── Time grid settings ─────────────────────────
-        slotMinTime="07:00:00"
-        slotMaxTime="21:00:00"
-        slotDuration="00:15:00"
+        // Full 24-hour grid — appointments outside clinic hours (late-night
+        // emergencies, early-morning slots) must still be visible.
+        slotMinTime="00:00:00"
+        slotMaxTime="24:00:00"
+        slotDuration="00:30:00"
         slotLabelInterval="01:00:00"
+        scrollTime="08:00:00"
+        scrollTimeReset={false}
         allDaySlot={false}
         nowIndicator={true}
         // ─── Interaction ────────────────────────────────
@@ -653,8 +671,13 @@ export function FullCalendarView({
         // ─── Custom rendering ───────────────────────────
         eventContent={renderEventContent}
         // ─── Date change sync ───────────────────────────
+        // Use `view.currentStart` (actual first day of the month / week / day)
+        // — NOT `dateInfo.start`, which in month view is the first cell of the
+        // visible 6-week grid and usually sits in the previous month. Writing
+        // that back into selectedDate and re-syncing was pulling the calendar
+        // a month backwards, making forward navigation feel stuck.
         datesSet={(dateInfo) => {
-          onDateChange(dateInfo.start)
+          onDateChange(dateInfo.view.currentStart)
           onViewChange(dateInfo.view.type)
         }}
         // ─── Other ──────────────────────────────────────

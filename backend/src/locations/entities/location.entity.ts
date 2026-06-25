@@ -30,6 +30,13 @@ export class Location {
   @Column({ name: 'code', type: 'varchar', length: 50 })
   code: string;
 
+  /**
+   * Short prefix for daily appointment tokens (e.g. "KHI" → "KHI-007").
+   * Falls back to `code` when unset.
+   */
+  @Column({ name: 'token_prefix', type: 'varchar', length: 12, nullable: true })
+  tokenPrefix: string | null;
+
   @Column({ name: 'address', type: 'text', nullable: true })
   address: string | null;
 

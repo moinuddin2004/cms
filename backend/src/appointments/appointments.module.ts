@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Appointment } from './entities/appointment.entity';
+import { AppointmentTokenCounter } from './entities/appointment-token-counter.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { EmployeeSchedule } from 'src/employees/entities/employee-schedule.entity';
+import { Location } from 'src/locations/entities/location.entity';
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 
@@ -12,10 +14,12 @@ import { AppointmentsService } from './appointments.service';
   imports: [
     TypeOrmModule.forFeature([
       Appointment,
+      AppointmentTokenCounter,
       Patient,
       Employee,
       EmployeeOrgLocationAssignment,
       EmployeeSchedule,
+      Location,
     ]),
   ],
   controllers: [AppointmentsController],

@@ -15,12 +15,14 @@ import {
   Loader2,
   Shield,
   Boxes,
+  FileText,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchLowStockItems } from '@/features/inventory/services/inventory.api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useFeatures } from '@/context/FeatureFlagsContext'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +35,8 @@ interface NavItem {
   icon: React.ElementType
   href: string
   show?: (auth: ReturnType<typeof useAuthStore.getState>) => boolean
+  /** Org feature key — item is hidden entirely when the feature is disabled. */
+  feature?: string
 }
 
 const mainNavItems: NavItem[] = [
@@ -50,13 +54,24 @@ const mainNavItems: NavItem[] = [
     show: (auth) => auth.isSuperAdmin || auth.accessSource === 'owner',
   },
   { label: 'User Admin', icon: Shield, href: '/users' },
-  { label: 'Patients', icon: Users, href: '/patients' },
+  { label: 'Patients', icon: Users, href: '/patients', feature: 'patients.core' },
   { label: 'Employees', icon: Users, href: '/employees' },
-  { label: 'Payroll', icon: CreditCard, href: '/payroll' },
-  { label: 'Appointments', icon: CalendarDays, href: '/appointments' },
-  { label: 'Inventory', icon: Boxes, href: '/inventory' },
-  { label: 'Invoices', icon: Receipt, href: '/invoices' },
-  { label: 'Expenses', icon: Wallet, href: '/expenses' },
+  { label: 'Payroll', icon: CreditCard, href: '/payroll', feature: 'hr.payroll' },
+  {
+    label: 'Appointments',
+    icon: CalendarDays,
+    href: '/appointments',
+    feature: 'appointments.core',
+  },
+  { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
+  {
+    label: 'Prescriptions',
+    icon: FileText,
+    href: '/prescriptions',
+    feature: 'patients.prescriptions',
+  },
+  { label: 'Invoices', icon: Receipt, href: '/invoices', feature: 'billing.invoices' },
+  { label: 'Expenses', icon: Wallet, href: '/expenses', feature: 'billing.expenses' },
 ]
 
 const bottomNavItems: NavItem[] = [
@@ -90,6 +105,7 @@ function InventoryLowStockBadge() {
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const { features } = useFeatures()
   const authStore = useAuthStore()
   const { user, clearAuth } = authStore
   const routerState = useRouterState()
@@ -160,6 +176,7 @@ export function Sidebar() {
         <ul className="space-y-1">
           {mainNavItems.map((item) => {
             if (item.show && !item.show(authStore)) return null
+            if (item.feature && !features.has(item.feature)) return null
             const isActive =
               currentPath === item.href ||
               currentPath.startsWith(item.href + '/')

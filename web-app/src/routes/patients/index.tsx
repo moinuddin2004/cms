@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -17,7 +18,11 @@ import type { PatientListParams } from '@/features/patients/types'
 import { Users } from 'lucide-react'
 
 export const Route = createFileRoute('/patients/')({
-  component: PatientsListPage,
+  component: () => (
+    <RequireFeaturePage feature="patients.core">
+      <PatientsListPage />
+    </RequireFeaturePage>
+  ),
 })
 
 function PatientsListPage() {
