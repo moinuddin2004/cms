@@ -16,22 +16,13 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { InitialsAvatar, StatusBadge } from '@/components/shared'
 import { Eye, Pencil, UserX } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {
   patients: Patient[]
   onDeactivate: (id: string) => void
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
 }
 
 function getAge(dob: string | null): string {
@@ -50,20 +41,16 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
           const p = row.original
           return (
             <div className="flex items-center gap-3">
-              <Avatar className="w-8 h-8">
-                <AvatarFallback className="bg-brand-100 text-brand-700 text-xs font-semibold">
-                  {getInitials(p.fullName)}
-                </AvatarFallback>
-              </Avatar>
+              <InitialsAvatar name={p.fullName} seed={p.id} size="sm" />
               <div>
                 <Link
                   to="/patients/$patientId"
                   params={{ patientId: p.id }}
-                  className="font-medium text-sm text-foreground hover:text-brand-600 transition-colors"
+                  className="text-sm font-semibold text-foreground transition-colors hover:text-primary-text"
                 >
                   {p.fullName}
                 </Link>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-mono text-[11px] text-text-3">
                   {p.patientNumber}
                 </p>
               </div>
@@ -126,21 +113,9 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
       {
         accessorKey: 'isActive',
         header: 'Status',
-        cell: ({ getValue }) => {
-          const active = getValue<boolean>()
-          return (
-            <Badge
-              variant={active ? 'default' : 'secondary'}
-              className={
-                active
-                  ? 'bg-status-success/10 text-status-success border-status-success/20 hover:bg-status-success/10'
-                  : 'bg-muted text-muted-foreground'
-              }
-            >
-              {active ? 'Active' : 'Inactive'}
-            </Badge>
-          )
-        },
+        cell: ({ getValue }) => (
+          <StatusBadge status={getValue<boolean>() ? 'active' : 'inactive'} />
+        ),
       },
       {
         id: 'actions',
@@ -186,18 +161,18 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
   })
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow
               key={headerGroup.id}
-              className="bg-muted/40 hover:bg-muted/40"
+              className="border-border-soft bg-panel hover:bg-panel"
             >
               {headerGroup.headers.map((header) => (
                 <TableHead
                   key={header.id}
-                  className="text-xs font-semibold uppercase tracking-wider"
+                  className="text-[11px] font-semibold uppercase tracking-[0.05em] text-text-3"
                 >
                   {header.isPlaceholder
                     ? null
@@ -215,7 +190,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className="hover:bg-muted/20 transition-colors"
+                className="border-border-soft transition-colors hover:bg-panel"
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id} className="py-3">

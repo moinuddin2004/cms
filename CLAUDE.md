@@ -4,9 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Multi-tenant dental/medical practice management CMS. Monorepo with:
+Multi-tenant dental/medical practice management SaaS (DentalFlow). Monorepo with:
 - `cms/backend/` — NestJS 11 REST API (TypeScript, TypeORM, PostgreSQL)
-- `cms/web-app/` — React 19 SPA (TanStack Start/Router/Query, shadcn/ui, Tailwind CSS 4)
+- `cms/web-app/` — React 19 SPA (TanStack Start/Router/Query/Form/Table, shadcn/ui, Tailwind CSS 4, Zustand)
+
+---
 
 ## Commands
 
@@ -34,61 +36,299 @@ npm run test             # Vitest
 npm run check            # Prettier write + ESLint fix
 ```
 
-## Architecture
+---
+
+## Frontend File Structure (STRICT — Never Deviate)
+
+```
+src/
+├── app/                          # TanStack Start routes ONLY — zero logic here
+│   ├── __root.tsx
+│   ├── _auth/
+│   │   ├── login.tsx             → renders <LoginPage />
+│   │   └── register.tsx          → renders <RegisterPage />
+│   ├── _dashboard/
+│   │   ├── layout.tsx            # Dashboard shell (sidebar + header)
+│   │   ├── index.tsx             → renders <DashboardPage />
+│   │   ├── patients/
+│   │   │   ├── index.tsx         → renders <PatientsPage />
+│   │   │   └── $patientId.tsx    → renders <PatientDetailPage />
+│   │   ├── appointments/
+│   │   │   ├── index.tsx         → renders <AppointmentsPage />
+│   │   │   └── $appointmentId.tsx
+│   │   ├── treatments/index.tsx
+│   │   ├── billing/
+│   │   │   ├── index.tsx
+│   │   │   └── $invoiceId.tsx
+│   │   ├── staff/
+│   │   │   ├── index.tsx
+│   │   │   └── $staffId.tsx
+│   │   └── settings/index.tsx
+│   └── api/                      # TanStack Start server functions only
+│
+├── features/                     # ALL business logic lives here
+│   └── [feature-name]/
+│       ├── index.ts              # barrel export — always import from here cross-feature
+│       ├── pages/
+│       │   ├── [Feature]Page.tsx
+│       │   └── [Feature]DetailPage.tsx
+│       ├── components/
+│       │   ├── [Feature]Table.tsx
+│       │   ├── [Feature]Card.tsx
+│       │   ├── [Feature]Form.tsx
+│       │   ├── [Feature]Filters.tsx
+│       │   └── [Feature]Sheet.tsx
+│       ├── hooks/
+│       │   ├── use[Feature]s.ts       # TanStack Query hooks
+│       │   ├── use[Feature]Form.ts    # TanStack Form logic
+│       │   └── use[Feature]Store.ts   # Zustand slice
+│       ├── api/
+│       │   └── [feature].api.ts       # axios calls only
+│       ├── schemas/
+│       │   └── [feature].schema.ts    # Zod schemas
+│       └── types/
+│           └── [feature].types.ts
+│
+├── shared/
+│   ├── components/
+│   │   ├── ui/                        # shadcn/ui — auto-generated, NEVER edit manually
+│   │   ├── layout/
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── Header.tsx
+│   │   │   └── PageWrapper.tsx        # wraps every page — breadcrumbs + page header
+│   │   ├── data-display/
+│   │   │   ├── DataTable.tsx          # generic TanStack Table wrapper
+│   │   │   ├── DataCards.tsx
+│   │   │   ├── ViewToggle.tsx         # card/list toggle button
+│   │   │   ├── StatusBadge.tsx
+│   │   │   ├── Avatar.tsx
+│   │   │   └── StatCard.tsx
+│   │   ├── feedback/
+│   │   │   ├── LoadingSkeleton.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   └── ErrorState.tsx
+│   │   └── forms/
+│   │       ├── FieldWrapper.tsx       # label + error wrapper for ALL form fields
+│   │       ├── FormInput.tsx
+│   │       ├── FormSelect.tsx
+│   │       ├── FormTextarea.tsx
+│   │       ├── FormDatePicker.tsx
+│   │       └── FormPhoneInput.tsx
+│   ├── hooks/
+│   │   ├── useDebounce.ts
+│   │   ├── usePagination.ts
+│   │   ├── useViewMode.ts
+│   │   └── useTableFilters.ts
+│   ├── lib/
+│   │   ├── axios.ts                   # configured axios instance with interceptors
+│   │   ├── queryClient.ts             # TanStack Query client config
+│   │   └── utils.ts                   # cn() + other helpers
+│   ├── store/
+│   │   └── index.ts                   # Zustand root store (combines all slices)
+│   └── types/
+│       ├── api.types.ts               # ApiResponse<T>, PaginatedResponse<T>
+│       └── common.types.ts
+│
+└── styles/
+    └── globals.css
+```
+
+---
+
+## Frontend Rules (Read Before Every Task)
+
+### Route Files
+- Route files in `app/` contain **ZERO logic** — only import and render the feature page
+```tsx
+// app/_dashboard/patients/index.tsx
+import { PatientsPage } from '@/features/patients'
+export default function PatientsRoute() {
+  return <PatientsPage />
+}
+```
+
+### Forms — TanStack Form ONLY
+- **NEVER use `react-hook-form`** — it is banned from this project
+- Always use `@tanstack/react-form` with `@tanstack/zod-form-adapter`
+- Every form must have:
+  - Zod schema in `schemas/[feature].schema.ts`
+  - `useForm` hook extracted into `hooks/use[Feature]Form.ts`
+  - Submit button disabled when `!canSubmit` or `isSubmitting`
+  - Field-level validation with error messages shown below each field
+  - Dirty state tracked — show unsaved changes warning if needed
+```tsx
+<form.Field name="fieldName">
+  {(field) => (
+    <FieldWrapper label="Label" error={field.state.meta.errors[0]}>
+      <FormInput
+        value={field.state.value}
+        onChange={(e) => field.handleChange(e.target.value)}
+        onBlur={field.handleBlur}
+      />
+    </FieldWrapper>
+  )}
+</form.Field>
+```
+
+### Forms Open in Sheets
+- **NEVER** open a form as a separate page (unless multi-step wizard)
+- Always use shadcn `Sheet` (slide-over panel)
+- Each feature has a `[Feature]Sheet.tsx` wrapping the form
+
+### Listings — Card + List View Both Required
+- Every listing page must have a View Toggle (card/list switch)
+- Toggle state via `useViewMode` hook
+- **List view** (TanStack Table): column sorting, row hover, action column (last), pagination (size selector + prev/next + page info)
+- **Card view**: responsive grid of `[Feature]Card.tsx`
+- Both views show same data and support same actions
+
+### Filters — Every Listing
+- Filters row below page header on every listing
+- Debounced search input (300ms) for text filters
+- Filter state in Zustand store or URL search params
+- Show active filter count badge when filters applied
+- "Clear all filters" button appears when any filter is active
+- "No results for your filters" state — different from empty state
+
+### Breadcrumbs — Every Page
+- Every page must show breadcrumbs via `PageWrapper`
+```tsx
+<PageWrapper
+  title="Patient Details"
+  breadcrumbs={[
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Patients', href: '/dashboard/patients' },
+    { label: patient.name },
+  ]}
+>
+```
+
+### Action Buttons
+- Primary action (Create/Add) → filled button, top-right of page header
+- Row actions → `DropdownMenu` (three-dot) for 3+ actions; icon buttons for 1-2
+- Destructive (Delete) → always confirm dialog first
+- Loading state on every button during async operation
+
+### States — Required Everywhere
+- Loading → `LoadingSkeleton` (never blank screen)
+- Empty → `EmptyState` (icon + message + CTA)
+- Error → `ErrorState` (with retry button)
+- No results (filtered) → distinct message from empty
+
+### API Layer
+- All axios calls in `[feature].api.ts` files only — never in components
+- Return typed responses using `ApiResponse<T>` from `shared/types`
+- TanStack Query hooks in `use[Feature]s.ts` consume the api functions
+
+### Zustand
+- Each feature has its own slice in `use[Feature]Store.ts`
+- Slice handles: selected item, sheet open/close, view mode
+- Root store in `shared/store/index.ts` combines all slices
+- Auth store: token in memory, refresh token in httpOnly cookie (no persistence)
+
+### Imports
+- Use `@/` path alias for all imports
+- Cross-feature imports always go through the feature's `index.ts` barrel
+- shadcn components from `@/shared/components/ui/`
+- Shared components from `@/shared/components/`
+
+---
+
+## Design System
+
+### Colors (Tailwind classes only — no hardcoded values)
+| Purpose | Class |
+|---------|-------|
+| Primary action | `bg-blue-600 hover:bg-blue-700` |
+| Destructive | `bg-red-500 hover:bg-red-600` |
+| Surface | `bg-white dark:bg-slate-900` |
+| Border | `border-slate-200 dark:border-slate-800` |
+| Muted text | `text-slate-500` |
+| Page background | `bg-slate-50 dark:bg-slate-950` |
+
+### Spacing
+- Page padding: `p-6`
+- Section gaps: `space-y-6`
+- Card padding: `p-4` or `p-6`
+- Form field gap: `space-y-4`
+
+### Typography
+- Page title: `text-2xl font-semibold tracking-tight`
+- Section title: `text-lg font-medium`
+- Label: `text-sm font-medium text-slate-700`
+- Muted: `text-sm text-slate-500`
+
+### Component Style Rules
+- Cards: `rounded-lg border border-slate-200 bg-white shadow-sm`
+- Inputs: always shadcn `Input` — never raw `<input>`
+- Table rows: `hover:bg-slate-50 transition-colors`
+- Buttons: always shadcn `Button` with correct `variant`
+
+---
+
+## What NEVER To Do
+
+- No logic in route files (`app/` folder)
+- No `react-hook-form` anywhere in the project
+- No inline styles — Tailwind classes only
+- No hardcoded colors — use design system classes above
+- No direct axios calls inside components
+- No forms opening as separate pages
+- No listing without both card + list view
+- No page without breadcrumbs via `PageWrapper`
+- No listing without filters row
+- No form without validation and disabled submit state
+- No action without loading state
+- No list/detail without empty + error states
+- No edits to `shared/components/ui/` (shadcn auto-generated)
+
+---
+
+## Backend Architecture
 
 ### Multi-tenancy
-All core entities have an `organizationId` foreign key. Tenant isolation is enforced via NestJS guards. JWT tokens carry organization context. Multi-location support: organizations → locations → employees/chairs/appointments.
+All core entities have an `organizationId` foreign key. Tenant isolation via NestJS guards. JWT tokens carry organization context. Multi-location: organizations → locations → employees/chairs/appointments.
 
-The frontend Axios client (`web-app/src/lib/api.ts`) injects `x-organization-id` and `x-location-id` headers on every request from the Zustand auth store. The backend reads these to resolve `request.tenantContext`.
+Axios client (`web-app/src/shared/lib/axios.ts`) injects `x-organization-id` and `x-location-id` headers on every request from the Zustand auth store. Backend reads these to resolve `request.tenantContext`.
 
 ### Global Guard Chain (order matters)
-Registered as `APP_GUARD` in `app.module.ts`, run in this order on every request:
+Registered as `APP_GUARD` in `app.module.ts`:
 1. **`JwtAuthGuard`** — validates Bearer token (skips `@Public()` / `PUBLIC_ROUTES`)
-2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()` (checks SA role only), and super admins (always exempt). Everyone else must send valid tenant headers.
-3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else the feature must be enabled for the active org.
+2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
+3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
 
-Auth decorators (in `common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)`, `@ActiveTenant()` (param decorator → `{ organizationId, locationId }`), `@Roles()` (legacy, unused). The old `RoleAuthGuard` (`auth/guards/role.guard.ts`) is legacy and NOT wired into the chain.
+Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)`, `@ActiveTenant()` → `{ organizationId, locationId }`. Old `RoleAuthGuard` is legacy and NOT wired in.
 
 ### Auth / Login Flow
-Login resolves accessible orgs/locations and returns `requiresOrgSelection` / `requiresLocationSelection`. The frontend `__root.tsx` handles redirects: unauthenticated → `/login`; needs selection → `/select-location`. Super admins on `/organizations` and `/locations` (the `SUPER_ADMIN_SETUP_PATHS`) bypass the location-selection redirect so they can bootstrap an empty system. Session restore happens via silent `/auth/refresh` on mount.
+Login resolves accessible orgs/locations, returns `requiresOrgSelection` / `requiresLocationSelection`. `__root.tsx` handles redirects: unauthenticated → `/login`; needs selection → `/select-location`. Super admins on `SUPER_ADMIN_SETUP_PATHS` bypass location-selection to bootstrap empty system. Session restore via silent `/auth/refresh` on mount.
 
 ### Backend Module Structure
 Each domain is a self-contained NestJS module under `src/`:
 - `auth/` — JWT (access + refresh tokens), OAuth2 (Google, GitHub), rate limiting, security logs
 - `organizations/` — org settings, employee role definitions, ownership
 - `locations/` — per-org locations, schedules, settings
-- `patients/` — full patient records including dental charts, vitals, clinical notes, treatments, prescriptions, documents, consents, feedback
+- `patients/` — full patient records: dental charts, vitals, clinical notes, treatments, prescriptions, documents, consents, feedback
 - `appointments/` — scheduling, conflict detection, status tracking, doctor-patient-location mapping
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
-- `feature-flags/` — dynamic per-org feature toggles (catalog + `org_feature_flags`). Service auto-seeds the catalog on `OnModuleInit` and caches enabled keys in memory (`Map<orgId, Set>`); call `invalidateCache(orgId)` after mutations. `seedFlagsForOrg()` runs on org creation.
-- `chairs/`, `inventory/`, `invoices/` — entity-only (no controller/service yet)
+- `feature-flags/` — dynamic per-org feature toggles. Auto-seeds catalog on `OnModuleInit`, caches enabled keys `Map<orgId, Set>`. Call `invalidateCache(orgId)` after mutations. `seedFlagsForOrg()` runs on org creation.
+- `chairs/`, `inventory/`, `invoices/` — entity-only stubs (no controller/service yet)
 - `common/` — shared guards, decorators, utilities
 - `session/` — user session tracking
 
-Implemented end-to-end: auth, sessions, organizations, locations, employees (+schedule/roles), appointments, patients (15+ sub-entities), payroll, feature-flags. Stubs/missing: dashboard (frontend uses mock data), reports, invoices, inventory, chairs, standalone notifications/SMS.
+Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments, patients (15+ sub-entities), payroll, feature-flags.
+Stubs/missing: dashboard (frontend uses mock data), reports, invoices, inventory, chairs, notifications/SMS.
 
-Key patterns:
+### Backend Key Patterns
 - **Repository pattern** via TypeORM + injectable repositories
 - **DTOs** with `class-validator` for all request validation
-- **Settings upsert pattern**: `getSettings()` auto-creates a row with defaults if missing; `updateSettings()` does get-or-create then `Object.assign` + save (see org/location/feature-flags services)
-- **All controllers return `ResponseWrapper.success(data, message)`** — the frontend unwraps `res.data.data`
+- **Settings upsert**: `getSettings()` auto-creates row with defaults; `updateSettings()` does get-or-create then `Object.assign` + save
+- **All controllers return `ResponseWrapper.success(data, message)`** — frontend unwraps `res.data.data`
 - **UUID primary keys** throughout; **composite indexes** for multi-tenant queries
-- **Soft deletes** via `isActive` flag (deactivate) in most modules
-
-### Frontend Structure
-- `src/routes/` — File-based routing (TanStack Router). Route files map 1:1 to pages.
-- `src/features/` — Feature-scoped components, hooks, and API calls grouped by domain
-- `src/components/ui/` — shadcn/ui primitives (do not modify directly)
-- `src/components/shared/` — Shared components like `DataTable` (TanStack Table)
-- `src/components/layout/` — App shell, sidebar, navigation
-
-State management: **Zustand** for global client state (auth store has no persistence — token in memory, refresh token in httpOnly cookie); **TanStack Query** for server state. Forms use a mix of **React Hook Form + Zod** and **TanStack Form**. Calendar views use **FullCalendar**. App-wide feature gating via `context/FeatureFlagsContext.tsx` (`useFeature()`, `useSpecialty()`, `<FeatureGuard>`, `<SpecialtyGuard>`).
-
-Per-feature folder convention: `services/*.api.ts` (Axios calls returning `data.data`), `hooks/use*.ts` (TanStack Query, query/mutation with `invalidateQueries`), and `components/`. Mirror this when adding a feature.
+- **Soft deletes** via `isActive` flag in most modules
 
 ### Database
-PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-sourse.ts` and `app.module.ts`. **`synchronize: true` is ON** — schema auto-syncs from entities in dev, so new columns/tables appear without a migration. For production, turn it off and rely on migrations (`cms/backend/src/migrations/`, compiled to `dist/migrations/`, run via `migrationsRun: true`).
+PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-sourse.ts` and `app.module.ts`. **`synchronize: true` is ON in dev** — schema auto-syncs from entities. For production: turn off, rely on migrations in `cms/backend/src/migrations/`.
 
 ### Key Environment Variables
 | Variable | Purpose |
@@ -100,4 +340,4 @@ PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-s
 | `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` | OAuth2 |
 | `SMTP_USER` / `SMTP_PASS` | Email |
 
-Backend default port: `5000`. Frontend default port: `3000`. CORS is configured for `http://localhost:3000`.
+Backend default port: `5000`. Frontend default port: `3000`. CORS configured for `http://localhost:3000`.

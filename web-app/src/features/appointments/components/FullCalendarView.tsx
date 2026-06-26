@@ -41,50 +41,55 @@ interface FullCalendarViewProps {
 
 // ─── Status → Color Mapping ─────────────────────────────────────────
 
-const STATUS_FC_COLORS: Record<
-  AppointmentStatus,
-  { bg: string; border: string; text: string }
-> = {
-  [AppointmentStatus.SCHEDULED]: {
-    bg: '#dbeafe',
-    border: '#3b82f6',
-    text: '#1e40af',
-  },
-  [AppointmentStatus.CONFIRMED]: {
-    bg: '#ede9fe',
-    border: '#8b5cf6',
-    text: '#5b21b6',
-  },
-  [AppointmentStatus.CHECKED_IN]: {
-    bg: '#fef9c3',
-    border: '#eab308',
-    text: '#854d0e',
-  },
-  [AppointmentStatus.IN_PROGRESS]: {
-    bg: '#dcfce7',
-    border: '#16a34a',
-    text: '#166534',
-  },
-  [AppointmentStatus.COMPLETED]: {
-    bg: '#dcfce7',
-    border: '#22c55e',
-    text: '#166534',
-  },
-  [AppointmentStatus.CANCELLED]: {
-    bg: '#fee2e2',
-    border: '#ef4444',
-    text: '#991b1b',
-  },
-  [AppointmentStatus.NO_SHOW]: {
-    bg: '#f3f4f6',
-    border: '#6b7280',
-    text: '#374151',
-  },
-  [AppointmentStatus.RESCHEDULED]: {
-    bg: '#cffafe',
-    border: '#06b6d4',
-    text: '#155e75',
-  },
+function getCssVar(name: string): string {
+  if (typeof document === 'undefined') return ''
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+function getStatusColors(status: AppointmentStatus) {
+  const map: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
+    [AppointmentStatus.SCHEDULED]: {
+      bg: getCssVar('--primary-soft') || '#dbeafe',
+      border: getCssVar('--primary') || '#3b82f6',
+      text: getCssVar('--primary-text') || '#1e40af',
+    },
+    [AppointmentStatus.CONFIRMED]: {
+      bg: getCssVar('--violet-soft') || '#ede9fe',
+      border: getCssVar('--violet') || '#8b5cf6',
+      text: getCssVar('--violet') || '#5b21b6',
+    },
+    [AppointmentStatus.CHECKED_IN]: {
+      bg: getCssVar('--amber-soft') || '#fef9c3',
+      border: getCssVar('--amber') || '#eab308',
+      text: getCssVar('--amber') || '#854d0e',
+    },
+    [AppointmentStatus.IN_PROGRESS]: {
+      bg: getCssVar('--emerald-soft') || '#dcfce7',
+      border: getCssVar('--emerald') || '#16a34a',
+      text: getCssVar('--emerald') || '#166534',
+    },
+    [AppointmentStatus.COMPLETED]: {
+      bg: getCssVar('--emerald-soft') || '#dcfce7',
+      border: getCssVar('--emerald') || '#22c55e',
+      text: getCssVar('--emerald') || '#166534',
+    },
+    [AppointmentStatus.CANCELLED]: {
+      bg: getCssVar('--danger-soft') || '#fee2e2',
+      border: getCssVar('--danger') || '#ef4444',
+      text: getCssVar('--danger') || '#991b1b',
+    },
+    [AppointmentStatus.NO_SHOW]: {
+      bg: getCssVar('--panel-2') || '#f3f4f6',
+      border: getCssVar('--border') || '#6b7280',
+      text: getCssVar('--text-3') || '#374151',
+    },
+    [AppointmentStatus.RESCHEDULED]: {
+      bg: getCssVar('--primary-soft') || '#cffafe',
+      border: getCssVar('--primary') || '#06b6d4',
+      text: getCssVar('--primary-text') || '#155e75',
+    },
+  }
+  return map[status]
 }
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -98,17 +103,18 @@ const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
-// Doctor avatar colors for the header
-const DOCTOR_COLORS = [
-  '#3b82f6',
-  '#8b5cf6',
-  '#ec4899',
-  '#f59e0b',
-  '#10b981',
-  '#06b6d4',
-  '#ef4444',
-  '#6366f1',
-]
+function getDoctorColors(): string[] {
+  return [
+    getCssVar('--primary') || '#3b82f6',
+    getCssVar('--violet') || '#8b5cf6',
+    getCssVar('--danger') || '#ec4899',
+    getCssVar('--amber') || '#f59e0b',
+    getCssVar('--emerald') || '#10b981',
+    getCssVar('--primary') || '#06b6d4',
+    getCssVar('--danger') || '#ef4444',
+    getCssVar('--violet') || '#6366f1',
+  ]
+}
 
 // ─── Component ──────────────────────────────────────────────────────
 
@@ -154,11 +160,12 @@ export function FullCalendarView({
   // ─── Map doctors → FullCalendar resources ─────────────────────────
 
   const resources = useMemo(() => {
+    const docColors = getDoctorColors()
     return doctors.map((doc, idx) => ({
       id: doc.id,
       title: doc.fullName,
       designation: doc.designation,
-      color: DOCTOR_COLORS[idx % DOCTOR_COLORS.length],
+      color: docColors[idx % docColors.length],
       initials: doc.fullName
         .split(' ')
         .map((w: string) => w[0])
@@ -172,8 +179,7 @@ export function FullCalendarView({
 
   const calendarEvents = useMemo(() => {
     return appointments.map((appt) => {
-      const colors =
-        STATUS_FC_COLORS[appt.status] || STATUS_FC_COLORS.scheduled
+      const colors = getStatusColors(appt.status)
       const isCancelled = appt.status === AppointmentStatus.CANCELLED
       const isNoShow = appt.status === AppointmentStatus.NO_SHOW
       const isTerminal =
@@ -220,8 +226,8 @@ export function FullCalendarView({
       end: block.end,
       resourceId: block.doctorId, // Tie to doctor column
       display: 'background' as const,
-      backgroundColor: '#f0fdf4',
-      borderColor: '#bbf7d0',
+      backgroundColor: getCssVar('--emerald-soft') || '#f0fdf4',
+      borderColor: getCssVar('--emerald') || '#bbf7d0',
       extendedProps: {
         isAvailability: true,
         doctorName: block.doctorName,
@@ -331,7 +337,7 @@ export function FullCalendarView({
 
   const renderResourceLabel = useCallback((info: any) => {
     const resource = info.resource
-    const color = resource.extendedProps?.color || '#3b82f6'
+    const color = resource.extendedProps?.color || getCssVar('--primary') || '#3b82f6'
     const initials = resource.extendedProps?.initials || '?'
     const designation = resource.extendedProps?.designation || ''
 
@@ -370,9 +376,7 @@ export function FullCalendarView({
       const isTimeGrid = eventInfo.view.type.includes('timeGrid') || eventInfo.view.type.includes('TimeGrid')
       const statusLabel =
         STATUS_LABELS[appt.status as AppointmentStatus] || appt.status
-      const colors =
-        STATUS_FC_COLORS[appt.status as AppointmentStatus] ||
-        STATUS_FC_COLORS.scheduled
+      const colors = getStatusColors(appt.status as AppointmentStatus)
 
       if (isTimeGrid) {
         return (
@@ -598,11 +602,11 @@ export function FullCalendarView({
           50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
         }
         .fc-wrapper .fc .fc-timegrid-now-indicator-line {
-          border-color: #ef4444;
+          border-color: var(--danger);
           border-width: 2px;
         }
         .fc-wrapper .fc .fc-timegrid-now-indicator-arrow {
-          border-color: #ef4444;
+          border-color: var(--danger);
         }
         .fc-wrapper .fc .fc-bg-event {
           opacity: 0.12;

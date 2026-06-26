@@ -6,7 +6,7 @@ import { Topbar } from './Topbar'
 
 interface DashboardLayoutProps {
   children: ReactNode
-  title: string
+  title?: string
   subtitle?: string
   actions?: ReactNode
 }

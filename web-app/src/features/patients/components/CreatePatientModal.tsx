@@ -1,11 +1,11 @@
 import { useNavigate } from '@tanstack/react-router'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import { PatientForm } from './PatientForm'
 import { useCreatePatient } from '../hooks/useCreatePatient'
 import type { PatientFormData } from '../types'
@@ -40,26 +40,32 @@ export function CreatePatientModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => {
-      if (!v) {
-        clearFormDraft()
-      }
-      onOpenChange(v)
-    }}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>New Patient</DialogTitle>
-          <DialogDescription>
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) clearFormDraft()
+        onOpenChange(v)
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="w-full gap-0 p-0 sm:max-w-2xl"
+      >
+        <SheetHeader className="border-b border-border-soft px-6 py-5">
+          <SheetTitle className="text-[17px] font-bold">New Patient</SheetTitle>
+          <SheetDescription className="text-[13px] text-text-3">
             Fill in patient details across all steps, then save.
-          </DialogDescription>
-        </DialogHeader>
-        <PatientForm
-          onSubmit={handleSubmit}
-          isSubmitting={createMutation.isPending}
-          mode="create"
-          onCancel={handleCancel}
-        />
-      </DialogContent>
-    </Dialog>
+          </SheetDescription>
+        </SheetHeader>
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <PatientForm
+            onSubmit={handleSubmit}
+            isSubmitting={createMutation.isPending}
+            mode="create"
+            onCancel={handleCancel}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }

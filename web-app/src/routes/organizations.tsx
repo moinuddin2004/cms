@@ -1,8 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { OrganizationManagementView } from '@/features/organizations/OrganizationManagementView'
+import { OrganizationsPage } from '@/features/organizations/pages/OrganizationsPage'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Navigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/organizations')({
   component: OrganizationsRouteComponent,
@@ -16,10 +15,8 @@ function OrganizationsRouteComponent() {
   }
 
   return (
-    <DashboardLayout title="Organizations Management">
-      <div className="space-y-4">
-        <OrganizationManagementView />
-      </div>
+    <DashboardLayout>
+      <OrganizationsPage />
     </DashboardLayout>
   )
 }

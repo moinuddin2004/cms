@@ -48,7 +48,7 @@ export function SearchInput({
         placeholder={placeholder}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
-        className="pl-9 pr-8 h-9"
+        className="pl-9 pr-8 h-8 text-xs"
         aria-label="Search patients"
         id="patient-search"
       />

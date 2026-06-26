@@ -1,15 +1,26 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============================================
-   MedTrackr Brand Theme — Centralized Colors
-   Change brand colors here and they propagate everywhere
-   ============================================ */
+/* ============================================================
+   MedTrackr Design System — SINGLE SOURCE OF TRUTH FOR COLOR
+   ------------------------------------------------------------
+   To rebrand the ENTIRE app, change ONE value: `--brand` (in
+   both :root and .dark below). Everything else — buttons,
+   links, active nav, focus rings, charts, the brand ramp — is
+   derived from it. Components must reference TOKENS ONLY
+   (never raw hex / bg-blue-600 / bg-brand-* with a literal).
+   ============================================================ */
 
 @theme inline {
+  /* Fonts */
+  --font-sans:
+    'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', monospace;
+
   /* Radius scale */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -17,7 +28,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
 
-  /* shadcn semantic colors */
+  /* shadcn semantic colors (mapped to MedTrackr tokens) */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -37,6 +48,29 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* MedTrackr surfaces & text (extra utilities: bg-surface, bg-panel,
+     bg-panel-2, border-border-soft) */
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-border-soft: var(--border-soft);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+
+  /* MedTrackr accent families (bg-primary-soft, text-primary-text,
+     bg-emerald-soft, text-emerald, etc.) */
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-text: var(--primary-text);
+  --color-emerald: var(--emerald);
+  --color-emerald-soft: var(--emerald-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+
   /* Chart colors */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -54,7 +88,7 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Brand palette — change these to rebrand the entire app */
+  /* Brand ramp — derived from --brand; legacy bg-brand-* re-skins for free */
   --color-brand-50: var(--brand-50);
   --color-brand-100: var(--brand-100);
   --color-brand-200: var(--brand-200);
@@ -73,125 +107,193 @@
   --color-status-info: var(--status-info);
 
   /* Custom spacing */
-  --spacing-sidebar: 260px;
-  --spacing-sidebar-collapsed: 72px;
+  --spacing-sidebar: 248px;
+  --spacing-sidebar-collapsed: 74px;
   --spacing-topbar: 64px;
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.7rem;
 
-  /* ─── Shadcn Semantic ─── */
+  /* ─────── BRAND SEED — change this to rebrand everything ─────── */
+  --brand: #2563eb;
+  --brand-hover: #1d4ed8;
+  --brand-soft: #eff6ff;
+  --brand-text: #2563eb;
+
+  /* ─── Surfaces & text (MedTrackr) ─── */
+  --surface: #ffffff;
+  --panel: #f8fafc;
+  --panel-2: #f1f5f9;
+  --text: #0f172a;
+  --text-2: #475569;
+  --text-3: #94a3b8;
+  --border-soft: #f1f5f9;
+
+  /* ─── Shadcn Semantic (mapped to MedTrackr) ─── */
   --background: #ffffff;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #16a34a;
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary-foreground: var(--text);
   --muted: #f8fafc;
   --muted-foreground: #64748b;
   --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --accent-foreground: var(--text);
   --destructive: #ef4444;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #16a34a;
+  --ring: var(--brand);
 
-  /* ─── Chart Colors ─── */
-  --chart-1: #3b82f6;
-  --chart-2: #22c55e;
-  --chart-3: #f59e0b;
-  --chart-4: #8b5cf6;
+  /* ─── MedTrackr accent families ─── */
+  --primary-hover: var(--brand-hover);
+  --primary-soft: var(--brand-soft);
+  --primary-text: var(--brand-text);
+  --emerald: #059669;
+  --emerald-soft: #ecfdf5;
+  --amber: #d97706;
+  --amber-soft: #fffbeb;
+  --danger: #ef4444;
+  --danger-soft: #fef2f2;
+  --violet: #9333ea;
+  --violet-soft: #faf5ff;
+
+  /* ─── Shadows & focus ring ─── */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 12px 32px -8px rgba(15, 23, 42, 0.18);
+  --ring-soft: rgba(37, 99, 235, 0.35);
+
+  /* ─── Chart Colors (MedTrackr palette) ─── */
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #9333ea;
   --chart-5: #ef4444;
 
   /* ─── Sidebar ─── */
   --sidebar: #ffffff;
-  --sidebar-foreground: #334155;
-  --sidebar-primary: #16a34a;
+  --sidebar-foreground: #475569;
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f0fdf4;
-  --sidebar-accent-foreground: #16a34a;
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand-text);
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #16a34a;
+  --sidebar-ring: var(--brand);
 
-  /* ─── Brand palette (identical in light & dark) ─── */
-  --brand-50: #f0fdf4;
-  --brand-100: #dcfce7;
-  --brand-200: #bbf7d0;
-  --brand-300: #86efac;
-  --brand-400: #4ade80;
-  --brand-500: #22c55e;
-  --brand-600: #16a34a;
-  --brand-700: #15803d;
-  --brand-800: #166534;
-  --brand-900: #14532d;
+  /* ─── Brand ramp (blue) — derived ramp around --brand ─── */
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+  --brand-800: #1e40af;
+  --brand-900: #1e3a8a;
 
   /* ─── Status Colors ─── */
-  --status-success: #16a34a;
+  --status-success: #059669;
   --status-warning: #d97706;
-  --status-error: #dc2626;
+  --status-error: #ef4444;
   --status-info: #2563eb;
 }
 
 .dark {
+  /* ─────── BRAND SEED (dark) ─────── */
+  --brand: #3b82f6;
+  --brand-hover: #60a5fa;
+  --brand-soft: rgba(59, 130, 246, 0.16);
+  --brand-text: #93c5fd;
+
+  /* ─── Surfaces & text (MedTrackr) ─── */
+  --surface: #1e293b;
+  --panel: #1e293b;
+  --panel-2: #334155;
+  --text: #f1f5f9;
+  --text-2: #cbd5e1;
+  --text-3: #94a3b8;
+  --border-soft: #1e293b;
+
   /* ─── Shadcn Semantic ─── */
-  --background: #0f0f0f;
-  --foreground: #f5f5f5;
-  --card: #1a1a1a;
-  --card-foreground: #f5f5f5;
-  --popover: #1a1a1a;
-  --popover-foreground: #f5f5f5;
-  --primary: #16a34a;
+  --background: #0f172a;
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --secondary: #1f1f1f;
-  --secondary-foreground: #f5f5f5;
-  --muted: #1a1a1a;
-  --muted-foreground: #9ca3af;
-  --accent: #1f1f1f;
-  --accent-foreground: #f5f5f5;
-  --destructive: #ef4444;
-  --border: #2d2d2d;
-  --input: #2d2d2d;
-  --ring: #22c55e;
+  --secondary: #334155;
+  --secondary-foreground: var(--text);
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: var(--text);
+  --destructive: #f87171;
+  --border: #293548;
+  --input: #293548;
+  --ring: var(--brand);
+
+  /* ─── MedTrackr accent families ─── */
+  --primary-hover: var(--brand-hover);
+  --primary-soft: var(--brand-soft);
+  --primary-text: var(--brand-text);
+  --emerald: #34d399;
+  --emerald-soft: rgba(16, 185, 129, 0.16);
+  --amber: #fbbf24;
+  --amber-soft: rgba(245, 158, 11, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(239, 68, 68, 0.16);
+  --violet: #c084fc;
+  --violet-soft: rgba(147, 51, 234, 0.18);
+
+  /* ─── Shadows & focus ring ─── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  --ring-soft: rgba(96, 165, 250, 0.4);
 
   /* ─── Chart Colors ─── */
   --chart-1: #60a5fa;
-  --chart-2: #4ade80;
+  --chart-2: #34d399;
   --chart-3: #fbbf24;
-  --chart-4: #a78bfa;
+  --chart-4: #c084fc;
   --chart-5: #f87171;
 
   /* ─── Sidebar ─── */
-  --sidebar: #141414;
-  --sidebar-foreground: #f5f5f5;
-  --sidebar-primary: #16a34a;
+  --sidebar: #0b1120;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1f1f1f;
-  --sidebar-accent-foreground: #4ade80;
-  --sidebar-border: #2d2d2d;
-  --sidebar-ring: #22c55e;
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand-text);
+  --sidebar-border: #1e293b;
+  --sidebar-ring: var(--brand);
 
-  /* ─── Brand palette (identical in light & dark) ─── */
-  --brand-50: #f0fdf4;
-  --brand-100: #dcfce7;
-  --brand-200: #bbf7d0;
-  --brand-300: #86efac;
-  --brand-400: #4ade80;
-  --brand-500: #22c55e;
-  --brand-600: #16a34a;
-  --brand-700: #15803d;
-  --brand-800: #166534;
-  --brand-900: #14532d;
+  /* ─── Brand ramp (blue) ─── */
+  --brand-50: #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+  --brand-800: #1e40af;
+  --brand-900: #1e3a8a;
 
   /* ─── Status Colors ─── */
-  --status-success: #22c55e;
-  --status-warning: #f59e0b;
-  --status-error: #ef4444;
-  --status-info: #3b82f6;
+  --status-success: #34d399;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+  --status-info: #60a5fa;
 }
 
 @layer base {
@@ -200,34 +302,31 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family:
-      'Inter',
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      'Roboto',
-      'Oxygen',
-      'Ubuntu',
-      sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
+  }
+  .font-mono,
+  .mono {
+    font-family: var(--font-mono);
   }
 }
 
 /* Scrollbar styling */
 @layer base {
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 3px;
+    border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--muted-foreground);
+    background: var(--text-3);
   }
 }

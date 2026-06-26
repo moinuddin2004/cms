@@ -35,7 +35,8 @@ export function FiltersBar({
       {/* Gender Filter */}
       <Select value={gender} onValueChange={onGenderChange}>
         <SelectTrigger
-          className="w-[140px] h-9"
+          className="w-[140px] h-8 text-xs"
+          size="sm"
           aria-label="Filter by gender"
           id="filter-gender"
         >
@@ -53,7 +54,8 @@ export function FiltersBar({
       {/* Blood Group Filter */}
       <Select value={bloodGroup} onValueChange={onBloodGroupChange}>
         <SelectTrigger
-          className="w-[140px] h-9"
+          className="w-[140px] h-8 text-xs"
+          size="sm"
           aria-label="Filter by blood group"
           id="filter-blood-group"
         >
@@ -71,7 +73,8 @@ export function FiltersBar({
       {/* Status Filter */}
       <Select value={status} onValueChange={onStatusChange}>
         <SelectTrigger
-          className="w-[140px] h-9"
+          className="w-[140px] h-8 text-xs"
+          size="sm"
           aria-label="Filter by status"
           id="filter-status"
         >
@@ -89,11 +92,11 @@ export function FiltersBar({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="h-9 text-muted-foreground hover:text-foreground"
+          className="h-8 text-xs text-muted-foreground hover:text-foreground"
           aria-label="Reset filters"
           id="reset-filters"
         >
-          <RotateCcw size={14} className="mr-1.5" />
+          <RotateCcw size={13} className="mr-1.5" />
           Reset
         </Button>
       )}

@@ -26,7 +26,7 @@ export function SearchInput({ value, onChange }: SearchInputProps) {
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         placeholder="Search name, phone, or code..."
-        className="pl-10 h-9"
+        className="pl-10 h-8 text-xs"
         value={local}
         onChange={(e) => setLocal(e.target.value)}
         id="employee-search"

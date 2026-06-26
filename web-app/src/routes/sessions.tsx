@@ -1,13 +1,14 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { useAuthStore } from '@/store/useAuthStore'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { SessionManagement } from '@/features/auth/components/SessionManagement'
+import { PageWrapper } from '@/components/layout/PageWrapper'
+import { useAuthStore } from '@/store/useAuthStore'
 
 export const Route = createFileRoute('/sessions')({
-  component: RouteComponent,
+  component: SessionsRouteComponent,
 })
 
-function RouteComponent() {
+function SessionsRouteComponent() {
   const { accessToken } = useAuthStore()
 
   if (!accessToken) {
@@ -15,8 +16,11 @@ function RouteComponent() {
   }
 
   return (
-    <DashboardLayout title="Active Sessions">
-      <div className="max-w-4xl mx-auto">
+    <DashboardLayout>
+      <PageWrapper
+        title="Active Sessions"
+      />
+      <div className="mx-auto mt-5 max-w-4xl">
         <SessionManagement />
       </div>
     </DashboardLayout>

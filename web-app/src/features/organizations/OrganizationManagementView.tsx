@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useNavigate } from '@tanstack/react-router'
@@ -40,7 +40,7 @@ export interface Organization {
   currency: string
 }
 
-export function OrganizationManagementView() {
+export const OrganizationManagementView = forwardRef<{ create: () => void }>(function OrganizationManagementView(_props, ref) {
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [orgToEdit, setOrgToEdit] = useState<Organization | null>(null)
@@ -103,6 +103,8 @@ export function OrganizationManagementView() {
     setIsFormOpen(true)
   }
 
+  useImperativeHandle(ref, () => ({ create: handleCreateNew }))
+
   const [formData, setFormData] = useState<Partial<Organization>>({})
 
   const openEdit = (org: Organization) => {
@@ -124,21 +126,6 @@ export function OrganizationManagementView() {
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Organization Management
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Super Admin oversight of all clinics.
-          </p>
-        </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Organization
-        </Button>
-      </div>
-
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
@@ -320,4 +307,4 @@ export function OrganizationManagementView() {
       </Dialog>
     </div>
   )
-}
+})

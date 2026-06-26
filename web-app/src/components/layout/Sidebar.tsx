@@ -39,39 +39,73 @@ interface NavItem {
   feature?: string
 }
 
-const mainNavItems: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+interface NavSection {
+  label?: string
+  items: NavItem[]
+}
+
+const navSections: NavSection[] = [
   {
-    label: 'Organizations',
-    icon: Building2,
-    href: '/organizations',
-    show: (auth) => auth.isSuperAdmin,
+    items: [
+      { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+      {
+        label: 'Patients',
+        icon: Users,
+        href: '/patients',
+        feature: 'patients.core',
+      },
+      {
+        label: 'Appointments',
+        icon: CalendarDays,
+        href: '/appointments',
+        feature: 'appointments.core',
+      },
+      { label: 'Employees', icon: Users, href: '/employees' },
+      { label: 'Payroll', icon: CreditCard, href: '/payroll', feature: 'hr.payroll' },
+    ],
   },
   {
-    label: 'Locations',
-    icon: MapPin,
-    href: '/locations',
-    show: (auth) => auth.isSuperAdmin || auth.accessSource === 'owner',
+    label: 'Operations',
+    items: [
+      { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
+      {
+        label: 'Prescriptions',
+        icon: FileText,
+        href: '/prescriptions',
+        feature: 'patients.prescriptions',
+      },
+      {
+        label: 'Invoices',
+        icon: Receipt,
+        href: '/invoices',
+        feature: 'billing.invoices',
+      },
+      {
+        label: 'Expenses',
+        icon: Wallet,
+        href: '/expenses',
+        feature: 'billing.expenses',
+      },
+    ],
   },
-  { label: 'User Admin', icon: Shield, href: '/users' },
-  { label: 'Patients', icon: Users, href: '/patients', feature: 'patients.core' },
-  { label: 'Employees', icon: Users, href: '/employees' },
-  { label: 'Payroll', icon: CreditCard, href: '/payroll', feature: 'hr.payroll' },
   {
-    label: 'Appointments',
-    icon: CalendarDays,
-    href: '/appointments',
-    feature: 'appointments.core',
+    label: 'Admin',
+    items: [
+      {
+        label: 'Organizations',
+        icon: Building2,
+        href: '/organizations',
+        show: (auth) => auth.isSuperAdmin,
+      },
+      {
+        label: 'Locations',
+        icon: MapPin,
+        href: '/locations',
+        show: (auth) => auth.isSuperAdmin || auth.accessSource === 'owner',
+      },
+      { label: 'User Admin', icon: Shield, href: '/users' },
+    ],
   },
-  { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
-  {
-    label: 'Prescriptions',
-    icon: FileText,
-    href: '/prescriptions',
-    feature: 'patients.prescriptions',
-  },
-  { label: 'Invoices', icon: Receipt, href: '/invoices', feature: 'billing.invoices' },
-  { label: 'Expenses', icon: Wallet, href: '/expenses', feature: 'billing.expenses' },
 ]
 
 const bottomNavItems: NavItem[] = [
@@ -97,7 +131,7 @@ function InventoryLowStockBadge() {
   const count = lowStock?.length ?? 0
   if (count === 0) return null
   return (
-    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-semibold text-white">
+    <span className="ml-auto inline-flex h-[18px] min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
       {count}
     </span>
   )
@@ -172,39 +206,54 @@ export function Sidebar() {
       </div>
 
       {/* Main Navigation */}
-      <nav className="flex-1 py-4 px-3 overflow-y-auto">
-        <ul className="space-y-1">
-          {mainNavItems.map((item) => {
-            if (item.show && !item.show(authStore)) return null
-            if (item.feature && !features.has(item.feature)) return null
-            const isActive =
-              currentPath === item.href ||
-              currentPath.startsWith(item.href + '/')
-            return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-primary/10 text-primary border border-primary/20'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-                    sidebarCollapsed && 'justify-center px-2',
-                  )}
-                  title={sidebarCollapsed ? item.label : undefined}
-                >
-                  <item.icon size={20} className="flex-shrink-0" />
-                  {!sidebarCollapsed && (
-                    <span className="flex-1">{item.label}</span>
-                  )}
-                  {item.href === '/inventory' && !sidebarCollapsed && (
-                    <InventoryLowStockBadge />
-                  )}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {navSections.map((section, si) => {
+          const visible = section.items.filter((item) => {
+            if (item.show && !item.show(authStore)) return false
+            if (item.feature && !features.has(item.feature)) return false
+            return true
+          })
+          if (visible.length === 0) return null
+          return (
+            <div key={section.label ?? si} className={cn(si > 0 && 'mt-2')}>
+              {section.label && !sidebarCollapsed && (
+                <div className="px-3 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-text-3">
+                  {section.label}
+                </div>
+              )}
+              <ul className="space-y-0.5">
+                {visible.map((item) => {
+                  const isActive =
+                    currentPath === item.href ||
+                    currentPath.startsWith(item.href + '/')
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        to={item.href}
+                        className={cn(
+                          'flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary-soft font-semibold text-primary-text'
+                            : 'text-text-2 hover:bg-panel hover:text-foreground',
+                          sidebarCollapsed && 'justify-center px-2',
+                        )}
+                        title={sidebarCollapsed ? item.label : undefined}
+                      >
+                        <item.icon size={18} className="flex-shrink-0" />
+                        {!sidebarCollapsed && (
+                          <span className="flex-1">{item.label}</span>
+                        )}
+                        {item.href === '/inventory' && !sidebarCollapsed && (
+                          <InventoryLowStockBadge />
+                        )}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          )
+        })}
       </nav>
 
       {/* Bottom Section */}
@@ -220,10 +269,10 @@ export function Sidebar() {
                 <Link
                   to={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    'flex items-center gap-3 px-3 py-2 rounded-[9px] text-sm transition-colors',
                     isActive
-                      ? 'bg-primary/10 text-primary font-medium'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                      ? 'bg-primary-soft text-primary-text font-semibold'
+                      : 'text-text-2 hover:bg-panel hover:text-foreground',
                     sidebarCollapsed && 'justify-center px-2',
                   )}
                   title={sidebarCollapsed ? item.label : undefined}

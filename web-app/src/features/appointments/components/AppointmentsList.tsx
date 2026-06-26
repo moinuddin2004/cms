@@ -183,146 +183,147 @@ export function AppointmentsList() {
   return (
     <div className="space-y-3">
       {/* ── Filter bar ─────────────────────────────────────────── */}
-      <div className="bg-card border rounded-xl p-3 space-y-3">
-        {/* Row 1: search + date presets */}
-        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by patient name, phone, patient #, or token…"
-              className="pl-9 pr-9 h-9"
-            />
-            {searchInput && (
-              <button
-                onClick={() => setSearchInput('')}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent"
-              >
-                <X className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1">
-            {DATE_PRESETS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPreset(p.value)}
-                className={cn(
-                  'px-3 py-1.5 text-xs font-medium rounded-md border transition-colors',
-                  preset === p.value
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card text-muted-foreground border-border hover:bg-accent',
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+      <div className="bg-card border rounded-xl p-2 px-3 flex flex-row items-center gap-3 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[220px] max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search appointments..."
+            className="pl-9 pr-9 h-8 text-xs"
+          />
+          {searchInput && (
             <button
-              onClick={() => setPreset('custom')}
+              onClick={() => setSearchInput('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent"
+              type="button"
+            >
+              <X className="w-3.5 h-3.5 text-muted-foreground" />
+            </button>
+          )}
+        </div>
+
+        {/* Date presets */}
+        <div className="flex items-center gap-1">
+          {DATE_PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => setPreset(p.value)}
               className={cn(
-                'px-3 py-1.5 text-xs font-medium rounded-md border transition-colors',
-                preset === 'custom'
+                'px-2.5 h-8 text-xs font-medium rounded-md border transition-colors',
+                preset === p.value
                   ? 'bg-primary text-primary-foreground border-primary'
                   : 'bg-card text-muted-foreground border-border hover:bg-accent',
               )}
             >
-              Custom
+              {p.label}
             </button>
-          </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPreset('custom')}
+            className={cn(
+              'px-2.5 h-8 text-xs font-medium rounded-md border transition-colors',
+              preset === 'custom'
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-card text-muted-foreground border-border hover:bg-accent',
+            )}
+          >
+            Custom
+          </button>
         </div>
 
         {/* Custom date range (visible only when 'custom') */}
         {preset === 'custom' && (
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">From</span>
             <Input
               type="date"
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-8 w-[160px]"
+              className="h-8 w-[130px] text-xs"
             />
             <span className="text-muted-foreground">to</span>
             <Input
               type="date"
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="h-8 w-[160px]"
+              className="h-8 w-[130px] text-xs"
             />
           </div>
         )}
 
-        {/* Row 2: dropdown filters */}
-        <div className="flex flex-wrap items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-8 w-[150px] text-xs">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              {APPOINTMENT_STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Dropdowns */}
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="h-8 w-[130px] text-xs" size="sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {APPOINTMENT_STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="h-8 w-[140px] text-xs">
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              {APPOINTMENT_TYPE_OPTIONS.map((t) => (
-                <SelectItem key={t.value} value={t.value}>
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger className="h-8 w-[120px] text-xs" size="sm">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {APPOINTMENT_TYPE_OPTIONS.map((t) => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select value={doctorId} onValueChange={setDoctorId}>
-            <SelectTrigger className="h-8 w-[180px] text-xs">
-              <SelectValue placeholder="Doctor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All doctors</SelectItem>
-              {doctors.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.fullName}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select value={doctorId} onValueChange={setDoctorId}>
+          <SelectTrigger className="h-8 w-[150px] text-xs" size="sm">
+            <SelectValue placeholder="Doctor" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All doctors</SelectItem>
+            {doctors.map((d) => (
+              <SelectItem key={d.id} value={d.id}>
+                {d.fullName}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-8 text-xs"
-            >
-              <X className="w-3.5 h-3.5 mr-1" />
-              Clear
-            </Button>
+        {/* Reset button */}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            aria-label="Reset filters"
+          >
+            <RotateCcw size={13} className="mr-1.5" />
+            Reset
+          </Button>
+        )}
+
+        <div className="ml-auto text-xs text-muted-foreground">
+          {isFetching ? (
+            <span className="flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" /> Loading…
+            </span>
+          ) : (
+            <>
+              {total} appointment{total === 1 ? '' : 's'}
+              {totalPages > 1 && ` · page ${page} of ${totalPages}`}
+            </>
           )}
-
-          <div className="ml-auto text-xs text-muted-foreground">
-            {isFetching ? (
-              <span className="flex items-center gap-1">
-                <Loader2 className="w-3 h-3 animate-spin" /> Loading…
-              </span>
-            ) : (
-              <>
-                {total} appointment{total === 1 ? '' : 's'}
-                {totalPages > 1 && ` · page ${page} of ${totalPages}`}
-              </>
-            )}
-          </div>
         </div>
       </div>
 

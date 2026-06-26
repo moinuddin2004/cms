@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -47,7 +47,7 @@ export interface Location {
   }
 }
 
-export function LocationManagementView() {
+export const LocationManagementView = forwardRef<{ create: () => void }>(function LocationManagementView(_props, ref) {
   const { isSuperAdmin } = useAuthStore()
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -114,6 +114,8 @@ export function LocationManagementView() {
     setIsFormOpen(true)
   }
 
+  useImperativeHandle(ref, () => ({ create: handleCreateNew }))
+
   const openEdit = (loc: Location) => {
     setLocToEdit(loc)
     setFormData(loc)
@@ -137,19 +139,6 @@ export function LocationManagementView() {
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Location Management
-          </h1>
-          <p className="text-sm text-muted-foreground">Manage clinics and branches.</p>
-        </div>
-        <Button onClick={handleCreateNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Location
-        </Button>
-      </div>
-
       <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
@@ -367,4 +356,4 @@ export function LocationManagementView() {
       </Dialog>
     </div>
   )
-}
+})

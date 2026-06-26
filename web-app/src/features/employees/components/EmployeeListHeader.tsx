@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { LayoutGrid, Table2, Plus, Users } from 'lucide-react'
+import { LayoutGrid, Table2, Plus } from 'lucide-react'
 import { useEmployeeStore } from '@/store/employee-store'
 import { cn } from '@/lib/utils'
 
@@ -13,17 +13,9 @@ export function EmployeeListHeader({ totalCount }: EmployeeListHeaderProps) {
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-brand-100 rounded-lg">
-          <Users size={20} className="text-brand-700" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Employees</h1>
-          <p className="text-sm text-muted-foreground">
-            {totalCount} employee{totalCount !== 1 ? 's' : ''} total
-          </p>
-        </div>
-      </div>
+      <p className="text-sm text-text-2">
+        {totalCount} employee{totalCount !== 1 ? 's' : ''} total
+      </p>
 
       <div className="flex items-center gap-3">
         {/* View Toggle */}
@@ -71,8 +63,8 @@ function ToggleButton({
       className={cn(
         'p-2 transition-colors',
         active
-          ? 'bg-brand-600 text-white'
-          : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted',
+          ? 'bg-primary text-white'
+          : 'bg-transparent text-text-3 hover:text-foreground hover:bg-panel-2',
       )}
       aria-label={label}
       type="button"

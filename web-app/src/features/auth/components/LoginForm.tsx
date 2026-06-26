@@ -1,12 +1,4 @@
 import { useState } from 'react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -16,7 +8,8 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Stethoscope } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { AuthLayout } from './AuthLayout'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -25,6 +18,7 @@ const loginSchema = z.object({
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const [globalError, setGlobalError] = useState('')
   const setAuth = useAuthStore((state) => state.setAuth)
   const navigate = useNavigate()
@@ -92,138 +86,161 @@ export function LoginForm() {
   })
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
-      {/* Clinic Logo */}
-      <div className="mb-8 flex flex-col items-center gap-3">
-        <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-          <Stethoscope className="w-7 h-7 text-white" />
+    <AuthLayout>
+      {/* Header */}
+      <div className="mb-7">
+        <div className="text-2xl font-extrabold tracking-tight text-foreground">
+          Welcome back
         </div>
-        <span className="text-xl font-bold text-foreground tracking-tight">
-          MedTrackr
-        </span>
+        <div className="text-sm text-muted-foreground mt-1.5">
+          Sign in to your clinic workspace
+        </div>
       </div>
 
-      <Card className="w-full max-w-[420px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
-        <CardHeader className="space-y-1 text-center pb-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Welcome back
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Enter your credentials to access your clinic
-          </CardDescription>
-        </CardHeader>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            form.handleSubmit()
-          }}
-        >
-          <CardContent className="space-y-4 pt-2">
-            <form.Field name="email">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="doctor@medtrackr.com"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                    autoComplete="email"
-                    className="h-11"
-                  />
-                </div>
-              )}
-            </form.Field>
-
-            <form.Field name="password">
-              {(field) => (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="sm"
-                      className="px-0 h-auto font-normal text-xs text-muted-foreground hover:text-primary"
-                      onClick={() => navigate({ to: '/forgot-password' })}
-                    >
-                      Forgot password?
-                    </Button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="login-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      onBlur={field.handleBlur}
-                      required
-                      autoComplete="current-password"
-                      className="h-11 pr-10"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-foreground hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </form.Field>
-
-            {globalError && (
-              <div className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20">
-                {globalError}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          form.handleSubmit()
+        }}
+      >
+        {/* Email field */}
+        <div className="mb-4">
+          <Label htmlFor="login-email" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
+            Email
+          </Label>
+          <form.Field name="email">
+            {(field) => (
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@clinic.com"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  required
+                  autoComplete="email"
+                  className="h-11 pl-[38px] rounded-[10px] bg-panel border-border text-sm"
+                />
               </div>
             )}
-          </CardContent>
+          </form.Field>
+        </div>
 
-          <CardFooter className="flex flex-col space-y-4 pt-2">
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
+        {/* Password field */}
+        <div className="mb-2">
+          <div className="flex items-center justify-between mb-[7px]">
+            <Label htmlFor="login-password" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+              Password
+            </Label>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="px-0 h-auto font-semibold text-xs text-primary hover:text-primary-hover cursor-pointer"
+              onClick={() => navigate({ to: '/forgot-password' })}
+            >
+              Forgot password?
+            </Button>
+          </div>
+          <form.Field name="password">
+            {(field) => (
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                <Input
+                  id="login-password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  required
+                  autoComplete="current-password"
+                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-panel border-border text-sm"
+                />
                 <Button
-                  type="submit"
-                  className="w-full h-11 font-semibold transition-all active:scale-[0.98]"
-                  disabled={isSubmitting}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-transparent cursor-pointer"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
+                  {showPassword ? (
+                    <EyeOff className="h-[17px] w-[17px]" />
                   ) : (
-                    'Sign in'
+                    <Eye className="h-[17px] w-[17px]" />
                   )}
                 </Button>
+              </div>
+            )}
+          </form.Field>
+        </div>
+
+        {/* Keep me signed in */}
+        <label className="flex items-center gap-2 text-[13px] text-muted-foreground my-3.5 cursor-pointer select-none">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={rememberMe}
+            onClick={() => setRememberMe(!rememberMe)}
+            className={`w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors ${
+              rememberMe
+                ? 'bg-primary text-white'
+                : 'bg-transparent border-[1.5px] border-border'
+            }`}
+          >
+            {rememberMe && (
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            )}
+          </button>
+          Keep me signed in
+        </label>
+
+        {/* Error */}
+        {globalError && (
+          <div className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 mb-4">
+            {globalError}
+          </div>
+        )}
+
+        {/* Submit */}
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <Button
+              type="submit"
+              className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] transition-all active:scale-[0.98] cursor-pointer"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
               )}
-            </form.Subscribe>
-            <div className="text-sm text-center text-muted-foreground">
-              Don&apos;t have an account?{' '}
-              <Button
-                type="button"
-                variant="link"
-                className="p-0 h-auto font-semibold cursor-pointer"
-                onClick={() => navigate({ to: '/register' })}
-              >
-                Sign up
-              </Button>
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+            </Button>
+          )}
+        </form.Subscribe>
+
+        {/* Register link */}
+        <div className="text-[13px] text-muted-foreground mt-[18px]">
+          Don&apos;t have an account?{' '}
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto font-semibold text-primary cursor-pointer"
+            onClick={() => navigate({ to: '/register' })}
+          >
+            Sign up
+          </Button>
+        </div>
+      </form>
+    </AuthLayout>
   )
 }

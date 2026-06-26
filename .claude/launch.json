@@ -6,7 +6,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
-      "cwd": "cms/web-app",
+      "cwd": "web-app",
       "autoPort": false
     }
   ]

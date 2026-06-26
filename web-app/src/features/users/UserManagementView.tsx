@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useUsers, useDeleteUser } from './api'
 import type { UserRoleType, User } from './types'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 import { UserFormDialog } from './components/UserFormDialog'
 
-export function UserManagementView() {
+export const UserManagementView = forwardRef<{ create: () => void }>(function UserManagementView(_props, ref) {
   const { isSuperAdmin, accessSource, activeOrganizationId } = useAuthStore()
   const [activeTab, setActiveTab] = useState<UserRoleType>(
     isSuperAdmin ? 'super_admin' : 'owner',
@@ -58,23 +58,10 @@ export function UserManagementView() {
     setIsFormOpen(true)
   }
 
+  useImperativeHandle(ref, () => ({ create: handleCreateNew }))
+
   return (
     <div className="flex flex-col space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage system access across roles and organizations.
-          </p>
-        </div>
-        <div>
-          <Button onClick={handleCreateNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create User
-          </Button>
-        </div>
-      </div>
-
       <Tabs
         value={activeTab}
         onValueChange={handleTabChange}
@@ -149,4 +136,4 @@ export function UserManagementView() {
       />
     </div>
   )
-}
+})

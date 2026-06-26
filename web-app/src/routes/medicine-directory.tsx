@@ -87,21 +87,21 @@ function MedicineDirectoryPage() {
             <Sparkles className="h-4 w-4 mr-1.5" />
             Seed common
           </Button>
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            Add medicine
+          <Button onClick={() => setCreating(true)} size="sm">
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Create
           </Button>
         </div>
       }
     >
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <Card className="py-0">
+        <CardHeader className="flex flex-row items-center justify-between py-3 px-6 border-b">
           <CardTitle className="text-base">Medicines</CardTitle>
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search…"
-            className="h-9 w-[240px]"
+            className="h-8 w-[240px] text-xs"
           />
         </CardHeader>
         <CardContent className="p-0">
