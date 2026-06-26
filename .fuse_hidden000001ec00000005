@@ -1,0 +1,549 @@
+# MedTrackr — Feature Implementation Plan
+
+## Claude ka Best Use kaise karein
+
+### Golden Rules
+1. **Ek module ek session** — ek baar mein ek pura module complete karo. Context mat toot-ne do.
+2. **Backend pehle, Frontend baad mein** — pehle entity → DTO → service → controller, phir API service → hook → component → route.
+3. **Chhota kaam batao** — "implement leave management" bolne ki bajaye "EmployeeLeave entity aur CRUD endpoints banao" kaho.
+4. **File path dena** — "employees module update karo" ki bajaye exact file path dena takay Claude seedha kaam kare.
+5. **Type-check har step pe** — backend: `npx tsc --noEmit`, frontend: `npx tsc --noEmit`. Merge se pehle zaroor check karo.
+6. **Ek feature ek commit** — chhote commits raho takay rollback asaan ho.
+
+### Recommended Session Structure (har feature ke liye)
+```
+Session 1: Backend — entities + DTOs + service + controller + module wiring
+Session 2: Frontend — API service + TanStack Query hooks + components + route
+Session 3: Integration test + bug fixes
+```
+
+---
+
+## Module Priority Order
+
+| Priority | Module | Effort | Dependencies |
+|----------|--------|--------|--------------|
+| 1 | **HR — Leave & Attendance** | Medium | Employees ✅ |
+| 2 | **HR — Doctor Availability Overrides** | Small | Employees ✅, Appointments ✅ |
+| 3 | **HR — Portal Access Control UI** | Small | Employees ✅ |
+| 4 | **Appointments — Reminders** | Medium | Appointments ✅, Communications |
+| 5 | **Appointments — Waiting Room Queue** | Medium | Appointments ✅ |
+| 6 | **Appointments — Recurring** | Medium | Appointments ✅ |
+| 7 | **Patients — Prescription Templates** | Small | Patients ✅ |
+| 8 | **Patients — SOAP Clinical Notes** | Medium | Patients ✅ |
+| 9 | **Patients — Clinical Note Templates** | Small | SOAP Notes |
+| 10 | **Patients — Allergy & Medical Alerts** | Small | Patients ✅ |
+| 11 | **Patients — Lab Orders** | Medium | Patients ✅ |
+| 12 | **Patients — Insurance Claims Workflow** | Large | Insurance ✅ |
+| 13 | **Patients — Digital Consent Signing** | Medium | Consents ✅ |
+| 14 | **Patients — Recall System** (partial → full) | Small | Patients ✅ |
+| 15 | **Patients — Feedback** (partial → full) | Small | Patients ✅ |
+| 16 | **Patients — Referral Program** (partial → full) | Small | Patients ✅ |
+| 17 | **Billing — Invoices** (entity only → full) | Large | Patients ✅, Appointments ✅ |
+| 18 | **Inventory** (entity only → full) | Medium | Locations ✅ |
+| 19 | **Dashboard — Real Data** | Medium | All modules |
+| 20 | **Communications — SMS/WhatsApp** | Large | External API |
+| 21 | **Reports & Exports** | Large | All modules |
+
+---
+
+## Detailed Feature Specs
+
+---
+
+### 1. HR — Leave & Attendance
+
+**Kya banana hai:**
+- `EmployeeLeave` entity (employee FK, leaveType enum, startDate, endDate, status, reason, approvedBy)
+- `LeaveType` enum: ANNUAL, SICK, UNPAID, MATERNITY, PATERNITY, OTHER
+- `LeaveStatus` enum: PENDING, APPROVED, REJECTED, CANCELLED
+- Backend: full CRUD + approve/reject endpoints
+- Frontend: Leave requests table + approve/reject actions + leave balance display
+
+**Backend files:**
+```
+cms/backend/src/employees/entities/employee-leave.entity.ts  (NEW)
+cms/backend/src/employees/dto/create-leave.dto.ts            (NEW)
+cms/backend/src/employees/dto/update-leave.dto.ts            (NEW)
+cms/backend/src/employees/leave.controller.ts                (NEW)
+cms/backend/src/employees/leave.service.ts                   (NEW)
+cms/backend/src/employees/employees.module.ts                (UPDATE — add entity + controllers)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/employees/services/leave.api.ts         (NEW)
+cms/web-app/src/features/employees/hooks/useLeave.ts             (NEW)
+cms/web-app/src/features/employees/components/LeaveTable.tsx     (NEW)
+cms/web-app/src/features/employees/components/LeaveFormDialog.tsx (NEW)
+```
+
+---
+
+### 2. HR — Doctor Availability Overrides
+
+**Kya banana hai:**
+- `DoctorAvailabilityOverride` entity: employeeId, date, isAvailable, reason, overrideHours (jsonb — start/end time slots)
+- Use case: doctor ka specific din band hai ya extra hours hain
+- Backend: CRUD per employee
+- Frontend: calendar-style UI ya simple table in employee detail page
+
+**Backend files:**
+```
+cms/backend/src/employees/entities/doctor-availability-override.entity.ts (NEW)
+cms/backend/src/employees/dto/availability-override.dto.ts                (NEW)
+cms/backend/src/employees/availability-override.controller.ts             (NEW)
+cms/backend/src/employees/availability-override.service.ts                (NEW)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/employees/components/AvailabilityOverrideTab.tsx (NEW)
+```
+
+---
+
+### 3. HR — Portal Access Control UI
+
+**Kya banana hai:**
+- Employee record pe `portalAccess: boolean` toggle
+- When enabled: send invite email (or set temp password)
+- Backend: `PATCH /employees/:id/portal-access` endpoint already likely exists — check `employees.entity.ts`
+- Frontend: toggle switch in EmployeeForm or EmployeeTable actions
+
+**Backend files:**
+```
+cms/backend/src/employees/employees.service.ts    (UPDATE — add togglePortalAccess method)
+cms/backend/src/employees/employees.controller.ts (UPDATE — add PATCH endpoint)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/employees/components/EmployeeTable.tsx (UPDATE — add toggle column)
+```
+
+---
+
+### 4. Appointments — Waiting Room Queue
+
+**Kya banana hai:**
+- `WaitingRoom` entity: appointmentId FK, checkInTime, calledTime, status (WAITING/CALLED/IN_PROGRESS/DONE)
+- Endpoints: check-in, call-next, complete
+- Frontend: real-time queue view (polling every 30s or WebSocket later)
+
+**Backend files:**
+```
+cms/backend/src/appointments/entities/waiting-room.entity.ts  (NEW)
+cms/backend/src/appointments/dto/waiting-room.dto.ts          (NEW)
+cms/backend/src/appointments/waiting-room.controller.ts       (NEW)
+cms/backend/src/appointments/waiting-room.service.ts          (NEW)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/appointments/components/WaitingRoomView.tsx (NEW)
+cms/web-app/src/routes/appointments.waiting-room.tsx                 (NEW)
+```
+
+---
+
+### 5. Appointments — Recurring Appointments
+
+**Kya banana hai:**
+- `recurrenceRule` field on Appointment entity: frequency (DAILY/WEEKLY/MONTHLY), interval, endDate, count
+- `parentAppointmentId` FK (self-referential) for series grouping
+- Endpoints: create series, edit single vs all, cancel series
+- Frontend: recurrence UI in AppointmentModal
+
+**Backend files:**
+```
+cms/backend/src/appointments/entities/appointment.entity.ts   (UPDATE — add recurrence fields)
+cms/backend/src/appointments/dto/create-appointment.dto.ts    (UPDATE)
+cms/backend/src/appointments/appointments.service.ts          (UPDATE — createSeries method)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/appointments/components/RecurrenceForm.tsx (NEW)
+cms/web-app/src/features/appointments/components/AppointmentModal.tsx (UPDATE)
+```
+
+---
+
+### 6. Patients — Prescription Templates
+
+**Kya banana hai:**
+- `PrescriptionTemplate` entity: orgId, name, drugs (jsonb array), instructions
+- Endpoints: CRUD under org context
+- Frontend: template selector in PrescriptionFormDialog
+
+**Backend files:**
+```
+cms/backend/src/patients/entities/prescription-template.entity.ts (NEW)
+cms/backend/src/patients/dto/request/prescription-template.dto.ts (NEW)
+cms/backend/src/patients/patients.service.ts                       (UPDATE — template methods)
+cms/backend/src/patients/patients.controller.ts                    (UPDATE — template routes)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/PrescriptionFormDialog.tsx (UPDATE — add template picker)
+```
+
+---
+
+### 7. Patients — SOAP Clinical Notes
+
+**Kya banana hai:**
+- `ClinicalNote` entity: patientId, visitId (nullable), authorId, noteType (SOAP/FREE), subjective, objective, assessment, plan, freeText, isDraft
+- `ClinicalNoteTemplate` entity: orgId, name, noteType, defaultContent (jsonb)
+- Endpoints: full CRUD, mark-final (locks editing)
+- Frontend: rich text editor or structured SOAP form in patient detail
+
+**Backend files:**
+```
+cms/backend/src/patients/entities/clinical-note.entity.ts          (NEW)
+cms/backend/src/patients/entities/clinical-note-template.entity.ts (NEW)
+cms/backend/src/patients/dto/request/clinical-note.dto.ts          (NEW)
+cms/backend/src/patients/patients.service.ts                        (UPDATE)
+cms/backend/src/patients/patients.controller.ts                     (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/ClinicalNotesTab.tsx (NEW)
+cms/web-app/src/features/patients/components/tabs/ClinicalNoteFormDialog.tsx (NEW)
+```
+
+---
+
+### 8. Patients — Allergy & Medical Alerts
+
+**Kya banana hai:**
+- `PatientAllergy` entity: patientId, allergen, allergyType (DRUG/FOOD/ENVIRONMENTAL/OTHER), severity (MILD/MODERATE/SEVERE), reaction, notes
+- Banner/alert shown prominently on patient detail page
+- Backend: CRUD per patient
+- Frontend: alert banner in PatientDetailHeader + management tab
+
+**Backend files:**
+```
+cms/backend/src/patients/entities/patient-allergy.entity.ts (NEW)
+cms/backend/src/patients/dto/request/sub-entity.dto.ts      (UPDATE — add allergy DTOs)
+cms/backend/src/patients/patients.service.ts                 (UPDATE)
+cms/backend/src/patients/patients.controller.ts              (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/PatientDetailHeader.tsx (UPDATE — allergy alert banner)
+cms/web-app/src/features/patients/components/tabs/AdminTab.tsx        (UPDATE — allergy management section)
+```
+
+---
+
+### 9. Patients — Lab Orders
+
+**Kya banana hai:**
+- `LabOrder` entity: patientId, visitId (nullable), orderedBy (employeeId), labName, testName, status (ORDERED/SAMPLE_COLLECTED/IN_PROGRESS/COMPLETED/CANCELLED), orderedAt, resultAt, resultNotes, resultFileUrl
+- Endpoints: CRUD + update-result endpoint
+- Frontend: Lab Orders tab in patient detail
+
+**Backend files:**
+```
+cms/backend/src/patients/entities/lab-order.entity.ts       (NEW)
+cms/backend/src/patients/dto/request/lab-order.dto.ts       (NEW)
+cms/backend/src/patients/patients.service.ts                  (UPDATE)
+cms/backend/src/patients/patients.controller.ts               (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/LabOrdersTab.tsx        (NEW)
+cms/web-app/src/features/patients/components/tabs/LabOrderFormDialog.tsx  (NEW)
+```
+
+---
+
+### 10. Patients — Insurance Claims Workflow
+
+**Kya banana hai:**
+- `InsuranceClaim` entity: patientId, insuranceId FK, invoiceId (nullable FK), claimNumber, submittedAt, status (DRAFT/SUBMITTED/IN_REVIEW/APPROVED/REJECTED/PARTIALLY_PAID), approvedAmount, rejectionReason, notes
+- Status lifecycle with audit trail
+- Endpoints: CRUD + status-transition endpoint
+- Frontend: Claims tab in patient detail + claims list view
+
+**Backend files:**
+```
+cms/backend/src/patients/entities/insurance-claim.entity.ts     (NEW)
+cms/backend/src/patients/dto/request/insurance-claim.dto.ts     (NEW)
+cms/backend/src/patients/patients.service.ts                      (UPDATE)
+cms/backend/src/patients/patients.controller.ts                   (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/InsuranceClaimsTab.tsx (NEW)
+cms/web-app/src/features/patients/components/tabs/ClaimFormDialog.tsx    (NEW)
+```
+
+---
+
+### 11. Patients — Recall System (partial → full)
+
+**Entity exists.** Sirf backend service + controller + frontend tab banana hai.
+
+**Backend files:**
+```
+cms/backend/src/patients/patients.service.ts   (UPDATE — recall CRUD methods)
+cms/backend/src/patients/patients.controller.ts (UPDATE — recall routes)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/CrmTab.tsx (UPDATE — recall section already exists, wire API)
+```
+
+---
+
+### 12. Patients — Feedback (partial → full)
+
+**Entity exists.** Same pattern as recalls.
+
+**Backend files:**
+```
+cms/backend/src/patients/patients.service.ts    (UPDATE)
+cms/backend/src/patients/patients.controller.ts (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/CrmTab.tsx (UPDATE — feedback section wire karo)
+```
+
+---
+
+### 13. Patients — Referral Program (partial → full)
+
+**Entity exists.** Same pattern.
+
+**Backend files:**
+```
+cms/backend/src/patients/patients.service.ts    (UPDATE)
+cms/backend/src/patients/patients.controller.ts (UPDATE)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/patients/components/tabs/CrmTab.tsx (UPDATE — referral section wire karo)
+```
+
+---
+
+### 14. Billing — Full Invoices Module
+
+**Kya banana hai:**
+- Entity exists (`invoices/entities/invoice.entity.ts`) — check its fields first
+- `InvoiceItem` entity (if not exists): invoiceId FK, description, quantity, unitPrice, discount, total
+- `InvoicePayment` entity: invoiceId FK, amount, paymentMethod, paidAt, reference
+- Endpoints: CRUD + add-payment + send-to-patient + generate-pdf (later)
+- Frontend: full invoice management page + create/edit modal + payment modal
+
+**Backend files:**
+```
+cms/backend/src/invoices/                           (entire module — controller + service + DTOs)
+cms/backend/src/invoices/entities/invoice-item.entity.ts    (NEW if not exists)
+cms/backend/src/invoices/entities/invoice-payment.entity.ts (NEW)
+cms/backend/src/app.module.ts                       (UPDATE — add InvoicesModule)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/billing/services/billing.api.ts    (NEW)
+cms/web-app/src/features/billing/hooks/useBilling.ts        (NEW)
+cms/web-app/src/features/billing/components/InvoiceTable.tsx (NEW)
+cms/web-app/src/features/billing/components/InvoiceFormDialog.tsx (NEW)
+cms/web-app/src/features/billing/components/PaymentDialog.tsx    (NEW)
+cms/web-app/src/routes/billing.index.tsx                    (NEW)
+```
+
+---
+
+### 15. Inventory — Full Module
+
+**Kya banana hai:**
+- Entity exists — check fields
+- `InventoryTransaction` entity: itemId FK, type (IN/OUT/ADJUSTMENT), quantity, reason, performedBy, performedAt
+- Endpoints: CRUD + add-transaction + low-stock-alert
+- Frontend: inventory management page + transaction history
+
+**Backend files:**
+```
+cms/backend/src/inventory/                            (entire module — controller + service + DTOs)
+cms/backend/src/inventory/entities/inventory-transaction.entity.ts (NEW)
+cms/backend/src/app.module.ts                         (UPDATE — add InventoryModule)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/inventory/services/inventory.api.ts   (NEW)
+cms/web-app/src/features/inventory/hooks/useInventory.ts       (NEW)
+cms/web-app/src/features/inventory/components/InventoryTable.tsx (NEW)
+cms/web-app/src/features/inventory/components/TransactionDialog.tsx (NEW)
+cms/web-app/src/routes/inventory.index.tsx                     (NEW)
+```
+
+---
+
+### 16. Dashboard — Real Data
+
+**Replace mocked data with real API calls.**
+
+**Backend files:**
+```
+cms/backend/src/dashboard/dashboard.controller.ts (NEW)
+cms/backend/src/dashboard/dashboard.service.ts    (NEW — aggregate queries)
+cms/backend/src/dashboard/dashboard.module.ts     (NEW)
+```
+
+**Frontend files:**
+```
+cms/web-app/src/features/dashboard/services/dashboard.api.ts (UPDATE — real endpoints)
+cms/web-app/src/features/dashboard/hooks/useDashboard.ts     (UPDATE or create)
+```
+
+---
+
+### 17. Communications — SMS/WhatsApp (appointment reminders)
+
+**External dependency.** Twilio ya similar service chahiye.
+
+**Backend files:**
+```
+cms/backend/src/communications/communications.module.ts  (NEW)
+cms/backend/src/communications/communications.service.ts (NEW — Twilio/WhatsApp integration)
+cms/backend/src/communications/dto/send-message.dto.ts   (NEW)
+```
+
+**Environment variables needed:**
+```
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_PHONE_NUMBER=
+TWILIO_WHATSAPP_NUMBER=
+```
+
+---
+
+### 18. Reports & Exports
+
+**PDF/Excel exports — heavy feature.**
+
+**Backend files:**
+```
+cms/backend/src/reports/reports.module.ts     (NEW)
+cms/backend/src/reports/reports.service.ts    (NEW — aggregate + format)
+cms/backend/src/reports/reports.controller.ts (NEW — streaming PDF/CSV response)
+```
+
+**NPM packages needed:**
+```
+@nestjs/common (already installed)
+pdfkit or puppeteer (PDF generation)
+exceljs (Excel exports)
+```
+
+---
+
+## Session Prompt Templates
+
+### Backend Module Session:
+```
+Mujhe [MODULE_NAME] module ka backend banana hai NestJS mein.
+Existing pattern follow karo (ResponseWrapper.success, organizationId tenant context, TypeORM).
+
+Ye files banana/update karo:
+[list specific files]
+
+Entity fields:
+[list fields with types]
+
+Endpoints:
+[list endpoints with method + path]
+
+Already existing related files:
+[list relevant existing files as context]
+```
+
+### Frontend Module Session:
+```
+[MODULE_NAME] module ka frontend banana hai React/TanStack mein.
+Backend endpoints ready hain: [list endpoints]
+
+Existing patterns follow karo:
+- apiClient.get/post/patch/delete
+- useQuery/useMutation with queryKey arrays
+- ResponseWrapper unwrap: res.data.data
+- shadcn/ui components only
+- toast.success/toast.error for feedback
+
+Ye files banana/update karo:
+[list specific files]
+```
+
+---
+
+## Implementation Checklist
+
+### HR Module
+- [x] Leave & Attendance (entity + backend + frontend) — 2026-06-10
+- [x] Doctor Availability Overrides — 2026-06-10
+- [x] Portal Access Control toggle UI — 2026-06-10
+
+### Appointments Module
+- [ ] Waiting Room Queue
+- [ ] Recurring Appointments
+- [ ] Appointment Reminders (after Communications ready)
+
+### Patients Module
+- [ ] Prescription Templates
+- [ ] SOAP Clinical Notes + Templates
+- [ ] Allergy & Medical Alerts
+- [ ] Lab Orders
+- [ ] Insurance Claims Workflow
+- [ ] Recall System (complete wiring)
+- [ ] Feedback (complete wiring)
+- [ ] Referral Program (complete wiring)
+
+### Billing Module
+- [ ] Full Invoices module (backend + frontend)
+- [ ] Payment recording
+- [ ] Invoice PDF (phase 2)
+
+### Inventory Module
+- [ ] Full Inventory module (backend + frontend)
+- [ ] Transaction history
+- [ ] Low stock alerts
+
+### Dashboard
+- [ ] Replace mock data with real API calls
+
+### Communications
+- [ ] SMS/WhatsApp integration (Twilio)
+- [ ] Appointment reminders
+- [ ] Patient notification preferences
+
+### Reports
+- [ ] Appointment reports (CSV)
+- [ ] Revenue reports (CSV/PDF)
+- [ ] Patient reports (CSV)
+- [ ] Payroll reports (CSV/PDF)
+
+---
+
+## Notes
+
+- **Patients module bahut bada hai** — sub-entity routes sab `patients.controller.ts` mein hain. Isko split karne ki zaroorat nahi, bas `UPDATE` mark karo.
+- **Billing aur Inventory** ke entities exist karte hain but poori module setup nahi — pehle entities padh ke confirm karo kya fields already hain.
+- **Communications** module tabtak delay karo jab tak Twilio credentials available hon.
+- **Reports** aakhir mein karo — sab data-modules ka depend karta hai.
+- **`synchronize: true` hai** dev mein — TypeORM new entities automatically DB mein create karega. Production pe migrate karna hoga.

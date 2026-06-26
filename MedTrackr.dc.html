@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/digital-connect-design-system-72e8870a-2b48-4347-9de4-9797515f2b6d/colors_and_type.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --app-bg:#ffffff; --canvas:#ffffff; --surface:#ffffff; --sidebar-bg:#ffffff;
+    --panel:#f8fafc; --panel-2:#f1f5f9;
+    --text:#0f172a; --text-2:#475569; --text-3:#94a3b8;
+    --border:#e2e8f0; --border-soft:#f1f5f9;
+    --primary:#2563eb; --primary-hover:#1d4ed8; --primary-fg:#ffffff; --primary-soft:#eff6ff; --primary-text:#2563eb;
+    --emerald:#059669; --emerald-soft:#ecfdf5;
+    --amber:#d97706; --amber-soft:#fffbeb;
+    --danger:#ef4444; --danger-soft:#fef2f2;
+    --violet:#9333ea; --violet-soft:#faf5ff;
+    --shadow-sm:0 1px 3px rgba(15,23,42,.08); --shadow-md:0 4px 12px -2px rgba(15,23,42,.10);
+    --shadow-lg:0 12px 32px -8px rgba(15,23,42,.18);
+    --ring:rgba(37,99,235,.35);
+  }
+  .dark{
+    --app-bg:#0f172a; --canvas:#0b1120; --surface:#1e293b; --sidebar-bg:#0b1120;
+    --panel:#1e293b; --panel-2:#334155;
+    --text:#f1f5f9; --text-2:#cbd5e1; --text-3:#94a3b8;
+    --border:#293548; --border-soft:#1e293b;
+    --primary:#3b82f6; --primary-hover:#60a5fa; --primary-fg:#ffffff; --primary-soft:rgba(59,130,246,.16); --primary-text:#93c5fd;
+    --emerald:#34d399; --emerald-soft:rgba(16,185,129,.16);
+    --amber:#fbbf24; --amber-soft:rgba(245,158,11,.16);
+    --danger:#f87171; --danger-soft:rgba(239,68,68,.16);
+    --violet:#c084fc; --violet-soft:rgba(147,51,234,.18);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4); --shadow-md:0 4px 12px -2px rgba(0,0,0,.5);
+    --shadow-lg:0 12px 32px -8px rgba(0,0,0,.6);
+    --ring:rgba(96,165,250,.4);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:'Geist',ui-sans-serif,system-ui,sans-serif; color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  .mono{font-family:'Geist Mono',ui-monospace,monospace;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text-3);}
+  input,button,select,textarea{font-family:inherit;}
+  .navrow{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:9px;color:var(--text-2);font-size:14px;font-weight:500;cursor:pointer;transition:background .12s,color .12s;white-space:nowrap;}
+  .navrow:hover{background:var(--panel);color:var(--text);}
+  .navrow.active{background:var(--primary-soft);color:var(--primary-text);font-weight:600;}
+  .navrow svg{flex-shrink:0;}
+  .sidebar{width:248px;transition:width .22s ease;}
+  .sidebar.collapsed{width:74px;}
+  .sidebar.collapsed .navlabel,.sidebar.collapsed .navextra,.sidebar.collapsed .brandname,.sidebar.collapsed .usermeta,.sidebar.collapsed .navsection{display:none !important;}
+  .sidebar.collapsed .navrow{justify-content:center;padding:9px;}
+  .sidebar.collapsed .usercard{justify-content:center;}
+  .iconbtn{display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:9px;background:var(--surface);color:var(--text-2);cursor:pointer;transition:background .12s,color .12s,border-color .12s;}
+  .iconbtn:hover{background:var(--panel);color:var(--text);}
+  .btnp{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--primary);color:var(--primary-fg);border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,box-shadow .12s,transform .05s;}
+  .btnp:hover{background:var(--primary-hover);}
+  .btnp:active{transform:translateY(.5px);}
+  .btng{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s;}
+  .btng:hover{background:var(--panel);}
+  .field{width:100%;height:40px;border:1px solid var(--border);border-radius:9px;padding:0 12px;font-size:14px;color:var(--text);background:var(--surface);outline:none;transition:border-color .12s,box-shadow .12s;}
+  .field:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);}
+  .field::placeholder{color:var(--text-3);}
+  .kpi{transition:box-shadow .15s,transform .15s,border-color .15s;}
+  .kpi:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);border-color:var(--primary);}
+  .rowh{transition:background .1s;}
+  .rowh:hover{background:var(--panel);}
+  .lnk{color:var(--primary-text);font-weight:600;cursor:pointer;}
+  .lnk:hover{text-decoration:underline;}
+  .tab{display:inline-flex;align-items:center;gap:7px;padding:11px 4px;font-size:14px;font-weight:600;color:var(--text-3);border-bottom:2px solid transparent;cursor:pointer;transition:color .12s,border-color .12s;white-space:nowrap;}
+  .tab:hover{color:var(--text);}
+  .tab.active{color:var(--primary-text);border-bottom-color:var(--primary);}
+  .th{text-align:left;padding:11px 18px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+  .td{padding:13px 18px;font-size:13px;color:var(--text-2);vertical-align:middle;}
+  .ck{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;flex-shrink:0;display:inline-block;vertical-align:middle;}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;}
+  .segb{padding:6px 13px;border-radius:7px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;border:none;background:transparent;transition:background .12s,color .12s;}
+  .segb.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm);}
+  .pgb{min-width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;}
+  .pgb:hover{background:var(--panel);}
+  .pgb.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .login-split{display:flex;height:100vh;}
+  .login-brand{flex:1;min-width:0;}
+  @media(max-width:900px){.login-brand{display:none !important;}}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes popIn{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  .overlay{animation:fadeIn .14s ease;}
+  .pop{animation:popIn .14s ease;}
+  .modal{animation:slideUp .18s cubic-bezier(.16,1,.3,1);}
+</style>
+</helmet>
+
+<div class="{{ themeClass }}" style="height:100vh;width:100%;background:var(--app-bg);color:var(--text);overflow:hidden;">
+
+<sc-if value="{{ notLoggedIn }}" hint-placeholder-val="{{ true }}">
+  <div class="login-split">
+    <!-- Brand panel -->
+    <div class="login-brand" style="position:relative;background:linear-gradient(155deg,#1d4ed8 0%,#2563eb 48%,#059669 125%);overflow:hidden;padding:52px;display:flex;flex-direction:column;color:#fff;">
+      <div style="position:absolute;inset:0;background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.12) 1px, transparent 0);background-size:26px 26px;opacity:.45;"></div>
+      <div style="position:absolute;width:460px;height:460px;border-radius:50%;background:rgba(255,255,255,.07);top:-140px;right:-140px;"></div>
+      <div style="position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.06);bottom:-100px;left:-80px;"></div>
+      <div style="position:relative;display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <span style="font-size:20px;font-weight:800;letter-spacing:-.02em;">MedTrackr</span>
+      </div>
+      <div style="position:relative;margin-top:auto;">
+        <h1 style="font-size:36px;font-weight:800;letter-spacing:-.025em;line-height:1.12;margin:0;max-width:440px;">The calm, modern way to run your clinic.</h1>
+        <p style="font-size:15px;color:rgba(255,255,255,.85);margin:18px 0 32px;max-width:410px;line-height:1.6;">Patients, appointments, billing and inventory — unified in one premium workspace your whole team will love.</p>
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:400px;">
+          <div style="display:flex;align-items:center;gap:13px;"><span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span><span style="font-size:14.5px;font-weight:500;color:rgba(255,255,255,.95);">Smart scheduling with live queue &amp; calendar</span></div>
+          <div style="display:flex;align-items:center;gap:13px;"><span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><span style="font-size:14.5px;font-weight:500;color:rgba(255,255,255,.95);">Real-time revenue, billing &amp; expense insights</span></div>
+          <div style="display:flex;align-items:center;gap:13px;"><span style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span><span style="font-size:14.5px;font-weight:500;color:rgba(255,255,255,.95);">HIPAA-minded security &amp; role-based access</span></div>
+        </div>
+      </div>
+      <div style="position:relative;margin-top:48px;font-size:12px;color:rgba(255,255,255,.7);">© EOcean Private Limited · Privacy Policy · Terms of Service</div>
+    </div>
+
+    <!-- Form panel -->
+    <div style="flex:1;min-width:0;background:#ffffff;display:flex;align-items:center;justify-content:center;padding:40px 24px;overflow-y:auto;">
+      <div class="modal" style="width:100%;max-width:380px;">
+        <div style="margin-bottom:26px;">
+          <div style="font-size:24px;font-weight:800;letter-spacing:-.02em;color:#0f172a;">Welcome back</div>
+          <div style="font-size:14px;color:#64748b;margin-top:6px;">Sign in to your clinic workspace</div>
+        </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:600;color:#334155;margin-bottom:7px;">Email</label>
+        <div style="position:relative;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          <input value="dr.khan@medtrackr.com" style="width:100%;height:44px;border:1px solid #e2e8f0;border-radius:10px;padding:0 12px 0 38px;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;" placeholder="you@clinic.com">
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
+          <label style="font-size:13px;font-weight:600;color:#334155;">Password</label>
+          <span style="font-size:12px;color:#2563eb;font-weight:600;cursor:pointer;">Forgot password?</span>
+        </div>
+        <div style="position:relative;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="{{ pwdType }}" value="medtrackr" style="width:100%;height:44px;border:1px solid #e2e8f0;border-radius:10px;padding:0 40px 0 38px;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;" placeholder="••••••••">
+          <button onClick="{{ togglePwd }}" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border:none;background:transparent;color:#94a3b8;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;margin:14px 0 20px;cursor:pointer;">
+        <span style="width:16px;height:16px;border-radius:4px;background:#2563eb;display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+        Keep me signed in
+      </label>
+
+      <button onClick="{{ login }}" class="btnp" style="width:100%;height:46px;font-size:15px;border-radius:11px;">Sign in</button>
+
+        <div style="font-size:13px;color:#64748b;margin-top:18px;">Don't have an account? <span style="color:#2563eb;font-weight:600;cursor:pointer;">Contact your administrator</span></div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ loggedIn }}">
+  <div style="display:flex;height:100vh;">
+    <!-- Sidebar -->
+    <aside class="{{ collapsedCls }}" style="flex-shrink:0;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;">
+      <div style="height:64px;display:flex;align-items:center;gap:11px;padding:0 18px;border-bottom:1px solid var(--border-soft);">
+        <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#059669);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <span class="brandname" style="font-size:17px;font-weight:800;letter-spacing:-.02em;">MedTrackr</span>
+      </div>
+
+      <nav style="flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;">
+        <div class="{{ navCls.dashboard }}" onClick="{{ nav.dashboard }}" title="Dashboard">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg><span class="navlabel">Dashboard</span>
+        </div>
+        <div class="{{ navCls.patients }}" onClick="{{ nav.patients }}" title="Patients">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span class="navlabel">Patients</span>
+        </div>
+        <div class="{{ navCls.appointments }}" onClick="{{ nav.appointments }}" title="Appointments">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="navlabel">Appointments</span>
+        </div>
+        <div class="{{ navCls.employees }}" onClick="{{ nav.employees }}" title="Employees">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="navlabel">Employees</span>
+        </div>
+        <div class="navsection" style="font-size:10.5px;font-weight:700;color:var(--text-3);letter-spacing:.09em;text-transform:uppercase;padding:14px 12px 6px;">Operations</div>
+        <div class="{{ navCls.inventory }}" onClick="{{ nav.inventory }}" title="Inventory">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.27 6.96 12 12l8.73-5.04"/><line x1="12" y1="22" x2="12" y2="12"/></svg><span class="navlabel">Inventory</span><span class="navextra" style="margin-left:auto;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">3</span>
+        </div>
+        <div class="{{ navCls.prescriptions }}" onClick="{{ nav.prescriptions }}" title="Prescriptions">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="navlabel">Prescriptions</span>
+        </div>
+        <div class="{{ navCls.invoices }}" onClick="{{ nav.invoices }}" title="Invoices">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h6"/></svg><span class="navlabel">Invoices</span>
+        </div>
+        <div class="{{ navCls.expenses }}" onClick="{{ nav.expenses }}" title="Expenses">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg><span class="navlabel">Expenses</span>
+        </div>
+        <div class="navsection" style="font-size:10.5px;font-weight:700;color:var(--text-3);letter-spacing:.09em;text-transform:uppercase;padding:14px 12px 6px;">Admin</div>
+        <div class="{{ navCls.reports }}" onClick="{{ nav.reports }}" title="Reports">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg><span class="navlabel">Reports</span>
+        </div>
+        <div class="{{ navCls.users }}" onClick="{{ nav.users }}" title="User Admin">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="navlabel">User Admin</span>
+        </div>
+        <div class="{{ navCls.settings }}" onClick="{{ nav.settings }}" title="Settings">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg><span class="navlabel">Settings</span>
+        </div>
+      </nav>
+
+      <div style="padding:12px;border-top:1px solid var(--border-soft);">
+        <div class="usercard" onClick="{{ nav.settings }}" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">SK</div>
+          <div class="usermeta" style="min-width:0;flex:1;">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Dr. Sara Khan</div>
+            <div style="font-size:11px;color:var(--text-3);">Admin</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main column -->
+    <div style="flex:1;display:flex;flex-direction:column;min-width:0;height:100vh;">
+      <header style="height:64px;flex-shrink:0;background:var(--app-bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 22px;position:relative;z-index:20;">
+        <button class="iconbtn" onClick="{{ toggleCollapse }}" style="width:34px;height:34px;" title="Toggle sidebar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-3);">
+          <span>Northside Dental</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span style="color:var(--text);font-weight:600;">{{ routeTitle }}</span>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+          <div style="position:relative;width:264px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="field" placeholder="Search patients, invoices…" style="height:38px;padding-left:34px;background:var(--panel);font-size:13px;">
+          </div>
+
+          <div style="position:relative;">
+            <button class="iconbtn" onClick="{{ toggleNotif }}" style="width:38px;height:38px;position:relative;">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--danger);border:1.5px solid var(--app-bg);"></span>
+            </button>
+            <sc-if value="{{ notifOpen }}">
+              <div class="pop" style="position:absolute;right:0;top:46px;width:340px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:40;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border-soft);"><span style="font-size:14px;font-weight:700;">Notifications</span><span class="lnk" style="font-size:12px;">Mark all read</span></div>
+                <div style="max-height:300px;overflow-y:auto;">
+                  <div class="rowh" style="display:flex;gap:11px;padding:13px 16px;border-bottom:1px solid var(--border-soft);cursor:pointer;"><span style="width:30px;height:30px;border-radius:8px;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><div><div style="font-size:13px;font-weight:600;">Low stock: Composite Resin</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Only 4 units left · 2m ago</div></div></div>
+                  <div class="rowh" style="display:flex;gap:11px;padding:13px 16px;border-bottom:1px solid var(--border-soft);cursor:pointer;"><span style="width:30px;height:30px;border-radius:8px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg></span><div><div style="font-size:13px;font-weight:600;">New appointment booked</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">Aisha Lee · 10:30 AM · 18m ago</div></div></div>
+                  <div class="rowh" style="display:flex;gap:11px;padding:13px 16px;cursor:pointer;"><span style="width:30px;height:30px;border-radius:8px;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><div style="font-size:13px;font-weight:600;">Invoice #1043 paid</div><div style="font-size:12px;color:var(--text-3);margin-top:2px;">$420.00 · 1h ago</div></div></div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+
+          <button class="iconbtn" onClick="{{ toggleTheme }}" style="width:38px;height:38px;" title="Toggle theme">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          </button>
+
+          <div style="position:relative;">
+            <button onClick="{{ toggleProfile }}" style="display:flex;align-items:center;gap:8px;background:transparent;border:none;cursor:pointer;padding:3px;border-radius:20px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">SK</div>
+            </button>
+            <sc-if value="{{ profileOpen }}">
+              <div class="pop" style="position:absolute;right:0;top:48px;width:230px;background:var(--surface);border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow-lg);overflow:hidden;z-index:40;">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--border-soft);"><div style="font-size:14px;font-weight:700;">Dr. Sara Khan</div><div style="font-size:12px;color:var(--text-3);margin-top:1px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d1b5a3ffbab9b0bf91bcb4b5a5a3b0b2baa3ffb2bebc">[email&#160;protected]</a></div></div>
+                <div style="padding:6px;">
+                  <div class="rowh" onClick="{{ nav.settings }}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>My Profile</div>
+                  <div class="rowh" onClick="{{ nav.settings }}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13px;cursor:pointer;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Settings</div>
+                  <div style="height:1px;background:var(--border-soft);margin:6px 0;"></div>
+                  <div class="rowh" onClick="{{ logout }}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;font-size:13px;color:var(--danger);cursor:pointer;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign out</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </header>
+
+      <main style="flex:1;overflow-y:auto;background:var(--app-bg);">
+        <!-- DASHBOARD -->
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:28px;max-width:1380px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap;">
+              <div>
+                <h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0;">Good morning, Dr. Khan</h1>
+                <p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">Here's how Northside Dental is performing today.</p>
+              </div>
+              <button class="btnp" onClick="{{ openNewAppt }}" style="height:38px;padding:0 16px;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New appointment
+              </button>
+            </div>
+
+            <!-- Filter bar -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+              <div class="seg"><button class="segb active">This month</button><button class="segb">This week</button><button class="segb">Today</button><button class="segb">Custom</button></div>
+              <div style="position:relative;">
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>All locations</option><option>Northside Dental</option><option>Downtown Branch</option></select>
+              </div>
+              <div style="position:relative;">
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>All doctors</option><option>Dr. Sara Khan</option><option>Dr. Imran Raza</option></select>
+              </div>
+              <div style="position:relative;">
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>June 2026</option><option>May 2026</option><option>April 2026</option></select>
+              </div>
+              <button class="btng" style="height:36px;padding:0 13px;color:var(--text-2);margin-left:auto;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>Refresh</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;">
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);">
+                <div style="font-size:13px;color:var(--text-2);font-weight:500;">Total Patients</div>
+                <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;">2,847</div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--emerald);font-weight:600;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>+12.5% <span style="color:var(--text-3);font-weight:500;">vs last month</span></div>
+              </div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);">
+                <div style="font-size:13px;color:var(--text-2);font-weight:500;">Appointments Today</div>
+                <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;">34</div>
+                <div style="font-size:12px;color:var(--text-3);font-weight:500;"><span style="color:var(--emerald);font-weight:600;">28 completed</span> · 6 upcoming</div>
+              </div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);">
+                <div style="font-size:13px;color:var(--text-2);font-weight:500;">Revenue (June)</div>
+                <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;">$84,200</div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--emerald);font-weight:600;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>+8.2%</div>
+              </div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);">
+                <div style="font-size:13px;color:var(--text-2);font-weight:500;">Outstanding</div>
+                <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;margin:6px 0 4px;">$12,480</div>
+                <div style="font-size:12px;color:var(--amber);font-weight:600;">9 invoices overdue</div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:18px;">
+              <div style="border:1px solid var(--border);border-radius:12px;padding:20px;background:var(--surface);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                  <div style="font-size:15px;font-weight:700;">Revenue vs Expenses</div>
+                  <div style="display:flex;gap:14px;font-size:12px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Revenue</span><span style="display:flex;align-items:center;gap:6px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--emerald);"></span>Expenses</span></div>
+                </div>
+                <svg viewBox="0 0 560 200" width="100%" height="200" preserveAspectRatio="none">
+                  <defs><linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2563eb" stop-opacity="0.18"/><stop offset="1" stop-color="#2563eb" stop-opacity="0"/></linearGradient></defs>
+                  <line x1="0" y1="50" x2="560" y2="50" stroke="var(--border-soft)" stroke-width="1"/><line x1="0" y1="100" x2="560" y2="100" stroke="var(--border-soft)" stroke-width="1"/><line x1="0" y1="150" x2="560" y2="150" stroke="var(--border-soft)" stroke-width="1"/>
+                  <path d="M0,150 L93,130 L186,138 L279,95 L372,82 L465,52 L560,38 L560,200 L0,200 Z" fill="url(#gRev)"/>
+                  <path d="M0,150 L93,130 L186,138 L279,95 L372,82 L465,52 L560,38" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M0,175 L93,168 L186,170 L279,150 L372,148 L465,132 L560,128" fill="none" stroke="var(--emerald)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:8px;"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div>
+              </div>
+              <div style="border:1px solid var(--border);border-radius:12px;padding:20px;background:var(--surface);">
+                <div style="font-size:15px;font-weight:700;margin-bottom:18px;">Appointment Status</div>
+                <div style="display:flex;align-items:center;gap:18px;">
+                  <div style="width:104px;height:104px;border-radius:50%;flex-shrink:0;background:conic-gradient(var(--primary) 0 62%, var(--emerald) 62% 84%, var(--amber) 84% 94%, var(--border) 94% 100%);display:flex;align-items:center;justify-content:center;">
+                    <div style="width:68px;height:68px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-size:20px;font-weight:800;">34</span><span style="font-size:10px;color:var(--text-3);">total</span></div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:9px;font-size:12.5px;flex:1;">
+                    <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Completed <b style="margin-left:auto;">21</b></span>
+                    <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--emerald);"></span>Confirmed <b style="margin-left:auto;">7</b></span>
+                    <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--amber);"></span>Waiting <b style="margin-left:auto;">4</b></span>
+                    <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--border);"></span>No-show <b style="margin-left:auto;">2</b></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface);">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-soft);">
+                <div style="font-size:15px;font-weight:700;">Today's Schedule</div>
+                <span class="lnk" onClick="{{ nav.appointments }}" style="font-size:13px;">View all</span>
+              </div>
+              <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead><tr style="background:var(--panel);">
+                  <th style="text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Patient</th>
+                  <th style="text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Time</th>
+                  <th style="text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Doctor</th>
+                  <th style="text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Procedure</th>
+                  <th style="text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;">Status</th>
+                </tr></thead>
+                <tbody>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td style="padding:12px 20px;"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">JM</span><b style="font-weight:600;">James Moore</b></div></td><td style="padding:12px 20px;color:var(--text-2);">09:00 AM</td><td style="padding:12px 20px;color:var(--text-2);">Dr. Khan</td><td style="padding:12px 20px;color:var(--text-2);">Root Canal</td><td style="padding:12px 20px;"><span style="font-size:11px;font-weight:600;color:var(--emerald);background:var(--emerald-soft);padding:3px 9px;border-radius:20px;">Completed</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td style="padding:12px 20px;"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">AL</span><b style="font-weight:600;">Aisha Lee</b></div></td><td style="padding:12px 20px;color:var(--text-2);">10:30 AM</td><td style="padding:12px 20px;color:var(--text-2);">Dr. Raza</td><td style="padding:12px 20px;color:var(--text-2);">Cleaning</td><td style="padding:12px 20px;"><span style="font-size:11px;font-weight:600;color:var(--primary-text);background:var(--primary-soft);padding:3px 9px;border-radius:20px;">In chair</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td style="padding:12px 20px;"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">RD</span><b style="font-weight:600;">Ravi Das</b></div></td><td style="padding:12px 20px;color:var(--text-2);">11:15 AM</td><td style="padding:12px 20px;color:var(--text-2);">Dr. Khan</td><td style="padding:12px 20px;color:var(--text-2);">Crown Fitting</td><td style="padding:12px 20px;"><span style="font-size:11px;font-weight:600;color:var(--amber);background:var(--amber-soft);padding:3px 9px;border-radius:20px;">Waiting</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td style="padding:12px 20px;"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">MB</span><b style="font-weight:600;">Maria Brown</b></div></td><td style="padding:12px 20px;color:var(--text-2);">01:00 PM</td><td style="padding:12px 20px;color:var(--text-2);">Dr. Raza</td><td style="padding:12px 20px;color:var(--text-2);">Consultation</td><td style="padding:12px 20px;"><span style="font-size:11px;font-weight:600;color:var(--text-2);background:var(--panel-2);padding:3px 9px;border-radius:20px;">Scheduled</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- PATIENTS LIST -->
+        <sc-if value="{{ isPatients }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div>
+                <h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Patients</h1>
+                <p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">2,847 total · 2,640 active</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="seg">
+                  <button class="{{ patViewTableCls }}" onClick="{{ setPatientTable }}" title="Table view" style="padding:7px 10px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                  <button class="{{ patViewCardsCls }}" onClick="{{ setPatientCards }}" title="Card view" style="padding:7px 10px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+                </div>
+                <button class="btnp" onClick="{{ openNewPatient }}" style="height:38px;padding:0 16px;">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add patient
+                </button>
+              </div>
+            </div>
+
+            <sc-if value="{{ isPatientTable }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <!-- Toolbar -->
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;">
+                <div style="position:relative;flex:1;min-width:220px;max-width:340px;">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input class="field" placeholder="Search by name, phone, patient #…" style="height:36px;padding-left:34px;background:var(--panel);font-size:13px;">
+                </div>
+                <button class="btng" style="height:36px;padding:0 13px;color:var(--text-2);"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters</button>
+                <button class="btng" style="height:36px;padding:0 13px;color:var(--text-2);"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg>Columns</button>
+                <button class="btng" style="height:36px;padding:0 13px;color:var(--text-2);margin-left:auto;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>
+              </div>
+
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr style="background:var(--panel);border-bottom:1px solid var(--border-soft);">
+                  <th class="th" style="width:42px;padding-left:18px;"><span class="ck"></span></th>
+                  <th class="th">Patient <span style="color:var(--text-3);">↑</span></th>
+                  <th class="th">Phone</th>
+                  <th class="th">Age</th>
+                  <th class="th">Gender</th>
+                  <th class="th">Blood</th>
+                  <th class="th">Last Visit</th>
+                  <th class="th">Status</th>
+                  <th class="th" style="width:60px;"></th>
+                </tr></thead>
+                <tbody>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">JM</span><div><div style="font-weight:600;color:var(--text);">James Moore</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10293</div></div></div></td><td class="td">+1 415 555 0182</td><td class="td">42</td><td class="td">Male</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">O+</span></td><td class="td">Jun 12, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">AL</span><div><div style="font-weight:600;color:var(--text);">Aisha Lee</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10288</div></div></div></td><td class="td">+1 415 555 0147</td><td class="td">29</td><td class="td">Female</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">A+</span></td><td class="td">Jun 24, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">RD</span><div><div style="font-weight:600;color:var(--text);">Ravi Das</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10271</div></div></div></td><td class="td">+1 415 555 0193</td><td class="td">55</td><td class="td">Male</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">B+</span></td><td class="td">May 30, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">MB</span><div><div style="font-weight:600;color:var(--text);">Maria Brown</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10265</div></div></div></td><td class="td">+1 415 555 0120</td><td class="td">37</td><td class="td">Female</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">AB+</span></td><td class="td">Jun 18, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">TN</span><div><div style="font-weight:600;color:var(--text);">Thomas Nguyen</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10254</div></div></div></td><td class="td">+1 415 555 0166</td><td class="td">61</td><td class="td">Male</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">O−</span></td><td class="td">Apr 09, 2026</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-3);">Inactive</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">SP</span><div><div style="font-weight:600;color:var(--text);">Sofia Patel</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10240</div></div></div></td><td class="td">+1 415 555 0109</td><td class="td">24</td><td class="td">Female</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">A−</span></td><td class="td">Jun 21, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                  <tr class="rowh" style="border-bottom:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="padding-left:18px;"><span class="ck"></span></td><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">HK</span><div><div style="font-weight:600;color:var(--text);">Hassan Karim</div><div style="font-size:11px;color:var(--text-3);" class="mono">P-10231</div></div></div></td><td class="td">+1 415 555 0175</td><td class="td">48</td><td class="td">Male</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">B−</span></td><td class="td">Jun 02, 2026</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                </tbody>
+              </table>
+
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-top:1px solid var(--border-soft);flex-wrap:wrap;gap:12px;">
+                <div style="font-size:13px;color:var(--text-3);">Showing <b style="color:var(--text-2);">1–7</b> of <b style="color:var(--text-2);">2,847</b></div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="pgb" style="color:var(--text-3);">‹</span>
+                  <span class="pgb active">1</span><span class="pgb">2</span><span class="pgb">3</span><span style="color:var(--text-3);padding:0 4px;">…</span><span class="pgb">407</span>
+                  <span class="pgb">›</span>
+                </div>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ isPatientCards }}">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+                <div style="position:relative;flex:1;min-width:220px;max-width:340px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="field" placeholder="Search patients…" style="height:38px;padding-left:34px;background:var(--surface);font-size:13px;"></div>
+                <button class="btng" style="height:38px;padding:0 13px;color:var(--text-2);"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;">
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">JM</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">James Moore</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10293</div></div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0182</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>42 yrs · Male · O+</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit Jun 12, 2026</span></div></div>
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">AL</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">Aisha Lee</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10288</div></div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0147</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>29 yrs · Female · A+</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit Jun 24, 2026</span></div></div>
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">RD</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">Ravi Das</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10271</div></div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0193</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>55 yrs · Male · B+</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit May 30, 2026</span></div></div>
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">MB</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">Maria Brown</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10265</div></div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0120</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>37 yrs · Female · AB+</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit Jun 18, 2026</span></div></div>
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">TN</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">Thomas Nguyen</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10254</div></div><span class="chip" style="background:var(--panel-2);color:var(--text-3);">Inactive</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0166</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>61 yrs · Male · O−</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit Apr 09, 2026</span></div></div>
+                <div class="kpi" onClick="{{ nav.patientDetail }}" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px;cursor:pointer;"><div style="display:flex;align-items:center;gap:12px;margin-bottom:15px;"><span style="width:42px;height:42px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">SP</span><div style="flex:1;min-width:0;"><div style="font-weight:700;color:var(--text);">Sofia Patel</div><div class="mono" style="font-size:11px;color:var(--text-3);">P-10240</div></div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div><div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0109</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>24 yrs · Female · A−</span><span style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Last visit Jun 21, 2026</span></div></div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- PATIENT DETAIL -->
+        <sc-if value="{{ isPatientDetail }}">
+          <div style="padding:28px;max-width:1180px;">
+            <div onClick="{{ nav.patients }}" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-3);cursor:pointer;margin-bottom:16px;">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>Back to patients
+            </div>
+
+            <!-- Header card -->
+            <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:22px;display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px;">
+              <div style="width:64px;height:64px;border-radius:16px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0;">JM</div>
+              <div style="flex:1;min-width:220px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><h1 style="font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0;">James Moore</h1><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></div>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-size:13px;color:var(--text-2);">
+                  <span class="mono" style="color:var(--text-3);">P-10293</span>
+                  <span>42 yrs · Male</span>
+                  <span style="display:flex;align-items:center;gap:6px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.81.36 1.6.7 2.34a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.74a2 2 0 0 1 2.11-.45c.74.34 1.53.57 2.34.7A2 2 0 0 1 22 16.92z"/></svg>+1 415 555 0182</span>
+                  <span style="display:flex;align-items:center;gap:6px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1e747f737b6d307371716c7b5e7b737f7772307d7173">[email&#160;protected]</a></span>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px;">
+                <button class="btng" style="height:38px;padding:0 14px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>Edit</button>
+                <button class="btnp" onClick="{{ openNewAppt }}" style="height:38px;padding:0 14px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Book visit</button>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;">
+              <div class="{{ ptCls.overview }}" onClick="{{ setPtTab.overview }}">Overview</div>
+              <div class="{{ ptCls.appointments }}" onClick="{{ setPtTab.appointments }}">Appointments <span class="chip" style="background:var(--panel-2);color:var(--text-2);">12</span></div>
+              <div class="{{ ptCls.prescriptions }}" onClick="{{ setPtTab.prescriptions }}">Prescriptions <span class="chip" style="background:var(--panel-2);color:var(--text-2);">5</span></div>
+              <div class="{{ ptCls.invoices }}" onClick="{{ setPtTab.invoices }}">Invoices <span class="chip" style="background:var(--panel-2);color:var(--text-2);">8</span></div>
+              <div class="{{ ptCls.documents }}" onClick="{{ setPtTab.documents }}">Documents</div>
+            </div>
+
+            <sc-if value="{{ isPtOverview }}" hint-placeholder-val="{{ true }}">
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;">
+                <div style="display:flex;flex-direction:column;gap:18px;">
+                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Medical Summary</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                      <div><div style="font-size:12px;color:var(--text-3);margin-bottom:3px;">Allergies</div><div style="font-size:14px;font-weight:600;">Penicillin, Latex</div></div>
+                      <div><div style="font-size:12px;color:var(--text-3);margin-bottom:3px;">Chronic conditions</div><div style="font-size:14px;font-weight:600;">Hypertension</div></div>
+                      <div><div style="font-size:12px;color:var(--text-3);margin-bottom:3px;">Blood group</div><div style="font-size:14px;font-weight:600;">O+</div></div>
+                      <div><div style="font-size:12px;color:var(--text-3);margin-bottom:3px;">Primary doctor</div><div style="font-size:14px;font-weight:600;">Dr. Sara Khan</div></div>
+                    </div>
+                  </div>
+                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:16px;">Recent Activity</div>
+                    <div style="display:flex;flex-direction:column;gap:16px;">
+                      <div style="display:flex;gap:12px;"><span style="width:30px;height:30px;border-radius:8px;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><div style="font-size:13px;font-weight:600;">Root canal completed</div><div style="font-size:12px;color:var(--text-3);margin-top:1px;">Dr. Khan · Jun 12, 2026</div></div></div>
+                      <div style="display:flex;gap:12px;"><span style="width:30px;height:30px;border-radius:8px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><div><div style="font-size:13px;font-weight:600;">Prescription issued — Amoxicillin 500mg</div><div style="font-size:12px;color:var(--text-3);margin-top:1px;">Dr. Khan · Jun 12, 2026</div></div></div>
+                      <div style="display:flex;gap:12px;"><span style="width:30px;height:30px;border-radius:8px;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2"/></svg></span><div><div style="font-size:13px;font-weight:600;">Invoice #1043 paid — $420.00</div><div style="font-size:12px;color:var(--text-3);margin-top:1px;">Jun 12, 2026</div></div></div>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:18px;">
+                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Next Appointment</div>
+                    <div style="display:flex;align-items:center;gap:13px;padding:13px;border-radius:10px;background:var(--primary-soft);">
+                      <div style="width:46px;height:46px;border-radius:10px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;">Jul</span><span style="font-size:17px;font-weight:800;line-height:1;">08</span></div>
+                      <div><div style="font-size:13px;font-weight:700;color:var(--text);">Follow-up · Crown check</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">10:30 AM · Dr. Khan</div></div>
+                    </div>
+                  </div>
+                  <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">Balance</div>
+                    <div style="font-size:28px;font-weight:800;letter-spacing:-.02em;">$0.00</div>
+                    <div style="font-size:12px;color:var(--emerald);font-weight:600;margin-top:4px;">No outstanding dues</div>
+                    <div style="height:1px;background:var(--border-soft);margin:16px 0;"></div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="color:var(--text-3);">Lifetime billed</span><b>$3,860.00</b></div>
+                    <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--text-3);">Total visits</span><b>12</b></div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPtAppointments }}">
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Date</th><th class="th">Procedure</th><th class="th">Doctor</th><th class="th">Status</th></tr></thead><tbody>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 12, 2026</td><td class="td">Root Canal</td><td class="td">Dr. Khan</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Completed</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">May 30, 2026</td><td class="td">Consultation</td><td class="td">Dr. Khan</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Completed</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jul 08, 2026</td><td class="td">Crown check</td><td class="td">Dr. Khan</td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">Scheduled</span></td></tr>
+                </tbody></table>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPtPrescriptions }}">
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Date</th><th class="th">Medication</th><th class="th">Dosage</th><th class="th">Prescriber</th></tr></thead><tbody>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 12, 2026</td><td class="td">Amoxicillin</td><td class="td">500mg · 3×/day · 7 days</td><td class="td">Dr. Khan</td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 12, 2026</td><td class="td">Ibuprofen</td><td class="td">400mg · as needed</td><td class="td">Dr. Khan</td></tr>
+                </tbody></table>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPtInvoices }}">
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Invoice</th><th class="th">Date</th><th class="th">Amount</th><th class="th">Status</th></tr></thead><tbody>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td mono" style="color:var(--text);font-weight:600;">#1043</td><td class="td">Jun 12, 2026</td><td class="td">$420.00</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Paid</span></td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td mono" style="color:var(--text);font-weight:600;">#0991</td><td class="td">May 30, 2026</td><td class="td">$150.00</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Paid</span></td></tr>
+                </tbody></table>
+              </div>
+            </sc-if>
+            <sc-if value="{{ isPtDocuments }}">
+              <div style="border:1px dashed var(--border);border-radius:12px;background:var(--surface);padding:48px;text-align:center;">
+                <div style="width:48px;height:48px;border-radius:12px;background:var(--panel);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <div style="font-size:15px;font-weight:700;">No documents yet</div>
+                <p style="font-size:13px;color:var(--text-3);margin-top:5px;">Upload X-rays, consent forms, or referral letters.</p>
+                <button class="btng" style="height:36px;padding:0 16px;margin-top:14px;">Upload document</button>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- APPOINTMENTS -->
+        <sc-if value="{{ isAppointments }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div>
+                <h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Appointments</h1>
+                <p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">Tuesday, June 24, 2026 · 34 scheduled</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="seg"><button class="{{ apptSeg.day }}" onClick="{{ setApptView.day }}">Day</button><button class="{{ apptSeg.week }}" onClick="{{ setApptView.week }}">Week</button><button class="{{ apptSeg.month }}" onClick="{{ setApptView.month }}">Month</button><button class="{{ apptSeg.queue }}" onClick="{{ setApptView.queue }}">Queue</button></div>
+                <button class="btnp" onClick="{{ openNewAppt }}" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New</button>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Scheduled</div><div style="font-size:24px;font-weight:800;margin-top:4px;">34</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Completed</div><div style="font-size:24px;font-weight:800;margin-top:4px;color:var(--emerald);">21</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">In queue</div><div style="font-size:24px;font-weight:800;margin-top:4px;color:var(--amber);">4</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:16px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">No-shows</div><div style="font-size:24px;font-weight:800;margin-top:4px;color:var(--text-3);">2</div></div>
+            </div>
+
+            <sc-if value="{{ isApptDay }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-soft);">
+                <div style="display:flex;align-items:center;gap:10px;"><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:14px;font-weight:700;">June 24, 2026</span><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+                <span style="font-size:12px;color:var(--text-3);">All doctors</span>
+              </div>
+              <div style="padding:8px 0;">
+                <div style="display:flex;gap:0;padding:6px 20px;align-items:stretch;"><div style="width:64px;flex-shrink:0;font-size:12px;color:var(--text-3);font-weight:600;padding-top:14px;">09:00</div><div style="flex:1;display:flex;gap:12px;"><div class="rowh" onClick="{{ nav.patientDetail }}" style="flex:1;border-left:3px solid var(--emerald);background:var(--emerald-soft);border-radius:8px;padding:11px 14px;cursor:pointer;"><div style="font-size:13px;font-weight:700;">James Moore · Root Canal</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">Dr. Khan · Room 2 · 60 min</div></div></div></div>
+                <div style="display:flex;gap:0;padding:6px 20px;align-items:stretch;"><div style="width:64px;flex-shrink:0;font-size:12px;color:var(--text-3);font-weight:600;padding-top:14px;">10:30</div><div style="flex:1;display:flex;gap:12px;"><div class="rowh" onClick="{{ nav.patientDetail }}" style="flex:1;border-left:3px solid var(--primary);background:var(--primary-soft);border-radius:8px;padding:11px 14px;cursor:pointer;"><div style="font-size:13px;font-weight:700;">Aisha Lee · Cleaning</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">Dr. Raza · Room 1 · 30 min</div></div></div></div>
+                <div style="display:flex;gap:0;padding:6px 20px;align-items:stretch;"><div style="width:64px;flex-shrink:0;font-size:12px;color:var(--text-3);font-weight:600;padding-top:14px;">11:15</div><div style="flex:1;display:flex;gap:12px;"><div class="rowh" onClick="{{ nav.patientDetail }}" style="flex:1;border-left:3px solid var(--amber);background:var(--amber-soft);border-radius:8px;padding:11px 14px;cursor:pointer;"><div style="font-size:13px;font-weight:700;">Ravi Das · Crown Fitting</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">Dr. Khan · Room 2 · 45 min · Waiting</div></div></div></div>
+                <div style="display:flex;gap:0;padding:6px 20px;align-items:stretch;"><div style="width:64px;flex-shrink:0;font-size:12px;color:var(--text-3);font-weight:600;padding-top:14px;">13:00</div><div style="flex:1;display:flex;gap:12px;"><div class="rowh" onClick="{{ nav.patientDetail }}" style="flex:1;border-left:3px solid var(--violet);background:var(--violet-soft);border-radius:8px;padding:11px 14px;cursor:pointer;"><div style="font-size:13px;font-weight:700;">Maria Brown · Consultation</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">Dr. Raza · Room 3 · 30 min</div></div><div style="flex:1;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;cursor:pointer;">+ Available</div></div></div>
+                <div style="display:flex;gap:0;padding:6px 20px;align-items:stretch;"><div style="width:64px;flex-shrink:0;font-size:12px;color:var(--text-3);font-weight:600;padding-top:14px;">14:30</div><div style="flex:1;display:flex;gap:12px;"><div class="rowh" onClick="{{ nav.patientDetail }}" style="flex:1;border-left:3px solid var(--emerald);background:var(--emerald-soft);border-radius:8px;padding:11px 14px;cursor:pointer;"><div style="font-size:13px;font-weight:700;">Sofia Patel · Whitening</div><div style="font-size:12px;color:var(--text-2);margin-top:2px;">Dr. Khan · Room 2 · 45 min</div></div></div></div>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- WEEK VIEW -->
+            <sc-if value="{{ isApptWeek }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-soft);">
+                <div style="display:flex;align-items:center;gap:10px;"><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:14px;font-weight:700;">Jun 22 – 28, 2026</span><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+              </div>
+              <div style="display:grid;grid-template-columns:54px repeat(7,1fr);">
+                <div style="border-bottom:1px solid var(--border-soft);"></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Mon</div><div style="font-size:15px;font-weight:700;">22</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Tue</div><div style="font-size:15px;font-weight:700;color:var(--primary-text);">23</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);background:var(--primary-soft);"><div style="font-size:11px;color:var(--primary-text);text-transform:uppercase;">Wed</div><div style="font-size:15px;font-weight:800;color:var(--primary-text);">24</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Thu</div><div style="font-size:15px;font-weight:700;">25</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Fri</div><div style="font-size:15px;font-weight:700;">26</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Sat</div><div style="font-size:15px;font-weight:700;">27</div></div>
+                <div style="padding:10px 8px;text-align:center;border-bottom:1px solid var(--border-soft);border-left:1px solid var(--border-soft);"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;">Sun</div><div style="font-size:15px;font-weight:700;color:var(--text-3);">28</div></div>
+                <div style="font-size:11px;color:var(--text-3);padding:14px 8px;text-align:right;">09:00</div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"><div onClick="{{ nav.patientDetail }}" style="background:var(--emerald-soft);border-left:2px solid var(--emerald);border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;">J. Moore · Root Canal</div></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"><div onClick="{{ nav.patientDetail }}" style="background:var(--primary-soft);border-left:2px solid var(--primary);border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;">K. Park · Checkup</div></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="font-size:11px;color:var(--text-3);padding:14px 8px;text-align:right;">10:30</div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"><div onClick="{{ nav.patientDetail }}" style="background:var(--violet-soft);border-left:2px solid var(--violet);border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;">M. Brown · Consult</div></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"><div onClick="{{ nav.patientDetail }}" style="background:var(--primary-soft);border-left:2px solid var(--primary);border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;">A. Lee · Cleaning</div></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"><div onClick="{{ nav.patientDetail }}" style="background:var(--emerald-soft);border-left:2px solid var(--emerald);border-radius:6px;padding:5px 7px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;">S. Patel · Whitening</div></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+                <div style="border-left:1px solid var(--border-soft);min-height:56px;padding:4px;"></div>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- MONTH CALENDAR VIEW -->
+            <sc-if value="{{ isApptMonth }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-soft);">
+                <div style="display:flex;align-items:center;gap:10px;"><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><span style="font-size:14px;font-weight:700;">June 2026</span><button class="iconbtn" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>
+                <div style="display:flex;gap:14px;font-size:11.5px;color:var(--text-2);"><span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary);"></span>Cleaning</span><span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--emerald);"></span>Procedure</span><span style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--violet);"></span>Consult</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border-soft);">
+                <div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Mon</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Tue</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Wed</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Thu</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Fri</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Sat</div><div style="padding:9px;text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;">Sun</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:96px;">
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text-3);">1</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">2</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--primary-soft);color:var(--primary-text);border-radius:4px;padding:2px 5px;font-weight:600;">3 cleaning</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">3</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">4</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--emerald-soft);color:var(--emerald);border-radius:4px;padding:2px 5px;font-weight:600;">2 procedures</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">5</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">6</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">7</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">8</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--primary-soft);color:var(--primary-text);border-radius:4px;padding:2px 5px;font-weight:600;">5 cleaning</span><span style="font-size:10px;background:var(--violet-soft);color:var(--violet);border-radius:4px;padding:2px 5px;font-weight:600;">2 consult</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">9</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">10</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--emerald-soft);color:var(--emerald);border-radius:4px;padding:2px 5px;font-weight:600;">4 procedures</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">11</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">12</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--primary-soft);color:var(--primary-text);border-radius:4px;padding:2px 5px;font-weight:600;">6 cleaning</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">13</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">14</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">15</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">16</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--emerald-soft);color:var(--emerald);border-radius:4px;padding:2px 5px;font-weight:600;">3 procedures</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">17</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">18</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--violet-soft);color:var(--violet);border-radius:4px;padding:2px 5px;font-weight:600;">4 consult</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">19</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">20</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">21</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">22</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">23</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--emerald-soft);color:var(--emerald);border-radius:4px;padding:2px 5px;font-weight:600;">2 procedures</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;background:var(--primary-soft);outline:1px solid var(--primary);"><span style="font-size:12px;font-weight:800;color:var(--primary-text);">24</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--surface);color:var(--primary-text);border-radius:4px;padding:2px 5px;font-weight:700;">34 today</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">25</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">26</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--primary-soft);color:var(--primary-text);border-radius:4px;padding:2px 5px;font-weight:600;">5 cleaning</span></div></div>
+                <div style="border-bottom:1px solid var(--border-soft);border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">27</span></div>
+                <div style="border-bottom:1px solid var(--border-soft);padding:7px;background:var(--panel);"><span style="font-size:12px;color:var(--text-3);">28</span></div>
+                <div style="border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">29</span></div>
+                <div style="border-right:1px solid var(--border-soft);padding:7px;"><span style="font-size:12px;color:var(--text);">30</span><div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;"><span style="font-size:10px;background:var(--emerald-soft);color:var(--emerald);border-radius:4px;padding:2px 5px;font-weight:600;">3 procedures</span></div></div>
+                <div style="border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"></div><div style="border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"></div><div style="border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"></div><div style="border-right:1px solid var(--border-soft);padding:7px;background:var(--panel);"></div><div style="padding:7px;background:var(--panel);"></div>
+              </div>
+            </div>
+            </sc-if>
+
+            <!-- QUEUE VIEW -->
+            <sc-if value="{{ isApptQueue }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="padding:14px 20px;border-bottom:1px solid var(--border-soft);font-size:14px;font-weight:700;">Live Queue · 4 waiting</div>
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">#</th><th class="th">Patient</th><th class="th">Checked in</th><th class="th">Doctor</th><th class="th">Wait</th><th class="th">Status</th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="font-weight:700;color:var(--text);">1</td><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">RD</span><b style="color:var(--text);">Ravi Das</b></div></td><td class="td">11:02 AM</td><td class="td">Dr. Khan</td><td class="td" style="color:var(--amber);font-weight:600;">13 min</td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Waiting</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="font-weight:700;color:var(--text);">2</td><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">AL</span><b style="color:var(--text);">Aisha Lee</b></div></td><td class="td">11:10 AM</td><td class="td">Dr. Raza</td><td class="td" style="color:var(--text-2);font-weight:600;">5 min</td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">In chair</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="font-weight:700;color:var(--text);">3</td><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">MB</span><b style="color:var(--text);">Maria Brown</b></div></td><td class="td">11:18 AM</td><td class="td">Dr. Raza</td><td class="td" style="color:var(--text-2);font-weight:600;">2 min</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">Checked in</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;" onClick="{{ nav.patientDetail }}"><td class="td" style="font-weight:700;color:var(--text);">4</td><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">SP</span><b style="color:var(--text);">Sofia Patel</b></div></td><td class="td">11:25 AM</td><td class="td">Dr. Khan</td><td class="td" style="color:var(--text-2);font-weight:600;">Just now</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-2);">Checked in</span></td></tr>
+              </tbody></table>
+            </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- INVOICES -->
+        <sc-if value="{{ isInvoices }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Invoices</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">June 2026 billing</p></div>
+              <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create invoice</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Total billed</div><div style="font-size:24px;font-weight:800;margin-top:5px;">$96,680</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Collected</div><div style="font-size:24px;font-weight:800;margin-top:5px;color:var(--emerald);">$84,200</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Outstanding</div><div style="font-size:24px;font-weight:800;margin-top:5px;color:var(--amber);">$12,480</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Overdue</div><div style="font-size:24px;font-weight:800;margin-top:5px;color:var(--danger);">9</div></div>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft);">
+                <div style="position:relative;flex:1;max-width:320px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="field" placeholder="Search invoice # or patient…" style="height:36px;padding-left:34px;background:var(--panel);font-size:13px;"></div>
+                <div class="seg" style="margin-left:auto;"><button class="segb active">All</button><button class="segb">Paid</button><button class="segb">Pending</button><button class="segb">Overdue</button></div>
+              </div>
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Invoice</th><th class="th">Patient</th><th class="th">Issued</th><th class="th">Due</th><th class="th">Amount</th><th class="th">Status</th><th class="th" style="width:50px;"></th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td mono" style="color:var(--text);font-weight:600;">#1043</td><td class="td" style="color:var(--text);">James Moore</td><td class="td">Jun 12</td><td class="td">Jun 26</td><td class="td" style="font-weight:600;color:var(--text);">$420.00</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Paid</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td mono" style="color:var(--text);font-weight:600;">#1042</td><td class="td" style="color:var(--text);">Aisha Lee</td><td class="td">Jun 11</td><td class="td">Jun 25</td><td class="td" style="font-weight:600;color:var(--text);">$120.00</td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Pending</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td mono" style="color:var(--text);font-weight:600;">#1038</td><td class="td" style="color:var(--text);">Thomas Nguyen</td><td class="td">May 28</td><td class="td">Jun 11</td><td class="td" style="font-weight:600;color:var(--text);">$980.00</td><td class="td"><span class="chip" style="background:var(--danger-soft);color:var(--danger);">Overdue</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td mono" style="color:var(--text);font-weight:600;">#1037</td><td class="td" style="color:var(--text);">Maria Brown</td><td class="td">May 26</td><td class="td">Jun 09</td><td class="td" style="font-weight:600;color:var(--text);">$310.00</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Paid</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td mono" style="color:var(--text);font-weight:600;">#1035</td><td class="td" style="color:var(--text);">Hassan Karim</td><td class="td">May 22</td><td class="td">Jun 05</td><td class="td" style="font-weight:600;color:var(--text);">$650.00</td><td class="td"><span class="chip" style="background:var(--danger-soft);color:var(--danger);">Overdue</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- EXPENSES -->
+        <sc-if value="{{ isExpenses }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Expenses</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">June 2026 · $12,480 spent</p></div>
+              <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Record expense</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:18px;">
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:18px;">By Category</div>
+                <div style="display:flex;flex-direction:column;gap:16px;">
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Supplies</span><b>$5,200</b></div><div style="height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;"><div style="height:100%;width:42%;background:var(--primary);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Salaries</span><b>$3,800</b></div><div style="height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;"><div style="height:100%;width:30%;background:var(--emerald);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Rent &amp; Utilities</span><b>$2,100</b></div><div style="height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;"><div style="height:100%;width:17%;background:var(--amber);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Equipment</span><b>$1,380</b></div><div style="height:7px;border-radius:4px;background:var(--panel-2);overflow:hidden;"><div style="height:100%;width:11%;background:var(--violet);border-radius:4px;"></div></div></div>
+                </div>
+              </div>
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+                <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Date</th><th class="th">Description</th><th class="th">Category</th><th class="th">Vendor</th><th class="th">Amount</th></tr></thead><tbody>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 20</td><td class="td">Composite resin restock</td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">Supplies</span></td><td class="td">DentSupply Co</td><td class="td" style="font-weight:600;color:var(--text);">$1,240</td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 18</td><td class="td">Autoclave maintenance</td><td class="td"><span class="chip" style="background:var(--violet-soft);color:var(--violet);">Equipment</span></td><td class="td">MedTech Svc</td><td class="td" style="font-weight:600;color:var(--text);">$480</td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 15</td><td class="td">Clinic electricity</td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Utilities</span></td><td class="td">City Power</td><td class="td" style="font-weight:600;color:var(--text);">$620</td></tr>
+                  <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 10</td><td class="td">Nitrile gloves (10 boxes)</td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">Supplies</span></td><td class="td">SafeHands</td><td class="td" style="font-weight:600;color:var(--text);">$310</td></tr>
+                </tbody></table>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- INVENTORY -->
+        <sc-if value="{{ isInventory }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Inventory</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">214 items · 3 low on stock</p></div>
+              <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add item</button>
+            </div>
+            <div style="display:flex;gap:24px;border-bottom:1px solid var(--border);margin-bottom:18px;"><div class="tab active">Items</div><div class="tab">Purchase Orders</div><div class="tab">Suppliers</div><div class="tab">Consumption Templates</div></div>
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft);">
+                <div style="position:relative;flex:1;max-width:320px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="field" placeholder="Search items…" style="height:36px;padding-left:34px;background:var(--panel);font-size:13px;"></div>
+                <button class="btng" style="height:36px;padding:0 13px;color:var(--text-2);margin-left:auto;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>Filters</button>
+              </div>
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Item</th><th class="th">SKU</th><th class="th">Category</th><th class="th">In stock</th><th class="th">Reorder at</th><th class="th">Status</th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Composite Resin A2</td><td class="td mono">CR-A2-004</td><td class="td">Restorative</td><td class="td" style="color:var(--danger);font-weight:700;">4</td><td class="td">10</td><td class="td"><span class="chip" style="background:var(--danger-soft);color:var(--danger);">Low stock</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Nitrile Gloves (M)</td><td class="td mono">GLV-M-021</td><td class="td">Consumables</td><td class="td" style="color:var(--danger);font-weight:700;">6</td><td class="td">15</td><td class="td"><span class="chip" style="background:var(--danger-soft);color:var(--danger);">Low stock</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Dental Anesthetic</td><td class="td mono">AN-LID-009</td><td class="td">Pharmacy</td><td class="td" style="font-weight:700;color:var(--text);">48</td><td class="td">20</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">In stock</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Impression Material</td><td class="td mono">IMP-033</td><td class="td">Restorative</td><td class="td" style="font-weight:700;color:var(--text);">22</td><td class="td">10</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">In stock</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Surgical Masks</td><td class="td mono">MSK-050</td><td class="td">Consumables</td><td class="td" style="color:var(--amber);font-weight:700;">12</td><td class="td">15</td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Reorder soon</span></td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- EMPLOYEES -->
+        <sc-if value="{{ isEmployees }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Employees</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">18 staff · 14 active</p></div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="seg">
+                  <button class="{{ empViewTableCls }}" onClick="{{ setEmpTable }}" title="Table view" style="padding:7px 10px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+                  <button class="{{ empViewCardsCls }}" onClick="{{ setEmpCards }}" title="Card view" style="padding:7px 10px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button>
+                </div>
+                <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add employee</button>
+              </div>
+            </div>
+            <sc-if value="{{ isEmpTable }}" hint-placeholder-val="{{ true }}">
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft);">
+                <div style="position:relative;flex:1;max-width:320px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="field" placeholder="Search staff…" style="height:36px;padding-left:34px;background:var(--panel);font-size:13px;"></div>
+              </div>
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Name</th><th class="th">Role</th><th class="th">Email</th><th class="th">Phone</th><th class="th">Status</th><th class="th" style="width:50px;"></th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">SK</span><b style="color:var(--text);">Dr. Sara Khan</b></div></td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">Dentist · Admin</span></td><td class="td"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1a7e683471727b745a777f7e6e687b79716834797577">[email&#160;protected]</a></td><td class="td">+1 415 555 0100</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">IR</span><b style="color:var(--text);">Dr. Imran Raza</b></div></td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Dentist</span></td><td class="td"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4a2e3864382b302b0a272f2e3e382b29213864292527">[email&#160;protected]</a></td><td class="td">+1 415 555 0101</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">EW</span><b style="color:var(--text);">Emma Wilson</b></div></td><td class="td"><span class="chip" style="background:var(--violet-soft);color:var(--violet);">Receptionist</span></td><td class="td"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="95f0f8f8f4bbe2d5f8f0f1e1e7f4f6fee7bbf6faf8">[email&#160;protected]</a></td><td class="td">+1 415 555 0102</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:11px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">DK</span><b style="color:var(--text);">David Kim</b></div></td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Hygienist</span></td><td class="td"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="026663746b662c69426f67667670636169702c616d6f">[email&#160;protected]</a></td><td class="td">+1 415 555 0103</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-3);">On leave</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+              </tbody></table>
+            </div>
+            </sc-if>
+            <sc-if value="{{ isEmpCards }}">
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+                <div class="kpi" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;text-align:center;"><span style="width:56px;height:56px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;">SK</span><div style="font-weight:700;color:var(--text);">Dr. Sara Khan</div><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);margin-top:8px;">Dentist · Admin</span><div style="font-size:12px;color:var(--text-3);margin-top:12px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0e6a7c2065666f604e636b6a7a7c6f6d657c206d6163">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text-3);margin-top:3px;">+1 415 555 0100</div></div>
+                <div class="kpi" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;text-align:center;"><span style="width:56px;height:56px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;">IR</span><div style="font-weight:700;color:var(--text);">Dr. Imran Raza</div><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);margin-top:8px;">Dentist</span><div style="font-size:12px;color:var(--text-3);margin-top:12px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1175633f63706b70517c7475656370727a633f727e7c">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text-3);margin-top:3px;">+1 415 555 0101</div></div>
+                <div class="kpi" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;text-align:center;"><span style="width:56px;height:56px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;">EW</span><div style="font-weight:700;color:var(--text);">Emma Wilson</div><span class="chip" style="background:var(--violet-soft);color:var(--violet);margin-top:8px;">Receptionist</span><div style="font-size:12px;color:var(--text-3);margin-top:12px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d1810101c530a3d101819090f1c1e160f531e1210">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text-3);margin-top:3px;">+1 415 555 0102</div></div>
+                <div class="kpi" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;text-align:center;"><span style="width:56px;height:56px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;margin:0 auto 12px;">DK</span><div style="font-weight:700;color:var(--text);">David Kim</div><span class="chip" style="background:var(--amber-soft);color:var(--amber);margin-top:8px;">Hygienist</span><div style="font-size:12px;color:var(--text-3);margin-top:12px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6d090c1b040943062d000809191f0c0e061f430e0200">[email&#160;protected]</a></div><div style="font-size:12px;color:var(--text-3);margin-top:3px;">+1 415 555 0103</div></div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <!-- PRESCRIPTIONS -->
+        <sc-if value="{{ isPrescriptions }}">
+          <div style="padding:28px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Prescriptions</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">Recent issued prescriptions</p></div>
+              <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New prescription</button>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">Date</th><th class="th">Patient</th><th class="th">Medications</th><th class="th">Prescriber</th><th class="th" style="width:90px;"></th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 24, 2026</td><td class="td">Aisha Lee</td><td class="td">Amoxicillin 500mg, Ibuprofen 400mg</td><td class="td">Dr. Raza</td><td class="td"><span class="lnk" style="font-size:12px;">View · Print</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 12, 2026</td><td class="td">James Moore</td><td class="td">Amoxicillin 500mg</td><td class="td">Dr. Khan</td><td class="td"><span class="lnk" style="font-size:12px;">View · Print</span></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);"><td class="td" style="color:var(--text);font-weight:600;">Jun 10, 2026</td><td class="td">Sofia Patel</td><td class="td">Chlorhexidine rinse</td><td class="td">Dr. Khan</td><td class="td"><span class="lnk" style="font-size:12px;">View · Print</span></td></tr>
+              </tbody></table>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;">
+              <div class="rowh" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:16px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;flex:1;min-width:220px;"><span style="width:38px;height:38px;border-radius:10px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span><div><div style="font-size:14px;font-weight:700;">Prescription templates</div><div style="font-size:12px;color:var(--text-3);">14 reusable templates</div></div></div>
+              <div class="rowh" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:16px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;flex:1;min-width:220px;"><span style="width:38px;height:38px;border-radius:10px;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><div><div style="font-size:14px;font-weight:700;">Medicine directory</div><div style="font-size:12px;color:var(--text-3);">3,200 medications</div></div></div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- REPORTS -->
+        <sc-if value="{{ isReports }}">
+          <div style="padding:28px;max-width:1380px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">Reports</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">Practice performance · last 6 months</p></div>
+              <div style="display:flex;gap:10px;"><div class="seg"><button class="segb">Month</button><button class="segb active">6 months</button><button class="segb">Year</button></div><button class="btng" style="height:38px;padding:0 14px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export PDF</button></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px;">
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Total revenue</div><div style="font-size:24px;font-weight:800;margin-top:5px;">$472k</div><div style="font-size:12px;color:var(--emerald);font-weight:600;margin-top:3px;">▲ 14% YoY</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">New patients</div><div style="font-size:24px;font-weight:800;margin-top:5px;">386</div><div style="font-size:12px;color:var(--emerald);font-weight:600;margin-top:3px;">▲ 9%</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">Avg. visit value</div><div style="font-size:24px;font-weight:800;margin-top:5px;">$248</div><div style="font-size:12px;color:var(--emerald);font-weight:600;margin-top:3px;">▲ 4%</div></div>
+              <div class="kpi" style="border:1px solid var(--border);border-radius:12px;padding:18px;background:var(--surface);"><div style="font-size:12.5px;color:var(--text-2);">No-show rate</div><div style="font-size:24px;font-weight:800;margin-top:5px;">5.8%</div><div style="font-size:12px;color:var(--danger);font-weight:600;margin-top:3px;">▲ 0.6%</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Monthly Revenue</div>
+                <svg viewBox="0 0 520 200" width="100%" height="200" preserveAspectRatio="none">
+                  <line x1="0" y1="50" x2="520" y2="50" stroke="var(--border-soft)"/><line x1="0" y1="100" x2="520" y2="100" stroke="var(--border-soft)"/><line x1="0" y1="150" x2="520" y2="150" stroke="var(--border-soft)"/>
+                  <rect x="22" y="110" width="40" height="90" rx="5" fill="var(--primary)"/><rect x="102" y="92" width="40" height="108" rx="5" fill="var(--primary)"/><rect x="182" y="80" width="40" height="120" rx="5" fill="var(--primary)"/><rect x="262" y="64" width="40" height="136" rx="5" fill="var(--primary)"/><rect x="342" y="48" width="40" height="152" rx="5" fill="var(--primary)"/><rect x="422" y="34" width="40" height="166" rx="5" fill="var(--primary)"/>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-top:8px;padding:0 18px;"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div>
+              </div>
+              <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:20px;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:16px;">Top Procedures</div>
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Cleaning &amp; Scaling</span><b>312</b></div><div style="height:8px;border-radius:4px;background:var(--panel-2);"><div style="height:100%;width:88%;background:var(--primary);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Fillings</span><b>248</b></div><div style="height:8px;border-radius:4px;background:var(--panel-2);"><div style="height:100%;width:70%;background:var(--emerald);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Root Canal</span><b>134</b></div><div style="height:8px;border-radius:4px;background:var(--panel-2);"><div style="height:100%;width:48%;background:var(--amber);border-radius:4px;"></div></div></div>
+                  <div><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:var(--text-2);">Crowns</span><b>96</b></div><div style="height:8px;border-radius:4px;background:var(--panel-2);"><div style="height:100%;width:34%;background:var(--violet);border-radius:4px;"></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- USER ADMIN -->
+        <sc-if value="{{ isUsers }}">
+          <div style="padding:28px;max-width:1380px;">
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;">
+              <div><h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0;">User Admin</h1><p style="font-size:14px;color:var(--text-2);margin:5px 0 0;">6 portal users · manage access &amp; roles</p></div>
+              <button class="btnp" style="height:38px;padding:0 16px;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Invite user</button>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);overflow:hidden;">
+              <!-- Filter toolbar -->
+              <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;">
+                <div style="position:relative;flex:1;min-width:220px;max-width:320px;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input class="field" placeholder="Search users by name or email…" style="height:36px;padding-left:34px;background:var(--panel);font-size:13px;"></div>
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>All roles</option><option>Admin</option><option>Dentist</option><option>Receptionist</option><option>Hygienist</option></select>
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>All status</option><option>Active</option><option>Invited</option><option>Suspended</option></select>
+                <select class="field" style="height:36px;width:auto;padding-right:30px;font-size:13px;font-weight:500;cursor:pointer;"><option>All locations</option><option>Northside</option><option>Downtown</option></select>
+              </div>
+              <table style="width:100%;border-collapse:collapse;"><thead><tr style="background:var(--panel);"><th class="th">User</th><th class="th">Role</th><th class="th">Access</th><th class="th">Last active</th><th class="th">Status</th><th class="th" style="width:50px;"></th></tr></thead><tbody>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">SK</span><div><div style="font-weight:600;color:var(--text);">Dr. Sara Khan</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f59187db9e9d949bb5989091818794969e87db969a98">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--primary-soft);color:var(--primary-text);">Admin</span></td><td class="td">All locations</td><td class="td">2 min ago</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--emerald-soft);color:var(--emerald);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">IR</span><div><div style="font-weight:600;color:var(--text);">Dr. Imran Raza</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a4c0d68ad6c5dec5e4c9c1c0d0d6c5c7cfd68ac7cbc9">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Dentist</span></td><td class="td">Northside</td><td class="td">1 hr ago</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--violet-soft);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">EW</span><div><div style="font-weight:600;color:var(--text);">Emma Wilson</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="65000808044b1225080001111704060e174b060a08">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--violet-soft);color:var(--violet);">Receptionist</span></td><td class="td">Northside</td><td class="td">25 min ago</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--amber-soft);color:var(--amber);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">DK</span><div><div style="font-weight:600;color:var(--text);">David Kim</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3054514659541e5b705d5554444251535b421e535f5d">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Hygienist</span></td><td class="td">Northside</td><td class="td">3 days ago</td><td class="td"><span class="chip" style="background:var(--panel-2);color:var(--text-3);">Suspended</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--panel-2);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">JT</span><div><div style="font-weight:600;color:var(--text);">Jordan Tan</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a7cdc8d5c3c6c989d3e7cac2c3d3d5c6c4ccd589c4c8ca">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--violet-soft);color:var(--violet);">Receptionist</span></td><td class="td">Northside</td><td class="td">—</td><td class="td"><span class="chip" style="background:var(--amber-soft);color:var(--amber);">Invited</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+                <tr class="rowh" style="border-top:1px solid var(--border-soft);cursor:pointer;"><td class="td"><div style="display:flex;align-items:center;gap:10px;"><span style="width:32px;height:32px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">LC</span><div><div style="font-weight:600;color:var(--text);">Dr. Lina Cho</div><div style="font-size:11px;color:var(--text-3);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a2cecbccc38cc1e2cfc7c6d6d0c3c1c9d08cc1cdcf">[email&#160;protected]</a></div></div></div></td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Dentist</span></td><td class="td">Downtown</td><td class="td">5 hr ago</td><td class="td"><span class="chip" style="background:var(--emerald-soft);color:var(--emerald);">Active</span></td><td class="td"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg></td></tr>
+              </tbody></table>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-top:1px solid var(--border-soft);flex-wrap:wrap;gap:12px;">
+                <div style="font-size:13px;color:var(--text-3);">Showing <b style="color:var(--text-2);">1–6</b> of <b style="color:var(--text-2);">6</b></div>
+                <div style="display:flex;align-items:center;gap:6px;"><span class="pgb" style="color:var(--text-3);">‹</span><span class="pgb active">1</span><span class="pgb">›</span></div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- SETTINGS -->
+        <sc-if value="{{ isSettings }}">
+          <div style="padding:28px;max-width:1000px;">
+            <h1 style="font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 20px;">Settings</h1>
+            <div style="display:grid;grid-template-columns:200px 1fr;gap:24px;">
+              <nav style="display:flex;flex-direction:column;gap:2px;">
+                <div class="navrow active" style="font-size:13px;">Profile</div>
+                <div class="navrow" style="font-size:13px;">Clinic</div>
+                <div class="navrow" style="font-size:13px;">Notifications</div>
+                <div class="navrow" style="font-size:13px;">Appearance</div>
+                <div class="navrow" style="font-size:13px;">Security</div>
+              </nav>
+              <div style="display:flex;flex-direction:column;gap:18px;">
+                <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:22px;">
+                  <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Profile</div>
+                  <p style="font-size:13px;color:var(--text-3);margin:0 0 20px;">This information is visible to your team.</p>
+                  <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;">
+                    <div style="width:60px;height:60px;border-radius:50%;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;">SK</div>
+                    <button class="btng" style="height:36px;padding:0 14px;">Change photo</button>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Full name</label><input class="field" value="Dr. Sara Khan"></div>
+                    <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Email</label><input class="field" value="dr.khan@medtrackr.com"></div>
+                    <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Phone</label><input class="field" value="+1 415 555 0100"></div>
+                    <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Role</label><input class="field" value="Dentist · Admin" disabled style="color:var(--text-3);background:var(--panel);"></div>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:22px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div><div style="font-size:14px;font-weight:700;">Dark mode</div><p style="font-size:13px;color:var(--text-3);margin:3px 0 0;">Toggle the interface theme.</p></div>
+                    <button class="btng" onClick="{{ toggleTheme }}" style="height:36px;padding:0 16px;">Toggle theme</button>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:10px;">
+                  <button class="btng" style="height:40px;padding:0 18px;">Cancel</button>
+                  <button class="btnp" style="height:40px;padding:0 20px;">Save changes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Placeholder for not-yet-built routes -->
+        <sc-if value="{{ isStub }}">
+          <div style="padding:28px;">
+            <h1 style="font-size:26px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px;">{{ routeTitle }}</h1>
+            <p style="font-size:14px;color:var(--text-2);margin:0 0 24px;">This screen is part of the prototype build-out.</p>
+            <div style="border:1px dashed var(--border);border-radius:14px;padding:60px;text-align:center;background:var(--surface);">
+              <div style="width:56px;height:56px;border-radius:14px;background:var(--primary-soft);color:var(--primary-text);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              </div>
+              <div style="font-size:16px;font-weight:700;">{{ routeTitle }} — coming next</div>
+              <p style="font-size:13px;color:var(--text-3);margin-top:6px;max-width:380px;margin-left:auto;margin-right:auto;">I'm building the screens out one by one in this same prototype. Dashboard and the shell are live — pick any nav item.</p>
+            </div>
+          </div>
+        </sc-if>
+      </main>
+    </div>
+  </div>
+
+  <!-- New Patient dialog -->
+  <sc-if value="{{ dlgNewPatient }}">
+    <div class="overlay" onClick="{{ closeDialog }}" style="position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;">
+      <div class="modal" onClick="{{ stop }}" style="width:100%;max-width:600px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;max-height:88vh;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-soft);">
+          <div><div style="font-size:17px;font-weight:700;">New Patient</div><div style="font-size:13px;color:var(--text-3);margin-top:2px;">Register a patient at Northside Dental.</div></div>
+          <button class="iconbtn" onClick="{{ closeDialog }}" style="width:32px;height:32px;border:none;background:var(--panel);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div style="padding:24px;overflow-y:auto;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">Personal details</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;">
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Full name <span style="color:var(--danger);">*</span></label><input class="field" placeholder="e.g. Jane Smith"></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Phone <span style="color:var(--danger);">*</span></label><input class="field" placeholder="+1 …"></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Date of birth</label><input class="field" type="date"></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Gender</label><select class="field"><option>Female</option><option>Male</option><option>Other</option></select></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px;">Clinical</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Blood group</label><select class="field"><option>O+</option><option>O−</option><option>A+</option><option>A−</option><option>B+</option><option>AB+</option></select></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Primary doctor</label><select class="field"><option>Dr. Sara Khan</option><option>Dr. Imran Raza</option></select></div>
+            <div style="grid-column:1 / -1;"><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Allergies <span style="color:var(--text-3);font-weight:400;">(optional)</span></label><input class="field" placeholder="e.g. Penicillin"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border-soft);background:var(--panel);">
+          <button class="btng" onClick="{{ closeDialog }}" style="height:38px;padding:0 16px;">Cancel</button>
+          <button class="btnp" onClick="{{ closeDialog }}" style="height:38px;padding:0 18px;">Register patient</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- New Appointment dialog -->
+  <sc-if value="{{ dlgNewAppt }}">
+    <div class="overlay" onClick="{{ closeDialog }}" style="position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:24px;">
+      <div class="modal" onClick="{{ stop }}" style="width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-lg);overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-soft);">
+          <div><div style="font-size:17px;font-weight:700;">New Appointment</div><div style="font-size:13px;color:var(--text-3);margin-top:2px;">Schedule a visit for a patient.</div></div>
+          <button class="iconbtn" onClick="{{ closeDialog }}" style="width:32px;height:32px;border:none;background:var(--panel);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+          <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Patient</label><input class="field" placeholder="Search patient name…"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Date</label><input class="field" type="date"></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Time</label><input class="field" type="time"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Doctor</label><select class="field"><option>Dr. Khan</option><option>Dr. Raza</option></select></div>
+            <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Procedure</label><select class="field"><option>Consultation</option><option>Cleaning</option><option>Root Canal</option><option>Crown Fitting</option></select></div>
+          </div>
+          <div><label style="display:block;font-size:13px;font-weight:600;margin-bottom:7px;">Notes <span style="color:var(--text-3);font-weight:400;">(optional)</span></label><textarea class="field" style="height:72px;padding:10px 12px;resize:none;" placeholder="Any relevant details…"></textarea></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--border-soft);background:var(--panel);">
+          <button class="btng" onClick="{{ closeDialog }}" style="height:38px;padding:0 16px;">Cancel</button>
+          <button class="btnp" onClick="{{ closeDialog }}" style="height:38px;padding:0 18px;">Create appointment</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</sc-if>
+</div>
+</x-dc>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    loggedIn: false,
+    route: 'dashboard',
+    collapsed: false,
+    dark: false,
+    showPwd: false,
+    dialog: null,
+    notifOpen: false,
+    profileOpen: false,
+    patientTab: 'overview',
+    patientView: 'table',
+    employeeView: 'table',
+    apptView: 'day',
+  };
+
+  go(r) {
+    this.setState({ route: r, dialog: null, notifOpen: false, profileOpen: false });
+  }
+
+  renderVals() {
+    const s = this.state;
+    const TITLES = {
+      dashboard: 'Dashboard', patients: 'Patients', patientDetail: 'Patient Profile',
+      appointments: 'Appointments', employees: 'Employees', inventory: 'Inventory',
+      prescriptions: 'Prescriptions', invoices: 'Invoices', expenses: 'Expenses',
+      reports: 'Reports', users: 'User Admin', settings: 'Settings',
+    };
+    const built = ['dashboard', 'patients', 'patientDetail', 'appointments', 'invoices', 'expenses', 'inventory', 'employees', 'prescriptions', 'reports', 'users', 'settings'];
+    const cls = (r) => 'navrow' + (s.route === r ? ' active' : '');
+    // Patients & Patient-detail share the Patients nav highlight
+    const navActive = (r) => (r === 'patients' && s.route === 'patientDetail') ? true : s.route === r;
+    const cls2 = (r) => 'navrow' + (navActive(r) ? ' active' : '');
+    const nav = {};
+    Object.keys(TITLES).forEach((k) => { nav[k] = () => this.go(k); });
+    const ptCls = (t) => 'tab' + (s.patientTab === t ? ' active' : '');
+
+    return {
+      themeClass: s.dark ? 'dark' : 'light',
+      notLoggedIn: !s.loggedIn,
+      loggedIn: s.loggedIn,
+      collapsedCls: s.collapsed ? 'sidebar collapsed' : 'sidebar',
+      routeTitle: TITLES[s.route] || 'Dashboard',
+      isDashboard: s.route === 'dashboard',
+      isStub: !built.includes(s.route),
+      navCls: {
+        dashboard: cls('dashboard'), patients: cls2('patients'), appointments: cls('appointments'),
+        employees: cls('employees'), inventory: cls('inventory'), prescriptions: cls('prescriptions'),
+        invoices: cls('invoices'), expenses: cls('expenses'), reports: cls('reports'),
+        users: cls('users'), settings: cls('settings'),
+      },
+      nav,
+      isPatients: s.route === 'patients',
+      isPatientDetail: s.route === 'patientDetail',
+      isAppointments: s.route === 'appointments',
+      isInvoices: s.route === 'invoices',
+      isExpenses: s.route === 'expenses',
+      isInventory: s.route === 'inventory',
+      isEmployees: s.route === 'employees',
+      isPrescriptions: s.route === 'prescriptions',
+      isReports: s.route === 'reports',
+      isUsers: s.route === 'users',
+      isSettings: s.route === 'settings',
+      patientTab: s.patientTab,
+      ptCls: {
+        overview: ptCls('overview'), appointments: ptCls('appointments'),
+        prescriptions: ptCls('prescriptions'), invoices: ptCls('invoices'), documents: ptCls('documents'),
+      },
+      isPtOverview: s.patientTab === 'overview',
+      isPtAppointments: s.patientTab === 'appointments',
+      isPtPrescriptions: s.patientTab === 'prescriptions',
+      isPtInvoices: s.patientTab === 'invoices',
+      isPtDocuments: s.patientTab === 'documents',
+      setPtTab: {
+        overview: () => this.setState({ patientTab: 'overview' }),
+        appointments: () => this.setState({ patientTab: 'appointments' }),
+        prescriptions: () => this.setState({ patientTab: 'prescriptions' }),
+        invoices: () => this.setState({ patientTab: 'invoices' }),
+        documents: () => this.setState({ patientTab: 'documents' }),
+      },
+      openNewPatient: () => this.setState({ dialog: 'newPatient' }),
+      dlgNewPatient: s.dialog === 'newPatient',
+      // View toggles (UI only — business logic unchanged)
+      isPatientTable: s.patientView === 'table',
+      isPatientCards: s.patientView === 'cards',
+      patViewTableCls: 'segb' + (s.patientView === 'table' ? ' active' : ''),
+      patViewCardsCls: 'segb' + (s.patientView === 'cards' ? ' active' : ''),
+      setPatientTable: () => this.setState({ patientView: 'table' }),
+      setPatientCards: () => this.setState({ patientView: 'cards' }),
+      isEmpTable: s.employeeView === 'table',
+      isEmpCards: s.employeeView === 'cards',
+      empViewTableCls: 'segb' + (s.employeeView === 'table' ? ' active' : ''),
+      empViewCardsCls: 'segb' + (s.employeeView === 'cards' ? ' active' : ''),
+      setEmpTable: () => this.setState({ employeeView: 'table' }),
+      setEmpCards: () => this.setState({ employeeView: 'cards' }),
+      isApptDay: s.apptView === 'day',
+      isApptWeek: s.apptView === 'week',
+      isApptMonth: s.apptView === 'month',
+      isApptQueue: s.apptView === 'queue',
+      apptSeg: {
+        day: 'segb' + (s.apptView === 'day' ? ' active' : ''),
+        week: 'segb' + (s.apptView === 'week' ? ' active' : ''),
+        month: 'segb' + (s.apptView === 'month' ? ' active' : ''),
+        queue: 'segb' + (s.apptView === 'queue' ? ' active' : ''),
+      },
+      setApptView: {
+        day: () => this.setState({ apptView: 'day' }),
+        week: () => this.setState({ apptView: 'week' }),
+        month: () => this.setState({ apptView: 'month' }),
+        queue: () => this.setState({ apptView: 'queue' }),
+      },
+      toggleTheme: () => this.setState((st) => ({ dark: !st.dark })),
+      toggleCollapse: () => this.setState((st) => ({ collapsed: !st.collapsed })),
+      login: () => this.setState({ loggedIn: true, route: 'dashboard' }),
+      logout: () => this.setState({ loggedIn: false, profileOpen: false }),
+      togglePwd: () => this.setState((st) => ({ showPwd: !st.showPwd })),
+      pwdType: s.showPwd ? 'text' : 'password',
+      openNewAppt: () => this.setState({ dialog: 'newAppt' }),
+      closeDialog: () => this.setState({ dialog: null }),
+      dlgNewAppt: s.dialog === 'newAppt',
+      stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      notifOpen: s.notifOpen,
+      profileOpen: s.profileOpen,
+      toggleNotif: () => this.setState((st) => ({ notifOpen: !st.notifOpen, profileOpen: false })),
+      toggleProfile: () => this.setState((st) => ({ profileOpen: !st.profileOpen, notifOpen: false })),
+    };
+  }
+}
+</script>
+</body>
+</html>
