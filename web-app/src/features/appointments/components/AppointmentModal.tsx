@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -29,7 +28,6 @@ import {
 import { useAppointmentStore } from '@/store/appointment-store'
 import {
   type AppointmentFormData,
-  appointmentFormSchema,
   APPOINTMENT_TYPE_OPTIONS,
   DURATION_OPTIONS,
   type Doctor,
@@ -74,30 +72,44 @@ export function AppointmentModal() {
   const [validation, setValidation] = useState<ValidationResult | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { errors },
-  } = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentFormSchema),
+  // Local state mirrors for watched fields (needed for useEffect deps)
+  const [watchedDoctorId, setWatchedDoctorId] = useState('')
+  const [watchedStartTime, setWatchedStartTime] = useState('')
+  const [watchedDuration, setWatchedDuration] = useState(30)
+
+  const form = useForm({
     defaultValues: {
       patientId: '',
       doctorId: '',
       startTime: '',
       duration: 30,
-      type: 'consultation' as any,
+      type: 'consultation' as string,
       notes: '',
       isWalkIn: false,
       isEmergency: false,
     },
+    onSubmit: async ({ value }) => {
+      const payload = {
+        ...(value as AppointmentFormData),
+        startTime: new Date(value.startTime).toISOString(),
+      }
+      try {
+        if (isEditing && selectedAppointmentId) {
+          await updateMutation.mutateAsync({ id: selectedAppointmentId, ...payload })
+          toast.success('Appointment updated successfully')
+        } else {
+          await createMutation.mutateAsync(payload)
+          setSelectedDate(new Date(payload.startTime))
+          toast.success('Appointment created successfully')
+        }
+        closeModal()
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message || err.message || 'Operation failed'
+        toast.error(msg)
+      }
+    },
   })
-
-  const watchedDoctorId = watch('doctorId')
-  const watchedStartTime = watch('startTime')
-  const watchedDuration = watch('duration')
 
   // Load existing appointment for editing
   useEffect(() => {
@@ -105,17 +117,18 @@ export function AppointmentModal() {
       setLoadingExisting(true)
       fetchAppointmentById(selectedAppointmentId)
         .then((appt) => {
-          setValue('patientId', appt.patientId)
-          setValue('doctorId', appt.doctorId || '')
-          setValue(
-            'startTime',
-            new Date(appt.startTime).toISOString().slice(0, 16),
-          )
-          setValue('duration', appt.durationMinutes)
-          setValue('type', appt.type)
-          setValue('notes', appt.notes || '')
-          setValue('isWalkIn', appt.isWalkIn)
-          setValue('isEmergency', appt.isEmergency)
+          const startTime = new Date(appt.startTime).toISOString().slice(0, 16)
+          form.setFieldValue('patientId', appt.patientId)
+          form.setFieldValue('doctorId', appt.doctorId || '')
+          form.setFieldValue('startTime', startTime)
+          form.setFieldValue('duration', appt.durationMinutes)
+          form.setFieldValue('type', appt.type)
+          form.setFieldValue('notes', appt.notes || '')
+          form.setFieldValue('isWalkIn', appt.isWalkIn)
+          form.setFieldValue('isEmergency', appt.isEmergency)
+          setWatchedDoctorId(appt.doctorId || '')
+          setWatchedStartTime(startTime)
+          setWatchedDuration(appt.durationMinutes)
           if (appt.patient) {
             setPatients([
               {
@@ -130,17 +143,20 @@ export function AppointmentModal() {
         .catch(() => toast.error('Failed to load appointment'))
         .finally(() => setLoadingExisting(false))
     }
-  }, [isEditing, selectedAppointmentId, setValue])
+  }, [isEditing, selectedAppointmentId])
 
   // Prefill from calendar click
   useEffect(() => {
     if (isCreateModalOpen) {
-      reset()
+      form.reset()
       setValidation(null)
-      if (prefillDoctorId) setValue('doctorId', prefillDoctorId)
-      if (prefillTime) setValue('startTime', prefillTime)
+      setWatchedDoctorId(prefillDoctorId || '')
+      setWatchedStartTime(prefillTime || '')
+      setWatchedDuration(30)
+      if (prefillDoctorId) form.setFieldValue('doctorId', prefillDoctorId)
+      if (prefillTime) form.setFieldValue('startTime', prefillTime)
     }
-  }, [isCreateModalOpen, prefillDoctorId, prefillTime, setValue, reset])
+  }, [isCreateModalOpen, prefillDoctorId, prefillTime])
 
   // Search patients
   const searchPatients = useCallback(async (query: string) => {
@@ -199,36 +215,13 @@ export function AppointmentModal() {
     return () => clearTimeout(timer)
   }, [watchedDoctorId, watchedStartTime, watchedDuration]) // eslint-disable-line
 
-  const onSubmit = async (data: AppointmentFormData) => {
-    const payload = {
-      ...data,
-      startTime: new Date(data.startTime).toISOString(),
-    }
-
-    try {
-      if (isEditing && selectedAppointmentId) {
-        await updateMutation.mutateAsync({
-          id: selectedAppointmentId,
-          ...payload,
-        })
-        toast.success('Appointment updated successfully')
-      } else {
-        await createMutation.mutateAsync(payload)
-        setSelectedDate(new Date(payload.startTime))
-        toast.success('Appointment created successfully')
-      }
-      closeModal()
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message || err.message || 'Operation failed'
-      toast.error(msg)
-    }
-  }
-
   const applySuggestion = () => {
     if (validation?.suggestedStartTime) {
-      const dt = new Date(validation.suggestedStartTime)
-      setValue('startTime', dt.toISOString().slice(0, 16))
+      const newTime = new Date(validation.suggestedStartTime)
+        .toISOString()
+        .slice(0, 16)
+      form.setFieldValue('startTime', newTime)
+      setWatchedStartTime(newTime)
     }
   }
 
@@ -248,109 +241,145 @@ export function AppointmentModal() {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-2">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit()
+            }}
+            className="space-y-5 pt-2"
+          >
             {/* Patient Search */}
-            <div className="space-y-2">
-              <Label htmlFor="patientSearch">Patient *</Label>
-              <Input
-                id="patientSearch"
-                placeholder="Search by name or phone..."
-                value={patientSearch}
-                onChange={(e) => setPatientSearch(e.target.value)}
-              />
-              {loadingPatients && (
-                <p className="text-xs text-muted-foreground">Searching...</p>
-              )}
-              {patients.length > 0 && (
-                <div className="border rounded-md max-h-32 overflow-y-auto">
-                  {patients.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setValue('patientId', p.id)
-                        setPatientSearch(p.fullName)
-                        setPatients([p])
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center justify-between ${
-                        watch('patientId') === p.id
-                          ? 'bg-primary/5 text-primary font-medium'
-                          : ''
-                      }`}
-                    >
-                      <span>{p.fullName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {p.phone}
-                      </span>
-                    </button>
-                  ))}
+            <form.Field name="patientId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="patientSearch">Patient *</Label>
+                  <Input
+                    id="patientSearch"
+                    placeholder="Search by name or phone..."
+                    value={patientSearch}
+                    onChange={(e) => setPatientSearch(e.target.value)}
+                  />
+                  {loadingPatients && (
+                    <p className="text-xs text-muted-foreground">Searching...</p>
+                  )}
+                  {patients.length > 0 && (
+                    <div className="border rounded-md max-h-32 overflow-y-auto">
+                      {patients.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            field.handleChange(p.id)
+                            setPatientSearch(p.fullName)
+                            setPatients([p])
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors flex items-center justify-between ${
+                            field.state.value === p.id
+                              ? 'bg-primary/5 text-primary font-medium'
+                              : ''
+                          }`}
+                        >
+                          <span>{p.fullName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {p.phone}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {field.state.meta.errors[0] && (
+                    <p className="text-xs text-destructive">
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  )}
                 </div>
               )}
-              {errors.patientId && (
-                <p className="text-xs text-destructive">
-                  {errors.patientId.message}
-                </p>
-              )}
-            </div>
+            </form.Field>
 
             {/* Doctor Select */}
-            <div className="space-y-2">
-              <Label>Doctor *</Label>
-              <Select
-                value={watchedDoctorId}
-                onValueChange={(val) => setValue('doctorId', val)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select doctor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors.map((d: Doctor) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.fullName} — {d.designation}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.doctorId && (
-                <p className="text-xs text-destructive">
-                  {errors.doctorId.message}
-                </p>
+            <form.Field name="doctorId">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Doctor *</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(val) => {
+                      field.handleChange(val)
+                      setWatchedDoctorId(val)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select doctor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors.map((d: Doctor) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.fullName} — {d.designation}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {field.state.meta.errors[0] && (
+                    <p className="text-xs text-destructive">
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </form.Field>
 
-            {/* Date + Time */}
+            {/* Date + Time + Duration */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Date & Time *</Label>
-                <Input
-                  id="startTime"
-                  type="datetime-local"
-                  {...register('startTime')}
-                />
-                {errors.startTime && (
-                  <p className="text-xs text-destructive">
-                    {errors.startTime.message}
-                  </p>
+              <form.Field name="startTime">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label htmlFor="startTime">Date & Time *</Label>
+                    <Input
+                      id="startTime"
+                      type="datetime-local"
+                      value={field.state.value}
+                      onChange={(e) => {
+                        field.handleChange(e.target.value)
+                        setWatchedStartTime(e.target.value)
+                      }}
+                      onBlur={field.handleBlur}
+                    />
+                    {field.state.meta.errors[0] && (
+                      <p className="text-xs text-destructive">
+                        {String(field.state.meta.errors[0])}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
-              <div className="space-y-2">
-                <Label>Duration *</Label>
-                <Select
-                  value={String(watchedDuration)}
-                  onValueChange={(val) => setValue('duration', Number(val))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATION_OPTIONS.map((d) => (
-                      <SelectItem key={d.value} value={String(d.value)}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              </form.Field>
+
+              <form.Field name="duration">
+                {(field) => (
+                  <div className="space-y-2">
+                    <Label>Duration *</Label>
+                    <Select
+                      value={String(field.state.value)}
+                      onValueChange={(val) => {
+                        const num = Number(val)
+                        field.handleChange(num)
+                        setWatchedDuration(num)
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DURATION_OPTIONS.map((d) => (
+                          <SelectItem key={d.value} value={String(d.value)}>
+                            {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </form.Field>
             </div>
 
             {/* Real-time Validation Feedback */}
@@ -396,53 +425,71 @@ export function AppointmentModal() {
             )}
 
             {/* Type */}
-            <div className="space-y-2">
-              <Label>Appointment Type</Label>
-              <Select
-                value={watch('type')}
-                onValueChange={(val) => setValue('type', val as any)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {APPOINTMENT_TYPE_OPTIONS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <form.Field name="type">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Appointment Type</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(val) => field.handleChange(val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {APPOINTMENT_TYPE_OPTIONS.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
 
             {/* Flags */}
             <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={watch('isWalkIn')}
-                  onCheckedChange={(v) => setValue('isWalkIn', v)}
-                />
-                Walk-in
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Switch
-                  checked={watch('isEmergency')}
-                  onCheckedChange={(v) => setValue('isEmergency', v)}
-                />
-                Emergency
-              </label>
+              <form.Field name="isWalkIn">
+                {(field) => (
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch
+                      checked={field.state.value as boolean}
+                      onCheckedChange={(v) => field.handleChange(v)}
+                    />
+                    Walk-in
+                  </label>
+                )}
+              </form.Field>
+              <form.Field name="isEmergency">
+                {(field) => (
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch
+                      checked={field.state.value as boolean}
+                      onCheckedChange={(v) => field.handleChange(v)}
+                    />
+                    Emergency
+                  </label>
+                )}
+              </form.Field>
             </div>
 
             {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                rows={2}
-                placeholder="Optional notes..."
-                {...register('notes')}
-              />
-            </div>
+            <form.Field name="notes">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    rows={2}
+                    placeholder="Optional notes..."
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-2">

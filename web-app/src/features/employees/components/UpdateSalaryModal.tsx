@@ -1,5 +1,5 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -9,17 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { useUpdateSalary } from '../hooks/useSetSalary'
-import { salaryFormSchema, type SalaryFormData } from '../types'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -38,23 +30,27 @@ export function UpdateSalaryModal({
 }: UpdateSalaryModalProps) {
   const updateSalaryMutation = useUpdateSalary(employeeId)
 
-  const form = useForm<SalaryFormData>({
-    resolver: zodResolver(salaryFormSchema),
+  const form = useForm({
     defaultValues: {
       grossSalary: currentSalary || 0,
     },
+    onSubmit: async ({ value }) => {
+      try {
+        await updateSalaryMutation.mutateAsync(value)
+        toast.success('Salary updated')
+        onOpenChange(false)
+        form.reset()
+      } catch {
+        toast.error('Failed to update salary')
+      }
+    },
   })
 
-  async function onSubmit(data: SalaryFormData) {
-    try {
-      await updateSalaryMutation.mutateAsync(data)
-      toast.success('Salary updated')
-      onOpenChange(false)
-      form.reset()
-    } catch (error) {
-      toast.error('Failed to update salary')
+  useEffect(() => {
+    if (isOpen) {
+      form.setFieldValue('grossSalary', currentSalary || 0)
     }
-  }
+  }, [isOpen, currentSalary])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -65,54 +61,59 @@ export function UpdateSalaryModal({
             Set new gross salary for this employee at this location
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
-          >
-            <FormField
-              control={form.control}
-              name="grossSalary"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Gross Salary (PKR)</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                        PKR
-                      </span>
-                      <Input
-                        type="number"
-                        className="pl-12"
-                        placeholder="50000"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateSalaryMutation.isPending}
-              >
-                {updateSalaryMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            form.handleSubmit()
+          }}
+          className="space-y-4 py-4"
+        >
+          <form.Field name="grossSalary">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Gross Salary (PKR)</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                    PKR
+                  </span>
+                  <Input
+                    type="number"
+                    className="pl-12"
+                    placeholder="50000"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+                {field.state.meta.errors[0] && (
+                  <p className="text-xs text-destructive">
+                    {String(field.state.meta.errors[0])}
+                  </p>
                 )}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              </div>
+            )}
+          </form.Field>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={updateSalaryMutation.isPending}
+            >
+              {updateSalaryMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

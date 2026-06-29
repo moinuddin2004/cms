@@ -1,5 +1,5 @@
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -9,16 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -28,7 +21,6 @@ import {
 } from '@/components/ui/select'
 import { useMarkPaid } from '../hooks/useMarkPaid'
 import {
-  markPaidFormSchema,
   type MarkPaidFormData,
   PaymentMethod,
   PAYMENT_METHOD_OPTIONS,
@@ -55,32 +47,34 @@ export function MarkPaidModal({
 }: MarkPaidModalProps) {
   const markPaidMutation = useMarkPaid()
 
-  const form = useForm<MarkPaidFormData>({
-    resolver: zodResolver(markPaidFormSchema),
+  const form = useForm({
     defaultValues: {
-      paymentMethod: PaymentMethod.BANK_TRANSFER,
+      paymentMethod: PaymentMethod.BANK_TRANSFER as string,
       paymentReference: '',
       notes: '',
     },
+    onSubmit: async ({ value }) => {
+      if (!record) return
+      try {
+        await markPaidMutation.mutateAsync({
+          recordId: record.id,
+          employeeId: record.employeeId,
+          data: value as MarkPaidFormData,
+        })
+        toast.success('✅ Salary marked as paid')
+        onOpenChange(false)
+        form.reset()
+      } catch {
+        toast.error('Failed to mark as paid')
+      }
+    },
   })
 
-  const watchPaymentMethod = form.watch('paymentMethod')
-
-  async function onSubmit(data: MarkPaidFormData) {
-    if (!record) return
-    try {
-      await markPaidMutation.mutateAsync({
-        recordId: record.id,
-        employeeId: record.employeeId,
-        data,
-      })
-      toast.success('✅ Salary marked as paid')
-      onOpenChange(false)
+  useEffect(() => {
+    if (isOpen) {
       form.reset()
-    } catch (error) {
-      toast.error('Failed to mark as paid')
     }
-  }
+  }, [isOpen])
 
   if (!record) return null
 
@@ -93,86 +87,87 @@ export function MarkPaidModal({
             {record.periodLabel} · {formatCurrency(record.salaryAmount)}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4 py-4"
-          >
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select method" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {PAYMENT_METHOD_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {watchPaymentMethod === 'bank_transfer' && (
-              <FormField
-                control={form.control}
-                name="paymentReference"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reference Number</FormLabel>
-                    <FormControl>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            form.handleSubmit()
+          }}
+          className="space-y-4 py-4"
+        >
+          <form.Field name="paymentMethod">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Payment Method</Label>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(val) => field.handleChange(val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PAYMENT_METHOD_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </form.Field>
+
+          <form.Subscribe selector={(s) => s.values.paymentMethod}>
+            {(paymentMethod) =>
+              paymentMethod === 'bank_transfer' ? (
+                <form.Field name="paymentReference">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label>Reference Number</Label>
                       <Input
                         placeholder="Transaction ID or reference"
-                        {...field}
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    </div>
+                  )}
+                </form.Field>
+              ) : null
+            }
+          </form.Subscribe>
+
+          <form.Field name="notes">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>Notes (optional)</Label>
+                <Textarea
+                  placeholder="Any additional notes"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </div>
             )}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Any additional notes" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+          </form.Field>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={markPaidMutation.isPending}>
+              {markPaidMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={markPaidMutation.isPending}>
-                {markPaidMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Confirm Payment
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              Confirm Payment
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

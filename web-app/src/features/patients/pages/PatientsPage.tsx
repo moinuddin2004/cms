@@ -9,6 +9,7 @@ import {
   ErrorState,
   NoResultsState,
   LoadingSkeleton,
+  Pagination,
 } from '@/components/shared'
 import { usePatients } from '../hooks/usePatients'
 import { useDeactivatePatient } from '../hooks/useDeactivatePatient'
@@ -17,7 +18,6 @@ import { SearchInput } from '../components/SearchInput'
 import { FiltersBar } from '../components/FiltersBar'
 import { PatientCard } from '../components/PatientCard'
 import { PatientTable } from '../components/PatientTable'
-import { PaginationBar } from '../components/PaginationBar'
 import { CreatePatientModal } from '../components/CreatePatientModal'
 import type { PatientListParams } from '../types'
 
@@ -138,7 +138,7 @@ export function PatientsPage() {
           )}
 
           {data && (
-            <PaginationBar
+            <Pagination
               page={data.page}
               totalPages={data.totalPages}
               limit={data.limit}

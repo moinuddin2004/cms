@@ -5,7 +5,7 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PageWrapper, ViewToggle } from '@/components/shared'
+import { PageWrapper, ViewToggle, Pagination } from '@/components/shared'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeStore } from '@/store/employee-store'
 import {
@@ -13,7 +13,6 @@ import {
   FiltersBar,
   EmployeeTable,
   EmployeeCard,
-  PaginationBar,
   useEmployees,
   useDeactivateEmployee,
 } from '@/features/employees'
@@ -129,7 +128,7 @@ export function EmployeesPage() {
               ))}
             </div>
           )}
-          <PaginationBar
+          <Pagination
             page={response.page}
             limit={response.limit}
             total={response.total}

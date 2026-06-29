@@ -1,4 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import {
   Table,
   TableBody,
@@ -50,9 +56,7 @@ const STATUS_STYLES: Record<LeaveStatus, string> = {
 }
 
 function leaveTypeLabel(value: string): string {
-  return (
-    LEAVE_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value
-  )
+  return LEAVE_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value
 }
 
 interface LeaveTableProps {
@@ -78,6 +82,113 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
     setEditingLeave(leave)
     setIsFormOpen(true)
   }
+
+  const columns = useMemo<ColumnDef<EmployeeLeave>[]>(
+    () => [
+      {
+        accessorKey: 'leaveType',
+        header: 'Type',
+        cell: ({ getValue }) => (
+          <span className="font-medium">{leaveTypeLabel(getValue<string>())}</span>
+        ),
+      },
+      {
+        accessorKey: 'startDate',
+        header: 'From',
+        cell: ({ getValue }) => formatDate(getValue<string>()),
+      },
+      {
+        accessorKey: 'endDate',
+        header: 'To',
+        cell: ({ getValue }) => formatDate(getValue<string>()),
+      },
+      {
+        accessorKey: 'totalDays',
+        header: 'Days',
+        cell: ({ getValue }) => (
+          <span className="text-center block">{getValue<number>()}</span>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ getValue }) => {
+          const status = getValue<LeaveStatus>()
+          return (
+            <Badge
+              variant="outline"
+              className={cn('capitalize', STATUS_STYLES[status])}
+            >
+              {status}
+            </Badge>
+          )
+        },
+      },
+      {
+        accessorKey: 'reason',
+        header: 'Reason',
+        cell: ({ getValue }) => (
+          <span className="max-w-[200px] truncate text-muted-foreground block">
+            {getValue<string>() || '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => {
+          const leave = row.original
+          const isPending = leave.status === LeaveStatus.PENDING
+          const isApproved = leave.status === LeaveStatus.APPROVED
+          if (!isPending && !isApproved) return null
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isPending && (
+                  <>
+                    <DropdownMenuItem
+                      onClick={() => approveMutation.mutate({ id: leave.id })}
+                    >
+                      <Check className="mr-2 h-4 w-4 text-green-600" />
+                      Approve
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => rejectMutation.mutate({ id: leave.id })}
+                    >
+                      <X className="mr-2 h-4 w-4 text-red-600" />
+                      Reject
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(leave)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem
+                  onClick={() => cancelMutation.mutate(leave.id)}
+                >
+                  <Ban className="mr-2 h-4 w-4" />
+                  Cancel Request
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        },
+      },
+    ],
+    [approveMutation, rejectMutation, cancelMutation],
+  )
+
+  const table = useReactTable({
+    data: leaves ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   if (isLoading) {
     return (
@@ -118,7 +229,7 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {!leaves || leaves.length === 0 ? (
+          {table.getRowModel().rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <div className="rounded-full bg-muted p-5">
                 <CalendarOff className="h-8 w-8 text-muted-foreground" />
@@ -131,96 +242,31 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Type</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead className="text-center">Days</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead className="w-[50px]" />
-                </TableRow>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
-                {leaves.map((leave) => {
-                  const isPending = leave.status === LeaveStatus.PENDING
-                  const isApproved = leave.status === LeaveStatus.APPROVED
-                  return (
-                    <TableRow key={leave.id}>
-                      <TableCell className="font-medium">
-                        {leaveTypeLabel(leave.leaveType)}
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
-                      <TableCell>{formatDate(leave.startDate)}</TableCell>
-                      <TableCell>{formatDate(leave.endDate)}</TableCell>
-                      <TableCell className="text-center">
-                        {leave.totalDays}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            'capitalize',
-                            STATUS_STYLES[leave.status],
-                          )}
-                        >
-                          {leave.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                        {leave.reason || '—'}
-                      </TableCell>
-                      <TableCell>
-                        {(isPending || isApproved) && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              {isPending && (
-                                <>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      approveMutation.mutate({ id: leave.id })
-                                    }
-                                  >
-                                    <Check className="mr-2 h-4 w-4 text-green-600" />
-                                    Approve
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      rejectMutation.mutate({ id: leave.id })
-                                    }
-                                  >
-                                    <X className="mr-2 h-4 w-4 text-red-600" />
-                                    Reject
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => openEdit(leave)}
-                                  >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              <DropdownMenuItem
-                                onClick={() => cancelMutation.mutate(leave.id)}
-                              >
-                                <Ban className="mr-2 h-4 w-4" />
-                                Cancel Request
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
+                    ))}
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
