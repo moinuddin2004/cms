@@ -1,23 +1,11 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Eye, Pencil, UserX } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
+import { Eye, Pencil, UserX } from 'lucide-react'
 import type { Employee } from '../types'
 import { EmployeeAvatar } from './EmployeeAvatar'
 import { useTogglePortalAccess } from '../hooks/useTogglePortalAccess'
@@ -26,7 +14,9 @@ import { cn } from '@/lib/utils'
 
 interface EmployeeTableProps {
   employees: Employee[]
+  isLoading?: boolean
   onDeactivate: (id: string) => void
+  serverPagination?: ServerPagination
 }
 
 const employmentTypeStyles: Record<string, string> = {
@@ -36,10 +26,15 @@ const employmentTypeStyles: Record<string, string> = {
   contract: 'bg-orange-100 text-orange-700 hover:bg-orange-100',
 }
 
-export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
+export function EmployeeTable({
+  employees,
+  isLoading,
+  onDeactivate,
+  serverPagination,
+}: EmployeeTableProps) {
   const togglePortalMutation = useTogglePortalAccess()
 
-  const columns = useMemo<ColumnDef<Employee>[]>(
+  const columns = useMemo<ColumnDef<Employee, unknown>[]>(
     () => [
       {
         accessorKey: 'fullName',
@@ -53,13 +48,11 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
                 <Link
                   to="/employees/$employeeId"
                   params={{ employeeId: e.id }}
-                  className="font-medium text-sm text-foreground hover:text-brand-600 transition-colors"
+                  className="font-medium text-sm text-foreground hover:text-primary transition-colors"
                 >
                   {e.fullName}
                 </Link>
-                <p className="text-xs text-muted-foreground">
-                  {e.designation}
-                </p>
+                <p className="text-xs text-muted-foreground">{e.designation}</p>
               </div>
             </div>
           )
@@ -82,12 +75,11 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
       {
         accessorKey: 'employmentType',
         header: 'Type',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const type = getValue<string>()
           return (
-            <Badge
-              className={cn('font-normal', employmentTypeStyles[type])}
-            >
+            <Badge className={cn('font-normal', employmentTypeStyles[type])}>
               {getEmploymentTypeLabel(type)}
             </Badge>
           )
@@ -96,6 +88,7 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
       {
         accessorKey: 'currentSalary',
         header: 'Salary',
+        enableSorting: false,
         cell: ({ row }) => {
           const salary = row.original.currentSalary
           return salary ? (
@@ -110,6 +103,7 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
       {
         accessorKey: 'hasPortalAccess',
         header: 'Portal',
+        enableSorting: false,
         cell: ({ row }) => {
           const e = row.original
           return (
@@ -130,6 +124,7 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
       {
         accessorKey: 'isActive',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const active = getValue<boolean>()
           return (
@@ -137,7 +132,7 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
               variant={active ? 'default' : 'secondary'}
               className={
                 active
-                  ? 'bg-status-success/10 text-status-success border-status-success/20 hover:bg-status-success/10'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50'
                   : 'bg-muted text-muted-foreground'
               }
             >
@@ -149,18 +144,32 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const e = row.original
           return (
             <div className="flex items-center justify-end gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                asChild
+              >
                 <Link to="/employees/$employeeId" params={{ employeeId: e.id }}>
-                  <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-                <Link to="/employees/$employeeId/edit" params={{ employeeId: e.id }}>
-                  <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                asChild
+              >
+                <Link
+                  to="/employees/$employeeId/edit"
+                  params={{ employeeId: e.id }}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Link>
               </Button>
               {e.isActive && (
@@ -169,7 +178,8 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
                   size="sm"
                   className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => {
-                    if (confirm('Deactivate this employee?')) onDeactivate(e.id)
+                    if (confirm('Deactivate this employee?'))
+                      onDeactivate(e.id)
                   }}
                 >
                   <UserX className="h-4 w-4" />
@@ -183,63 +193,13 @@ export function EmployeeTable({ employees, onDeactivate }: EmployeeTableProps) {
     [onDeactivate, togglePortalMutation],
   )
 
-  const table = useReactTable({
-    data: employees,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="bg-muted/40 hover:bg-muted/40"
-            >
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className="text-xs font-semibold uppercase tracking-wider"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className="hover:bg-muted/20 transition-colors"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-3">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-32 text-center text-muted-foreground"
-              >
-                No employees found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={employees}
+      isLoading={isLoading}
+      emptyMessage="No employees found."
+      serverPagination={serverPagination}
+    />
   )
 }

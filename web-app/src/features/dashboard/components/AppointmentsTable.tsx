@@ -161,9 +161,10 @@ export const AppointmentsTable = memo(function AppointmentsTable({
     <DataTable<Appointment>
       columns={columns}
       data={data}
-      searchKey="patientName"
-      searchPlaceholder="Search.."
-      title="All Appointments"
+
+      emptyMessage="No appointments found."
+      pagination
+      defaultPageSize={10}
     />
   )
 })

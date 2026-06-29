@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import {
   Search,
   X,
-  CalendarDays,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -33,14 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -48,7 +34,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Pagination } from '@/components/shared'
+import { DataTable } from '@/components/shared/DataTable'
 import { cn } from '@/lib/utils'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDoctors } from '../hooks/useDoctors'
@@ -114,17 +100,21 @@ function resolveRange(
     start.setDate(start.getDate() - 30)
     return { startDate: start.toISOString(), endDate: end.toISOString() }
   }
-  // custom
   return {
-    startDate: customFrom ? startOfDay(new Date(customFrom)).toISOString() : undefined,
-    endDate: customTo ? endOfDay(new Date(customTo)).toISOString() : undefined,
+    startDate: customFrom
+      ? startOfDay(new Date(customFrom)).toISOString()
+      : undefined,
+    endDate: customTo
+      ? endOfDay(new Date(customTo)).toISOString()
+      : undefined,
   }
 }
 
 // ─── Component ────────────────────────────────────────────────────────
 
 export function AppointmentsList() {
-  const { openCreateModal, openDetailModal, openEditModal } = useAppointmentStore()
+  const { openCreateModal, openDetailModal, openEditModal } =
+    useAppointmentStore()
   const { data: doctors = [] } = useDoctors()
 
   const cancelMutation = useCancelAppointment()
@@ -134,7 +124,7 @@ export function AppointmentsList() {
   const completeMutation = useCompleteAppointment()
   const confirmMutation = useConfirmAppointment()
 
-  // ─── Filter state ────────────────────────────────────────────────
+  // ─── Filter + pagination state ───────────────────────────────────
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>('all')
@@ -144,15 +134,15 @@ export function AppointmentsList() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(25)
+  const [pageSize, setPageSize] = useState(25)
 
-  // Debounce the search box so we don't refetch on every keystroke.
+  // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput.trim()), 300)
     return () => clearTimeout(t)
   }, [searchInput])
 
-  // Any filter change resets pagination.
+  // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1)
   }, [search, status, type, doctorId, preset, customFrom, customTo])
@@ -169,12 +159,11 @@ export function AppointmentsList() {
     doctorId: doctorId !== 'all' ? doctorId : undefined,
     search: search || undefined,
     page,
-    limit,
+    limit: pageSize,
   })
 
   const appointments = data?.data ?? []
   const total = data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   const hasActiveFilters =
     !!search ||
@@ -194,19 +183,24 @@ export function AppointmentsList() {
     setCustomTo('')
   }
 
-  const handle = useCallback(async (label: string, run: () => Promise<unknown>) => {
-    try {
-      await run()
-      toast.success(`Appointment ${label}`)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || `Failed to ${label}`)
-    }
-  }, [])
+  const handle = useCallback(
+    async (label: string, run: () => Promise<unknown>) => {
+      try {
+        await run()
+        toast.success(`Appointment ${label}`)
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || `Failed to ${label}`)
+      }
+    },
+    [],
+  )
 
-  const columns = useMemo<ColumnDef<Appointment>[]>(
+  // ─── Columns ─────────────────────────────────────────────────────
+  const columns = useMemo<ColumnDef<Appointment, unknown>[]>(
     () => [
       {
         id: 'token',
+        accessorKey: 'tokenNumber',
         header: 'Token',
         cell: ({ row }) => {
           const appt = row.original
@@ -221,20 +215,31 @@ export function AppointmentsList() {
       },
       {
         id: 'datetime',
+        accessorKey: 'startTime',
         header: 'Date & Time',
         cell: ({ row }) => {
           const start = new Date(row.original.startTime)
           const end = new Date(row.original.endTime)
-          const dateLabel = start.toLocaleDateString([], {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })
-          const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           return (
             <div className="font-medium">
-              <div>{dateLabel}</div>
-              <div className="text-xs text-muted-foreground">{timeLabel}</div>
+              <div>
+                {start.toLocaleDateString([], {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {start.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                –{' '}
+                {end.toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
             </div>
           )
         },
@@ -242,11 +247,12 @@ export function AppointmentsList() {
       {
         id: 'patient',
         header: 'Patient',
+        enableSorting: false,
         cell: ({ row }) => {
           const appt = row.original
           return (
             <div>
-              <div className="font-medium truncate max-w-[220px]">
+              <div className="font-medium truncate max-w-[200px]">
                 {appt.patient?.fullName || 'Unknown'}
               </div>
               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -269,17 +275,21 @@ export function AppointmentsList() {
       {
         id: 'doctor',
         header: 'Doctor',
+        enableSorting: false,
         cell: ({ row }) => {
           const doctor = row.original.doctor
           return doctor?.fullName ? (
             <span className="text-sm">{`Dr. ${doctor.fullName}`}</span>
           ) : (
-            <span className="text-muted-foreground italic text-sm">Unassigned</span>
+            <span className="text-muted-foreground italic text-sm">
+              Unassigned
+            </span>
           )
         },
       },
       {
         id: 'type',
+        accessorKey: 'type',
         header: 'Type',
         cell: ({ row }) => (
           <span className="text-sm capitalize">
@@ -289,6 +299,7 @@ export function AppointmentsList() {
       },
       {
         id: 'status',
+        accessorKey: 'status',
         header: 'Status',
         cell: ({ row }) => (
           <span
@@ -304,6 +315,7 @@ export function AppointmentsList() {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const appt = row.original
           const isCancelled = appt.status === AppointmentStatus.CANCELLED
@@ -314,7 +326,12 @@ export function AppointmentsList() {
             <div onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    aria-label="Actions"
+                  >
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -333,7 +350,9 @@ export function AppointmentsList() {
                         appt.status === AppointmentStatus.RESCHEDULED) && (
                         <DropdownMenuItem
                           onClick={() =>
-                            handle('confirmed', () => confirmMutation.mutateAsync(appt.id))
+                            handle('confirmed', () =>
+                              confirmMutation.mutateAsync(appt.id),
+                            )
                           }
                         >
                           <ThumbsUp className="w-3.5 h-3.5 mr-2" />
@@ -345,7 +364,9 @@ export function AppointmentsList() {
                         appt.status === AppointmentStatus.RESCHEDULED) && (
                         <DropdownMenuItem
                           onClick={() =>
-                            handle('checked in', () => checkInMutation.mutateAsync(appt.id))
+                            handle('checked in', () =>
+                              checkInMutation.mutateAsync(appt.id),
+                            )
                           }
                         >
                           <LogIn className="w-3.5 h-3.5 mr-2" />
@@ -355,7 +376,9 @@ export function AppointmentsList() {
                       {appt.status === AppointmentStatus.CHECKED_IN && (
                         <DropdownMenuItem
                           onClick={() =>
-                            handle('started', () => startMutation.mutateAsync(appt.id))
+                            handle('started', () =>
+                              startMutation.mutateAsync(appt.id),
+                            )
                           }
                         >
                           <Stethoscope className="w-3.5 h-3.5 mr-2" />
@@ -365,7 +388,9 @@ export function AppointmentsList() {
                       {appt.status === AppointmentStatus.IN_PROGRESS && (
                         <DropdownMenuItem
                           onClick={() =>
-                            handle('completed', () => completeMutation.mutateAsync(appt.id))
+                            handle('completed', () =>
+                              completeMutation.mutateAsync(appt.id),
+                            )
                           }
                         >
                           <CheckCircle className="w-3.5 h-3.5 mr-2" />
@@ -375,7 +400,9 @@ export function AppointmentsList() {
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() =>
-                          handle('marked no-show', () => noShowMutation.mutateAsync(appt.id))
+                          handle('marked no-show', () =>
+                            noShowMutation.mutateAsync(appt.id),
+                          )
                         }
                       >
                         <UserX className="w-3.5 h-3.5 mr-2" />
@@ -384,7 +411,9 @@ export function AppointmentsList() {
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() =>
-                          handle('cancelled', () => cancelMutation.mutateAsync({ id: appt.id }))
+                          handle('cancelled', () =>
+                            cancelMutation.mutateAsync({ id: appt.id }),
+                          )
                         }
                       >
                         <XCircle className="w-3.5 h-3.5 mr-2" />
@@ -410,12 +439,6 @@ export function AppointmentsList() {
       confirmMutation,
     ],
   )
-
-  const table = useReactTable({
-    data: appointments,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
 
   return (
     <div className="space-y-3">
@@ -473,7 +496,7 @@ export function AppointmentsList() {
           </button>
         </div>
 
-        {/* Custom date range (visible only when 'custom') */}
+        {/* Custom date range */}
         {preset === 'custom' && (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">From</span>
@@ -536,14 +559,12 @@ export function AppointmentsList() {
           </SelectContent>
         </Select>
 
-        {/* Reset button */}
         {hasActiveFilters && (
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilters}
             className="h-8 text-xs text-muted-foreground hover:text-foreground"
-            aria-label="Reset filters"
           >
             <RotateCcw size={13} className="mr-1.5" />
             Reset
@@ -551,101 +572,61 @@ export function AppointmentsList() {
         )}
 
         <div className="ml-auto text-xs text-muted-foreground">
-          {isFetching ? (
+          {isFetching && !isLoading ? (
             <span className="flex items-center gap-1">
               <Loader2 className="w-3 h-3 animate-spin" /> Loading…
             </span>
           ) : (
-            <>
-              {total} appointment{total === 1 ? '' : 's'}
-              {totalPages > 1 && ` · page ${page} of ${totalPages}`}
-            </>
+            total > 0 && `${total} appointment${total === 1 ? '' : 's'}`
           )}
         </div>
       </div>
 
-      {/* ── Table ──────────────────────────────────────────────── */}
-      <div className="bg-card border rounded-xl overflow-hidden">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-40 text-center">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <CalendarDays className="w-8 h-8 opacity-30" />
-                    <p className="text-sm">No appointments match these filters.</p>
-                    {hasActiveFilters && (
-                      <Button variant="link" size="sm" onClick={clearFilters} className="h-6">
-                        Clear filters
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openCreateModal()}
-                      className="mt-1"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      New appointment
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className={cn(
-                    'cursor-pointer hover:bg-accent/40',
-                    row.original.status === AppointmentStatus.CANCELLED && 'opacity-50',
-                  )}
-                  onClick={() => openDetailModal(row.original.id)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+      {/* ── Table + built-in pagination ─────────────────────────── */}
+      <DataTable
+        columns={columns}
+        data={appointments}
+        isLoading={isLoading}
+        skeletonRows={pageSize}
+        emptyMessage="No appointments match these filters."
+        emptyAction={
+          <div className="flex flex-col items-center gap-2">
+            {hasActiveFilters && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={clearFilters}
+                className="h-6"
+              >
+                Clear filters
+              </Button>
             )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* ── Pagination ─────────────────────────────────────────── */}
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        limit={limit}
-        total={total}
-        onPageChange={setPage}
-        onLimitChange={(l) => {
-          setLimit(l)
-          setPage(1)
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openCreateModal()}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New appointment
+            </Button>
+          </div>
+        }
+        onRowClick={(appt) => openDetailModal(appt.id)}
+        getRowClassName={(appt) =>
+          appt.status === AppointmentStatus.CANCELLED ? 'opacity-50' : undefined
+        }
+        serverPagination={{
+          page,
+          pageSize,
+          total,
+          onPageChange: setPage,
+          onPageSizeChange: (s) => {
+            setPageSize(s)
+            setPage(1)
+          },
+          pageSizeOptions: [10, 25, 50, 100],
         }}
-        pageSizeOptions={[10, 25, 50, 100]}
       />
     </div>
   )
 }
-

@@ -1,9 +1,9 @@
-import { useState, useCallback, memo } from 'react'
+import { useState, memo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
-  getFilteredRowModel,
+  getPaginationRowModel,
   flexRender,
   type ColumnDef,
   type SortingState,
@@ -16,136 +16,220 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Pagination } from '@/components/data-display/Pagination'
+import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+// Pass this when the API owns pagination (server-side).
+export interface ServerPagination {
+  page: number
+  pageSize: number
+  total: number
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+  pageSizeOptions?: number[]
+}
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[]
   data: TData[]
-  searchKey?: string
-  searchPlaceholder?: string
-  title?: string
-  showFilter?: boolean
+  // Loading
+  isLoading?: boolean
+  skeletonRows?: number
+  // Client-side pagination (default on)
+  pagination?: boolean
+  defaultPageSize?: number
+  pageSizeOptions?: number[]
+  // Server-side pagination — overrides client pagination when provided
+  serverPagination?: ServerPagination
+  // Toolbar slot — renders above the table
+  toolbar?: React.ReactNode
+  // Empty state
+  emptyMessage?: string
+  emptyAction?: React.ReactNode
+  // Row interaction
+  onRowClick?: (row: TData) => void
+  getRowClassName?: (row: TData) => string | undefined
+  className?: string
+}
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+
+function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
+  if (isSorted === 'asc')
+    return <ChevronUp className="ml-1.5 h-3.5 w-3.5 text-foreground" />
+  if (isSorted === 'desc')
+    return <ChevronDown className="ml-1.5 h-3.5 w-3.5 text-foreground" />
+  return (
+    <ChevronsUpDown className="ml-1.5 h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
+  )
 }
 
 function DataTableInner<TData>({
   columns,
   data,
-  searchKey,
-  searchPlaceholder = 'Search...',
-  title,
-  showFilter = true,
+  isLoading = false,
+  skeletonRows = 8,
+  pagination = true,
+  defaultPageSize = 10,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  serverPagination,
+  toolbar,
+  emptyMessage = 'No results found.',
+  emptyAction,
+  onRowClick,
+  getRowClassName,
+  className,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
+
+  const isServerPaginated = !!serverPagination
 
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
-      globalFilter: searchKey ? globalFilter : undefined,
+      ...(isServerPaginated && {
+        pagination: {
+          pageIndex: serverPagination.page - 1,
+          pageSize: serverPagination.pageSize,
+        },
+      }),
     },
+    initialState: {
+      pagination: { pageSize: defaultPageSize },
+    },
+    manualPagination: isServerPaginated,
+    pageCount: isServerPaginated
+      ? Math.max(1, Math.ceil(serverPagination.total / serverPagination.pageSize))
+      : undefined,
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel:
+      pagination && !isServerPaginated ? getPaginationRowModel() : undefined,
   })
 
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setGlobalFilter(e.target.value)
-    },
-    [],
-  )
+  // ─── Pagination props ────────────────────────────────────────────────
+  const showPagination = pagination || isServerPaginated
+
+  const clientPageIndex = table.getState().pagination.pageIndex
+  const clientPageSize = table.getState().pagination.pageSize
+  const clientTotal = table.getCoreRowModel().rows.length
+  const clientTotalPages = table.getPageCount()
+
+  const paginationProps = isServerPaginated
+    ? {
+        page: serverPagination.page,
+        totalPages: Math.max(
+          1,
+          Math.ceil(serverPagination.total / serverPagination.pageSize),
+        ),
+        limit: serverPagination.pageSize,
+        total: serverPagination.total,
+        onPageChange: serverPagination.onPageChange,
+        onLimitChange: serverPagination.onPageSizeChange,
+        pageSizeOptions: serverPagination.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS,
+      }
+    : {
+        page: clientPageIndex + 1,
+        totalPages: clientTotalPages,
+        limit: clientPageSize,
+        total: clientTotal,
+        onPageChange: (p: number) => table.setPageIndex(p - 1),
+        onLimitChange: (size: number) => table.setPageSize(size),
+        pageSizeOptions,
+      }
 
   return (
-    <div className="space-y-4">
-      {/* Header with title and controls */}
-      <div className="flex items-center justify-between">
-        {title && (
-          <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        )}
-        <div className="flex items-center gap-3 ml-auto">
-          {searchKey && (
-            <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
-                type="text"
-                placeholder={searchPlaceholder}
-                value={globalFilter}
-                onChange={handleSearchChange}
-                className="pl-9 w-64 h-9"
-              />
-            </div>
-          )}
-          {showFilter && (
-            <Button variant="outline" size="sm" className="gap-2 h-9">
-              <SlidersHorizontal size={14} />
-              Filter
-            </Button>
-          )}
-        </div>
-      </div>
+    <div className={cn('flex flex-col gap-4', className)}>
+      {/* Toolbar slot */}
+      {toolbar && <div className="flex items-center gap-3">{toolbar}</div>}
 
       {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="bg-muted/50 hover:bg-muted/50"
+                className="bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800"
               >
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    className="text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer select-none"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort()
+                  return (
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        'h-10 px-4 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400 select-none whitespace-nowrap',
+                        canSort &&
+                          'group cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors',
+                      )}
+                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className="flex items-center">
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {canSort && <SortIcon isSorted={header.column.getIsSorted()} />}
+                        </div>
+                      )}
+                    </TableHead>
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>
+
           <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
+            {isLoading ? (
+              Array.from({ length: skeletonRows }).map((_, i) => (
+                <TableRow key={i} className="border-b border-slate-100 dark:border-slate-800">
+                  {columns.map((_, j) => (
+                    <TableCell key={j} className="px-4 py-3">
+                      <Skeleton className="h-5 w-full rounded" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-muted/30">
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    'border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors',
+                    onRowClick && 'cursor-pointer',
+                    getRowClassName?.(row.original),
+                  )}
+                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3.5 text-sm">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
+                    <TableCell key={cell.id} className="px-4 py-3 text-sm">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <p className="text-muted-foreground">No results found.</p>
+                <TableCell colSpan={columns.length} className="h-48 text-center">
+                  <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <Inbox className="h-8 w-8 opacity-30" />
+                    <p className="text-sm">{emptyMessage}</p>
+                    {emptyAction && <div className="mt-1">{emptyAction}</div>}
+                  </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      {/* Shared Pagination component */}
+      {showPagination && !isLoading && paginationProps.total > 0 && (
+        <Pagination {...paginationProps} />
+      )}
     </div>
   )
 }

@@ -7,13 +7,11 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { RotateCcw } from 'lucide-react'
-import { GENDER_OPTIONS, BLOOD_GROUP_OPTIONS } from '../types'
+import { GENDER_OPTIONS } from '../types'
 
 interface FiltersBarProps {
   gender: string
   onGenderChange: (value: string) => void
-  bloodGroup: string
-  onBloodGroupChange: (value: string) => void
   status: string
   onStatusChange: (value: string) => void
   onReset: () => void
@@ -22,13 +20,11 @@ interface FiltersBarProps {
 export function FiltersBar({
   gender,
   onGenderChange,
-  bloodGroup,
-  onBloodGroupChange,
   status,
   onStatusChange,
   onReset,
 }: FiltersBarProps) {
-  const hasActiveFilters = gender || bloodGroup || status
+  const hasActiveFilters = gender || status
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
@@ -44,25 +40,6 @@ export function FiltersBar({
         </SelectTrigger>
         <SelectContent>
           {GENDER_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Blood Group Filter */}
-      <Select value={bloodGroup} onValueChange={onBloodGroupChange}>
-        <SelectTrigger
-          className="w-[140px] h-8 text-xs"
-          size="sm"
-          aria-label="Filter by blood group"
-          id="filter-blood-group"
-        >
-          <SelectValue placeholder="Blood Group" />
-        </SelectTrigger>
-        <SelectContent>
-          {BLOOD_GROUP_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
             </SelectItem>

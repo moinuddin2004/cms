@@ -1,39 +1,21 @@
 import { useMemo } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { type User } from '../types'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { DataTable } from '@/components/shared/DataTable'
 import { ShieldAlert, User as UserIcon, Edit, Trash } from 'lucide-react'
 import { format } from 'date-fns'
 
 interface UserTableProps {
   users: User[]
-  isLoading: boolean
+  isLoading?: boolean
   onEdit: (user: User) => void
   onDelete: (user: User) => void
 }
 
-export function UserTable({
-  users,
-  isLoading,
-  onEdit,
-  onDelete,
-}: UserTableProps) {
-  const columns = useMemo<ColumnDef<User>[]>(
+export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps) {
+  const columns = useMemo<ColumnDef<User, unknown>[]>(
     () => [
       {
         id: 'user',
@@ -58,14 +40,15 @@ export function UserTable({
       {
         accessorKey: 'globalRole',
         header: 'Role',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const role = getValue<string | null>()
           return (
-            <div className="flex items-center">
+            <div className="flex items-center gap-1.5">
               {role === 'super_admin' ? (
-                <ShieldAlert className="w-4 h-4 mr-1 text-destructive" />
+                <ShieldAlert className="w-4 h-4 text-destructive" />
               ) : (
-                <UserIcon className="w-4 h-4 mr-1 text-primary" />
+                <UserIcon className="w-4 h-4 text-primary" />
               )}
               <span className="text-sm font-medium">
                 {role === 'super_admin' ? 'Super Admin' : 'User'}
@@ -77,6 +60,7 @@ export function UserTable({
       {
         accessorKey: 'status',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const status = getValue<string>()
           return (
@@ -87,6 +71,11 @@ export function UserTable({
                   : status === 'suspended'
                     ? 'destructive'
                     : 'secondary'
+              }
+              className={
+                status === 'active'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50'
+                  : undefined
               }
             >
               {status}
@@ -109,6 +98,7 @@ export function UserTable({
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const user = row.original
           return (
@@ -116,6 +106,7 @@ export function UserTable({
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8"
                 onClick={() => onEdit(user)}
               >
                 <Edit className="w-4 h-4 text-muted-foreground" />
@@ -123,6 +114,7 @@ export function UserTable({
               <Button
                 variant="ghost"
                 size="icon"
+                className="h-8 w-8"
                 onClick={() => onDelete(user)}
               >
                 <Trash className="w-4 h-4 text-destructive" />
@@ -135,67 +127,14 @@ export function UserTable({
     [onEdit, onDelete],
   )
 
-  const table = useReactTable({
-    data: users,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
-        ))}
-      </div>
-    )
-  }
-
   return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="bg-muted/40 hover:bg-muted/40">
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className="text-xs font-semibold uppercase tracking-wider"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length === 0 ? (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center text-sm text-muted-foreground"
-              >
-                No users found.
-              </TableCell>
-            </TableRow>
-          ) : (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={users}
+      isLoading={isLoading}
+
+      emptyMessage="No users found."
+      pagination
+    />
   )
 }

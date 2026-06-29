@@ -167,9 +167,9 @@ export function QueueView() {
             )}
           </div>
 
-          <Button onClick={() => setWalkInOpen(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Walk-in
+          <Button onClick={() => setWalkInOpen(true)} size="sm">
+            <Plus className="w-3.5 h-3.5" />
+            Walk-in
           </Button>
         </div>
 

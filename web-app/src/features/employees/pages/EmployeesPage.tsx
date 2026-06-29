@@ -5,7 +5,7 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { PageWrapper, ViewToggle, Pagination } from '@/components/shared'
+import { PageWrapper, ViewToggle } from '@/components/shared'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeStore } from '@/store/employee-store'
 import {
@@ -120,22 +120,26 @@ export function EmployeesPage() {
       ) : response && response.data.length > 0 ? (
         <>
           {viewMode === 'table' ? (
-            <EmployeeTable employees={response.data} onDeactivate={handleDeactivate} />
+            <EmployeeTable
+              employees={response.data}
+              onDeactivate={handleDeactivate}
+              serverPagination={{
+                page: response.page,
+                pageSize: response.limit,
+                total: response.total,
+                onPageChange: setPage,
+                onPageSizeChange: (val) => { setLimit(val); setPage(1) },
+              }}
+            />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {response.data.map((employee) => (
-                <EmployeeCard key={employee.id} employee={employee} onDeactivate={handleDeactivate} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {response.data.map((employee) => (
+                  <EmployeeCard key={employee.id} employee={employee} onDeactivate={handleDeactivate} />
+                ))}
+              </div>
+            </>
           )}
-          <Pagination
-            page={response.page}
-            limit={response.limit}
-            total={response.total}
-            totalPages={Math.ceil(response.total / response.limit)}
-            onPageChange={setPage}
-            onLimitChange={(val) => { setLimit(val); setPage(1) }}
-          />
         </>
       ) : (
         <Card>

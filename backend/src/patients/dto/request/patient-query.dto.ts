@@ -65,7 +65,14 @@ export class PatientQueryDto {
   tag?: string;
 
   @IsOptional()
-  @Type(() => Boolean)
+  @Type(() => String)
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    if (value === true) return true;
+    if (value === false) return false;
+    return undefined;
+  })
   @IsBoolean()
   isActive?: boolean;
 

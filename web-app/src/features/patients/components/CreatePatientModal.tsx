@@ -1,12 +1,13 @@
-import { useNavigate } from '@tanstack/react-router'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { useState } from 'react'
 import { PatientForm } from './PatientForm'
+import { AddAppointmentStep } from './AddAppointmentStep'
 import { useCreatePatient } from '../hooks/useCreatePatient'
 import type { PatientFormData } from '../types'
 import { usePatientStore } from '@/store/patient-store'
@@ -20,52 +21,69 @@ export function CreatePatientModal({
   open,
   onOpenChange,
 }: CreatePatientModalProps) {
-  const navigate = useNavigate()
   const createMutation = useCreatePatient()
   const clearFormDraft = usePatientStore((s) => s.clearFormDraft)
 
-  const handleSubmit = async (data: PatientFormData) => {
+  const [createdPatient, setCreatedPatient] = useState<{
+    id: string
+    fullName: string
+  } | null>(null)
+
+  const handlePatientSubmit = async (data: PatientFormData) => {
     const newPatient = await createMutation.mutateAsync(data)
-    onOpenChange(false)
     if (newPatient?.id) {
-      navigate({
-        to: '/patients/$patientId',
-        params: { patientId: newPatient.id },
-      })
+      setCreatedPatient({ id: newPatient.id, fullName: newPatient.fullName })
     }
   }
 
-  const handleCancel = () => {
+  const handleClose = () => {
+    clearFormDraft()
+    setCreatedPatient(null)
     onOpenChange(false)
   }
 
+  const isAppointmentStep = !!createdPatient
+
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(v) => {
-        if (!v) clearFormDraft()
-        onOpenChange(v)
+        if (!v) handleClose()
       }}
     >
-      <SheetContent
-        side="right"
-        className="w-full gap-0 p-0 sm:max-w-2xl"
-      >
-        <SheetHeader className="border-b border-border-soft px-6 py-5">
-          <SheetTitle className="text-[17px] font-bold">New Patient</SheetTitle>
-          <SheetDescription className="text-[13px] text-text-3">
-            Fill in patient details across all steps, then save.
-          </SheetDescription>
-        </SheetHeader>
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <PatientForm
-            onSubmit={handleSubmit}
-            isSubmitting={createMutation.isPending}
-            mode="create"
-            onCancel={handleCancel}
-          />
+      <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto gap-0 p-0">
+        {!isAppointmentStep && (
+          <DialogTitle className="sr-only">New Patient</DialogTitle>
+        )}
+        {isAppointmentStep && (
+          <DialogHeader className="border-b border-border px-6 py-5">
+            <DialogTitle className="text-[17px] font-bold">
+              Book First Appointment
+            </DialogTitle>
+            <DialogDescription className="text-[13px] text-muted-foreground">
+              Patient added! Book an appointment now or skip to do it later.
+            </DialogDescription>
+          </DialogHeader>
+        )}
+
+        <div className="px-6 py-5">
+          {!isAppointmentStep ? (
+            <PatientForm
+              onSubmit={handlePatientSubmit}
+              isSubmitting={createMutation.isPending}
+              mode="create"
+              onCancel={handleClose}
+            />
+          ) : (
+            <AddAppointmentStep
+              patientId={createdPatient.id}
+              patientName={createdPatient.fullName}
+              onSkip={handleClose}
+              onDone={handleClose}
+            />
+          )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }

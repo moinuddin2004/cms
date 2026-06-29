@@ -9,7 +9,6 @@ import {
   ErrorState,
   NoResultsState,
   LoadingSkeleton,
-  Pagination,
 } from '@/components/shared'
 import { usePatients } from '../hooks/usePatients'
 import { useDeactivatePatient } from '../hooks/useDeactivatePatient'
@@ -26,7 +25,6 @@ const DEFAULT_PARAMS: PatientListParams = {
   limit: 10,
   search: '',
   gender: '',
-  bloodGroup: '',
   isActive: undefined,
   sortBy: 'createdAt',
   sortOrder: 'DESC',
@@ -56,7 +54,6 @@ export function PatientsPage() {
       ...prev,
       search: '',
       gender: '',
-      bloodGroup: '',
       isActive: undefined,
       page: 1,
     }))
@@ -66,7 +63,6 @@ export function PatientsPage() {
     () =>
       !!params.search ||
       !!params.gender ||
-      !!params.bloodGroup ||
       params.isActive !== undefined,
     [params],
   )
@@ -106,8 +102,6 @@ export function PatientsPage() {
           <FiltersBar
             gender={params.gender || ''}
             onGenderChange={(v) => updateParam('gender', v)}
-            bloodGroup={params.bloodGroup || ''}
-            onBloodGroupChange={(v) => updateParam('bloodGroup', v)}
             status={params.isActive === undefined ? '' : String(params.isActive)}
             onStatusChange={(v) =>
               updateParam('isActive', v === '' ? undefined : v === 'true')
@@ -124,7 +118,17 @@ export function PatientsPage() {
       ) : patients.length > 0 ? (
         <>
           {viewMode === 'table' ? (
-            <PatientTable patients={patients} onDeactivate={handleDeactivate} />
+            <PatientTable
+              patients={patients}
+              onDeactivate={handleDeactivate}
+              serverPagination={data ? {
+                page: data.page,
+                pageSize: data.limit,
+                total: data.total,
+                onPageChange: (p) => updateParam('page', p),
+                onPageSizeChange: (l) => setParams((prev) => ({ ...prev, limit: l, page: 1 })),
+              } : undefined}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {patients.map((patient) => (
@@ -135,19 +139,6 @@ export function PatientsPage() {
                 />
               ))}
             </div>
-          )}
-
-          {data && (
-            <Pagination
-              page={data.page}
-              totalPages={data.totalPages}
-              limit={data.limit}
-              total={data.total}
-              onPageChange={(p) => updateParam('page', p)}
-              onLimitChange={(l) =>
-                setParams((prev) => ({ ...prev, limit: l, page: 1 }))
-              }
-            />
           )}
         </>
       ) : filtersActive ? (

@@ -1,28 +1,15 @@
 import { useMemo, useState } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { DataTable } from '@/components/shared/DataTable'
 import { formatDate } from '@/lib/formatters'
 import {
   CalendarOff,
@@ -83,7 +70,7 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
     setIsFormOpen(true)
   }
 
-  const columns = useMemo<ColumnDef<EmployeeLeave>[]>(
+  const columns = useMemo<ColumnDef<EmployeeLeave, unknown>[]>(
     () => [
       {
         accessorKey: 'leaveType',
@@ -95,23 +82,28 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
       {
         accessorKey: 'startDate',
         header: 'From',
-        cell: ({ getValue }) => formatDate(getValue<string>()),
+        cell: ({ getValue }) => (
+          <span className="text-muted-foreground">{formatDate(getValue<string>())}</span>
+        ),
       },
       {
         accessorKey: 'endDate',
         header: 'To',
-        cell: ({ getValue }) => formatDate(getValue<string>()),
+        cell: ({ getValue }) => (
+          <span className="text-muted-foreground">{formatDate(getValue<string>())}</span>
+        ),
       },
       {
         accessorKey: 'totalDays',
         header: 'Days',
         cell: ({ getValue }) => (
-          <span className="text-center block">{getValue<number>()}</span>
+          <span className="font-medium text-center block">{getValue<number>()}</span>
         ),
       },
       {
         accessorKey: 'status',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const status = getValue<LeaveStatus>()
           return (
@@ -127,6 +119,7 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
       {
         accessorKey: 'reason',
         header: 'Reason',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <span className="max-w-[200px] truncate text-muted-foreground block">
             {getValue<string>() || '—'}
@@ -136,6 +129,7 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const leave = row.original
           const isPending = leave.status === LeaveStatus.PENDING
@@ -184,22 +178,6 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
     [approveMutation, rejectMutation, cancelMutation],
   )
 
-  const table = useReactTable({
-    data: leaves ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-lg" />
-        ))}
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
       {/* Leave balance summary */}
@@ -209,10 +187,7 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
             label={`Approved Days (${balance.year})`}
             value={balance.totalApprovedDays}
           />
-          <BalanceCard
-            label="Pending Requests"
-            value={balance.pendingRequests}
-          />
+          <BalanceCard label="Pending Requests" value={balance.pendingRequests} />
           <BalanceCard label="Annual" value={balance.byType['annual'] ?? 0} />
           <BalanceCard label="Sick" value={balance.byType['sick'] ?? 0} />
         </div>
@@ -229,47 +204,13 @@ export function LeaveTable({ employeeId }: LeaveTableProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {table.getRowModel().rows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3">
-              <div className="rounded-full bg-muted p-5">
-                <CalendarOff className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="font-medium">No leave requests yet</p>
-              <p className="text-sm text-muted-foreground">
-                Create a leave request to get started
-              </p>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={columns}
+            data={leaves ?? []}
+            isLoading={isLoading}
+            emptyMessage="No leave requests yet."
+            pagination={false}
+          />
         </CardContent>
       </Card>
 

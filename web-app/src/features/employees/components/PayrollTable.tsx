@@ -1,22 +1,10 @@
 import { useMemo, useState } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { type ColumnDef } from '@tanstack/react-table'
 import type { PayrollRecord, PayrollStatus } from '../types'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { PayrollStatusBadge } from './PayrollStatusBadge'
 import { Button } from '@/components/ui/button'
+import { DataTable } from '@/components/shared/DataTable'
 import { MarkPaidModal } from './MarkPaidModal'
 import { useDeletePayroll } from '../hooks/useDeletePayroll'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -48,13 +36,14 @@ export function PayrollTable({
     if (ok) deleteMutation.mutate(record.id)
   }
 
-  const columns = useMemo<ColumnDef<PayrollRecord>[]>(
+  const columns = useMemo<ColumnDef<PayrollRecord, unknown>[]>(
     () => [
       ...(showEmployeeName
         ? [
             {
               accessorKey: 'employee',
               header: 'Employee',
+              enableSorting: false,
               cell: ({ row }: { row: any }) => (
                 <span className="font-medium">
                   {row.original.employee?.fullName || 'Unknown'}
@@ -65,7 +54,7 @@ export function PayrollTable({
                   )}
                 </span>
               ),
-            } as ColumnDef<PayrollRecord>,
+            } as ColumnDef<PayrollRecord, unknown>,
           ]
         : []),
       {
@@ -88,11 +77,14 @@ export function PayrollTable({
       {
         accessorKey: 'salaryAmount',
         header: 'Amount',
-        cell: ({ getValue }) => formatCurrency(getValue<number>()),
+        cell: ({ getValue }) => (
+          <span className="font-medium">{formatCurrency(getValue<number>())}</span>
+        ),
       },
       {
         accessorKey: 'status',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <PayrollStatusBadge status={getValue<PayrollStatus>()} />
         ),
@@ -102,12 +94,17 @@ export function PayrollTable({
         header: 'Paid On',
         cell: ({ getValue }) => {
           const val = getValue<string | null>()
-          return val ? formatDate(val) : '—'
+          return (
+            <span className="text-muted-foreground">
+              {val ? formatDate(val) : '—'}
+            </span>
+          )
         },
       },
       {
         accessorKey: 'paymentMethod',
         header: 'Method',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <span className="capitalize">
             {getValue<string | null>()?.replace('_', ' ') || '—'}
@@ -117,6 +114,7 @@ export function PayrollTable({
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const record = row.original
           return (
@@ -138,7 +136,7 @@ export function PayrollTable({
                   aria-label="Edit payroll"
                   onClick={() => onEdit(record)}
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
               )}
               <Button
@@ -159,56 +157,14 @@ export function PayrollTable({
     [showEmployeeName, onEdit, deleteMutation.isPending],
   )
 
-  const table = useReactTable({
-    data: records,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No payroll records found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} className="hover:bg-muted/20 transition-colors">
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={records}
+        emptyMessage="No payroll records found."
+        pagination
+      />
 
       <MarkPaidModal
         record={selectedRecord}

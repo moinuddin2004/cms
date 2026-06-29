@@ -1,28 +1,18 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
 import { Eye, Pencil, UserX } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {
   patients: Patient[]
+  isLoading?: boolean
   onDeactivate: (id: string) => void
+  serverPagination?: ServerPagination
 }
 
 function getAge(dob: string | null): string {
@@ -31,8 +21,13 @@ function getAge(dob: string | null): string {
   return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))}`
 }
 
-export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
-  const columns = useMemo<ColumnDef<Patient>[]>(
+export function PatientTable({
+  patients,
+  isLoading,
+  onDeactivate,
+  serverPagination,
+}: PatientTableProps) {
+  const columns = useMemo<ColumnDef<Patient, unknown>[]>(
     () => [
       {
         accessorKey: 'fullName',
@@ -46,11 +41,11 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
                 <Link
                   to="/patients/$patientId"
                   params={{ patientId: p.id }}
-                  className="text-sm font-semibold text-foreground transition-colors hover:text-primary-text"
+                  className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
                 >
                   {p.fullName}
                 </Link>
-                <p className="font-mono text-[11px] text-text-3">
+                <p className="font-mono text-[11px] text-muted-foreground">
                   {p.patientNumber}
                 </p>
               </div>
@@ -68,6 +63,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
       {
         accessorKey: 'dob',
         header: 'Age',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <span className="text-sm">{getAge(getValue<string | null>())}</span>
         ),
@@ -87,6 +83,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
       {
         accessorKey: 'bloodGroup',
         header: 'Blood',
+        enableSorting: false,
         cell: ({ getValue }) => {
           const v = getValue<string | null>()
           return v ? (
@@ -104,8 +101,8 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
         cell: ({ getValue }) => {
           const v = getValue<string | null>()
           return (
-            <span className="text-sm">
-              {v || <span className="text-muted-foreground">—</span>}
+            <span className="text-sm text-muted-foreground">
+              {v ?? '—'}
             </span>
           )
         },
@@ -113,6 +110,7 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
       {
         accessorKey: 'isActive',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <StatusBadge status={getValue<boolean>() ? 'active' : 'inactive'} />
         ),
@@ -120,18 +118,32 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => {
           const p = row.original
           return (
             <div className="flex items-center justify-end gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                asChild
+              >
                 <Link to="/patients/$patientId" params={{ patientId: p.id }}>
-                  <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                  <Eye className="h-4 w-4 text-muted-foreground" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" asChild>
-                <Link to="/patients/$patientId/edit" params={{ patientId: p.id }}>
-                  <Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                asChild
+              >
+                <Link
+                  to="/patients/$patientId/edit"
+                  params={{ patientId: p.id }}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Link>
               </Button>
               {p.isActive && (
@@ -154,63 +166,13 @@ export function PatientTable({ patients, onDeactivate }: PatientTableProps) {
     [onDeactivate],
   )
 
-  const table = useReactTable({
-    data: patients,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
-
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface">
-      <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="border-border-soft bg-panel hover:bg-panel"
-            >
-              {headerGroup.headers.map((header) => (
-                <TableHead
-                  key={header.id}
-                  className="text-[11px] font-semibold uppercase tracking-[0.05em] text-text-3"
-                >
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className="border-border-soft transition-colors hover:bg-panel"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-3">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-32 text-center text-muted-foreground"
-              >
-                No patients found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={patients}
+      isLoading={isLoading}
+      emptyMessage="No patients found."
+      serverPagination={serverPagination}
+    />
   )
 }

@@ -1,20 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  type ColumnDef,
-} from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Loader2, Plus, FileText, ChevronDown, Library, Pill, ClipboardList, LayoutTemplate } from 'lucide-react'
+import { Plus, ChevronDown, Library, Pill, ClipboardList, LayoutTemplate } from 'lucide-react'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-import { Pagination } from '@/components/shared'
+import { DataTable } from '@/components/shared/DataTable'
 import { usePrescriptions, usePrescriptionStats, PrescriptionStatus, type Prescription } from '@/features/prescriptions'
 
 const STATUS_BADGE: Record<PrescriptionStatus, string> = {
@@ -27,6 +21,7 @@ export function PrescriptionsPage() {
   const [status, setStatus] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
+
   const { data, isLoading } = usePrescriptions({
     status: status !== 'all' ? (status as PrescriptionStatus) : undefined,
     page,
@@ -34,9 +29,8 @@ export function PrescriptionsPage() {
   })
   const { data: stats } = usePrescriptionStats()
   const total = data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / limit))
 
-  const columns = useMemo<ColumnDef<Prescription>[]>(
+  const columns = useMemo<ColumnDef<Prescription, unknown>[]>(
     () => [
       {
         accessorKey: 'prescriptionNumber',
@@ -48,6 +42,7 @@ export function PrescriptionsPage() {
       {
         id: 'patient',
         header: 'Patient',
+        enableSorting: false,
         cell: ({ row }) => (
           <span className="font-medium">{row.original.patient?.fullName ?? '—'}</span>
         ),
@@ -55,6 +50,7 @@ export function PrescriptionsPage() {
       {
         id: 'doctor',
         header: 'Doctor',
+        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm">
             {row.original.doctor?.fullName ? `Dr. ${row.original.doctor.fullName}` : '—'}
@@ -64,6 +60,7 @@ export function PrescriptionsPage() {
       {
         id: 'medicines',
         header: 'Medicines',
+        enableSorting: false,
         cell: ({ row }) => (
           <span className="text-sm">{row.original.medicines?.length ?? 0}</span>
         ),
@@ -71,6 +68,7 @@ export function PrescriptionsPage() {
       {
         accessorKey: 'status',
         header: 'Status',
+        enableSorting: false,
         cell: ({ getValue }) => (
           <Badge variant="outline" className={STATUS_BADGE[getValue<PrescriptionStatus>()]}>
             {getValue<string>()}
@@ -89,6 +87,7 @@ export function PrescriptionsPage() {
       {
         id: 'actions',
         header: '',
+        enableSorting: false,
         cell: ({ row }) => (
           <div className="text-right">
             <Button variant="ghost" size="sm" asChild>
@@ -105,12 +104,6 @@ export function PrescriptionsPage() {
     ],
     [],
   )
-
-  const table = useReactTable({
-    data: data?.data ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  })
 
   return (
     <>
@@ -168,7 +161,9 @@ export function PrescriptionsPage() {
           </div>
         }
       />
+
       <div className="mt-5 space-y-4">
+        {/* Stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <StatCard label="Total" value={stats?.total ?? 0} />
           <StatCard label="This month" value={stats?.thisMonth ?? 0} />
@@ -176,8 +171,9 @@ export function PrescriptionsPage() {
           <StatCard label="Finalized" value={stats?.finalized ?? 0} tone="emerald" />
         </div>
 
+        {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-2 px-2.5">
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={status} onValueChange={(v) => { setStatus(v); setPage(1) }}>
             <SelectTrigger className="h-8 w-[160px] text-xs" size="sm">
               <SelectValue />
             </SelectTrigger>
@@ -190,64 +186,23 @@ export function PrescriptionsPage() {
           </Select>
           <div className="ml-auto text-xs text-text-3">
             {total} prescription{total === 1 ? '' : 's'}
-            {totalPages > 1 && ` · page ${page}/${totalPages}`}
           </div>
         </div>
 
-        <Card className="py-0">
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-32 text-center">
-                      <Loader2 className="mx-auto size-6 animate-spin text-text-3" />
-                    </TableCell>
-                  </TableRow>
-                ) : table.getRowModel().rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-40 text-center text-text-3">
-                      <FileText className="mx-auto mb-2 size-8 opacity-30" />
-                      No prescriptions yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          limit={limit}
-          total={total}
-          onPageChange={setPage}
-          onLimitChange={(l) => { setLimit(l); setPage(1) }}
-          pageSizeOptions={[10, 20, 50, 100]}
+        {/* Table with built-in pagination */}
+        <DataTable
+          columns={columns}
+          data={data?.data ?? []}
+          isLoading={isLoading}
+          emptyMessage="No prescriptions yet."
+          serverPagination={{
+            page,
+            pageSize: limit,
+            total,
+            onPageChange: setPage,
+            onPageSizeChange: (l) => { setLimit(l); setPage(1) },
+            pageSizeOptions: [10, 20, 50, 100],
+          }}
         />
       </div>
     </>

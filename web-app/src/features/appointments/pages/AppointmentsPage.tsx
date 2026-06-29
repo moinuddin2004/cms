@@ -153,7 +153,7 @@ export function AppointmentsPage() {
   }
 
   const viewToggle = (
-    <div className="flex items-center rounded-[9px] border border-border bg-surface p-[3px]">
+    <div className="flex items-center rounded-lg border border-border bg-surface p-[3px]">
       {(
         [
           { key: 'queue', icon: ListChecks, label: 'Queue' },
@@ -165,13 +165,13 @@ export function AppointmentsPage() {
           key={key}
           type="button"
           onClick={() => setViewMode(key)}
-          className={`flex items-center gap-1.5 rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors ${
+          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
             viewMode === key
               ? 'bg-primary text-white shadow-sm'
               : 'text-text-2 hover:text-foreground'
           }`}
         >
-          <Icon className="size-3.5" />
+          <Icon className="size-3" />
           {label}
         </button>
       ))}
@@ -186,9 +186,9 @@ export function AppointmentsPage() {
         actions={
           <div className="flex items-center gap-2.5">
             {viewToggle}
-            <Button onClick={() => openCreateModal()} className="h-[38px] gap-1.5 px-4">
-              <Plus className="size-4" />
-              New Appointment
+            <Button onClick={() => openCreateModal()} size="sm">
+              <Plus className="size-3.5" />
+              Create
             </Button>
           </div>
         }
