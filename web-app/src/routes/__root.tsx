@@ -207,12 +207,17 @@ function RootComponent() {
   // Show nothing while initializing (attempting silent refresh)
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center animate-pulse">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
-          <p className="text-muted-foreground text-sm">Loading...</p>
+      <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-primary">
+        {/* Blurred ambient glow blobs */}
+        <div className="pointer-events-none absolute -top-32 -left-32 h-80 w-80 rounded-full bg-white/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
+        <div className="pointer-events-none absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-2xl" />
+
+        {/* Three balls swapping positions in a juggle orbit */}
+        <div className="animate-loading-juggle relative h-12 w-12">
+          <span className="absolute left-1/2 top-0 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
+          <span className="absolute bottom-0 left-0 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
+          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
         </div>
       </div>
     )

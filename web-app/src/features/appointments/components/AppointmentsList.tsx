@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import { toast } from 'sonner'
 import {
   Search,
-  Filter,
   X,
   CalendarDays,
   Loader2,
@@ -14,6 +19,8 @@ import {
   ThumbsUp,
   UserX,
   XCircle,
+  RotateCcw,
+  Plus,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -41,6 +48,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Pagination } from '@/components/shared'
 import { cn } from '@/lib/utils'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDoctors } from '../hooks/useDoctors'
@@ -115,11 +123,16 @@ function resolveRange(
 
 // ─── Component ────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 25
-
 export function AppointmentsList() {
-  const { openCreateModal, openDetailModal } = useAppointmentStore()
+  const { openCreateModal, openDetailModal, openEditModal } = useAppointmentStore()
   const { data: doctors = [] } = useDoctors()
+
+  const cancelMutation = useCancelAppointment()
+  const noShowMutation = useNoShow()
+  const checkInMutation = useCheckIn()
+  const startMutation = useStartAppointment()
+  const completeMutation = useCompleteAppointment()
+  const confirmMutation = useConfirmAppointment()
 
   // ─── Filter state ────────────────────────────────────────────────
   const [searchInput, setSearchInput] = useState('')
@@ -131,6 +144,7 @@ export function AppointmentsList() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(25)
 
   // Debounce the search box so we don't refetch on every keystroke.
   useEffect(() => {
@@ -155,12 +169,12 @@ export function AppointmentsList() {
     doctorId: doctorId !== 'all' ? doctorId : undefined,
     search: search || undefined,
     page,
-    limit: PAGE_SIZE,
+    limit,
   })
 
   const appointments = data?.data ?? []
   const total = data?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(total / limit))
 
   const hasActiveFilters =
     !!search ||
@@ -179,6 +193,229 @@ export function AppointmentsList() {
     setCustomFrom('')
     setCustomTo('')
   }
+
+  const handle = useCallback(async (label: string, run: () => Promise<unknown>) => {
+    try {
+      await run()
+      toast.success(`Appointment ${label}`)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || `Failed to ${label}`)
+    }
+  }, [])
+
+  const columns = useMemo<ColumnDef<Appointment>[]>(
+    () => [
+      {
+        id: 'token',
+        header: 'Token',
+        cell: ({ row }) => {
+          const appt = row.original
+          return appt.tokenNumber != null ? (
+            <span className="inline-flex h-7 min-w-[44px] items-center justify-center rounded-md bg-primary/10 px-2 text-sm font-bold tabular-nums text-primary">
+              #{appt.tokenNumber}
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-xs">—</span>
+          )
+        },
+      },
+      {
+        id: 'datetime',
+        header: 'Date & Time',
+        cell: ({ row }) => {
+          const start = new Date(row.original.startTime)
+          const end = new Date(row.original.endTime)
+          const dateLabel = start.toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+          const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          return (
+            <div className="font-medium">
+              <div>{dateLabel}</div>
+              <div className="text-xs text-muted-foreground">{timeLabel}</div>
+            </div>
+          )
+        },
+      },
+      {
+        id: 'patient',
+        header: 'Patient',
+        cell: ({ row }) => {
+          const appt = row.original
+          return (
+            <div>
+              <div className="font-medium truncate max-w-[220px]">
+                {appt.patient?.fullName || 'Unknown'}
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <span>{appt.patient?.phone || '—'}</span>
+                {appt.isEmergency && (
+                  <Badge variant="destructive" className="h-4 px-1 text-[10px]">
+                    Emergency
+                  </Badge>
+                )}
+                {appt.isWalkIn && (
+                  <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                    Walk-in
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        id: 'doctor',
+        header: 'Doctor',
+        cell: ({ row }) => {
+          const doctor = row.original.doctor
+          return doctor?.fullName ? (
+            <span className="text-sm">{`Dr. ${doctor.fullName}`}</span>
+          ) : (
+            <span className="text-muted-foreground italic text-sm">Unassigned</span>
+          )
+        },
+      },
+      {
+        id: 'type',
+        header: 'Type',
+        cell: ({ row }) => (
+          <span className="text-sm capitalize">
+            {row.original.type.replace('_', ' ')}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        cell: ({ row }) => (
+          <span
+            className={cn(
+              'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border capitalize',
+              STATUS_BG_COLORS[row.original.status],
+            )}
+          >
+            {row.original.status.replace('_', ' ')}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => {
+          const appt = row.original
+          const isCancelled = appt.status === AppointmentStatus.CANCELLED
+          const isCompleted = appt.status === AppointmentStatus.COMPLETED
+          const isNoShow = appt.status === AppointmentStatus.NO_SHOW
+          const isTerminal = isCancelled || isCompleted || isNoShow
+          return (
+            <div onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Actions">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {appt.patient?.fullName}
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => openEditModal(appt.id)}>
+                    <Pencil className="w-3.5 h-3.5 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  {!isTerminal && (
+                    <>
+                      <DropdownMenuSeparator />
+                      {(appt.status === AppointmentStatus.SCHEDULED ||
+                        appt.status === AppointmentStatus.RESCHEDULED) && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handle('confirmed', () => confirmMutation.mutateAsync(appt.id))
+                          }
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5 mr-2" />
+                          Confirm
+                        </DropdownMenuItem>
+                      )}
+                      {(appt.status === AppointmentStatus.SCHEDULED ||
+                        appt.status === AppointmentStatus.CONFIRMED ||
+                        appt.status === AppointmentStatus.RESCHEDULED) && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handle('checked in', () => checkInMutation.mutateAsync(appt.id))
+                          }
+                        >
+                          <LogIn className="w-3.5 h-3.5 mr-2" />
+                          Check in
+                        </DropdownMenuItem>
+                      )}
+                      {appt.status === AppointmentStatus.CHECKED_IN && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handle('started', () => startMutation.mutateAsync(appt.id))
+                          }
+                        >
+                          <Stethoscope className="w-3.5 h-3.5 mr-2" />
+                          Start consultation
+                        </DropdownMenuItem>
+                      )}
+                      {appt.status === AppointmentStatus.IN_PROGRESS && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handle('completed', () => completeMutation.mutateAsync(appt.id))
+                          }
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 mr-2" />
+                          Complete
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handle('marked no-show', () => noShowMutation.mutateAsync(appt.id))
+                        }
+                      >
+                        <UserX className="w-3.5 h-3.5 mr-2" />
+                        No show
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() =>
+                          handle('cancelled', () => cancelMutation.mutateAsync({ id: appt.id }))
+                        }
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-2" />
+                        Cancel
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        },
+      },
+    ],
+    [
+      openEditModal,
+      handle,
+      cancelMutation,
+      noShowMutation,
+      checkInMutation,
+      startMutation,
+      completeMutation,
+      confirmMutation,
+    ],
+  )
+
+  const table = useReactTable({
+    data: appointments,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   return (
     <div className="space-y-3">
@@ -331,36 +568,33 @@ export function AppointmentsList() {
       <div className="bg-card border rounded-xl overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[70px]">Token</TableHead>
-              <TableHead className="w-[170px]">Date & Time</TableHead>
-              <TableHead>Patient</TableHead>
-              <TableHead>Doctor</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[60px]" />
-            </TableRow>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(header.column.columnDef.header, header.getContext())}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center">
+                <TableCell colSpan={columns.length} className="h-32 text-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground mx-auto" />
                 </TableCell>
               </TableRow>
-            ) : appointments.length === 0 ? (
+            ) : table.getRowModel().rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-40 text-center">
+                <TableCell colSpan={columns.length} className="h-40 text-center">
                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
                     <CalendarDays className="w-8 h-8 opacity-30" />
                     <p className="text-sm">No appointments match these filters.</p>
                     {hasActiveFilters && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        onClick={clearFilters}
-                        className="h-6"
-                      >
+                      <Button variant="link" size="sm" onClick={clearFilters} className="h-6">
                         Clear filters
                       </Button>
                     )}
@@ -370,18 +604,28 @@ export function AppointmentsList() {
                       onClick={() => openCreateModal()}
                       className="mt-1"
                     >
-                      + New appointment
+                      <Plus className="w-4 h-4 mr-2" />
+                      New appointment
                     </Button>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
-              appointments.map((appt) => (
-                <AppointmentRow
-                  key={appt.id}
-                  appt={appt}
-                  onOpen={() => openDetailModal(appt.id)}
-                />
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={cn(
+                    'cursor-pointer hover:bg-accent/40',
+                    row.original.status === AppointmentStatus.CANCELLED && 'opacity-50',
+                  )}
+                  onClick={() => openDetailModal(row.original.id)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))
             )}
           </TableBody>
@@ -389,231 +633,19 @@ export function AppointmentsList() {
       </div>
 
       {/* ── Pagination ─────────────────────────────────────────── */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page === 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </Button>
-          <span className="text-xs text-muted-foreground px-2">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        limit={limit}
+        total={total}
+        onPageChange={setPage}
+        onLimitChange={(l) => {
+          setLimit(l)
+          setPage(1)
+        }}
+        pageSizeOptions={[10, 25, 50, 100]}
+      />
     </div>
   )
 }
 
-// ─── Row component ────────────────────────────────────────────────────
-
-function AppointmentRow({
-  appt,
-  onOpen,
-}: {
-  appt: Appointment
-  onOpen: () => void
-}) {
-  const { openEditModal } = useAppointmentStore()
-  const cancelMutation = useCancelAppointment()
-  const noShowMutation = useNoShow()
-  const checkInMutation = useCheckIn()
-  const startMutation = useStartAppointment()
-  const completeMutation = useCompleteAppointment()
-  const confirmMutation = useConfirmAppointment()
-
-  const start = new Date(appt.startTime)
-  const end = new Date(appt.endTime)
-  const dateLabel = start.toLocaleDateString([], {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-  const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-
-  const isCancelled = appt.status === AppointmentStatus.CANCELLED
-  const isCompleted = appt.status === AppointmentStatus.COMPLETED
-  const isNoShow = appt.status === AppointmentStatus.NO_SHOW
-  const isTerminal = isCancelled || isCompleted || isNoShow
-
-  const handle = async (label: string, run: () => Promise<unknown>) => {
-    try {
-      await run()
-      toast.success(`Appointment ${label}`)
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || `Failed to ${label}`)
-    }
-  }
-
-  return (
-    <TableRow
-      className={cn(
-        'cursor-pointer hover:bg-accent/40',
-        isCancelled && 'opacity-50',
-      )}
-      onClick={onOpen}
-    >
-      <TableCell>
-        {appt.tokenNumber != null ? (
-          <span className="inline-flex h-7 min-w-[44px] items-center justify-center rounded-md bg-primary/10 px-2 text-sm font-bold tabular-nums text-primary">
-            #{appt.tokenNumber}
-          </span>
-        ) : (
-          <span className="text-muted-foreground text-xs">—</span>
-        )}
-      </TableCell>
-      <TableCell className="font-medium">
-        <div>{dateLabel}</div>
-        <div className="text-xs text-muted-foreground">{timeLabel}</div>
-      </TableCell>
-      <TableCell>
-        <div className="font-medium truncate max-w-[220px]">
-          {appt.patient?.fullName || 'Unknown'}
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <span>{appt.patient?.phone || '—'}</span>
-          {appt.isEmergency && (
-            <Badge variant="destructive" className="h-4 px-1 text-[10px]">
-              Emergency
-            </Badge>
-          )}
-          {appt.isWalkIn && (
-            <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-              Walk-in
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-sm">
-        {appt.doctor?.fullName ? `Dr. ${appt.doctor.fullName}` : (
-          <span className="text-muted-foreground italic">Unassigned</span>
-        )}
-      </TableCell>
-      <TableCell className="text-sm capitalize">
-        {appt.type.replace('_', ' ')}
-      </TableCell>
-      <TableCell>
-        <span
-          className={cn(
-            'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border capitalize',
-            STATUS_BG_COLORS[appt.status],
-          )}
-        >
-          {appt.status.replace('_', ' ')}
-        </span>
-      </TableCell>
-      <TableCell onClick={(e) => e.stopPropagation()}>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              aria-label="Actions"
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {appt.patient?.fullName}
-            </DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => openEditModal(appt.id)}>
-              <Pencil className="w-3.5 h-3.5 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            {!isTerminal && (
-              <>
-                <DropdownMenuSeparator />
-                {(appt.status === AppointmentStatus.SCHEDULED ||
-                  appt.status === AppointmentStatus.RESCHEDULED) && (
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handle('confirmed', () =>
-                        confirmMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <ThumbsUp className="w-3.5 h-3.5 mr-2" />
-                    Confirm
-                  </DropdownMenuItem>
-                )}
-                {(appt.status === AppointmentStatus.SCHEDULED ||
-                  appt.status === AppointmentStatus.CONFIRMED ||
-                  appt.status === AppointmentStatus.RESCHEDULED) && (
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handle('checked in', () =>
-                        checkInMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <LogIn className="w-3.5 h-3.5 mr-2" />
-                    Check in
-                  </DropdownMenuItem>
-                )}
-                {appt.status === AppointmentStatus.CHECKED_IN && (
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handle('started', () =>
-                        startMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <Stethoscope className="w-3.5 h-3.5 mr-2" />
-                    Start consultation
-                  </DropdownMenuItem>
-                )}
-                {appt.status === AppointmentStatus.IN_PROGRESS && (
-                  <DropdownMenuItem
-                    onClick={() =>
-                      handle('completed', () =>
-                        completeMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <CheckCircle className="w-3.5 h-3.5 mr-2" />
-                    Complete
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() =>
-                    handle('marked no-show', () =>
-                      noShowMutation.mutateAsync(appt.id),
-                    )
-                  }
-                >
-                  <UserX className="w-3.5 h-3.5 mr-2" />
-                  No show
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() =>
-                    handle('cancelled', () =>
-                      cancelMutation.mutateAsync({ id: appt.id }),
-                    )
-                  }
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-2" />
-                  Cancel
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
-  )
-}

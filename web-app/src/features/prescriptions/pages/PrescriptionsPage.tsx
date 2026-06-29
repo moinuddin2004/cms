@@ -1,5 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Loader2, Plus, FileText, ChevronDown, Library, Pill, ClipboardList, LayoutTemplate } from 'lucide-react'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-import { usePrescriptions, usePrescriptionStats, PrescriptionStatus } from '@/features/prescriptions'
+import { Pagination } from '@/components/shared'
+import { usePrescriptions, usePrescriptionStats, PrescriptionStatus, type Prescription } from '@/features/prescriptions'
 
 const STATUS_BADGE: Record<PrescriptionStatus, string> = {
   [PrescriptionStatus.DRAFT]: 'bg-amber-soft text-amber',
@@ -19,7 +26,7 @@ const STATUS_BADGE: Record<PrescriptionStatus, string> = {
 export function PrescriptionsPage() {
   const [status, setStatus] = useState<string>('all')
   const [page, setPage] = useState(1)
-  const limit = 20
+  const [limit, setLimit] = useState(20)
   const { data, isLoading } = usePrescriptions({
     status: status !== 'all' ? (status as PrescriptionStatus) : undefined,
     page,
@@ -28,6 +35,82 @@ export function PrescriptionsPage() {
   const { data: stats } = usePrescriptionStats()
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / limit))
+
+  const columns = useMemo<ColumnDef<Prescription>[]>(
+    () => [
+      {
+        accessorKey: 'prescriptionNumber',
+        header: 'RX #',
+        cell: ({ getValue }) => (
+          <span className="font-mono text-xs">{getValue<string>()}</span>
+        ),
+      },
+      {
+        id: 'patient',
+        header: 'Patient',
+        cell: ({ row }) => (
+          <span className="font-medium">{row.original.patient?.fullName ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'doctor',
+        header: 'Doctor',
+        cell: ({ row }) => (
+          <span className="text-sm">
+            {row.original.doctor?.fullName ? `Dr. ${row.original.doctor.fullName}` : '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'medicines',
+        header: 'Medicines',
+        cell: ({ row }) => (
+          <span className="text-sm">{row.original.medicines?.length ?? 0}</span>
+        ),
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ getValue }) => (
+          <Badge variant="outline" className={STATUS_BADGE[getValue<PrescriptionStatus>()]}>
+            {getValue<string>()}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: 'createdAt',
+        header: 'Created',
+        cell: ({ getValue }) => (
+          <span className="text-xs text-text-3">
+            {new Date(getValue<string>()).toLocaleDateString('en-GB')}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        cell: ({ row }) => (
+          <div className="text-right">
+            <Button variant="ghost" size="sm" asChild>
+              <Link
+                to={'/prescriptions/$prescriptionId' as any}
+                params={{ prescriptionId: row.original.id } as any}
+              >
+                Open
+              </Link>
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [],
+  )
+
+  const table = useReactTable({
+    data: data?.data ?? [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  })
 
   return (
     <>
@@ -115,46 +198,40 @@ export function PrescriptionsPage() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>RX #</TableHead>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Doctor</TableHead>
-                  <TableHead>Medicines</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead />
-                </TableRow>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
+                    <TableCell colSpan={columns.length} className="h-32 text-center">
                       <Loader2 className="mx-auto size-6 animate-spin text-text-3" />
                     </TableCell>
                   </TableRow>
-                ) : (data?.data ?? []).length === 0 ? (
+                ) : table.getRowModel().rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-40 text-center text-text-3">
+                    <TableCell colSpan={columns.length} className="h-40 text-center text-text-3">
                       <FileText className="mx-auto mb-2 size-8 opacity-30" />
                       No prescriptions yet.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  (data?.data ?? []).map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs">{p.prescriptionNumber}</TableCell>
-                      <TableCell className="font-medium">{p.patient?.fullName ?? '—'}</TableCell>
-                      <TableCell className="text-sm">{p.doctor?.fullName ? `Dr. ${p.doctor.fullName}` : '—'}</TableCell>
-                      <TableCell className="text-sm">{p.medicines?.length ?? 0}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={STATUS_BADGE[p.status]}>{p.status}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-text-3">{new Date(p.createdAt).toLocaleDateString('en-GB')}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to={'/prescriptions/$prescriptionId' as any} params={{ prescriptionId: p.id } as any}>Open</Link>
-                        </Button>
-                      </TableCell>
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-muted/30 transition-colors">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))
                 )}
@@ -163,13 +240,15 @@ export function PrescriptionsPage() {
           </CardContent>
         </Card>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</Button>
-            <span className="px-2 text-xs text-text-3">{page} / {totalPages}</span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</Button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          limit={limit}
+          total={total}
+          onPageChange={setPage}
+          onLimitChange={(l) => { setLimit(l); setPage(1) }}
+          pageSizeOptions={[10, 20, 50, 100]}
+        />
       </div>
     </>
   )

@@ -330,3 +330,26 @@
     background: var(--text-3);
   }
 }
+
+/* ── App loading screen — three balls swapping in a juggle orbit ──── */
+@keyframes loading-juggle {
+  0%,
+  4% {
+    transform: rotate(0deg);
+  }
+  29%,
+  37% {
+    transform: rotate(120deg);
+  }
+  62%,
+  70% {
+    transform: rotate(240deg);
+  }
+  96%,
+  100% {
+    transform: rotate(360deg);
+  }
+}
+.animate-loading-juggle {
+  animation: loading-juggle 1.6s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+}

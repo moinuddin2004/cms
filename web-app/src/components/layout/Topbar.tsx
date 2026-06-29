@@ -37,7 +37,7 @@ export function Topbar() {
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 px-6 backdrop-blur-md">
       {/* Left: workspace identity */}
       <div className="flex items-center gap-2.5">
-        <div className="flex size-9 items-center justify-center rounded-[10px] bg-primary-soft text-primary-text">
+        {/* <div className="flex size-9 items-center justify-center rounded-[10px] bg-primary-soft text-primary-text">
           <Building2 className="size-[18px]" />
         </div>
         <div className="flex flex-col leading-none">
@@ -47,7 +47,7 @@ export function Topbar() {
           <span className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-text-3">
             Workspace
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* Right: theme + location */}
