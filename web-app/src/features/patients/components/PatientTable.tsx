@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, Pencil, UserX } from 'lucide-react'
+import { Eye, UserX } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {
@@ -131,19 +131,6 @@ export function PatientTable({
               >
                 <Link to="/patients/$patientId" params={{ patientId: p.id }}>
                   <Eye className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                asChild
-              >
-                <Link
-                  to="/patients/$patientId/edit"
-                  params={{ patientId: p.id }}
-                >
-                  <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Link>
               </Button>
               {p.isActive && (

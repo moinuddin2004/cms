@@ -24,7 +24,9 @@ export async function fetchEmployeeById(id: string): Promise<Employee> {
 export async function createEmployee(
   payload: EmployeeFormData,
 ): Promise<Employee> {
-  const { data } = await api.post('/employees', payload)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { primaryLocationId, ...body } = payload
+  const { data } = await api.post('/employees', body)
   return data.data
 }
 
@@ -32,7 +34,9 @@ export async function updateEmployee(
   id: string,
   payload: Partial<EmployeeFormData>,
 ): Promise<Employee> {
-  const { data } = await api.put(`/employees/${id}`, payload)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { primaryLocationId, ...body } = payload
+  const { data } = await api.put(`/employees/${id}`, body)
   return data.data
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -22,6 +22,7 @@ import {
   GENDER_OPTIONS,
   EmploymentType,
   EMPLOYMENT_TYPE_OPTIONS,
+  employeeFormSchema,
 } from '../types'
 
 interface EmployeeFormProps {
@@ -30,6 +31,20 @@ interface EmployeeFormProps {
   onSubmit: (data: EmployeeFormData) => Promise<void>
   isPending: boolean
   onCancel: () => void
+  serverError?: string | null
+}
+
+// Helper to clear a single key from errors
+function clearError(
+  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>,
+  key: string,
+) {
+  setErrors((prev) => {
+    if (!prev[key]) return prev
+    const next = { ...prev }
+    delete next[key]
+    return next
+  })
 }
 
 export function EmployeeForm({
@@ -38,58 +53,71 @@ export function EmployeeForm({
   onSubmit,
   isPending,
   onCancel,
+  serverError,
 }: EmployeeFormProps) {
   const { activeLocationId } = useAuthStore()
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { data: roles } = useQuery({
     queryKey: ['employment-roles'],
     queryFn: () => apiClient.get('/employment-roles').then((r) => r.data.data),
   })
 
+  const initial = defaultValues
+    ? {
+        fullName: defaultValues.fullName ?? '',
+        phone: defaultValues.phone ?? '',
+        cnic: defaultValues.cnic ?? '',
+        designation: defaultValues.designation ?? '',
+        employmentRoleId: defaultValues.employmentRoleId ?? '',
+        employmentType: defaultValues.employmentType ?? EmploymentType.FULL_TIME,
+        joiningDate: defaultValues.joiningDate?.split('T')[0] ?? '',
+        primaryLocationId: defaultValues.primaryLocationId ?? activeLocationId ?? '',
+        gender: (defaultValues.gender ?? '') as string,
+        dob: defaultValues.dob ? defaultValues.dob.split('T')[0] : '',
+        hasPortalAccess: defaultValues.hasPortalAccess ?? false,
+        portalEmail: '',
+        portalPassword: '',
+        profilePictureUrl: defaultValues.profilePictureUrl ?? '',
+        userId: defaultValues.userId ?? '',
+      }
+    : {
+        fullName: '',
+        phone: '',
+        cnic: '',
+        designation: '',
+        employmentRoleId: '',
+        employmentType: EmploymentType.FULL_TIME as string,
+        joiningDate: new Date().toISOString().split('T')[0],
+        primaryLocationId: activeLocationId ?? '',
+        gender: '' as string,
+        dob: '',
+        hasPortalAccess: false,
+        portalEmail: '',
+        portalPassword: '',
+        profilePictureUrl: '',
+        userId: '',
+      }
+
   const form = useForm({
-    defaultValues: {
-      fullName: '',
-      phone: '',
-      cnic: '',
-      designation: '',
-      employmentRoleId: '',
-      employmentType: EmploymentType.FULL_TIME as string,
-      joiningDate: new Date().toISOString().split('T')[0],
-      primaryLocationId: activeLocationId || '',
-      gender: '' as string,
-      dob: '',
-      hasPortalAccess: false,
-      profilePictureUrl: '',
-      userId: '',
-    },
+    defaultValues: initial,
     onSubmit: async ({ value }) => {
-      await onSubmit(value as EmployeeFormData)
+      const result = employeeFormSchema.safeParse(value)
+      if (!result.success) {
+        const errors: Record<string, string> = {}
+        result.error.errors.forEach((e) => {
+          const key = String(e.path[0])
+          if (!errors[key]) errors[key] = e.message
+        })
+        setFieldErrors(errors)
+        return
+      }
+      setFieldErrors({})
+      await onSubmit(result.data as EmployeeFormData)
     },
   })
 
-  useEffect(() => {
-    if (mode === 'edit' && defaultValues) {
-      form.setFieldValue('fullName', defaultValues.fullName)
-      form.setFieldValue('phone', defaultValues.phone)
-      form.setFieldValue('cnic', defaultValues.cnic || '')
-      form.setFieldValue('designation', defaultValues.designation)
-      form.setFieldValue('employmentRoleId', defaultValues.employmentRoleId || '')
-      form.setFieldValue('employmentType', defaultValues.employmentType)
-      form.setFieldValue('joiningDate', defaultValues.joiningDate?.split('T')[0] || '')
-      form.setFieldValue(
-        'primaryLocationId',
-        defaultValues.primaryLocationId || activeLocationId || '',
-      )
-      form.setFieldValue('gender', defaultValues.gender || '')
-      form.setFieldValue(
-        'dob',
-        defaultValues.dob ? defaultValues.dob.split('T')[0] : '',
-      )
-      form.setFieldValue('hasPortalAccess', defaultValues.hasPortalAccess)
-      form.setFieldValue('profilePictureUrl', defaultValues.profilePictureUrl || '')
-      form.setFieldValue('userId', defaultValues.userId || '')
-    }
-  }, [defaultValues, mode, activeLocationId])
+  const hasErrors = Object.keys(fieldErrors).length > 0
 
   return (
     <Card>
@@ -107,51 +135,72 @@ export function EmployeeForm({
           }}
           className="space-y-6"
         >
+          {/* Server / submission error banner */}
+          {serverError && (
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{serverError}</span>
+            </div>
+          )}
+
+          {/* Client validation summary (shown after failed submit) */}
+          {hasErrors && (
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>Please fix the errors below before submitting.</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Full Name */}
             <form.Field name="fullName">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Full Name *</Label>
+                <div className="space-y-1.5">
+                  <Label>Full Name <span className="text-destructive">*</span></Label>
                   <Input
                     placeholder="e.g., Dr. Ali Hassan"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      field.handleChange(e.target.value)
+                      clearError(setFieldErrors, 'fullName')
+                    }}
                     onBlur={field.handleBlur}
-                    required
+                    className={fieldErrors.fullName ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
+                  {fieldErrors.fullName && (
+                    <p className="text-xs text-destructive">{fieldErrors.fullName}</p>
                   )}
                 </div>
               )}
             </form.Field>
 
+            {/* Phone */}
             <form.Field name="phone">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Phone *</Label>
+                <div className="space-y-1.5">
+                  <Label>Phone <span className="text-destructive">*</span></Label>
                   <Input
                     placeholder="e.g., +92 300 1234567"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      field.handleChange(e.target.value)
+                      clearError(setFieldErrors, 'phone')
+                    }}
                     onBlur={field.handleBlur}
-                    required
+                    className={fieldErrors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
+                  {fieldErrors.phone && (
+                    <p className="text-xs text-destructive">{fieldErrors.phone}</p>
                   )}
                 </div>
               )}
             </form.Field>
 
+            {/* CNIC */}
             <form.Field name="cnic">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>CNIC (optional)</Label>
+                <div className="space-y-1.5">
+                  <Label>CNIC <span className="text-muted-foreground text-xs">(optional)</span></Label>
                   <Input
                     placeholder="e.g., 42101-1234567-1"
                     value={field.state.value}
@@ -162,35 +211,41 @@ export function EmployeeForm({
               )}
             </form.Field>
 
+            {/* Designation */}
             <form.Field name="designation">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Designation *</Label>
+                <div className="space-y-1.5">
+                  <Label>Designation <span className="text-destructive">*</span></Label>
                   <Input
                     placeholder="e.g., Dentist"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      field.handleChange(e.target.value)
+                      clearError(setFieldErrors, 'designation')
+                    }}
                     onBlur={field.handleBlur}
-                    required
+                    className={fieldErrors.designation ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
+                  {fieldErrors.designation && (
+                    <p className="text-xs text-destructive">{fieldErrors.designation}</p>
                   )}
                 </div>
               )}
             </form.Field>
 
+            {/* Role */}
             <form.Field name="employmentRoleId">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Role *</Label>
+                <div className="space-y-1.5">
+                  <Label>Role <span className="text-destructive">*</span></Label>
                   <Select
                     value={field.state.value}
-                    onValueChange={(val) => field.handleChange(val)}
+                    onValueChange={(val) => {
+                      field.handleChange(val)
+                      clearError(setFieldErrors, 'employmentRoleId')
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={fieldErrors.employmentRoleId ? 'border-destructive focus-visible:ring-destructive' : ''}>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -201,19 +256,18 @@ export function EmployeeForm({
                       ))}
                     </SelectContent>
                   </Select>
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
+                  {fieldErrors.employmentRoleId && (
+                    <p className="text-xs text-destructive">{fieldErrors.employmentRoleId}</p>
                   )}
                 </div>
               )}
             </form.Field>
 
+            {/* Employment Type */}
             <form.Field name="employmentType">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Employment Type *</Label>
+                <div className="space-y-1.5">
+                  <Label>Employment Type <span className="text-destructive">*</span></Label>
                   <Select
                     value={field.state.value}
                     onValueChange={(val) => field.handleChange(val)}
@@ -233,25 +287,33 @@ export function EmployeeForm({
               )}
             </form.Field>
 
+            {/* Joining Date */}
             <form.Field name="joiningDate">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Joining Date *</Label>
+                <div className="space-y-1.5">
+                  <Label>Joining Date <span className="text-destructive">*</span></Label>
                   <Input
                     type="date"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(e) => {
+                      field.handleChange(e.target.value)
+                      clearError(setFieldErrors, 'joiningDate')
+                    }}
                     onBlur={field.handleBlur}
-                    required
+                    className={fieldErrors.joiningDate ? 'border-destructive focus-visible:ring-destructive' : ''}
                   />
+                  {fieldErrors.joiningDate && (
+                    <p className="text-xs text-destructive">{fieldErrors.joiningDate}</p>
+                  )}
                 </div>
               )}
             </form.Field>
 
+            {/* Gender */}
             <form.Field name="gender">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Gender (optional)</Label>
+                <div className="space-y-1.5">
+                  <Label>Gender <span className="text-muted-foreground text-xs">(optional)</span></Label>
                   <Select
                     value={field.state.value || ''}
                     onValueChange={(val) => field.handleChange(val)}
@@ -271,10 +333,11 @@ export function EmployeeForm({
               )}
             </form.Field>
 
+            {/* Date of Birth */}
             <form.Field name="dob">
               {(field) => (
-                <div className="space-y-2">
-                  <Label>Date of Birth (optional)</Label>
+                <div className="space-y-1.5">
+                  <Label>Date of Birth <span className="text-muted-foreground text-xs">(optional)</span></Label>
                   <Input
                     type="date"
                     value={field.state.value}
@@ -284,33 +347,118 @@ export function EmployeeForm({
                 </div>
               )}
             </form.Field>
+
+            {/* Gross Salary */}
+            <form.Field name="grossSalary">
+              {(field) => (
+                <div className="space-y-1.5">
+                  <Label>Gross Salary <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="e.g., 50000"
+                    value={field.state.value ?? ''}
+                    onChange={(e) => field.handleChange(e.target.value as any)}
+                    onBlur={field.handleBlur}
+                  />
+                </div>
+              )}
+            </form.Field>
           </div>
 
+          {/* Portal Access */}
           <form.Field name="hasPortalAccess">
             {(field) => (
-              <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Portal Access</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Enable portal access (can login to system)
+              <div className="rounded-lg border p-4 space-y-4">
+                <div className="flex flex-row items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Portal Access</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Allow this employee to log in to the system
+                    </p>
                   </div>
+                  <Switch
+                    checked={field.state.value as boolean}
+                    onCheckedChange={(val) => {
+                      field.handleChange(val)
+                      // Clear portal errors when toggled off
+                      if (!val) {
+                        setFieldErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.portalEmail
+                          delete next.portalPassword
+                          return next
+                        })
+                      }
+                    }}
+                  />
                 </div>
-                <Switch
-                  checked={field.state.value as boolean}
-                  onCheckedChange={(val) => field.handleChange(val)}
-                />
+
+                {/* Portal credentials — only shown when enabled and no user linked yet */}
+                {field.state.value && !form.getFieldValue('userId') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
+                    <form.Field name="portalEmail">
+                      {(emailField) => (
+                        <div className="space-y-1.5">
+                          <Label>Login Email <span className="text-destructive">*</span></Label>
+                          <Input
+                            type="email"
+                            placeholder="e.g., ali@clinic.com"
+                            value={emailField.state.value as string}
+                            onChange={(e) => {
+                              emailField.handleChange(e.target.value)
+                              clearError(setFieldErrors, 'portalEmail')
+                            }}
+                            onBlur={emailField.handleBlur}
+                            className={fieldErrors.portalEmail ? 'border-destructive focus-visible:ring-destructive' : ''}
+                          />
+                          {fieldErrors.portalEmail && (
+                            <p className="text-xs text-destructive">{fieldErrors.portalEmail}</p>
+                          )}
+                        </div>
+                      )}
+                    </form.Field>
+
+                    <form.Field name="portalPassword">
+                      {(pwField) => (
+                        <div className="space-y-1.5">
+                          <Label>Password <span className="text-destructive">*</span></Label>
+                          <Input
+                            type="password"
+                            placeholder="Min. 6 characters"
+                            value={pwField.state.value as string}
+                            onChange={(e) => {
+                              pwField.handleChange(e.target.value)
+                              clearError(setFieldErrors, 'portalPassword')
+                            }}
+                            onBlur={pwField.handleBlur}
+                            className={fieldErrors.portalPassword ? 'border-destructive focus-visible:ring-destructive' : ''}
+                          />
+                          {fieldErrors.portalPassword && (
+                            <p className="text-xs text-destructive">{fieldErrors.portalPassword}</p>
+                          )}
+                        </div>
+                      )}
+                    </form.Field>
+                  </div>
+                )}
+
+                {/* Already linked user badge */}
+                {field.state.value && form.getFieldValue('userId') && (
+                  <p className="text-xs text-muted-foreground border-t pt-2">
+                    Portal user already linked — credentials cannot be changed here.
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
 
-          <div className="flex justify-end gap-4 border-t pt-6">
-            <Button type="button" variant="outline" onClick={onCancel}>
+          <div className="flex justify-end gap-3 border-t pt-6">
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isPending}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {mode === 'create' ? 'Create Employee' : 'Update Employee'}
             </Button>
           </div>

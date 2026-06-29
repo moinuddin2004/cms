@@ -231,7 +231,7 @@ export function PatientForm({
                     ? 'bg-brand-600 border-brand-600 text-white'
                     : i < currentStep
                       ? 'bg-brand-600 border-brand-600 text-white'
-                      : 'bg-white border-slate-300 text-slate-400',
+                      : 'bg-background border-border text-muted-foreground',
                 )}
               >
                 {i < currentStep ? <Check size={11} /> : i + 1}
@@ -253,7 +253,7 @@ export function PatientForm({
               <div
                 className={cn(
                   'flex-1 h-px mx-3 transition-colors duration-300',
-                  i < currentStep ? 'bg-brand-400' : 'bg-slate-200',
+                  i < currentStep ? 'bg-brand-400' : 'bg-border',
                 )}
               />
             )}
@@ -277,14 +277,14 @@ export function PatientForm({
           e.stopPropagation()
         }}
       >
-        <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="rounded-lg border border-border overflow-hidden">
           {/* Step 0: Basic & Contact Info */}
           {currentStep === 0 && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex gap-5 p-5">
                 {/* Avatar placeholder */}
                 <div className="flex-shrink-0 pt-1">
-                  <div className="w-16 h-16 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center">
                     <User className="w-7 h-7 text-slate-400" />
                   </div>
                 </div>
@@ -659,7 +659,7 @@ export function PatientForm({
 
               <form.Field name="isMinor">
                 {(field) => (
-                  <div className="flex flex-row items-center justify-between rounded-lg border border-slate-200 p-4 bg-slate-50/50">
+                  <div className="flex flex-row items-center justify-between rounded-lg border border-border p-4 bg-muted/30">
                     <div className="space-y-0.5">
                       <Label className="text-base cursor-pointer">Is Patient a Minor?</Label>
                       <p className="text-sm text-muted-foreground">
@@ -682,7 +682,7 @@ export function PatientForm({
               <form.Subscribe selector={(state) => state.values.isMinor}>
                 {(isMinor) =>
                   isMinor && (
-                    <div className="grid grid-cols-2 gap-4 p-4 border border-brand-100 rounded-lg bg-orange-50/30">
+                    <div className="grid grid-cols-2 gap-4 p-4 border border-brand-200/40 rounded-lg bg-brand-500/5">
                       <form.Field name="guardianName">
                         {(field) => (
                           <div className="space-y-1.5 col-span-2">

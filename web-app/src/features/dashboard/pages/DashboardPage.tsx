@@ -109,7 +109,7 @@ export function DashboardPage() {
           </p>
         </div>
         <Button
-          onClick={() => navigate({ to: '/appointments' })}
+          onClick={() => navigate({ to: '/appointments', search: { create: '1' } })}
           className="h-[38px] gap-1.5 px-4"
         >
           <Plus className="size-4" />

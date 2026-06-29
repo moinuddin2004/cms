@@ -11,9 +11,17 @@ import {
   Phone,
   Zap,
   Footprints,
+  CalendarDays,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { useQueue } from '../hooks/useQueue'
+import { useDoctors } from '../hooks/useDoctors'
 import {
   useCancelAppointment,
   useCheckIn,
@@ -80,10 +89,20 @@ const CLOSED = [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]
 export function QueueView() {
   const [date, setDate] = useState(() => new Date())
   const [walkInOpen, setWalkInOpen] = useState(false)
+  const [doctorFilter, setDoctorFilter] = useState<string>('all')
   const ymd = toYMD(date)
   const { data: queue = [], isLoading, isFetching } = useQueue(ymd)
+  const { data: doctors = [] } = useDoctors()
 
   const isToday = toYMD(new Date()) === ymd
+
+  const filteredQueue = useMemo(
+    () =>
+      doctorFilter === 'all'
+        ? queue
+        : queue.filter((a) => a.doctorId === doctorFilter),
+    [queue, doctorFilter],
+  )
 
   // Group by section
   const groups = useMemo(() => {
@@ -92,7 +111,7 @@ export function QueueView() {
     const scheduled: Appointment[] = []
     const completed: Appointment[] = []
     const closed: Appointment[] = []
-    for (const a of queue) {
+    for (const a of filteredQueue) {
       if (a.status === AppointmentStatus.IN_PROGRESS) inRoom.push(a)
       else if (a.status === AppointmentStatus.CHECKED_IN) waiting.push(a)
       else if (NOT_ARRIVED.includes(a.status)) scheduled.push(a)
@@ -100,7 +119,7 @@ export function QueueView() {
       else if (CLOSED.includes(a.status)) closed.push(a)
     }
     return { inRoom, waiting, scheduled, completed, closed }
-  }, [queue])
+  }, [filteredQueue])
 
   // Doctors who already have a patient in the room (one-in-room-per-doctor).
   const busyDoctors = useMemo(
@@ -114,76 +133,143 @@ export function QueueView() {
     setDate(d)
   }
 
-  const label = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // Build 14-day strip centred on today
+  const dateStrip = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = new Date(today)
+      d.setDate(today.getDate() - 3 + i)
+      return d
+    })
+  }, [])
+
+  const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 
   return (
     <TooltipProvider>
       <div className="space-y-4">
         {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card border rounded-xl px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className="bg-card border rounded-xl px-4 py-3 space-y-3">
+          {/* Row 1: jump-to-date + doctor filter + walk-in */}
+          <div className="flex flex-wrap items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                Jump to date
+              </span>
+              <input
+                type="date"
+                value={toYMD(date)}
+                onChange={(e) => {
+                  if (e.target.value) setDate(new Date(e.target.value + 'T12:00:00'))
+                }}
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              {isFetching && (
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  live
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+                <SelectTrigger className="h-8 w-[160px] text-xs" size="sm">
+                  <SelectValue placeholder="All doctors" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All doctors</SelectItem>
+                  {doctors.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={() => setWalkInOpen(true)} size="sm">
+                <Plus className="w-3.5 h-3.5" />
+                Walk-in
+              </Button>
+            </div>
+          </div>
+
+          {/* Row 2: scrollable date strip */}
+          <div className="flex items-center gap-1">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => stepDay(-1)}
-              className="h-8 w-8"
+              className="h-8 w-6 shrink-0"
               aria-label="Previous day"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
-            <button
-              onClick={() => setDate(new Date())}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                isToday
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-accent text-foreground hover:bg-accent/80',
-              )}
-            >
-              Today
-            </button>
+            <div className="flex gap-1 overflow-x-auto flex-1 pb-0.5 scrollbar-hide">
+              {dateStrip.map((d) => {
+                const dYMD = toYMD(d)
+                const selected = dYMD === ymd
+                const todayYMD = toYMD(new Date())
+                const isThisToday = dYMD === todayYMD
+                return (
+                  <button
+                    key={dYMD}
+                    type="button"
+                    onClick={() => setDate(new Date(dYMD + 'T12:00:00'))}
+                    className={cn(
+                      'flex flex-col items-center justify-center rounded-lg px-2.5 py-1.5 min-w-[44px] transition-colors text-center shrink-0',
+                      selected
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : isThisToday
+                          ? 'border border-primary text-primary bg-primary/5'
+                          : 'bg-accent text-foreground hover:bg-accent/70',
+                    )}
+                  >
+                    {isThisToday && !selected && (
+                      <span className="text-[8px] font-bold uppercase tracking-wider leading-none mb-0.5 text-primary">
+                        Today
+                      </span>
+                    )}
+                    <span className="text-[9px] font-medium leading-none opacity-70">
+                      {DAY_NAMES[d.getDay()]}
+                    </span>
+                    <span className="text-base font-bold leading-tight">
+                      {d.getDate()}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => stepDay(1)}
-              className="h-8 w-8"
+              className="h-8 w-6 shrink-0"
               aria-label="Next day"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <span className="text-sm font-semibold text-foreground ml-2">
-              {label}
-            </span>
-            {isFetching && (
-              <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                live
-              </span>
-            )}
           </div>
-
-          <Button onClick={() => setWalkInOpen(true)} size="sm">
-            <Plus className="w-3.5 h-3.5" />
-            Walk-in
-          </Button>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-24">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : queue.length === 0 ? (
+        ) : filteredQueue.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground bg-card border rounded-xl">
             <Footprints className="w-10 h-10 mx-auto opacity-30 mb-2" />
-            <p className="text-sm font-medium">No one in the queue {isToday ? 'today' : 'this day'}.</p>
-            <p className="text-xs mt-1">
-              Use "Add Walk-in" or check in a booked patient to get started.
-            </p>
+            {doctorFilter !== 'all' ? (
+              <p className="text-sm font-medium">No appointments for this doctor {isToday ? 'today' : 'this day'}.</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium">No one in the queue {isToday ? 'today' : 'this day'}.</p>
+                <p className="text-xs mt-1">
+                  Use "Add Walk-in" or check in a booked patient to get started.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-5">
@@ -402,14 +488,23 @@ function QueueRow({
           )}
           {appt.doctor?.fullName && <span className="mr-2">Dr. {appt.doctor.fullName}</span>}
           {appt.reasonForVisit && <span className="italic">· {appt.reasonForVisit}</span>}
-          {isNotArrived && (
-            <span className="ml-1">
-              {new Date(appt.startTime).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
-            </span>
-          )}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {new Date(appt.startTime).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}{' '}
+          ·{' '}
+          {new Date(appt.startTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          })}
+          {' – '}
+          {new Date(appt.endTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          })}
         </p>
       </button>
 

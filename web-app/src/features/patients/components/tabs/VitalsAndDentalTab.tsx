@@ -60,7 +60,7 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
           </div>
         )}
 
-        <Card className="mt-6 border-brand-100 bg-brand-50/20">
+        <Card className="mt-6">
           <CardHeader className="pb-3">
             <CardTitle className="text-md flex items-center gap-2">
               <Plus size={16} /> Record New Vitals

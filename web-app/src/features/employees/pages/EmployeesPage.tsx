@@ -29,7 +29,8 @@ export function EmployeesPage() {
 
   const { data: response, isLoading, isError } = useEmployees({
     search,
-    role,
+    role: role || undefined,
+    employmentType: employmentType || undefined,
     isActive: status === 'true' ? true : status === 'false' ? false : undefined,
     page,
     limit,
@@ -100,9 +101,9 @@ export function EmployeesPage() {
               role={role}
               onRoleChange={(val) => { setRole(val === 'all' ? '' : val); setPage(1) }}
               employmentType={employmentType}
-              onEmploymentTypeChange={(val) => { setEmploymentType(val); setPage(1) }}
+              onEmploymentTypeChange={(val) => { setEmploymentType(val === 'all' ? '' : val); setPage(1) }}
               status={status}
-              onStatusChange={(val) => { setStatus(val); setPage(1) }}
+              onStatusChange={(val) => { setStatus(val === 'all' ? '' : val); setPage(1) }}
               onReset={handleResetFilters}
             />
           </div>

@@ -30,10 +30,10 @@ function PatientDetailPage() {
           </CardContent>
         </Card>
       ) : (
-        <>
+        <div className="space-y-3">
           <PatientDetailHeader patient={patient} />
           <PatientDetailTabs patient={patient} />
-        </>
+        </div>
       )}
     </DashboardLayout>
   )

@@ -2,8 +2,14 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, Pencil, UserX, Phone, Mail, MapPin } from 'lucide-react'
+import { Eye, UserX, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientCardProps {
@@ -18,86 +24,126 @@ function getAge(dob: string | null): string {
   return `${age}y`
 }
 
+function getDobDisplay(dob: string | null): string {
+  if (!dob) return '—'
+  return new Date(dob).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
 export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
   return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:-translate-y-px hover:border-primary hover:shadow-md">
-      <CardContent className="p-[18px]">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
+    <TooltipProvider delayDuration={300}>
+      <Card className="group relative overflow-hidden border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/40 via-primary to-primary/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+
+        <CardContent className="p-5">
+          <div className="flex items-start gap-3 mb-4">
             <InitialsAvatar name={patient.fullName} seed={patient.id} size="md" />
-            <div>
-              <Link
-                to="/patients/$patientId"
-                params={{ patientId: patient.id }}
-                className="text-sm font-bold text-foreground transition-colors hover:text-primary-text"
-              >
-                {patient.fullName}
-              </Link>
-              <p className="mt-0.5 font-mono text-[11px] text-text-3">
-                {patient.patientNumber}
-                {patient.dob && ` · ${getAge(patient.dob)}`}
-              </p>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <Link
+                    to="/patients/$patientId"
+                    params={{ patientId: patient.id }}
+                    className="block truncate text-sm font-semibold text-foreground leading-tight transition-colors hover:text-primary"
+                  >
+                    {patient.fullName}
+                  </Link>
+                  <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
+                    {patient.patientNumber}
+                    {patient.dob && (
+                      <span className="text-muted-foreground/60"> · {getAge(patient.dob)}</span>
+                    )}
+                  </p>
+                </div>
+                <StatusBadge status={patient.isActive ? 'active' : 'inactive'} />
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <StatusBadge status={patient.isActive ? 'active' : 'inactive'} />
+          <div className="space-y-2 text-xs text-muted-foreground mb-4">
+            {patient.phone && (
+              <div className="flex items-center gap-2.5">
+                <Phone size={12} className="shrink-0 text-muted-foreground/50" />
+                <span className="truncate">{patient.phone}</span>
+              </div>
+            )}
+            {patient.email && (
+              <div className="flex items-center gap-2.5">
+                <Mail size={12} className="shrink-0 text-muted-foreground/50" />
+                <span className="truncate">{patient.email}</span>
+              </div>
+            )}
+            {patient.city && (
+              <div className="flex items-center gap-2.5">
+                <MapPin size={12} className="shrink-0 text-muted-foreground/50" />
+                <span>{patient.city}</span>
+              </div>
+            )}
+            {patient.dob && (
+              <div className="flex items-center gap-2.5">
+                <Calendar size={12} className="shrink-0 text-muted-foreground/50" />
+                <span>{getDobDisplay(patient.dob)}</span>
+              </div>
+            )}
+          </div>
 
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
-                <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
-                  <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
-                <Link to="/patients/$patientId/edit" params={{ patientId: patient.id }}>
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                </Link>
-              </Button>
+          <div className="flex items-center justify-between pt-3 border-t border-border/60">
+            <div>
+              {patient.bloodGroup ? (
+                <div className="flex items-center gap-1.5">
+                  <Droplets size={11} className="text-rose-400" />
+                  <Badge variant="muted" className="text-[10px] px-1.5 py-0">
+                    {patient.bloodGroup}
+                  </Badge>
+                </div>
+              ) : (
+                <span className="text-[10px] text-muted-foreground/30">—</span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    asChild
+                  >
+                    <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
+                      <Eye className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">View patient</TooltipContent>
+              </Tooltip>
+
               {patient.isActive && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => {
-                    if (confirm('Deactivate this patient?')) onDeactivate(patient.id)
-                  }}
-                >
-                  <UserX className="h-3.5 w-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm('Deactivate this patient?')) onDeactivate(patient.id)
+                      }}
+                    >
+                      <UserX className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">Deactivate patient</TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
-        </div>
-
-        {/* Info */}
-        <div className="space-y-2 text-xs text-text-2">
-          <div className="flex items-center gap-2">
-            <Phone size={12} />
-            <span>{patient.phone}</span>
-          </div>
-          {patient.email && (
-            <div className="flex items-center gap-2">
-              <Mail size={12} />
-              <span className="truncate">{patient.email}</span>
-            </div>
-          )}
-          {patient.city && (
-            <div className="flex items-center gap-2">
-              <MapPin size={12} />
-              <span>{patient.city}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        {patient.bloodGroup && (
-          <div className="mt-3 border-t border-border-soft pt-3">
-            <Badge variant="muted">{patient.bloodGroup}</Badge>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   )
 }

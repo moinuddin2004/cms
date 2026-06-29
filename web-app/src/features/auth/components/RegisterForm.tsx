@@ -90,7 +90,7 @@ export function RegisterForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="name"
-                  className="h-11 pl-[38px] rounded-[10px] bg-panel border-border text-sm"
+                  className="h-11 pl-[38px] rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500 dark:focus-visible:border-blue-400 transition-colors"
                 />
               </div>
             )}
@@ -115,7 +115,7 @@ export function RegisterForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="email"
-                  className="h-11 pl-[38px] rounded-[10px] bg-panel border-border text-sm"
+                  className="h-11 pl-[38px] rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500 dark:focus-visible:border-blue-400 transition-colors"
                 />
               </div>
             )}
@@ -140,7 +140,7 @@ export function RegisterForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="new-password"
-                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-panel border-border text-sm"
+                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500 dark:focus-visible:border-blue-400 transition-colors"
                 />
                 <Button
                   type="button"

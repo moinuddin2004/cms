@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { useSearch } from '@tanstack/react-router'
 import { useAppointments } from '@/features/appointments/hooks/useAppointments'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { useAppointmentStats } from '@/features/appointments/hooks/useAppointmentStats'
@@ -39,9 +40,14 @@ const VIEW_LABELS: Record<string, string> = {
 export function AppointmentsPage() {
   const { selectedDate, setSelectedDate, openCreateModal } =
     useAppointmentStore()
+  const { create } = useSearch({ from: '/appointments' })
   const [viewMode, setViewMode] = useState<'queue' | 'list' | 'calendar'>(
     'queue',
   )
+
+  useEffect(() => {
+    if (create === '1') openCreateModal()
+  }, []) // eslint-disable-line
   const [calendarView, setCalendarView] = useState<CalendarView>(
     'resourceTimeGridDay',
   )

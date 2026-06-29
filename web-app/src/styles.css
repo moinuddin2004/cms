@@ -312,6 +312,113 @@
   }
 }
 
+/* ── Sonner Toast — Branded overrides ──────────────────────────────── */
+[data-sonner-toaster] {
+  --width: 360px;
+}
+
+[data-sonner-toast] {
+  border-radius: var(--radius-lg) !important;
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  box-shadow: var(--shadow-md) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.875rem !important;
+  padding: 14px 16px !important;
+  gap: 10px !important;
+}
+
+/* Title */
+[data-sonner-toast] [data-title] {
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  color: var(--foreground) !important;
+}
+
+/* Description */
+[data-sonner-toast] [data-description] {
+  font-size: 0.8125rem !important;
+  color: var(--muted-foreground) !important;
+}
+
+/* Close button */
+[data-sonner-toast] [data-close-button] {
+  background: var(--muted) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--muted-foreground) !important;
+  border-radius: var(--radius-sm) !important;
+  top: 10px !important;
+  right: 10px !important;
+}
+[data-sonner-toast] [data-close-button]:hover {
+  background: var(--accent) !important;
+  color: var(--foreground) !important;
+}
+
+/* ── SUCCESS — emerald soft ── */
+[data-sonner-toast][data-type='success'] {
+  background: var(--emerald-soft) !important;
+  border-color: var(--emerald) !important;
+  border-left: 4px solid var(--emerald) !important;
+}
+[data-sonner-toast][data-type='success'] [data-title] {
+  color: var(--emerald) !important;
+}
+[data-sonner-toast][data-type='success'] svg {
+  color: var(--emerald) !important;
+}
+
+/* ── ERROR — danger soft ── */
+[data-sonner-toast][data-type='error'] {
+  background: var(--danger-soft) !important;
+  border-color: var(--danger) !important;
+  border-left: 4px solid var(--danger) !important;
+}
+[data-sonner-toast][data-type='error'] [data-title] {
+  color: var(--danger) !important;
+}
+[data-sonner-toast][data-type='error'] svg {
+  color: var(--danger) !important;
+}
+
+/* ── WARNING — amber soft ── */
+[data-sonner-toast][data-type='warning'] {
+  background: var(--amber-soft) !important;
+  border-color: var(--amber) !important;
+  border-left: 4px solid var(--amber) !important;
+}
+[data-sonner-toast][data-type='warning'] [data-title] {
+  color: var(--amber) !important;
+}
+[data-sonner-toast][data-type='warning'] svg {
+  color: var(--amber) !important;
+}
+
+/* ── INFO / DEFAULT — brand primary soft ── */
+[data-sonner-toast][data-type='info'],
+[data-sonner-toast][data-type='default'] {
+  background: var(--primary-soft) !important;
+  border-color: var(--primary) !important;
+  border-left: 4px solid var(--primary) !important;
+}
+[data-sonner-toast][data-type='info'] [data-title],
+[data-sonner-toast][data-type='default'] [data-title] {
+  color: var(--primary-text) !important;
+}
+[data-sonner-toast][data-type='info'] svg,
+[data-sonner-toast][data-type='default'] svg {
+  color: var(--primary) !important;
+}
+
+/* ── Dark mode adjustments ── */
+.dark [data-sonner-toast][data-type='success'] [data-description],
+.dark [data-sonner-toast][data-type='error'] [data-description],
+.dark [data-sonner-toast][data-type='warning'] [data-description],
+.dark [data-sonner-toast][data-type='info'] [data-description] {
+  color: var(--text-3) !important;
+}
+
 /* Scrollbar styling */
 @layer base {
   ::-webkit-scrollbar {

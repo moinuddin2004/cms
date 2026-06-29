@@ -41,7 +41,6 @@ import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoic
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
-import { Route as PatientsPatientIdEditRouteImport } from './routes/patients/$patientId.edit'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as OrganizationsIdFeaturesRouteImport } from './routes/organizations_.$id.features'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
@@ -209,11 +208,6 @@ const EmployeesEmployeeIdIndexRoute =
     path: '/employees/$employeeId/',
     getParentRoute: () => rootRouteImport,
   } as any)
-const PatientsPatientIdEditRoute = PatientsPatientIdEditRouteImport.update({
-  id: '/patients/$patientId/edit',
-  path: '/patients/$patientId/edit',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OrganizationsIdSettingsRoute = OrganizationsIdSettingsRouteImport.update({
   id: '/organizations_/$id/settings',
   path: '/organizations/$id/settings',
@@ -270,7 +264,6 @@ export interface FileRoutesByFullPath {
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
-  '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -309,7 +302,6 @@ export interface FileRoutesByTo {
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
-  '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/employees/$employeeId': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
@@ -349,7 +341,6 @@ export interface FileRoutesById {
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
-  '/patients/$patientId/edit': typeof PatientsPatientIdEditRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -390,7 +381,6 @@ export interface FileRouteTypes {
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
-    | '/patients/$patientId/edit'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
@@ -429,7 +419,6 @@ export interface FileRouteTypes {
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
-    | '/patients/$patientId/edit'
     | '/employees/$employeeId'
     | '/patients/$patientId'
   id:
@@ -468,7 +457,6 @@ export interface FileRouteTypes {
     | '/locations_/$id/settings'
     | '/organizations_/$id/features'
     | '/organizations_/$id/settings'
-    | '/patients/$patientId/edit'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
@@ -508,7 +496,6 @@ export interface RootRouteChildren {
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdFeaturesRoute: typeof OrganizationsIdFeaturesRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
-  PatientsPatientIdEditRoute: typeof PatientsPatientIdEditRoute
   EmployeesEmployeeIdIndexRoute: typeof EmployeesEmployeeIdIndexRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
@@ -739,13 +726,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/patients/$patientId/edit': {
-      id: '/patients/$patientId/edit'
-      path: '/patients/$patientId/edit'
-      fullPath: '/patients/$patientId/edit'
-      preLoaderRoute: typeof PatientsPatientIdEditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/organizations_/$id/settings': {
       id: '/organizations_/$id/settings'
       path: '/organizations/$id/settings'
@@ -812,7 +792,6 @@ const rootRouteChildren: RootRouteChildren = {
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdFeaturesRoute: OrganizationsIdFeaturesRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
-  PatientsPatientIdEditRoute: PatientsPatientIdEditRoute,
   EmployeesEmployeeIdIndexRoute: EmployeesEmployeeIdIndexRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }

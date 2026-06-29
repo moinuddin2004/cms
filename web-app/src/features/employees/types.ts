@@ -255,28 +255,61 @@ export interface GeneratePayrollResult {
 
 // ─── Zod Schemas ────────────────────────────────────────────────────
 
-export const employeeFormSchema = z.object({
-  fullName: z.string().min(2, 'Full name is required').max(255),
-  phone: z.string().min(10, 'Valid phone number is required').max(20),
-  cnic: z.string().max(20).optional().transform((v) => (v === '' ? undefined : v)),
-  designation: z.string().min(2, 'Designation is required').max(100),
-  employmentRoleId: z.string().min(1, 'Role is required'),
-  employmentType: z.nativeEnum(EmploymentType).default(EmploymentType.FULL_TIME),
-  joiningDate: z.string().min(1, 'Joining date is required'),
-  gender: z.nativeEnum(Gender).optional(),
-  dob: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-  hasPortalAccess: z.boolean().default(false),
-  profilePictureUrl: z
-    .string()
-    .optional()
-    .transform((v) => (v === '' ? undefined : v)),
-  userId: z
-    .string()
-    .optional()
-    .transform((v) => (v === '' ? undefined : v)),
-  primaryLocationId: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-  grossSalary: z.coerce.number().min(0).optional(),
-})
+export const employeeFormSchema = z
+  .object({
+    fullName: z.string().min(2, 'Full name is required').max(255),
+    phone: z.string().min(10, 'Valid phone number is required').max(20),
+    cnic: z.string().max(20).optional().transform((v) => (v === '' ? undefined : v)),
+    designation: z.string().min(2, 'Designation is required').max(100),
+    employmentRoleId: z.string().min(1, 'Role is required'),
+    employmentType: z.nativeEnum(EmploymentType).default(EmploymentType.FULL_TIME),
+    joiningDate: z.string().min(1, 'Joining date is required'),
+    gender: z.nativeEnum(Gender).optional(),
+    dob: z.string().optional().transform((v) => (v === '' ? undefined : v)),
+    hasPortalAccess: z.boolean().default(false),
+    portalEmail: z.string().optional().transform((v) => (v === '' ? undefined : v)),
+    portalPassword: z.string().optional().transform((v) => (v === '' ? undefined : v)),
+    profilePictureUrl: z
+      .string()
+      .optional()
+      .transform((v) => (v === '' ? undefined : v)),
+    userId: z
+      .string()
+      .optional()
+      .transform((v) => (v === '' ? undefined : v)),
+    primaryLocationId: z.string().optional().transform((v) => (v === '' ? undefined : v)),
+    grossSalary: z.coerce.number().min(0).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.hasPortalAccess && !data.userId) {
+      if (!data.portalEmail || data.portalEmail.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Email is required for portal access',
+          path: ['portalEmail'],
+        })
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.portalEmail)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Enter a valid email address',
+          path: ['portalEmail'],
+        })
+      }
+      if (!data.portalPassword || data.portalPassword.trim() === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Password is required for portal access',
+          path: ['portalPassword'],
+        })
+      } else if (data.portalPassword.length < 6) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Password must be at least 6 characters',
+          path: ['portalPassword'],
+        })
+      }
+    }
+  })
 
 export type EmployeeFormData = z.infer<typeof employeeFormSchema>
 
@@ -352,6 +385,7 @@ export interface EmployeeListParams {
   limit?: number
   search?: string
   role?: string
+  employmentType?: string
   isActive?: boolean
 }
 

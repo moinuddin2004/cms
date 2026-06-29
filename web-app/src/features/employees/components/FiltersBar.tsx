@@ -73,6 +73,7 @@ export function FiltersBar({
           <SelectValue placeholder="Type" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">All Types</SelectItem>
           {EMPLOYMENT_TYPE_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}
@@ -92,6 +93,7 @@ export function FiltersBar({
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
           {STATUS_OPTIONS.map((opt) => (
             <SelectItem key={opt.value} value={opt.value}>
               {opt.label}

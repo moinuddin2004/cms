@@ -1,11 +1,4 @@
 import { useState, useMemo } from 'react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from '@tanstack/react-router'
@@ -15,13 +8,13 @@ import {
   Building2,
   MapPin,
   Loader2,
-  Stethoscope,
   ChevronRight,
   Star,
   ArrowLeft,
   PlusCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AuthLayout } from './AuthLayout'
 
 type Step = 'org' | 'location'
 
@@ -89,30 +82,20 @@ export function LocationSelector() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
-      {/* Logo */}
-      <div className="mb-8 flex flex-col items-center gap-3">
-        <div className="w-14 h-14 bg-gradient-to-br from-primary to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-          <Stethoscope className="w-7 h-7 text-white" />
+    <AuthLayout>
+      {/* Header */}
+      <div className="mb-7">
+        <div className="text-2xl font-extrabold tracking-tight text-foreground">
+          {step === 'org' ? 'Select Organization' : 'Select Location'}
         </div>
-        <span className="text-xl font-bold text-foreground tracking-tight">
-          MedTrackr
-        </span>
+        <div className="text-sm text-muted-foreground mt-1.5">
+          {step === 'org'
+            ? `Welcome, ${user?.name}. Choose an organization to continue.`
+            : `Welcome, ${user?.name}. Choose where you'd like to work today.`}
+        </div>
       </div>
 
-      <Card className="w-full max-w-[520px] shadow-xl border-0 bg-card/80 backdrop-blur-sm rounded-2xl">
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            {step === 'org' ? 'Select Organization' : 'Select Location'}
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            {step === 'org'
-              ? `Welcome, ${user?.name}. Choose an organization to continue.`
-              : `Welcome, ${user?.name}. Choose where you'd like to work today.`}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
+      <div className="space-y-3">
           {/* ── Step 1: Organization Picker ── */}
           {step === 'org' && (
             <>
@@ -272,8 +255,7 @@ export function LocationSelector() {
               </Button>
             </>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }

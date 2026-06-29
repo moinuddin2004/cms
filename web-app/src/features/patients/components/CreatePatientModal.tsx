@@ -1,9 +1,7 @@
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import { useState } from 'react'
 import { PatientForm } from './PatientForm'
@@ -22,7 +20,7 @@ export function CreatePatientModal({
   onOpenChange,
 }: CreatePatientModalProps) {
   const createMutation = useCreatePatient()
-  const clearFormDraft = usePatientStore((s) => s.clearFormDraft)
+  const { clearFormDraft, setCurrentStep } = usePatientStore()
 
   const [createdPatient, setCreatedPatient] = useState<{
     id: string
@@ -42,6 +40,11 @@ export function CreatePatientModal({
     onOpenChange(false)
   }
 
+  const handleBack = () => {
+    setCurrentStep(3)
+    setCreatedPatient(null)
+  }
+
   const isAppointmentStep = !!createdPatient
 
   return (
@@ -51,22 +54,13 @@ export function CreatePatientModal({
         if (!v) handleClose()
       }}
     >
-      <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto gap-0 p-0">
-        {!isAppointmentStep && (
-          <DialogTitle className="sr-only">New Patient</DialogTitle>
-        )}
-        {isAppointmentStep && (
-          <DialogHeader className="border-b border-border px-6 py-5">
-            <DialogTitle className="text-[17px] font-bold">
-              Book First Appointment
-            </DialogTitle>
-            <DialogDescription className="text-[13px] text-muted-foreground">
-              Patient added! Book an appointment now or skip to do it later.
-            </DialogDescription>
-          </DialogHeader>
-        )}
+      <DialogContent className="w-full sm:max-w-3xl gap-0 p-0">
+        <DialogTitle className="sr-only">
+          {isAppointmentStep ? 'Book First Appointment' : 'New Patient'}
+        </DialogTitle>
 
-        <div className="px-6 py-5">
+        {/* pr-12 keeps content clear of the absolute-positioned close button */}
+        <div className="px-6 py-5 pr-12">
           {!isAppointmentStep ? (
             <PatientForm
               onSubmit={handlePatientSubmit}
@@ -78,6 +72,7 @@ export function CreatePatientModal({
             <AddAppointmentStep
               patientId={createdPatient.id}
               patientName={createdPatient.fullName}
+              onBack={handleBack}
               onSkip={handleClose}
               onDone={handleClose}
             />

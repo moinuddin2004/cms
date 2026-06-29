@@ -32,17 +32,17 @@ export function DashboardLayout({
         )}
       >
         <Topbar />
-        <main className="p-6">
+        <main className="px-6 py-4">
           {hasHeader && (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
               <div>
                 {title && (
-                  <h1 className="text-2xl font-bold text-foreground">
+                  <h1 className="text-lg font-semibold text-foreground leading-tight">
                     {title}
                   </h1>
                 )}
                 {subtitle && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {subtitle}
                   </p>
                 )}

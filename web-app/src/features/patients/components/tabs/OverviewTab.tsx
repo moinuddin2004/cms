@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   AlertTriangle,
   Heart,
@@ -7,13 +9,23 @@ import {
   FileText,
   User,
   Activity,
+  Pencil,
 } from 'lucide-react'
 import type { Patient } from '../../types'
 import { useVitals } from '../../hooks/usePatientSubEntities'
+import { EditPatientSheet } from '../EditPatientSheet'
 
 export function OverviewTab({ patient }: { patient: Patient }) {
+  const [editOpen, setEditOpen] = useState(false)
+
   return (
     <div className="space-y-4 mt-4 animate-in fade-in duration-300">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setEditOpen(true)} className="gap-1.5">
+          <Pencil size={14} /> Edit Details
+        </Button>
+      </div>
+      <EditPatientSheet patient={patient} open={editOpen} onOpenChange={setEditOpen} />
       <LatestVitalsCard patientId={patient.id} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Medical Info */}

@@ -207,17 +207,28 @@ function RootComponent() {
   // Show nothing while initializing (attempting silent refresh)
  if (isInitializing) {
     return (
-      <div className="relative min-h-screen overflow-hidden flex items-center justify-center bg-primary">
-        {/* Blurred ambient glow blobs */}
-        <div className="pointer-events-none absolute -top-32 -left-32 h-80 w-80 rounded-full bg-white/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
-        <div className="pointer-events-none absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 blur-2xl" />
+      <div
+        className="relative min-h-screen overflow-hidden flex items-center justify-center"
+        style={{ background: 'transparent' }}
+      >
+        {/* Frosted glass over the app background token */}
+        <div
+          className="absolute inset-0 bg-background/60"
+          style={{
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        />
 
-        {/* Three balls swapping positions in a juggle orbit */}
-        <div className="animate-loading-juggle relative h-12 w-12">
-          <span className="absolute left-1/2 top-0 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
-          <span className="absolute bottom-0 left-0 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
-          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.5)] backdrop-blur-sm" />
+        {/* Soft brand glow — subtle, themed (blue) */}
+        <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full blur-[130px] bg-brand-500/15" />
+        <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full blur-[130px] bg-brand-600/10" />
+
+        {/* Spinner dots — brand ramp */}
+        <div className="animate-loading-juggle relative z-10 h-12 w-12">
+          <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-brand-400 shadow-[0_0_10px_3px_var(--ring-soft)]" />
+          <span className="absolute bottom-0 left-0 h-3 w-3 rounded-full bg-brand-500 shadow-[0_0_10px_3px_var(--ring-soft)]" />
+          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-brand-600 shadow-[0_0_10px_3px_var(--ring-soft)]" />
         </div>
       </div>
     )
@@ -233,12 +244,10 @@ function RootComponent() {
       </FeatureFlagsProvider>
       <Toaster
         position="top-right"
-        richColors
         closeButton
         theme="system"
-        toastOptions={{
-          duration: 4000,
-        }}
+        gap={8}
+        toastOptions={{ duration: 4000 }}
       />
     </QueryClientProvider>
   )

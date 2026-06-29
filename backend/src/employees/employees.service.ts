@@ -2,9 +2,11 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { Employee } from './entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from './entities/employee-org-location-assignment.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -13,6 +15,8 @@ import { UpdateSalaryDto } from './dto/update-salary.dto';
 import { EmployeeFilterDto } from './dto/employee-filter.dto';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { EmploymentType } from './enums/employee.enums';
+import { User } from 'src/user/entities/user.entity';
+import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 
 @Injectable()
 export class EmployeesService {
@@ -21,6 +25,8 @@ export class EmployeesService {
     private readonly employeeRepo: Repository<Employee>,
     @InjectRepository(EmployeeOrgLocationAssignment)
     private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -34,6 +40,22 @@ export class EmployeesService {
       where: { organizationId },
     });
     return `EMP-${String(count + 1).padStart(3, '0')}`;
+  }
+
+  private async createPortalUser(email: string, password: string, name: string): Promise<User> {
+    const existing = await this.userRepo.findOneBy({ email });
+    if (existing) {
+      throw new ConflictException(`A user with email ${email} already exists`);
+    }
+    const hashed = await bcrypt.hash(password, 12);
+    const user = this.userRepo.create({
+      email,
+      name,
+      password: hashed,
+      provider: ProviderEnum.LOCAL,
+      globalRole: null,
+    });
+    return this.userRepo.save(user);
   }
 
   private async getAssignmentOrFail(
@@ -86,7 +108,23 @@ export class EmployeesService {
     // 3. Auto-generate employeeCode for this org
     const employeeCode = await this.generateEmployeeCode(organizationId);
 
-    // 4. Create assignment at current org+location
+    // 4. If portal access enabled and no existing userId, create a portal user
+    let resolvedUserId = dto.userId || null;
+    if (dto.hasPortalAccess && !resolvedUserId) {
+      if (!dto.portalEmail || !dto.portalPassword) {
+        throw new BadRequestException(
+          'portalEmail and portalPassword are required when hasPortalAccess is true',
+        );
+      }
+      const portalUser = await this.createPortalUser(
+        dto.portalEmail,
+        dto.portalPassword,
+        dto.fullName,
+      );
+      resolvedUserId = portalUser.uuid;
+    }
+
+    // 5. Create assignment at current org+location
     const assignment = this.assignmentRepo.create({
       employeeId: savedEmployee.id,
       organizationId,
@@ -99,13 +137,13 @@ export class EmployeesService {
       joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
       grossSalary: dto.grossSalary ?? null,
       hasPortalAccess: dto.hasPortalAccess ?? false,
-      userId: dto.userId || null,
+      userId: resolvedUserId,
       isPrimary: dto.isPrimary ?? true,
       createdBy: userId,
     });
     await this.assignmentRepo.save(assignment);
 
-    // 5. Return employee with assignment
+    // 6. Return employee with assignment
     return this.findOne(savedEmployee.id, ctx);
   }
 
@@ -123,7 +161,7 @@ export class EmployeesService {
     limit: number;
   }> {
     const { organizationId, locationId } = ctx;
-    const { search, role, isActive, page = 1, limit = 20 } = filters;
+    const { search, role, employmentType, isActive, page = 1, limit = 20 } = filters;
 
     const qb = this.assignmentRepo
       .createQueryBuilder('a')
@@ -144,6 +182,11 @@ export class EmployeesService {
     // Role filter
     if (role?.trim()) {
       qb.andWhere('role.slug = :role', { role });
+    }
+
+    // Employment type filter
+    if (employmentType?.trim()) {
+      qb.andWhere('a.employmentType = :employmentType', { employmentType });
     }
 
     // isActive filter
@@ -284,10 +327,26 @@ export class EmployeesService {
     if (dto.joiningDate !== undefined)
       assignment.joiningDate = new Date(dto.joiningDate);
     if (dto.grossSalary !== undefined) assignment.grossSalary = dto.grossSalary;
-    if (dto.hasPortalAccess !== undefined)
-      assignment.hasPortalAccess = dto.hasPortalAccess;
-    if (dto.userId !== undefined) assignment.userId = dto.userId || null;
     if (dto.isPrimary !== undefined) assignment.isPrimary = dto.isPrimary;
+
+    // Handle portal access: create user if enabling and no user linked yet
+    if (dto.hasPortalAccess !== undefined) {
+      if (dto.hasPortalAccess && !assignment.userId) {
+        if (!dto.portalEmail || !dto.portalPassword) {
+          throw new BadRequestException(
+            'portalEmail and portalPassword are required when enabling portal access',
+          );
+        }
+        const portalUser = await this.createPortalUser(
+          dto.portalEmail,
+          dto.portalPassword,
+          employee.fullName,
+        );
+        assignment.userId = portalUser.uuid;
+      }
+      assignment.hasPortalAccess = dto.hasPortalAccess;
+    }
+    if (dto.userId !== undefined) assignment.userId = dto.userId || null;
 
     await this.assignmentRepo.save(assignment);
 

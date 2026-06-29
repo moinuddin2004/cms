@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
@@ -18,14 +19,22 @@ function EditEmployeePage() {
   const navigate = useNavigate()
   const { data: employee, isLoading: isEmployeeLoading } = useEmployee(employeeId)
   const updateMutation = useUpdateEmployee(employeeId)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   async function onSubmit(data: EmployeeFormData) {
+    setServerError(null)
     try {
       await updateMutation.mutateAsync(data)
       toast.success('Employee updated successfully')
       navigate({ to: '/employees/$employeeId', params: { employeeId } })
-    } catch (error) {
-      toast.error('Failed to update employee')
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to update employee'
+      const text = Array.isArray(msg) ? msg.join(', ') : msg
+      setServerError(text)
+      toast.error(text)
     }
   }
 
@@ -52,11 +61,13 @@ function EditEmployeePage() {
         </Link>
 
         <EmployeeForm
+          key={employee?.id}
           mode="edit"
           defaultValues={employee}
           onSubmit={onSubmit}
           isPending={updateMutation.isPending}
           onCancel={() => navigate({ to: `/employees` })}
+          serverError={serverError}
         />
       </div>
     </DashboardLayout>

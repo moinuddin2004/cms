@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsDateString,
   IsUUID,
+  IsEmail,
 } from 'class-validator';
 import { Gender } from '../enums/employee.enums';
 
@@ -60,6 +61,15 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   hasPortalAccess?: boolean;
+
+  @IsOptional()
+  @IsEmail()
+  portalEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  portalPassword?: string;
 
   @IsOptional()
   @IsString()
