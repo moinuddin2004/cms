@@ -5,6 +5,10 @@ interface AppointmentUIState {
   selectedDate: Date
   setSelectedDate: (date: Date) => void
 
+  // Shared doctor filter — persists across Queue / List / Calendar views
+  doctorFilter: string // 'all' or a doctor id
+  setDoctorFilter: (id: string) => void
+
   // Modal state — three distinct surfaces:
   //   detail: read-only "doctor's view", default on row/event click
   //   create: new appointment form
@@ -25,6 +29,9 @@ interface AppointmentUIState {
 export const useAppointmentStore = create<AppointmentUIState>()((set) => ({
   selectedDate: new Date(),
   setSelectedDate: (date) => set({ selectedDate: date }),
+
+  doctorFilter: 'all',
+  setDoctorFilter: (id) => set({ doctorFilter: id }),
 
   isDetailModalOpen: false,
   isCreateModalOpen: false,

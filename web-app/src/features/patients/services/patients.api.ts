@@ -18,6 +18,10 @@ import type {
   PatientReferral,
   PatientFeedback,
   PatientInsurance,
+  Encounter,
+  Treatment,
+  TreatmentFormData,
+  PatientHistory,
 } from '../types'
 
 // ─── Patients CRUD ──────────────────────────────────────────────────
@@ -84,6 +88,47 @@ export async function fetchPatientDentalInfo(
   patientId: string,
 ): Promise<PatientDentalInfo | null> {
   const { data } = await api.get(`/patients/${patientId}/dental-info`)
+  return data.data
+}
+
+// ─── Encounters & Treatments ────────────────────────────────────────
+
+export async function fetchPatientHistory(
+  patientId: string,
+): Promise<PatientHistory> {
+  const { data } = await api.get(`/patients/${patientId}/history`)
+  return data.data
+}
+
+export async function fetchEncounterDetail(
+  encounterId: string,
+): Promise<Encounter> {
+  const { data } = await api.get(`/encounters/${encounterId}`)
+  return data.data
+}
+
+export async function fetchPatientTreatments(
+  patientId: string,
+): Promise<Treatment[]> {
+  const { data } = await api.get('/treatments', { params: { patientId } })
+  return data.data
+}
+
+export async function createTreatment(
+  payload: TreatmentFormData & { patientId: string },
+): Promise<Treatment> {
+  const { data } = await api.post('/treatments', payload)
+  return data.data
+}
+
+export async function createEncounterTreatment(
+  encounterId: string,
+  payload: TreatmentFormData,
+): Promise<Treatment> {
+  const { data } = await api.post(
+    `/encounters/${encounterId}/treatments`,
+    payload,
+  )
   return data.data
 }
 

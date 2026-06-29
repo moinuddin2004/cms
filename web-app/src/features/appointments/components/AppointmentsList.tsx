@@ -2,9 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import {
-  Search,
-  X,
-  Loader2,
   MoreHorizontal,
   Pencil,
   LogIn,
@@ -13,19 +10,11 @@ import {
   ThumbsUp,
   UserX,
   XCircle,
-  RotateCcw,
   Plus,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/shared/DataTable'
 import { cn } from '@/lib/utils'
+import { AppointmentsToolbar } from './AppointmentsToolbar'
+import { AppointmentFilters } from './AppointmentFilters'
 import { useAppointments } from '../hooks/useAppointments'
 import { useDoctors } from '../hooks/useDoctors'
 import {
@@ -50,8 +41,6 @@ import { useAppointmentStore } from '@/store/appointment-store'
 import {
   type Appointment,
   AppointmentStatus,
-  APPOINTMENT_STATUS_OPTIONS,
-  APPOINTMENT_TYPE_OPTIONS,
   STATUS_BG_COLORS,
 } from '../types'
 
@@ -65,6 +54,13 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: 'past30', label: 'Past 30 days' },
   { value: 'all', label: 'All' },
 ]
+
+function toYMD(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
 
 function startOfDay(d: Date) {
   const x = new Date(d)
@@ -113,8 +109,13 @@ function resolveRange(
 // ─── Component ────────────────────────────────────────────────────────
 
 export function AppointmentsList() {
-  const { openCreateModal, openDetailModal, openEditModal } =
-    useAppointmentStore()
+  const {
+    openCreateModal,
+    openDetailModal,
+    openEditModal,
+    doctorFilter,
+    setDoctorFilter,
+  } = useAppointmentStore()
   const { data: doctors = [] } = useDoctors()
 
   const cancelMutation = useCancelAppointment()
@@ -129,7 +130,6 @@ export function AppointmentsList() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<string>('all')
   const [type, setType] = useState<string>('all')
-  const [doctorId, setDoctorId] = useState<string>('all')
   const [preset, setPreset] = useState<DatePreset>('upcoming')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -145,7 +145,7 @@ export function AppointmentsList() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1)
-  }, [search, status, type, doctorId, preset, customFrom, customTo])
+  }, [search, status, type, doctorFilter, preset, customFrom, customTo])
 
   const range = useMemo(
     () => resolveRange(preset, customFrom, customTo),
@@ -156,7 +156,7 @@ export function AppointmentsList() {
     ...range,
     status: status !== 'all' ? (status as AppointmentStatus) : undefined,
     type: type !== 'all' ? (type as any) : undefined,
-    doctorId: doctorId !== 'all' ? doctorId : undefined,
+    doctorId: doctorFilter !== 'all' ? doctorFilter : undefined,
     search: search || undefined,
     page,
     limit: pageSize,
@@ -169,7 +169,7 @@ export function AppointmentsList() {
     !!search ||
     status !== 'all' ||
     type !== 'all' ||
-    doctorId !== 'all' ||
+    doctorFilter !== 'all' ||
     preset !== 'upcoming'
 
   const clearFilters = () => {
@@ -177,10 +177,24 @@ export function AppointmentsList() {
     setSearch('')
     setStatus('all')
     setType('all')
-    setDoctorId('all')
+    setDoctorFilter('all')
     setPreset('upcoming')
     setCustomFrom('')
     setCustomTo('')
+  }
+
+  // The day strip drives a single-day custom range; clicking a preset clears
+  // the strip highlight.
+  const stripDate =
+    preset === 'custom' && customFrom && customFrom === customTo
+      ? new Date(customFrom + 'T12:00:00')
+      : null
+
+  const handleStripSelect = (d: Date) => {
+    const ymd = toYMD(d)
+    setPreset('custom')
+    setCustomFrom(ymd)
+    setCustomTo(ymd)
   }
 
   const handle = useCallback(
@@ -442,145 +456,82 @@ export function AppointmentsList() {
 
   return (
     <div className="space-y-3">
-      {/* ── Filter bar ─────────────────────────────────────────── */}
-      <div className="bg-card border rounded-xl p-2 px-3 flex flex-row items-center gap-3 flex-wrap">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[220px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search appointments..."
-            className="pl-9 pr-9 h-8 text-xs"
+      {/* ── Unified toolbar: day strip + doctor + search + filters ─ */}
+      <AppointmentsToolbar
+        selectedDate={stripDate}
+        onSelectDate={handleStripSelect}
+        doctors={doctors}
+        doctorFilter={doctorFilter}
+        onDoctorChange={setDoctorFilter}
+        isFetching={isFetching && !isLoading}
+        filters={
+          <AppointmentFilters
+            searchInput={searchInput}
+            onSearchChange={setSearchInput}
+            status={status}
+            onStatusChange={setStatus}
+            type={type}
+            onTypeChange={setType}
+            hasActiveFilters={hasActiveFilters}
+            onReset={clearFilters}
+            count={total}
+            dateControls={
+              <>
+                {/* Date presets */}
+                <div className="flex items-center gap-1">
+                  {DATE_PRESETS.map((p) => (
+                    <button
+                      key={p.value}
+                      type="button"
+                      onClick={() => setPreset(p.value)}
+                      className={cn(
+                        'h-8 rounded-md border px-2.5 text-xs font-medium transition-colors',
+                        preset === p.value
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-card text-muted-foreground hover:bg-accent',
+                      )}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setPreset('custom')}
+                    className={cn(
+                      'h-8 rounded-md border px-2.5 text-xs font-medium transition-colors',
+                      preset === 'custom'
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-border bg-card text-muted-foreground hover:bg-accent',
+                    )}
+                  >
+                    Custom
+                  </button>
+                </div>
+
+                {/* Custom date range */}
+                {preset === 'custom' && (
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-muted-foreground">From</span>
+                    <Input
+                      type="date"
+                      value={customFrom}
+                      onChange={(e) => setCustomFrom(e.target.value)}
+                      className="h-8 w-[130px] text-xs"
+                    />
+                    <span className="text-muted-foreground">to</span>
+                    <Input
+                      type="date"
+                      value={customTo}
+                      onChange={(e) => setCustomTo(e.target.value)}
+                      className="h-8 w-[130px] text-xs"
+                    />
+                  </div>
+                )}
+              </>
+            }
           />
-          {searchInput && (
-            <button
-              onClick={() => setSearchInput('')}
-              aria-label="Clear search"
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-accent"
-              type="button"
-            >
-              <X className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          )}
-        </div>
-
-        {/* Date presets */}
-        <div className="flex items-center gap-1">
-          {DATE_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setPreset(p.value)}
-              className={cn(
-                'px-2.5 h-8 text-xs font-medium rounded-md border transition-colors',
-                preset === p.value
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-card text-muted-foreground border-border hover:bg-accent',
-              )}
-            >
-              {p.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPreset('custom')}
-            className={cn(
-              'px-2.5 h-8 text-xs font-medium rounded-md border transition-colors',
-              preset === 'custom'
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-card text-muted-foreground border-border hover:bg-accent',
-            )}
-          >
-            Custom
-          </button>
-        </div>
-
-        {/* Custom date range */}
-        {preset === 'custom' && (
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">From</span>
-            <Input
-              type="date"
-              value={customFrom}
-              onChange={(e) => setCustomFrom(e.target.value)}
-              className="h-8 w-[130px] text-xs"
-            />
-            <span className="text-muted-foreground">to</span>
-            <Input
-              type="date"
-              value={customTo}
-              onChange={(e) => setCustomTo(e.target.value)}
-              className="h-8 w-[130px] text-xs"
-            />
-          </div>
-        )}
-
-        {/* Dropdowns */}
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-8 w-[130px] text-xs" size="sm">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {APPOINTMENT_STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={type} onValueChange={setType}>
-          <SelectTrigger className="h-8 w-[120px] text-xs" size="sm">
-            <SelectValue placeholder="Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {APPOINTMENT_TYPE_OPTIONS.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={doctorId} onValueChange={setDoctorId}>
-          <SelectTrigger className="h-8 w-[150px] text-xs" size="sm">
-            <SelectValue placeholder="Doctor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All doctors</SelectItem>
-            {doctors.map((d) => (
-              <SelectItem key={d.id} value={d.id}>
-                {d.fullName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearFilters}
-            className="h-8 text-xs text-muted-foreground hover:text-foreground"
-          >
-            <RotateCcw size={13} className="mr-1.5" />
-            Reset
-          </Button>
-        )}
-
-        <div className="ml-auto text-xs text-muted-foreground">
-          {isFetching && !isLoading ? (
-            <span className="flex items-center gap-1">
-              <Loader2 className="w-3 h-3 animate-spin" /> Loading…
-            </span>
-          ) : (
-            total > 0 && `${total} appointment${total === 1 ? '' : 's'}`
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Table + built-in pagination ─────────────────────────── */}
       <DataTable

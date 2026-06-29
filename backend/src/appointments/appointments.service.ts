@@ -33,6 +33,7 @@ import { AppointmentFilterDto } from './dto/appointment-filter.dto';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { EncountersService } from 'src/encounters/encounters.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -50,6 +51,7 @@ export class AppointmentsService {
     @InjectRepository(Location)
     private readonly locationRepo: Repository<Location>,
     private readonly dataSource: DataSource,
+    private readonly encountersService: EncountersService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -233,6 +235,8 @@ export class AppointmentsService {
     });
 
     const saved = await this.appointmentRepo.save(appointment);
+    // Walk-ins arrive already CHECKED_IN (they skip checkIn) → create the encounter.
+    await this.encountersService.ensureEncounterForAppointment(ctx, saved, userId);
     return this.findOne(saved.id, ctx);
   }
 
@@ -529,6 +533,11 @@ export class AppointmentsService {
       where: { id, locationId: ctx.locationId },
     });
     if (!appt) throw new NotFoundException('Appointment not found');
+    if (await this.encountersService.hasEncounterForAppointment(ctx, id)) {
+      throw new BadRequestException(
+        'Cannot cancel — the patient has already visited (an encounter exists)',
+      );
+    }
     if (appt.status === AppointmentStatus.COMPLETED) {
       throw new BadRequestException('Cannot cancel a completed appointment');
     }
@@ -551,6 +560,11 @@ export class AppointmentsService {
       where: { id, locationId: ctx.locationId },
     });
     if (!appt) throw new NotFoundException('Appointment not found');
+    if (await this.encountersService.hasEncounterForAppointment(ctx, id)) {
+      throw new BadRequestException(
+        'Cannot mark no-show — the patient has already visited (an encounter exists)',
+      );
+    }
 
     appt.status = AppointmentStatus.NO_SHOW;
     appt.updatedBy = userId;
@@ -590,6 +604,8 @@ export class AppointmentsService {
     appt.updatedBy = userId;
 
     await this.appointmentRepo.save(appt);
+    // Patient has physically arrived → create the encounter (idempotent).
+    await this.encountersService.ensureEncounterForAppointment(ctx, appt, userId);
     return this.findOne(id, ctx);
   }
 
@@ -648,6 +664,8 @@ export class AppointmentsService {
     appt.updatedBy = userId;
 
     await this.appointmentRepo.save(appt);
+    // Safety net — ensure an encounter exists for the completed visit.
+    await this.encountersService.ensureEncounterForAppointment(ctx, appt, userId);
     return this.findOne(id, ctx);
   }
 

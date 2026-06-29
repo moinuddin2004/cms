@@ -32,6 +32,7 @@ interface EmployeeFormProps {
   isPending: boolean
   onCancel: () => void
   serverError?: string | null
+  variant?: 'card' | 'sheet'
 }
 
 // Helper to clear a single key from errors
@@ -54,6 +55,7 @@ export function EmployeeForm({
   isPending,
   onCancel,
   serverError,
+  variant = 'card',
 }: EmployeeFormProps) {
   const { activeLocationId } = useAuthStore()
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -119,14 +121,7 @@ export function EmployeeForm({
 
   const hasErrors = Object.keys(fieldErrors).length > 0
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {mode === 'create' ? 'Employee Information' : 'Update Employee Information'}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+  const formContent = (
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -463,7 +458,20 @@ export function EmployeeForm({
             </Button>
           </div>
         </form>
-      </CardContent>
+  )
+
+  if (variant === 'sheet') {
+    return formContent
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          {mode === 'create' ? 'Employee Information' : 'Update Employee Information'}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{formContent}</CardContent>
     </Card>
   )
 }

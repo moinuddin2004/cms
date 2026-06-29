@@ -20,10 +20,15 @@ import { PatientRecall } from './entities/patient-recall.entity';
 import { PatientReferral } from './entities/patient-referral.entity';
 import { PatientFeedback } from './entities/patient-feedback.entity';
 import { PatientInsurance } from './entities/patient-insurance.entity';
+import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { EncountersModule } from 'src/encounters/encounters.module';
+import { TreatmentsModule } from 'src/treatments/treatments.module';
 
 @Module({
   imports: [
     CommonModule,
+    EncountersModule,
+    TreatmentsModule,
     TypeOrmModule.forFeature([
       Patient,
       PatientVisit,
@@ -40,6 +45,7 @@ import { PatientInsurance } from './entities/patient-insurance.entity';
       PatientReferral,
       PatientFeedback,
       PatientInsurance,
+      Appointment,
     ]),
   ],
   controllers: [PatientsController],

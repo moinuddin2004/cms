@@ -123,13 +123,14 @@ export function OrganizationSettingsFeature({
               }
             />
           </div>
-          <div className="flex items-center justify-between border rounded p-4">
+          {/* Inventory feature toggle — hidden until feature is ready */}
+          {/* <div className="flex items-center justify-between border rounded p-4">
             <Label>Inventory</Label>
             <Switch
               checked={!!formData.featureInventory}
               onCheckedChange={(val) => handleChange('featureInventory', val)}
             />
-          </div>
+          </div> */}
           <div className="flex items-center justify-between border rounded p-4">
             <Label>Finance</Label>
             <Switch

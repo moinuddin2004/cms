@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/card'
 import {
   CalendarDays,
   CheckCircle,
@@ -22,6 +21,7 @@ const STAT_ITEMS = [
     icon: CalendarDays,
     color: 'text-primary-text',
     bg: 'bg-primary-soft',
+    suffix: '',
   },
   {
     key: 'scheduled',
@@ -29,6 +29,7 @@ const STAT_ITEMS = [
     icon: Clock,
     color: 'text-violet',
     bg: 'bg-violet-soft',
+    suffix: '',
   },
   {
     key: 'completed',
@@ -36,6 +37,7 @@ const STAT_ITEMS = [
     icon: CheckCircle,
     color: 'text-emerald',
     bg: 'bg-emerald-soft',
+    suffix: '',
   },
   {
     key: 'cancelled',
@@ -43,6 +45,7 @@ const STAT_ITEMS = [
     icon: XCircle,
     color: 'text-danger',
     bg: 'bg-danger-soft',
+    suffix: '',
   },
   {
     key: 'noShow',
@@ -50,6 +53,7 @@ const STAT_ITEMS = [
     icon: UserX,
     color: 'text-text-3',
     bg: 'bg-panel-2',
+    suffix: '',
   },
   {
     key: 'completionRate',
@@ -57,18 +61,22 @@ const STAT_ITEMS = [
     icon: TrendingUp,
     color: 'text-amber',
     bg: 'bg-amber-soft',
+    suffix: '%',
   },
 ] as const
 
 export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-3 divide-x divide-y rounded-xl border bg-card sm:grid-cols-6 sm:divide-y-0">
         {STAT_ITEMS.map((item) => (
-          <Card key={item.key} className="p-3">
-            <Skeleton className="mb-2 h-4 w-16" />
-            <Skeleton className="h-7 w-10" />
-          </Card>
+          <div key={item.key} className="flex items-center gap-2.5 px-3 py-2.5">
+            <Skeleton className="size-8 shrink-0 rounded-lg" />
+            <div className="space-y-1">
+              <Skeleton className="h-2.5 w-12" />
+              <Skeleton className="h-4 w-7" />
+            </div>
+          </div>
         ))}
       </div>
     )
@@ -77,30 +85,30 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
   if (!stats) return null
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-3 divide-x divide-y rounded-xl border bg-card sm:grid-cols-6 sm:divide-y-0">
       {STAT_ITEMS.map((item) => {
         const Icon = item.icon
         const value = stats[item.key as keyof AppointmentStats]
         return (
-          <Card
+          <div
             key={item.key}
-            className="flex items-center gap-3 p-3 transition-shadow hover:shadow-sm"
+            className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/40"
           >
-            <div
-              className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${item.bg}`}
+            <span
+              className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${item.bg}`}
             >
-              <Icon className={`size-[18px] ${item.color}`} />
-            </div>
-            <div>
-              <p className="text-[11px] font-medium text-text-3">
+              <Icon className={`size-4 ${item.color}`} />
+            </span>
+            <div className="min-w-0 leading-none">
+              <p className="truncate text-[11px] font-medium text-text-3">
                 {item.label}
               </p>
-              <p className="text-lg font-bold leading-tight">
+              <p className="mt-1 text-base font-bold leading-none tabular-nums">
                 {value}
-                {'suffix' in item ? '%' : ''}
+                {item.suffix}
               </p>
             </div>
-          </Card>
+          </div>
         )
       })}
     </div>

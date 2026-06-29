@@ -25,6 +25,9 @@ import { PatientRecall } from './entities/patient-recall.entity';
 import { PatientReferral } from './entities/patient-referral.entity';
 import { PatientFeedback } from './entities/patient-feedback.entity';
 import { PatientInsurance } from './entities/patient-insurance.entity';
+import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { EncountersService } from 'src/encounters/encounters.service';
+import { TreatmentsService } from 'src/treatments/treatments.service';
 
 // DTOs
 import { CreatePatientDto } from './dto/request/create-patient.dto';
@@ -84,6 +87,10 @@ export class PatientsService {
     private readonly feedbackRepo: Repository<PatientFeedback>,
     @InjectRepository(PatientInsurance)
     private readonly insuranceRepo: Repository<PatientInsurance>,
+    @InjectRepository(Appointment)
+    private readonly appointmentRepo: Repository<Appointment>,
+    private readonly encountersService: EncountersService,
+    private readonly treatmentsService: TreatmentsService,
     private readonly logger: AppLogger,
   ) {}
 
@@ -582,5 +589,35 @@ export class PatientsService {
   async getVisits(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
     return this.visitRepo.find({ where: { patientId, organizationId }, order: { lastVisitDate: 'DESC' } });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FULL HISTORY (Flow G)
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Aggregate clinical history: the patient, all appointments, all encounters
+   * (each with its linked treatments), and any treatments not tied to an
+   * encounter — shown separately as "standalone treatments". All date-desc.
+   */
+  async getHistory(patientId: string, ctx: TenantContext) {
+    const patient = await this.getPatientOrFail(patientId, ctx.organizationId);
+
+    const appointments = await this.appointmentRepo.find({
+      where: { patientId, organizationId: ctx.organizationId },
+      order: { startTime: 'DESC' },
+    });
+
+    const encounters = await this.encountersService.findByPatient(patientId, ctx);
+
+    const allTreatments = await this.treatmentsService.findByPatient(patientId, ctx);
+    const standaloneTreatments = allTreatments.filter((t) => t.encounterId === null);
+
+    return {
+      patient: PatientResponseDto.toDto(patient),
+      appointments,
+      encounters,
+      standaloneTreatments,
+    };
   }
 }

@@ -272,6 +272,70 @@ export interface PatientVisit {
   updatedAt: string
 }
 
+// ─── Encounters & Treatments ────────────────────────────────────────
+// NOTE: an Encounter is the real per-appointment visit record (one per
+// confirmed/checked-in appointment), distinct from the PatientVisit aggregate
+// above.
+
+export interface Treatment {
+  id: string
+  patientId: string
+  encounterId: string | null
+  organizationId: string
+  locationId: string
+  treatmentName: string
+  notes: string | null
+  /** Decimal — TypeORM may return it as a string. */
+  cost: number | string | null
+  date: string
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+/** The source appointment as embedded in an encounter detail response. */
+export interface EncounterAppointment {
+  id: string
+  status: string
+  type: string
+  startTime: string
+  endTime: string
+  reasonForVisit: string | null
+  tokenNumber: number | null
+  isWalkIn: boolean
+}
+
+export interface Encounter {
+  id: string
+  appointmentId: string
+  patientId: string
+  organizationId: string
+  locationId: string
+  encounterDate: string
+  reason: string | null
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+  treatments?: Treatment[]
+  appointment?: EncounterAppointment | null
+  patient?: { id: string; fullName: string; patientNumber: string } | null
+}
+
+export interface TreatmentFormData {
+  treatmentName: string
+  notes?: string
+  cost?: number
+  date?: string
+  encounterId?: string
+}
+
+export interface PatientHistory {
+  patient: Patient
+  appointments: any[]
+  encounters: Encounter[]
+  standaloneTreatments: Treatment[]
+}
+
 export interface PatientDentalInfo {
   id: string
   patientId: string

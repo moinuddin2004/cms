@@ -16,6 +16,7 @@ interface EmployeeTableProps {
   employees: Employee[]
   isLoading?: boolean
   onDeactivate: (id: string) => void
+  onEdit?: (employee: Employee) => void
   serverPagination?: ServerPagination
 }
 
@@ -30,6 +31,7 @@ export function EmployeeTable({
   employees,
   isLoading,
   onDeactivate,
+  onEdit,
   serverPagination,
 }: EmployeeTableProps) {
   const togglePortalMutation = useTogglePortalAccess()
@@ -163,14 +165,9 @@ export function EmployeeTable({
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0"
-                asChild
+                onClick={() => onEdit?.(e)}
               >
-                <Link
-                  to="/employees/$employeeId/edit"
-                  params={{ employeeId: e.id }}
-                >
-                  <Pencil className="h-4 w-4 text-muted-foreground" />
-                </Link>
+                <Pencil className="h-4 w-4 text-muted-foreground" />
               </Button>
               {e.isActive && (
                 <Button
@@ -190,7 +187,7 @@ export function EmployeeTable({
         },
       },
     ],
-    [onDeactivate, togglePortalMutation],
+    [onDeactivate, onEdit, togglePortalMutation],
   )
 
   return (

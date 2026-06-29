@@ -33,6 +33,11 @@ export const keys = {
     [...keys.all(patientId), 'insurance'] as const,
   documents: (patientId: string) =>
     [...keys.all(patientId), 'documents'] as const,
+  history: (patientId: string) =>
+    [...keys.all(patientId), 'history'] as const,
+  treatments: (patientId: string) =>
+    [...keys.all(patientId), 'treatments'] as const,
+  encounter: (encounterId: string) => ['encounter', encounterId] as const,
 }
 
 // ─── Queries ────────────────────────────────────────────────────────
@@ -141,7 +146,50 @@ export function useDocuments(patientId: string) {
   })
 }
 
+export function usePatientHistory(patientId: string) {
+  return useQuery({
+    queryKey: keys.history(patientId),
+    queryFn: () => api.fetchPatientHistory(patientId),
+    enabled: !!patientId,
+  })
+}
+
+export function usePatientTreatments(patientId: string) {
+  return useQuery({
+    queryKey: keys.treatments(patientId),
+    queryFn: () => api.fetchPatientTreatments(patientId),
+    enabled: !!patientId,
+  })
+}
+
+export function useEncounterDetail(encounterId: string | null) {
+  return useQuery({
+    queryKey: keys.encounter(encounterId ?? ''),
+    queryFn: () => api.fetchEncounterDetail(encounterId as string),
+    enabled: !!encounterId,
+  })
+}
+
 // ─── Mutations ──────────────────────────────────────────────────────
+
+export function useCreateTreatment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ patientId, ...payload }: { patientId: string } & any) =>
+      api.createTreatment({ patientId, ...payload }),
+    onSuccess: (treatment, { patientId }) => {
+      queryClient.invalidateQueries({ queryKey: keys.treatments(patientId) })
+      queryClient.invalidateQueries({ queryKey: keys.history(patientId) })
+      if (treatment?.encounterId) {
+        queryClient.invalidateQueries({
+          queryKey: keys.encounter(treatment.encounterId),
+        })
+      }
+      toast.success('Treatment recorded')
+    },
+    onError: (err) => toast.error(errMsg(err, 'Failed to record treatment')),
+  })
+}
 
 export function useUpsertDentalInfo() {
   const queryClient = useQueryClient()

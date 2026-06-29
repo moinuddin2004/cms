@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { AlertCircle, Plus } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,13 +12,19 @@ import {
   FiltersBar,
   EmployeeTable,
   EmployeeCard,
+  CreateEmployeeModal,
+  EditEmployeeSheet,
   useEmployees,
   useDeactivateEmployee,
+  type Employee,
 } from '@/features/employees'
 
 export function EmployeesPage() {
   const { activeLocationId } = useAuthStore()
   const { viewMode, setViewMode } = useEmployeeStore()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
   const [employmentType, setEmploymentType] = useState('')
@@ -46,6 +51,13 @@ export function EmployeesPage() {
     } catch (error) {
       toast.error('Failed to deactivate employee')
     }
+  }
+
+  const handleOpenCreate = () => setCreateOpen(true)
+
+  const handleOpenEdit = (employee: Employee) => {
+    setEditingEmployee(employee)
+    setEditOpen(true)
   }
 
   const handleResetFilters = () => {
@@ -81,11 +93,9 @@ export function EmployeesPage() {
       actions={
         <>
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
-          <Button asChild size="sm">
-            <Link to="/employees/create">
-              <Plus className="size-3.5" />
-              Create
-            </Link>
+          <Button size="sm" onClick={handleOpenCreate}>
+            <Plus className="size-3.5" />
+            Add Employee
           </Button>
         </>
       }
@@ -124,6 +134,7 @@ export function EmployeesPage() {
             <EmployeeTable
               employees={response.data}
               onDeactivate={handleDeactivate}
+              onEdit={handleOpenEdit}
               serverPagination={{
                 page: response.page,
                 pageSize: response.limit,
@@ -133,13 +144,16 @@ export function EmployeesPage() {
               }}
             />
           ) : (
-            <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {response.data.map((employee) => (
-                  <EmployeeCard key={employee.id} employee={employee} onDeactivate={handleDeactivate} />
-                ))}
-              </div>
-            </>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {response.data.map((employee) => (
+                <EmployeeCard
+                  key={employee.id}
+                  employee={employee}
+                  onDeactivate={handleDeactivate}
+                  onEdit={handleOpenEdit}
+                />
+              ))}
+            </div>
           )}
         </>
       ) : (
@@ -154,6 +168,22 @@ export function EmployeesPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      <CreateEmployeeModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
+
+      {editingEmployee && (
+        <EditEmployeeSheet
+          employee={editingEmployee}
+          open={editOpen}
+          onOpenChange={(v) => {
+            setEditOpen(v)
+            if (!v) setEditingEmployee(null)
+          }}
+        />
       )}
     </PageWrapper>
   )

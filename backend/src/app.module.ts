@@ -20,6 +20,8 @@ import { LocationsModule } from './locations/locations.module';
 import { EmployeesModule } from './employees/employees.module';
 import { PayrollModule } from './payroll/payroll.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { EncountersModule } from './encounters/encounters.module';
+import { TreatmentsModule } from './treatments/treatments.module';
 import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
 import { InventoryModule } from './inventory/inventory.module';
@@ -85,6 +87,8 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     // Domain modules
     PatientsModule,
     AppointmentsModule,
+    EncountersModule,
+    TreatmentsModule,
     FeatureFlagsModule,
     BillingModule,
     InventoryModule,

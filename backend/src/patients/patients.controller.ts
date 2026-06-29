@@ -106,6 +106,16 @@ export class PatientsController {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // FULL HISTORY (Flow G)
+  // ═══════════════════════════════════════════════════════════
+
+  @Get(':id/history')
+  async getHistory(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+    const data = await this.patientsService.getHistory(id, ctx);
+    return ResponseWrapper.success(data, 'Patient history retrieved successfully');
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // DENTAL INFO
   // ═══════════════════════════════════════════════════════════
 

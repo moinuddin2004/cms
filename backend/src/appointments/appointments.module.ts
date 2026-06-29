@@ -9,6 +9,7 @@ import { EmployeeSchedule } from 'src/employees/entities/employee-schedule.entit
 import { Location } from 'src/locations/entities/location.entity';
 import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
+import { EncountersModule } from 'src/encounters/encounters.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AppointmentsService } from './appointments.service';
       EmployeeSchedule,
       Location,
     ]),
+    EncountersModule,
   ],
   controllers: [AppointmentsController],
   providers: [AppointmentsService],

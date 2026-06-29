@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +18,7 @@ import type { Employee } from '../types'
 interface EmployeeCardProps {
   employee: Employee
   onDeactivate: (id: string) => void
+  onEdit?: (employee: Employee) => void
 }
 
 const employmentTypeStyles: Record<string, string> = {
@@ -26,7 +28,7 @@ const employmentTypeStyles: Record<string, string> = {
   contract: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
 }
 
-export function EmployeeCard({ employee, onDeactivate }: EmployeeCardProps) {
+export function EmployeeCard({ employee, onDeactivate, onEdit }: EmployeeCardProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <Card className="group relative overflow-hidden border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
@@ -131,11 +133,9 @@ export function EmployeeCard({ employee, onDeactivate }: EmployeeCardProps) {
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
-                    asChild
+                    onClick={() => onEdit?.(employee)}
                   >
-                    <Link to="/employees/$employeeId/edit" params={{ employeeId: employee.id }}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Link>
+                    <Pencil className="h-3.5 w-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">Edit employee</TooltipContent>

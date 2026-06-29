@@ -1,13 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-  CalendarDays,
-  List,
-  Loader2,
-  ListChecks,
-} from 'lucide-react'
+import { Plus, CalendarDays, List, Loader2, ListChecks } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { PageWrapper } from '@/components/layout/PageWrapper'
@@ -23,6 +15,11 @@ import { AppointmentModal } from '@/features/appointments/components/Appointment
 import { AppointmentDetailModal } from '@/features/appointments/components/AppointmentDetailModal'
 import { AppointmentsList } from '@/features/appointments/components/AppointmentsList'
 import { QueueView } from '@/features/appointments/components/QueueView'
+import { AppointmentsToolbar } from '@/features/appointments/components/AppointmentsToolbar'
+import {
+  AppointmentFilters,
+  matchesAppointmentSearch,
+} from '@/features/appointments/components/AppointmentFilters'
 
 type CalendarView =
   | 'dayGridMonth'
@@ -38,7 +35,7 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export function AppointmentsPage() {
-  const { selectedDate, setSelectedDate, openCreateModal } =
+  const { selectedDate, setSelectedDate, doctorFilter, setDoctorFilter, openCreateModal } =
     useAppointmentStore()
   const { create } = useSearch({ from: '/appointments' })
   const [viewMode, setViewMode] = useState<'queue' | 'list' | 'calendar'>(
@@ -51,6 +48,9 @@ export function AppointmentsPage() {
   const [calendarView, setCalendarView] = useState<CalendarView>(
     'resourceTimeGridDay',
   )
+  const [searchInput, setSearchInput] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     const d = new Date(selectedDate)
@@ -110,6 +110,46 @@ export function AppointmentsPage() {
 
   const appointments = appointmentsData?.data || []
 
+  // Doctor filter → narrow the columns + events the calendar renders.
+  const calendarDoctors = useMemo(
+    () =>
+      doctorFilter === 'all'
+        ? doctors
+        : doctors.filter((d) => d.id === doctorFilter),
+    [doctors, doctorFilter],
+  )
+  const calendarAppointments = useMemo(
+    () =>
+      appointments.filter(
+        (a) =>
+          (doctorFilter === 'all' || a.doctorId === doctorFilter) &&
+          (statusFilter === 'all' || a.status === statusFilter) &&
+          (typeFilter === 'all' || a.type === typeFilter) &&
+          matchesAppointmentSearch(a, searchInput),
+      ),
+    [appointments, doctorFilter, statusFilter, typeFilter, searchInput],
+  )
+
+  const hasActiveFilters =
+    !!searchInput ||
+    statusFilter !== 'all' ||
+    typeFilter !== 'all' ||
+    doctorFilter !== 'all'
+
+  const clearFilters = () => {
+    setSearchInput('')
+    setStatusFilter('all')
+    setTypeFilter('all')
+    setDoctorFilter('all')
+  }
+  const calendarAvailability = useMemo(
+    () =>
+      doctorFilter === 'all'
+        ? availability
+        : availability.filter((b) => b.doctorId === doctorFilter),
+    [availability, doctorFilter],
+  )
+
   const navigateDate = useCallback(
     (dir: number) => {
       const d = new Date(selectedDate)
@@ -128,9 +168,6 @@ export function AppointmentsPage() {
     },
     [selectedDate, calendarView, setSelectedDate],
   )
-
-  const goToToday = () => setSelectedDate(new Date())
-  const isToday = selectedDate.toDateString() === new Date().toDateString()
 
   const formatDateLabel = (d: Date) => {
     if (calendarView === 'dayGridMonth') {
@@ -209,57 +246,48 @@ export function AppointmentsPage() {
           <AppointmentsList />
         ) : (
           <>
-            <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigateDate(-1)}
-                  className="size-8"
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <button
-                  type="button"
-                  onClick={goToToday}
-                  className={`rounded-[7px] px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isToday
-                      ? 'bg-primary text-white'
-                      : 'bg-panel text-foreground hover:bg-panel-2'
-                  }`}
-                >
-                  Today
-                </button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => navigateDate(1)}
-                  className="size-8"
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-                <span className="ml-2 text-sm font-semibold">
-                  {formatDateLabel(selectedDate)}
-                </span>
-              </div>
-
-              <div className="flex items-center rounded-[9px] border border-border bg-surface p-[3px]">
-                {(Object.keys(VIEW_LABELS) as CalendarView[]).map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    onClick={() => setCalendarView(view)}
-                    className={`rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors ${
-                      calendarView === view
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-text-2 hover:text-foreground'
-                    }`}
-                  >
-                    {VIEW_LABELS[view]}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AppointmentsToolbar
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              doctors={doctors}
+              doctorFilter={doctorFilter}
+              onDoctorChange={setDoctorFilter}
+              isFetching={loadingAppts}
+              onStepPrev={() => navigateDate(-1)}
+              onStepNext={() => navigateDate(1)}
+              label={formatDateLabel(selectedDate)}
+              actions={
+                <div className="flex items-center rounded-[9px] border border-border bg-surface p-[3px]">
+                  {(Object.keys(VIEW_LABELS) as CalendarView[]).map((view) => (
+                    <button
+                      key={view}
+                      type="button"
+                      onClick={() => setCalendarView(view)}
+                      className={`rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors ${
+                        calendarView === view
+                          ? 'bg-primary text-white shadow-sm'
+                          : 'text-text-2 hover:text-foreground'
+                      }`}
+                    >
+                      {VIEW_LABELS[view]}
+                    </button>
+                  ))}
+                </div>
+              }
+              filters={
+                <AppointmentFilters
+                  searchInput={searchInput}
+                  onSearchChange={setSearchInput}
+                  status={statusFilter}
+                  onStatusChange={setStatusFilter}
+                  type={typeFilter}
+                  onTypeChange={setTypeFilter}
+                  hasActiveFilters={hasActiveFilters}
+                  onReset={clearFilters}
+                  count={calendarAppointments.length}
+                />
+              }
+            />
 
             {loadingAppts || loadingDoctors ? (
               <div className="flex items-center justify-center py-24">
@@ -267,9 +295,9 @@ export function AppointmentsPage() {
               </div>
             ) : (
               <FullCalendarView
-                appointments={appointments}
-                doctors={doctors}
-                availability={availability}
+                appointments={calendarAppointments}
+                doctors={calendarDoctors}
+                availability={calendarAvailability}
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 onViewChange={(v) => setCalendarView(v as CalendarView)}

@@ -5,10 +5,16 @@ import {
   FolderOpen,
   Activity,
   FileSignature,
+  CalendarClock,
+  CalendarCheck2,
+  Syringe,
 } from 'lucide-react'
 import type { Patient } from '../types'
 import { FeatureGuard } from '@/context/FeatureFlagsContext'
 import { OverviewTab } from './tabs/OverviewTab'
+import { AppointmentsTab } from './tabs/AppointmentsTab'
+import { VisitsTab } from './tabs/VisitsTab'
+import { TreatmentsTab } from './tabs/TreatmentsTab'
 import { VitalsAndDentalTab } from './tabs/VitalsAndDentalTab'
 import { TeethChartTab } from './tabs/TeethChartTab'
 import { TreatmentPlansTab } from './tabs/TreatmentPlansTab'
@@ -26,6 +32,20 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
       <TabsList className="bg-muted/50 p-1 flex-wrap h-auto gap-1 justify-start">
         <TabsTrigger value="overview" className="text-sm">
           Overview
+        </TabsTrigger>
+        <FeatureGuard feature="appointments.core">
+          <TabsTrigger value="appointments" className="text-sm">
+            <CalendarClock size={14} className="mr-1.5" />
+            Appointments
+          </TabsTrigger>
+        </FeatureGuard>
+        <TabsTrigger value="visits" className="text-sm">
+          <CalendarCheck2 size={14} className="mr-1.5" />
+          Visits
+        </TabsTrigger>
+        <TabsTrigger value="treatments-performed" className="text-sm">
+          <Syringe size={14} className="mr-1.5" />
+          Treatments
         </TabsTrigger>
         <TabsTrigger value="vitals-dental" className="text-sm">
           <Activity size={14} className="mr-1.5" />
@@ -63,6 +83,20 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
 
       <TabsContent value="overview">
         <OverviewTab patient={patient} />
+      </TabsContent>
+
+      <FeatureGuard feature="appointments.core">
+        <TabsContent value="appointments">
+          <AppointmentsTab patient={patient} />
+        </TabsContent>
+      </FeatureGuard>
+
+      <TabsContent value="visits">
+        <VisitsTab patient={patient} />
+      </TabsContent>
+
+      <TabsContent value="treatments-performed">
+        <TreatmentsTab patient={patient} />
       </TabsContent>
 
       <TabsContent value="vitals-dental">

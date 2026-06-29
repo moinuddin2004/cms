@@ -41,6 +41,8 @@ import { PayrollRecord } from './payroll/entities/payroll-record.entity';
 // Domain entities
 import { Chair } from './chairs/entities/chair.entity';
 import { Appointment } from './appointments/entities/appointment.entity';
+import { PatientEncounter } from './encounters/entities/patient-encounter.entity';
+import { Treatment } from './treatments/entities/treatment.entity';
 import { Inventory } from './inventory/entities/inventory.entity';
 
 // Inventory & Supplies module entities
@@ -113,6 +115,8 @@ export const AppDataSource = new DataSource({
     // Domain
     Chair,
     Appointment,
+    PatientEncounter,
+    Treatment,
     Inventory,
     // Inventory & Supplies module
     InventoryCategory,

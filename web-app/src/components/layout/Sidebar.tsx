@@ -14,11 +14,9 @@ import {
   LogOut,
   Loader2,
   Shield,
-  Boxes,
   FileText,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { fetchLowStockItems } from '@/features/inventory/services/inventory.api'
+
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -67,7 +65,7 @@ const navSections: NavSection[] = [
   {
     label: 'Operations',
     items: [
-      { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
+      // { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
       {
         label: 'Prescriptions',
         icon: FileText,
@@ -119,23 +117,6 @@ const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: 'bg-slate-500/20 text-slate-300',
 }
 
-function InventoryLowStockBadge() {
-  const { activeLocationId } = useAuthStore()
-  const { data: lowStock } = useQuery({
-    queryKey: ['inventory-low-stock'],
-    queryFn: fetchLowStockItems,
-    enabled: !!activeLocationId,
-    retry: false,
-    staleTime: 60_000,
-  })
-  const count = lowStock?.length ?? 0
-  if (count === 0) return null
-  return (
-    <span className="ml-auto inline-flex h-[18px] min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
-      {count}
-    </span>
-  )
-}
 
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
@@ -242,9 +223,6 @@ export function Sidebar() {
                         <item.icon size={18} className="flex-shrink-0" />
                         {!sidebarCollapsed && (
                           <span className="flex-1">{item.label}</span>
-                        )}
-                        {item.href === '/inventory' && !sidebarCollapsed && (
-                          <InventoryLowStockBadge />
                         )}
                       </Link>
                     </li>

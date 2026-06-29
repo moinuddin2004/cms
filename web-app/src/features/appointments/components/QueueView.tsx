@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import {
-  ChevronLeft,
   ChevronRight,
   Plus,
   Loader2,
@@ -11,17 +10,9 @@ import {
   Phone,
   Zap,
   Footprints,
-  CalendarDays,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +45,11 @@ import {
   type Appointment,
 } from '../types'
 import { WalkInDialog } from './WalkInDialog'
+import { AppointmentsToolbar } from './AppointmentsToolbar'
+import {
+  AppointmentFilters,
+  matchesAppointmentSearch,
+} from './AppointmentFilters'
 
 // ─── Role gating ──────────────────────────────────────────────────────
 // The system doesn't yet surface a granular doctor/receptionist role on the
@@ -87,21 +83,38 @@ const NOT_ARRIVED = [
 const CLOSED = [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]
 
 export function QueueView() {
-  const [date, setDate] = useState(() => new Date())
+  const { selectedDate, setSelectedDate, doctorFilter, setDoctorFilter } =
+    useAppointmentStore()
   const [walkInOpen, setWalkInOpen] = useState(false)
-  const [doctorFilter, setDoctorFilter] = useState<string>('all')
-  const ymd = toYMD(date)
+  const [searchInput, setSearchInput] = useState('')
+  const [status, setStatus] = useState<string>('all')
+  const [type, setType] = useState<string>('all')
+  const ymd = toYMD(selectedDate)
   const { data: queue = [], isLoading, isFetching } = useQueue(ymd)
   const { data: doctors = [] } = useDoctors()
 
   const isToday = toYMD(new Date()) === ymd
 
+  const hasActiveFilters =
+    !!searchInput || status !== 'all' || type !== 'all' || doctorFilter !== 'all'
+
+  const clearFilters = () => {
+    setSearchInput('')
+    setStatus('all')
+    setType('all')
+    setDoctorFilter('all')
+  }
+
   const filteredQueue = useMemo(
     () =>
-      doctorFilter === 'all'
-        ? queue
-        : queue.filter((a) => a.doctorId === doctorFilter),
-    [queue, doctorFilter],
+      queue.filter(
+        (a) =>
+          (doctorFilter === 'all' || a.doctorId === doctorFilter) &&
+          (status === 'all' || a.status === status) &&
+          (type === 'all' || a.type === type) &&
+          matchesAppointmentSearch(a, searchInput),
+      ),
+    [queue, doctorFilter, status, type, searchInput],
   )
 
   // Group by section
@@ -127,131 +140,36 @@ export function QueueView() {
     [groups.inRoom],
   )
 
-  const stepDay = (dir: number) => {
-    const d = new Date(date)
-    d.setDate(d.getDate() + dir)
-    setDate(d)
-  }
-
-  // Build 14-day strip centred on today
-  const dateStrip = useMemo(() => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(today)
-      d.setDate(today.getDate() - 3 + i)
-      return d
-    })
-  }, [])
-
-  const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
-
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        {/* Toolbar */}
-        <div className="bg-card border rounded-xl px-4 py-3 space-y-3">
-          {/* Row 1: jump-to-date + doctor filter + walk-in */}
-          <div className="flex flex-wrap items-center gap-2 justify-between">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                Jump to date
-              </span>
-              <input
-                type="date"
-                value={toYMD(date)}
-                onChange={(e) => {
-                  if (e.target.value) setDate(new Date(e.target.value + 'T12:00:00'))
-                }}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-              {isFetching && (
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  live
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Select value={doctorFilter} onValueChange={setDoctorFilter}>
-                <SelectTrigger className="h-8 w-[160px] text-xs" size="sm">
-                  <SelectValue placeholder="All doctors" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All doctors</SelectItem>
-                  {doctors.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.fullName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={() => setWalkInOpen(true)} size="sm">
-                <Plus className="w-3.5 h-3.5" />
-                Walk-in
-              </Button>
-            </div>
-          </div>
-
-          {/* Row 2: scrollable date strip */}
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => stepDay(-1)}
-              className="h-8 w-6 shrink-0"
-              aria-label="Previous day"
-            >
-              <ChevronLeft className="w-4 h-4" />
+        <AppointmentsToolbar
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          doctors={doctors}
+          doctorFilter={doctorFilter}
+          onDoctorChange={setDoctorFilter}
+          isFetching={isFetching}
+          actions={
+            <Button onClick={() => setWalkInOpen(true)} size="sm">
+              <Plus className="w-3.5 h-3.5" />
+              Walk-in
             </Button>
-            <div className="flex gap-1 overflow-x-auto flex-1 pb-0.5 scrollbar-hide">
-              {dateStrip.map((d) => {
-                const dYMD = toYMD(d)
-                const selected = dYMD === ymd
-                const todayYMD = toYMD(new Date())
-                const isThisToday = dYMD === todayYMD
-                return (
-                  <button
-                    key={dYMD}
-                    type="button"
-                    onClick={() => setDate(new Date(dYMD + 'T12:00:00'))}
-                    className={cn(
-                      'flex flex-col items-center justify-center rounded-lg px-2.5 py-1.5 min-w-[44px] transition-colors text-center shrink-0',
-                      selected
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : isThisToday
-                          ? 'border border-primary text-primary bg-primary/5'
-                          : 'bg-accent text-foreground hover:bg-accent/70',
-                    )}
-                  >
-                    {isThisToday && !selected && (
-                      <span className="text-[8px] font-bold uppercase tracking-wider leading-none mb-0.5 text-primary">
-                        Today
-                      </span>
-                    )}
-                    <span className="text-[9px] font-medium leading-none opacity-70">
-                      {DAY_NAMES[d.getDay()]}
-                    </span>
-                    <span className="text-base font-bold leading-tight">
-                      {d.getDate()}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => stepDay(1)}
-              className="h-8 w-6 shrink-0"
-              aria-label="Next day"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+          }
+          filters={
+            <AppointmentFilters
+              searchInput={searchInput}
+              onSearchChange={setSearchInput}
+              status={status}
+              onStatusChange={setStatus}
+              type={type}
+              onTypeChange={setType}
+              hasActiveFilters={hasActiveFilters}
+              onReset={clearFilters}
+              count={filteredQueue.length}
+            />
+          }
+        />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-24">
