@@ -10,12 +10,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, Trash2, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
+import { Eye, Pencil, Trash2, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientCardProps {
   patient: Patient
   onToggleStatus: (patient: Patient, isActive: boolean) => void
+  onEdit: (patient: Patient) => void
   onDelete: (patient: Patient) => void
   isStatusPending?: boolean
 }
@@ -39,6 +40,7 @@ function getDobDisplay(dob: string | null): string {
 export function PatientCard({
   patient,
   onToggleStatus,
+  onEdit,
   onDelete,
   isStatusPending,
 }: PatientCardProps) {
@@ -125,6 +127,15 @@ export function PatientCard({
                 <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
                   <Eye className="h-3.5 w-3.5" />
                 </Link>
+              </TooltipButton>
+              <TooltipButton
+                tooltip="Edit patient"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                onClick={() => onEdit(patient)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
               </TooltipButton>
               <Tooltip>
                 <TooltipTrigger asChild>

@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { DatePicker } from '@/components/shared/DatePicker'
+import { format } from 'date-fns'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
@@ -82,6 +84,7 @@ export function EmployeeForm({
         portalPassword: '',
         profilePictureUrl: defaultValues.profilePictureUrl ?? '',
         userId: defaultValues.userId ?? '',
+        grossSalary: undefined as string | number | undefined,
       }
     : {
         fullName: '',
@@ -99,6 +102,7 @@ export function EmployeeForm({
         portalPassword: '',
         profilePictureUrl: '',
         userId: '',
+        grossSalary: undefined as string | number | undefined,
       }
 
   const form = useForm({
@@ -107,7 +111,7 @@ export function EmployeeForm({
       const result = employeeFormSchema.safeParse(value)
       if (!result.success) {
         const errors: Record<string, string> = {}
-        result.error.errors.forEach((e) => {
+        result.error.issues.forEach((e) => {
           const key = String(e.path[0])
           if (!errors[key]) errors[key] = e.message
         })
@@ -146,7 +150,7 @@ export function EmployeeForm({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {/* Full Name */}
             <form.Field name="fullName">
               {(field) => (
@@ -287,15 +291,14 @@ export function EmployeeForm({
               {(field) => (
                 <div className="space-y-1.5">
                   <Label>Joining Date <span className="text-destructive">*</span></Label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={field.state.value}
-                    onChange={(e) => {
-                      field.handleChange(e.target.value)
+                    onChange={(v) => {
+                      field.handleChange(v)
                       clearError(setFieldErrors, 'joiningDate')
                     }}
-                    onBlur={field.handleBlur}
-                    className={fieldErrors.joiningDate ? 'border-destructive focus-visible:ring-destructive' : ''}
+                    placeholder="Select joining date"
+                    className={fieldErrors.joiningDate ? 'border-destructive' : ''}
                   />
                   {fieldErrors.joiningDate && (
                     <p className="text-xs text-destructive">{fieldErrors.joiningDate}</p>
@@ -333,11 +336,13 @@ export function EmployeeForm({
               {(field) => (
                 <div className="space-y-1.5">
                   <Label>Date of Birth <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
+                    onChange={field.handleChange}
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    placeholder="Select date of birth"
+                    withYearDropdown
+                    clearable
                   />
                 </div>
               )}
@@ -353,7 +358,11 @@ export function EmployeeForm({
                     min={0}
                     placeholder="e.g., 50000"
                     value={field.state.value ?? ''}
-                    onChange={(e) => field.handleChange(e.target.value as any)}
+                    onChange={(e) =>
+                      field.handleChange(
+                        e.target.value === '' ? undefined : e.target.value,
+                      )
+                    }
                     onBlur={field.handleBlur}
                   />
                 </div>

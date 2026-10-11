@@ -63,6 +63,8 @@ function PrescriptionTemplatesPage() {
   return (
     <DashboardLayout
       title="Prescription Layouts"
+      backTo="/prescriptions"
+      backLabel="Back to prescriptions"
       subtitle="Per-branch PDF templates for printed prescriptions"
       actions={
         <Button onClick={() => setCreating(true)}>

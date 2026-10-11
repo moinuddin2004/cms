@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import {
   ScheduleTab,
   LeaveTable,
   AvailabilityOverrideTab,
+  EditEmployeeSheet,
 } from '@/features/employees'
 import {
   formatCurrency,
@@ -20,7 +21,6 @@ import {
   getEmploymentTypeLabel,
 } from '@/lib/formatters'
 import {
-  ChevronLeft,
   Edit,
   Shield,
   ShieldOff,
@@ -42,6 +42,7 @@ function EmployeeDetailPage() {
 
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   if (isEmployeeLoading) {
     return (
@@ -77,6 +78,8 @@ function EmployeeDetailPage() {
     <DashboardLayout
       title={employee.fullName}
       subtitle={employee.designation}
+      backTo="/employees"
+      backLabel="Back to employees"
       actions={
         <div className="flex gap-2">
           <Badge
@@ -99,7 +102,7 @@ function EmployeeDetailPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ to: '/employees/$employeeId/edit', params: { employeeId } })}
+            onClick={() => setIsEditOpen(true)}
           >
             <Edit className="mr-2 h-4 w-4" />
             Edit
@@ -108,13 +111,6 @@ function EmployeeDetailPage() {
       }
     >
       <div className="space-y-6">
-        <Link
-          to="/employees"
-          className="flex items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to Employees
-        </Link>
 
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
@@ -288,6 +284,11 @@ function EmployeeDetailPage() {
       <GeneratePayrollModal
         isOpen={isGenerateModalOpen}
         onOpenChange={setIsGenerateModalOpen}
+      />
+      <EditEmployeeSheet
+        employee={employee}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
       />
     </DashboardLayout>
   )

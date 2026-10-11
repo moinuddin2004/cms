@@ -75,6 +75,8 @@ function MedicineDirectoryPage() {
   return (
     <DashboardLayout
       title="Medicine Directory"
+      backTo="/prescriptions"
+      backLabel="Back to prescriptions"
       subtitle="Master catalog used by the prescription builder's autocomplete"
       actions={
         <div className="flex gap-2">

@@ -44,7 +44,6 @@ import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as OrganizationsIdFeaturesRouteImport } from './routes/organizations_.$id.features'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
-import { Route as EmployeesEmployeeIdEditRouteImport } from './routes/employees/$employeeId.edit'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -223,11 +222,6 @@ const LocationsIdSettingsRoute = LocationsIdSettingsRouteImport.update({
   path: '/locations/$id/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EmployeesEmployeeIdEditRoute = EmployeesEmployeeIdEditRouteImport.update({
-  id: '/employees/$employeeId/edit',
-  path: '/employees/$employeeId/edit',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -260,7 +254,6 @@ export interface FileRoutesByFullPath {
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
-  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
@@ -298,7 +291,6 @@ export interface FileRoutesByTo {
   '/invoices': typeof InvoicesIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/prescriptions': typeof PrescriptionsIndexRoute
-  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
@@ -337,7 +329,6 @@ export interface FileRoutesById {
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
-  '/employees/$employeeId/edit': typeof EmployeesEmployeeIdEditRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
@@ -377,7 +368,6 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/patients/'
     | '/prescriptions/'
-    | '/employees/$employeeId/edit'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
@@ -415,7 +405,6 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/patients'
     | '/prescriptions'
-    | '/employees/$employeeId/edit'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
@@ -453,7 +442,6 @@ export interface FileRouteTypes {
     | '/invoices/'
     | '/patients/'
     | '/prescriptions/'
-    | '/employees/$employeeId/edit'
     | '/locations_/$id/settings'
     | '/organizations_/$id/features'
     | '/organizations_/$id/settings'
@@ -492,7 +480,6 @@ export interface RootRouteChildren {
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
-  EmployeesEmployeeIdEditRoute: typeof EmployeesEmployeeIdEditRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdFeaturesRoute: typeof OrganizationsIdFeaturesRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
@@ -747,13 +734,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LocationsIdSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/employees/$employeeId/edit': {
-      id: '/employees/$employeeId/edit'
-      path: '/employees/$employeeId/edit'
-      fullPath: '/employees/$employeeId/edit'
-      preLoaderRoute: typeof EmployeesEmployeeIdEditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -788,7 +768,6 @@ const rootRouteChildren: RootRouteChildren = {
   InvoicesIndexRoute: InvoicesIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
-  EmployeesEmployeeIdEditRoute: EmployeesEmployeeIdEditRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdFeaturesRoute: OrganizationsIdFeaturesRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,

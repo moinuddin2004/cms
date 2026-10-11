@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { useState } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/table'
 import {
   Loader2,
-  ArrowLeft,
   Download,
   Send,
   Ban,
@@ -51,7 +50,6 @@ const PAYABLE = [
 
 function InvoiceDetailPage() {
   const { invoiceId } = Route.useParams()
-  const navigate = useNavigate()
   const { data: invoice, isLoading } = useInvoice(invoiceId)
   const updateStatus = useUpdateInvoiceStatus(invoiceId)
   const applyCoupon = useApplyCoupon(invoiceId)
@@ -91,15 +89,10 @@ function InvoiceDetailPage() {
     <DashboardLayout
       title={`Invoice ${invoice.invoiceNumber}`}
       subtitle={invoice.patient?.fullName ?? ''}
+      backTo="/invoices"
+      backLabel="Back to invoices"
       actions={
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate({ to: '/invoices' })}
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" /> Back
-          </Button>
           {isDraft && (
             <Button
               variant="outline"

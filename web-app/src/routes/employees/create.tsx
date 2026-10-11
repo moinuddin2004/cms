@@ -3,8 +3,6 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { EmployeeForm, useCreateEmployee, type EmployeeFormData } from '@/features/employees'
 import { toast } from 'sonner'
-import { ChevronLeft } from 'lucide-react'
-import { Link } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/employees/create')({
   component: CreateEmployeePage,
@@ -33,15 +31,12 @@ function CreateEmployeePage() {
   }
 
   return (
-    <DashboardLayout title="Add New Employee">
+    <DashboardLayout
+      title="Add New Employee"
+      backTo="/employees"
+      backLabel="Back to employees"
+    >
       <div className="max-w-3xl mx-auto space-y-4">
-        <Link
-          to="/employees"
-          className="flex items-center text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ChevronLeft className="mr-1 h-4 w-4" />
-          Back to Employees
-        </Link>
         <EmployeeForm
           mode="create"
           onSubmit={onSubmit}

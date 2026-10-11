@@ -17,7 +17,11 @@ function OrganizationSettingsRouteComponent() {
   }
 
   return (
-    <DashboardLayout title="Organization Settings">
+    <DashboardLayout
+      title="Organization Settings"
+      backTo="/organizations"
+      backLabel="Back to organizations"
+    >
       <OrganizationSettingsFeature organizationId={id} />
     </DashboardLayout>
   )

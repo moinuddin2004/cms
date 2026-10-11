@@ -20,6 +20,7 @@ import { FiltersBar } from '../components/FiltersBar'
 import { PatientCard } from '../components/PatientCard'
 import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
+import { EditPatientSheet } from '../components/EditPatientSheet'
 import type { Patient, PatientListParams } from '../types'
 
 const DEFAULT_PARAMS: PatientListParams = {
@@ -37,6 +38,7 @@ export function PatientsPage() {
   const statusMutation = useSetPatientStatus()
   const deleteMutation = useDeletePatient()
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
+  const [editTarget, setEditTarget] = useState<Patient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
 
@@ -134,6 +136,7 @@ export function PatientsPage() {
             <PatientTable
               patients={patients}
               onToggleStatus={handleToggleStatus}
+              onEdit={setEditTarget}
               onDelete={setDeleteTarget}
               pendingStatusId={pendingStatusId}
               serverPagination={data ? {
@@ -151,6 +154,7 @@ export function PatientsPage() {
                   key={patient.id}
                   patient={patient}
                   onToggleStatus={handleToggleStatus}
+                  onEdit={setEditTarget}
                   onDelete={setDeleteTarget}
                   isStatusPending={pendingStatusId === patient.id}
                 />
@@ -175,6 +179,14 @@ export function PatientsPage() {
       )}
 
       <CreatePatientModal open={showCreate} onOpenChange={setShowCreate} />
+
+      {editTarget && (
+        <EditPatientSheet
+          patient={editTarget}
+          open
+          onOpenChange={(open) => !open && setEditTarget(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={!!deleteTarget}

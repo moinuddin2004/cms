@@ -3,15 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit2, Trash2, Settings, ToggleRight } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { OrganizationTable } from './components/OrganizationTable'
 
 export interface Organization {
   id: string
@@ -44,6 +37,7 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(fun
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [orgToEdit, setOrgToEdit] = useState<Organization | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<Organization | null>(null)
 
   const { data: orgsData, isLoading } = useQuery({
     queryKey: ['organizations'],
@@ -126,90 +120,35 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(fun
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : orgsData?.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No organizations found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              orgsData?.map((org) => (
-                <TableRow key={org.id}>
-                  <TableCell className="font-medium">{org.name}</TableCell>
-                  <TableCell>{org.slug}</TableCell>
-                  <TableCell>{org.subscriptionPlan}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${org.isActive ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}
-                    >
-                      {org.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      title="Manage Features"
-                      onClick={() =>
-                        navigate({ to: `/organizations/${org.id}/features` })
-                      }
-                    >
-                      <ToggleRight className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      title="Settings"
-                      onClick={() =>
-                        navigate({ to: `/organizations/${org.id}/settings` })
-                      }
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(org)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    {org.isActive && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Deactivate this organization?'))
-                            deactivateMutation.mutate(org.id)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <OrganizationTable
+        organizations={orgsData ?? []}
+        isLoading={isLoading}
+        onFeatures={(org) => navigate({ to: `/organizations/${org.id}/features` })}
+        onSettings={(org) => navigate({ to: `/organizations/${org.id}/settings` })}
+        onEdit={openEdit}
+        onDeactivate={setDeactivateTarget}
+      />
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        onOpenChange={(open) => !open && setDeactivateTarget(null)}
+        title="Deactivate organization?"
+        description={
+          <>
+            <strong>{deactivateTarget?.name}</strong> will be deactivated and
+            its users will lose access.
+          </>
+        }
+        confirmLabel="Deactivate"
+        destructive
+        isLoading={deactivateMutation.isPending}
+        onConfirm={() => {
+          if (!deactivateTarget) return
+          deactivateMutation.mutate(deactivateTarget.id, {
+            onSettled: () => setDeactivateTarget(null),
+          })
+        }}
+      />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

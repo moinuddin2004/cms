@@ -2,20 +2,28 @@ import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
-import { Eye, Pencil, UserX } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import type { Employee } from '../types'
 import { EmployeeAvatar } from './EmployeeAvatar'
-import { useTogglePortalAccess } from '../hooks/useTogglePortalAccess'
 import { getEmploymentTypeLabel, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface EmployeeTableProps {
   employees: Employee[]
   isLoading?: boolean
-  onDeactivate: (id: string) => void
+  onToggleStatus: (employee: Employee, isActive: boolean) => void
+  onDelete: (employee: Employee) => void
+  /** id of the employee whose status change is in flight */
+  pendingStatusId?: string | null
   onEdit?: (employee: Employee) => void
   serverPagination?: ServerPagination
 }
@@ -30,12 +38,12 @@ const employmentTypeStyles: Record<string, string> = {
 export function EmployeeTable({
   employees,
   isLoading,
-  onDeactivate,
+  onToggleStatus,
+  onDelete,
+  pendingStatusId,
   onEdit,
   serverPagination,
 }: EmployeeTableProps) {
-  const togglePortalMutation = useTogglePortalAccess()
-
   const columns = useMemo<ColumnDef<Employee, unknown>[]>(
     () => [
       {
@@ -103,27 +111,6 @@ export function EmployeeTable({
         },
       },
       {
-        accessorKey: 'hasPortalAccess',
-        header: 'Portal',
-        enableSorting: false,
-        cell: ({ row }) => {
-          const e = row.original
-          return (
-            <Switch
-              checked={e.hasPortalAccess}
-              disabled={togglePortalMutation.isPending || !e.isActive}
-              onCheckedChange={(val) =>
-                togglePortalMutation.mutate({
-                  employeeId: e.id,
-                  hasPortalAccess: val,
-                })
-              }
-              aria-label="Toggle portal access"
-            />
-          )
-        },
-      },
-      {
         accessorKey: 'isActive',
         header: 'Status',
         enableSorting: false,
@@ -150,44 +137,62 @@ export function EmployeeTable({
         cell: ({ row }) => {
           const e = row.original
           return (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                asChild
-              >
-                <Link to="/employees/$employeeId" params={{ employeeId: e.id }}>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => onEdit?.(e)}
-              >
-                <Pencil className="h-4 w-4 text-muted-foreground" />
-              </Button>
-              {e.isActive && (
-                <Button
+            <TooltipProvider delayDuration={300}>
+              <div className="flex items-center justify-end gap-2">
+                <TooltipButton
+                  tooltip="View employee"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  asChild
+                >
+                  <Link to="/employees/$employeeId" params={{ employeeId: e.id }}>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                </TooltipButton>
+                <TooltipButton
+                  tooltip="Edit employee"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => onEdit?.(e)}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </TooltipButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Switch
+                        size="sm"
+                        checked={e.isActive}
+                        disabled={pendingStatusId === e.id}
+                        onCheckedChange={(v) => onToggleStatus(e, v)}
+                        aria-label={
+                          e.isActive ? 'Deactivate employee' : 'Activate employee'
+                        }
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {e.isActive ? 'Deactivate employee' : 'Activate employee'}
+                  </TooltipContent>
+                </Tooltip>
+                <TooltipButton
+                  tooltip="Delete employee permanently"
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => {
-                    if (confirm('Deactivate this employee?'))
-                      onDeactivate(e.id)
-                  }}
+                  onClick={() => onDelete(e)}
                 >
-                  <UserX className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+                  <Trash2 className="h-4 w-4" />
+                </TooltipButton>
+              </div>
+            </TooltipProvider>
           )
         },
       },
     ],
-    [onDeactivate, onEdit, togglePortalMutation],
+    [onToggleStatus, onDelete, pendingStatusId, onEdit],
   )
 
   return (

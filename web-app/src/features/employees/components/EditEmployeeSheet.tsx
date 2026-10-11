@@ -39,7 +39,7 @@ export function EditEmployeeSheet({ employee, open, onOpenChange }: EditEmployee
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) handleCancel() }}>
-      <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-0">
+      <SheetContent side="right" className="w-full sm:max-w-5xl overflow-y-auto p-0">
         <SheetHeader className="sr-only">
           <SheetTitle>Edit Employee</SheetTitle>
         </SheetHeader>

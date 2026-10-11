@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Employee } from './entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from './entities/employee-org-location-assignment.entity';
@@ -357,18 +357,56 @@ export class EmployeesService {
   // DEACTIVATE
   // ═══════════════════════════════════════════════════════════
 
-  async deactivate(
+  async setActive(
     employeeId: string,
     ctx: TenantContext,
-  ): Promise<any> {
+    isActive: boolean,
+  ): Promise<{ employeeId: string; isActive: boolean }> {
     const assignment = await this.getAssignmentOrFail(
       employeeId,
       ctx.organizationId,
       ctx.locationId,
     );
-    assignment.isActive = false;
+    assignment.isActive = isActive;
     await this.assignmentRepo.save(assignment);
-    return { message: 'Employee deactivated at this location' };
+    return { employeeId, isActive };
+  }
+
+  /**
+   * Permanently deletes the employee. Payroll, leaves, schedules and
+   * availability overrides go with them (ON DELETE CASCADE); appointments,
+   * invoices etc. keep their rows with the doctor/creator set to NULL.
+   * Refused when the employee also works at another location, or is still
+   * referenced by inventory records (purchase orders, stock movements,
+   * patient consumptions) — deactivate them instead.
+   */
+  async remove(employeeId: string, ctx: TenantContext): Promise<void> {
+    await this.getAssignmentOrFail(
+      employeeId,
+      ctx.organizationId,
+      ctx.locationId,
+    );
+
+    const otherAssignments = await this.assignmentRepo.count({
+      where: { employeeId, locationId: Not(ctx.locationId) },
+    });
+    if (otherAssignments > 0) {
+      throw new ConflictException(
+        'This employee is also assigned to other locations and cannot be deleted. Deactivate them here instead.',
+      );
+    }
+
+    try {
+      await this.employeeRepo.delete({ id: employeeId });
+    } catch (err) {
+      // 23503 = foreign_key_violation
+      if ((err as { code?: string }).code === '23503') {
+        throw new ConflictException(
+          'This employee has linked inventory records and cannot be deleted. Deactivate them instead.',
+        );
+      }
+      throw err;
+    }
   }
 
   // ═══════════════════════════════════════════════════════════

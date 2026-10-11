@@ -190,17 +190,12 @@ export default function PatientsRoute() {
 - "Clear all filters" button appears when any filter is active
 - "No results for your filters" state — different from empty state
 
-### Breadcrumbs — Every Page
-- Every page must show breadcrumbs via `PageWrapper`
+### Back Button on Nested Pages — No Breadcrumbs
+- **Do NOT use breadcrumbs.** Top-level listing pages (Patients, Employees, Prescriptions…) just show title + subtitle.
+- Every nested / detail page (`/patients/$id`, `/invoices/$id`, `/prescriptions/new`, settings sub-pages, template/library pages…) shows a small ← back button left of the title.
+- Use `DashboardLayout`'s `backTo` + `backLabel` props, or `BackButton` from `@/components/shared/BackButton` in a custom header.
 ```tsx
-<PageWrapper
-  title="Patient Details"
-  breadcrumbs={[
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Patients', href: '/dashboard/patients' },
-    { label: patient.name },
-  ]}
->
+<DashboardLayout title="Invoice INV-001" backTo="/invoices" backLabel="Back to invoices">
 ```
 
 ### Action Buttons
@@ -278,7 +273,7 @@ export default function PatientsRoute() {
 - No direct axios calls inside components
 - No forms opening as separate pages
 - No listing without both card + list view
-- No page without breadcrumbs via `PageWrapper`
+- No breadcrumbs — nested pages get a back button (`backTo`) instead
 - No listing without filters row
 - No form without validation and disabled submit state
 - No action without loading state

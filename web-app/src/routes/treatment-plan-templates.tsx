@@ -85,6 +85,8 @@ function TreatmentPlanTemplatesPage() {
   return (
     <DashboardLayout
       title="Treatment Plan Templates"
+      backTo="/prescriptions"
+      backLabel="Back to prescriptions"
       subtitle="Reusable prescription presets per condition"
       actions={
         <Button onClick={() => setCreating(true)}>

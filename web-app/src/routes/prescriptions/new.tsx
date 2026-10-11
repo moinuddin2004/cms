@@ -21,7 +21,11 @@ export const Route = createFileRoute('/prescriptions/new')({
 function NewPrescriptionPage() {
   const { patientId, appointmentId } = Route.useSearch()
   return (
-    <DashboardLayout title="New Prescription">
+    <DashboardLayout
+      title="New Prescription"
+      backTo="/prescriptions"
+      backLabel="Back to prescriptions"
+    >
       <PrescriptionBuilder
         initialPatientId={patientId}
         initialAppointmentId={appointmentId}

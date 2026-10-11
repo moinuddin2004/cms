@@ -40,8 +40,17 @@ export async function updateEmployee(
   return data.data
 }
 
-export async function deactivateEmployee(id: string): Promise<void> {
-  await api.patch(`/employees/${id}/deactivate`)
+export async function setEmployeeStatus(
+  id: string,
+  isActive: boolean,
+): Promise<{ employeeId: string; isActive: boolean }> {
+  const { data } = await api.patch(`/employees/${id}/status`, { isActive })
+  return data.data
+}
+
+/** Permanent delete — removes the employee and their payroll, leaves and schedules. */
+export async function deleteEmployee(id: string): Promise<void> {
+  await api.delete(`/employees/${id}`)
 }
 
 // ─── Portal Access ──────────────────────────────────────────────────

@@ -43,7 +43,11 @@ function FeatureManagementRoute() {
   }
 
   return (
-    <DashboardLayout title="Feature Management">
+    <DashboardLayout
+      title="Feature Management"
+      backTo="/organizations"
+      backLabel="Back to organizations"
+    >
       <FeatureManagement orgId={id} />
     </DashboardLayout>
   )

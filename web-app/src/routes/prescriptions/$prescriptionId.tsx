@@ -14,7 +14,11 @@ export const Route = createFileRoute('/prescriptions/$prescriptionId')({
 function PrescriptionDetailPage() {
   const { prescriptionId } = Route.useParams()
   return (
-    <DashboardLayout title="Prescription">
+    <DashboardLayout
+      title="Prescription"
+      backTo="/prescriptions"
+      backLabel="Back to prescriptions"
+    >
       <PrescriptionBuilder prescriptionId={prescriptionId} />
     </DashboardLayout>
   )

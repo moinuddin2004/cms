@@ -2,7 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   Tooltip,
   TooltipContent,
@@ -12,12 +13,14 @@ import {
 import { EmployeeAvatar } from './EmployeeAvatar'
 import { getEmploymentTypeLabel, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { Phone, Hash, MapPin, Eye, Pencil, UserX, Banknote } from 'lucide-react'
+import { Phone, Hash, MapPin, Eye, Pencil, Trash2, Banknote } from 'lucide-react'
 import type { Employee } from '../types'
 
 interface EmployeeCardProps {
   employee: Employee
-  onDeactivate: (id: string) => void
+  onToggleStatus: (employee: Employee, isActive: boolean) => void
+  onDelete: (employee: Employee) => void
+  isStatusPending?: boolean
   onEdit?: (employee: Employee) => void
 }
 
@@ -28,7 +31,13 @@ const employmentTypeStyles: Record<string, string> = {
   contract: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
 }
 
-export function EmployeeCard({ employee, onDeactivate, onEdit }: EmployeeCardProps) {
+export function EmployeeCard({
+  employee,
+  onToggleStatus,
+  onDelete,
+  isStatusPending,
+  onEdit,
+}: EmployeeCardProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <Card className="group relative overflow-hidden border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
@@ -110,54 +119,57 @@ export function EmployeeCard({ employee, onDeactivate, onEdit }: EmployeeCardPro
             </div>
 
             {/* Action buttons — always visible */}
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
-                    asChild
-                  >
-                    <Link to="/employees/$employeeId" params={{ employeeId: employee.id }}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">View employee</TooltipContent>
-              </Tooltip>
+            <div className="flex items-center gap-1.5">
+              <TooltipButton
+                tooltip="View employee"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                asChild
+              >
+                <Link to="/employees/$employeeId" params={{ employeeId: employee.id }}>
+                  <Eye className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipButton>
+
+              <TooltipButton
+                tooltip="Edit employee"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                onClick={() => onEdit?.(employee)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </TooltipButton>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
-                    onClick={() => onEdit?.(employee)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">Edit employee</TooltipContent>
-              </Tooltip>
-
-              {employee.isActive && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
+                  <span className="inline-flex">
+                    <Switch
                       size="sm"
-                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm('Deactivate this employee?')) onDeactivate(employee.id)
-                      }}
-                    >
-                      <UserX className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Deactivate employee</TooltipContent>
-                </Tooltip>
-              )}
+                      checked={employee.isActive}
+                      disabled={isStatusPending}
+                      onCheckedChange={(v) => onToggleStatus(employee, v)}
+                      aria-label={
+                        employee.isActive ? 'Deactivate employee' : 'Activate employee'
+                      }
+                    />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {employee.isActive ? 'Deactivate employee' : 'Activate employee'}
+                </TooltipContent>
+              </Tooltip>
+
+              <TooltipButton
+                tooltip="Delete employee permanently"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onDelete(employee)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </TooltipButton>
             </div>
           </div>
         </CardContent>

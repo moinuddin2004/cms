@@ -10,7 +10,11 @@ function LocationSettingsRouteComponent() {
   const { id } = Route.useParams()
 
   return (
-    <DashboardLayout title="Location Settings">
+    <DashboardLayout
+      title="Location Settings"
+      backTo="/locations"
+      backLabel="Back to locations"
+    >
       <LocationSettingsFeature locationId={id} />
     </DashboardLayout>
   )

@@ -4,15 +4,6 @@ import apiClient from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit2, Trash2, Settings } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +20,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { LocationTable } from './components/LocationTable'
 
 export interface Location {
   id: string
@@ -52,6 +45,7 @@ export const LocationManagementView = forwardRef<{ create: () => void }>(functio
   const queryClient = useQueryClient()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [locToEdit, setLocToEdit] = useState<Location | null>(null)
+  const [deactivateTarget, setDeactivateTarget] = useState<Location | null>(null)
 
   const { data: locationsData, isLoading } = useQuery({
     queryKey: ['locations'],
@@ -139,92 +133,35 @@ export const LocationManagementView = forwardRef<{ create: () => void }>(functio
 
   return (
     <div className="flex flex-col space-y-6">
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              {isSuperAdmin && <TableHead>Organization</TableHead>}
-              <TableHead>City</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={isSuperAdmin ? 6 : 5}
-                  className="text-center"
-                >
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : locationsData?.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={isSuperAdmin ? 6 : 5}
-                  className="text-center"
-                >
-                  No locations found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              locationsData?.map((loc) => (
-                <TableRow key={loc.id}>
-                  <TableCell className="font-medium">
-                    {loc.name}
-                    <div className="text-xs text-muted-foreground">{loc.code}</div>
-                  </TableCell>
-                  {isSuperAdmin && (
-                    <TableCell>{loc.organization?.name || 'Unknown'}</TableCell>
-                  )}
-                  <TableCell>{loc.city || 'N/A'}</TableCell>
-                  <TableCell>{loc.phone || 'N/A'}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${loc.isActive ? 'bg-status-success/10 text-status-success' : 'bg-status-error/10 text-status-error'}`}
-                    >
-                      {loc.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        navigate({ to: `/locations/${loc.id}/settings` })
-                      }
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEdit(loc)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    {loc.isActive && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm('Deactivate this location?'))
-                            deactivateMutation.mutate(loc.id)
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <LocationTable
+        locations={locationsData ?? []}
+        isLoading={isLoading}
+        showOrganization={isSuperAdmin}
+        onSettings={(loc) => navigate({ to: `/locations/${loc.id}/settings` })}
+        onEdit={openEdit}
+        onDeactivate={setDeactivateTarget}
+      />
+
+      <ConfirmDialog
+        open={!!deactivateTarget}
+        onOpenChange={(open) => !open && setDeactivateTarget(null)}
+        title="Deactivate location?"
+        description={
+          <>
+            <strong>{deactivateTarget?.name}</strong> will be deactivated and
+            hidden from location selection.
+          </>
+        }
+        confirmLabel="Deactivate"
+        destructive
+        isLoading={deactivateMutation.isPending}
+        onConfirm={() => {
+          if (!deactivateTarget) return
+          deactivateMutation.mutate(deactivateTarget.id, {
+            onSettled: () => setDeactivateTarget(null),
+          })
+        }}
+      />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-md">

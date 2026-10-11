@@ -12,13 +12,14 @@ import {
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, Trash2 } from 'lucide-react'
+import { Eye, Pencil, Trash2 } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {
   patients: Patient[]
   isLoading?: boolean
   onToggleStatus: (patient: Patient, isActive: boolean) => void
+  onEdit: (patient: Patient) => void
   onDelete: (patient: Patient) => void
   /** id of the patient whose status change is in flight */
   pendingStatusId?: string | null
@@ -35,6 +36,7 @@ export function PatientTable({
   patients,
   isLoading,
   onToggleStatus,
+  onEdit,
   onDelete,
   pendingStatusId,
   serverPagination,
@@ -147,6 +149,15 @@ export function PatientTable({
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Link>
                 </TooltipButton>
+                <TooltipButton
+                  tooltip="Edit patient"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => onEdit(p)}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </TooltipButton>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="inline-flex">
@@ -180,7 +191,7 @@ export function PatientTable({
         },
       },
     ],
-    [onToggleStatus, onDelete, pendingStatusId],
+    [onToggleStatus, onEdit, onDelete, pendingStatusId],
   )
 
   return (

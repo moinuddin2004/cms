@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { AlertCircle, Plus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PageWrapper, ViewToggle } from '@/components/shared'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useEmployeeStore } from '@/store/employee-store'
 import {
@@ -15,7 +15,8 @@ import {
   CreateEmployeeModal,
   EditEmployeeSheet,
   useEmployees,
-  useDeactivateEmployee,
+  useSetEmployeeStatus,
+  useDeleteEmployee,
   type Employee,
 } from '@/features/employees'
 
@@ -25,6 +26,7 @@ export function EmployeesPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null)
   const [editOpen, setEditOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('')
   const [employmentType, setEmploymentType] = useState('')
@@ -41,17 +43,23 @@ export function EmployeesPage() {
     limit,
   })
 
-  const deactivateMutation = useDeactivateEmployee()
+  const statusMutation = useSetEmployeeStatus()
+  const deleteMutation = useDeleteEmployee()
 
-  const handleDeactivate = async (id: string) => {
-    if (!confirm('Are you sure you want to deactivate this employee?')) return
-    try {
-      await deactivateMutation.mutateAsync(id)
-      toast.success('Employee deactivated')
-    } catch (error) {
-      toast.error('Failed to deactivate employee')
-    }
+  const handleToggleStatus = (employee: Employee, isActive: boolean) => {
+    statusMutation.mutate({ id: employee.id, isActive })
   }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return
+    deleteMutation.mutate(deleteTarget.id, {
+      onSettled: () => setDeleteTarget(null),
+    })
+  }
+
+  const pendingStatusId = statusMutation.isPending
+    ? statusMutation.variables.id
+    : null
 
   const handleOpenCreate = () => setCreateOpen(true)
 
@@ -133,7 +141,9 @@ export function EmployeesPage() {
           {viewMode === 'table' ? (
             <EmployeeTable
               employees={response.data}
-              onDeactivate={handleDeactivate}
+              onToggleStatus={handleToggleStatus}
+              onDelete={setDeleteTarget}
+              pendingStatusId={pendingStatusId}
               onEdit={handleOpenEdit}
               serverPagination={{
                 page: response.page,
@@ -149,7 +159,9 @@ export function EmployeesPage() {
                 <EmployeeCard
                   key={employee.id}
                   employee={employee}
-                  onDeactivate={handleDeactivate}
+                  onToggleStatus={handleToggleStatus}
+                  onDelete={setDeleteTarget}
+                  isStatusPending={pendingStatusId === employee.id}
                   onEdit={handleOpenEdit}
                 />
               ))}
@@ -173,6 +185,24 @@ export function EmployeesPage() {
       <CreateEmployeeModal
         open={createOpen}
         onOpenChange={setCreateOpen}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete employee permanently?"
+        description={
+          <>
+            <strong>{deleteTarget?.fullName}</strong> and their payroll
+            records, leaves and schedules will be permanently deleted. This
+            cannot be undone. To keep the records, deactivate the employee
+            instead.
+          </>
+        }
+        confirmLabel="Delete permanently"
+        destructive
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
       />
 
       {editingEmployee && (

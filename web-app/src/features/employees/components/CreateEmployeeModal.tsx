@@ -37,7 +37,7 @@ export function CreateEmployeeModal({ open, onOpenChange }: CreateEmployeeModalP
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <DialogContent className="w-full sm:max-w-3xl gap-0 p-0">
+      <DialogContent className="w-full sm:max-w-6xl max-h-[92vh] overflow-y-auto gap-0 p-0">
         <DialogTitle className="sr-only">Add Employee</DialogTitle>
         <div className="px-6 py-5 pr-12">
           <div className="mb-5">

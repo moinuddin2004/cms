@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { type User } from '../types'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/shared/DataTable'
+import { TooltipButton } from '@/components/shared/TooltipButton'
+import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { ShieldAlert, User as UserIcon, Edit, Trash } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -12,9 +12,16 @@ interface UserTableProps {
   isLoading?: boolean
   onEdit: (user: User) => void
   onDelete: (user: User) => void
+  serverPagination?: ServerPagination
 }
 
-export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps) {
+export function UserTable({
+  users,
+  isLoading,
+  onEdit,
+  onDelete,
+  serverPagination,
+}: UserTableProps) {
   const columns = useMemo<ColumnDef<User, unknown>[]>(
     () => [
       {
@@ -103,22 +110,24 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
           const user = row.original
           return (
             <div className="flex items-center justify-end gap-1">
-              <Button
+              <TooltipButton
+                tooltip="Edit user"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onEdit(user)}
               >
                 <Edit className="w-4 h-4 text-muted-foreground" />
-              </Button>
-              <Button
+              </TooltipButton>
+              <TooltipButton
+                tooltip="Delete user"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
                 onClick={() => onDelete(user)}
               >
                 <Trash className="w-4 h-4 text-destructive" />
-              </Button>
+              </TooltipButton>
             </div>
           )
         },
@@ -132,9 +141,8 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
       columns={columns}
       data={users}
       isLoading={isLoading}
-
       emptyMessage="No users found."
-      pagination
+      serverPagination={serverPagination}
     />
   )
 }

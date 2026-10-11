@@ -4,8 +4,7 @@ import { useUsers, useDeleteUser } from './api'
 import type { UserRoleType, User } from './types'
 import { UserTable } from './components/UserTable'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { UserFormDialog } from './components/UserFormDialog'
 
 export const UserManagementView = forwardRef<{ create: () => void }>(function UserManagementView(_props, ref) {
@@ -14,6 +13,8 @@ export const UserManagementView = forwardRef<{ create: () => void }>(function Us
     isSuperAdmin ? 'super_admin' : 'owner',
   )
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [userToEdit, setUserToEdit] = useState<User | null>(null)
 
@@ -24,7 +25,7 @@ export const UserManagementView = forwardRef<{ create: () => void }>(function Us
   const { data: usersData, isLoading } = useUsers(
     activeTab,
     page,
-    10,
+    pageSize,
     activeOrganizationId || undefined,
   )
   const deleteMutation = useDeleteUser(activeOrganizationId || undefined)
@@ -47,11 +48,7 @@ export const UserManagementView = forwardRef<{ create: () => void }>(function Us
     setIsFormOpen(true)
   }
 
-  const handleDelete = (user: User) => {
-    if (confirm(`Are you sure you want to delete ${user.email}?`)) {
-      deleteMutation.mutate(user.uuid)
-    }
-  }
+  const handleDelete = (user: User) => setUserToDelete(user)
 
   const handleCreateNew = () => {
     setUserToEdit(null)
@@ -59,6 +56,25 @@ export const UserManagementView = forwardRef<{ create: () => void }>(function Us
   }
 
   useImperativeHandle(ref, () => ({ create: handleCreateNew }))
+
+  const tableProps = {
+    users: usersData?.data || [],
+    isLoading,
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+    serverPagination: usersData
+      ? {
+          page,
+          pageSize,
+          total: usersData.total,
+          onPageChange: setPage,
+          onPageSizeChange: (size: number) => {
+            setPageSize(size)
+            setPage(1)
+          },
+        }
+      : undefined,
+  }
 
   return (
     <div className="flex flex-col space-y-6">
@@ -76,57 +92,36 @@ export const UserManagementView = forwardRef<{ create: () => void }>(function Us
         </TabsList>
 
         <TabsContent value="super_admin" className="m-0">
-          <UserTable
-            users={usersData?.data || []}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          <UserTable {...tableProps} />
         </TabsContent>
         <TabsContent value="owner" className="m-0">
-          <UserTable
-            users={usersData?.data || []}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          <UserTable {...tableProps} />
         </TabsContent>
         <TabsContent value="employee" className="m-0">
-          <UserTable
-            users={usersData?.data || []}
-            isLoading={isLoading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+          <UserTable {...tableProps} />
         </TabsContent>
       </Tabs>
 
-      {/* Pagination controls if needed */}
-      {usersData?.totalPages ? (
-        <div className="flex justify-between items-center text-sm">
-          <span>
-            Page {page} of {usersData.totalPages} | Total: {usersData.total}
-          </span>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === usersData.totalPages}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+        title="Delete user?"
+        description={
+          <>
+            <strong>{userToDelete?.email}</strong> will be deleted and will no
+            longer be able to sign in.
+          </>
+        }
+        confirmLabel="Delete"
+        destructive
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!userToDelete) return
+          deleteMutation.mutate(userToDelete.uuid, {
+            onSettled: () => setUserToDelete(null),
+          })
+        }}
+      />
 
       <UserFormDialog
         open={isFormOpen}

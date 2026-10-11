@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -17,6 +18,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateSalaryDto } from './dto/update-salary.dto';
 import { EmployeeFilterDto } from './dto/employee-filter.dto';
+import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
 import { TogglePortalAccessDto } from './dto/toggle-portal-access.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
@@ -69,13 +71,28 @@ export class EmployeesController {
     return ResponseWrapper.success(data, 'Employee updated successfully');
   }
 
-  @Patch(':id/deactivate')
-  async deactivate(
+  @Patch(':id/status')
+  async setStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateEmployeeStatusDto,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.employeesService.setActive(id, ctx, dto.isActive);
+    return ResponseWrapper.success(
+      data,
+      dto.isActive
+        ? 'Employee activated successfully'
+        : 'Employee deactivated successfully',
+    );
+  }
+
+  @Delete(':id')
+  async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.employeesService.deactivate(id, ctx);
-    return ResponseWrapper.success(data, 'Employee deactivated successfully');
+    await this.employeesService.remove(id, ctx);
+    return ResponseWrapper.success(null, 'Employee deleted permanently');
   }
 
   // ═══════════════════════════════════════════════════════════
