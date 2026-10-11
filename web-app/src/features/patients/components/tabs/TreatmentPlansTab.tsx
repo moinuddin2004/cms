@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -194,12 +195,19 @@ function PlanAccordionItem({ plan }: { plan: PatientTreatmentPlan }) {
                   })
                 }
               >
-                <SelectTrigger className="h-8 w-40 text-xs" disabled={isPending}>
+                <SelectTrigger
+                  className="h-8 w-40 text-xs"
+                  disabled={isPending}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(TreatmentPlanStatus).map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize text-xs">
+                    <SelectItem
+                      key={s}
+                      value={s}
+                      className="capitalize text-xs"
+                    >
                       {s.replace('_', ' ')}
                     </SelectItem>
                   ))}
@@ -330,31 +338,31 @@ function PlanItemRow({
       </td>
       <td className="px-4 py-2.5">
         <div className="flex items-center gap-1">
-          <Button
+          <TooltipButton
+            tooltip="Decrease completed sessions"
             type="button"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
             disabled={isPending || completed <= 0}
             onClick={() => setSessions(completed - 1)}
-            aria-label="Decrease completed sessions"
           >
             <Minus size={12} />
-          </Button>
+          </TooltipButton>
           <span className="text-xs tabular-nums w-10 text-center text-muted-foreground">
             {completed} / {estimated}
           </span>
-          <Button
+          <TooltipButton
+            tooltip="Increase completed sessions"
             type="button"
             variant="ghost"
             size="icon"
             className="h-6 w-6"
             disabled={isPending || completed >= estimated}
             onClick={() => setSessions(completed + 1)}
-            aria-label="Increase completed sessions"
           >
             <Plus size={12} />
-          </Button>
+          </TooltipButton>
         </div>
       </td>
       <td className="px-4 py-2.5 font-medium">

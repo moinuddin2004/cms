@@ -2,16 +2,26 @@ import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
 import { type ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, UserX } from 'lucide-react'
+import { Eye, Trash2 } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientTableProps {
   patients: Patient[]
   isLoading?: boolean
-  onDeactivate: (id: string) => void
+  onToggleStatus: (patient: Patient, isActive: boolean) => void
+  onDelete: (patient: Patient) => void
+  /** id of the patient whose status change is in flight */
+  pendingStatusId?: string | null
   serverPagination?: ServerPagination
 }
 
@@ -24,7 +34,9 @@ function getAge(dob: string | null): string {
 export function PatientTable({
   patients,
   isLoading,
-  onDeactivate,
+  onToggleStatus,
+  onDelete,
+  pendingStatusId,
   serverPagination,
 }: PatientTableProps) {
   const columns = useMemo<ColumnDef<Patient, unknown>[]>(
@@ -122,35 +134,53 @@ export function PatientTable({
         cell: ({ row }) => {
           const p = row.original
           return (
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                asChild
-              >
-                <Link to="/patients/$patientId" params={{ patientId: p.id }}>
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </Button>
-              {p.isActive && (
-                <Button
+            <TooltipProvider delayDuration={300}>
+              <div className="flex items-center justify-end gap-2">
+                <TooltipButton
+                  tooltip="View patient"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  asChild
+                >
+                  <Link to="/patients/$patientId" params={{ patientId: p.id }}>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </Link>
+                </TooltipButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Switch
+                        size="sm"
+                        checked={p.isActive}
+                        disabled={pendingStatusId === p.id}
+                        onCheckedChange={(v) => onToggleStatus(p, v)}
+                        aria-label={
+                          p.isActive ? 'Deactivate patient' : 'Activate patient'
+                        }
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {p.isActive ? 'Deactivate patient' : 'Activate patient'}
+                  </TooltipContent>
+                </Tooltip>
+                <TooltipButton
+                  tooltip="Delete patient permanently"
                   variant="ghost"
                   size="sm"
                   className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => {
-                    if (confirm('Deactivate this patient?')) onDeactivate(p.id)
-                  }}
+                  onClick={() => onDelete(p)}
                 >
-                  <UserX className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+                  <Trash2 className="h-4 w-4" />
+                </TooltipButton>
+              </div>
+            </TooltipProvider>
           )
         },
       },
     ],
-    [onDeactivate],
+    [onToggleStatus, onDelete, pendingStatusId],
   )
 
   return (

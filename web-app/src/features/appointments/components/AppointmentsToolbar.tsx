@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { ChevronLeft, ChevronRight, CalendarDays, Stethoscope } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/shared/DatePicker'
 import {
   Select,
   SelectContent,
@@ -133,13 +134,13 @@ export function AppointmentsToolbar({
             <span className="hidden text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:inline">
               Jump to
             </span>
-            <input
-              type="date"
+            <DatePicker
               value={selectedYMD ?? ''}
-              onChange={(e) => {
-                if (e.target.value) onSelectDate(fromYMD(e.target.value))
+              onChange={(v) => {
+                if (v) onSelectDate(fromYMD(v))
               }}
-              className="h-5 border-0 bg-transparent p-0 text-xs font-medium text-foreground focus:outline-none focus:ring-0"
+              hideIcon
+              className="h-6 w-auto border-0 bg-transparent px-1 text-xs font-medium shadow-none hover:bg-accent"
             />
           </div>
 

@@ -671,8 +671,10 @@ export interface PatientListParams {
 // ─── Form Step Config ───────────────────────────────────────────────
 
 export const FORM_STEPS = [
-  { id: 0, title: 'Basic Info', description: 'Personal & Contact Details' },
+  {
+    id: 0,
+    title: 'Basic Info',
+    description: 'Personal, Guardian, Emergency & Medical',
+  },
   { id: 1, title: 'Clinic Info', description: 'Source & Clinic Notes' },
-  { id: 2, title: 'Guardian', description: 'Minor / Guardian Information' },
-  { id: 3, title: 'Emergency', description: 'Medical History & Emergency' },
 ] as const

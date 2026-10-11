@@ -1,7 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   Tooltip,
   TooltipContent,
@@ -9,12 +10,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, UserX, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
+import { Eye, Trash2, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientCardProps {
   patient: Patient
-  onDeactivate: (id: string) => void
+  onToggleStatus: (patient: Patient, isActive: boolean) => void
+  onDelete: (patient: Patient) => void
+  isStatusPending?: boolean
 }
 
 function getAge(dob: string | null): string {
@@ -33,7 +36,12 @@ function getDobDisplay(dob: string | null): string {
   })
 }
 
-export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
+export function PatientCard({
+  patient,
+  onToggleStatus,
+  onDelete,
+  isStatusPending,
+}: PatientCardProps) {
   return (
     <TooltipProvider delayDuration={300}>
       <Card className="group relative overflow-hidden border border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
@@ -106,40 +114,46 @@ export function PatientCard({ patient, onDeactivate }: PatientCardProps) {
               )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
+              <TooltipButton
+                tooltip="View patient"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                asChild
+              >
+                <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
+                  <Eye className="h-3.5 w-3.5" />
+                </Link>
+              </TooltipButton>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
-                    asChild
-                  >
-                    <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
-                      <Eye className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
+                  <span className="inline-flex">
+                    <Switch
+                      size="sm"
+                      checked={patient.isActive}
+                      disabled={isStatusPending}
+                      onCheckedChange={(v) => onToggleStatus(patient, v)}
+                      aria-label={
+                        patient.isActive ? 'Deactivate patient' : 'Activate patient'
+                      }
+                    />
+                  </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">View patient</TooltipContent>
+                <TooltipContent side="top" className="text-xs">
+                  {patient.isActive ? 'Deactivate patient' : 'Activate patient'}
+                </TooltipContent>
               </Tooltip>
 
-              {patient.isActive && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm('Deactivate this patient?')) onDeactivate(patient.id)
-                      }}
-                    >
-                      <UserX className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">Deactivate patient</TooltipContent>
-                </Tooltip>
-              )}
+              <TooltipButton
+                tooltip="Delete patient permanently"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => onDelete(patient)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </TooltipButton>
             </div>
           </div>
         </CardContent>

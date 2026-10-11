@@ -208,6 +208,8 @@ export default function PatientsRoute() {
 - Row actions → `DropdownMenu` (three-dot) for 3+ actions; icon buttons for 1-2
 - Destructive (Delete) → always confirm dialog first
 - Loading state on every button during async operation
+- **Tooltip on every icon-only button / control — MANDATORY, whole project.** Use `TooltipButton` from `@/components/shared/TooltipButton` (`tooltip` prop is required; it doubles as `aria-label`). Switches/other icon controls wrap in `Tooltip` manually. Never ship an icon-only button without one.
+- Delete = permanent and always goes through `ConfirmDialog` (`@/components/shared/ConfirmDialog`). Active/Inactive is a separate `Switch` toggle — never reuse DELETE to deactivate.
 
 ### States — Required Everywhere
 - Loading → `LoadingSkeleton` (never blank screen)
@@ -261,6 +263,7 @@ export default function PatientsRoute() {
 ### Component Style Rules
 - Cards: `rounded-lg border border-slate-200 bg-white shadow-sm`
 - Inputs: always shadcn `Input` — never raw `<input>`
+- Dates: always `DatePicker` from `@/components/shared/DatePicker` (shadcn Popover + Calendar) — never native `type="date"`; use `DateTimePicker` for date+time
 - Table rows: `hover:bg-slate-50 transition-colors`
 - Buttons: always shadcn `Button` with correct `variant`
 
@@ -279,6 +282,7 @@ export default function PatientsRoute() {
 - No listing without filters row
 - No form without validation and disabled submit state
 - No action without loading state
+- No icon-only button without a tooltip
 - No list/detail without empty + error states
 - No edits to `shared/components/ui/` (shadcn auto-generated)
 

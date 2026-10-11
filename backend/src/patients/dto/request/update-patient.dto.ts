@@ -163,3 +163,8 @@ export class UpdatePatientDto {
   @IsString()
   blacklistReason?: string;
 }
+
+export class UpdatePatientStatusDto {
+  @IsBoolean()
+  isActive: boolean;
+}

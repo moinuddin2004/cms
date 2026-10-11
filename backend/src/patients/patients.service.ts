@@ -219,12 +219,22 @@ export class PatientsService {
     return PatientResponseDto.toDto(saved);
   }
 
-  async softDelete(id: string, organizationId: string): Promise<PatientResponseDto> {
+  async setActive(id: string, organizationId: string, isActive: boolean): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
-    patient.isActive = false;
-    await this.patientRepo.save(patient);
-    await this.patientRepo.softRemove(patient);
-    return PatientResponseDto.toDto(patient);
+    patient.isActive = isActive;
+    const saved = await this.patientRepo.save(patient);
+    return PatientResponseDto.toDto(saved);
+  }
+
+  /**
+   * Permanently deletes the patient. All patient-owned rows (appointments,
+   * invoices, payments, prescriptions, clinical records) are removed by the
+   * database via ON DELETE CASCADE. Use `setActive(false)` to hide a patient
+   * without losing data.
+   */
+  async remove(id: string, organizationId: string): Promise<void> {
+    await this.getPatientOrFail(id, organizationId);
+    await this.patientRepo.delete({ id, organizationId });
   }
 
   async checkPhoneExists(organizationId: string, phone: string, excludeId?: string): Promise<{ exists: boolean }> {

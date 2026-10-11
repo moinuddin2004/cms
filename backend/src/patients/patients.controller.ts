@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/request/create-patient.dto';
-import { UpdatePatientDto } from './dto/request/update-patient.dto';
+import { UpdatePatientDto, UpdatePatientStatusDto } from './dto/request/update-patient.dto';
 import { PatientQueryDto } from './dto/request/patient-query.dto';
 import {
   UpsertDentalInfoDto,
@@ -89,10 +89,23 @@ export class PatientsController {
     return ResponseWrapper.success(data, 'Patient updated successfully');
   }
 
+  @Patch(':id/status')
+  async setStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdatePatientStatusDto,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.setActive(id, ctx.organizationId, dto.isActive);
+    return ResponseWrapper.success(
+      data,
+      dto.isActive ? 'Patient activated successfully' : 'Patient deactivated successfully',
+    );
+  }
+
   @Delete(':id')
-  async softDelete(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.softDelete(id, ctx.organizationId);
-    return ResponseWrapper.success(data, 'Patient deleted successfully');
+  async remove(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+    await this.patientsService.remove(id, ctx.organizationId);
+    return ResponseWrapper.success(null, 'Patient deleted permanently');
   }
 
   // ═══════════════════════════════════════════════════════════

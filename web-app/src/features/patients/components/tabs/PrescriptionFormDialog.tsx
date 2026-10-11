@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -130,7 +131,8 @@ export function PrescriptionFormDialog({ patientId }: { patientId: string }) {
                     Medicine #{idx + 1}
                   </Label>
                   {medications.length > 1 && (
-                    <Button
+                    <TooltipButton
+                      tooltip="Remove medicine"
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -138,7 +140,7 @@ export function PrescriptionFormDialog({ patientId }: { patientId: string }) {
                       onClick={() => removeMed(idx)}
                     >
                       <Trash2 size={14} />
-                    </Button>
+                    </TooltipButton>
                   )}
                 </div>
                 <div className="grid grid-cols-3 gap-3">

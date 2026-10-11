@@ -5,8 +5,8 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Loader2, FileSignature, AlertTriangle, Printer } from 'lucide-react'
 import { useConsents } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientConsent } from '../../types'
@@ -81,15 +81,15 @@ function ConsentCard({
             </CardDescription>
           </div>
           {consent.isAgreed && (
-            <Button
+            <TooltipButton
+              tooltip="Print / download PDF"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:bg-muted"
-              title="Print/Download PDF"
               onClick={() => printConsent(consent, patient)}
             >
               <Printer size={14} />
-            </Button>
+            </TooltipButton>
           )}
         </div>
       </CardHeader>

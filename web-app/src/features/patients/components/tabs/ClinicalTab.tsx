@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,7 +39,8 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
                 Prescriptions
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Bilingual builder with templates, doctor signature, and printable PDF.
+                Bilingual builder with templates, doctor signature, and
+                printable PDF.
               </p>
             </div>
             <Button asChild>
@@ -146,7 +148,8 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
           <div className="px-4 pt-1 pb-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                Older prescriptions saved in the simple form. Kept for reference.
+                Older prescriptions saved in the simple form. Kept for
+                reference.
               </p>
               <PrescriptionFormDialog patientId={patient.id} />
             </div>
@@ -205,15 +208,15 @@ function PrescriptionCard({
                 Not Printed
               </Badge>
             )}
-            <Button
+            <TooltipButton
+              tooltip="Print prescription"
               variant="ghost"
               size="icon"
               className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted"
-              aria-label="Print Rx"
               onClick={() => printPrescription(rx, patient)}
             >
               <Printer size={14} />
-            </Button>
+            </TooltipButton>
           </div>
         </div>
       </CardHeader>

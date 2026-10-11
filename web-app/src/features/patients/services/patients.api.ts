@@ -54,12 +54,17 @@ export async function updatePatient(
   return data.data
 }
 
+/** Permanent delete — removes the patient and all of their records. */
 export async function deletePatient(id: string): Promise<void> {
   await api.delete(`/patients/${id}`)
 }
 
-export async function deactivatePatient(id: string): Promise<void> {
-  await api.delete(`/patients/${id}`)
+export async function setPatientStatus(
+  id: string,
+  isActive: boolean,
+): Promise<Patient> {
+  const { data } = await api.patch(`/patients/${id}/status`, { isActive })
+  return data.data
 }
 
 export async function checkPhoneUnique(

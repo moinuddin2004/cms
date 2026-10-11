@@ -11,14 +11,16 @@ import {
   LoadingSkeleton,
 } from '@/components/shared'
 import { usePatients } from '../hooks/usePatients'
-import { useDeactivatePatient } from '../hooks/useDeactivatePatient'
+import { useSetPatientStatus } from '../hooks/useSetPatientStatus'
+import { useDeletePatient } from '../hooks/useDeletePatient'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { usePatientStore } from '@/store/patient-store'
 import { SearchInput } from '../components/SearchInput'
 import { FiltersBar } from '../components/FiltersBar'
 import { PatientCard } from '../components/PatientCard'
 import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
-import type { PatientListParams } from '../types'
+import type { Patient, PatientListParams } from '../types'
 
 const DEFAULT_PARAMS: PatientListParams = {
   page: 1,
@@ -32,7 +34,9 @@ const DEFAULT_PARAMS: PatientListParams = {
 
 export function PatientsPage() {
   const { viewMode, setViewMode } = usePatientStore()
-  const deactivateMutation = useDeactivatePatient()
+  const statusMutation = useSetPatientStatus()
+  const deleteMutation = useDeletePatient()
+  const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
 
@@ -67,14 +71,23 @@ export function PatientsPage() {
     [params],
   )
 
-  const handleDeactivate = useCallback(
-    (id: string) => {
-      if (window.confirm('Are you sure you want to deactivate this patient?')) {
-        deactivateMutation.mutate(id)
-      }
+  const handleToggleStatus = useCallback(
+    (patient: Patient, isActive: boolean) => {
+      statusMutation.mutate({ id: patient.id, isActive })
     },
-    [deactivateMutation],
+    [statusMutation],
   )
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!deleteTarget) return
+    deleteMutation.mutate(deleteTarget.id, {
+      onSettled: () => setDeleteTarget(null),
+    })
+  }, [deleteMutation, deleteTarget])
+
+  const pendingStatusId = statusMutation.isPending
+    ? statusMutation.variables.id
+    : null
 
   const patients = data?.data ?? []
   const total = data?.total ?? 0
@@ -120,7 +133,9 @@ export function PatientsPage() {
           {viewMode === 'table' ? (
             <PatientTable
               patients={patients}
-              onDeactivate={handleDeactivate}
+              onToggleStatus={handleToggleStatus}
+              onDelete={setDeleteTarget}
+              pendingStatusId={pendingStatusId}
               serverPagination={data ? {
                 page: data.page,
                 pageSize: data.limit,
@@ -135,7 +150,9 @@ export function PatientsPage() {
                 <PatientCard
                   key={patient.id}
                   patient={patient}
-                  onDeactivate={handleDeactivate}
+                  onToggleStatus={handleToggleStatus}
+                  onDelete={setDeleteTarget}
+                  isStatusPending={pendingStatusId === patient.id}
                 />
               ))}
             </div>
@@ -158,6 +175,24 @@ export function PatientsPage() {
       )}
 
       <CreatePatientModal open={showCreate} onOpenChange={setShowCreate} />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete patient permanently?"
+        description={
+          <>
+            <strong>{deleteTarget?.fullName}</strong> and all of their records
+            (appointments, invoices, payments, prescriptions, clinical notes)
+            will be permanently deleted. This cannot be undone. To keep the
+            records, deactivate the patient instead.
+          </>
+        }
+        confirmLabel="Delete permanently"
+        destructive
+        isLoading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+      />
     </PageWrapper>
   )
 }

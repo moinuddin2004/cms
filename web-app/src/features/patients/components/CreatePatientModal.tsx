@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { PatientForm } from './PatientForm'
 import { AddAppointmentStep } from './AddAppointmentStep'
 import { useCreatePatient } from '../hooks/useCreatePatient'
-import type { PatientFormData } from '../types'
+import { FORM_STEPS, type PatientFormData } from '../types'
 import { usePatientStore } from '@/store/patient-store'
 
 interface CreatePatientModalProps {
@@ -41,7 +41,7 @@ export function CreatePatientModal({
   }
 
   const handleBack = () => {
-    setCurrentStep(3)
+    setCurrentStep(FORM_STEPS.length - 1)
     setCreatedPatient(null)
   }
 
@@ -54,7 +54,7 @@ export function CreatePatientModal({
         if (!v) handleClose()
       }}
     >
-      <DialogContent className="w-full sm:max-w-3xl gap-0 p-0">
+      <DialogContent className="w-full sm:max-w-7xl max-h-[92vh] overflow-y-auto gap-0 p-0">
         <DialogTitle className="sr-only">
           {isAppointmentStep ? 'Book First Appointment' : 'New Patient'}
         </DialogTitle>
@@ -69,6 +69,7 @@ export function CreatePatientModal({
               onCancel={handleClose}
             />
           ) : (
+            <div className="mx-auto max-w-3xl">
             <AddAppointmentStep
               patientId={createdPatient.id}
               patientName={createdPatient.fullName}
@@ -76,6 +77,7 @@ export function CreatePatientModal({
               onSkip={handleClose}
               onDone={handleClose}
             />
+            </div>
           )}
         </div>
       </DialogContent>
