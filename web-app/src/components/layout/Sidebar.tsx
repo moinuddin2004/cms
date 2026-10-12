@@ -15,6 +15,7 @@ import {
   Loader2,
   Shield,
   FileText,
+  Stethoscope,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -56,6 +57,12 @@ const navSections: NavSection[] = [
         label: 'Appointments',
         icon: CalendarDays,
         href: '/appointments',
+        feature: 'appointments.core',
+      },
+      {
+        label: 'My Queue',
+        icon: Stethoscope,
+        href: '/queue/doctor',
         feature: 'appointments.core',
       },
       { label: 'Employees', icon: Users, href: '/employees' },

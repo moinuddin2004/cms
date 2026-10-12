@@ -119,11 +119,11 @@ export function AppointmentFilters({
 }
 
 /** Case-insensitive match of a search query against an appointment's
- *  patient name, phone and token — shared client-side filter helper. */
+ *  patient name, phone and queue token — shared client-side filter helper. */
 export function matchesAppointmentSearch(
   appt: {
     patient?: { fullName?: string; phone?: string } | null
-    tokenNumber?: number | null
+    queueEntry?: { token: string } | null
   },
   query: string,
 ): boolean {
@@ -131,6 +131,6 @@ export function matchesAppointmentSearch(
   if (!q) return true
   const name = appt.patient?.fullName?.toLowerCase() ?? ''
   const phone = appt.patient?.phone?.toLowerCase() ?? ''
-  const token = appt.tokenNumber != null ? `#${appt.tokenNumber}` : ''
+  const token = appt.queueEntry?.token.toLowerCase() ?? ''
   return name.includes(q) || phone.includes(q) || token.includes(q)
 }

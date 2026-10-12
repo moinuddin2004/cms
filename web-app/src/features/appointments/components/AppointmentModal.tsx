@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { toast } from 'sonner'
 import {
@@ -19,26 +19,24 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import {
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Lightbulb,
-} from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react'
 import { useAppointmentStore } from '@/store/appointment-store'
 import {
-  type AppointmentFormData,
+  
   APPOINTMENT_TYPE_OPTIONS,
-  DURATION_OPTIONS,
-  type Doctor,
-  type ValidationResult,
+  DURATION_OPTIONS
+  
+  
 } from '@/features/appointments/types'
+import type {AppointmentFormData, Doctor, ValidationResult} from '@/features/appointments/types';
 import { useCreateAppointment } from '@/features/appointments/hooks/useCreateAppointment'
 import { useUpdateAppointment } from '@/features/appointments/hooks/useUpdateAppointment'
 import { useValidateAppointment } from '@/features/appointments/hooks/useValidateAppointment'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
+import { useLocationSlotDuration } from '@/features/appointments/hooks/useLocationSlotDuration'
 import { fetchAppointmentById } from '@/features/appointments/services/appointments.api'
-import api from '@/lib/api'
+import { usePatientSearch } from '@/features/patients'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 interface PatientOption {
   id: string
@@ -62,13 +60,13 @@ export function AppointmentModal() {
   const isEditing = isEditModalOpen && !!selectedAppointmentId
 
   const { data: doctors = [] } = useDoctors()
+  const slotDuration = useLocationSlotDuration()
   const createMutation = useCreateAppointment()
   const updateMutation = useUpdateAppointment()
   const validateMutation = useValidateAppointment()
 
   const [patients, setPatients] = useState<PatientOption[]>([])
   const [patientSearch, setPatientSearch] = useState('')
-  const [loadingPatients, setLoadingPatients] = useState(false)
   const [validation, setValidation] = useState<ValidationResult | null>(null)
   const [loadingExisting, setLoadingExisting] = useState(false)
 
@@ -76,6 +74,29 @@ export function AppointmentModal() {
   const [watchedDoctorId, setWatchedDoctorId] = useState('')
   const [watchedStartTime, setWatchedStartTime] = useState('')
   const [watchedDuration, setWatchedDuration] = useState(30)
+
+  // Time as loaded for editing — a PUT only carries startTime/duration when
+  // they actually changed, so editing notes never reschedules.
+  const [original, setOriginal] = useState<{
+    startTime: string
+    duration: number
+  } | null>(null)
+
+  // Duration choices, plus the location default and the loaded value if they
+  // aren't one of the presets (e.g. a 20-minute slot or a resized booking).
+  const durationOptions = useMemo(() => {
+    const values = new Set<number>(DURATION_OPTIONS.map((d) => d.value))
+    values.add(slotDuration)
+    if (original) values.add(original.duration)
+    return [...values]
+      .sort((a, b) => a - b)
+      .map((value) => ({
+        value,
+        label:
+          DURATION_OPTIONS.find((d) => d.value === value)?.label ??
+          `${value} min`,
+      }))
+  }, [slotDuration, original])
 
   const form = useForm({
     defaultValues: {
@@ -85,7 +106,6 @@ export function AppointmentModal() {
       duration: 30,
       type: 'consultation' as string,
       notes: '',
-      isWalkIn: false,
       isEmergency: false,
     },
     onSubmit: async ({ value }) => {
@@ -95,7 +115,23 @@ export function AppointmentModal() {
       }
       try {
         if (isEditing && selectedAppointmentId) {
-          await updateMutation.mutateAsync({ id: selectedAppointmentId, ...payload })
+          // Only fields the update endpoint accepts; time only when changed.
+          const changes: Record<string, unknown> = {
+            patientId: payload.patientId,
+            doctorId: payload.doctorId,
+            type: payload.type,
+            notes: payload.notes,
+          }
+          if (!original || payload.startTime !== original.startTime) {
+            changes.startTime = payload.startTime
+          }
+          if (!original || payload.duration !== original.duration) {
+            changes.duration = payload.duration
+          }
+          await updateMutation.mutateAsync({
+            id: selectedAppointmentId,
+            ...changes,
+          })
           toast.success('Appointment updated successfully')
         } else {
           await createMutation.mutateAsync(payload)
@@ -117,18 +153,21 @@ export function AppointmentModal() {
       setLoadingExisting(true)
       fetchAppointmentById(selectedAppointmentId)
         .then((appt) => {
-          const startTime = new Date(appt.startTime).toISOString().slice(0, 16)
+          const startTime = toDateTimeLocalValue(appt.startTime)
           form.setFieldValue('patientId', appt.patientId)
           form.setFieldValue('doctorId', appt.doctorId || '')
           form.setFieldValue('startTime', startTime)
           form.setFieldValue('duration', appt.durationMinutes)
           form.setFieldValue('type', appt.type)
           form.setFieldValue('notes', appt.notes || '')
-          form.setFieldValue('isWalkIn', appt.isWalkIn)
           form.setFieldValue('isEmergency', appt.isEmergency)
           setWatchedDoctorId(appt.doctorId || '')
           setWatchedStartTime(startTime)
           setWatchedDuration(appt.durationMinutes)
+          setOriginal({
+            startTime: new Date(startTime).toISOString(),
+            duration: appt.durationMinutes,
+          })
           if (appt.patient) {
             setPatients([
               {
@@ -150,44 +189,30 @@ export function AppointmentModal() {
     if (isCreateModalOpen) {
       form.reset()
       setValidation(null)
+      setOriginal(null)
       setWatchedDoctorId(prefillDoctorId || '')
       setWatchedStartTime(prefillTime || '')
-      setWatchedDuration(30)
+      setWatchedDuration(slotDuration)
+      form.setFieldValue('duration', slotDuration)
       if (prefillDoctorId) form.setFieldValue('doctorId', prefillDoctorId)
       if (prefillTime) form.setFieldValue('startTime', prefillTime)
     }
-  }, [isCreateModalOpen, prefillDoctorId, prefillTime])
+  }, [isCreateModalOpen, prefillDoctorId, prefillTime, slotDuration])
 
-  // Search patients
-  const searchPatients = useCallback(async (query: string) => {
-    if (query.length < 2) return
-    setLoadingPatients(true)
-    try {
-      const { data } = await api.get('/patients', {
-        params: { search: query, limit: 10 },
-      })
-      const list = data?.data?.data || data?.data || []
-      setPatients(
-        list.map((p: any) => ({
-          id: p.id,
-          fullName: p.fullName,
-          phone: p.phone,
-          patientNumber: p.patientNumber,
-        })),
-      )
-    } catch {
-      /* ignore */
-    } finally {
-      setLoadingPatients(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (patientSearch.length >= 2) searchPatients(patientSearch)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [patientSearch, searchPatients])
+  // Patient type-ahead (debounced, 2+ chars). Picked / preloaded patients
+  // stay in `patients` so the chosen one keeps showing.
+  const { patients: found, isSearching: loadingPatients } = usePatientSearch(
+    patientSearch,
+    10,
+  )
+  const patientOptions: PatientOption[] = found.length
+    ? found.map((p) => ({
+        id: p.id,
+        fullName: p.fullName,
+        phone: p.phone,
+        patientNumber: p.patientNumber,
+      }))
+    : patients
 
   // Real-time validation
   useEffect(() => {
@@ -213,13 +238,11 @@ export function AppointmentModal() {
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [watchedDoctorId, watchedStartTime, watchedDuration]) // eslint-disable-line
+  }, [watchedDoctorId, watchedStartTime, watchedDuration])  
 
   const applySuggestion = () => {
     if (validation?.suggestedStartTime) {
-      const newTime = new Date(validation.suggestedStartTime)
-        .toISOString()
-        .slice(0, 16)
+      const newTime = toDateTimeLocalValue(validation.suggestedStartTime)
       form.setFieldValue('startTime', newTime)
       setWatchedStartTime(newTime)
     }
@@ -261,11 +284,13 @@ export function AppointmentModal() {
                     onChange={(e) => setPatientSearch(e.target.value)}
                   />
                   {loadingPatients && (
-                    <p className="text-xs text-muted-foreground">Searching...</p>
+                    <p className="text-xs text-muted-foreground">
+                      Searching...
+                    </p>
                   )}
-                  {patients.length > 0 && (
+                  {patientOptions.length > 0 && (
                     <div className="border rounded-md max-h-32 overflow-y-auto">
-                      {patients.map((p) => (
+                      {patientOptions.map((p) => (
                         <button
                           key={p.id}
                           type="button"
@@ -370,7 +395,7 @@ export function AppointmentModal() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {DURATION_OPTIONS.map((d) => (
+                        {durationOptions.map((d) => (
                           <SelectItem key={d.value} value={String(d.value)}>
                             {d.label}
                           </SelectItem>
@@ -450,17 +475,6 @@ export function AppointmentModal() {
 
             {/* Flags */}
             <div className="flex items-center gap-6">
-              <form.Field name="isWalkIn">
-                {(field) => (
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch
-                      checked={field.state.value as boolean}
-                      onCheckedChange={(v) => field.handleChange(v)}
-                    />
-                    Walk-in
-                  </label>
-                )}
-              </form.Field>
               <form.Field name="isEmergency">
                 {(field) => (
                   <label className="flex items-center gap-2 text-sm">

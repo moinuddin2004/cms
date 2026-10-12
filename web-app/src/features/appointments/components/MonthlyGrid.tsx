@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { type Appointment, AppointmentStatus, STATUS_BG_COLORS } from '@/features/appointments/types'
 import { useAppointmentStore } from '@/store/appointment-store'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 interface MonthlyGridProps {
   appointments: Appointment[]
@@ -64,7 +65,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
               onClick={() => {
                 const clickDate = new Date(date)
                 clickDate.setHours(9, 0, 0, 0)
-                openCreateModal(undefined, clickDate.toISOString().slice(0, 16))
+                openCreateModal(undefined, toDateTimeLocalValue(clickDate))
               }}
             >
               <div className="flex justify-between items-center mb-1 px-1">

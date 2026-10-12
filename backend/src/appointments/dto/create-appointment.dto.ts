@@ -40,9 +40,5 @@ export class CreateAppointmentDto {
 
   @IsBoolean()
   @IsOptional()
-  isWalkIn?: boolean;
-
-  @IsBoolean()
-  @IsOptional()
   isEmergency?: boolean;
 }

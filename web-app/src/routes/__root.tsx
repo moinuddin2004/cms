@@ -24,6 +24,9 @@ const PUBLIC_PATHS = [
   '/select-location',
 ]
 
+// Open to everyone, signed in or not, with no redirects (waiting-room TV).
+const OPEN_PATHS = ['/display/']
+
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
 const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations']
@@ -161,6 +164,7 @@ function RootComponent() {
   // Route protection + location context validation
   useEffect(() => {
     if (isInitializing) return
+    if (OPEN_PATHS.some((p) => location.pathname.startsWith(p))) return
 
     const isPublicRoute = PUBLIC_PATHS.some((path) =>
       location.pathname.startsWith(path),

@@ -25,12 +25,10 @@ interface Props {
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
-  [AppointmentStatus.CHECKED_IN]: 'Waiting',
-  [AppointmentStatus.IN_PROGRESS]: 'In Room',
+  [AppointmentStatus.CHECKED_IN]: 'Checked in',
   [AppointmentStatus.COMPLETED]: 'Completed',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
   [AppointmentStatus.NO_SHOW]: 'No Show',
-  [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
 function fmtTime(iso: string): string {

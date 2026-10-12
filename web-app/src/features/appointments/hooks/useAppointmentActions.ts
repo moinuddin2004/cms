@@ -2,19 +2,17 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   cancelAppointment,
   markNoShow,
-  checkInAppointment,
-  startAppointment,
-  completeAppointment,
   confirmAppointment,
 } from '../services/appointments.api'
 import type { CancelReason } from '../types'
 import { APPOINTMENTS_QUERY_KEY } from './useAppointments'
-import { QUEUE_QUERY_KEY } from './useQueue'
+import { QUEUE_KEY } from '@/features/queue'
 
 function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_QUERY_KEY] })
-  queryClient.invalidateQueries({ queryKey: [QUEUE_QUERY_KEY] })
+  queryClient.invalidateQueries({ queryKey: [QUEUE_KEY] })
   queryClient.invalidateQueries({ queryKey: ['appointment-stats'] })
+  queryClient.invalidateQueries({ queryKey: ['appointment-detail'] })
 }
 
 function useStatusMutation(mutationFn: (id: string, ...args: any[]) => Promise<any>) {
@@ -43,18 +41,6 @@ export function useCancelAppointment() {
 
 export function useNoShow() {
   return useStatusMutation(markNoShow)
-}
-
-export function useCheckIn() {
-  return useStatusMutation(checkInAppointment)
-}
-
-export function useStartAppointment() {
-  return useStatusMutation(startAppointment)
-}
-
-export function useCompleteAppointment() {
-  return useStatusMutation(completeAppointment)
 }
 
 export function useConfirmAppointment() {

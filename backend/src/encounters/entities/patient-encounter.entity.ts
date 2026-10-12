@@ -15,17 +15,20 @@ import { Appointment } from 'src/appointments/entities/appointment.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Treatment } from 'src/treatments/entities/treatment.entity';
+import { QueueEntry } from 'src/queue/entities/queue-entry.entity';
 
 /**
- * The real record of a patient actually showing up — created only when an
- * appointment reaches a real-arrival state (check-in / walk-in / complete).
- * Exactly one encounter per appointment (enforced by the unique appointment_id).
+ * The clinical record of a consultation — created when the doctor starts the
+ * consultation on a queue entry (booked or walk-in). Exactly one encounter per
+ * queue entry (unique queue_entry_id); `appointment_id` is set for booked
+ * visits and NULL for walk-ins.
  *
  * NOTE: distinct from `PatientVisit` (table `patient_visits`), which is a
  * patient↔location *aggregate* (visit counts, total spent) and is left untouched.
  */
 @Entity({ name: 'patient_encounters' })
-@Unique(['appointmentId'])
+@Unique(['queueEntryId'])
+@Index(['appointmentId'])
 @Index(['organizationId'])
 @Index(['locationId'])
 @Index(['patientId'])
@@ -34,13 +37,21 @@ export class PatientEncounter {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // ─── Source appointment (one encounter per appointment) ───────
-  @ManyToOne(() => Appointment, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'appointment_id' })
-  appointment: Appointment;
+  // ─── Source queue entry (one encounter per entry) ─────────────
+  @ManyToOne(() => QueueEntry, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'queue_entry_id' })
+  queueEntry: QueueEntry;
 
-  @Column({ name: 'appointment_id', type: 'uuid' })
-  appointmentId: string;
+  @Column({ name: 'queue_entry_id', type: 'uuid' })
+  queueEntryId: string;
+
+  // ─── Booked appointment, if any (NULL for walk-ins) ───────────
+  @ManyToOne(() => Appointment, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'appointment_id' })
+  appointment: Appointment | null;
+
+  @Column({ name: 'appointment_id', type: 'uuid', nullable: true })
+  appointmentId: string | null;
 
   // ─── Patient (denormalized for fast lookup) ───────────────────
   @ManyToOne(() => Patient, { onDelete: 'CASCADE' })

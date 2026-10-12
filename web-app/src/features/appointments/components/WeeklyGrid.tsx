@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { type Appointment, HOURS, HOUR_HEIGHT, MINUTE_HEIGHT } from '@/features/appointments/types'
 import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 interface WeeklyGridProps {
   appointments: Appointment[]
@@ -56,7 +57,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
     const clickDate = new Date(date)
     clickDate.setHours(hour, minute, 0, 0)
 
-    openCreateModal(undefined, clickDate.toISOString().slice(0, 16))
+    openCreateModal(undefined, toDateTimeLocalValue(clickDate))
   }
 
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']

@@ -59,6 +59,13 @@ export class EmployeeOrgLocationAssignment {
   @Column({ name: 'designation', type: 'varchar', length: 100 })
   designation: string;
 
+  /**
+   * Queue token prefix for this doctor at this location ("A" → "A-007").
+   * Empty = first letter of the doctor's name.
+   */
+  @Column({ name: 'token_prefix', type: 'varchar', length: 6, nullable: true })
+  tokenPrefix: string | null;
+
   @Column({
     name: 'employment_type',
     type: 'enum',

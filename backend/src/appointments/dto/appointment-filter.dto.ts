@@ -1,4 +1,13 @@
-import { IsOptional, IsDateString, IsEnum, IsString, IsUUID, IsInt, Min, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsString,
+  IsUUID,
+  IsInt,
+  Min,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';

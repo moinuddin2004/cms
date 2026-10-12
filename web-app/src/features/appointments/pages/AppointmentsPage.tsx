@@ -14,7 +14,7 @@ import { StatsCards } from '@/features/appointments/components/StatsCards'
 import { AppointmentModal } from '@/features/appointments/components/AppointmentModal'
 import { AppointmentDetailModal } from '@/features/appointments/components/AppointmentDetailModal'
 import { AppointmentsList } from '@/features/appointments/components/AppointmentsList'
-import { QueueView } from '@/features/appointments/components/QueueView'
+import { QueueBoard } from '@/features/queue'
 import { AppointmentsToolbar } from '@/features/appointments/components/AppointmentsToolbar'
 import {
   AppointmentFilters,
@@ -241,7 +241,7 @@ export function AppointmentsPage() {
         <StatsCards stats={stats} isLoading={loadingStats} />
 
         {viewMode === 'queue' ? (
-          <QueueView />
+          <QueueBoard />
         ) : viewMode === 'list' ? (
           <AppointmentsList />
         ) : (

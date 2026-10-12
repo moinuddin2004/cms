@@ -2,18 +2,26 @@ import { z } from 'zod'
 
 // ─── Enums (Matching Backend) ───────────────────────────────────────
 
+/**
+ * Booking status only. After arrival the queue entry (features/queue) tracks
+ * waiting / with the doctor / at a test; the appointment stays `checked_in`
+ * until that entry completes or is cancelled.
+ */
 export enum AppointmentStatus {
   SCHEDULED = 'scheduled',
   CONFIRMED = 'confirmed',
-  /** Arrived, token assigned, waiting to be seen. */
+  /** Arrived — has a token in the doctor's queue. */
   CHECKED_IN = 'checked_in',
-  /** With the doctor ("in room"). */
-  IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
   NO_SHOW = 'no_show',
-  RESCHEDULED = 'rescheduled',
 }
+
+/** Bookings that can still be edited, moved, confirmed, checked in or cancelled. */
+export const NOT_ARRIVED_STATUSES: AppointmentStatus[] = [
+  AppointmentStatus.SCHEDULED,
+  AppointmentStatus.CONFIRMED,
+]
 
 export enum CancelReason {
   NO_SHOW = 'no_show',
@@ -21,8 +29,8 @@ export enum CancelReason {
   OTHER = 'other',
 }
 
+/** Cancel reasons. A no-show is a separate action (PATCH …/no-show). */
 export const CANCEL_REASON_OPTIONS = [
-  { label: 'No Show', value: CancelReason.NO_SHOW },
   { label: 'Patient Left', value: CancelReason.PATIENT_LEFT },
   { label: 'Other', value: CancelReason.OTHER },
 ] as const
@@ -51,11 +59,9 @@ export const APPOINTMENT_STATUS_OPTIONS = [
   { label: 'Scheduled', value: AppointmentStatus.SCHEDULED },
   { label: 'Confirmed', value: AppointmentStatus.CONFIRMED },
   { label: 'Checked In', value: AppointmentStatus.CHECKED_IN },
-  { label: 'In Room', value: AppointmentStatus.IN_PROGRESS },
   { label: 'Completed', value: AppointmentStatus.COMPLETED },
   { label: 'Cancelled', value: AppointmentStatus.CANCELLED },
   { label: 'No Show', value: AppointmentStatus.NO_SHOW },
-  { label: 'Rescheduled', value: AppointmentStatus.RESCHEDULED },
 ] as const
 
 export const DURATION_OPTIONS = [
@@ -71,34 +77,28 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: '#3b82f6',
   [AppointmentStatus.CONFIRMED]: '#8b5cf6',
   [AppointmentStatus.CHECKED_IN]: '#eab308',
-  [AppointmentStatus.IN_PROGRESS]: '#16a34a',
   [AppointmentStatus.COMPLETED]: '#22c55e',
   [AppointmentStatus.CANCELLED]: '#ef4444',
   [AppointmentStatus.NO_SHOW]: '#6b7280',
-  [AppointmentStatus.RESCHEDULED]: '#06b6d4',
 }
 
 export const STATUS_BG_COLORS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'bg-blue-50 border-blue-200 text-blue-700',
   [AppointmentStatus.CONFIRMED]: 'bg-violet-50 border-violet-200 text-violet-700',
   [AppointmentStatus.CHECKED_IN]: 'bg-amber-50 border-amber-200 text-amber-700',
-  [AppointmentStatus.IN_PROGRESS]: 'bg-green-50 border-green-300 text-green-700',
   [AppointmentStatus.COMPLETED]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   [AppointmentStatus.CANCELLED]: 'bg-red-50 border-red-200 text-red-700',
   [AppointmentStatus.NO_SHOW]: 'bg-status-error/10 border-status-error/20 text-status-error',
-  [AppointmentStatus.RESCHEDULED]: 'bg-cyan-50 border-cyan-200 text-cyan-700',
 }
 
 /** Human label per status — used in the queue and badges. */
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
-  [AppointmentStatus.CHECKED_IN]: 'Waiting',
-  [AppointmentStatus.IN_PROGRESS]: 'In Room',
+  [AppointmentStatus.CHECKED_IN]: 'Checked in',
   [AppointmentStatus.COMPLETED]: 'Completed',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
   [AppointmentStatus.NO_SHOW]: 'No Show',
-  [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
 // ─── API Response Types ─────────────────────────────────────────────
@@ -118,44 +118,66 @@ export interface AppointmentPatient {
   profilePictureUrl?: string | null
 }
 
+export interface AppointmentQueueEntry {
+  id: string
+  /** e.g. "A-007" */
+  token: string
+  status:
+    | 'waiting'
+    | 'called'
+    | 'in_consultation'
+    | 'on_hold'
+    | 'skipped'
+    | 'completed'
+    | 'cancelled'
+    | 'transferred'
+    | 'aborted'
+  sessionId: string
+}
+
+/** Short label for where an arrived patient is in the queue. */
+export const QUEUE_STATUS_LABELS: Record<AppointmentQueueEntry['status'], string> = {
+  waiting: 'Waiting',
+  called: 'Called',
+  in_consultation: 'With doctor',
+  on_hold: 'At a test',
+  skipped: 'Skipped',
+  completed: 'Seen',
+  cancelled: 'Left',
+  transferred: 'Transferred',
+  aborted: 'Stopped',
+}
+
 export interface Appointment {
   id: string
   organizationId: string
   locationId: string
   patientId: string
-  doctorId: string | null
+  doctorId: string
   type: AppointmentType
   status: AppointmentStatus
   startTime: string
   endTime: string
   durationMinutes: number
-  tokenNumber: number | null
-  tokenPrefix: string | null
   reasonForVisit: string | null
-  isWalkIn: boolean
   isEmergency: boolean
   notes: string | null
   cancelReasonCode: CancelReason | null
   cancelReason: string | null
   checkedInAt: string | null
-  inRoomAt: string | null
   completedAt: string | null
   cancelledAt: string | null
+  noShowAt: string | null
   createdBy: string | null
   updatedBy: string | null
   createdAt: string
   updatedAt: string
+  /** Latest queue entry once the patient has arrived (doctor-wise token). */
+  queueEntry?: AppointmentQueueEntry | null
   // Relations
   patient?: AppointmentPatient
   doctor?: Doctor | null
   location?: { id: string; name: string }
-}
-
-/** "KHI-007" display label, or "—" when no token has been assigned yet. */
-export function formatToken(appt: Pick<Appointment, 'tokenNumber' | 'tokenPrefix'>): string {
-  if (appt.tokenNumber == null) return '—'
-  const prefix = appt.tokenPrefix || 'T'
-  return `${prefix}-${String(appt.tokenNumber).padStart(3, '0')}`
 }
 
 export interface ValidationResult {
@@ -170,24 +192,16 @@ export interface AppointmentStats {
   completed: number
   cancelled: number
   noShow: number
+  /** Scheduled + confirmed, not arrived yet. */
   scheduled: number
+  checkedIn: number
+  /** From the queue: walk-ins, waiting (incl. skipped / at test), with the doctor. */
+  walkIns: number
   waiting: number
   inProgress: number
+  avgWaitMinutes: number | null
   completionRate: number
   noShowRate: number
-}
-
-export interface WalkInFormData {
-  patientId?: string
-  patientName?: string
-  patientPhone?: string
-  doctorId?: string
-  type?: AppointmentType
-  duration?: number
-  reasonForVisit?: string
-  notes?: string
-  isEmergency?: boolean
-  force?: boolean
 }
 
 export interface PaginatedAppointments {
@@ -207,7 +221,6 @@ export const appointmentFormSchema = z.object({
   type: z.nativeEnum(AppointmentType).default(AppointmentType.CONSULTATION),
   reasonForVisit: z.string().optional(),
   notes: z.string().optional(),
-  isWalkIn: z.boolean().default(false),
   isEmergency: z.boolean().default(false),
 })
 

@@ -16,6 +16,7 @@ import {
   type Appointment,
   type Doctor,
   AppointmentStatus,
+  NOT_ARRIVED_STATUSES,
 } from '@/features/appointments/types'
 import type { AvailabilityBlock } from '@/features/appointments/services/appointments.api'
 import { useAppointmentStore } from '@/store/appointment-store'
@@ -26,6 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 // ─── Props ──────────────────────────────────────────────────────────
 
@@ -63,11 +65,6 @@ function getStatusColors(status: AppointmentStatus) {
       border: getCssVar('--amber') || '#eab308',
       text: getCssVar('--amber') || '#854d0e',
     },
-    [AppointmentStatus.IN_PROGRESS]: {
-      bg: getCssVar('--emerald-soft') || '#dcfce7',
-      border: getCssVar('--emerald') || '#16a34a',
-      text: getCssVar('--emerald') || '#166534',
-    },
     [AppointmentStatus.COMPLETED]: {
       bg: getCssVar('--emerald-soft') || '#dcfce7',
       border: getCssVar('--emerald') || '#22c55e',
@@ -83,11 +80,6 @@ function getStatusColors(status: AppointmentStatus) {
       border: getCssVar('--border') || '#6b7280',
       text: getCssVar('--text-3') || '#374151',
     },
-    [AppointmentStatus.RESCHEDULED]: {
-      bg: getCssVar('--primary-soft') || '#cffafe',
-      border: getCssVar('--primary') || '#06b6d4',
-      text: getCssVar('--primary-text') || '#155e75',
-    },
   }
   return map[status]
 }
@@ -95,12 +87,10 @@ function getStatusColors(status: AppointmentStatus) {
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
-  [AppointmentStatus.CHECKED_IN]: 'Waiting',
-  [AppointmentStatus.IN_PROGRESS]: 'In Room',
+  [AppointmentStatus.CHECKED_IN]: 'Checked in',
   [AppointmentStatus.COMPLETED]: 'Completed',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
   [AppointmentStatus.NO_SHOW]: 'No Show',
-  [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
 function getDoctorColors(): string[] {
@@ -181,11 +171,9 @@ export function FullCalendarView({
     return appointments.map((appt) => {
       const colors = getStatusColors(appt.status)
       const isCancelled = appt.status === AppointmentStatus.CANCELLED
-      const isNoShow = appt.status === AppointmentStatus.NO_SHOW
-      const isTerminal =
-        isCancelled ||
-        isNoShow ||
-        appt.status === AppointmentStatus.COMPLETED
+      // Only bookings not yet checked in can be dragged or resized; a
+      // checked-in patient is locked to their queue position.
+      const isMovable = NOT_ARRIVED_STATUSES.includes(appt.status)
 
       return {
         id: appt.id,
@@ -196,7 +184,7 @@ export function FullCalendarView({
         backgroundColor: colors.bg,
         borderColor: colors.border,
         textColor: colors.text,
-        editable: !isTerminal,
+        editable: isMovable,
         classNames: [
           isCancelled ? 'fc-event-cancelled' : '',
           appt.isEmergency ? 'fc-event-emergency' : '',
@@ -209,7 +197,6 @@ export function FullCalendarView({
           type: appt.type,
           doctorName: appt.doctor?.fullName || 'Unassigned',
           isEmergency: appt.isEmergency,
-          isWalkIn: appt.isWalkIn,
           durationMinutes: appt.durationMinutes,
           notes: appt.notes,
         },
@@ -244,7 +231,7 @@ export function FullCalendarView({
 
   const handleDateSelect = useCallback(
     (selectInfo: DateSelectArg) => {
-      const startTime = selectInfo.start.toISOString().slice(0, 16)
+      const startTime = toDateTimeLocalValue(selectInfo.start)
       // If resource view, pre-fill the doctor
       const doctorId = (selectInfo as any).resource?.id || undefined
       openCreateModal(doctorId, startTime)
@@ -385,9 +372,9 @@ export function FullCalendarView({
               <TooltipTrigger asChild>
                 <div className="w-full h-full px-1.5 py-1 overflow-hidden cursor-pointer">
                   <div className="flex items-center gap-1">
-                    {appt.tokenNumber != null && (
+                    {appt.queueEntry && (
                       <span className="text-[9px] font-bold bg-black/10 rounded px-1 tabular-nums leading-tight">
-                        #{appt.tokenNumber}
+                        {appt.queueEntry.token}
                       </span>
                     )}
                     <span className="font-semibold text-[11px] truncate leading-tight">
@@ -395,9 +382,6 @@ export function FullCalendarView({
                     </span>
                     {appt.isEmergency && (
                       <span className="text-[10px]">🚨</span>
-                    )}
-                    {appt.isWalkIn && (
-                      <span className="text-[10px]">🚶</span>
                     )}
                   </div>
                   {/* In resource view, don't show doctor name (it's the column) */}

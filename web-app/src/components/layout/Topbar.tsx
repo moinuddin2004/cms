@@ -1,5 +1,4 @@
-import { Building2, Moon, Sun } from 'lucide-react'
-import { useAuthStore } from '@/store/useAuthStore'
+import { Moon, Sun } from 'lucide-react'
 import { LocationSwitcher } from '@/components/layout/LocationSwitcher'
 import { useTheme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
@@ -28,10 +27,6 @@ function ThemeToggle() {
 }
 
 export function Topbar() {
-  const { activeOrganizationId, accessibleOrganizations } = useAuthStore()
-  const activeOrg = accessibleOrganizations.find(
-    (o) => o.id === activeOrganizationId,
-  )
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 px-6 backdrop-blur-md">

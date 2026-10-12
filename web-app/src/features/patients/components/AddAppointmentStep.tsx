@@ -35,6 +35,7 @@ import { useValidateAppointment } from '@/features/appointments/hooks/useValidat
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { cn } from '@/lib/utils'
 import { FORM_STEPS } from '../types'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 // All steps including the appointment booking step
 const ALL_STEPS = [...FORM_STEPS.map((s) => s.title), 'Book Appointment']
@@ -69,7 +70,6 @@ export function AddAppointmentStep({
       startTime: '',
       duration: 30,
       type: AppointmentType.CONSULTATION,
-      isWalkIn: false,
       isEmergency: false,
     },
     onSubmit: async ({ value }) => {
@@ -84,7 +84,6 @@ export function AddAppointmentStep({
         duration: value.duration,
         type: value.type,
         notes: '',
-        isWalkIn: value.isWalkIn,
         isEmergency: value.isEmergency,
       }
       try {
@@ -123,7 +122,7 @@ export function AddAppointmentStep({
 
   const applySuggestion = () => {
     if (validation?.suggestedStartTime) {
-      const newTime = new Date(validation.suggestedStartTime).toISOString().slice(0, 16)
+      const newTime = toDateTimeLocalValue(validation.suggestedStartTime)
       form.setFieldValue('startTime', newTime)
       setWatchedStartTime(newTime)
     }
@@ -339,18 +338,6 @@ export function AddAppointmentStep({
                       </SelectContent>
                     </Select>
                   </div>
-                )}
-              </form.Field>
-
-              <form.Field name="isWalkIn">
-                {(field) => (
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer h-9">
-                    <Switch
-                      checked={field.state.value as boolean}
-                      onCheckedChange={(v) => field.handleChange(v)}
-                    />
-                    Walk-in
-                  </label>
                 )}
               </form.Field>
 

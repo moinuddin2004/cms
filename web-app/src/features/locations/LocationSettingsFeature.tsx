@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
+import { QueueSettingsSection } from '@/features/queue'
 
 interface OrganizationSettings {
   allowLocationOverride: boolean
@@ -198,6 +199,8 @@ export function LocationSettingsFeature({
           </CardContent>
         </Card>
       )}
+
+      <QueueSettingsSection locationId={locationId} />
 
       {orgSettings?.featureReminders !== false && (
         <Card>

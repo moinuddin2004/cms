@@ -8,6 +8,11 @@ import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
+import {
+  Actor,
+  ALL_APP_ROLES,
+  AppRole,
+} from 'src/common/enums/app-role.enum';
 
 /**
  * Represents a user's accessible organization with its locations.
@@ -363,6 +368,45 @@ export class AuthorizationService {
       canViewBilling: rolePerms.canViewBilling ?? false,
       canManageSettings: rolePerms.canManageSettings ?? false,
     };
+  }
+
+  /**
+   * Resolve the clinic roles a user holds at one organization + location.
+   *
+   * - Super admin / organization owner → every role.
+   * - Employee with portal access → from the employment role's permissions:
+   *   `canManageSettings` → clinic_admin; `canCreateAppointments` (default on)
+   *   → receptionist; `canConsult` (default on) → doctor. Doctor actions are
+   *   further limited to the doctor's own appointments by the caller.
+   */
+  async resolveActor(
+    userId: string,
+    organizationId: string,
+    locationId: string,
+  ): Promise<Actor> {
+    const assignment = await this.assignmentRepo.findOne({
+      where: { userId, organizationId, locationId, isActive: true },
+      relations: ['employmentRole'],
+    });
+    const employeeId = assignment?.employeeId ?? null;
+
+    if (
+      (await this.isSuperAdmin(userId)) ||
+      (await this.isOwner(userId, organizationId))
+    ) {
+      return { userId, roles: [...ALL_APP_ROLES], employeeId };
+    }
+
+    if (!assignment?.hasPortalAccess) {
+      return { userId, roles: [], employeeId };
+    }
+
+    const perms = assignment.employmentRole?.permissions ?? {};
+    const roles: AppRole[] = [];
+    if (perms.canManageSettings === true) roles.push(AppRole.CLINIC_ADMIN);
+    if (perms.canCreateAppointments !== false) roles.push(AppRole.RECEPTIONIST);
+    if (perms.canConsult !== false) roles.push(AppRole.DOCTOR);
+    return { userId, roles, employeeId };
   }
 
   private fullPermissions(): UserPermissions {

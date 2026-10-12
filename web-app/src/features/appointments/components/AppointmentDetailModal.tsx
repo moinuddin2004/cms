@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
@@ -24,30 +24,26 @@ import {
   Printer,
   Pencil,
   LogIn,
-  CheckCircle,
   ThumbsUp,
   UserX,
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppointmentStore } from '@/store/appointment-store'
-import { useAuthStore } from '@/store/useAuthStore'
 import { fetchAppointmentById } from '../services/appointments.api'
 import {
   AppointmentStatus,
+  NOT_ARRIVED_STATUSES,
+  QUEUE_STATUS_LABELS,
   STATUS_BG_COLORS,
-  formatToken,
   type Appointment,
 } from '../types'
 import {
   useCancelAppointment,
-  useCheckIn,
-  useStartAppointment,
-  useCompleteAppointment,
   useConfirmAppointment,
   useNoShow,
 } from '../hooks/useAppointmentActions'
-import { printAppointmentReceipt } from '../utils/print'
+import { CheckInDialog, printQueueTicket } from '@/features/queue'
 
 export function AppointmentDetailModal() {
   const {
@@ -57,28 +53,12 @@ export function AppointmentDetailModal() {
     openEditModal,
   } = useAppointmentStore()
   const navigate = useNavigate()
-  const authStore = useAuthStore()
 
   const { data: appt, isLoading } = useQuery({
     queryKey: ['appointment-detail', selectedAppointmentId],
     queryFn: () => fetchAppointmentById(selectedAppointmentId!),
     enabled: isDetailModalOpen && !!selectedAppointmentId,
   })
-
-  // Resolve clinic + location names from the auth store for the printed receipt.
-  const { clinicName, locationName } = useMemo(() => {
-    const org = authStore.accessibleOrganizations.find(
-      (o) => o.id === authStore.activeOrganizationId,
-    )
-    const loc = org?.locations.find(
-      (l) => l.id === authStore.activeLocationId,
-    )
-    return { clinicName: org?.name, locationName: loc?.name }
-  }, [
-    authStore.accessibleOrganizations,
-    authStore.activeOrganizationId,
-    authStore.activeLocationId,
-  ])
 
   return (
     <Dialog
@@ -93,8 +73,6 @@ export function AppointmentDetailModal() {
         ) : (
           <DetailBody
             appt={appt}
-            clinicName={clinicName}
-            locationName={locationName}
             onClose={closeModal}
             onEdit={() => openEditModal(appt.id)}
             onViewPatient={() => {
@@ -113,25 +91,19 @@ export function AppointmentDetailModal() {
 
 function DetailBody({
   appt,
-  clinicName,
-  locationName,
   onClose,
   onEdit,
   onViewPatient,
 }: {
   appt: Appointment
-  clinicName?: string
-  locationName?: string
   onClose: () => void
   onEdit: () => void
   onViewPatient: () => void
 }) {
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
-  const checkInMutation = useCheckIn()
-  const startMutation = useStartAppointment()
-  const completeMutation = useCompleteAppointment()
   const confirmMutation = useConfirmAppointment()
+  const [checkingIn, setCheckingIn] = useState(false)
 
   const start = new Date(appt.startTime)
   const end = new Date(appt.endTime)
@@ -142,13 +114,13 @@ function DetailBody({
     day: 'numeric',
   })
   const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-  const tokenDisplay = formatToken(appt)
-  const hasToken = appt.tokenNumber != null
+  const queueEntry = appt.queueEntry ?? null
 
   const isCancelled = appt.status === AppointmentStatus.CANCELLED
   const isCompleted = appt.status === AppointmentStatus.COMPLETED
   const isNoShow = appt.status === AppointmentStatus.NO_SHOW
   const isTerminal = isCancelled || isCompleted || isNoShow
+  const isNotArrived = NOT_ARRIVED_STATUSES.includes(appt.status)
 
   const handle = async (label: string, run: () => Promise<unknown>) => {
     try {
@@ -187,10 +159,16 @@ function DetailBody({
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
               Token
             </p>
-            {hasToken ? (
-              <p className="text-4xl font-bold tabular-nums leading-none mt-1">
-                {tokenDisplay}
-              </p>
+            {queueEntry ? (
+              <>
+                <p className="text-4xl font-bold tabular-nums leading-none mt-1">
+                  {queueEntry.token}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {QUEUE_STATUS_LABELS[queueEntry.status]} · Dr.{' '}
+                  {appt.doctor?.fullName ?? ''}
+                </p>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground italic leading-none mt-2">
                 Assigned at check-in
@@ -200,9 +178,6 @@ function DetailBody({
           <div className="flex flex-wrap gap-1.5">
             {appt.isEmergency && (
               <Badge variant="destructive">Emergency</Badge>
-            )}
-            {appt.isWalkIn && (
-              <Badge variant="secondary">Walk-in</Badge>
             )}
             <Badge variant="outline" className="capitalize">
               {appt.type.replace('_', ' ')}
@@ -308,8 +283,7 @@ function DetailBody({
                 Quick actions
               </p>
               <div className="flex flex-wrap gap-2">
-                {(appt.status === AppointmentStatus.SCHEDULED ||
-                  appt.status === AppointmentStatus.RESCHEDULED) && (
+                {appt.status === AppointmentStatus.SCHEDULED && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -322,70 +296,44 @@ function DetailBody({
                     <ThumbsUp size={14} className="mr-1.5" /> Confirm
                   </Button>
                 )}
-                {(appt.status === AppointmentStatus.SCHEDULED ||
-                  appt.status === AppointmentStatus.CONFIRMED ||
-                  appt.status === AppointmentStatus.RESCHEDULED) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handle('checked in', () =>
-                        checkInMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
+                {isNotArrived && (
+                  <Button size="sm" onClick={() => setCheckingIn(true)}>
                     <LogIn size={14} className="mr-1.5" /> Check in
                   </Button>
                 )}
                 {appt.status === AppointmentStatus.CHECKED_IN && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handle('started', () =>
-                        startMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <Stethoscope size={14} className="mr-1.5" /> Start
-                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    In the queue — call, start and finish the visit from the
+                    Queue board or the doctor's screen.
+                  </p>
                 )}
-                {appt.status === AppointmentStatus.IN_PROGRESS && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handle('completed', () =>
-                        completeMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <CheckCircle size={14} className="mr-1.5" /> Complete
-                  </Button>
+                {isNotArrived && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handle('marked no-show', () =>
+                          noShowMutation.mutateAsync(appt.id),
+                        )
+                      }
+                    >
+                      <UserX size={14} className="mr-1.5" /> No show
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() =>
+                        handle('cancelled', () =>
+                          cancelMutation.mutateAsync({ id: appt.id }),
+                        )
+                      }
+                    >
+                      <XCircle size={14} className="mr-1.5" /> Cancel
+                    </Button>
+                  </>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    handle('marked no-show', () =>
-                      noShowMutation.mutateAsync(appt.id),
-                    )
-                  }
-                >
-                  <UserX size={14} className="mr-1.5" /> No show
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() =>
-                    handle('cancelled', () =>
-                      cancelMutation.mutateAsync({ id: appt.id }),
-                    )
-                  }
-                >
-                  <XCircle size={14} className="mr-1.5" /> Cancel
-                </Button>
               </div>
             </div>
           </>
@@ -394,24 +342,43 @@ function DetailBody({
 
       {/* ── Footer ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-2 px-6 py-3 border-t bg-muted/30">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() =>
-            printAppointmentReceipt(appt, { clinicName, locationName })
-          }
-        >
-          <Printer size={14} className="mr-1.5" /> Print receipt
-        </Button>
+        {queueEntry ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void printQueueTicket(queueEntry.id)}
+          >
+            <Printer size={14} className="mr-1.5" /> Print ticket
+          </Button>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onClose}>
             Close
           </Button>
-          <Button size="sm" onClick={onEdit}>
-            <Pencil size={14} className="mr-1.5" /> Edit
-          </Button>
+          {isNotArrived && (
+            <Button size="sm" onClick={onEdit}>
+              <Pencil size={14} className="mr-1.5" /> Edit
+            </Button>
+          )}
         </div>
       </div>
+
+      <CheckInDialog
+        target={
+          checkingIn
+            ? {
+                id: appt.id,
+                patientName: appt.patient?.fullName,
+                doctorName: appt.doctor?.fullName,
+                startTime: appt.startTime,
+                isEmergency: appt.isEmergency,
+              }
+            : null
+        }
+        onOpenChange={(o) => !o && setCheckingIn(false)}
+      />
     </>
   )
 }

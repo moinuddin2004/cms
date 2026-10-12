@@ -5,8 +5,6 @@ import {
   MoreHorizontal,
   Pencil,
   LogIn,
-  Stethoscope,
-  CheckCircle,
   ThumbsUp,
   UserX,
   XCircle,
@@ -31,16 +29,16 @@ import { useAppointments } from '../hooks/useAppointments'
 import { useDoctors } from '../hooks/useDoctors'
 import {
   useCancelAppointment,
-  useCheckIn,
-  useStartAppointment,
-  useCompleteAppointment,
   useConfirmAppointment,
   useNoShow,
 } from '../hooks/useAppointmentActions'
+import { CheckInDialog, type CheckInTarget } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
 import {
   type Appointment,
   AppointmentStatus,
+  NOT_ARRIVED_STATUSES,
+  QUEUE_STATUS_LABELS,
   STATUS_BG_COLORS,
 } from '../types'
 
@@ -120,10 +118,8 @@ export function AppointmentsList() {
 
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
-  const checkInMutation = useCheckIn()
-  const startMutation = useStartAppointment()
-  const completeMutation = useCompleteAppointment()
   const confirmMutation = useConfirmAppointment()
+  const [checkInTarget, setCheckInTarget] = useState<CheckInTarget | null>(null)
 
   // ─── Filter + pagination state ───────────────────────────────────
   const [searchInput, setSearchInput] = useState('')
@@ -214,13 +210,16 @@ export function AppointmentsList() {
     () => [
       {
         id: 'token',
-        accessorKey: 'tokenNumber',
         header: 'Token',
+        enableSorting: false,
         cell: ({ row }) => {
-          const appt = row.original
-          return appt.tokenNumber != null ? (
-            <span className="inline-flex h-7 min-w-[44px] items-center justify-center rounded-md bg-primary/10 px-2 text-sm font-bold tabular-nums text-primary">
-              #{appt.tokenNumber}
+          const entry = row.original.queueEntry
+          return entry ? (
+            <span
+              className="inline-flex h-7 min-w-[44px] items-center justify-center rounded-md bg-primary/10 px-2 text-sm font-bold tabular-nums text-primary"
+              title={QUEUE_STATUS_LABELS[entry.status]}
+            >
+              {entry.token}
             </span>
           ) : (
             <span className="text-muted-foreground text-xs">—</span>
@@ -276,11 +275,6 @@ export function AppointmentsList() {
                     Emergency
                   </Badge>
                 )}
-                {appt.isWalkIn && (
-                  <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-                    Walk-in
-                  </Badge>
-                )}
               </div>
             </div>
           )
@@ -332,10 +326,7 @@ export function AppointmentsList() {
         enableSorting: false,
         cell: ({ row }) => {
           const appt = row.original
-          const isCancelled = appt.status === AppointmentStatus.CANCELLED
-          const isCompleted = appt.status === AppointmentStatus.COMPLETED
-          const isNoShow = appt.status === AppointmentStatus.NO_SHOW
-          const isTerminal = isCancelled || isCompleted || isNoShow
+          const isNotArrived = NOT_ARRIVED_STATUSES.includes(appt.status)
           return (
             <div onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
@@ -353,15 +344,19 @@ export function AppointmentsList() {
                   <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
                     {appt.patient?.fullName}
                   </DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => openEditModal(appt.id)}>
-                    <Pencil className="w-3.5 h-3.5 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  {!isTerminal && (
+                  {!isNotArrived && (
+                    <DropdownMenuItem onClick={() => openDetailModal(appt.id)}>
+                      View details
+                    </DropdownMenuItem>
+                  )}
+                  {isNotArrived && (
                     <>
+                      <DropdownMenuItem onClick={() => openEditModal(appt.id)}>
+                        <Pencil className="w-3.5 h-3.5 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      {(appt.status === AppointmentStatus.SCHEDULED ||
-                        appt.status === AppointmentStatus.RESCHEDULED) && (
+                      {appt.status === AppointmentStatus.SCHEDULED && (
                         <DropdownMenuItem
                           onClick={() =>
                             handle('confirmed', () =>
@@ -373,44 +368,20 @@ export function AppointmentsList() {
                           Confirm
                         </DropdownMenuItem>
                       )}
-                      {(appt.status === AppointmentStatus.SCHEDULED ||
-                        appt.status === AppointmentStatus.CONFIRMED ||
-                        appt.status === AppointmentStatus.RESCHEDULED) && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handle('checked in', () =>
-                              checkInMutation.mutateAsync(appt.id),
-                            )
-                          }
-                        >
-                          <LogIn className="w-3.5 h-3.5 mr-2" />
-                          Check in
-                        </DropdownMenuItem>
-                      )}
-                      {appt.status === AppointmentStatus.CHECKED_IN && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handle('started', () =>
-                              startMutation.mutateAsync(appt.id),
-                            )
-                          }
-                        >
-                          <Stethoscope className="w-3.5 h-3.5 mr-2" />
-                          Start consultation
-                        </DropdownMenuItem>
-                      )}
-                      {appt.status === AppointmentStatus.IN_PROGRESS && (
-                        <DropdownMenuItem
-                          onClick={() =>
-                            handle('completed', () =>
-                              completeMutation.mutateAsync(appt.id),
-                            )
-                          }
-                        >
-                          <CheckCircle className="w-3.5 h-3.5 mr-2" />
-                          Complete
-                        </DropdownMenuItem>
-                      )}
+                      <DropdownMenuItem
+                        onClick={() =>
+                          setCheckInTarget({
+                            id: appt.id,
+                            patientName: appt.patient?.fullName,
+                            doctorName: appt.doctor?.fullName,
+                            startTime: appt.startTime,
+                            isEmergency: appt.isEmergency,
+                          })
+                        }
+                      >
+                        <LogIn className="w-3.5 h-3.5 mr-2" />
+                        Check in
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         onClick={() =>
@@ -444,12 +415,10 @@ export function AppointmentsList() {
     ],
     [
       openEditModal,
+      openDetailModal,
       handle,
       cancelMutation,
       noShowMutation,
-      checkInMutation,
-      startMutation,
-      completeMutation,
       confirmMutation,
     ],
   )
@@ -578,6 +547,7 @@ export function AppointmentsList() {
           pageSizeOptions: [10, 25, 50, 100],
         }}
       />
+      <CheckInDialog target={checkInTarget} onOpenChange={(o) => !o && setCheckInTarget(null)} />
     </div>
   )
 }

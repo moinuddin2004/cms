@@ -46,7 +46,7 @@ function greeting() {
 }
 
 export function DashboardPage() {
-  const { user, activeLocationId, activeOrganizationId, accessibleOrganizations } = useAuthStore()
+  const { user, activeOrganizationId, accessibleOrganizations } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const now = new Date()

@@ -296,7 +296,9 @@ Registered as `APP_GUARD` in `app.module.ts`:
 2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
 3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
 
-Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)`, `@ActiveTenant()` → `{ organizationId, locationId }`. Old `RoleAuthGuard` is legacy and NOT wired in.
+4. **`RolesGuard`** — enforces `@Roles(AppRole...)` (clinic_admin / receptionist / doctor), resolved per org+location by `AuthorizationService.resolveActor()`; attaches `request.actor` (`@CurrentActor()`).
+
+Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)`, `@Roles(...)`, `@ActiveTenant()` → `{ organizationId, locationId }`. Old `RoleAuthGuard` is legacy and NOT wired in. Note: `JwtAuthGuard` ignores `@Public()` — unauthenticated routes must also be listed in `auth/constants/public-routes.ts`.
 
 ### Auth / Login Flow
 Login resolves accessible orgs/locations, returns `requiresOrgSelection` / `requiresLocationSelection`. `__root.tsx` handles redirects: unauthenticated → `/login`; needs selection → `/select-location`. Super admins on `SUPER_ADMIN_SETUP_PATHS` bypass location-selection to bootstrap empty system. Session restore via silent `/auth/refresh` on mount.
@@ -307,7 +309,9 @@ Each domain is a self-contained NestJS module under `src/`:
 - `organizations/` — org settings, employee role definitions, ownership
 - `locations/` — per-org locations, schedules, settings
 - `patients/` — full patient records: dental charts, vitals, clinical notes, treatments, prescriptions, documents, consents, feedback
-- `appointments/` — scheduling, conflict detection, status tracking, doctor-patient-location mapping
+- `appointments/` — booking only: scheduling, validate, booking rules, conflict detection (DB exclusion constraint `no_doctor_overlap`), status transition map. Check-in hands over to the queue.
+- `queue/` — doctor-wise clinic queue after arrival. ALL queue mutations go through `QueueOrchestrator` (transaction → session row lock → transition map → audit `queue_events` + `outbox`). `SelectionEngine` is a pure function (spec covers the 14 scenarios in both modes). Mutations need an `Idempotency-Key` header; entry actions accept `If-Match: <version>`. Realtime: Socket.IO `/realtime` rooms fed by the outbox relay. Policies: `queue_policies` (org default + location override).
+- `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times.
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
 - `feature-flags/` — dynamic per-org feature toggles. Auto-seeds catalog on `OnModuleInit`, caches enabled keys `Map<orgId, Set>`. Call `invalidateCache(orgId)` after mutations. `seedFlagsForOrg()` runs on org creation.
@@ -315,8 +319,8 @@ Each domain is a self-contained NestJS module under `src/`:
 - `common/` — shared guards, decorators, utilities
 - `session/` — user session tracking
 
-Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments, patients (15+ sub-entities), payroll, feature-flags.
-Stubs/missing: dashboard (frontend uses mock data), reports, invoices, inventory, chairs, notifications/SMS.
+Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments (booking), queue (check-in → consultation → completion, reception board, doctor screen, TV display), patients (15+ sub-entities), payroll, feature-flags.
+Stubs/missing: reports, invoices, inventory, chairs, notifications/SMS. The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
 
 ### Backend Key Patterns
 - **Repository pattern** via TypeORM + injectable repositories

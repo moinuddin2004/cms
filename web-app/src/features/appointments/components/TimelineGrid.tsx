@@ -9,6 +9,7 @@ import {
 import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
 
 interface TimelineGridProps {
   appointments: Appointment[]
@@ -59,7 +60,7 @@ export function TimelineGrid({
     const clickDate = new Date(selectedDate)
     clickDate.setHours(hour, minute, 0, 0)
 
-    openCreateModal(doctorId, clickDate.toISOString().slice(0, 16))
+    openCreateModal(doctorId, toDateTimeLocalValue(clickDate))
   }
 
   const getInitials = (name: string) =>

@@ -1,10 +1,10 @@
 import {
   CalendarDays,
   CheckCircle,
-  XCircle,
+  Footprints,
   UserX,
   Clock,
-  TrendingUp,
+  Hourglass,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AppointmentStats } from '@/features/appointments/types'
@@ -40,11 +40,11 @@ const STAT_ITEMS = [
     suffix: '',
   },
   {
-    key: 'cancelled',
-    label: 'Cancelled',
-    icon: XCircle,
-    color: 'text-danger',
-    bg: 'bg-danger-soft',
+    key: 'walkIns',
+    label: 'Walk-ins',
+    icon: Footprints,
+    color: 'text-violet',
+    bg: 'bg-violet-soft',
     suffix: '',
   },
   {
@@ -56,12 +56,12 @@ const STAT_ITEMS = [
     suffix: '',
   },
   {
-    key: 'completionRate',
-    label: 'Completion',
-    icon: TrendingUp,
+    key: 'avgWaitMinutes',
+    label: 'Avg wait',
+    icon: Hourglass,
     color: 'text-amber',
     bg: 'bg-amber-soft',
-    suffix: '%',
+    suffix: ' min',
   },
 ] as const
 
@@ -104,8 +104,8 @@ export function StatsCards({ stats, isLoading }: StatsCardsProps) {
                 {item.label}
               </p>
               <p className="mt-1 text-base font-bold leading-none tabular-nums">
-                {value}
-                {item.suffix}
+                {value ?? '—'}
+                {value != null && item.suffix}
               </p>
             </div>
           </div>

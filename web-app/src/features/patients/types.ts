@@ -301,13 +301,14 @@ export interface EncounterAppointment {
   startTime: string
   endTime: string
   reasonForVisit: string | null
-  tokenNumber: number | null
-  isWalkIn: boolean
 }
 
 export interface Encounter {
   id: string
-  appointmentId: string
+  /** The queue entry (booked or walk-in) whose consultation created this encounter. */
+  queueEntryId: string
+  /** NULL for walk-ins. */
+  appointmentId: string | null
   patientId: string
   organizationId: string
   locationId: string

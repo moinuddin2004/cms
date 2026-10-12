@@ -1,4 +1,4 @@
-
+import { useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +12,6 @@ import { Badge } from '@/components/ui/badge'
 import {
   MoreVertical,
   LogIn,
-  Stethoscope,
-  CheckCircle,
   XCircle,
   UserX,
   Pencil,
@@ -23,16 +21,15 @@ import { toast } from 'sonner'
 import {
   type Appointment,
   AppointmentStatus,
+  NOT_ARRIVED_STATUSES,
   STATUS_BG_COLORS,
 } from '@/features/appointments/types'
 import {
   useCancelAppointment,
   useNoShow,
-  useCheckIn,
-  useStartAppointment,
-  useCompleteAppointment,
   useConfirmAppointment,
 } from '@/features/appointments/hooks/useAppointmentActions'
+import { CheckInDialog } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
 
 interface AppointmentCardProps {
@@ -46,13 +43,11 @@ export function AppointmentCard({
   style,
   compact = false,
 }: AppointmentCardProps) {
-  const { openEditModal } = useAppointmentStore()
+  const { openEditModal, openDetailModal } = useAppointmentStore()
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
-  const checkInMutation = useCheckIn()
-  const startMutation = useStartAppointment()
-  const completeMutation = useCompleteAppointment()
   const confirmMutation = useConfirmAppointment()
+  const [checkingIn, setCheckingIn] = useState(false)
 
   const startTime = new Date(appointment.startTime)
   const endTime = new Date(appointment.endTime)
@@ -75,9 +70,7 @@ export function AppointmentCard({
   }
 
   const isCancelled = appointment.status === AppointmentStatus.CANCELLED
-  const isCompleted = appointment.status === AppointmentStatus.COMPLETED
-  const isNoShow = appointment.status === AppointmentStatus.NO_SHOW
-  const isTerminal = isCancelled || isCompleted || isNoShow
+  const isNotArrived = NOT_ARRIVED_STATUSES.includes(appointment.status)
 
   return (
     <div
@@ -85,7 +78,9 @@ export function AppointmentCard({
         isCancelled ? 'opacity-50' : ''
       }`}
       style={style}
-      onClick={() => openEditModal(appointment.id)}
+      onClick={() =>
+        isNotArrived ? openEditModal(appointment.id) : openDetailModal(appointment.id)
+      }
     >
       <div className="flex items-start justify-between gap-1">
         <div className="flex-1 min-w-0">
@@ -113,12 +108,12 @@ export function AppointmentCard({
                   🚨
                 </Badge>
               )}
-              {appointment.isWalkIn && (
+              {appointment.queueEntry && (
                 <Badge
                   variant="secondary"
-                  className="text-[9px] px-1 py-0 h-3.5"
+                  className="text-[9px] px-1 py-0 h-3.5 tabular-nums"
                 >
-                  🚶
+                  {appointment.queueEntry.token}
                 </Badge>
               )}
             </div>
@@ -134,16 +129,19 @@ export function AppointmentCard({
             <MoreVertical className="w-3.5 h-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => openEditModal(appointment.id)}>
-              <Pencil className="w-3.5 h-3.5 mr-2" />
-              Edit
-            </DropdownMenuItem>
-
-            {!isTerminal && (
+            {!isNotArrived && (
+              <DropdownMenuItem onClick={() => openDetailModal(appointment.id)}>
+                View details
+              </DropdownMenuItem>
+            )}
+            {isNotArrived && (
               <>
+                <DropdownMenuItem onClick={() => openEditModal(appointment.id)}>
+                  <Pencil className="w-3.5 h-3.5 mr-2" />
+                  Edit
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                {(appointment.status === AppointmentStatus.SCHEDULED ||
-                  appointment.status === AppointmentStatus.RESCHEDULED) && (
+                {appointment.status === AppointmentStatus.SCHEDULED && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation()
@@ -154,41 +152,15 @@ export function AppointmentCard({
                     Confirm
                   </DropdownMenuItem>
                 )}
-                {(appointment.status === AppointmentStatus.SCHEDULED ||
-                  appointment.status === AppointmentStatus.CONFIRMED ||
-                  appointment.status === AppointmentStatus.RESCHEDULED) && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction('checked in', checkInMutation)
-                    }}
-                  >
-                    <LogIn className="w-3.5 h-3.5 mr-2" />
-                    Check In
-                  </DropdownMenuItem>
-                )}
-                {appointment.status === AppointmentStatus.CHECKED_IN && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleAction('started', startMutation)
-                    }}
-                  >
-                    <Stethoscope className="w-3.5 h-3.5 mr-2" />
-                    Start
-                  </DropdownMenuItem>
-                )}
-                {appointment.status === AppointmentStatus.IN_PROGRESS && (
-                  <DropdownMenuItem
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      await handleAction('completed', completeMutation)
-                    }}
-                  >
-                    <CheckCircle className="w-3.5 h-3.5 mr-2" />
-                    Complete
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setCheckingIn(true)
+                  }}
+                >
+                  <LogIn className="w-3.5 h-3.5 mr-2" />
+                  Check In
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -217,6 +189,22 @@ export function AppointmentCard({
         </DropdownMenu>
       </div>
 
+      <div onClick={(e) => e.stopPropagation()}>
+        <CheckInDialog
+          target={
+            checkingIn
+              ? {
+                  id: appointment.id,
+                  patientName: appointment.patient?.fullName,
+                  doctorName: appointment.doctor?.fullName,
+                  startTime: appointment.startTime,
+                  isEmergency: appointment.isEmergency,
+                }
+              : null
+          }
+          onOpenChange={(o) => !o && setCheckingIn(false)}
+        />
+      </div>
     </div>
   )
 }

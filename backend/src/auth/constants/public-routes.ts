@@ -10,4 +10,6 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'POST', path: '/auth/forgot-password' },
   { method: 'PATCH', path: '/auth/reset-password' },
   { method: 'POST', path: '/auth/logout' },
+  // Waiting-room TV: tokens and doctor names only, never patient data.
+  { method: 'GET', path: '/queue/displays/**/state' },
 ];

@@ -12,7 +12,6 @@ import {
 import { DataTable } from '@/components/shared/DataTable'
 import { formatDate } from '@/lib/formatters'
 import {
-  CalendarOff,
   Check,
   MoreHorizontal,
   Pencil,

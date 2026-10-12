@@ -34,11 +34,13 @@ import { Route as PrescriptionsIndexRouteImport } from './routes/prescriptions/i
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
+import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
 import { Route as PrescriptionsPrescriptionIdRouteImport } from './routes/prescriptions/$prescriptionId'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
+import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
@@ -170,6 +172,11 @@ const EmployeesIndexRoute = EmployeesIndexRouteImport.update({
   path: '/employees/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QueueDoctorRoute = QueueDoctorRouteImport.update({
+  id: '/queue/doctor',
+  path: '/queue/doctor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrescriptionsNewRoute = PrescriptionsNewRouteImport.update({
   id: '/prescriptions/new',
   path: '/prescriptions/new',
@@ -194,6 +201,11 @@ const InvoicesInvoiceIdRoute = InvoicesInvoiceIdRouteImport.update({
 const EmployeesCreateRoute = EmployeesCreateRouteImport.update({
   id: '/employees/create',
   path: '/employees/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisplayLocationIdRoute = DisplayLocationIdRouteImport.update({
+  id: '/display/$locationId',
+  path: '/display/$locationId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
@@ -245,11 +257,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
+  '/queue/doctor': typeof QueueDoctorRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
@@ -282,11 +296,13 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
+  '/queue/doctor': typeof QueueDoctorRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/patients': typeof PatientsIndexRoute
@@ -320,11 +336,13 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
+  '/queue/doctor': typeof QueueDoctorRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
@@ -359,11 +377,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/treatment-plan-templates'
     | '/users'
+    | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
+    | '/queue/doctor'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
@@ -396,11 +416,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/treatment-plan-templates'
     | '/users'
+    | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
+    | '/queue/doctor'
     | '/employees'
     | '/invoices'
     | '/patients'
@@ -433,11 +455,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/treatment-plan-templates'
     | '/users'
+    | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
+    | '/queue/doctor'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
@@ -471,11 +495,13 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   TreatmentPlanTemplatesRoute: typeof TreatmentPlanTemplatesRoute
   UsersRoute: typeof UsersRoute
+  DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PrescriptionsPrescriptionIdRoute: typeof PrescriptionsPrescriptionIdRoute
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
+  QueueDoctorRoute: typeof QueueDoctorRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
@@ -664,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/queue/doctor': {
+      id: '/queue/doctor'
+      path: '/queue/doctor'
+      fullPath: '/queue/doctor'
+      preLoaderRoute: typeof QueueDoctorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prescriptions/new': {
       id: '/prescriptions/new'
       path: '/prescriptions/new'
@@ -697,6 +730,13 @@ declare module '@tanstack/react-router' {
       path: '/employees/create'
       fullPath: '/employees/create'
       preLoaderRoute: typeof EmployeesCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/display/$locationId': {
+      id: '/display/$locationId'
+      path: '/display/$locationId'
+      fullPath: '/display/$locationId'
+      preLoaderRoute: typeof DisplayLocationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/patients/$patientId/': {
@@ -759,11 +799,13 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   TreatmentPlanTemplatesRoute: TreatmentPlanTemplatesRoute,
   UsersRoute: UsersRoute,
+  DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
   PatientsNewRoute: PatientsNewRoute,
   PrescriptionsPrescriptionIdRoute: PrescriptionsPrescriptionIdRoute,
   PrescriptionsNewRoute: PrescriptionsNewRoute,
+  QueueDoctorRoute: QueueDoctorRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,

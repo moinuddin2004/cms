@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -27,6 +27,12 @@ import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
 import { InventoryModule } from './inventory/inventory.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { AuthorizationService } from './auth/services/authorization.service';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { ClockModule } from './common/clock/clock.module';
+import { ensurePostgresExtensions } from './common/database/ensure-extensions';
+import { QueueModule } from './queue/queue.module';
+import { QueueRuntimeModule } from './queue/queue-runtime.module';
+import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -40,21 +46,6 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        url: configService.get<string>('DATABASE_URL'),
-        ssl: {
-          rejectUnauthorized: false, // Required for Neon's SSL connection
-        },
-        autoLoadEntities: true,
-        synchronize: configService.get('NODE_ENV') !== 'production',
-        migrationsRun: true,
-        migrations: ['dist/migrations/*.js'],
-      }),
-      inject: [ConfigService],
     }),
     TypeOrmModule.forFeature([
       User,
@@ -72,7 +63,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
       inject: [ConfigService],
     }),
     BullModule.registerQueue({ name: 'submissions' }),
-    ScheduleModule.forRoot(),
+    ClockModule,
     // Core modules
     AuthModule,
     UserModule,
@@ -87,6 +78,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     // Domain modules
     PatientsModule,
     AppointmentsModule,
+    QueueModule, // QueueRuntimeModule (gateway / relay / jobs) is added per role
     EncountersModule,
     TreatmentsModule,
     FeatureFlagsModule,
@@ -108,8 +100,49 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     },
     {
       provide: APP_GUARD,
-      useClass: FeatureFlagGuard, // Finally: enforce @RequireFeature gating
+      useClass: FeatureFlagGuard, // Then: enforce @RequireFeature gating
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard, // Finally: enforce @Roles (clinic RBAC)
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  /**
+   * The same module graph for every process; only what differs per role
+   * (see ProcessRole) is added here: schema sync/migrations run in HTTP
+   * processes only, and scheduled jobs (ScheduleModule — every @Cron /
+   * @Interval in the app, not just the queue's) only where jobs run, so a
+   * second API instance never runs them twice.
+   */
+  static forRole(role: ProcessRole): DynamicModule {
+    const ownsSchema = runsHttp(role);
+    return {
+      module: AppModule,
+      imports: [
+        TypeOrmModule.forRootAsync({
+          imports: [ConfigModule],
+          useFactory: async (configService: ConfigService) => {
+            // Extensions synchronize can't create but our constraints need.
+            if (ownsSchema) await ensurePostgresExtensions(configService.get<string>('DATABASE_URL'));
+            return {
+              type: 'postgres' as const,
+              url: configService.get<string>('DATABASE_URL'),
+              ssl: {
+                rejectUnauthorized: false, // Required for Neon's SSL connection
+              },
+              autoLoadEntities: true,
+              synchronize: ownsSchema && configService.get('NODE_ENV') !== 'production',
+              migrationsRun: ownsSchema,
+              migrations: ['dist/migrations/*.js'],
+            };
+          },
+          inject: [ConfigService],
+        }),
+        ...(runsJobs(role) ? [ScheduleModule.forRoot()] : []),
+        QueueRuntimeModule.forRole(role),
+      ],
+    };
+  }
+}

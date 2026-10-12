@@ -1,13 +1,8 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryFailedError } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Appointment } from 'src/appointments/entities/appointment.entity';
-import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
+import { QueueEntry } from 'src/queue/entities/queue-entry.entity';
 import { PatientEncounter } from './entities/patient-encounter.entity';
 
 @Injectable()
@@ -18,64 +13,37 @@ export class EncountersService {
   ) {}
 
   /**
-   * Idempotently create the encounter for an appointment at the moment the
-   * patient actually arrives (check-in / walk-in / complete). Safe to call more
-   * than once — returns the existing encounter if one is already present.
-   *
-   * Business rule: a visit can never come from a cancelled / no-show appointment.
+   * Idempotently create the encounter for a queue entry when the doctor
+   * starts the consultation. Runs inside the queue orchestrator's
+   * transaction (`tx`), so the encounter and the status change commit
+   * together. Safe to call twice — returns the existing encounter.
    */
-  async ensureEncounterForAppointment(
-    ctx: TenantContext,
-    appointment: Appointment,
-    userId?: string,
+  async ensureForQueueEntry(
+    tx: EntityManager,
+    entry: Pick<
+      QueueEntry,
+      'id' | 'patientId' | 'organizationId' | 'appointmentId' | 'reasonForVisit'
+    >,
+    locationId: string,
+    userId: string | null,
   ): Promise<PatientEncounter> {
-    if (
-      appointment.status === AppointmentStatus.CANCELLED ||
-      appointment.status === AppointmentStatus.NO_SHOW
-    ) {
-      throw new BadRequestException(
-        'Cannot create a visit for a cancelled or no-show appointment',
-      );
-    }
-
-    const existing = await this.encounterRepo.findOne({
-      where: { appointmentId: appointment.id },
-    });
+    const repo = tx.getRepository(PatientEncounter);
+    const existing = await repo.findOne({ where: { queueEntryId: entry.id } });
     if (existing) return existing;
 
-    const encounter = this.encounterRepo.create({
-      appointmentId: appointment.id,
-      patientId: appointment.patientId,
-      organizationId: appointment.organizationId,
-      locationId: appointment.locationId,
-      encounterDate: new Date(),
-      reason: appointment.reasonForVisit ?? null,
-      createdBy: userId ?? null,
-      updatedBy: userId ?? null,
-    });
-
-    try {
-      return await this.encounterRepo.save(encounter);
-    } catch (err) {
-      // Lost a race on the unique appointment_id — return the winner's row.
-      if (err instanceof QueryFailedError) {
-        const winner = await this.encounterRepo.findOne({
-          where: { appointmentId: appointment.id },
-        });
-        if (winner) return winner;
-      }
-      throw err;
-    }
-  }
-
-  async hasEncounterForAppointment(
-    ctx: TenantContext,
-    appointmentId: string,
-  ): Promise<boolean> {
-    const count = await this.encounterRepo.count({
-      where: { appointmentId, locationId: ctx.locationId },
-    });
-    return count > 0;
+    return repo.save(
+      repo.create({
+        queueEntryId: entry.id,
+        appointmentId: entry.appointmentId,
+        patientId: entry.patientId,
+        organizationId: entry.organizationId,
+        locationId,
+        encounterDate: new Date(),
+        reason: entry.reasonForVisit ?? null,
+        createdBy: userId,
+        updatedBy: userId,
+      }),
+    );
   }
 
   /** Flow H — the encounter plus its source appointment, patient and treatments. */
@@ -86,7 +54,12 @@ export class EncountersService {
         organizationId: ctx.organizationId,
         locationId: ctx.locationId,
       },
-      relations: { appointment: true, patient: true, treatments: true },
+      relations: {
+        appointment: true,
+        queueEntry: true,
+        patient: true,
+        treatments: true,
+      },
     });
     if (!encounter) throw new NotFoundException('Encounter not found');
     encounter.treatments?.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -94,7 +67,10 @@ export class EncountersService {
   }
 
   /** Flow G — all encounters for a patient, each with its treatments. */
-  async findByPatient(patientId: string, ctx: TenantContext): Promise<PatientEncounter[]> {
+  async findByPatient(
+    patientId: string,
+    ctx: TenantContext,
+  ): Promise<PatientEncounter[]> {
     const encounters = await this.encounterRepo.find({
       where: { patientId, organizationId: ctx.organizationId },
       relations: { treatments: true },

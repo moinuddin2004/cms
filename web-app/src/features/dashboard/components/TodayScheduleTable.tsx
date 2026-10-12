@@ -16,24 +16,20 @@ interface Props {
 
 const STATUS_CHIP: Record<string, string> = {
   [AppointmentStatus.COMPLETED]: 'bg-emerald-soft text-emerald',
-  [AppointmentStatus.IN_PROGRESS]: 'bg-primary-soft text-primary-text',
   [AppointmentStatus.CHECKED_IN]: 'bg-amber-soft text-amber',
   [AppointmentStatus.CONFIRMED]: 'bg-emerald-soft text-emerald',
   [AppointmentStatus.SCHEDULED]: 'bg-panel-2 text-text-2',
   [AppointmentStatus.NO_SHOW]: 'bg-danger-soft text-danger',
   [AppointmentStatus.CANCELLED]: 'bg-danger-soft text-danger',
-  [AppointmentStatus.RESCHEDULED]: 'bg-violet-soft text-violet',
 }
 
 const STATUS_LABEL: Record<string, string> = {
   [AppointmentStatus.COMPLETED]: 'Completed',
-  [AppointmentStatus.IN_PROGRESS]: 'In chair',
-  [AppointmentStatus.CHECKED_IN]: 'Waiting',
+  [AppointmentStatus.CHECKED_IN]: 'Checked in',
   [AppointmentStatus.CONFIRMED]: 'Confirmed',
   [AppointmentStatus.SCHEDULED]: 'Scheduled',
   [AppointmentStatus.NO_SHOW]: 'No Show',
   [AppointmentStatus.CANCELLED]: 'Cancelled',
-  [AppointmentStatus.RESCHEDULED]: 'Rescheduled',
 }
 
 function fmtTime(iso: string): string {
@@ -114,6 +110,7 @@ export function TodayScheduleTable({ data }: Props) {
         <div className="text-[15px] font-bold">Today's Schedule</div>
         <Link
           to="/appointments"
+          search={{ create: undefined }}
           className="text-[13px] font-medium text-primary-text hover:underline"
         >
           View all

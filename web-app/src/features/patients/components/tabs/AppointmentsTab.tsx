@@ -18,10 +18,18 @@ import {
   AppointmentStatus,
   STATUS_BG_COLORS,
   STATUS_LABELS,
-  formatToken,
   type Appointment,
 } from '@/features/appointments'
+import {
+  ENTRY_STATUS_LABELS,
+  usePatientVisits,
+  type PatientVisit,
+} from '@/features/queue'
 import type { Patient } from '../../types'
+
+type HistoryItem =
+  | { kind: 'appointment'; at: number; appt: Appointment }
+  | { kind: 'walk_in'; at: number; visit: PatientVisit }
 
 const TERMINAL = [
   AppointmentStatus.COMPLETED,
@@ -35,22 +43,30 @@ export function AppointmentsTab({ patient }: { patient: Patient }) {
     limit: 100,
   })
 
+  // Walk-ins have no appointment row — they come from the patient's queue visits.
+  const { data: visits = [], isLoading: loadingVisits } = usePatientVisits(patient.id)
+
   const appointments = data?.data ?? []
+  const walkIns = visits.filter((v) => v.queueType === 'walk_in')
 
   const { upcoming, past } = useMemo(() => {
     const now = Date.now()
     const up: Appointment[] = []
-    const old: Appointment[] = []
+    const old: HistoryItem[] = []
     for (const a of appointments) {
       const isFuture = new Date(a.startTime).getTime() >= now
       const isTerminal = TERMINAL.includes(a.status)
       if (isFuture && !isTerminal) up.push(a)
-      else old.push(a)
+      else old.push({ kind: 'appointment', at: +new Date(a.startTime), appt: a })
+    }
+    for (const v of walkIns) {
+      old.push({ kind: 'walk_in', at: +new Date(v.checkedInAt), visit: v })
     }
     up.sort((x, y) => +new Date(x.startTime) - +new Date(y.startTime))
-    old.sort((x, y) => +new Date(y.startTime) - +new Date(x.startTime))
+    old.sort((x, y) => y.at - x.at)
     return { upcoming: up, past: old }
-  }, [appointments])
+  }, [appointments, walkIns])
+  const total = appointments.length + walkIns.length
 
   return (
     <div className="mt-4 space-y-6 animate-in fade-in duration-300">
@@ -61,8 +77,8 @@ export function AppointmentsTab({ patient }: { patient: Patient }) {
             Appointments
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {appointments.length === 0
-              ? 'No appointments on record for this patient.'
+            {total === 0
+              ? 'No appointments or visits on record for this patient.'
               : `${upcoming.length} upcoming · ${past.length} past`}
           </p>
         </div>
@@ -74,11 +90,11 @@ export function AppointmentsTab({ patient }: { patient: Patient }) {
         </Button>
       </div>
 
-      {isLoading ? (
+      {isLoading || loadingVisits ? (
         <div className="flex justify-center p-8">
           <Loader2 className="animate-spin text-muted-foreground" />
         </div>
-      ) : appointments.length === 0 ? (
+      ) : total === 0 ? (
         <Card className="flex min-h-[200px] flex-col items-center justify-center border-dashed bg-muted/20 p-6 text-center text-muted-foreground">
           <CalendarX2 size={32} className="mb-4 opacity-20" />
           <p className="font-medium">No appointments yet.</p>
@@ -97,9 +113,13 @@ export function AppointmentsTab({ patient }: { patient: Patient }) {
           )}
           {past.length > 0 && (
             <Section title="History" count={past.length}>
-              {past.map((appt) => (
-                <AppointmentHistoryCard key={appt.id} appt={appt} />
-              ))}
+              {past.map((item) =>
+                item.kind === 'appointment' ? (
+                  <AppointmentHistoryCard key={item.appt.id} appt={item.appt} />
+                ) : (
+                  <WalkInVisitCard key={item.visit.id} visit={item.visit} />
+                ),
+              )}
             </Section>
           )}
         </div>
@@ -142,7 +162,7 @@ function AppointmentHistoryCard({
   const start = new Date(appt.startTime)
   const end = new Date(appt.endTime)
   const isCancelled = appt.status === AppointmentStatus.CANCELLED
-  const token = formatToken(appt)
+  const token = appt.queueEntry?.token ?? '—'
 
   const timeLabel = `${start.toLocaleTimeString([], {
     hour: 'numeric',
@@ -193,11 +213,6 @@ function AppointmentHistoryCard({
           >
             {STATUS_LABELS[appt.status]}
           </span>
-          {appt.isWalkIn && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">
-              <Footprints className="size-2.5" /> Walk-in
-            </span>
-          )}
           {appt.isEmergency && (
             <span className="inline-flex items-center gap-0.5 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
               <Zap className="size-2.5" /> Emergency
@@ -230,13 +245,70 @@ function AppointmentHistoryCard({
         <span
           className={cn(
             'font-mono text-sm font-bold tabular-nums',
-            appt.tokenNumber == null
+            !appt.queueEntry
               ? 'text-muted-foreground'
               : 'text-primary',
           )}
         >
           {token}
         </span>
+      </div>
+    </Card>
+  )
+}
+
+// ─── Walk-in visit (queue entry, no appointment) ──────────────────────
+function WalkInVisitCard({ visit }: { visit: PatientVisit }) {
+  const at = new Date(visit.checkedInAt)
+  const left = visit.status === 'cancelled' || visit.status === 'aborted'
+  return (
+    <Card
+      className={cn(
+        'flex items-stretch gap-3 p-3 shadow-sm transition-shadow hover:shadow-md',
+        left && 'opacity-60',
+      )}
+    >
+      <div className="flex min-w-[58px] flex-col items-center justify-center rounded-lg bg-muted px-2 py-1.5 text-center text-foreground">
+        <span className="text-[10px] font-bold uppercase leading-none opacity-70">
+          {at.toLocaleDateString([], { month: 'short' })}
+        </span>
+        <span className="text-xl font-bold leading-tight tabular-nums">{at.getDate()}</span>
+        <span className="text-[10px] leading-none opacity-70">
+          {at.toLocaleDateString([], { weekday: 'short' })}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-900 dark:bg-purple-950 dark:text-purple-300">
+            <Footprints className="size-2.5" /> Walk-in
+          </span>
+          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium">
+            {ENTRY_STATUS_LABELS[visit.status]}
+          </span>
+          {visit.priorityClass === 'authorized_urgent' && (
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
+              <Zap className="size-2.5" /> Emergency
+            </span>
+          )}
+        </div>
+        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Clock className="size-3" />
+            Arrived {at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+          </span>
+          {visit.doctorName && (
+            <span className="inline-flex items-center gap-1">
+              <Stethoscope className="size-3" />
+              Dr. {visit.doctorName}
+            </span>
+          )}
+        </p>
+        {visit.reasonForVisit && (
+          <p className="mt-1 truncate text-xs italic text-muted-foreground">“{visit.reasonForVisit}”</p>
+        )}
+      </div>
+      <div className="flex shrink-0 flex-col items-end justify-center">
+        <span className="font-mono text-sm font-bold tabular-nums text-primary">{visit.token}</span>
       </div>
     </Card>
   )
