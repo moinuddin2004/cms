@@ -17,6 +17,11 @@ export class CreateTreatmentDto {
   @IsUUID()
   encounterId?: string;
 
+  /** Optional — the treatment plan (from the Treatment Plans page) it follows. */
+  @IsOptional()
+  @IsUUID()
+  planTemplateId?: string;
+
   @IsString()
   @MaxLength(200)
   treatmentName: string;

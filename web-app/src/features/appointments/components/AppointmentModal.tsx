@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Switch } from '@/components/ui/switch'
 import { Loader2, AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react'
 import { useAppointmentStore } from '@/store/appointment-store'

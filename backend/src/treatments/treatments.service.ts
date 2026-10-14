@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
+import { PlanTemplate } from 'src/plan-templates/entities/plan-template.entity';
 import { Treatment } from './entities/treatment.entity';
 import { CreateTreatmentDto } from './dto/create-treatment.dto';
 import { CreateEncounterTreatmentDto } from './dto/create-encounter-treatment.dto';
@@ -21,6 +22,8 @@ export class TreatmentsService {
     private readonly encounterRepo: Repository<PatientEncounter>,
     @InjectRepository(Patient)
     private readonly patientRepo: Repository<Patient>,
+    @InjectRepository(PlanTemplate)
+    private readonly planTemplateRepo: Repository<PlanTemplate>,
   ) {}
 
   /**
@@ -54,9 +57,17 @@ export class TreatmentsService {
       }
     }
 
+    if (dto.planTemplateId) {
+      const plan = await this.planTemplateRepo.findOne({
+        where: { id: dto.planTemplateId, organizationId: ctx.organizationId },
+      });
+      if (!plan) throw new NotFoundException('Treatment plan not found');
+    }
+
     const treatment = this.treatmentRepo.create({
       patientId: dto.patientId,
       encounterId: dto.encounterId ?? null,
+      planTemplateId: dto.planTemplateId ?? null,
       organizationId: ctx.organizationId,
       locationId: ctx.locationId,
       treatmentName: dto.treatmentName,
@@ -97,6 +108,7 @@ export class TreatmentsService {
   async findByPatient(patientId: string, ctx: TenantContext): Promise<Treatment[]> {
     return this.treatmentRepo.find({
       where: { patientId, organizationId: ctx.organizationId },
+      relations: { planTemplate: true },
       order: { date: 'DESC' },
     });
   }
@@ -104,6 +116,7 @@ export class TreatmentsService {
   async findByEncounter(encounterId: string, ctx: TenantContext): Promise<Treatment[]> {
     return this.treatmentRepo.find({
       where: { encounterId, organizationId: ctx.organizationId },
+      relations: { planTemplate: true },
       order: { date: 'DESC' },
     });
   }

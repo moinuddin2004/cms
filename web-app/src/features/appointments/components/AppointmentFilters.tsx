@@ -8,10 +8,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import {
   APPOINTMENT_STATUS_OPTIONS,
   APPOINTMENT_TYPE_OPTIONS,
+  WALK_IN_TYPE_OPTION,
 } from '../types'
 
 export interface AppointmentFiltersProps {
@@ -25,6 +26,10 @@ export interface AppointmentFiltersProps {
   onReset: () => void
   /** Optional total count shown on the right. */
   count?: number
+  /** Noun for the count ("appointment" → "3 appointments"). */
+  countNoun?: string
+  /** Offer "Walk-in" in the type filter (List view, which shows walk-ins). */
+  includeWalkInType?: boolean
   /** Optional date controls (presets / custom range) — List view only.
    *  Rendered right after the search box. */
   dateControls?: ReactNode
@@ -42,6 +47,8 @@ export function AppointmentFilters({
   hasActiveFilters,
   onReset,
   count,
+  countNoun = 'appointment',
+  includeWalkInType,
   dateControls,
 }: AppointmentFiltersProps) {
   return (
@@ -89,7 +96,10 @@ export function AppointmentFilters({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All types</SelectItem>
-          {APPOINTMENT_TYPE_OPTIONS.map((t) => (
+          {(includeWalkInType
+            ? [...APPOINTMENT_TYPE_OPTIONS, WALK_IN_TYPE_OPTION]
+            : APPOINTMENT_TYPE_OPTIONS
+          ).map((t) => (
             <SelectItem key={t.value} value={t.value}>
               {t.label}
             </SelectItem>
@@ -111,7 +121,8 @@ export function AppointmentFilters({
 
       {typeof count === 'number' && count > 0 && (
         <div className="ml-auto text-xs text-muted-foreground">
-          {count} appointment{count === 1 ? '' : 's'}
+          {count} {countNoun}
+          {count === 1 ? '' : 's'}
         </div>
       )}
     </>

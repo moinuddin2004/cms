@@ -19,7 +19,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Checkbox } from '@/components/ui/checkbox'
 import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types'
 import { useAuthStore } from '@/store/useAuthStore'

@@ -23,10 +23,12 @@ const api = vi.hoisted(() => ({
   delete: vi.fn(),
 }))
 vi.mock('@/lib/api', () => ({ default: api, apiClient: api }))
+const navigate = vi.hoisted(() => vi.fn())
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => (
     <a href={to}>{children}</a>
   ),
+  useNavigate: () => navigate,
 }))
 vi.mock('../hooks/useQueueSocket', () => ({
   useQueueSocket: () => ({ connected: true }),
@@ -470,6 +472,54 @@ describe('DoctorQueuePage', () => {
     for (const name of [/Call again/i, /Didn't come/i, /Undo call/i]) {
       expect(screen.getByRole('button', { name })).toBeTruthy()
     }
+  })
+
+  it('starting a consultation opens the consultation screen for that visit', async () => {
+    mockMine(
+      snapshot([entry({ id: 'c1', status: 'called', calledAt: iso('09:29') })]),
+    )
+    api.request.mockResolvedValue({
+      data: {
+        data: {
+          entry: entry({ id: 'c1', status: 'in_consultation' }),
+          eventSeq: 7,
+          encounterId: 'enc-1',
+        },
+      },
+    })
+    renderWithClient(<DoctorQueuePage />)
+    fireEvent.click(await screen.findByRole('button', { name: /start/i }))
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: '/consultation/$encounterId',
+        params: { encounterId: 'enc-1' },
+      }),
+    )
+    expect(api.request.mock.calls[0][0].url).toBe(
+      '/queue/entries/c1/start-consultation',
+    )
+  })
+
+  it('a patient already in the room can be reopened in the consultation screen', async () => {
+    mockMine(snapshot([entry({ id: 'cur', status: 'in_consultation' })]))
+    const base = api.get.getMockImplementation()!
+    api.get.mockImplementation((url: string) =>
+      url === '/encounters/by-queue-entry/cur'
+        ? Promise.resolve({
+            data: { data: { encounter: { id: 'enc-9' }, queueEntry: null } },
+          })
+        : base(url),
+    )
+    renderWithClient(<DoctorQueuePage />)
+    fireEvent.click(
+      await screen.findByRole('button', { name: /Open consultation/i }),
+    )
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith({
+        to: '/consultation/$encounterId',
+        params: { encounterId: 'enc-9' },
+      }),
+    )
   })
 
   it('Call next posts to the session call-next endpoint with an Idempotency-Key', async () => {

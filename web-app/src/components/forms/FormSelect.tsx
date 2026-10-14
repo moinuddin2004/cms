@@ -5,7 +5,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from './FieldWrapper'
 
 export interface SelectOption {

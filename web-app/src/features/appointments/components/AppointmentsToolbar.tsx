@@ -8,7 +8,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { cn } from '@/lib/utils'
 import type { Doctor } from '@/features/appointments/types'
 

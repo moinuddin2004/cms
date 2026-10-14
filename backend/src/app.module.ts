@@ -26,6 +26,7 @@ import { FeatureFlagsModule } from './feature-flags/feature-flags.module';
 import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
 import { InventoryModule } from './inventory/inventory.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
+import { PlanTemplatesModule } from './plan-templates/plan-templates.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { ClockModule } from './common/clock/clock.module';
@@ -85,6 +86,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     BillingModule,
     InventoryModule,
     PrescriptionsModule,
+    PlanTemplatesModule,
   ],
   controllers: [AppController],
   providers: [

@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Button } from '@/components/ui/button'
 import { RotateCcw } from 'lucide-react'
 import { GENDER_OPTIONS } from '../types'

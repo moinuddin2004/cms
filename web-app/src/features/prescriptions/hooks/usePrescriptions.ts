@@ -7,6 +7,7 @@ import {
   fetchPrescriptions,
   fetchPrescriptionStats,
   fetchPrescriptionsByAppointment,
+  fetchPrescriptionsByEncounter,
   fetchPrescriptionsByPatient,
   finalizePrescription,
   updatePrescription,
@@ -61,6 +62,14 @@ export function usePrescriptionsByAppointment(
     queryKey: [PRESCRIPTIONS_KEY, 'appointment', appointmentId],
     queryFn: () => fetchPrescriptionsByAppointment(appointmentId!),
     enabled: !!appointmentId,
+  })
+}
+
+export function usePrescriptionsByEncounter(encounterId: string | undefined) {
+  return useQuery({
+    queryKey: [PRESCRIPTIONS_KEY, 'encounter', encounterId],
+    queryFn: () => fetchPrescriptionsByEncounter(encounterId!),
+    enabled: !!encounterId,
   })
 }
 

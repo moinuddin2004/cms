@@ -82,6 +82,11 @@ export class CreatePrescriptionDto {
   @IsUUID()
   appointmentId?: string;
 
+  /** The consultation (encounter) this prescription belongs to. */
+  @IsOptional()
+  @IsUUID()
+  encounterId?: string;
+
   /** Employee UUID of the prescribing doctor. Optional until UI exposes a picker. */
   @IsOptional()
   @IsUUID()

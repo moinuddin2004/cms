@@ -9,7 +9,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/shared'
 import { formatCurrency } from '@/lib/formatters'

@@ -10,12 +10,12 @@ import {
   Wallet,
   Settings,
   ChevronLeft,
-  ChevronRight,
   LogOut,
   Loader2,
   Shield,
   FileText,
   Stethoscope,
+  ClipboardList,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -78,6 +78,12 @@ const navSections: NavSection[] = [
         icon: FileText,
         href: '/prescriptions',
         feature: 'patients.prescriptions',
+      },
+      {
+        label: 'Treatment Plans',
+        icon: ClipboardList,
+        href: '/plan-templates',
+        feature: 'patients.treatment_plans',
       },
       {
         label: 'Invoices',
@@ -168,30 +174,39 @@ export function Sidebar() {
           : 'w-[var(--spacing-sidebar)]',
       )}
     >
-      {/* Logo & Collapse Toggle */}
-      <div className="flex items-center justify-between px-4 h-16 border-b border-border">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-primary to-emerald-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">M</span>
-          </div>
-          {!sidebarCollapsed && (
-            <span className="font-bold text-lg text-foreground whitespace-nowrap">
+      {/* Logo & Collapse Toggle. Collapsed (74px) there is no room for both,
+          so the logo itself becomes the expand button. */}
+      {sidebarCollapsed ? (
+        <div className="flex h-16 items-center justify-center border-b border-border">
+          <button
+            onClick={toggleSidebar}
+            className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            M
+          </button>
+        </div>
+      ) : (
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600">
+              <span className="text-sm font-bold text-white">M</span>
+            </div>
+            <span className="whitespace-nowrap text-lg font-bold text-foreground">
               MedTrackr
             </span>
-          )}
-        </div>
-        <button
-          onClick={toggleSidebar}
-          className="p-1.5 rounded-md hover:bg-accent text-muted-foreground transition-colors"
-          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {sidebarCollapsed ? (
-            <ChevronRight size={18} />
-          ) : (
+          </div>
+          <button
+            onClick={toggleSidebar}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent"
+            aria-label="Collapse sidebar"
+            title="Collapse sidebar"
+          >
             <ChevronLeft size={18} />
-          )}
-        </button>
-      </div>
+          </button>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">

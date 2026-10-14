@@ -84,6 +84,24 @@ export class PatientEncounter {
   @Column({ name: 'reason', type: 'text', nullable: true })
   reason: string | null;
 
+  // ─── Clinical notes (the doctor's record of this visit) ───────
+  @Column({ name: 'chief_complaint', type: 'text', nullable: true })
+  chiefComplaint: string | null;
+
+  @Column({ name: 'examination', type: 'text', nullable: true })
+  examination: string | null;
+
+  @Column({ name: 'diagnosis', type: 'text', nullable: true })
+  diagnosis: string | null;
+
+  /** Advice / instructions given to the patient. */
+  @Column({ name: 'advice', type: 'text', nullable: true })
+  advice: string | null;
+
+  /** 'YYYY-MM-DD' — when the doctor wants to see the patient again. */
+  @Column({ name: 'follow_up_date', type: 'date', nullable: true })
+  followUpDate: string | null;
+
   // ─── Audit ────────────────────────────────────────────────────
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string | null;

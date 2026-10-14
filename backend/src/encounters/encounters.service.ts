@@ -4,6 +4,20 @@ import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { QueueEntry } from 'src/queue/entities/queue-entry.entity';
 import { PatientEncounter } from './entities/patient-encounter.entity';
+import { UpdateEncounterNotesDto } from './dto/update-encounter-notes.dto';
+
+/** Everything the consultation screen needs about the live queue entry. */
+export interface ConsultationWorkspace {
+  encounter: PatientEncounter;
+  queueEntry: {
+    id: string;
+    token: string;
+    status: string;
+    version: number;
+    sessionId: string;
+  } | null;
+  doctor: { id: string; fullName: string } | null;
+}
 
 @Injectable()
 export class EncountersService {
@@ -64,6 +78,87 @@ export class EncountersService {
     if (!encounter) throw new NotFoundException('Encounter not found');
     encounter.treatments?.sort((a, b) => b.date.getTime() - a.date.getTime());
     return encounter;
+  }
+
+  /** The encounter plus the queue entry (for Complete) and the doctor in charge. */
+  async getWorkspace(
+    id: string,
+    ctx: TenantContext,
+  ): Promise<ConsultationWorkspace> {
+    const encounter = await this.findOne(id, ctx);
+    const entry = await this.encounterRepo.manager
+      .getRepository(QueueEntry)
+      .findOne({
+        where: { id: encounter.queueEntryId },
+        relations: { session: { doctor: true } },
+      });
+    const { queueEntry: _omit, ...rest } = encounter;
+    return {
+      encounter: rest as PatientEncounter,
+      queueEntry: entry
+        ? {
+            id: entry.id,
+            token: `${entry.session.tokenPrefix}-${String(entry.tokenNumber).padStart(3, '0')}`,
+            status: entry.status,
+            version: entry.version,
+            sessionId: entry.queueSessionId,
+          }
+        : null,
+      doctor: entry?.session?.doctor
+        ? { id: entry.session.doctor.id, fullName: entry.session.doctor.fullName }
+        : null,
+    };
+  }
+
+  /** Reload-safe way back into a consultation from the doctor's queue screen. */
+  async getWorkspaceByQueueEntry(
+    queueEntryId: string,
+    ctx: TenantContext,
+  ): Promise<ConsultationWorkspace> {
+    const encounter = await this.encounterRepo.findOne({
+      where: {
+        queueEntryId,
+        organizationId: ctx.organizationId,
+        locationId: ctx.locationId,
+      },
+      select: { id: true },
+    });
+    if (!encounter) {
+      throw new NotFoundException('This patient has not been started yet');
+    }
+    return this.getWorkspace(encounter.id, ctx);
+  }
+
+  /** Auto-save target — only the fields present in the body are touched. */
+  async updateNotes(
+    id: string,
+    ctx: TenantContext,
+    dto: UpdateEncounterNotesDto,
+    userId: string | null,
+  ): Promise<PatientEncounter> {
+    const encounter = await this.encounterRepo.findOne({
+      where: {
+        id,
+        organizationId: ctx.organizationId,
+        locationId: ctx.locationId,
+      },
+    });
+    if (!encounter) throw new NotFoundException('Encounter not found');
+
+    const blank = (v: string | null | undefined) =>
+      v === undefined ? undefined : v === null || v.trim() === '' ? null : v;
+    const patch: Partial<PatientEncounter> = {
+      chiefComplaint: blank(dto.chiefComplaint),
+      examination: blank(dto.examination),
+      diagnosis: blank(dto.diagnosis),
+      advice: blank(dto.advice),
+      followUpDate: blank(dto.followUpDate),
+    };
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) (encounter as any)[key] = value;
+    }
+    encounter.updatedBy = userId;
+    return this.encounterRepo.save(encounter);
   }
 
   /** Flow G — all encounters for a patient, each with its treatments. */

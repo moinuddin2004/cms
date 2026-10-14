@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { useMarkPaid } from '../hooks/useMarkPaid'
 import {
   type MarkPaidFormData,

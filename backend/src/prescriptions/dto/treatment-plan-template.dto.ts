@@ -13,6 +13,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PresetCategory } from '../enums/preset-category.enum';
 import { MealRelation } from '../enums/meal-relation.enum';
 
 export class CreateTemplateMedicineDto {
@@ -83,10 +84,8 @@ export class CreateTreatmentPlanTemplateDto {
   @IsString()
   description?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  category: string;
+  @IsEnum(PresetCategory)
+  category: PresetCategory;
 
   @IsOptional()
   @IsArray()
@@ -123,9 +122,8 @@ export class UpdateTreatmentPlanTemplateDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  category?: string;
+  @IsEnum(PresetCategory)
+  category?: PresetCategory;
 
   @IsOptional()
   @IsArray()

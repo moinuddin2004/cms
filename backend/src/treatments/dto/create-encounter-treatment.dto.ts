@@ -3,6 +3,7 @@ import {
   IsOptional,
   IsNumber,
   IsDateString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -12,6 +13,11 @@ import {
  * encounter are both derived from the route, so they are NOT part of the body.
  */
 export class CreateEncounterTreatmentDto {
+  /** Optional — the treatment plan (from the Treatment Plans page) it follows. */
+  @IsOptional()
+  @IsUUID()
+  planTemplateId?: string;
+
   @IsString()
   @MaxLength(200)
   treatmentName: string;

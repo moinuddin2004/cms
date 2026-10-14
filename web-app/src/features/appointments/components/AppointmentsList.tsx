@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { type ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
+import { useNavigate } from '@tanstack/react-router'
 import {
   MoreHorizontal,
+  UserRound,
   Pencil,
   LogIn,
   ThumbsUp,
@@ -22,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/shared/DataTable'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
 import { AppointmentsToolbar } from './AppointmentsToolbar'
 import { AppointmentFilters } from './AppointmentFilters'
@@ -34,6 +37,7 @@ import {
 } from '../hooks/useAppointmentActions'
 import { CheckInDialog, type CheckInTarget } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
+import type { AppointmentListParams } from '../types'
 import {
   type Appointment,
   AppointmentStatus,
@@ -98,9 +102,7 @@ function resolveRange(
     startDate: customFrom
       ? startOfDay(new Date(customFrom)).toISOString()
       : undefined,
-    endDate: customTo
-      ? endOfDay(new Date(customTo)).toISOString()
-      : undefined,
+    endDate: customTo ? endOfDay(new Date(customTo)).toISOString() : undefined,
   }
 }
 
@@ -115,6 +117,7 @@ export function AppointmentsList() {
     setDoctorFilter,
   } = useAppointmentStore()
   const { data: doctors = [] } = useDoctors()
+  const navigate = useNavigate()
 
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
@@ -151,7 +154,8 @@ export function AppointmentsList() {
   const { data, isLoading, isFetching } = useAppointments({
     ...range,
     status: status !== 'all' ? (status as AppointmentStatus) : undefined,
-    type: type !== 'all' ? (type as any) : undefined,
+    type: type !== 'all' ? (type as AppointmentListParams['type']) : undefined,
+    includeWalkIns: true,
     doctorId: doctorFilter !== 'all' ? doctorFilter : undefined,
     search: search || undefined,
     page,
@@ -205,6 +209,12 @@ export function AppointmentsList() {
     [],
   )
 
+  const openPatient = useCallback(
+    (patientId: string) =>
+      void navigate({ to: '/patients/$patientId', params: { patientId } }),
+    [navigate],
+  )
+
   // ─── Columns ─────────────────────────────────────────────────────
   const columns = useMemo<ColumnDef<Appointment, unknown>[]>(
     () => [
@@ -233,6 +243,7 @@ export function AppointmentsList() {
         cell: ({ row }) => {
           const start = new Date(row.original.startTime)
           const end = new Date(row.original.endTime)
+          const isWalkIn = row.original.kind === 'walk_in'
           return (
             <div className="font-medium">
               <div>
@@ -243,15 +254,22 @@ export function AppointmentsList() {
                 })}
               </div>
               <div className="text-xs text-muted-foreground">
+                {isWalkIn ? 'Arrived ' : ''}
                 {start.toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
-                })}{' '}
-                –{' '}
-                {end.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
                 })}
+                {/* A walk-in has no booked slot, so there is no end time. */}
+                {!isWalkIn && (
+                  <>
+                    {' '}
+                    –{' '}
+                    {end.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </>
+                )}
               </div>
             </div>
           )
@@ -299,11 +317,19 @@ export function AppointmentsList() {
         id: 'type',
         accessorKey: 'type',
         header: 'Type',
-        cell: ({ row }) => (
-          <span className="text-sm capitalize">
-            {row.original.type.replace('_', ' ')}
-          </span>
-        ),
+        cell: ({ row }) =>
+          row.original.kind === 'walk_in' ? (
+            <Badge
+              variant="outline"
+              className="border-violet-200 bg-violet-50 text-violet-700"
+            >
+              Walk-in
+            </Badge>
+          ) : (
+            <span className="text-sm capitalize">
+              {row.original.type.replace('_', ' ')}
+            </span>
+          ),
       },
       {
         id: 'status',
@@ -327,6 +353,23 @@ export function AppointmentsList() {
         cell: ({ row }) => {
           const appt = row.original
           const isNotArrived = NOT_ARRIVED_STATUSES.includes(appt.status)
+          if (appt.kind === 'walk_in') {
+            // No booking to open, edit or cancel — queue actions live on the
+            // Queue tab; from here the useful thing is the patient's record.
+            return (
+              <div onClick={(e) => e.stopPropagation()}>
+                <TooltipButton
+                  tooltip="Open patient"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => openPatient(appt.patientId)}
+                >
+                  <UserRound className="w-4 h-4" />
+                </TooltipButton>
+              </div>
+            )
+          }
           return (
             <div onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
@@ -416,6 +459,7 @@ export function AppointmentsList() {
     [
       openEditModal,
       openDetailModal,
+      openPatient,
       handle,
       cancelMutation,
       noShowMutation,
@@ -444,6 +488,8 @@ export function AppointmentsList() {
             hasActiveFilters={hasActiveFilters}
             onReset={clearFilters}
             count={total}
+            countNoun="visit"
+            includeWalkInType
             dateControls={
               <>
                 {/* Date presets */}
@@ -508,7 +554,7 @@ export function AppointmentsList() {
         data={appointments}
         isLoading={isLoading}
         skeletonRows={pageSize}
-        emptyMessage="No appointments match these filters."
+        emptyMessage="No appointments or walk-ins match these filters."
         emptyAction={
           <div className="flex flex-col items-center gap-2">
             {hasActiveFilters && (
@@ -531,7 +577,11 @@ export function AppointmentsList() {
             </Button>
           </div>
         }
-        onRowClick={(appt) => openDetailModal(appt.id)}
+        onRowClick={(appt) =>
+          appt.kind === 'walk_in'
+            ? openPatient(appt.patientId)
+            : openDetailModal(appt.id)
+        }
         getRowClassName={(appt) =>
           appt.status === AppointmentStatus.CANCELLED ? 'opacity-50' : undefined
         }
@@ -547,7 +597,10 @@ export function AppointmentsList() {
           pageSizeOptions: [10, 25, 50, 100],
         }}
       />
-      <CheckInDialog target={checkInTarget} onOpenChange={(o) => !o && setCheckInTarget(null)} />
+      <CheckInDialog
+        target={checkInTarget}
+        onOpenChange={(o) => !o && setCheckInTarget(null)}
+      />
     </div>
   )
 }

@@ -16,13 +16,15 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { useForm } from '@tanstack/react-form'
 import { Loader2, Plus } from 'lucide-react'
 import {
   useCreateTreatment,
   usePatientHistory,
 } from '../../hooks/usePatientSubEntities'
+import { usePlanTemplates, templateTotalCost } from '@/features/plan-templates'
+import type { PlanTemplate } from '@/features/plan-templates'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -47,8 +49,15 @@ export function TreatmentFormDialog({
   const { data: history } = usePatientHistory(linkedMode ? '' : patientId)
   const encounters = history?.encounters ?? []
 
+  // Plans are defined on the Treatment Plans page; here they are only picked.
+  const { data: allPlans = [] } = usePlanTemplates()
+  const plans = allPlans.filter((p) => p.isActive)
+  // Which procedure of the picked plan this treatment is ('' = whole plan).
+  const [procedure, setProcedure] = useState('')
+
   const form = useForm({
     defaultValues: {
+      planTemplateId: '',
       treatmentName: '',
       notes: '',
       cost: undefined as number | undefined,
@@ -59,6 +68,7 @@ export function TreatmentFormDialog({
       mutate(
         {
           patientId,
+          planTemplateId: value.planTemplateId || undefined,
           treatmentName: value.treatmentName.trim(),
           notes: value.notes || undefined,
           cost: value.cost,
@@ -68,12 +78,24 @@ export function TreatmentFormDialog({
         {
           onSuccess: () => {
             form.reset()
+            setProcedure('')
             setOpen(false)
           },
         },
       )
     },
   })
+
+  /** Fill name + cost from the picked plan (or one of its procedures). */
+  const applyPlan = (plan: PlanTemplate | undefined, item: string) => {
+    if (!plan) return
+    const picked = item === '' ? null : plan.items[Number(item)]
+    form.setFieldValue('treatmentName', picked?.procedureName ?? plan.name)
+    const cost = picked
+      ? picked.estimatedCost
+      : templateTotalCost(plan.items)
+    form.setFieldValue('cost', cost == null ? undefined : Number(cost))
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -98,11 +120,72 @@ export function TreatmentFormDialog({
           }}
           className="space-y-4 pt-4"
         >
+          <form.Field name="planTemplateId">
+            {(field) => {
+              const plan = plans.find((p) => p.id === field.state.value)
+              return (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Treatment plan</Label>
+                    <Select
+                      value={field.state.value || 'none'}
+                      onValueChange={(v) => {
+                        const id = v === 'none' ? '' : v
+                        field.handleChange(id)
+                        setProcedure('')
+                        applyPlan(
+                          plans.find((p) => p.id === id),
+                          '',
+                        )
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="No plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No plan</SelectItem>
+                        {plans.map((p) => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Procedure</Label>
+                    <Select
+                      value={procedure || 'all'}
+                      disabled={!plan || plan.items.length === 0}
+                      onValueChange={(v) => {
+                        const item = v === 'all' ? '' : v
+                        setProcedure(item)
+                        applyPlan(plan, item)
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Whole plan" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Whole plan</SelectItem>
+                        {(plan?.items ?? []).map((item, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {item.procedureName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )
+            }}
+          </form.Field>
+
           <form.Field
             name="treatmentName"
             validators={{
               onChange: ({ value }) =>
-                !value?.trim() ? 'Treatment name is required' : undefined,
+                !value.trim() ? 'Treatment name is required' : undefined,
             }}
           >
             {(field) => (

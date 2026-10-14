@@ -14,6 +14,7 @@ import { Location } from 'src/locations/entities/location.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { PrescriptionTemplate } from './prescription-template.entity';
 import { TreatmentPlanTemplate } from './treatment-plan-template.entity';
 import { PrescriptionMedicine } from './prescription-medicine.entity';
@@ -38,6 +39,7 @@ import { PrescriptionStatus } from '../enums/prescription-status.enum';
 @Index(['organizationId', 'locationId'])
 @Index(['patientId'])
 @Index(['appointmentId'])
+@Index(['encounterId'])
 @Index(['doctorId'])
 @Index(['prescriptionNumber'], { unique: true })
 export class Prescription {
@@ -75,6 +77,14 @@ export class Prescription {
 
   @Column({ name: 'appointment_id', type: 'uuid', nullable: true })
   appointmentId: string | null;
+
+  /** The consultation this was written in (walk-ins have no appointment). */
+  @ManyToOne(() => PatientEncounter, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'encounter_id' })
+  encounter: PatientEncounter | null;
+
+  @Column({ name: 'encounter_id', type: 'uuid', nullable: true })
+  encounterId: string | null;
 
   @ManyToOne(() => Employee, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'doctor_id' })

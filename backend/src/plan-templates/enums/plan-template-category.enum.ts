@@ -1,0 +1,24 @@
+/**
+ * The kind of treatment a plan template covers — mostly the dental
+ * specialities. Stored as a Postgres enum; the API only accepts these values.
+ * Keep the labels in the web app (`PLAN_TEMPLATE_CATEGORY_LABELS`) in step.
+ */
+export enum PlanTemplateCategory {
+  GENERAL = 'GENERAL',
+  PREVENTIVE = 'PREVENTIVE',
+  RESTORATIVE = 'RESTORATIVE',
+  ENDODONTICS = 'ENDODONTICS',
+  PERIODONTICS = 'PERIODONTICS',
+  ORAL_SURGERY = 'ORAL_SURGERY',
+  PROSTHODONTICS = 'PROSTHODONTICS',
+  IMPLANTOLOGY = 'IMPLANTOLOGY',
+  ORTHODONTICS = 'ORTHODONTICS',
+  PEDIATRIC = 'PEDIATRIC',
+  COSMETIC = 'COSMETIC',
+  GERIATRIC = 'GERIATRIC',
+  ORAL_MEDICINE = 'ORAL_MEDICINE',
+  TMJ_AND_OROFACIAL_PAIN = 'TMJ_AND_OROFACIAL_PAIN',
+  FULL_MOUTH_REHABILITATION = 'FULL_MOUTH_REHABILITATION',
+  EMERGENCY = 'EMERGENCY',
+  OTHER = 'OTHER',
+}

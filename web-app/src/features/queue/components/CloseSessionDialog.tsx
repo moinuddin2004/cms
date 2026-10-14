@@ -15,7 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { useDoctors } from '@/features/appointments'
 import { ENTRY_STATUS_LABELS } from '../types'
 import type { CloseDecision, QueueEntry } from '../types'

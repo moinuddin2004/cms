@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import {
   ArrowRightLeft,
   BellRing,
@@ -6,6 +7,7 @@ import {
   FlaskConical,
   Loader2,
   Megaphone,
+  NotebookPen,
   Pause,
   Play,
   Power,
@@ -23,13 +25,14 @@ import { cn } from '@/lib/utils'
 import { useMySession, useQueuePolicies } from '../hooks/useQueueData'
 import { useQueueRole } from '../hooks/useQueueRole'
 import { useDoctors } from '@/features/appointments'
+import { useOpenConsultation } from '@/features/consultation/hooks/useConsultation'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { useQueueAction } from '../hooks/useQueueAction'
 import {
   abortConsultation,
@@ -61,6 +64,8 @@ import { CloseSessionDialog } from '../components/CloseSessionDialog'
  */
 export function DoctorQueuePage() {
   const role = useQueueRole()
+  const navigate = useNavigate()
+  const openConsultation = useOpenConsultation()
   const { data: doctors = [] } = useDoctors()
   // Admins who aren't doctors themselves pick whose queue to run.
   const [pickedDoctor, setPickedDoctor] = useState('')
@@ -325,10 +330,20 @@ export function DoctorQueuePage() {
                     <>
                       <Button
                         onClick={() =>
-                          act.mutate({
-                            entry: current,
-                            action: 'start-consultation',
-                          })
+                          act.mutate(
+                            { entry: current, action: 'start-consultation' },
+                            {
+                              // Straight into the consultation screen.
+                              onSuccess: (r) => {
+                                if (r.encounterId) {
+                                  void navigate({
+                                    to: '/consultation/$encounterId',
+                                    params: { encounterId: r.encounterId },
+                                  })
+                                }
+                              },
+                            },
+                          )
                         }
                         disabled={act.isPending}
                       >
@@ -364,6 +379,18 @@ export function DoctorQueuePage() {
                     </>
                   ) : (
                     <>
+                      <Button
+                        size="lg"
+                        onClick={() => openConsultation.mutate(current.id)}
+                        disabled={openConsultation.isPending}
+                      >
+                        {openConsultation.isPending ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <NotebookPen className="size-4" />
+                        )}
+                        Open consultation
+                      </Button>
                       <Button
                         className="bg-emerald-600 hover:bg-emerald-700"
                         onClick={() =>

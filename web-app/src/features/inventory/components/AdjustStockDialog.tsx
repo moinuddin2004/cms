@@ -15,7 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAdjustStock } from '../hooks/useInventory'

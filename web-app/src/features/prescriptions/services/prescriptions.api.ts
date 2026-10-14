@@ -178,6 +178,13 @@ export async function fetchPrescriptionsByPatient(
   return data.data
 }
 
+export async function fetchPrescriptionsByEncounter(
+  encounterId: string,
+): Promise<Prescription[]> {
+  const { data } = await api.get(`/prescriptions/encounter/${encounterId}`)
+  return data.data
+}
+
 export async function fetchPrescriptionsByAppointment(
   appointmentId: string,
 ): Promise<Prescription[]> {

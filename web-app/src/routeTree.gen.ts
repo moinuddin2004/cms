@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsersRouteImport } from './routes/users'
-import { Route as TreatmentPlanTemplatesRouteImport } from './routes/treatment-plan-templates'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SelectLocationRouteImport } from './routes/select-location'
@@ -18,6 +17,8 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PrescriptionTemplatesRouteImport } from './routes/prescription-templates'
+import { Route as PrescriptionPresetsRouteImport } from './routes/prescription-presets'
+import { Route as PlanTemplatesRouteImport } from './routes/plan-templates'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as MedicineDirectoryRouteImport } from './routes/medicine-directory'
@@ -41,6 +42,7 @@ import { Route as PatientsNewRouteImport } from './routes/patients/new'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
+import { Route as ConsultationEncounterIdRouteImport } from './routes/consultation.$encounterId'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
@@ -50,11 +52,6 @@ import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TreatmentPlanTemplatesRoute = TreatmentPlanTemplatesRouteImport.update({
-  id: '/treatment-plan-templates',
-  path: '/treatment-plan-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -90,6 +87,16 @@ const RegisterRoute = RegisterRouteImport.update({
 const PrescriptionTemplatesRoute = PrescriptionTemplatesRouteImport.update({
   id: '/prescription-templates',
   path: '/prescription-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrescriptionPresetsRoute = PrescriptionPresetsRouteImport.update({
+  id: '/prescription-presets',
+  path: '/prescription-presets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlanTemplatesRoute = PlanTemplatesRouteImport.update({
+  id: '/plan-templates',
+  path: '/plan-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PayrollRoute = PayrollRouteImport.update({
@@ -208,6 +215,11 @@ const DisplayLocationIdRoute = DisplayLocationIdRouteImport.update({
   path: '/display/$locationId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConsultationEncounterIdRoute = ConsultationEncounterIdRouteImport.update({
+  id: '/consultation/$encounterId',
+  path: '/consultation/$encounterId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   id: '/patients/$patientId/',
   path: '/patients/$patientId/',
@@ -248,6 +260,8 @@ export interface FileRoutesByFullPath {
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
   '/payroll': typeof PayrollRoute
+  '/plan-templates': typeof PlanTemplatesRoute
+  '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -255,8 +269,8 @@ export interface FileRoutesByFullPath {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
-  '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
@@ -287,6 +301,8 @@ export interface FileRoutesByTo {
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
   '/payroll': typeof PayrollRoute
+  '/plan-templates': typeof PlanTemplatesRoute
+  '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -294,8 +310,8 @@ export interface FileRoutesByTo {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
-  '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
@@ -327,6 +343,8 @@ export interface FileRoutesById {
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
   '/payroll': typeof PayrollRoute
+  '/plan-templates': typeof PlanTemplatesRoute
+  '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -334,8 +352,8 @@ export interface FileRoutesById {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
-  '/treatment-plan-templates': typeof TreatmentPlanTemplatesRoute
   '/users': typeof UsersRoute
+  '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
@@ -368,6 +386,8 @@ export interface FileRouteTypes {
     | '/medicine-directory'
     | '/organizations'
     | '/payroll'
+    | '/plan-templates'
+    | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
     | '/reports'
@@ -375,8 +395,8 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
-    | '/treatment-plan-templates'
     | '/users'
+    | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
@@ -407,6 +427,8 @@ export interface FileRouteTypes {
     | '/medicine-directory'
     | '/organizations'
     | '/payroll'
+    | '/plan-templates'
+    | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
     | '/reports'
@@ -414,8 +436,8 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
-    | '/treatment-plan-templates'
     | '/users'
+    | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
@@ -446,6 +468,8 @@ export interface FileRouteTypes {
     | '/medicine-directory'
     | '/organizations'
     | '/payroll'
+    | '/plan-templates'
+    | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
     | '/reports'
@@ -453,8 +477,8 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
-    | '/treatment-plan-templates'
     | '/users'
+    | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
@@ -486,6 +510,8 @@ export interface RootRouteChildren {
   MedicineDirectoryRoute: typeof MedicineDirectoryRoute
   OrganizationsRoute: typeof OrganizationsRoute
   PayrollRoute: typeof PayrollRoute
+  PlanTemplatesRoute: typeof PlanTemplatesRoute
+  PrescriptionPresetsRoute: typeof PrescriptionPresetsRoute
   PrescriptionTemplatesRoute: typeof PrescriptionTemplatesRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
@@ -493,8 +519,8 @@ export interface RootRouteChildren {
   SelectLocationRoute: typeof SelectLocationRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
-  TreatmentPlanTemplatesRoute: typeof TreatmentPlanTemplatesRoute
   UsersRoute: typeof UsersRoute
+  ConsultationEncounterIdRoute: typeof ConsultationEncounterIdRoute
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
@@ -520,13 +546,6 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/treatment-plan-templates': {
-      id: '/treatment-plan-templates'
-      path: '/treatment-plan-templates'
-      fullPath: '/treatment-plan-templates'
-      preLoaderRoute: typeof TreatmentPlanTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -576,6 +595,20 @@ declare module '@tanstack/react-router' {
       path: '/prescription-templates'
       fullPath: '/prescription-templates'
       preLoaderRoute: typeof PrescriptionTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prescription-presets': {
+      id: '/prescription-presets'
+      path: '/prescription-presets'
+      fullPath: '/prescription-presets'
+      preLoaderRoute: typeof PrescriptionPresetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/plan-templates': {
+      id: '/plan-templates'
+      path: '/plan-templates'
+      fullPath: '/plan-templates'
+      preLoaderRoute: typeof PlanTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/payroll': {
@@ -739,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DisplayLocationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/consultation/$encounterId': {
+      id: '/consultation/$encounterId'
+      path: '/consultation/$encounterId'
+      fullPath: '/consultation/$encounterId'
+      preLoaderRoute: typeof ConsultationEncounterIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patients/$patientId/': {
       id: '/patients/$patientId/'
       path: '/patients/$patientId'
@@ -790,6 +830,8 @@ const rootRouteChildren: RootRouteChildren = {
   MedicineDirectoryRoute: MedicineDirectoryRoute,
   OrganizationsRoute: OrganizationsRoute,
   PayrollRoute: PayrollRoute,
+  PlanTemplatesRoute: PlanTemplatesRoute,
+  PrescriptionPresetsRoute: PrescriptionPresetsRoute,
   PrescriptionTemplatesRoute: PrescriptionTemplatesRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
@@ -797,8 +839,8 @@ const rootRouteChildren: RootRouteChildren = {
   SelectLocationRoute: SelectLocationRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
-  TreatmentPlanTemplatesRoute: TreatmentPlanTemplatesRoute,
   UsersRoute: UsersRoute,
+  ConsultationEncounterIdRoute: ConsultationEncounterIdRoute,
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,

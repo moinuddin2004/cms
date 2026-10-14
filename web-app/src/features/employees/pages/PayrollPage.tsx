@@ -7,7 +7,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Coins, Calendar, Loader2, Play, Plus } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
 import { PageWrapper } from '@/components/layout/PageWrapper'

@@ -45,6 +45,7 @@ export function TreatmentsTab({ patient }: { patient: Patient }) {
             <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b">
               <tr>
                 <th className="px-4 py-2">Treatment</th>
+                <th className="px-4 py-2">Plan</th>
                 <th className="px-4 py-2">Date</th>
                 <th className="px-4 py-2">Link</th>
                 <th className="px-4 py-2 text-right">Cost</th>
@@ -59,6 +60,15 @@ export function TreatmentsTab({ patient }: { patient: Patient }) {
                       <div className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                         <FileText size={10} /> {t.notes}
                       </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {t.planTemplate ? (
+                      <Badge variant="secondary" className="text-[11px]">
+                        {t.planTemplate.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">

@@ -17,7 +17,6 @@ import { VisitsTab } from './tabs/VisitsTab'
 import { TreatmentsTab } from './tabs/TreatmentsTab'
 import { VitalsAndDentalTab } from './tabs/VitalsAndDentalTab'
 import { TeethChartTab } from './tabs/TeethChartTab'
-import { TreatmentPlansTab } from './tabs/TreatmentPlansTab'
 import { ClinicalTab } from './tabs/ClinicalTab'
 import { ConsentsTab } from './tabs/ConsentsTab'
 import { FilesTab } from './tabs/FilesTab'
@@ -43,7 +42,7 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           <CalendarCheck2 size={14} className="mr-1.5" />
           Visits
         </TabsTrigger>
-        <TabsTrigger value="treatments-performed" className="text-sm">
+        <TabsTrigger value="treatments" className="text-sm">
           <Syringe size={14} className="mr-1.5" />
           Treatments
         </TabsTrigger>
@@ -55,12 +54,6 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           <TabsTrigger value="teeth-chart" className="text-sm">
             <Stethoscope size={14} className="mr-1.5" />
             Teeth Chart
-          </TabsTrigger>
-        </FeatureGuard>
-        <FeatureGuard feature="patients.treatment_plans">
-          <TabsTrigger value="treatments" className="text-sm">
-            <Stethoscope size={14} className="mr-1.5" />
-            Treatment Plans
           </TabsTrigger>
         </FeatureGuard>
         <FeatureGuard feature="patients.prescriptions">
@@ -95,7 +88,7 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
         <VisitsTab patient={patient} />
       </TabsContent>
 
-      <TabsContent value="treatments-performed">
+      <TabsContent value="treatments">
         <TreatmentsTab patient={patient} />
       </TabsContent>
 
@@ -106,12 +99,6 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
       <FeatureGuard feature="patients.teeth_chart">
         <TabsContent value="teeth-chart">
           <TeethChartTab patient={patient} />
-        </TabsContent>
-      </FeatureGuard>
-
-      <FeatureGuard feature="patients.treatment_plans">
-        <TabsContent value="treatments">
-          <TreatmentPlansTab patient={patient} />
         </TabsContent>
       </FeatureGuard>
 

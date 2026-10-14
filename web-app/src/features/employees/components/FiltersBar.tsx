@@ -4,7 +4,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Button } from '@/components/ui/button'
 import { RotateCcw, Loader2 } from 'lucide-react'
 import { EMPLOYMENT_TYPE_OPTIONS, STATUS_OPTIONS } from '../types'

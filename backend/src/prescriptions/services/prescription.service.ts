@@ -113,6 +113,7 @@ export class PrescriptionService {
       locationId: ctx.locationId,
       patientId: dto.patientId,
       appointmentId: dto.appointmentId ?? null,
+      encounterId: dto.encounterId ?? null,
       doctorId,
       prescriptionTemplateId,
       treatmentPlanTemplateId: dto.treatmentPlanTemplateId ?? null,
@@ -233,6 +234,17 @@ export class PrescriptionService {
     return { data, total };
   }
 
+  async listByEncounter(
+    encounterId: string,
+    organizationId: string,
+  ): Promise<Prescription[]> {
+    return this.repo.find({
+      where: { encounterId, organizationId },
+      relations: ['doctor'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async listByAppointment(
     appointmentId: string,
     organizationId: string,
@@ -304,7 +316,9 @@ export class PrescriptionService {
             prescriptionId: row.id,
           })),
         );
-        await manager.save(newRows);
+        // Keep the loaded relation in step with what is now in the table —
+        // otherwise the cascade below sees the old rows and orphans the new.
+        row.medicines = await manager.save(newRows);
       }
 
       const {

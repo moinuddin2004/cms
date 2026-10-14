@@ -74,7 +74,6 @@ export enum FlossingFrequency {
 
 export enum TreatmentPlanStatus {
   DRAFT = 'draft',
-  PROPOSED = 'proposed',
   ACTIVE = 'active',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
@@ -281,6 +280,9 @@ export interface Treatment {
   id: string
   patientId: string
   encounterId: string | null
+  /** The treatment plan (Treatment Plans page) it follows, if any. */
+  planTemplateId?: string | null
+  planTemplate?: { id: string; name: string } | null
   organizationId: string
   locationId: string
   treatmentName: string
@@ -314,6 +316,13 @@ export interface Encounter {
   locationId: string
   encounterDate: string
   reason: string | null
+  /** The doctor's notes for the visit (written on the consultation screen). */
+  chiefComplaint?: string | null
+  examination?: string | null
+  diagnosis?: string | null
+  advice?: string | null
+  /** `yyyy-MM-dd`. */
+  followUpDate?: string | null
   createdBy: string | null
   createdAt: string
   updatedAt: string
@@ -328,6 +337,7 @@ export interface TreatmentFormData {
   cost?: number
   date?: string
   encounterId?: string
+  planTemplateId?: string
 }
 
 export interface PatientHistory {

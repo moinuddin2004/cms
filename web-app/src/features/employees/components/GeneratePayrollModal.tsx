@@ -14,7 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Label } from '@/components/ui/label'
 import { useGeneratePayroll } from '../hooks/useGeneratePayroll'
 import { toast } from 'sonner'

@@ -24,7 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +60,7 @@ import {
   type PrescriptionMedicine,
   type Prescription,
   DURATION_PRESETS,
+  presetCategoryLabel,
   FREQUENCY_PRESETS,
   MEAL_RELATION_OPTIONS,
 } from '../types'
@@ -505,16 +506,16 @@ export function PrescriptionBuilder({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
-                Plans <ChevronDown className="ml-1 h-3 w-3" />
+                Presets <ChevronDown className="ml-1 h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-64">
-              <DropdownMenuLabel>Apply treatment plan</DropdownMenuLabel>
+              <DropdownMenuLabel>Apply prescription preset</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {planTemplates.length === 0 && (
                 <div className="px-2 py-3 text-center">
                   <p className="text-xs text-muted-foreground mb-2">
-                    No treatment plans saved yet.
+                    No prescription presets saved yet.
                   </p>
                   <Button
                     asChild
@@ -522,7 +523,7 @@ export function PrescriptionBuilder({
                     variant="outline"
                     className="h-7 text-xs"
                   >
-                    <Link to={'/treatment-plan-templates' as any}>
+                    <Link to={'/prescription-presets' as any}>
                       <Plus className="h-3 w-3 mr-1" /> Create one
                     </Link>
                   </Button>
@@ -536,7 +537,7 @@ export function PrescriptionBuilder({
                   <div className="flex flex-col">
                     <span className="text-sm">{p.name}</span>
                     <span className="text-[10px] text-muted-foreground">
-                      {p.category} · {p.medicines.length} medicines
+                      {presetCategoryLabel(p.category)} · {p.medicines.length} medicines
                     </span>
                   </div>
                 </DropdownMenuItem>
@@ -546,11 +547,11 @@ export function PrescriptionBuilder({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link
-                      to={'/treatment-plan-templates' as any}
+                      to={'/prescription-presets' as any}
                       className="text-xs text-muted-foreground"
                     >
                       <ExternalLink className="h-3 w-3 mr-2" />
-                      Manage treatment plans
+                      Manage prescription presets
                     </Link>
                   </DropdownMenuItem>
                 </>

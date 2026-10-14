@@ -23,7 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { entryAction, rejoinEntry } from '../services/queue.api'
 import { useQueueAction } from '../hooks/useQueueAction'

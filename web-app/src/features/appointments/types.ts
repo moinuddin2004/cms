@@ -55,6 +55,16 @@ export const APPOINTMENT_TYPE_OPTIONS = [
   { label: 'Cleaning', value: AppointmentType.CLEANING },
 ] as const
 
+/**
+ * Not a booking type — a filter value that narrows the appointments list to
+ * walk-ins (queue entries with no booking). Only the List view offers it.
+ */
+export const WALK_IN_TYPE_VALUE = 'walk_in' as const
+export const WALK_IN_TYPE_OPTION = {
+  label: 'Walk-in',
+  value: WALK_IN_TYPE_VALUE,
+} as const
+
 export const APPOINTMENT_STATUS_OPTIONS = [
   { label: 'Scheduled', value: AppointmentStatus.SCHEDULED },
   { label: 'Confirmed', value: AppointmentStatus.CONFIRMED },
@@ -154,7 +164,14 @@ export interface Appointment {
   locationId: string
   patientId: string
   doctorId: string
-  type: AppointmentType
+  /** `walk_in` only on walk-in rows of the list (see `kind`). */
+  type: AppointmentType | typeof WALK_IN_TYPE_VALUE
+  /**
+   * Set by the list when walk-ins are included. A walk-in row has no
+   * booking: its `id` is the queue entry's, and it can't be opened, edited or
+   * cancelled like an appointment.
+   */
+  kind?: 'appointment' | 'walk_in'
   status: AppointmentStatus
   startTime: string
   endTime: string
@@ -243,7 +260,9 @@ export interface AppointmentListParams {
   doctorId?: string
   patientId?: string
   status?: AppointmentStatus
-  type?: AppointmentType
+  type?: AppointmentType | typeof WALK_IN_TYPE_VALUE
+  /** Also return walk-ins, merged into the same sorted + paged list. */
+  includeWalkIns?: boolean
   /** ILIKE across patient name, phone, and patient number. */
   search?: string
   page?: number

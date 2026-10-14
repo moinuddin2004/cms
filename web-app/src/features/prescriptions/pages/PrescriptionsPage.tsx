@@ -2,20 +2,8 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
   Plus,
-  ChevronDown,
   Library,
-  Pill,
-  ClipboardList,
-  LayoutTemplate,
   FileText,
   CalendarDays,
   PencilLine,
@@ -95,46 +83,12 @@ export function PrescriptionsPage() {
       actions={
         <div className="flex items-center gap-2">
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Library className="size-3.5" />
-                Templates & Library
-                <ChevronDown className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Manage</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to={'/prescription-templates' as any}>
-                  <LayoutTemplate className="mr-2 size-4" />
-                  <div className="flex flex-col">
-                    <span className="text-sm">Prescription Templates</span>
-                    <span className="text-[10px] text-text-3">Letterhead, layout, fonts</span>
-                  </div>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={'/treatment-plan-templates' as any}>
-                  <ClipboardList className="mr-2 size-4" />
-                  <div className="flex flex-col">
-                    <span className="text-sm">Treatment Plans</span>
-                    <span className="text-[10px] text-text-3">Reusable medicine bundles</span>
-                  </div>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={'/medicine-directory' as any}>
-                  <Pill className="mr-2 size-4" />
-                  <div className="flex flex-col">
-                    <span className="text-sm">Medicine Directory</span>
-                    <span className="text-[10px] text-text-3">Drug catalogue & autocomplete</span>
-                  </div>
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/prescription-presets">
+              <Library className="size-3.5" />
+              Library
+            </Link>
+          </Button>
           <Button asChild size="sm">
             <Link to={'/prescriptions/new' as any}>
               <Plus className="size-3.5" />

@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from '@/components/shared'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQueueSettingsForm } from '../hooks/useQueueSettingsForm'

@@ -80,6 +80,18 @@ export class PrescriptionController {
     return ResponseWrapper.success(data);
   }
 
+  @Get('encounter/:encounterId')
+  async byEncounter(
+    @Param('encounterId', ParseUUIDPipe) encounterId: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.service.listByEncounter(
+      encounterId,
+      ctx.organizationId,
+    );
+    return ResponseWrapper.success(data);
+  }
+
   @Get('appointment/:appointmentId')
   async byAppointment(
     @Param('appointmentId', ParseUUIDPipe) appointmentId: string,

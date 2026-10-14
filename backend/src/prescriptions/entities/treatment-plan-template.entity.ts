@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { TreatmentPlanTemplateMedicine } from './treatment-plan-template-medicine.entity';
+import { PresetCategory } from '../enums/preset-category.enum';
 
 /**
  * A predefined, reusable prescription protocol — e.g. "Root Canal Aftercare"
@@ -41,8 +42,13 @@ export class TreatmentPlanTemplate {
   @Column({ name: 'description', type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ name: 'category', type: 'varchar', length: 100 })
-  category: string;
+  @Column({
+    name: 'category',
+    type: 'enum',
+    enum: PresetCategory,
+    default: PresetCategory.GENERAL,
+  })
+  category: PresetCategory;
 
   /** Mirrors the org-level specialty system — defaults to ['general']. */
   @Column({ name: 'specialty_tags', type: 'jsonb', default: () => `'["general"]'` })

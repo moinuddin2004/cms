@@ -6,7 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Appointment } from './entities/appointment.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
@@ -28,6 +28,34 @@ import { ClockService } from 'src/common/clock/clock.service';
 import { addDays, dayOfWeekOf } from 'src/common/clock/tz.util';
 import { assertEditable, assertTransition } from './appointment-transitions';
 import { pgError, sqlRows } from 'src/common/database/sql';
+
+/**
+ * Which queue-entry statuses a booking-style status filter means for
+ * walk-ins. Booking-only statuses (scheduled, confirmed, no-show) are absent:
+ * a walk-in is never in them, so filtering by one leaves walk-ins out.
+ */
+const WALK_IN_STATUS_FILTER: Partial<Record<AppointmentStatus, string[]>> = {
+  [AppointmentStatus.CHECKED_IN]: [
+    'waiting',
+    'called',
+    'in_consultation',
+    'on_hold',
+    'skipped',
+  ],
+  [AppointmentStatus.COMPLETED]: ['completed'],
+  [AppointmentStatus.CANCELLED]: ['cancelled', 'aborted', 'transferred'],
+};
+
+/** The booking-style status a walk-in's queue status is shown as. */
+function walkInStatus(queueStatus: string): AppointmentStatus {
+  if (queueStatus === 'completed') return AppointmentStatus.COMPLETED;
+  if (
+    WALK_IN_STATUS_FILTER[AppointmentStatus.CANCELLED]?.includes(queueStatus)
+  ) {
+    return AppointmentStatus.CANCELLED;
+  }
+  return AppointmentStatus.CHECKED_IN;
+}
 
 /** An appointment's queue entry, as shown next to the booking. */
 export interface QueueEntrySummary {
@@ -376,6 +404,16 @@ export class AppointmentsService {
   // ═══════════════════════════════════════════════════════════
 
   async findAll(ctx: TenantContext, filters: AppointmentFilterDto) {
+    if (filters.includeWalkIns) return this.findAllWithWalkIns(ctx, filters);
+    if (filters.type === 'walk_in') {
+      // Walk-ins are not bookings — nothing to return unless they were asked for.
+      return {
+        data: [],
+        total: 0,
+        page: filters.page || 1,
+        limit: filters.limit || 50,
+      };
+    }
     const qb = this.appointmentRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.patient', 'patient')
@@ -429,6 +467,205 @@ export class AppointmentsService {
     const [data, total] = await qb.getManyAndCount();
 
     return { data: await this.withQueueEntries(data), total, page, limit };
+  }
+
+  /**
+   * The appointments list with walk-ins merged in. Walk-ins never had a
+   * booking, so they exist only as queue entries; both kinds are put in one
+   * UNION, sorted by time and paged together so every page (and the total) is
+   * right. Walk-in rows are shaped like appointments (`kind: 'walk_in'`) so
+   * the same table can show them.
+   *
+   * Filters: a booking-only type or status (scheduled / confirmed / no-show)
+   * leaves walk-ins out; `type=walk_in` leaves bookings out; a queue entry
+   * that is still in the queue counts as `checked_in`.
+   */
+  private async findAllWithWalkIns(
+    ctx: TenantContext,
+    filters: AppointmentFilterDto,
+  ) {
+    const page = filters.page || 1;
+    const limit = filters.limit || 50;
+    const params: unknown[] = [];
+    const arg = (v: unknown) => {
+      params.push(v);
+      return `$${params.length}`;
+    };
+
+    const loc = arg(ctx.locationId);
+    const from = filters.startDate ? arg(new Date(filters.startDate)) : null;
+    const to = filters.endDate ? arg(new Date(filters.endDate)) : null;
+    const doctor = filters.doctorId ? arg(filters.doctorId) : null;
+    const patient = filters.patientId ? arg(filters.patientId) : null;
+    const like = filters.search ? arg(`%${filters.search}%`) : null;
+    const searchSql = like
+      ? `AND (p.full_name ILIKE ${like} OR p.phone ILIKE ${like} OR p.patient_number ILIKE ${like})`
+      : '';
+
+    const parts: string[] = [];
+
+    if (filters.type !== 'walk_in') {
+      parts.push(`
+        SELECT 'appointment'::text AS kind, a.id, a.start_time AS sort_at
+          FROM appointments a
+          JOIN patients p ON p.id = a.patient_id
+         WHERE a.location_id = ${loc}
+           ${from ? `AND a.start_time >= ${from}` : ''}
+           ${to ? `AND a.start_time <= ${to}` : ''}
+           ${doctor ? `AND a.doctor_id = ${doctor}` : ''}
+           ${patient ? `AND a.patient_id = ${patient}` : ''}
+           ${filters.status ? `AND a.status::text = ${arg(filters.status)}` : ''}
+           ${filters.type ? `AND a.type::text = ${arg(filters.type)}` : ''}
+           ${searchSql}`);
+    }
+
+    const queueStatuses = filters.status
+      ? WALK_IN_STATUS_FILTER[filters.status]
+      : undefined;
+    const walkInsWanted =
+      (!filters.type || filters.type === 'walk_in') &&
+      (!filters.status || !!queueStatuses);
+    if (walkInsWanted) {
+      parts.push(`
+        SELECT 'walk_in'::text AS kind, e.id, e.checked_in_at AS sort_at
+          FROM queue_entries e
+          JOIN queue_sessions s ON s.id = e.queue_session_id
+          JOIN patients p ON p.id = e.patient_id
+         WHERE s.location_id = ${loc}
+           AND e.queue_type = 'walk_in'
+           ${from ? `AND e.checked_in_at >= ${from}` : ''}
+           ${to ? `AND e.checked_in_at <= ${to}` : ''}
+           ${doctor ? `AND s.doctor_id = ${doctor}` : ''}
+           ${patient ? `AND e.patient_id = ${patient}` : ''}
+           ${queueStatuses ? `AND e.status::text = ANY(${arg(queueStatuses)}::text[])` : ''}
+           ${searchSql}`);
+    }
+
+    if (parts.length === 0) return { data: [], total: 0, page, limit };
+    const union = parts.join(' UNION ALL ');
+
+    const [{ n }] = await sqlRows<{ n: number }>(
+      this.dataSource,
+      `SELECT COUNT(*)::int AS n FROM (${union}) u`,
+      [...params],
+    );
+    const pageRows = await sqlRows<{
+      kind: 'appointment' | 'walk_in';
+      id: string;
+    }>(
+      this.dataSource,
+      `SELECT kind, id FROM (${union}) u
+        ORDER BY sort_at ASC, id ASC
+        LIMIT ${arg(limit)} OFFSET ${arg((page - 1) * limit)}`,
+      params,
+    );
+
+    const apptIds = pageRows
+      .filter((r) => r.kind === 'appointment')
+      .map((r) => r.id);
+    const walkInIds = pageRows
+      .filter((r) => r.kind === 'walk_in')
+      .map((r) => r.id);
+
+    const appointments = apptIds.length
+      ? await this.withQueueEntries(
+          await this.appointmentRepo.find({
+            where: { id: In(apptIds) },
+            relations: ['patient', 'doctor', 'location'],
+          }),
+        )
+      : [];
+    const apptById = new Map(appointments.map((a) => [a.id, a]));
+    const walkInById = await this.loadWalkInRows(walkInIds);
+
+    const data = pageRows
+      .map((r) => {
+        if (r.kind === 'walk_in') return walkInById.get(r.id);
+        const a = apptById.get(r.id);
+        return a
+          ? Object.assign(a, { kind: 'appointment' as const })
+          : undefined;
+      })
+      .filter((row) => row !== undefined);
+
+    return { data, total: n, page, limit };
+  }
+
+  /** Walk-in queue entries dressed as appointment rows for the shared list. */
+  private async loadWalkInRows(ids: string[]) {
+    const out = new Map<string, Record<string, unknown>>();
+    if (ids.length === 0) return out;
+    const rows = await sqlRows<{
+      id: string;
+      organization_id: string;
+      status: string;
+      priority_class: string;
+      token_number: number;
+      queue_session_id: string;
+      checked_in_at: Date;
+      finished_at: Date | null;
+      reason_for_visit: string | null;
+      patient_id: string;
+      doctor_id: string;
+      location_id: string;
+      token_prefix: string;
+      full_name: string;
+      phone: string;
+      patient_number: string | null;
+      doctor_name: string | null;
+    }>(
+      this.dataSource,
+      `SELECT e.id, e.organization_id, e.status::text AS status,
+              e.priority_class::text AS priority_class, e.token_number,
+              e.queue_session_id, e.checked_in_at, e.finished_at,
+              e.reason_for_visit, e.patient_id,
+              s.doctor_id, s.location_id, s.token_prefix,
+              p.full_name, p.phone, p.patient_number,
+              d.full_name AS doctor_name
+         FROM queue_entries e
+         JOIN queue_sessions s ON s.id = e.queue_session_id
+         JOIN patients p ON p.id = e.patient_id
+         LEFT JOIN employees d ON d.id = s.doctor_id
+        WHERE e.id = ANY($1::uuid[])`,
+      [ids],
+    );
+    for (const r of rows) {
+      const arrived = new Date(r.checked_in_at).toISOString();
+      out.set(r.id, {
+        kind: 'walk_in',
+        // The queue entry's id — walk-ins have no appointment row.
+        id: r.id,
+        organizationId: r.organization_id,
+        locationId: r.location_id,
+        patientId: r.patient_id,
+        doctorId: r.doctor_id,
+        type: 'walk_in',
+        status: walkInStatus(r.status),
+        startTime: arrived,
+        endTime: r.finished_at
+          ? new Date(r.finished_at).toISOString()
+          : arrived,
+        durationMinutes: 0,
+        reasonForVisit: r.reason_for_visit,
+        isEmergency: r.priority_class === 'authorized_urgent',
+        notes: null,
+        checkedInAt: arrived,
+        patient: {
+          id: r.patient_id,
+          fullName: r.full_name,
+          phone: r.phone,
+          patientNumber: r.patient_number,
+        },
+        doctor: { id: r.doctor_id, fullName: r.doctor_name ?? '' },
+        queueEntry: {
+          id: r.id,
+          status: r.status,
+          token: `${r.token_prefix}-${String(r.token_number).padStart(3, '0')}`,
+          sessionId: r.queue_session_id,
+        },
+      });
+    }
+    return out;
   }
 
   async findOne(

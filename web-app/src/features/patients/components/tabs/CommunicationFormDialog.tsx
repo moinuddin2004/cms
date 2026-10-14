@@ -15,7 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Textarea } from '@/components/ui/textarea'
 import { useForm } from '@tanstack/react-form'
 import { useCreateCommunication } from '../../hooks/usePatientSubEntities'

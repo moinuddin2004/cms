@@ -5,7 +5,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const DEFAULT_PAGE_SIZES = [10, 20, 50, 100] as const

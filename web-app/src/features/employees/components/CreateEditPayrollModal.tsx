@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Loader2 } from 'lucide-react'
 import { useEmployees } from '../hooks/useEmployees'
 import { useCreatePayroll } from '../hooks/useCreatePayroll'

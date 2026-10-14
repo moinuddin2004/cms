@@ -12,6 +12,7 @@ import { Patient } from 'src/patients/entities/patient.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
+import { PlanTemplate } from 'src/plan-templates/entities/plan-template.entity';
 
 /**
  * A treatment that was actually performed/rendered. ALWAYS belongs to a patient
@@ -46,6 +47,14 @@ export class Treatment {
 
   @Column({ name: 'encounter_id', type: 'uuid', nullable: true })
   encounterId: string | null;
+
+  // ─── Plan (optional — the clinic's plan this treatment follows) ──
+  @ManyToOne(() => PlanTemplate, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'plan_template_id' })
+  planTemplate: PlanTemplate | null;
+
+  @Column({ name: 'plan_template_id', type: 'uuid', nullable: true })
+  planTemplateId: string | null;
 
   // ─── Tenancy ──────────────────────────────────────────────────
   @ManyToOne(() => Organization, { onDelete: 'CASCADE' })

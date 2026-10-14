@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
 import { useRecordPayment } from '../hooks/usePayments'

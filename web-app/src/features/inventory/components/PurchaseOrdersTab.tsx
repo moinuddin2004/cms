@@ -31,7 +31,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
+} from '@/components/shared/SearchableSelect'
 import { Plus, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/formatters'
