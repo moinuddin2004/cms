@@ -30,8 +30,18 @@ import {
 } from '../types'
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 interface CreateEditPayrollModalProps {
@@ -153,7 +163,10 @@ export function CreateEditPayrollModal({
                       field.handleChange(v)
                       const emp = employees.find((e) => e.id === v)
                       if (emp?.grossSalary != null) {
-                        form.setFieldValue('salaryAmount', Number(emp.grossSalary))
+                        form.setFieldValue(
+                          'salaryAmount',
+                          Number(emp.grossSalary),
+                        )
                       }
                     }}
                   >
@@ -185,6 +198,7 @@ export function CreateEditPayrollModal({
                 <div className="space-y-2">
                   <Label>Month</Label>
                   <Select
+                    clearable={false}
                     value={String(field.state.value)}
                     onValueChange={(v) => field.handleChange(Number(v))}
                   >
@@ -207,6 +221,7 @@ export function CreateEditPayrollModal({
                 <div className="space-y-2">
                   <Label>Year</Label>
                   <Select
+                    clearable={false}
                     value={String(field.state.value)}
                     onValueChange={(v) => field.handleChange(Number(v))}
                   >

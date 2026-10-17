@@ -11,7 +11,10 @@ import {
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
-import { ExpenseCategory, PaymentMethod } from '../enums/billing.enums';
+import {
+  ExpenseCategory,
+  ExpensePaymentMethod as PaymentMethod,
+} from '../enums/billing.enums';
 
 @Entity({ name: 'expenses' })
 @Index(['organizationId', 'locationId', 'expenseDate'])
@@ -49,7 +52,12 @@ export class Expense {
   @Column({ name: 'payment_method', type: 'enum', enum: PaymentMethod })
   paymentMethod: PaymentMethod;
 
-  @Column({ name: 'reference_number', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'reference_number',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   referenceNumber: string | null;
 
   @Column({ name: 'receipt_url', type: 'text', nullable: true })

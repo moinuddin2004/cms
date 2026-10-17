@@ -20,8 +20,18 @@ import {
 import type { PayrollRecord } from '@/features/employees'
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 export function PayrollPage() {
@@ -51,6 +61,7 @@ export function PayrollPage() {
         actions={
           <div className="flex items-center gap-2">
             <Select
+              clearable={false}
               value={String(month)}
               onValueChange={(v) => setMonth(Number(v))}
             >
@@ -66,6 +77,7 @@ export function PayrollPage() {
               </SelectContent>
             </Select>
             <Select
+              clearable={false}
               value={String(year)}
               onValueChange={(v) => setYear(Number(v))}
             >
@@ -73,13 +85,14 @@ export function PayrollPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map(
-                  (y) => (
-                    <SelectItem key={y} value={String(y)}>
-                      {y}
-                    </SelectItem>
-                  ),
-                )}
+                {Array.from(
+                  { length: 5 },
+                  (_, i) => now.getFullYear() - 2 + i,
+                ).map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" onClick={openCreate}>
@@ -98,7 +111,9 @@ export function PayrollPage() {
             <CardContent className="p-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[11px] font-medium text-text-2">Total Payroll</p>
+                  <p className="text-[11px] font-medium text-text-2">
+                    Total Payroll
+                  </p>
                   {isLoading ? (
                     <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
                   ) : (
@@ -135,7 +150,9 @@ export function PayrollPage() {
 
           <Card>
             <CardContent className="p-3">
-              <p className="text-[11px] font-medium text-text-2">Pending Amount</p>
+              <p className="text-[11px] font-medium text-text-2">
+                Pending Amount
+              </p>
               {isLoading ? (
                 <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
               ) : (
@@ -182,7 +199,6 @@ export function PayrollPage() {
             onEdit={openEdit}
           />
         )}
-
       </PageWrapper>
 
       <GeneratePayrollModal

@@ -1,20 +1,5 @@
 // ─── Enums (mirror backend src/billing/enums/billing.enums.ts) ──────
 
-export enum InvoiceStatus {
-  DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
-  PARTIALLY_PAID = 'PARTIALLY_PAID',
-  PAID = 'PAID',
-  OVERDUE = 'OVERDUE',
-  CANCELLED = 'CANCELLED',
-  REFUNDED = 'REFUNDED',
-}
-
-export enum DiscountType {
-  PERCENTAGE = 'percentage',
-  FIXED = 'fixed',
-}
-
 export enum PaymentMethod {
   CASH = 'CASH',
   CARD = 'CARD',
@@ -52,86 +37,11 @@ export const REFERENCE_METHODS: PaymentMethod[] = [
 
 // ─── Entities ───────────────────────────────────────────────────────
 
-export interface InvoiceItem {
-  id: string
-  invoiceId: string
-  treatmentPlanItemId: string | null
-  description: string
-  quantity: number
-  unitPrice: number
-  totalPrice: number
-  sortOrder: number
-}
-
-export interface Payment {
-  id: string
-  invoiceId: string
-  patientId: string
-  receivedBy: string | null
-  receiver?: { id: string; fullName?: string } | null
-  amount: number
-  paymentMethod: PaymentMethod
-  referenceNumber: string | null
-  paymentDate: string
-  notes: string | null
-  createdAt: string
-  invoice?: Pick<Invoice, 'id' | 'invoiceNumber'>
-}
-
-export interface Invoice {
-  id: string
-  invoiceNumber: string
-  organizationId: string
-  locationId: string
-  patientId: string
-  patient?: { id: string; fullName?: string; phone?: string; email?: string }
-  treatmentPlanId: string | null
-  createdBy: string | null
-  creator?: { id: string; fullName?: string } | null
-  subtotal: number
-  discountType: DiscountType | null
-  discountValue: number
-  discountAmount: number
-  couponId: string | null
-  coupon?: Coupon | null
-  taxRate: number
-  taxAmount: number
-  totalAmount: number
-  paidAmount: number
-  balanceDue: number
-  status: InvoiceStatus
-  issuedDate: string | null
-  dueDate: string | null
-  paidDate: string | null
-  notes: string | null
-  items?: InvoiceItem[]
-  payments?: Payment[]
-  createdAt: string
-  updatedAt: string
-}
-
 export interface InvoiceStats {
   totalInvoices: number
   totalRevenue: number
   outstandingAmount: number
   overdueCount: number
-}
-
-export interface Coupon {
-  id: string
-  organizationId: string
-  code: string
-  name: string
-  discountType: DiscountType
-  discountValue: number
-  maxDiscountAmount: number | null
-  minInvoiceAmount: number | null
-  validFrom: string
-  validUntil: string
-  maxUses: number | null
-  usedCount: number
-  isActive: boolean
-  createdAt: string
 }
 
 export interface Expense {
@@ -218,48 +128,4 @@ export interface PaginatedResponse<T> {
   page: number
   limit: number
   totalPages: number
-}
-
-// ─── Request payload shapes ─────────────────────────────────────────
-
-export interface CreateInvoiceItemInput {
-  description: string
-  quantity: number
-  unitPrice: number
-  treatmentPlanItemId?: string
-}
-
-export interface CreateInvoiceInput {
-  patientId: string
-  treatmentPlanId?: string
-  dueDate?: string
-  notes?: string
-  items?: CreateInvoiceItemInput[]
-}
-
-export interface RecordPaymentInput {
-  amount: number
-  paymentMethod: PaymentMethod
-  referenceNumber?: string
-  paymentDate?: string
-  notes?: string
-}
-
-export interface InvoiceFilters {
-  status?: InvoiceStatus
-  patientId?: string
-  dateFrom?: string
-  dateTo?: string
-  page?: number
-  limit?: number
-}
-
-export const STATUS_BADGE: Record<InvoiceStatus, string> = {
-  [InvoiceStatus.DRAFT]: 'bg-muted text-muted-foreground',
-  [InvoiceStatus.PENDING]: 'bg-yellow-100 text-yellow-700',
-  [InvoiceStatus.PARTIALLY_PAID]: 'bg-blue-100 text-blue-700',
-  [InvoiceStatus.PAID]: 'bg-green-100 text-green-700',
-  [InvoiceStatus.OVERDUE]: 'bg-red-100 text-red-700',
-  [InvoiceStatus.CANCELLED]: 'bg-muted text-muted-foreground',
-  [InvoiceStatus.REFUNDED]: 'bg-purple-100 text-purple-700',
 }

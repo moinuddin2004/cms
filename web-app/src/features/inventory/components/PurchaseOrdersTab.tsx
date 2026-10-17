@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
@@ -201,7 +202,8 @@ function CreatePODialog({
   }, [open])
 
   const subtotal = items.reduce(
-    (s, it) => s + (Number(it.orderedQuantity) || 0) * (Number(it.unitPrice) || 0),
+    (s, it) =>
+      s + (Number(it.orderedQuantity) || 0) * (Number(it.unitPrice) || 0),
     0,
   )
   const taxAmount = subtotal * (Number(taxRate) / 100)
@@ -228,7 +230,9 @@ function CreatePODialog({
     })
   }
   const setItem = (idx: number, patch: Partial<DraftItem>) =>
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
+    setItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+    )
 
   const submit = () => {
     if (!supplierId) {
@@ -282,10 +286,10 @@ function CreatePODialog({
             </div>
             <div className="space-y-2">
               <Label>Expected Delivery</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
+                onChange={(v) => setExpectedDate(v)}
+                clearable
               />
             </div>
           </div>
@@ -320,7 +324,9 @@ function CreatePODialog({
                       min={1}
                       value={it.orderedQuantity}
                       onChange={(e) =>
-                        setItem(idx, { orderedQuantity: Number(e.target.value) })
+                        setItem(idx, {
+                          orderedQuantity: Number(e.target.value),
+                        })
                       }
                     />
                   </div>
@@ -538,7 +544,8 @@ function PODetailSheet({
                 Subtotal: {formatCurrency(Number(po.subtotal))}
               </span>
               <span className="text-muted-foreground">
-                Tax ({Number(po.taxRate)}%): {formatCurrency(Number(po.taxAmount))}
+                Tax ({Number(po.taxRate)}%):{' '}
+                {formatCurrency(Number(po.taxAmount))}
               </span>
               <span className="text-base font-bold">
                 Total: {formatCurrency(Number(po.totalAmount))}
@@ -657,12 +664,10 @@ function ReceiveItemsDialog({
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Expiry</Label>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={row?.expiryDate ?? ''}
-                      onChange={(e) =>
-                        setRow(it.id, { expiryDate: e.target.value })
-                      }
+                      onChange={(v) => setRow(it.id, { expiryDate: v })}
+                      clearable
                     />
                   </div>
                 </div>

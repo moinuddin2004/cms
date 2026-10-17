@@ -12,7 +12,9 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
+import { HideTreatmentPricesInterceptor } from 'src/common/interceptors/hide-treatment-prices.interceptor';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/request/create-patient.dto';
 import { UpdatePatientDto, UpdatePatientStatusDto } from './dto/request/update-patient.dto';
@@ -123,6 +125,7 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/history')
+  @UseInterceptors(HideTreatmentPricesInterceptor)
   async getHistory(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
     const data = await this.patientsService.getHistory(id, ctx);
     return ResponseWrapper.success(data, 'Patient history retrieved successfully');

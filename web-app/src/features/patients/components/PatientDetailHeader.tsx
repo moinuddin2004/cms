@@ -1,4 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import {
+  OutstandingBadge,
+  useBillingAccess,
+  useOutstanding,
+} from '@/features/billing'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
@@ -54,11 +59,24 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
           >
             {patient.isActive ? 'Active' : 'Inactive'}
           </Badge>
-          <span className="font-mono text-[11px] text-muted-foreground">{patient.patientNumber}</span>
-          {patient.dob && <span className="text-[11px] text-muted-foreground">{getAge(patient.dob)}</span>}
-          {patient.gender && <span className="text-[11px] text-muted-foreground capitalize">{patient.gender}</span>}
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {patient.patientNumber}
+          </span>
+          <PatientDuesBadge patientId={patient.id} />
+          {patient.dob && (
+            <span className="text-[11px] text-muted-foreground">
+              {getAge(patient.dob)}
+            </span>
+          )}
+          {patient.gender && (
+            <span className="text-[11px] text-muted-foreground capitalize">
+              {patient.gender}
+            </span>
+          )}
           {patient.bloodGroup && (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0">{patient.bloodGroup}</Badge>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+              {patient.bloodGroup}
+            </Badge>
           )}
         </div>
         <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
@@ -73,5 +91,18 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
         </div>
       </div>
     </div>
+  )
+}
+
+/** Dues / advance badge for admin + reception when the location shows it (D22). */
+function PatientDuesBadge({ patientId }: { patientId: string }) {
+  const { canBill } = useBillingAccess()
+  const dues = useOutstanding(canBill ? [patientId] : [])
+  if (!canBill) return null
+  return (
+    <OutstandingBadge
+      row={dues.data?.[0]}
+      className="text-[10px] px-1.5 py-0"
+    />
   )
 }

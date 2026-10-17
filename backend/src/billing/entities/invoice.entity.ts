@@ -1,139 +1,131 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
   ManyToOne,
   OneToMany,
-  JoinColumn,
-  Index,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { Organization } from 'src/organizations/entities/organization.entity';
-import { Location } from 'src/locations/entities/location.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
-import { Employee } from 'src/employees/entities/employee.entity';
-import { PatientTreatmentPlan } from 'src/patients/entities/patient-treatment-plan.entity';
-import { InvoiceStatus, DiscountType } from '../enums/billing.enums';
-import { InvoiceItem } from './invoice-item.entity';
-import { Payment } from './payment.entity';
-import { Coupon } from './coupon.entity';
+import { MoneyColumn } from '../common/money-column';
+import { InvoiceStatus } from '../enums/billing.enums';
+import { Charge } from './charge.entity';
 
+/**
+ * An issued document grouping charges (D2). No drafts: it is created and
+ * issued in one step. Cached money columns are written only by
+ * BillingTotalsService (6.12); payment / refund status is computed (6.13).
+ */
 @Entity({ name: 'invoices' })
-@Index(['organizationId', 'locationId', 'status'])
-@Index(['organizationId', 'patientId'])
-@Index(['invoiceNumber'], { unique: true })
-@Index(['dueDate'])
+@Index('uq_invoices_org_number', ['organizationId', 'invoiceNumber'], {
+  unique: true,
+})
+@Index('idx_invoices_patient', ['organizationId', 'locationId', 'patientId'])
+@Index('idx_invoices_issue_date', ['organizationId', 'locationId', 'issueDate'])
+@Index('idx_invoices_open', [
+  'organizationId',
+  'locationId',
+  'status',
+  'balanceDue',
+])
 export class Invoice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'invoice_number', type: 'varchar', length: 30 })
-  invoiceNumber: string;
-
-  @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
-
   @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
-
-  @ManyToOne(() => Location, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'location_id' })
-  location: Location;
 
   @Column({ name: 'location_id', type: 'uuid' })
   locationId: string;
 
-  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Patient, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'patient_id' })
   patient: Patient;
 
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string;
 
-  @ManyToOne(() => PatientTreatmentPlan, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'treatment_plan_id' })
-  treatmentPlan: PatientTreatmentPlan | null;
-
-  @Column({ name: 'treatment_plan_id', type: 'uuid', nullable: true })
-  treatmentPlanId: string | null;
-
-  @ManyToOne(() => Employee, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'created_by' })
-  creator: Employee | null;
-
-  @Column({ name: 'created_by', type: 'uuid', nullable: true })
-  createdBy: string | null;
-
-  @Column({ name: 'subtotal', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  subtotal: number;
-
-  @Column({
-    name: 'discount_type',
-    type: 'enum',
-    enum: DiscountType,
-    nullable: true,
-  })
-  discountType: DiscountType | null;
-
-  @Column({ name: 'discount_value', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discountValue: number;
-
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  discountAmount: number;
-
-  @ManyToOne(() => Coupon, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'coupon_id' })
-  coupon: Coupon | null;
-
-  @Column({ name: 'coupon_id', type: 'uuid', nullable: true })
-  couponId: string | null;
-
-  @Column({ name: 'tax_rate', type: 'decimal', precision: 5, scale: 2, default: 0 })
-  taxRate: number;
-
-  @Column({ name: 'tax_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  taxAmount: number;
-
-  @Column({ name: 'total_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  totalAmount: number;
-
-  @Column({ name: 'paid_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  paidAmount: number;
-
-  @Column({ name: 'balance_due', type: 'decimal', precision: 10, scale: 2, default: 0 })
-  balanceDue: number;
+  @Column({ name: 'invoice_number', type: 'varchar', length: 30 })
+  invoiceNumber: string;
 
   @Column({
     name: 'status',
     type: 'enum',
     enum: InvoiceStatus,
-    default: InvoiceStatus.DRAFT,
+    default: InvoiceStatus.ISSUED,
   })
   status: InvoiceStatus;
 
-  @Column({ name: 'issued_date', type: 'date', nullable: true })
-  issuedDate: Date | null;
+  @Column({ name: 'revision', type: 'int', default: 1 })
+  revision: number;
 
-  @Column({ name: 'due_date', type: 'date', nullable: true })
-  dueDate: Date | null;
+  @Column({ name: 'issue_date', type: 'date' })
+  issueDate: string;
 
-  @Column({ name: 'paid_date', type: 'date', nullable: true })
-  paidDate: Date | null;
+  @Column({ name: 'issued_at', type: 'timestamptz' })
+  issuedAt: Date;
 
-  @Column({ name: 'notes', type: 'text', nullable: true })
+  @Column({ name: 'due_date', type: 'date' })
+  dueDate: string;
+
+  @MoneyColumn('subtotal')
+  subtotal: number;
+
+  @MoneyColumn('discount_total')
+  discountTotal: number;
+
+  @MoneyColumn('total_amount')
+  totalAmount: number;
+
+  @MoneyColumn('paid_amount')
+  paidAmount: number;
+
+  @MoneyColumn('balance_due')
+  balanceDue: number;
+
+  /** Money released from this invoice to advance (edit releases + unapply). */
+  @MoneyColumn('released_amount')
+  releasedAmount: number;
+
+  /** SUM(refunds.amount) recorded against this invoice. */
+  @MoneyColumn('refunded_amount')
+  refundedAmount: number;
+
+  @Column({ name: 'notes', type: 'varchar', length: 500, nullable: true })
   notes: string | null;
 
-  @OneToMany(() => InvoiceItem, (item) => item.invoice, { cascade: true })
-  items: InvoiceItem[];
+  @Column({ name: 'issued_by', type: 'uuid' })
+  issuedBy: string;
 
-  @OneToMany(() => Payment, (payment) => payment.invoice)
-  payments: Payment[];
+  @Column({ name: 'last_edited_at', type: 'timestamptz', nullable: true })
+  lastEditedAt: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ name: 'last_edited_by', type: 'uuid', nullable: true })
+  lastEditedBy: string | null;
+
+  @Column({ name: 'cancelled_at', type: 'timestamptz', nullable: true })
+  cancelledAt: Date | null;
+
+  @Column({ name: 'cancelled_by', type: 'uuid', nullable: true })
+  cancelledBy: string | null;
+
+  @Column({
+    name: 'cancel_reason',
+    type: 'varchar',
+    length: 300,
+    nullable: true,
+  })
+  cancelReason: string | null;
+
+  @OneToMany(() => Charge, (c) => c.invoice)
+  charges: Charge[];
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

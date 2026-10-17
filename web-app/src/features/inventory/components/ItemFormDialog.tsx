@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
@@ -64,7 +65,8 @@ export function ItemFormDialog({
           initialStock: 0,
           unit: item.unit,
           unitPrice: Number(item.unitPrice),
-          sellingPrice: item.sellingPrice != null ? Number(item.sellingPrice) : '',
+          sellingPrice:
+            item.sellingPrice != null ? Number(item.sellingPrice) : '',
           reorderLevel: Number(item.reorderLevel),
           expiryDate: item.expiryDate ? item.expiryDate.slice(0, 10) : '',
           description: item.description ?? '',
@@ -145,7 +147,9 @@ export function ItemFormDialog({
               <Label>Category</Label>
               <Select
                 value={form.categoryId || 'none'}
-                onValueChange={(v) => set({ categoryId: v === 'none' ? '' : v })}
+                onValueChange={(v) =>
+                  set({ categoryId: v === 'none' ? '' : v })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Uncategorized" />
@@ -179,6 +183,7 @@ export function ItemFormDialog({
             <div className="space-y-2">
               <Label>Unit</Label>
               <Select
+                clearable={false}
                 value={form.unit}
                 onValueChange={(v) => set({ unit: v as ItemUnit })}
               >
@@ -217,10 +222,10 @@ export function ItemFormDialog({
             </div>
             <div className="space-y-2">
               <Label>Expiry Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={form.expiryDate}
-                onChange={(e) => set({ expiryDate: e.target.value })}
+                onChange={(v) => set({ expiryDate: v })}
+                clearable
               />
             </div>
           </div>

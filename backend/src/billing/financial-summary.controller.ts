@@ -1,3 +1,5 @@
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { AppRole } from 'src/common/enums/app-role.enum';
 import { Controller, Get, Query } from '@nestjs/common';
 import { FinancialSummaryService } from './financial-summary.service';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
@@ -7,16 +9,14 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('financial-summary')
 @RequireFeature('billing.financial_summary')
+@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class FinancialSummaryController {
   constructor(
     private readonly financialSummaryService: FinancialSummaryService,
   ) {}
 
   @Get('daily')
-  async daily(
-    @Query('date') date: string,
-    @ActiveTenant() ctx: TenantContext,
-  ) {
+  async daily(@Query('date') date: string, @ActiveTenant() ctx: TenantContext) {
     const target = date || new Date().toISOString().slice(0, 10);
     const data = await this.financialSummaryService.getDailySummary(
       ctx,

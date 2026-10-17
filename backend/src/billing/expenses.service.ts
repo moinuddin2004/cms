@@ -55,7 +55,9 @@ export class ExpensesService {
     if (filters.category)
       qb.andWhere('e.category = :category', { category: filters.category });
     if (filters.dateFrom)
-      qb.andWhere('e.expense_date >= :dateFrom', { dateFrom: filters.dateFrom });
+      qb.andWhere('e.expense_date >= :dateFrom', {
+        dateFrom: filters.dateFrom,
+      });
     if (filters.dateTo)
       qb.andWhere('e.expense_date <= :dateTo', { dateTo: filters.dateTo });
 

@@ -92,7 +92,9 @@ export function AddAppointmentStep({
         onDone()
       } catch (err: any) {
         const msg =
-          err?.response?.data?.message || err.message || 'Failed to book appointment'
+          err?.response?.data?.message ||
+          err.message ||
+          'Failed to book appointment'
         toast.error(msg)
       }
     },
@@ -113,7 +115,8 @@ export function AddAppointmentStep({
         },
         {
           onSuccess: (result) => setValidation(result),
-          onError: () => setValidation({ valid: false, reason: 'Validation failed' }),
+          onError: () =>
+            setValidation({ valid: false, reason: 'Validation failed' }),
         },
       )
     }, 500)
@@ -253,6 +256,7 @@ export function AddAppointmentStep({
                       Duration <span className="text-destructive">*</span>
                     </Label>
                     <Select
+                      clearable={false}
                       value={String(field.state.value)}
                       onValueChange={(val) => {
                         const num = Number(val)
@@ -305,7 +309,9 @@ export function AddAppointmentStep({
                       >
                         <Lightbulb className="w-3.5 h-3.5" />
                         Apply suggested:{' '}
-                        {new Date(validation.suggestedStartTime).toLocaleTimeString([], {
+                        {new Date(
+                          validation.suggestedStartTime,
+                        ).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -324,7 +330,9 @@ export function AddAppointmentStep({
                     <Label>Type</Label>
                     <Select
                       value={field.state.value}
-                      onValueChange={(val) => field.handleChange(val as AppointmentType)}
+                      onValueChange={(val) =>
+                        field.handleChange(val as AppointmentType)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -382,7 +390,8 @@ export function AddAppointmentStep({
             <Button
               type="submit"
               disabled={
-                createMutation.isPending || (validation !== null && !validation.valid)
+                createMutation.isPending ||
+                (validation !== null && !validation.valid)
               }
               className="gap-1.5"
             >

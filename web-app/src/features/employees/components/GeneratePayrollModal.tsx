@@ -26,8 +26,18 @@ interface GeneratePayrollModalProps {
 }
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 export function GeneratePayrollModal({
@@ -48,9 +58,7 @@ export function GeneratePayrollModal({
       if (result.skipped > 0)
         messages.push(`⏭️ ${result.skipped} already existed`)
       if (result.noSalary?.length > 0)
-        messages.push(
-          `⚠️ No salary set: ${result.noSalary.join(', ')}`,
-        )
+        messages.push(`⚠️ No salary set: ${result.noSalary.join(', ')}`)
       toast.success(messages.join('\n') || 'Payroll generated')
       onOpenChange(false)
     } catch (error: any) {
@@ -69,8 +77,8 @@ export function GeneratePayrollModal({
             Generate Payroll
           </DialogTitle>
           <DialogDescription>
-            Generate payroll records for all active employees at this
-            location for the selected month.
+            Generate payroll records for all active employees at this location
+            for the selected month.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -78,6 +86,7 @@ export function GeneratePayrollModal({
             <div className="space-y-2">
               <Label>Month</Label>
               <Select
+                clearable={false}
                 value={String(month)}
                 onValueChange={(v) => setMonth(Number(v))}
               >
@@ -96,6 +105,7 @@ export function GeneratePayrollModal({
             <div className="space-y-2">
               <Label>Year</Label>
               <Select
+                clearable={false}
                 value={String(year)}
                 onValueChange={(v) => setYear(Number(v))}
               >
@@ -103,13 +113,14 @@ export function GeneratePayrollModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map(
-                    (y) => (
-                      <SelectItem key={y} value={String(y)}>
-                        {y}
-                      </SelectItem>
-                    ),
-                  )}
+                  {Array.from(
+                    { length: 5 },
+                    (_, i) => now.getFullYear() - 2 + i,
+                  ).map((y) => (
+                    <SelectItem key={y} value={String(y)}>
+                      {y}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -118,16 +129,13 @@ export function GeneratePayrollModal({
             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
             <span>
               Only employees with a salary configured and active at this
-              location will have payroll records generated. Existing records
-              for the same month are skipped.
+              location will have payroll records generated. Existing records for
+              the same month are skipped.
             </span>
           </div>
         </div>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button

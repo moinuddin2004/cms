@@ -10,7 +10,10 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ExpenseCategory, PaymentMethod } from '../enums/billing.enums';
+import {
+  ExpenseCategory,
+  ExpensePaymentMethod as PaymentMethod,
+} from '../enums/billing.enums';
 
 export class CreateExpenseDto {
   @IsEnum(ExpenseCategory)

@@ -1,11 +1,9 @@
 import {
   IsString,
   IsOptional,
-  IsNumber,
   IsDateString,
   IsUUID,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 /**
@@ -18,18 +16,23 @@ export class CreateEncounterTreatmentDto {
   @IsUUID()
   planTemplateId?: string;
 
+  /**
+   * Catalog service (kind PROCEDURE) the doctor picked. Billing prices the
+   * charge from it; the doctor never sees or sends a price.
+   */
+  @IsOptional()
+  @IsUUID()
+  serviceId?: string;
+
+  /** Required without a `serviceId`; defaults to the service's name with one. */
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  treatmentName: string;
+  treatmentName?: string;
 
   @IsOptional()
   @IsString()
   notes?: string;
-
-  @IsOptional()
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  cost?: number;
 
   @IsOptional()
   @IsDateString()

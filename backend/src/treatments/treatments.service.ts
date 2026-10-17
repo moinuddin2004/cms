@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +10,8 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { PlanTemplate } from 'src/plan-templates/entities/plan-template.entity';
+import { CatalogService } from 'src/billing/entities/catalog-service.entity';
+import { ServiceKind } from 'src/billing/enums/billing.enums';
 import { Treatment } from './entities/treatment.entity';
 import { CreateTreatmentDto } from './dto/create-treatment.dto';
 import { CreateEncounterTreatmentDto } from './dto/create-encounter-treatment.dto';
@@ -24,7 +27,27 @@ export class TreatmentsService {
     private readonly patientRepo: Repository<Patient>,
     @InjectRepository(PlanTemplate)
     private readonly planTemplateRepo: Repository<PlanTemplate>,
+    @InjectRepository(CatalogService)
+    private readonly catalogRepo: Repository<CatalogService>,
   ) {}
+
+  /**
+   * The procedures a doctor can pick from — name only. Prices stay in billing
+   * (`GET /billing/services` is admin + reception), so doctors never see them.
+   */
+  async listProcedureCatalog(
+    ctx: TenantContext,
+  ): Promise<Array<Pick<CatalogService, 'id' | 'name' | 'code'>>> {
+    return this.catalogRepo.find({
+      where: {
+        organizationId: ctx.organizationId,
+        isActive: true,
+        kind: ServiceKind.PROCEDURE,
+      },
+      select: { id: true, name: true, code: true },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+  }
 
   /**
    * Flow F (standalone) + Flow E (when `encounterId` is set in the body).
@@ -64,20 +87,47 @@ export class TreatmentsService {
       if (!plan) throw new NotFoundException('Treatment plan not found');
     }
 
+    const service = dto.serviceId
+      ? await this.procedureOrFail(ctx, dto.serviceId)
+      : null;
+    const treatmentName = dto.treatmentName?.trim() || service?.name;
+    if (!treatmentName) {
+      throw new BadRequestException('Pick a service or enter a treatment name');
+    }
+
     const treatment = this.treatmentRepo.create({
       patientId: dto.patientId,
       encounterId: dto.encounterId ?? null,
       planTemplateId: dto.planTemplateId ?? null,
       organizationId: ctx.organizationId,
       locationId: ctx.locationId,
-      treatmentName: dto.treatmentName,
+      treatmentName,
       notes: dto.notes ?? null,
-      cost: dto.cost ?? null,
+      serviceId: service?.id ?? null,
+      // A catalog service prices the charge; the legacy fee only applies without one.
+      cost: service ? null : (dto.cost ?? null),
       date: dto.date ? new Date(dto.date) : new Date(),
       createdBy: userId,
     });
 
     return this.treatmentRepo.save(treatment);
+  }
+
+  private async procedureOrFail(
+    ctx: TenantContext,
+    serviceId: string,
+  ): Promise<CatalogService> {
+    const service = await this.catalogRepo.findOne({
+      where: { id: serviceId, organizationId: ctx.organizationId },
+    });
+    if (!service) throw new NotFoundException('Service not found');
+    if (!service.isActive || service.kind !== ServiceKind.PROCEDURE) {
+      throw new UnprocessableEntityException({
+        code: 'TREATMENT_SERVICE_INVALID',
+        message: 'Pick an active procedure from the service catalog',
+      });
+    }
+    return service;
   }
 
   /**

@@ -1,137 +1,99 @@
+import { Transform, Type } from 'class-transformer';
 import {
-  IsUUID,
-  IsOptional,
-  IsString,
-  IsNumber,
+  ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsEnum,
-  IsDateString,
-  ValidateNested,
-  Min,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
   MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { InvoiceStatus, DiscountType } from '../enums/billing.enums';
-
-export class CreateInvoiceItemDto {
-  @IsString()
-  @MaxLength(300)
-  description: string;
-
-  @IsNumber()
-  @Min(1)
-  quantity: number;
-
-  @IsNumber()
-  @Min(0)
-  unitPrice: number;
-
-  @IsOptional()
-  @IsUUID()
-  treatmentPlanItemId?: string;
-}
+import { REASON_MAX_LENGTH, REASON_MIN_LENGTH } from '../billing.constants';
+import { DiscountKind, InvoicePaymentStatus } from '../enums/billing.enums';
+import {
+  INVOICE_EDIT_OPS,
+  InvoiceEditOp,
+} from '../invoices/edit-operations/invoice-edit.types';
+import { PageQueryDto, trim } from './config.dto';
 
 export class CreateInvoiceDto {
-  @IsUUID()
-  patientId: string;
+  @IsUUID('4') patientId: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsUUID('4', { each: true })
+  chargeIds: string[];
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(500) notes?: string;
+}
 
-  @IsOptional()
-  @IsUUID()
-  treatmentPlanId?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dueDate?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
-
+/** One edit command; `op` decides which fields its handler requires (6.7). */
+export class InvoiceEditOperationDto {
+  @IsIn(INVOICE_EDIT_OPS) op: InvoiceEditOp;
+  @IsOptional() @IsUUID('4') chargeId?: string;
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID('4', { each: true })
+  chargeIds?: string[];
+  @IsOptional() @IsInt() @Min(1) @Max(999) quantity?: number;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0) unitPrice?: number;
+  @IsOptional() @IsUUID('4') discountTypeId?: string;
+  @IsOptional() @IsEnum(DiscountKind) kind?: DiscountKind;
+  @IsOptional() @IsNumber({ maxDecimalPlaces: 2 }) @Min(0.01) value?: number;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(200) note?: string;
+  @IsOptional() @IsUUID('4') serviceId?: string;
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
+  description?: string;
+  @IsOptional() @IsUUID('4') doctorId?: string;
+}
+
+export class EditInvoicePreviewDto {
+  @IsInt() @Min(1) expectedRevision: number;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
   @ValidateNested({ each: true })
-  @Type(() => CreateInvoiceItemDto)
-  items?: CreateInvoiceItemDto[];
+  @Type(() => InvoiceEditOperationDto)
+  operations: InvoiceEditOperationDto[];
 }
 
-export class UpdateInvoiceDto {
-  @IsOptional()
-  @IsDateString()
-  dueDate?: string;
-
-  @IsOptional()
+export class EditInvoiceDto extends EditInvoicePreviewDto {
+  @Transform(trim)
   @IsString()
-  notes?: string;
-
-  @IsOptional()
-  @IsEnum(DiscountType)
-  discountType?: DiscountType;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  discountValue?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  taxRate?: number;
+  @MinLength(REASON_MIN_LENGTH)
+  @MaxLength(REASON_MAX_LENGTH)
+  reason: string;
 }
 
-export class AddInvoiceItemDto {
-  @IsString()
-  @MaxLength(300)
-  description: string;
+const LIST_STATUSES = [
+  ...Object.values(InvoicePaymentStatus),
+  'REFUNDED',
+  'CANCELLED',
+] as const;
 
-  @IsNumber()
-  @Min(1)
-  quantity: number;
-
-  @IsNumber()
-  @Min(0)
-  unitPrice: number;
-
+export class ListInvoicesQueryDto extends PageQueryDto {
   @IsOptional()
-  @IsUUID()
-  treatmentPlanItemId?: string;
+  @IsIn(LIST_STATUSES)
+  paymentStatus?: (typeof LIST_STATUSES)[number];
+  @IsOptional() @IsUUID('4') patientId?: string;
+  @IsOptional() @IsISO8601({ strict: true }) from?: string;
+  @IsOptional() @IsISO8601({ strict: true }) to?: string;
+  @IsOptional() @Transform(trim) @IsString() @MaxLength(100) search?: string;
 }
 
-export class InvoiceFilterDto {
-  @IsOptional()
-  @IsEnum(InvoiceStatus)
-  status?: InvoiceStatus;
-
-  @IsOptional()
-  @IsUUID()
-  patientId?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dateFrom?: string;
-
-  @IsOptional()
-  @IsDateString()
-  dateTo?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number;
-}
-
-export class UpdateInvoiceStatusDto {
-  @IsEnum(InvoiceStatus)
-  status: InvoiceStatus;
-}
-
-export class ApplyCouponDto {
-  @IsString()
-  code: string;
+export class DateRangeQueryDto {
+  @IsOptional() @IsISO8601({ strict: true }) from?: string;
+  @IsOptional() @IsISO8601({ strict: true }) to?: string;
 }

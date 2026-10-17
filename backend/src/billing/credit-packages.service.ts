@@ -42,10 +42,7 @@ export class CreditPackagesService {
     return this.packageRepo.save(pkg);
   }
 
-  async deactivate(
-    id: string,
-    organizationId: string,
-  ): Promise<CreditPackage> {
+  async deactivate(id: string, organizationId: string): Promise<CreditPackage> {
     const pkg = await this.packageRepo.findOne({
       where: { id, organizationId },
     });
@@ -54,10 +51,7 @@ export class CreditPackagesService {
     return this.packageRepo.save(pkg);
   }
 
-  async getOrFail(
-    id: string,
-    organizationId: string,
-  ): Promise<CreditPackage> {
+  async getOrFail(id: string, organizationId: string): Promise<CreditPackage> {
     const pkg = await this.packageRepo.findOne({
       where: { id, organizationId },
     });

@@ -1,3 +1,5 @@
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { AppRole } from 'src/common/enums/app-role.enum';
 import {
   Controller,
   Get,
@@ -26,6 +28,7 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('expenses')
 @RequireFeature('billing.expenses')
+@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 

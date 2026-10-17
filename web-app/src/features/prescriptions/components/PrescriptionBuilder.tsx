@@ -44,7 +44,10 @@ import { Badge } from '@/components/ui/badge'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useDefaultPrescriptionTemplate, usePrescriptionTemplates } from '../hooks/usePrescriptionTemplates'
+import {
+  useDefaultPrescriptionTemplate,
+  usePrescriptionTemplates,
+} from '../hooks/usePrescriptionTemplates'
 import { useTreatmentPlanTemplates } from '../hooks/useTreatmentPlanTemplates'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import {
@@ -64,7 +67,10 @@ import {
   FREQUENCY_PRESETS,
   MEAL_RELATION_OPTIONS,
 } from '../types'
-import { MedicineAutocomplete, medicineFromDirectory } from './MedicineAutocomplete'
+import {
+  MedicineAutocomplete,
+  medicineFromDirectory,
+} from './MedicineAutocomplete'
 import { PrescriptionPreview, type PreviewData } from './PrescriptionPreview'
 import {
   SignaturePad,
@@ -110,9 +116,8 @@ export function PrescriptionBuilder({
   const isEditing = !!prescriptionId
 
   // ── Load existing prescription (edit mode) ──────────────────────────
-  const { data: existing, isLoading: loadingExisting } = usePrescription(
-    prescriptionId,
-  )
+  const { data: existing, isLoading: loadingExisting } =
+    usePrescription(prescriptionId)
 
   // ── Build / edit state ──────────────────────────────────────────────
   const [patient, setPatient] = useState<PatientLite | null>(null)
@@ -155,10 +160,7 @@ export function PrescriptionBuilder({
   )
 
   const activeTemplate = useMemo(
-    () =>
-      templates.find((t) => t.id === templateId) ??
-      defaultTemplate ??
-      null,
+    () => templates.find((t) => t.id === templateId) ?? defaultTemplate ?? null,
     [templates, templateId, defaultTemplate],
   )
 
@@ -343,7 +345,8 @@ export function PrescriptionBuilder({
       return
     }
     // Ensure we have a saved prescription first
-    let target: Prescription | undefined = (existing as Prescription) ?? undefined
+    let target: Prescription | undefined =
+      (existing as Prescription) ?? undefined
     if (!isEditing) {
       target = await createMutation.mutateAsync(payload as any)
     } else if (existing) {
@@ -537,7 +540,8 @@ export function PrescriptionBuilder({
                   <div className="flex flex-col">
                     <span className="text-sm">{p.name}</span>
                     <span className="text-[10px] text-muted-foreground">
-                      {presetCategoryLabel(p.category)} · {p.medicines.length} medicines
+                      {presetCategoryLabel(p.category)} · {p.medicines.length}{' '}
+                      medicines
                     </span>
                   </div>
                 </DropdownMenuItem>
@@ -568,7 +572,8 @@ export function PrescriptionBuilder({
             </Button>
           ) : (
             <Select
-              value={templateId ?? (defaultTemplate?.id ?? '')}
+              clearable={false}
+              value={templateId ?? defaultTemplate?.id ?? ''}
               onValueChange={(v) => setTemplateId(v)}
             >
               <SelectTrigger className="h-9 w-[200px] text-xs">
@@ -602,7 +607,10 @@ export function PrescriptionBuilder({
 
           <div className="ml-auto flex items-center gap-2">
             {finalized && (
-              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
+              <Badge
+                variant="secondary"
+                className="bg-emerald-100 text-emerald-700"
+              >
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Finalized
               </Badge>
             )}
@@ -752,12 +760,42 @@ export function PrescriptionBuilder({
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </summary>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            <VitalInput label="BP" value={vitals.bp} onChange={(v) => setVitals({ ...vitals, bp: v })} placeholder="120/80" />
-            <VitalInput label="Pulse" value={vitals.pulse} onChange={(v) => setVitals({ ...vitals, pulse: v })} placeholder="72" />
-            <VitalInput label="Temp" value={vitals.temperature} onChange={(v) => setVitals({ ...vitals, temperature: v })} placeholder="37°C" />
-            <VitalInput label="SpO₂" value={vitals.spo2} onChange={(v) => setVitals({ ...vitals, spo2: v })} placeholder="98%" />
-            <VitalInput label="Weight" value={vitals.weight} onChange={(v) => setVitals({ ...vitals, weight: v })} placeholder="kg" />
-            <VitalInput label="Height" value={vitals.height} onChange={(v) => setVitals({ ...vitals, height: v })} placeholder="cm" />
+            <VitalInput
+              label="BP"
+              value={vitals.bp}
+              onChange={(v) => setVitals({ ...vitals, bp: v })}
+              placeholder="120/80"
+            />
+            <VitalInput
+              label="Pulse"
+              value={vitals.pulse}
+              onChange={(v) => setVitals({ ...vitals, pulse: v })}
+              placeholder="72"
+            />
+            <VitalInput
+              label="Temp"
+              value={vitals.temperature}
+              onChange={(v) => setVitals({ ...vitals, temperature: v })}
+              placeholder="37°C"
+            />
+            <VitalInput
+              label="SpO₂"
+              value={vitals.spo2}
+              onChange={(v) => setVitals({ ...vitals, spo2: v })}
+              placeholder="98%"
+            />
+            <VitalInput
+              label="Weight"
+              value={vitals.weight}
+              onChange={(v) => setVitals({ ...vitals, weight: v })}
+              placeholder="kg"
+            />
+            <VitalInput
+              label="Height"
+              value={vitals.height}
+              onChange={(v) => setVitals({ ...vitals, height: v })}
+              placeholder="cm"
+            />
           </div>
         </details>
 
@@ -947,7 +985,9 @@ function MedicineRow({
           <MedicineAutocomplete
             value={medicine.medicineName}
             onChange={(v) => onChange({ ...medicine, medicineName: v })}
-            onPick={(picked) => onChange({ ...medicine, ...medicineFromDirectory(picked) })}
+            onPick={(picked) =>
+              onChange({ ...medicine, ...medicineFromDirectory(picked) })
+            }
           />
         </div>
         <Button
@@ -978,6 +1018,7 @@ function MedicineRow({
         </div>
         <div className="col-span-3">
           <Select
+            clearable={false}
             value={medicine.mealRelation ?? MealRelation.NONE}
             onValueChange={(v) =>
               onChange({ ...medicine, mealRelation: v as MealRelation })

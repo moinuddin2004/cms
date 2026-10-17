@@ -28,6 +28,7 @@ import {
 } from './queue-policies.service';
 import { EntryView, QueueQueryService } from './queue-query.service';
 import { EncountersService } from 'src/encounters/encounters.service';
+import { ChargeSourcesService } from 'src/billing/charges/charge-sources.service';
 import { Appointment } from 'src/appointments/entities/appointment.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
@@ -275,6 +276,7 @@ export class QueueOrchestrator {
     private readonly policies: QueuePoliciesService,
     private readonly query: QueueQueryService,
     private readonly encounters: EncountersService,
+    private readonly chargeSources: ChargeSourcesService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -820,6 +822,15 @@ export class QueueOrchestrator {
           },
         );
       }
+      // Bill the visit in the same transaction (D4, 6.4). Returns nothing,
+      // so no charge data ever reaches the doctor's response.
+      await this.chargeSources.syncForEncounter(tx.manager, {
+        tenant: tx.ctx,
+        queueEntryId: entry.id,
+        doctorId: session.doctorId,
+        completedAt: tx.now,
+        actorUserId: actor.userId,
+      });
       return this.entryResult(session, entry);
     });
   }

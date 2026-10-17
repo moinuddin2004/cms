@@ -28,4 +28,18 @@ export interface VisitNotes {
   followUpDate: string
 }
 
+/** A procedure the doctor can pick — name only, prices stay in billing. */
+export interface ProcedureOption {
+  id: string
+  name: string
+  code: string | null
+}
+
+/** What the doctor sends when recording a treatment: a service or a typed name, never a fee. */
+export interface TreatmentInput {
+  serviceId?: string
+  treatmentName?: string
+  notes?: string
+}
+
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'

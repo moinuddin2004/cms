@@ -22,9 +22,16 @@ export class CreateTreatmentDto {
   @IsUUID()
   planTemplateId?: string;
 
+  /** Catalog service (kind PROCEDURE); when set it prices the charge and `cost` is ignored. */
+  @IsOptional()
+  @IsUUID()
+  serviceId?: string;
+
+  /** Required without a `serviceId`; defaults to the service's name with one. */
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  treatmentName: string;
+  treatmentName?: string;
 
   @IsOptional()
   @IsString()

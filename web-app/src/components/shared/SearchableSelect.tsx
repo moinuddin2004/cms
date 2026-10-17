@@ -1,24 +1,37 @@
 import * as React from 'react'
-import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
+import { CheckIcon, ChevronDownIcon } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import {
+  ComboboxClear,
+  ComboboxEmpty,
+  ComboboxSearch,
+  comboboxItemClass,
+  focusSoon,
+  onListKeyDown,
+} from '@/components/shared/combobox'
 import { cn } from '@/lib/utils'
 
 /**
- * The project's dropdown. Same pieces and props as the shadcn `Select`
- * (Select, SelectTrigger, SelectValue, SelectContent, SelectItem) so it drops
- * in anywhere, plus:
- *  - a search box that appears when the list is long (more than
- *    `SEARCH_THRESHOLD` options, or `searchable` on SelectContent);
- *  - a list that never grows past ~16rem — it scrolls instead.
+ * The project's dropdown — a combobox. Same pieces and props as the shadcn
+ * `Select` (Select, SelectTrigger, SelectValue, SelectContent, SelectItem) so
+ * it drops in anywhere. The trigger shows the chosen label, a × to clear it
+ * and a chevron; the popup opens with a search box on top, then the options
+ * with a check on the chosen one.
  *
- * Use this instead of `@/components/ui/select` everywhere.
+ * Clearing goes back to the list's "all"/"none" option when it has one
+ * (filters, optional pickers), else to "". Turn it off with
+ * `clearable={false}` where "nothing" isn't a valid value (page size, month).
+ *
+ * Use this instead of `@/components/ui/select` everywhere. For several values
+ * use `MultiSelect`.
  */
 
-const SEARCH_THRESHOLD = 7
+/** Option values that mean "no choice"; clearing selects them. */
+const RESET_VALUES = ['all', 'none']
 
 /** Plain text of whatever an item renders, for searching. */
 function textOf(node: React.ReactNode): string {
@@ -36,6 +49,7 @@ interface SelectContextValue {
   select: (value: string) => void
   open: boolean
   disabled: boolean
+  clearable: boolean
   /** Items report themselves so the trigger can show the chosen label. */
   labels: Map<string, React.ReactNode>
   register: (value: string, label: React.ReactNode) => void
@@ -58,6 +72,8 @@ interface SelectProps {
   disabled?: boolean
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  /** Show the × on the trigger. Default true; off when `required`. */
+  clearable?: boolean
   /** Accepted for compatibility with the shadcn Select; unused. */
   name?: string
   required?: boolean
@@ -71,6 +87,8 @@ function Select({
   disabled = false,
   open: openProp,
   onOpenChange,
+  clearable = true,
+  required = false,
   children,
 }: SelectProps) {
   const [inner, setInner] = React.useState(defaultValue)
@@ -93,6 +111,7 @@ function Select({
       value,
       open,
       disabled,
+      clearable: clearable && !required,
       query,
       setQuery,
       labels: labels.current,
@@ -108,7 +127,7 @@ function Select({
         }
       },
     }),
-    [value, open, disabled, query, onValueChange, version],
+    [value, open, disabled, clearable, required, query, onValueChange, version],
   )
 
   return (
@@ -139,47 +158,70 @@ function SelectValue({
   )
 }
 
+/**
+ * A bordered box holding the trigger button (label + chevron) and, when a
+ * value is set, the × — a sibling, since buttons can't nest. `className`
+ * styles the box; the rest of the props go to the button (id, aria-*).
+ */
 function SelectTrigger({
   className,
   size = 'default',
   children,
   ...props
 }: React.ComponentProps<'button'> & { size?: 'sm' | 'default' }) {
-  const { value, disabled, open, labels } = useSelectContext()
+  const { value, disabled, open, labels, clearable, select } =
+    useSelectContext()
   const empty = value === undefined || value === '' || !labels.has(value)
+  const reset = RESET_VALUES.find((v) => labels.has(v)) ?? ''
+  const showClear = clearable && !disabled && !empty && value !== reset
+
   return (
-    <PopoverTrigger asChild>
-      <button
-        type="button"
-        role="combobox"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        disabled={disabled}
-        data-slot="select-trigger"
-        data-size={size}
-        data-placeholder={empty ? '' : undefined}
-        className={cn(
-          "flex w-fit items-center justify-between gap-2 rounded-[9px] border border-input bg-surface px-3 py-2 text-left text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[placeholder]:text-text-3 data-[size=default]:h-10 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 dark:hover:bg-panel [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-        <ChevronDownIcon className="size-4 opacity-50" />
-      </button>
-    </PopoverTrigger>
+    <div
+      data-slot="select-trigger"
+      data-size={size}
+      data-placeholder={empty ? '' : undefined}
+      data-disabled={disabled ? '' : undefined}
+      className={cn(
+        'relative inline-flex w-fit items-center rounded-[9px] border border-input bg-surface text-sm whitespace-nowrap transition-[color,box-shadow] data-[size=default]:h-10 data-[size=sm]:h-8 has-[[data-slot=select-trigger-button]:focus-visible]:border-ring has-[[data-slot=select-trigger-button]:focus-visible]:ring-[3px] has-[[data-slot=select-trigger-button]:focus-visible]:ring-ring/40 has-[[aria-invalid=true]]:border-destructive data-[placeholder]:text-text-3 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 dark:hover:bg-panel [&_svg]:shrink-0',
+        className,
+      )}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          disabled={disabled}
+          data-slot="select-trigger-button"
+          className="flex h-full w-full min-w-0 items-center gap-2 rounded-[inherit] px-3 text-left outline-none disabled:cursor-not-allowed *:data-[slot=select-value]:flex *:data-[slot=select-value]:min-w-0 *:data-[slot=select-value]:flex-1 *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4"
+          {...props}
+        >
+          {children}
+          {/* Room for the × that sits over this spot. */}
+          {showClear && <span aria-hidden className="w-5 shrink-0" />}
+          <ChevronDownIcon className="size-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      {showClear && (
+        <ComboboxClear
+          onClear={() => select(reset)}
+          className="absolute right-9 top-1/2 -translate-y-1/2"
+        />
+      )}
+    </div>
   )
 }
 
 function SelectContent({
   className,
   children,
-  searchable,
+  searchable = true,
   align = 'start',
 }: {
   className?: string
   children: React.ReactNode
-  /** Force the search box on or off. Default: on for long lists. */
+  /** Show the search row. Default true. */
   searchable?: boolean
   align?: 'start' | 'center' | 'end'
   /** Accepted for compatibility with the shadcn Select; unused. */
@@ -197,28 +239,14 @@ function SelectContent({
   const [listEl, setListEl] = React.useState<HTMLDivElement | null>(null)
   const [shown, setShown] = React.useState(1)
 
-  const showSearch = searchable ?? ctx.labels.size > SEARCH_THRESHOLD
-
   // How many items survive the current search, for the "no matches" line.
   React.useEffect(() => {
     if (!listEl) return
-    setShown(listEl.querySelectorAll('[data-select-item]').length)
+    setShown(listEl.querySelectorAll('[data-combobox-item]').length)
   })
 
   // Closed: render the items invisibly just so they can report their labels.
   if (!ctx.open) return <>{children}</>
-
-  const move = (dir: 1 | -1, from: Element | null) => {
-    const items = [
-      ...(listRef.current?.querySelectorAll<HTMLElement>(
-        '[data-select-item]:not([disabled])',
-      ) ?? []),
-    ]
-    if (items.length === 0) return
-    const at = from ? items.indexOf(from as HTMLElement) : -1
-    const next = at === -1 ? (dir === 1 ? 0 : items.length - 1) : at + dir
-    items[Math.max(0, Math.min(items.length - 1, next))]?.focus()
-  }
 
   return (
     <PopoverContent
@@ -227,56 +255,31 @@ function SelectContent({
       collisionPadding={8}
       onOpenAutoFocus={(e) => {
         // Land on the search box when there is one, else on the chosen item.
-        // Done by hand and retried: inside a Sheet/Dialog its focus trap can
-        // pull focus back for a frame or two while the list mounts.
         e.preventDefault()
-        const target = () =>
-          showSearch
+        focusSoon(() =>
+          searchable
             ? searchRef.current
             : (listRef.current?.querySelector<HTMLElement>(
                 '[aria-selected="true"]',
               ) ??
-              listRef.current?.querySelector<HTMLElement>('[data-select-item]'))
-        let tries = 0
-        const focus = () => {
-          const el = target()
-          if (!el) return
-          if (document.activeElement !== el) el.focus({ preventScroll: true })
-          if (document.activeElement !== el && ++tries < 6) {
-            setTimeout(focus, 40)
-          }
-        }
-        focus()
-        requestAnimationFrame(focus)
+              listRef.current?.querySelector<HTMLElement>(
+                '[data-combobox-item]',
+              )),
+        )
       }}
-      onKeyDown={(e) => {
-        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-          e.preventDefault()
-          move(
-            e.key === 'ArrowDown' ? 1 : -1,
-            document.activeElement?.hasAttribute('data-select-item')
-              ? document.activeElement
-              : null,
-          )
-        }
-      }}
+      onKeyDown={(e) => onListKeyDown(e, listRef.current, searchRef.current)}
       className={cn(
         'w-[max(var(--radix-popover-trigger-width),10rem)] max-w-[min(24rem,calc(100vw-1rem))] p-1',
         className,
       )}
     >
-      {showSearch && (
-        <div className="relative mb-1 border-b border-border pb-1">
-          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-[60%] text-text-3" />
-          <input
-            ref={searchRef}
-            value={ctx.query}
-            onChange={(e) => ctx.setQuery(e.target.value)}
-            placeholder="Search…"
-            aria-label="Search options"
-            className="h-8 w-full rounded-md bg-transparent pl-8 pr-2 text-sm outline-none placeholder:text-text-3"
-          />
-        </div>
+      {searchable && (
+        <ComboboxSearch
+          ref={searchRef}
+          value={ctx.query}
+          onChange={ctx.setQuery}
+          list={() => listRef.current}
+        />
       )}
       <div
         ref={setListRef}
@@ -284,11 +287,7 @@ function SelectContent({
         className="max-h-64 overflow-y-auto overscroll-contain"
       >
         {children}
-        {shown === 0 && (
-          <p className="px-2 py-3 text-center text-xs text-text-3">
-            No matches
-          </p>
-        )}
+        {shown === 0 && <ComboboxEmpty>No matches</ComboboxEmpty>}
       </div>
     </PopoverContent>
   )
@@ -324,15 +323,11 @@ function SelectItem({
       type="button"
       role="option"
       aria-selected={selected}
-      data-select-item=""
+      data-combobox-item=""
       data-slot="select-item"
       disabled={disabled}
       onClick={() => ctx.select(value)}
-      className={cn(
-        'relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-left text-sm outline-none hover:bg-accent focus:bg-accent disabled:pointer-events-none disabled:opacity-50',
-        selected && 'font-medium',
-        className,
-      )}
+      className={cn(comboboxItemClass, selected && 'font-medium', className)}
     >
       <span className="min-w-0 flex-1 truncate">{children}</span>
       {selected && (

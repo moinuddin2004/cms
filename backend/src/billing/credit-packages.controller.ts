@@ -1,3 +1,5 @@
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { AppRole } from 'src/common/enums/app-role.enum';
 import {
   Controller,
   Get,
@@ -26,10 +28,9 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('credit-packages')
 @RequireFeature('billing.credit_packages')
+@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class CreditPackagesController {
-  constructor(
-    private readonly packagesService: CreditPackagesService,
-  ) {}
+  constructor(private readonly packagesService: CreditPackagesService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -69,6 +70,7 @@ export class CreditPackagesController {
 
 @Controller('patients/:patientId/credits')
 @RequireFeature('billing.credit_packages')
+@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class PatientCreditsController {
   constructor(private readonly creditsService: PatientCreditsService) {}
 

@@ -9,7 +9,9 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
 } from '@nestjs/common';
+import { HideTreatmentPricesInterceptor } from 'src/common/interceptors/hide-treatment-prices.interceptor';
 import { EncountersService } from './encounters.service';
 import { TreatmentsService } from 'src/treatments/treatments.service';
 import { CreateEncounterTreatmentDto } from 'src/treatments/dto/create-encounter-treatment.dto';
@@ -21,6 +23,7 @@ import { Actor, AppRole } from 'src/common/enums/app-role.enum';
 import { UpdateEncounterNotesDto } from './dto/update-encounter-notes.dto';
 
 @Controller('encounters')
+@UseInterceptors(HideTreatmentPricesInterceptor)
 export class EncountersController {
   constructor(
     private readonly encountersService: EncountersService,

@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Plus, RefreshCw, Users, CalendarDays, DollarSign, AlertTriangle } from 'lucide-react'
+import {
+  Plus,
+  RefreshCw,
+  Users,
+  CalendarDays,
+  DollarSign,
+  AlertTriangle,
+} from 'lucide-react'
 import { useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQueryClient } from '@tanstack/react-query'
@@ -28,8 +35,18 @@ import { AppointmentStatusDonut } from '@/features/dashboard/components/Appointm
 import { TodayScheduleTable } from '@/features/dashboard/components/TodayScheduleTable'
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 const PERIODS = ['This month', 'This week', 'Today', 'Custom'] as const
@@ -75,14 +92,27 @@ export function DashboardPage() {
   const invoiceStats = useInvoiceStats()
   const monthly = useMonthlySummary(month, year)
   const trend = useRevenueTrend(6)
-  const todayAppts = useAppointmentStats(ranges.todayStart, ranges.todayEnd, 'today')
-  const monthAppts = useAppointmentStats(ranges.monthStart, ranges.monthEnd, `month-${year}-${month}`)
-  const todaySchedule = useTodayAppointments(ranges.todayStart, ranges.todayEnd, 8)
+  const todayAppts = useAppointmentStats(
+    ranges.todayStart,
+    ranges.todayEnd,
+    'today',
+  )
+  const monthAppts = useAppointmentStats(
+    ranges.monthStart,
+    ranges.monthEnd,
+    `month-${year}-${month}`,
+  )
+  const todaySchedule = useTodayAppointments(
+    ranges.todayStart,
+    ranges.todayEnd,
+    8,
+  )
 
   const revenue = monthly.data?.totalRevenue ?? 0
 
   const revenueDelta = useMemo(() => {
-    if (!isCurrentMonth || !trend.data || trend.data.length < 2) return undefined
+    if (!isCurrentMonth || !trend.data || trend.data.length < 2)
+      return undefined
     const arr = trend.data
     const curr = arr[arr.length - 1]?.revenue ?? 0
     const prev = arr[arr.length - 2]?.revenue ?? 0
@@ -105,11 +135,14 @@ export function DashboardPage() {
             {greeting()}, {user?.name || 'Administrator'}
           </h1>
           <p className="mt-1 text-[14px] text-text-2">
-            Here&apos;s how {activeOrg?.name || 'your practice'} is performing today.
+            Here&apos;s how {activeOrg?.name || 'your practice'} is performing
+            today.
           </p>
         </div>
         <Button
-          onClick={() => navigate({ to: '/appointments', search: { create: '1' } })}
+          onClick={() =>
+            navigate({ to: '/appointments', search: { create: '1' } })
+          }
           className="h-[38px] gap-1.5 px-4"
         >
           <Plus className="size-4" />
@@ -139,6 +172,7 @@ export function DashboardPage() {
 
         {/* Month select */}
         <Select
+          clearable={false}
           value={`${MONTHS[month - 1]} ${year}`}
           onValueChange={(v) => {
             const [m, y] = v.split(' ')
@@ -146,15 +180,18 @@ export function DashboardPage() {
             setYear(Number(y))
           }}
         >
-          <SelectTrigger className="h-9 w-auto border-border bg-surface px-3 text-[13px] font-medium shadow-none">
+          <SelectTrigger className="h-9 w-auto border-border bg-surface text-[13px] font-medium shadow-none">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {Array.from({ length: 12 }, (_, i) => {
-              const mIdx = ((now.getMonth() - i) % 12 + 12) % 12
+              const mIdx = (((now.getMonth() - i) % 12) + 12) % 12
               const yr = now.getFullYear() - (now.getMonth() - i < 0 ? 1 : 0)
               return (
-                <SelectItem key={`${mIdx}-${yr}`} value={`${MONTHS[mIdx]} ${yr}`}>
+                <SelectItem
+                  key={`${mIdx}-${yr}`}
+                  value={`${MONTHS[mIdx]} ${yr}`}
+                >
                   {MONTHS[mIdx]} {yr}
                 </SelectItem>
               )
@@ -193,8 +230,11 @@ export function DashboardPage() {
             <span>
               <span className="font-semibold text-emerald">
                 {todayAppts.data?.completed ?? 0} completed
-              </span>
-              {' '}&middot; {(todayAppts.data?.total ?? 0) - (todayAppts.data?.completed ?? 0)} upcoming
+              </span>{' '}
+              &middot;{' '}
+              {(todayAppts.data?.total ?? 0) -
+                (todayAppts.data?.completed ?? 0)}{' '}
+              upcoming
             </span>
           }
         />

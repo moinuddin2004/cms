@@ -10,6 +10,7 @@ import {
   Moon,
   Palette,
   Camera,
+  HandCoins,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -20,8 +21,13 @@ import { Button } from '@/components/ui/button'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { SessionManagement } from '@/features/auth/components/SessionManagement'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useTheme, type Theme } from '@/hooks/useTheme'
+import { useTheme } from '@/hooks/useTheme'
+import type { Theme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
+import { Link } from '@tanstack/react-router'
+
+import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { useHasClinicRole } from '@/components/feature/RequireRolePage'
 import apiClient from '@/lib/api'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -78,6 +84,7 @@ export function SettingsPage() {
               </button>
             )
           })}
+          <BillingSettingsLink />
         </nav>
 
         {/* Content */}
@@ -89,6 +96,23 @@ export function SettingsPage() {
         </div>
       </div>
     </>
+  )
+}
+
+/** Admins reach billing configuration from here (plan §8.1). */
+function BillingSettingsLink() {
+  const { allowed } = useHasClinicRole(['clinic_admin'])
+  if (!allowed) return null
+  return (
+    <FeatureGuard feature="billing.invoices">
+      <Link
+        to="/settings/billing"
+        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+      >
+        <HandCoins className="size-4" />
+        Billing
+      </Link>
+    </FeatureGuard>
   )
 }
 
@@ -118,7 +142,8 @@ function SettingsCard({
 
 function ProfileSection() {
   const { user } = useAuthStore()
-  const roleLabel = ROLE_LABELS[user?.globalRole || ''] || user?.globalRole || 'Member'
+  const roleLabel =
+    ROLE_LABELS[user?.globalRole || ''] || user?.globalRole || 'Member'
 
   return (
     <SettingsCard
@@ -176,9 +201,24 @@ function AppearanceSection() {
     description: string
     icon: React.ElementType
   }[] = [
-    { value: 'light', label: 'Light', description: 'Clean and bright interface', icon: Sun },
-    { value: 'dark', label: 'Dark', description: 'Easy on the eyes', icon: Moon },
-    { value: 'system', label: 'System', description: 'Follows your OS setting', icon: Monitor },
+    {
+      value: 'light',
+      label: 'Light',
+      description: 'Clean and bright interface',
+      icon: Sun,
+    },
+    {
+      value: 'dark',
+      label: 'Dark',
+      description: 'Easy on the eyes',
+      icon: Moon,
+    },
+    {
+      value: 'system',
+      label: 'System',
+      description: 'Follows your OS setting',
+      icon: Monitor,
+    },
   ]
 
   return (
@@ -217,10 +257,17 @@ function AppearanceSection() {
                 <Icon className="size-6" />
               </div>
               <div className="text-center">
-                <p className={cn('text-sm font-semibold', isActive ? 'text-primary' : 'text-foreground')}>
+                <p
+                  className={cn(
+                    'text-sm font-semibold',
+                    isActive ? 'text-primary' : 'text-foreground',
+                  )}
+                >
                   {option.label}
                 </p>
-                <p className="mt-0.5 text-xs text-text-3">{option.description}</p>
+                <p className="mt-0.5 text-xs text-text-3">
+                  {option.description}
+                </p>
               </div>
             </button>
           )
@@ -282,7 +329,9 @@ function SecuritySection() {
           setGlobalError(err.issues[0].message)
         } else {
           const msg = err.response?.data?.message
-          setGlobalError(Array.isArray(msg) ? msg[0] : msg || 'Failed to change password')
+          setGlobalError(
+            Array.isArray(msg) ? msg[0] : msg || 'Failed to change password',
+          )
         }
       }
     },
@@ -304,7 +353,10 @@ function SecuritySection() {
         <form.Field name="currentPassword">
           {(field) => (
             <div className="space-y-2">
-              <Label htmlFor="current-pwd" className="text-[13px] font-semibold">
+              <Label
+                htmlFor="current-pwd"
+                className="text-[13px] font-semibold"
+              >
                 Current Password
               </Label>
               <div className="relative">
@@ -325,7 +377,11 @@ function SecuritySection() {
                   onClick={() => setShowCurrent(!showCurrent)}
                   tabIndex={-1}
                 >
-                  {showCurrent ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showCurrent ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
                 </Button>
               </div>
             </div>
@@ -356,10 +412,16 @@ function SecuritySection() {
                   onClick={() => setShowNew(!showNew)}
                   tabIndex={-1}
                 >
-                  {showNew ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showNew ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
                 </Button>
               </div>
-              {field.state.value && <PasswordStrength password={field.state.value} />}
+              {field.state.value && (
+                <PasswordStrength password={field.state.value} />
+              )}
             </div>
           )}
         </form.Field>
@@ -367,7 +429,10 @@ function SecuritySection() {
         <form.Field name="confirmPassword">
           {(field) => (
             <div className="space-y-2">
-              <Label htmlFor="confirm-pwd" className="text-[13px] font-semibold">
+              <Label
+                htmlFor="confirm-pwd"
+                className="text-[13px] font-semibold"
+              >
                 Confirm New Password
               </Label>
               <Input

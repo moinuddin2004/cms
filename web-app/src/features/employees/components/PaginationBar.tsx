@@ -37,10 +37,14 @@ export function PaginationBar({
         </span>
         <span className="mx-1">·</span>
         <Select
+          clearable={false}
           value={String(limit)}
           onValueChange={(v) => onLimitChange(Number(v))}
         >
-          <SelectTrigger className="w-[75px] h-8 text-xs" aria-label="Page size">
+          <SelectTrigger
+            className="w-[75px] h-8 text-xs"
+            aria-label="Page size"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -91,6 +92,7 @@ export function ExpenseFormDialog() {
             <div className="space-y-2">
               <Label>Category</Label>
               <Select
+                clearable={false}
                 value={category}
                 onValueChange={(v) => setCategory(v as ExpenseCategory)}
               >
@@ -129,15 +131,15 @@ export function ExpenseFormDialog() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Date</Label>
-              <Input
-                type="date"
+              <DatePicker
                 value={expenseDate}
-                onChange={(e) => setExpenseDate(e.target.value)}
+                onChange={(v) => setExpenseDate(v)}
               />
             </div>
             <div className="space-y-2">
               <Label>Payment Method</Label>
               <Select
+                clearable={false}
                 value={method}
                 onValueChange={(v) => setMethod(v as PaymentMethod)}
               >

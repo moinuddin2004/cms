@@ -59,9 +59,20 @@ import { PatientConsumptionItem } from './inventory/entities/patient-consumption
 
 // Billing entities
 import { Invoice } from './billing/entities/invoice.entity';
-import { InvoiceItem } from './billing/entities/invoice-item.entity';
 import { Payment } from './billing/entities/payment.entity';
-import { Coupon } from './billing/entities/coupon.entity';
+import { Charge } from './billing/entities/charge.entity';
+import { CatalogService } from './billing/entities/catalog-service.entity';
+import { ServicePrice } from './billing/entities/service-price.entity';
+import { LocationBillingSettings } from './billing/entities/location-billing-settings.entity';
+import { PaymentAccount } from './billing/entities/payment-account.entity';
+import { DiscountType } from './billing/entities/discount-type.entity';
+import { PaymentAllocation } from './billing/entities/payment-allocation.entity';
+import { Refund } from './billing/entities/refund.entity';
+import { RefundSource } from './billing/entities/refund-source.entity';
+import { LedgerEntry } from './billing/entities/ledger-entry.entity';
+import { BillingAuditLog } from './billing/entities/billing-audit-log.entity';
+import { DocumentSequence } from './billing/entities/document-sequence.entity';
+import { CashClose, CashCloseLine } from './billing/entities/cash-close.entity';
 import { Expense } from './billing/entities/expense.entity';
 import { CreditPackage } from './billing/entities/credit-package.entity';
 import { PatientCredit } from './billing/entities/patient-credit.entity';
@@ -131,9 +142,21 @@ export const AppDataSource = new DataSource({
     PatientConsumptionItem,
     // Billing
     Invoice,
-    InvoiceItem,
     Payment,
-    Coupon,
+    Charge,
+    CatalogService,
+    ServicePrice,
+    LocationBillingSettings,
+    PaymentAccount,
+    DiscountType,
+    PaymentAllocation,
+    Refund,
+    RefundSource,
+    LedgerEntry,
+    BillingAuditLog,
+    DocumentSequence,
+    CashClose,
+    CashCloseLine,
     Expense,
     CreditPackage,
     PatientCredit,

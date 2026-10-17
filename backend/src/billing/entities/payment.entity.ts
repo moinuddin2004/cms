@@ -1,79 +1,101 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
+  Entity,
   Index,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Invoice } from './invoice.entity';
-import { Organization } from 'src/organizations/entities/organization.entity';
-import { Location } from 'src/locations/entities/location.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
-import { Employee } from 'src/employees/entities/employee.entity';
+import { MoneyColumn } from '../common/money-column';
 import { PaymentMethod } from '../enums/billing.enums';
+import { PaymentAccount } from './payment-account.entity';
 
+/**
+ * Money received from a patient (D6, D12). Belongs to the patient, not to
+ * an invoice; immutable except the cached `allocatedAmount` /
+ * `refundedAmount`. Advance = amount − allocated − refunded.
+ */
 @Entity({ name: 'payments' })
-@Index(['invoiceId'])
-@Index(['organizationId', 'locationId', 'paymentDate'])
-@Index(['patientId'])
+@Index('uq_payments_org_receipt', ['organizationId', 'receiptNumber'], {
+  unique: true,
+})
+@Index(
+  'uq_payments_org_client_request',
+  ['organizationId', 'clientRequestId'],
+  { unique: true },
+)
+@Index('idx_payments_patient', ['organizationId', 'locationId', 'patientId'])
+@Index('idx_payments_date', ['organizationId', 'locationId', 'paymentDate'])
+@Index('idx_payments_account_received', ['paymentAccountId', 'receivedAt'])
 export class Payment {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Invoice, (invoice) => invoice.payments, {
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'invoice_id' })
-  invoice: Invoice;
-
-  @Column({ name: 'invoice_id', type: 'uuid' })
-  invoiceId: string;
-
-  @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
-
   @Column({ name: 'organization_id', type: 'uuid' })
   organizationId: string;
-
-  @ManyToOne(() => Location, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'location_id' })
-  location: Location;
 
   @Column({ name: 'location_id', type: 'uuid' })
   locationId: string;
 
-  @ManyToOne(() => Patient, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Patient, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'patient_id' })
   patient: Patient;
 
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string;
 
-  @ManyToOne(() => Employee, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'received_by' })
-  receiver: Employee | null;
+  @Column({ name: 'receipt_number', type: 'varchar', length: 30 })
+  receiptNumber: string;
 
-  @Column({ name: 'received_by', type: 'uuid', nullable: true })
-  receivedBy: string | null;
-
-  @Column({ name: 'amount', type: 'decimal', precision: 10, scale: 2 })
+  @MoneyColumn('amount')
   amount: number;
 
-  @Column({ name: 'payment_method', type: 'enum', enum: PaymentMethod })
-  paymentMethod: PaymentMethod;
+  @ManyToOne(() => PaymentAccount, { onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'payment_account_id' })
+  paymentAccount: PaymentAccount;
 
-  @Column({ name: 'reference_number', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'payment_account_id', type: 'uuid' })
+  paymentAccountId: string;
+
+  /** Snapshot of the account's kind at payment time. */
+  @Column({ name: 'method', type: 'enum', enum: PaymentMethod })
+  method: PaymentMethod;
+
+  /** Snapshot of the account's name. */
+  @Column({ name: 'payment_account_name', type: 'varchar', length: 60 })
+  paymentAccountName: string;
+
+  @Column({
+    name: 'reference_number',
+    type: 'varchar',
+    length: 80,
+    nullable: true,
+  })
   referenceNumber: string | null;
 
   @Column({ name: 'payment_date', type: 'date' })
-  paymentDate: Date;
+  paymentDate: string;
 
-  @Column({ name: 'notes', type: 'text', nullable: true })
+  @Column({ name: 'received_at', type: 'timestamptz' })
+  receivedAt: Date;
+
+  @Column({ name: 'received_by', type: 'uuid' })
+  receivedBy: string;
+
+  @Column({ name: 'notes', type: 'varchar', length: 300, nullable: true })
   notes: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @MoneyColumn('allocated_amount')
+  allocatedAmount: number;
+
+  @MoneyColumn('refunded_amount')
+  refundedAmount: number;
+
+  @Column({ name: 'client_request_id', type: 'uuid' })
+  clientRequestId: string;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

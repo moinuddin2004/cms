@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -91,9 +92,7 @@ export function TreatmentFormDialog({
     if (!plan) return
     const picked = item === '' ? null : plan.items[Number(item)]
     form.setFieldValue('treatmentName', picked?.procedureName ?? plan.name)
-    const cost = picked
-      ? picked.estimatedCost
-      : templateTotalCost(plan.items)
+    const cost = picked ? picked.estimatedCost : templateTotalCost(plan.items)
     form.setFieldValue('cost', cost == null ? undefined : Number(cost))
   }
 
@@ -255,10 +254,9 @@ export function TreatmentFormDialog({
                   <Label>
                     Date <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                    onChange={(v) => field.handleChange(v)}
                   />
                   {field.state.meta.errors[0] && (
                     <p className="text-[11px] text-destructive">
@@ -285,7 +283,9 @@ export function TreatmentFormDialog({
                       <SelectValue placeholder="No visit (standalone)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No visit (standalone)</SelectItem>
+                      <SelectItem value="none">
+                        No visit (standalone)
+                      </SelectItem>
                       {encounters.map((e) => (
                         <SelectItem key={e.id} value={e.id}>
                           {new Date(e.encounterDate).toLocaleDateString()}
@@ -330,7 +330,9 @@ export function TreatmentFormDialog({
                   type="submit"
                   disabled={isPending || !canSubmit || !name.trim()}
                 >
-                  {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Save Treatment
                 </Button>
               )}

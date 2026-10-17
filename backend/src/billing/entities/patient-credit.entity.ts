@@ -51,10 +51,21 @@ export class PatientCredit {
   @Column({ name: 'total_amount', type: 'decimal', precision: 10, scale: 2 })
   totalAmount: number;
 
-  @Column({ name: 'used_amount', type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({
+    name: 'used_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
   usedAmount: number;
 
-  @Column({ name: 'remaining_amount', type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    name: 'remaining_amount',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+  })
   remainingAmount: number;
 
   @Column({ name: 'purchase_date', type: 'date' })

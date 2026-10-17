@@ -16,7 +16,13 @@ import {
   FileText,
   Stethoscope,
   ClipboardList,
+  HandCoins,
+  Banknote,
+  History,
+  BarChart3,
 } from 'lucide-react'
+import { useHasClinicRole } from '@/components/feature/RequireRolePage'
+import type { ClinicRole } from '@/components/feature/RequireRolePage'
 
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
@@ -36,7 +42,11 @@ interface NavItem {
   show?: (auth: ReturnType<typeof useAuthStore.getState>) => boolean
   /** Org feature key — item is hidden entirely when the feature is disabled. */
   feature?: string
+  /** Clinic roles allowed to see the item (any of); omitted = everyone. */
+  roles?: ClinicRole[]
 }
+
+const BILLING_ROLES: ClinicRole[] = ['clinic_admin', 'receptionist']
 
 interface NavSection {
   label?: string
@@ -66,7 +76,12 @@ const navSections: NavSection[] = [
         feature: 'appointments.core',
       },
       { label: 'Employees', icon: Users, href: '/employees' },
-      { label: 'Payroll', icon: CreditCard, href: '/payroll', feature: 'hr.payroll' },
+      {
+        label: 'Payroll',
+        icon: CreditCard,
+        href: '/payroll',
+        feature: 'hr.payroll',
+      },
     ],
   },
   {
@@ -86,16 +101,46 @@ const navSections: NavSection[] = [
         feature: 'patients.treatment_plans',
       },
       {
+        label: 'Billing',
+        icon: HandCoins,
+        href: '/billing',
+        feature: 'billing.invoices',
+        roles: BILLING_ROLES,
+      },
+      {
         label: 'Invoices',
         icon: Receipt,
         href: '/invoices',
         feature: 'billing.invoices',
+        roles: BILLING_ROLES,
+      },
+      {
+        label: 'Payments',
+        icon: Banknote,
+        href: '/payments',
+        feature: 'billing.invoices',
+        roles: BILLING_ROLES,
+      },
+      {
+        label: 'Billing activity',
+        icon: History,
+        href: '/billing/activity',
+        feature: 'billing.invoices',
+        roles: ['clinic_admin'],
+      },
+      {
+        label: 'Doctor revenue',
+        icon: BarChart3,
+        href: '/billing/doctor-revenue',
+        feature: 'billing.invoices',
+        roles: ['clinic_admin'],
       },
       {
         label: 'Expenses',
         icon: Wallet,
         href: '/expenses',
         feature: 'billing.expenses',
+        roles: BILLING_ROLES,
       },
     ],
   },
@@ -130,10 +175,14 @@ const ROLE_COLORS: Record<string, string> = {
   SUPER_ADMIN: 'bg-slate-500/20 text-slate-300',
 }
 
-
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar } = useUIStore()
   const { features } = useFeatures()
+  const roleAccess: Record<ClinicRole, boolean> = {
+    clinic_admin: useHasClinicRole(['clinic_admin']).allowed,
+    receptionist: useHasClinicRole(['receptionist']).allowed,
+    doctor: useHasClinicRole(['doctor']).allowed,
+  }
   const authStore = useAuthStore()
   const { user, clearAuth } = authStore
   const routerState = useRouterState()
@@ -214,6 +263,8 @@ export function Sidebar() {
           const visible = section.items.filter((item) => {
             if (item.show && !item.show(authStore)) return false
             if (item.feature && !features.has(item.feature)) return false
+            if (item.roles && !item.roles.some((r) => roleAccess[r]))
+              return false
             return true
           })
           if (visible.length === 0) return null

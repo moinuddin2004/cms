@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -44,7 +45,9 @@ export function AdjustStockDialog({
   const [movementType, setMovementType] =
     useState<StockMovementType>('MANUAL_ADJUSTMENT')
   const [quantity, setQuantity] = useState(0)
-  const [direction, setDirection] = useState<'increase' | 'decrease'>('increase')
+  const [direction, setDirection] = useState<'increase' | 'decrease'>(
+    'increase',
+  )
   const [batchNumber, setBatchNumber] = useState('')
   const [expiryDate, setExpiryDate] = useState('')
   const [notes, setNotes] = useState('')
@@ -71,7 +74,9 @@ export function AdjustStockDialog({
 
   // Compute signed delta for preview
   let signedDelta = Math.abs(quantity)
-  if (isManual) signedDelta = direction === 'decrease' ? -Math.abs(quantity) : Math.abs(quantity)
+  if (isManual)
+    signedDelta =
+      direction === 'decrease' ? -Math.abs(quantity) : Math.abs(quantity)
   else if (isOut) signedDelta = -Math.abs(quantity)
   const projected = current + signedDelta
 
@@ -124,6 +129,7 @@ export function AdjustStockDialog({
           <div className="space-y-2">
             <Label>Reason</Label>
             <Select
+              clearable={false}
               value={movementType}
               onValueChange={(v) => setMovementType(v as StockMovementType)}
             >
@@ -154,6 +160,7 @@ export function AdjustStockDialog({
               <div className="space-y-2">
                 <Label>Direction</Label>
                 <Select
+                  clearable={false}
                   value={direction}
                   onValueChange={(v) =>
                     setDirection(v as 'increase' | 'decrease')
@@ -182,10 +189,10 @@ export function AdjustStockDialog({
               </div>
               <div className="space-y-2">
                 <Label>Expiry Date</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
+                  onChange={(v) => setExpiryDate(v)}
+                  clearable
                 />
               </div>
             </div>

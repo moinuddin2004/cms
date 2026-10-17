@@ -20,6 +20,7 @@ import { Route as PrescriptionTemplatesRouteImport } from './routes/prescription
 import { Route as PrescriptionPresetsRouteImport } from './routes/prescription-presets'
 import { Route as PlanTemplatesRouteImport } from './routes/plan-templates'
 import { Route as PayrollRouteImport } from './routes/payroll'
+import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
 import { Route as MedicineDirectoryRouteImport } from './routes/medicine-directory'
 import { Route as LoginRouteImport } from './routes/login'
@@ -35,6 +36,8 @@ import { Route as PrescriptionsIndexRouteImport } from './routes/prescriptions/i
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
+import { Route as BillingIndexRouteImport } from './routes/billing.index'
+import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
 import { Route as PrescriptionsPrescriptionIdRouteImport } from './routes/prescriptions/$prescriptionId'
@@ -43,6 +46,8 @@ import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoic
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
 import { Route as ConsultationEncounterIdRouteImport } from './routes/consultation.$encounterId'
+import { Route as BillingDoctorRevenueRouteImport } from './routes/billing.doctor-revenue'
+import { Route as BillingActivityRouteImport } from './routes/billing.activity'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
@@ -102,6 +107,11 @@ const PlanTemplatesRoute = PlanTemplatesRouteImport.update({
 const PayrollRoute = PayrollRouteImport.update({
   id: '/payroll',
   path: '/payroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrganizationsRoute = OrganizationsRouteImport.update({
@@ -179,6 +189,16 @@ const EmployeesIndexRoute = EmployeesIndexRouteImport.update({
   path: '/employees/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingIndexRoute = BillingIndexRouteImport.update({
+  id: '/billing/',
+  path: '/billing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsBillingRoute = SettingsBillingRouteImport.update({
+  id: '/settings_/billing',
+  path: '/settings/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QueueDoctorRoute = QueueDoctorRouteImport.update({
   id: '/queue/doctor',
   path: '/queue/doctor',
@@ -220,6 +240,16 @@ const ConsultationEncounterIdRoute = ConsultationEncounterIdRouteImport.update({
   path: '/consultation/$encounterId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BillingDoctorRevenueRoute = BillingDoctorRevenueRouteImport.update({
+  id: '/billing/doctor-revenue',
+  path: '/billing/doctor-revenue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingActivityRoute = BillingActivityRouteImport.update({
+  id: '/billing/activity',
+  path: '/billing/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   id: '/patients/$patientId/',
   path: '/patients/$patientId/',
@@ -259,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
+  '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
@@ -270,6 +301,8 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -278,6 +311,8 @@ export interface FileRoutesByFullPath {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
@@ -300,6 +335,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
+  '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
@@ -311,6 +347,8 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -319,6 +357,8 @@ export interface FileRoutesByTo {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/billing': typeof BillingIndexRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/patients': typeof PatientsIndexRoute
@@ -342,6 +382,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
   '/organizations': typeof OrganizationsRoute
+  '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
@@ -353,6 +394,8 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -361,6 +404,8 @@ export interface FileRoutesById {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/settings_/billing': typeof SettingsBillingRoute
+  '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
@@ -385,6 +430,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/medicine-directory'
     | '/organizations'
+    | '/payments'
     | '/payroll'
     | '/plan-templates'
     | '/prescription-presets'
@@ -396,6 +442,8 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/billing/activity'
+    | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -404,6 +452,8 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/settings/billing'
+    | '/billing/'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
@@ -426,6 +476,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/medicine-directory'
     | '/organizations'
+    | '/payments'
     | '/payroll'
     | '/plan-templates'
     | '/prescription-presets'
@@ -437,6 +488,8 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/billing/activity'
+    | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -445,6 +498,8 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/settings/billing'
+    | '/billing'
     | '/employees'
     | '/invoices'
     | '/patients'
@@ -467,6 +522,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/medicine-directory'
     | '/organizations'
+    | '/payments'
     | '/payroll'
     | '/plan-templates'
     | '/prescription-presets'
@@ -478,6 +534,8 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/billing/activity'
+    | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -486,6 +544,8 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/settings_/billing'
+    | '/billing/'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
@@ -509,6 +569,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MedicineDirectoryRoute: typeof MedicineDirectoryRoute
   OrganizationsRoute: typeof OrganizationsRoute
+  PaymentsRoute: typeof PaymentsRoute
   PayrollRoute: typeof PayrollRoute
   PlanTemplatesRoute: typeof PlanTemplatesRoute
   PrescriptionPresetsRoute: typeof PrescriptionPresetsRoute
@@ -520,6 +581,8 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
+  BillingActivityRoute: typeof BillingActivityRoute
+  BillingDoctorRevenueRoute: typeof BillingDoctorRevenueRoute
   ConsultationEncounterIdRoute: typeof ConsultationEncounterIdRoute
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
@@ -528,6 +591,8 @@ export interface RootRouteChildren {
   PrescriptionsPrescriptionIdRoute: typeof PrescriptionsPrescriptionIdRoute
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
+  SettingsBillingRoute: typeof SettingsBillingRoute
+  BillingIndexRoute: typeof BillingIndexRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
@@ -616,6 +681,13 @@ declare module '@tanstack/react-router' {
       path: '/payroll'
       fullPath: '/payroll'
       preLoaderRoute: typeof PayrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/organizations': {
@@ -723,6 +795,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing/': {
+      id: '/billing/'
+      path: '/billing'
+      fullPath: '/billing/'
+      preLoaderRoute: typeof BillingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings_/billing': {
+      id: '/settings_/billing'
+      path: '/settings/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof SettingsBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/queue/doctor': {
       id: '/queue/doctor'
       path: '/queue/doctor'
@@ -779,6 +865,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConsultationEncounterIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/billing/doctor-revenue': {
+      id: '/billing/doctor-revenue'
+      path: '/billing/doctor-revenue'
+      fullPath: '/billing/doctor-revenue'
+      preLoaderRoute: typeof BillingDoctorRevenueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing/activity': {
+      id: '/billing/activity'
+      path: '/billing/activity'
+      fullPath: '/billing/activity'
+      preLoaderRoute: typeof BillingActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patients/$patientId/': {
       id: '/patients/$patientId/'
       path: '/patients/$patientId'
@@ -829,6 +929,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MedicineDirectoryRoute: MedicineDirectoryRoute,
   OrganizationsRoute: OrganizationsRoute,
+  PaymentsRoute: PaymentsRoute,
   PayrollRoute: PayrollRoute,
   PlanTemplatesRoute: PlanTemplatesRoute,
   PrescriptionPresetsRoute: PrescriptionPresetsRoute,
@@ -840,6 +941,8 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
+  BillingActivityRoute: BillingActivityRoute,
+  BillingDoctorRevenueRoute: BillingDoctorRevenueRoute,
   ConsultationEncounterIdRoute: ConsultationEncounterIdRoute,
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
@@ -848,6 +951,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsPrescriptionIdRoute: PrescriptionsPrescriptionIdRoute,
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
+  SettingsBillingRoute: SettingsBillingRoute,
+  BillingIndexRoute: BillingIndexRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,

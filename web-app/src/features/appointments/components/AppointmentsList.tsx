@@ -12,7 +12,6 @@ import {
   XCircle,
   Plus,
 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -25,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/shared/DataTable'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { cn } from '@/lib/utils'
 import { AppointmentsToolbar } from './AppointmentsToolbar'
 import { AppointmentFilters } from './AppointmentFilters'
@@ -509,39 +509,31 @@ export function AppointmentsList() {
                       {p.label}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setPreset('custom')}
-                    className={cn(
-                      'h-8 rounded-md border px-2.5 text-xs font-medium transition-colors',
-                      preset === 'custom'
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-card text-muted-foreground hover:bg-accent',
-                    )}
-                  >
-                    Custom
-                  </button>
                 </div>
 
-                {/* Custom date range */}
-                {preset === 'custom' && (
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">From</span>
-                    <Input
-                      type="date"
-                      value={customFrom}
-                      onChange={(e) => setCustomFrom(e.target.value)}
-                      className="h-8 w-[130px] text-xs"
-                    />
-                    <span className="text-muted-foreground">to</span>
-                    <Input
-                      type="date"
-                      value={customTo}
-                      onChange={(e) => setCustomTo(e.target.value)}
-                      className="h-8 w-[130px] text-xs"
-                    />
-                  </div>
-                )}
+                {/* Any other range (with its own quick presets) */}
+                <DateRangePicker
+                  aria-label="Custom date range"
+                  className={cn(
+                    'h-8 w-[240px] text-xs',
+                    preset === 'custom' && 'border-primary',
+                  )}
+                  value={
+                    preset === 'custom'
+                      ? { from: customFrom, to: customTo }
+                      : {}
+                  }
+                  onChange={(r) => {
+                    if (!r.from) {
+                      setPreset('upcoming')
+                      return
+                    }
+                    setCustomFrom(r.from)
+                    setCustomTo(r.to)
+                    setPreset('custom')
+                  }}
+                  placeholder="Custom range"
+                />
               </>
             }
           />

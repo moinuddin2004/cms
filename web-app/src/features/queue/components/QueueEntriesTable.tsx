@@ -7,6 +7,12 @@ import type { QueueEntry, QueueLane, QueuePolicy } from '../types'
 import { formatClock } from '../utils/queueError'
 import { matchesQueueSearch } from '../utils/queueSearch'
 import { EntryBadges } from './EntryBadges'
+import { useFeatures } from '@/context/FeatureFlagsContext'
+import {
+  QueueBillingCell,
+  useBillingAccess,
+  useOutstanding,
+} from '@/features/billing'
 import { QueueEntryActions } from './QueueEntryActions'
 import type { EntryActionHandlers } from './QueueEntryActions'
 
@@ -81,6 +87,24 @@ export function QueueEntriesTable({
     )
   }, [lanes, q])
 
+  // Billing (admin + reception only, D22): dues badge + "Bill" when done.
+  const { canBill } = useBillingAccess()
+  const { features } = useFeatures()
+  const showBilling = canBill && features.has('billing.invoices')
+  const patientIds = useMemo(
+    () => [
+      ...new Set(
+        rows.map((r) => r.entry.patient?.id).filter((id): id is string => !!id),
+      ),
+    ],
+    [rows],
+  )
+  const outstanding = useOutstanding(showBilling ? patientIds : [])
+  const duesByPatient = useMemo(
+    () => new Map((outstanding.data ?? []).map((o) => [o.patientId, o])),
+    [outstanding.data],
+  )
+
   const columns = useMemo<ColumnDef<Row, unknown>[]>(
     () => [
       {
@@ -143,6 +167,31 @@ export function QueueEntriesTable({
           </span>
         ),
       },
+      ...(showBilling
+        ? [
+            {
+              id: 'billing',
+              header: 'Billing',
+              enableSorting: false,
+              cell: ({ row }: { row: { original: Row } }) => {
+                const p = row.original.entry.patient
+                if (!p) return null
+                return (
+                  <QueueBillingCell
+                    patient={{
+                      id: p.id,
+                      name: p.fullName,
+                      phone: p.phone,
+                      mrn: p.patientNumber,
+                    }}
+                    outstanding={duesByPatient.get(p.id)}
+                    canBillNow={row.original.entry.status === 'completed'}
+                  />
+                )
+              },
+            } satisfies ColumnDef<Row, unknown>,
+          ]
+        : []),
       {
         id: 'actions',
         header: '',
@@ -159,7 +208,14 @@ export function QueueEntriesTable({
         ),
       },
     ],
-    [now, role, policy.skippedRejoinPolicy, handlers],
+    [
+      now,
+      role,
+      policy.skippedRejoinPolicy,
+      handlers,
+      showBilling,
+      duesByPatient,
+    ],
   )
 
   return (

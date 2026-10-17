@@ -82,6 +82,7 @@ export function CloseSessionDialog({
                   </p>
                 </div>
                 <Select
+                  clearable={false}
                   value={choice[e.id] ?? 'cancel'}
                   onValueChange={(v) => setChoice((c) => ({ ...c, [e.id]: v }))}
                 >

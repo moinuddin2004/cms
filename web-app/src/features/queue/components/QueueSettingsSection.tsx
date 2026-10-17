@@ -150,6 +150,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                   {(field) => (
                     <FieldWrapper label="Skipped patient rejoins">
                       <Select
+                        clearable={false}
                         value={field.state.value}
                         onValueChange={(v) =>
                           field.handleChange(v as typeof field.state.value)
@@ -243,6 +244,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                   {(field) => (
                     <FieldWrapper label="Save as">
                       <Select
+                        clearable={false}
                         value={field.state.value}
                         onValueChange={(v) =>
                           field.handleChange(v as typeof field.state.value)

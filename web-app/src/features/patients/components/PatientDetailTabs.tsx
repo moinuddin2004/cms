@@ -8,7 +8,9 @@ import {
   CalendarClock,
   CalendarCheck2,
   Syringe,
+  HandCoins,
 } from 'lucide-react'
+import { PatientBillingTab, useBillingAccess } from '@/features/billing'
 import type { Patient } from '../types'
 import { FeatureGuard } from '@/context/FeatureFlagsContext'
 import { OverviewTab } from './tabs/OverviewTab'
@@ -26,6 +28,8 @@ interface PatientDetailTabsProps {
 }
 
 export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
+  // Billing is admin + reception only; doctors never see the tab (D17).
+  const { canBill } = useBillingAccess()
   return (
     <Tabs defaultValue="overview" className="mt-6">
       <TabsList className="bg-muted/50 p-1 flex-wrap h-auto gap-1 justify-start">
@@ -66,6 +70,14 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           <FileSignature size={14} className="mr-1.5" />
           Consents
         </TabsTrigger>
+        {canBill && (
+          <FeatureGuard feature="billing.invoices">
+            <TabsTrigger value="billing" className="text-sm">
+              <HandCoins size={14} className="mr-1.5" />
+              Billing
+            </TabsTrigger>
+          </FeatureGuard>
+        )}
         <FeatureGuard feature="patients.documents">
           <TabsTrigger value="files" className="text-sm">
             <FolderOpen size={14} className="mr-1.5" />
@@ -73,6 +85,21 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           </TabsTrigger>
         </FeatureGuard>
       </TabsList>
+
+      {canBill && (
+        <FeatureGuard feature="billing.invoices">
+          <TabsContent value="billing">
+            <PatientBillingTab
+              patient={{
+                id: patient.id,
+                name: patient.fullName,
+                phone: patient.phone,
+                mrn: patient.patientNumber,
+              }}
+            />
+          </TabsContent>
+        </FeatureGuard>
+      )}
 
       <TabsContent value="overview">
         <OverviewTab patient={patient} />

@@ -287,8 +287,10 @@ export interface Treatment {
   locationId: string
   treatmentName: string
   notes: string | null
-  /** Decimal — TypeORM may return it as a string. */
-  cost: number | string | null
+  /** Catalog service billing prices this treatment from, if the doctor picked one. */
+  serviceId?: string | null
+  /** Legacy fee. Absent for doctors — the server never sends them prices. */
+  cost?: number | string | null
   date: string
   createdBy: string | null
   createdAt: string

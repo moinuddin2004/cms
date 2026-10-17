@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CatalogService } from 'src/billing/entities/catalog-service.entity';
 import { Treatment } from './entities/treatment.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
@@ -14,6 +15,7 @@ import { TreatmentsService } from './treatments.service';
       PatientEncounter,
       Patient,
       PlanTemplate,
+      CatalogService,
     ]),
   ],
   controllers: [TreatmentsController],

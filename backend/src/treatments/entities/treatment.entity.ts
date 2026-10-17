@@ -78,8 +78,19 @@ export class Treatment {
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
 
-  @Column({ name: 'cost', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  /** Legacy fee; billing falls back to it only when no service is set. */
+  @Column({
+    name: 'cost',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
   cost: number | null;
+
+  /** Catalog service (kind PROCEDURE) — billing prices the charge from it. */
+  @Column({ name: 'service_id', type: 'uuid', nullable: true })
+  serviceId: string | null;
 
   @Column({ name: 'date', type: 'timestamptz' })
   date: Date;

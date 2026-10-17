@@ -14,6 +14,7 @@ import { QueueController } from './controllers/queue.controller';
 import { DoctorQueueController } from './controllers/doctor-queue.controller';
 import { DisplayController } from './controllers/display.controller';
 import { EncountersModule } from 'src/encounters/encounters.module';
+import { BillingModule } from 'src/billing/billing.module';
 
 /**
  * Doctor-wise clinic queue: everything after a patient arrives.
@@ -34,6 +35,7 @@ import { EncountersModule } from 'src/encounters/encounters.module';
       IdempotencyKey,
     ]),
     EncountersModule,
+    BillingModule,
   ],
   controllers: [QueueController, DoctorQueueController, DisplayController],
   providers: [

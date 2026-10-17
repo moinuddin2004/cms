@@ -1,12 +1,6 @@
 import api from '@/lib/api'
 import type {
-  Invoice,
   InvoiceStats,
-  InvoiceFilters,
-  CreateInvoiceInput,
-  RecordPaymentInput,
-  Payment,
-  Coupon,
   Expense,
   ExpenseSummary,
   CreditPackage,
@@ -15,161 +9,26 @@ import type {
   MonthlySummary,
   RevenueTrendPoint,
   PaginatedResponse,
-  DiscountType,
   ExpenseCategory,
   PaymentMethod,
 } from '../types'
+import type { InvoiceStatsV2 } from '../types/billing.types'
 
-// ─── Invoices ───────────────────────────────────────────────────────
+// ─── Invoice stats (dashboard) ─────────────────────────────────────
 
-export async function fetchInvoices(
-  params: InvoiceFilters,
-): Promise<PaginatedResponse<Invoice>> {
-  const { data } = await api.get('/invoices', { params })
-  return data.data
-}
-
-export async function fetchInvoice(id: string): Promise<Invoice> {
-  const { data } = await api.get(`/invoices/${id}`)
-  return data.data
-}
-
+/** Dashboard rollup, derived from billing v2 `/invoices/stats`. */
 export async function fetchInvoiceStats(): Promise<InvoiceStats> {
   const { data } = await api.get('/invoices/stats')
-  return data.data
-}
-
-export async function createInvoice(
-  payload: CreateInvoiceInput,
-): Promise<Invoice> {
-  const { data } = await api.post('/invoices', payload)
-  return data.data
-}
-
-export async function updateInvoice(
-  id: string,
-  payload: {
-    dueDate?: string
-    notes?: string
-    discountType?: DiscountType
-    discountValue?: number
-    taxRate?: number
-  },
-): Promise<Invoice> {
-  const { data } = await api.patch(`/invoices/${id}`, payload)
-  return data.data
-}
-
-export async function updateInvoiceStatus(
-  id: string,
-  status: string,
-): Promise<Invoice> {
-  const { data } = await api.patch(`/invoices/${id}/status`, { status })
-  return data.data
-}
-
-export async function addInvoiceItem(
-  invoiceId: string,
-  payload: { description: string; quantity: number; unitPrice: number },
-): Promise<Invoice> {
-  const { data } = await api.post(`/invoices/${invoiceId}/items`, payload)
-  return data.data
-}
-
-export async function removeInvoiceItem(
-  invoiceId: string,
-  itemId: string,
-): Promise<Invoice> {
-  const { data } = await api.delete(`/invoices/${invoiceId}/items/${itemId}`)
-  return data.data
-}
-
-export async function generateInvoiceFromTreatmentPlan(
-  planId: string,
-): Promise<Invoice> {
-  const { data } = await api.post(`/invoices/from-treatment-plan/${planId}`)
-  return data.data
-}
-
-export async function applyCoupon(
-  invoiceId: string,
-  code: string,
-): Promise<Invoice> {
-  const { data } = await api.post(`/invoices/${invoiceId}/apply-coupon`, {
-    code,
-  })
-  return data.data
-}
-
-export async function removeCoupon(invoiceId: string): Promise<Invoice> {
-  const { data } = await api.delete(`/invoices/${invoiceId}/remove-coupon`)
-  return data.data
-}
-
-export async function fetchPaymentLink(
-  invoiceId: string,
-): Promise<{ url: string; provider: string }> {
-  const { data } = await api.post(`/invoices/${invoiceId}/payment-link`)
-  return data.data
-}
-
-// ─── Payments ───────────────────────────────────────────────────────
-
-export async function recordPayment(
-  invoiceId: string,
-  payload: RecordPaymentInput,
-): Promise<Payment> {
-  const { data } = await api.post(`/invoices/${invoiceId}/payments`, payload)
-  return data.data
-}
-
-export async function fetchInvoicePayments(
-  invoiceId: string,
-): Promise<Payment[]> {
-  const { data } = await api.get(`/invoices/${invoiceId}/payments`)
-  return data.data
-}
-
-export async function downloadReceiptPdf(invoiceId: string): Promise<Blob> {
-  const res = await api.get(`/invoices/${invoiceId}/receipt-pdf`, {
-    responseType: 'blob',
-  })
-  return res.data
-}
-
-// ─── Coupons ────────────────────────────────────────────────────────
-
-export async function fetchCoupons(): Promise<Coupon[]> {
-  const { data } = await api.get('/coupons')
-  return data.data
-}
-
-export async function createCoupon(payload: {
-  code: string
-  name: string
-  discountType: DiscountType
-  discountValue: number
-  maxDiscountAmount?: number
-  minInvoiceAmount?: number
-  validFrom: string
-  validUntil: string
-  maxUses?: number
-}): Promise<Coupon> {
-  const { data } = await api.post('/coupons', payload)
-  return data.data
-}
-
-export async function updateCoupon(
-  id: string,
-  payload: Partial<Coupon>,
-): Promise<Coupon> {
-  const { data } = await api.patch(`/coupons/${id}`, payload)
-  return data.data
-}
-
-export async function deactivateCoupon(id: string): Promise<Coupon> {
-  const { data } = await api.delete(`/coupons/${id}`)
-  return data.data
+  const s = data.data as InvoiceStatsV2
+  const count = Object.entries(s.counts)
+    .filter(([k]) => k !== 'REFUNDED')
+    .reduce((a, [, n]) => a + n, 0)
+  return {
+    totalInvoices: count,
+    totalRevenue: s.totals.collected,
+    outstandingAmount: s.totals.outstanding,
+    overdueCount: s.counts.OVERDUE,
+  }
 }
 
 // ─── Expenses ───────────────────────────────────────────────────────

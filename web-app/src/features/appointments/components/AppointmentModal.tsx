@@ -22,13 +22,14 @@ import { Switch } from '@/components/ui/switch'
 import { Loader2, AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react'
 import { useAppointmentStore } from '@/store/appointment-store'
 import {
-  
   APPOINTMENT_TYPE_OPTIONS,
-  DURATION_OPTIONS
-  
-  
+  DURATION_OPTIONS,
 } from '@/features/appointments/types'
-import type {AppointmentFormData, Doctor, ValidationResult} from '@/features/appointments/types';
+import type {
+  AppointmentFormData,
+  Doctor,
+  ValidationResult,
+} from '@/features/appointments/types'
 import { useCreateAppointment } from '@/features/appointments/hooks/useCreateAppointment'
 import { useUpdateAppointment } from '@/features/appointments/hooks/useUpdateAppointment'
 import { useValidateAppointment } from '@/features/appointments/hooks/useValidateAppointment'
@@ -238,7 +239,7 @@ export function AppointmentModal() {
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [watchedDoctorId, watchedStartTime, watchedDuration])  
+  }, [watchedDoctorId, watchedStartTime, watchedDuration])
 
   const applySuggestion = () => {
     if (validation?.suggestedStartTime) {
@@ -384,6 +385,7 @@ export function AppointmentModal() {
                   <div className="space-y-2">
                     <Label>Duration *</Label>
                     <Select
+                      clearable={false}
                       value={String(field.state.value)}
                       onValueChange={(val) => {
                         const num = Number(val)

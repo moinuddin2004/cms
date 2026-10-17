@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import {
   Select,
   SelectContent,
@@ -128,46 +128,42 @@ export function LeaveFormDialog({
             )}
           </form.Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <form.Field name="startDate">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <Input
-                    type="date"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                  />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-            <form.Field name="endDate">
-              {(field) => (
-                <div className="space-y-2">
-                  <Label>End Date</Label>
-                  <Input
-                    type="date"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                  />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
-                    </p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-          </div>
+          <form.Field name="startDate">
+            {(startField) => (
+              <form.Field name="endDate">
+                {(endField) => {
+                  const error =
+                    startField.state.meta.errors[0] ??
+                    endField.state.meta.errors[0]
+                  return (
+                    <div className="space-y-2">
+                      <Label htmlFor="leave-dates">Leave dates</Label>
+                      <DateRangePicker
+                        id="leave-dates"
+                        className="w-full"
+                        presets={[]}
+                        clearable={false}
+                        placeholder="Pick start and end dates"
+                        value={{
+                          from: startField.state.value,
+                          to: endField.state.value,
+                        }}
+                        onChange={(r) => {
+                          startField.handleChange(r.from)
+                          endField.handleChange(r.to)
+                        }}
+                      />
+                      {error && (
+                        <p className="text-xs text-destructive">
+                          {String(error)}
+                        </p>
+                      )}
+                    </div>
+                  )
+                }}
+              </form.Field>
+            )}
+          </form.Field>
 
           <form.Field name="reason">
             {(field) => (
@@ -193,9 +189,7 @@ export function LeaveFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEditing ? 'Save Changes' : 'Submit Request'}
             </Button>
           </DialogFooter>

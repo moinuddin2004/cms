@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/shared/DatePicker'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -25,24 +26,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/formatters'
-import {
-  CalendarX2,
-  Loader2,
-  Pencil,
-  Plus,
-  Trash2,
-  X,
-} from 'lucide-react'
+import { CalendarX2, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react'
 import {
   useAvailabilityOverrides,
   useCreateOverride,
   useUpdateOverride,
   useDeleteOverride,
 } from '../hooks/useAvailabilityOverrides'
-import {
-  type AvailabilityOverride,
-  type OverrideFormData,
-} from '../types'
+import { type AvailabilityOverride, type OverrideFormData } from '../types'
 
 interface AvailabilityOverrideTabProps {
   employeeId: string
@@ -267,12 +258,9 @@ function OverrideFormDialog({
             {(field) => (
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Input
-                  type="date"
+                <DatePicker
                   value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
+                  onChange={(v) => field.handleChange(v)}
                 />
               </div>
             )}
@@ -357,9 +345,7 @@ function OverrideFormDialog({
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() =>
-                              (arrayField as any).removeValue(idx)
-                            }
+                            onClick={() => (arrayField as any).removeValue(idx)}
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -396,9 +382,7 @@ function OverrideFormDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
-              {isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isEditing ? 'Save Changes' : 'Create Override'}
             </Button>
           </DialogFooter>

@@ -60,10 +60,7 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
     }
   }, [serverSchedule])
 
-  const updateDay = (
-    dayIdx: number,
-    updates: Partial<ScheduleDay>,
-  ) => {
+  const updateDay = (dayIdx: number, updates: Partial<ScheduleDay>) => {
     setSchedule((prev) =>
       prev.map((d) => (d.dayOfWeek === dayIdx ? { ...d, ...updates } : d)),
     )
@@ -116,6 +113,7 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
               <Clock className="h-4 w-4" />
               <span>Slot:</span>
               <Select
+                clearable={false}
                 value={String(slotDuration)}
                 onValueChange={(v) => {
                   setSlotDuration(Number(v))

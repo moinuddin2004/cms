@@ -11,11 +11,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
-import { Badge } from '@/components/ui/badge'
+import { MultiSelect } from '@/components/shared/MultiSelect'
 import { Switch } from '@/components/ui/switch'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { format } from 'date-fns'
-import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   Loader2,
   ChevronLeft,
@@ -142,14 +141,17 @@ export function PatientForm({
       if (!v.phone?.trim()) errors.push('Phone Number is required')
       else if (!phoneOk(v.phone))
         errors.push('Phone Number looks invalid (7–20 digits)')
-      if (!phoneOk(v.whatsappNumber)) errors.push('WhatsApp Number looks invalid')
+      if (!phoneOk(v.whatsappNumber))
+        errors.push('WhatsApp Number looks invalid')
       if (!emailOk(v.email)) errors.push('Email address is invalid')
       if (!cnicOk(v.cnic)) errors.push('CNIC must look like 42101-1234567-1')
-      if (isFutureDate(v.dob)) errors.push('Date of Birth cannot be in the future')
+      if (isFutureDate(v.dob))
+        errors.push('Date of Birth cannot be in the future')
       if (v.isMinor) {
         if (!v.guardianName?.trim())
           errors.push('Guardian Name is required for minor patients')
-        if (!phoneOk(v.guardianPhone)) errors.push('Guardian Phone looks invalid')
+        if (!phoneOk(v.guardianPhone))
+          errors.push('Guardian Phone looks invalid')
       }
       if (!phoneOk(v.emergencyContactPhone))
         errors.push('Emergency Contact Phone looks invalid')
@@ -213,7 +215,10 @@ export function PatientForm({
       {/* ── Step Indicator ── */}
       <div className="flex items-center w-full">
         {FORM_STEPS.map((step, i) => (
-          <div key={step.id} className="flex items-center flex-1 last:flex-none">
+          <div
+            key={step.id}
+            className="flex items-center flex-1 last:flex-none"
+          >
             <button
               type="button"
               aria-label={step.title}
@@ -268,7 +273,9 @@ export function PatientForm({
       {currentErrors.length > 0 && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-0.5">
           {currentErrors.map((err) => (
-            <p key={err} className="text-sm text-destructive">{err}</p>
+            <p key={err} className="text-sm text-destructive">
+              {err}
+            </p>
           ))}
         </div>
       )}
@@ -285,25 +292,26 @@ export function PatientForm({
           {currentStep === 0 && (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="p-5 space-y-6">
-              <div className="flex gap-5">
-                {/* Avatar placeholder */}
-                <div className="flex-shrink-0 pt-1">
-                  <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center">
-                    <User className="w-7 h-7 text-slate-400" />
+                <div className="flex gap-5">
+                  {/* Avatar placeholder */}
+                  <div className="flex-shrink-0 pt-1">
+                    <div className="w-16 h-16 rounded-full bg-muted border-2 border-dashed border-border flex items-center justify-center">
+                      <User className="w-7 h-7 text-slate-400" />
+                    </div>
                   </div>
-                </div>
 
-                {/* Fields */}
-                <div className="flex-1 grid grid-cols-1 content-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <p className="col-span-full text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    Basic Information
-                  </p>
+                  {/* Fields */}
+                  <div className="flex-1 grid grid-cols-1 content-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <p className="col-span-full text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                      Basic Information
+                    </p>
 
                     <form.Field name="fullName">
                       {(field) => (
                         <div className="space-y-1.5">
                           <Label htmlFor="fullName">
-                            Full Name <span className="text-destructive">*</span>
+                            Full Name{' '}
+                            <span className="text-destructive">*</span>
                           </Label>
                           <Input
                             id="fullName"
@@ -378,7 +386,9 @@ export function PatientForm({
                           <Select
                             value={field.state.value || ''}
                             onValueChange={(v) =>
-                              field.handleChange(v as PatientFormData['bloodGroup'])
+                              field.handleChange(
+                                v as PatientFormData['bloodGroup'],
+                              )
                             }
                           >
                             <SelectTrigger id="bloodGroup">
@@ -403,7 +413,9 @@ export function PatientForm({
                           <Select
                             value={field.state.value || ''}
                             onValueChange={(v) =>
-                              field.handleChange(v as PatientFormData['maritalStatus'])
+                              field.handleChange(
+                                v as PatientFormData['maritalStatus'],
+                              )
                             }
                           >
                             <SelectTrigger id="maritalStatus">
@@ -467,7 +479,6 @@ export function PatientForm({
                       )}
                     </form.Field>
 
-
                     <form.Field name="city">
                       {(field) => (
                         <div className="space-y-1.5">
@@ -495,148 +506,171 @@ export function PatientForm({
                         </div>
                       )}
                     </form.Field>
+                  </div>
                 </div>
-              </div>
 
                 {/* Guardian + Emergency (side by side) */}
                 <div className="grid grid-cols-1 gap-x-8 gap-y-6 border-t pt-5 lg:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                        Guardian Information
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Turn on if the patient is a minor and needs guardian consent.
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                          Guardian Information
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Turn on if the patient is a minor and needs guardian
+                          consent.
+                        </p>
+                      </div>
+                      <form.Field name="isMinor">
+                        {(field) => (
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Label htmlFor="isMinor" className="cursor-pointer">
+                              Minor patient
+                            </Label>
+                            <Switch
+                              id="isMinor"
+                              checked={field.state.value}
+                              onCheckedChange={field.handleChange}
+                            />
+                          </div>
+                        )}
+                      </form.Field>
                     </div>
-                    <form.Field name="isMinor">
-                      {(field) => (
-                        <div className="flex shrink-0 items-center gap-2">
-                          <Label htmlFor="isMinor" className="cursor-pointer">
-                            Minor patient
-                          </Label>
-                          <Switch
-                            id="isMinor"
-                            checked={field.state.value}
-                            onCheckedChange={field.handleChange}
-                          />
-                        </div>
-                      )}
-                    </form.Field>
+
+                    <form.Subscribe selector={(state) => state.values.isMinor}>
+                      {(isMinor) =>
+                        isMinor && (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-brand-200/40 bg-brand-500/5 p-4">
+                            <form.Field name="guardianName">
+                              {(field) => (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="guardianName">
+                                    Guardian Name{' '}
+                                    <span className="text-destructive">*</span>
+                                  </Label>
+                                  <Input
+                                    id="guardianName"
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                      field.handleChange(e.target.value)
+                                    }
+                                    placeholder="Guardian full name"
+                                  />
+                                </div>
+                              )}
+                            </form.Field>
+                            <form.Field name="guardianPhone">
+                              {(field) => (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="guardianPhone">
+                                    Guardian Phone
+                                  </Label>
+                                  <Input
+                                    id="guardianPhone"
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                      field.handleChange(e.target.value)
+                                    }
+                                    placeholder="03001234567"
+                                  />
+                                </div>
+                              )}
+                            </form.Field>
+                            <form.Field name="guardianRelation">
+                              {(field) => (
+                                <div className="space-y-1.5">
+                                  <Label htmlFor="guardianRelation">
+                                    Relation
+                                  </Label>
+                                  <Input
+                                    id="guardianRelation"
+                                    value={field.state.value}
+                                    onChange={(e) =>
+                                      field.handleChange(e.target.value)
+                                    }
+                                    placeholder="Father, Mother, etc."
+                                  />
+                                </div>
+                              )}
+                            </form.Field>
+                          </div>
+                        )
+                      }
+                    </form.Subscribe>
                   </div>
 
-                  <form.Subscribe selector={(state) => state.values.isMinor}>
-                    {(isMinor) =>
-                      isMinor && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-brand-200/40 bg-brand-500/5 p-4">
-                          <form.Field name="guardianName">
-                            {(field) => (
-                              <div className="space-y-1.5">
-                                <Label htmlFor="guardianName">
-                                  Guardian Name <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                  id="guardianName"
-                                  value={field.state.value}
-                                  onChange={(e) => field.handleChange(e.target.value)}
-                                  placeholder="Guardian full name"
-                                />
-                              </div>
-                            )}
-                          </form.Field>
-                          <form.Field name="guardianPhone">
-                            {(field) => (
-                              <div className="space-y-1.5">
-                                <Label htmlFor="guardianPhone">Guardian Phone</Label>
-                                <Input
-                                  id="guardianPhone"
-                                  value={field.state.value}
-                                  onChange={(e) => field.handleChange(e.target.value)}
-                                  placeholder="03001234567"
-                                />
-                              </div>
-                            )}
-                          </form.Field>
-                          <form.Field name="guardianRelation">
-                            {(field) => (
-                              <div className="space-y-1.5">
-                                <Label htmlFor="guardianRelation">Relation</Label>
-                                <Input
-                                  id="guardianRelation"
-                                  value={field.state.value}
-                                  onChange={(e) => field.handleChange(e.target.value)}
-                                  placeholder="Father, Mother, etc."
-                                />
-                              </div>
-                            )}
-                          </form.Field>
-                        </div>
-                      )
-                    }
-                  </form.Subscribe>
-                </div>
+                  {/* Emergency Contact */}
+                  <div className="space-y-4">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                      Emergency Contact
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <form.Field name="emergencyContactName">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="emergencyContactName">Name</Label>
+                            <Input
+                              id="emergencyContactName"
+                              value={field.state.value}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
+                              placeholder="Contact name"
+                            />
+                          </div>
+                        )}
+                      </form.Field>
 
-                {/* Emergency Contact */}
-                <div className="space-y-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
-                    Emergency Contact
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <form.Field name="emergencyContactName">
-                      {(field) => (
-                        <div className="space-y-1.5">
-                          <Label htmlFor="emergencyContactName">Name</Label>
-                          <Input
-                            id="emergencyContactName"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="Contact name"
-                          />
-                        </div>
-                      )}
-                    </form.Field>
+                      <form.Field name="emergencyContactPhone">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="emergencyContactPhone">Phone</Label>
+                            <Input
+                              id="emergencyContactPhone"
+                              value={field.state.value}
+                              onChange={(e) =>
+                                field.handleChange(e.target.value)
+                              }
+                              placeholder="03001234567"
+                            />
+                          </div>
+                        )}
+                      </form.Field>
 
-                    <form.Field name="emergencyContactPhone">
-                      {(field) => (
-                        <div className="space-y-1.5">
-                          <Label htmlFor="emergencyContactPhone">Phone</Label>
-                          <Input
-                            id="emergencyContactPhone"
-                            value={field.state.value}
-                            onChange={(e) => field.handleChange(e.target.value)}
-                            placeholder="03001234567"
-                          />
-                        </div>
-                      )}
-                    </form.Field>
-
-                    <form.Field name="emergencyContactRelation">
-                      {(field) => (
-                        <div className="space-y-1.5">
-                          <Label htmlFor="emergencyContactRelation">Relationship</Label>
-                          <Select
-                            value={field.state.value || ''}
-                            onValueChange={(v) => field.handleChange(v)}
-                          >
-                            <SelectTrigger id="emergencyContactRelation">
-                              <SelectValue placeholder="Select" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {['Spouse', 'Parent', 'Sibling', 'Child', 'Friend', 'Other'].map(
-                                (rel) => (
+                      <form.Field name="emergencyContactRelation">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="emergencyContactRelation">
+                              Relationship
+                            </Label>
+                            <Select
+                              value={field.state.value || ''}
+                              onValueChange={(v) => field.handleChange(v)}
+                            >
+                              <SelectTrigger id="emergencyContactRelation">
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[
+                                  'Spouse',
+                                  'Parent',
+                                  'Sibling',
+                                  'Child',
+                                  'Friend',
+                                  'Other',
+                                ].map((rel) => (
                                   <SelectItem key={rel} value={rel}>
                                     {rel}
                                   </SelectItem>
-                                ),
-                              )}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </form.Field>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </form.Field>
+                    </div>
                   </div>
-                </div>
                 </div>
 
                 {/* Medical History */}
@@ -648,7 +682,9 @@ export function PatientForm({
                     <form.Field name="medicalHistory">
                       {(field) => (
                         <div className="space-y-1.5">
-                          <Label htmlFor="medicalHistory">Medical History</Label>
+                          <Label htmlFor="medicalHistory">
+                            Medical History
+                          </Label>
                           <Textarea
                             id="medicalHistory"
                             value={field.state.value}
@@ -691,7 +727,9 @@ export function PatientForm({
                 <form.Field name="source">
                   {(field) => (
                     <div className="space-y-1.5">
-                      <Label htmlFor="source">How did they hear about us?</Label>
+                      <Label htmlFor="source">
+                        How did they hear about us?
+                      </Label>
                       <Select
                         value={field.state.value || ''}
                         onValueChange={(v) =>
@@ -746,7 +784,9 @@ export function PatientForm({
                             type="radio"
                             name="preferredLanguage"
                             checked={field.state.value === Language.ENGLISH}
-                            onChange={() => field.handleChange(Language.ENGLISH)}
+                            onChange={() =>
+                              field.handleChange(Language.ENGLISH)
+                            }
                           />
                           English
                         </label>
@@ -771,10 +811,18 @@ export function PatientForm({
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={CommunicationPreference.WHATSAPP}>WhatsApp</SelectItem>
-                          <SelectItem value={CommunicationPreference.SMS}>SMS</SelectItem>
-                          <SelectItem value={CommunicationPreference.CALL}>Call</SelectItem>
-                          <SelectItem value={CommunicationPreference.EMAIL}>Email</SelectItem>
+                          <SelectItem value={CommunicationPreference.WHATSAPP}>
+                            WhatsApp
+                          </SelectItem>
+                          <SelectItem value={CommunicationPreference.SMS}>
+                            SMS
+                          </SelectItem>
+                          <SelectItem value={CommunicationPreference.CALL}>
+                            Call
+                          </SelectItem>
+                          <SelectItem value={CommunicationPreference.EMAIL}>
+                            Email
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -879,52 +927,18 @@ function TagInput({
   onChange: (val: string[]) => void
   label?: string
 }) {
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      const input = e.currentTarget
-      const trimmed = input.value.trim().replace(/,/g, '')
-      if (trimmed && !value.includes(trimmed)) {
-        onChange([...value, trimmed])
-      }
-      input.value = ''
-    }
-  }
-
-  const removeTag = (tag: string) => {
-    onChange(value.filter((t) => t !== tag))
-  }
-
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input
-        placeholder="Type and press Enter to add tag..."
-        onKeyDown={handleKeyDown}
+      <Label htmlFor="patient-tags">{label}</Label>
+      <MultiSelect
+        id="patient-tags"
+        creatable
+        options={value.map((t) => ({ value: t, label: t }))}
+        value={value}
+        onChange={onChange}
+        placeholder="Add tags…"
+        searchPlaceholder="Type a tag and press Enter"
       />
-      {value.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {value.map((tag) => (
-            <Badge
-              key={tag}
-              variant="secondary"
-              className="gap-1 pr-1 cursor-pointer bg-brand-100 text-brand-700 hover:bg-brand-200"
-            >
-              {tag}
-              <TooltipButton
-                tooltip={`Remove ${tag}`}
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                onClick={() => removeTag(tag)}
-                className="ml-0.5 size-4 rounded-full p-0 hover:text-destructive"
-              >
-                <X size={12} />
-              </TooltipButton>
-            </Badge>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -945,7 +959,8 @@ function mapPatientToForm(patient: Patient): PatientFormData {
     city: patient.city || '',
     address: patient.address || '',
     preferredLanguage: patient.preferredLanguage || Language.URDU,
-    communicationPref: patient.communicationPref || CommunicationPreference.WHATSAPP,
+    communicationPref:
+      patient.communicationPref || CommunicationPreference.WHATSAPP,
     source: patient.source || PatientSource.WALK_IN,
     referredByText: patient.referredByText || '',
     occupation: patient.occupation || '',
