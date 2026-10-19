@@ -8,7 +8,7 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/store/useAuthStore'
+import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
 import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
 import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
@@ -26,6 +26,9 @@ const PUBLIC_PATHS = [
 
 // Open to everyone, signed in or not, with no redirects (waiting-room TV).
 const OPEN_PATHS = ['/display/']
+
+// Lab staff work here — no clinic org/location context (lab ERD §13)
+const LAB_PORTAL_PATH = '/lab-portal'
 
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
@@ -102,6 +105,7 @@ function RootComponent() {
     activeOrganizationId,
     accessibleOrganizations,
     isSuperAdmin,
+    labMemberships,
   } = useAuthStore()
 
   // Active org's specialty tags drive <SpecialtyGuard> across the app
@@ -136,6 +140,7 @@ function RootComponent() {
             accessibleOrganizations,
             activeOrganizationId,
             activeLocationId: actLocId,
+            labMemberships: labs,
           } = res.data.data
 
           setAuth({
@@ -148,6 +153,7 @@ function RootComponent() {
             accessibleOrganizations,
             activeOrganizationId,
             activeLocationId: actLocId,
+            labMemberships: labs,
           })
         }
       } catch {
@@ -172,9 +178,21 @@ function RootComponent() {
     const isSelectLocationPage = location.pathname === '/select-location'
 
     const needsSelection = requiresOrgSelection || requiresLocationSelection
+    const isLabPortal = location.pathname.startsWith(LAB_PORTAL_PATH)
+    const labOnly = isLabOnlyUser({
+      isSuperAdmin,
+      accessibleOrganizations,
+      labMemberships,
+    })
 
     if (!isAuthenticated && !isPublicRoute && location.pathname !== '/') {
       navigate({ to: '/login', replace: true })
+    } else if (isAuthenticated && labOnly && !isLabPortal) {
+      // Lab staff have no clinic — their home is the lab portal
+      navigate({ to: LAB_PORTAL_PATH, replace: true })
+    } else if (isAuthenticated && isLabPortal) {
+      // The portal needs a lab membership, never a clinic location
+      if (!labMemberships.length) navigate({ to: '/dashboard', replace: true })
     } else if (isAuthenticated && isPublicRoute && !isSelectLocationPage) {
       navigate({ to: '/dashboard', replace: true })
     } else if (
@@ -210,6 +228,8 @@ function RootComponent() {
     requiresLocationSelection,
     requiresOrgSelection,
     isSuperAdmin,
+    accessibleOrganizations,
+    labMemberships,
   ])
 
   // Show nothing while initializing (attempting silent refresh)

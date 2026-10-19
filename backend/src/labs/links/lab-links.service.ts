@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager } from 'typeorm';
-import { ActorRef, AuditAction } from 'src/common/audit/audit.enums';
+import {
+  ActorRef,
+  AuditAction,
+  TransitionVia,
+} from 'src/common/audit/audit.enums';
 import { snapshotOf } from 'src/common/audit/audit-diff';
 import { AuditService, TimelineEntry } from 'src/common/audit/audit.service';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
@@ -310,6 +314,7 @@ export class LabLinksService {
     action: LabLinkAction,
     actor: ActorRef,
     reason: string | null,
+    via: TransitionVia = TransitionVia.APP,
   ): Promise<void> {
     const from = link.status;
     const to = resolveLinkTransition(from, action, actor.side, reason);
@@ -355,6 +360,7 @@ export class LabLinksService {
       fromState: from,
       toState: to,
       actionCode: action,
+      via,
       reason,
     });
     await this.audit.record(m, actor, {

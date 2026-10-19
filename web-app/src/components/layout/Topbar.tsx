@@ -3,7 +3,7 @@ import { LocationSwitcher } from '@/components/layout/LocationSwitcher'
 import { useTheme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
   const isDark =
     theme === 'dark' ||

@@ -37,6 +37,7 @@ import { Route as AppointmentsRouteImport } from './routes/appointments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PrescriptionsIndexRouteImport } from './routes/prescriptions/index'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
+import { Route as LabPortalIndexRouteImport } from './routes/lab-portal.index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
 import { Route as BillingIndexRouteImport } from './routes/billing.index'
@@ -45,6 +46,9 @@ import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
 import { Route as PrescriptionsPrescriptionIdRouteImport } from './routes/prescriptions/$prescriptionId'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
+import { Route as LabPortalTeamRouteImport } from './routes/lab-portal.team'
+import { Route as LabPortalProfileRouteImport } from './routes/lab-portal.profile'
+import { Route as LabPortalClinicsRouteImport } from './routes/lab-portal.clinics'
 import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
@@ -199,6 +203,11 @@ const PatientsIndexRoute = PatientsIndexRouteImport.update({
   path: '/patients/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabPortalIndexRoute = LabPortalIndexRouteImport.update({
+  id: '/lab-portal/',
+  path: '/lab-portal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesIndexRoute = InvoicesIndexRouteImport.update({
   id: '/invoices/',
   path: '/invoices/',
@@ -238,6 +247,21 @@ const PrescriptionsPrescriptionIdRoute =
 const PatientsNewRoute = PatientsNewRouteImport.update({
   id: '/patients/new',
   path: '/patients/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPortalTeamRoute = LabPortalTeamRouteImport.update({
+  id: '/lab-portal/team',
+  path: '/lab-portal/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPortalProfileRoute = LabPortalProfileRouteImport.update({
+  id: '/lab-portal/profile',
+  path: '/lab-portal/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPortalClinicsRoute = LabPortalClinicsRouteImport.update({
+  id: '/lab-portal/clinics',
+  path: '/lab-portal/clinics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LabDirectoryLabIdRoute = LabDirectoryLabIdRouteImport.update({
@@ -342,6 +366,9 @@ export interface FileRoutesByFullPath {
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-portal/clinics': typeof LabPortalClinicsRoute
+  '/lab-portal/profile': typeof LabPortalProfileRoute
+  '/lab-portal/team': typeof LabPortalTeamRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -350,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
+  '/lab-portal/': typeof LabPortalIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
@@ -393,6 +421,9 @@ export interface FileRoutesByTo {
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-portal/clinics': typeof LabPortalClinicsRoute
+  '/lab-portal/profile': typeof LabPortalProfileRoute
+  '/lab-portal/team': typeof LabPortalTeamRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -401,6 +432,7 @@ export interface FileRoutesByTo {
   '/billing': typeof BillingIndexRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
+  '/lab-portal': typeof LabPortalIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/prescriptions': typeof PrescriptionsIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
@@ -445,6 +477,9 @@ export interface FileRoutesById {
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
   '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-portal/clinics': typeof LabPortalClinicsRoute
+  '/lab-portal/profile': typeof LabPortalProfileRoute
+  '/lab-portal/team': typeof LabPortalTeamRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -453,6 +488,7 @@ export interface FileRoutesById {
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
+  '/lab-portal/': typeof LabPortalIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
@@ -498,6 +534,9 @@ export interface FileRouteTypes {
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/lab-directory/$labId'
+    | '/lab-portal/clinics'
+    | '/lab-portal/profile'
+    | '/lab-portal/team'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -506,6 +545,7 @@ export interface FileRouteTypes {
     | '/billing/'
     | '/employees/'
     | '/invoices/'
+    | '/lab-portal/'
     | '/patients/'
     | '/prescriptions/'
     | '/locations/$id/settings'
@@ -549,6 +589,9 @@ export interface FileRouteTypes {
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/lab-directory/$labId'
+    | '/lab-portal/clinics'
+    | '/lab-portal/profile'
+    | '/lab-portal/team'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -557,6 +600,7 @@ export interface FileRouteTypes {
     | '/billing'
     | '/employees'
     | '/invoices'
+    | '/lab-portal'
     | '/patients'
     | '/prescriptions'
     | '/locations/$id/settings'
@@ -600,6 +644,9 @@ export interface FileRouteTypes {
     | '/employees/create'
     | '/invoices/$invoiceId'
     | '/lab-directory_/$labId'
+    | '/lab-portal/clinics'
+    | '/lab-portal/profile'
+    | '/lab-portal/team'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -608,6 +655,7 @@ export interface FileRouteTypes {
     | '/billing/'
     | '/employees/'
     | '/invoices/'
+    | '/lab-portal/'
     | '/patients/'
     | '/prescriptions/'
     | '/locations_/$id/settings'
@@ -652,6 +700,9 @@ export interface RootRouteChildren {
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
   LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
+  LabPortalClinicsRoute: typeof LabPortalClinicsRoute
+  LabPortalProfileRoute: typeof LabPortalProfileRoute
+  LabPortalTeamRoute: typeof LabPortalTeamRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PrescriptionsPrescriptionIdRoute: typeof PrescriptionsPrescriptionIdRoute
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
@@ -660,6 +711,7 @@ export interface RootRouteChildren {
   BillingIndexRoute: typeof BillingIndexRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
+  LabPortalIndexRoute: typeof LabPortalIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
@@ -867,6 +919,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-portal/': {
+      id: '/lab-portal/'
+      path: '/lab-portal'
+      fullPath: '/lab-portal/'
+      preLoaderRoute: typeof LabPortalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/': {
       id: '/invoices/'
       path: '/invoices'
@@ -921,6 +980,27 @@ declare module '@tanstack/react-router' {
       path: '/patients/new'
       fullPath: '/patients/new'
       preLoaderRoute: typeof PatientsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-portal/team': {
+      id: '/lab-portal/team'
+      path: '/lab-portal/team'
+      fullPath: '/lab-portal/team'
+      preLoaderRoute: typeof LabPortalTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-portal/profile': {
+      id: '/lab-portal/profile'
+      path: '/lab-portal/profile'
+      fullPath: '/lab-portal/profile'
+      preLoaderRoute: typeof LabPortalProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-portal/clinics': {
+      id: '/lab-portal/clinics'
+      path: '/lab-portal/clinics'
+      fullPath: '/lab-portal/clinics'
+      preLoaderRoute: typeof LabPortalClinicsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lab-directory_/$labId': {
@@ -1052,6 +1132,9 @@ const rootRouteChildren: RootRouteChildren = {
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
   LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
+  LabPortalClinicsRoute: LabPortalClinicsRoute,
+  LabPortalProfileRoute: LabPortalProfileRoute,
+  LabPortalTeamRoute: LabPortalTeamRoute,
   PatientsNewRoute: PatientsNewRoute,
   PrescriptionsPrescriptionIdRoute: PrescriptionsPrescriptionIdRoute,
   PrescriptionsNewRoute: PrescriptionsNewRoute,
@@ -1060,6 +1143,7 @@ const rootRouteChildren: RootRouteChildren = {
   BillingIndexRoute: BillingIndexRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
+  LabPortalIndexRoute: LabPortalIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,

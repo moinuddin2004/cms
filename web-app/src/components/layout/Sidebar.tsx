@@ -132,6 +132,12 @@ const NAV: NavSection[] = [
         feature: 'dental.lab_orders',
         roles: ADMIN,
       },
+      {
+        label: 'Lab portal',
+        icon: FlaskConical,
+        href: '/lab-portal',
+        show: (a) => a.labMemberships.length > 0,
+      },
     ],
   },
   {
