@@ -17,6 +17,21 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { EmploymentType } from './enums/employee.enums';
 import { User } from 'src/user/entities/user.entity';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
+import { ClockService } from 'src/common/clock/clock.service';
+import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
+import { EmploymentRole } from './entities/employment-role.entity';
+import { billingError } from 'src/billing/common/billing-errors';
+import { fromPaisa } from 'src/billing/common/money';
+import {
+  COMMISSIONS_FEATURE,
+  CompensationPlanType,
+} from 'src/billing/commissions/commission.enums';
+import { rupeesToPaisa } from 'src/billing/commissions/commission-math';
+import {
+  CompensationPlanVersions,
+  PlanVersionInput,
+} from 'src/billing/commissions/compensation-plan-versions';
+import { CompensationPlan } from 'src/billing/commissions/entities/compensation-plan.entity';
 
 @Injectable()
 export class EmployeesService {
@@ -27,7 +42,144 @@ export class EmployeesService {
     private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(EmploymentRole)
+    private readonly roleRepo: Repository<EmploymentRole>,
+    private readonly clock: ClockService,
+    private readonly flags: FeatureFlagsService,
   ) {}
+
+  /** Clinic "today" at the location (ClockService, never server time). */
+  private async clinicToday(locationId: string): Promise<string> {
+    return this.clock.today(await this.clock.timezoneFor(locationId));
+  }
+
+  private toPaisaOrFail(rupees: number | string): number {
+    const paisa = rupeesToPaisa(rupees);
+    if (paisa === null) {
+      throw new BadRequestException(
+        'Salary must be a positive amount with at most 2 decimals',
+      );
+    }
+    return paisa;
+  }
+
+  /**
+   * First compensation version of a new assignment: the optional
+   * compensation step, else a salaried plan from `grossSalary` (0 = no
+   * salary yet, same as the old null). Validated before anything is saved.
+   */
+  private async initialPlan(
+    ctx: TenantContext,
+    dto: CreateEmployeeDto,
+    role: EmploymentRole | null,
+    joining: string,
+  ): Promise<PlanVersionInput> {
+    const c = dto.compensation;
+    const input: PlanVersionInput = c
+      ? {
+          type: c.type,
+          baseSalaryPaisa: c.baseSalaryPaisa ?? null,
+          defaultRateBps: c.defaultRateBps ?? null,
+          commissionBasis: c.commissionBasis,
+          effectiveFrom: c.effectiveFrom ?? joining,
+          rules: c.rules,
+        }
+      : {
+          type: CompensationPlanType.SALARY,
+          baseSalaryPaisa:
+            dto.grossSalary == null ? 0 : this.toPaisaOrFail(dto.grossSalary),
+          effectiveFrom: joining,
+        };
+    CompensationPlanVersions.validateFields(input);
+    if (input.type !== CompensationPlanType.SALARY) {
+      const enabled = await this.flags.isFeatureEnabled(
+        ctx.organizationId,
+        COMMISSIONS_FEATURE,
+      );
+      if (!enabled) {
+        throw billingError(
+          'COMMISSIONS_DISABLED',
+          'Doctor commissions are not enabled',
+        );
+      }
+      if (!CompensationPlanVersions.canConsult({ employmentRole: role })) {
+        throw billingError(
+          'COMMISSION_ROLE_CANNOT_CONSULT',
+          'Commission is only for staff whose role can consult patients',
+        );
+      }
+    }
+    return input;
+  }
+
+  /**
+   * A salary change is a new compensation version from today (the
+   * deprecated `gross_salary` column is no longer written). Commission
+   * settings of the current version carry over.
+   */
+  private async addSalaryVersion(
+    assignment: EmployeeOrgLocationAssignment,
+    rupees: number | string,
+    userId: string | null,
+  ): Promise<number> {
+    const paisa = this.toPaisaOrFail(rupees);
+    const today = await this.clinicToday(assignment.locationId);
+    await this.assignmentRepo.manager.transaction(async (m) => {
+      const current = await CompensationPlanVersions.activeOn(
+        m,
+        assignment.id,
+        today,
+      );
+      if (current?.baseSalaryPaisa === paisa) return;
+      const earns = !!current && current.type !== CompensationPlanType.SALARY;
+      await CompensationPlanVersions.add(
+        m,
+        assignment,
+        {
+          type: earns
+            ? CompensationPlanType.SALARY_PLUS_COMMISSION
+            : CompensationPlanType.SALARY,
+          baseSalaryPaisa: paisa,
+          defaultRateBps: earns ? current.defaultRateBps : null,
+          commissionBasis: current?.commissionBasis,
+          effectiveFrom: today,
+          rules: earns
+            ? current.rules.map((r) => ({
+                serviceId: r.serviceId ?? undefined,
+                serviceCategory: r.serviceCategory ?? undefined,
+                rateBps: r.rateBps ?? undefined,
+                fixedAmountPaisa: r.fixedAmountPaisa ?? undefined,
+              }))
+            : [],
+        },
+        userId,
+      );
+    });
+    return paisa;
+  }
+
+  /** Current plans for display (salary / type), keyed by assignment id. */
+  private async currentPlans(
+    assignments: EmployeeOrgLocationAssignment[],
+    locationId: string,
+  ): Promise<Map<string, CompensationPlan>> {
+    return CompensationPlanVersions.activeForMany(
+      this.assignmentRepo.manager,
+      assignments.map((a) => a.id),
+      await this.clinicToday(locationId),
+    );
+  }
+
+  /** Salary in rupees from the current plan, else the deprecated column. */
+  private salaryOf(
+    a: EmployeeOrgLocationAssignment,
+    plan: CompensationPlan | undefined,
+  ): number | null {
+    if (plan) {
+      return plan.baseSalaryPaisa ? fromPaisa(plan.baseSalaryPaisa) : null;
+    }
+    return a.grossSalary ? Number(a.grossSalary) : null;
+  }
 
   // ═══════════════════════════════════════════════════════════
   // HELPERS
@@ -94,7 +246,17 @@ export class EmployeesService {
       );
     }
 
-    // 2. Create Employee with personal info only
+    // 2. Compensation is validated before anything is saved.
+    const role = dto.employmentRoleId
+      ? await this.roleRepo.findOne({
+          where: { id: dto.employmentRoleId, organizationId },
+        })
+      : null;
+    const joining =
+      dto.joiningDate?.slice(0, 10) ?? (await this.clinicToday(locationId));
+    const planInput = await this.initialPlan(ctx, dto, role, joining);
+
+    // 2b. Create Employee with personal info only
     const employee = this.employeeRepo.create({
       fullName: dto.fullName,
       phone: dto.phone,
@@ -135,13 +297,21 @@ export class EmployeesService {
         (dto.employmentType as EmploymentType) || EmploymentType.FULL_TIME,
       employeeCode,
       joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
-      grossSalary: dto.grossSalary ?? null,
+      grossSalary: null, // deprecated: salary lives in compensation_plans
       hasPortalAccess: dto.hasPortalAccess ?? false,
       userId: resolvedUserId,
       isPrimary: dto.isPrimary ?? true,
       createdBy: userId,
     });
-    await this.assignmentRepo.save(assignment);
+    await this.assignmentRepo.manager.transaction(async (m) => {
+      const saved = await m.save(assignment);
+      await CompensationPlanVersions.add(
+        m,
+        { ...saved, employmentRole: role },
+        planInput,
+        userId,
+      );
+    });
 
     // 6. Return employee with assignment
     return this.findOne(savedEmployee.id, ctx);
@@ -198,6 +368,7 @@ export class EmployeesService {
     qb.skip((page - 1) * limit).take(limit);
 
     const [assignments, total] = await qb.getManyAndCount();
+    const plans = await this.currentPlans(assignments, locationId);
 
     const data = assignments.map((a) => ({
       id: a.employee.id,
@@ -214,15 +385,16 @@ export class EmployeesService {
       employmentType: a.employmentType,
       employeeCode: a.employeeCode,
       joiningDate: a.joiningDate,
-      grossSalary: a.grossSalary,
+      grossSalary: this.salaryOf(a, plans.get(a.id)),
+      compensationType: plans.get(a.id)?.type ?? null,
       hasPortalAccess: a.hasPortalAccess,
       isPrimary: a.isPrimary,
       employmentRole: a.employmentRole,
       location: a.location,
       createdAt: a.createdAt,
       // Compat: keep currentSalary shape for frontend
-      currentSalary: a.grossSalary
-        ? { grossSalary: Number(a.grossSalary) }
+      currentSalary: this.salaryOf(a, plans.get(a.id))
+        ? { grossSalary: this.salaryOf(a, plans.get(a.id)) }
         : null,
     }));
 
@@ -249,6 +421,10 @@ export class EmployeesService {
     }
 
     const e = assignment.employee;
+    const plan = (await this.currentPlans([assignment], locationId)).get(
+      assignment.id,
+    );
+    const salary = this.salaryOf(assignment, plan);
 
     return {
       id: e.id,
@@ -265,9 +441,8 @@ export class EmployeesService {
       employmentType: assignment.employmentType,
       employeeCode: assignment.employeeCode,
       joiningDate: assignment.joiningDate,
-      grossSalary: assignment.grossSalary
-        ? Number(assignment.grossSalary)
-        : null,
+      grossSalary: salary,
+      compensationType: plan?.type ?? null,
       hasPortalAccess: assignment.hasPortalAccess,
       isPrimary: assignment.isPrimary,
       userId: assignment.userId,
@@ -280,10 +455,10 @@ export class EmployeesService {
       createdAt: assignment.createdAt,
       updatedAt: assignment.updatedAt,
       // Compat: keep currentSalary shape for frontend
-      currentSalary: assignment.grossSalary
+      currentSalary: salary
         ? {
-            grossSalary: Number(assignment.grossSalary),
-            effectiveFrom: assignment.joiningDate,
+            grossSalary: salary,
+            effectiveFrom: plan?.effectiveFrom ?? assignment.joiningDate,
           }
         : null,
     };
@@ -326,7 +501,6 @@ export class EmployeesService {
       assignment.employmentType = dto.employmentType as EmploymentType;
     if (dto.joiningDate !== undefined)
       assignment.joiningDate = new Date(dto.joiningDate);
-    if (dto.grossSalary !== undefined) assignment.grossSalary = dto.grossSalary;
     if (dto.isPrimary !== undefined) assignment.isPrimary = dto.isPrimary;
 
     // Handle portal access: create user if enabling and no user linked yet
@@ -349,6 +523,9 @@ export class EmployeesService {
     if (dto.userId !== undefined) assignment.userId = dto.userId || null;
 
     await this.assignmentRepo.save(assignment);
+    if (dto.grossSalary != null) {
+      await this.addSalaryVersion(assignment, dto.grossSalary, null);
+    }
 
     return this.findOne(employeeId, ctx);
   }
@@ -446,11 +623,10 @@ export class EmployeesService {
       ctx.organizationId,
       ctx.locationId,
     );
-    assignment.grossSalary = dto.grossSalary;
-    const saved = await this.assignmentRepo.save(assignment);
+    const paisa = await this.addSalaryVersion(assignment, dto.grossSalary, null);
     return {
-      assignmentId: saved.id,
-      grossSalary: Number(saved.grossSalary),
+      assignmentId: assignment.id,
+      grossSalary: fromPaisa(paisa),
     };
   }
 

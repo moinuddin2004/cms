@@ -29,6 +29,7 @@ import {
 } from './charge-math';
 import { ChargeListState, ChargeQueries } from './charges.queries';
 import { ChargeDraftFactory } from './sources/charge-draft.factory';
+import { CommissionService } from '../commissions/commission.service';
 
 export interface ReadyToBillRow {
   patientId: string;
@@ -55,6 +56,7 @@ export class ChargesService {
     private readonly pricing: ChargePricingService,
     private readonly discounts: DiscountApplier,
     private readonly audit: BillingAuditService,
+    private readonly commissions: CommissionService,
   ) {}
 
   async list(
@@ -158,7 +160,19 @@ export class ChargesService {
               ctx.tenant,
               dto.doctorId,
             );
-          charge.doctorId = dto.doctorId;
+          if (dto.doctorId !== charge.doctorId) {
+            charge.doctorId = dto.doctorId;
+            // Unbilled, so nothing collected yet: the new doctor's plan simply
+            // replaces the commission snapshot (manual charges stay without one).
+            const [snap] = await this.commissions.snapshot(
+              manager,
+              ctx.tenant,
+              charge.doctorId,
+              charge.chargeDate,
+              [charge],
+            );
+            Object.assign(charge, snap);
+          }
         }
         recalcCharge(charge);
       },

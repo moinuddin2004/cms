@@ -29,7 +29,7 @@ const OPEN_PATHS = ['/display/']
 
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
-const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations']
+const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations', '/lab-directory']
 
 // Inline script to prevent flash of wrong theme on initial load.
 // Runs synchronously before any React hydration / first paint.

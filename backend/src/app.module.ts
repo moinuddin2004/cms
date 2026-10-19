@@ -32,6 +32,11 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { ClockModule } from './common/clock/clock.module';
 import { ensurePostgresExtensions } from './common/database/ensure-extensions';
 import { QueueModule } from './queue/queue.module';
+import { AuditModule } from './common/audit/audit.module';
+import { SequencesModule } from './common/sequences/sequences.module';
+import { IdempotencyModule } from './common/idempotency/idempotency.module';
+import { LabsModule } from './labs/labs.module';
+import { EngineModule } from './engine/engine.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
@@ -65,6 +70,9 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     }),
     BullModule.registerQueue({ name: 'submissions' }),
     ClockModule,
+    AuditModule,
+    SequencesModule,
+    IdempotencyModule,
     // Core modules
     AuthModule,
     UserModule,
@@ -87,6 +95,8 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     InventoryModule,
     PrescriptionsModule,
     PlanTemplatesModule,
+    EngineModule,
+    LabsModule,
   ],
   controllers: [AppController],
   providers: [

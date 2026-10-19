@@ -23,6 +23,10 @@ import {
 import { BillingSettingsService } from '../settings/billing-settings.service';
 import { voidCharge } from './charge-math';
 import {
+  CommissionService,
+  CommissionSnapshot,
+} from '../commissions/commission.service';
+import {
   ChargeDraft,
   ChargeDraftFactory,
 } from './sources/charge-draft.factory';
@@ -55,6 +59,7 @@ export class ChargeSourcesService {
     private readonly audit: BillingAuditService,
     private readonly flags: FeatureFlagsService,
     private readonly clock: BillingClock,
+    private readonly commissions: CommissionService,
   ) {}
 
   async syncForEncounter(
@@ -141,7 +146,19 @@ export class ChargeSourcesService {
       );
     }
 
-    const createdIds = await this.insert(manager, drafts);
+    // Commission snapshot in the same transaction: the doctor's plan in force
+    // on the clinic date, resolved per service (internal; never on invoices).
+    const snapshots = await this.commissions.snapshot(
+      manager,
+      tenant,
+      input.doctorId,
+      visit.chargeDate,
+      drafts,
+    );
+    const createdIds = await this.insert(
+      manager,
+      drafts.map((d, i) => ({ ...d, ...snapshots[i] })),
+    );
     const voidedIds = await this.handleRemoved(
       manager,
       existing,
@@ -197,7 +214,7 @@ export class ChargeSourcesService {
 
   private async insert(
     manager: EntityManager,
-    drafts: ChargeDraft[],
+    drafts: Array<ChargeDraft & CommissionSnapshot>,
   ): Promise<string[]> {
     if (!drafts.length) return [];
     const result = await manager

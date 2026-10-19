@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatPaisa } from '@/features/billing/lib/commission-math'
 import { type ColumnDef } from '@tanstack/react-table'
 import type { PayrollRecord, PayrollStatus } from '../types'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -77,8 +78,18 @@ export function PayrollTable({
       {
         accessorKey: 'salaryAmount',
         header: 'Amount',
-        cell: ({ getValue }) => (
-          <span className="font-medium">{formatCurrency(getValue<number>())}</span>
+        cell: ({ row }) => (
+          <div>
+            <span className="font-medium">
+              {formatCurrency(Number(row.original.salaryAmount))}
+            </span>
+            {!!row.original.commissionPaisa && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                Salary {formatPaisa(row.original.baseSalaryPaisa ?? 0)} +
+                commission {formatPaisa(row.original.commissionPaisa)}
+              </p>
+            )}
+          </div>
         ),
       },
       {

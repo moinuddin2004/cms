@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { RequireRolePage } from '@/components/feature/RequireRolePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -29,9 +30,15 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { useFeature } from '@/context/FeatureFlagsContext'
+import { CompensationTab, COMMISSIONS_FEATURE } from '@/features/billing'
 
 export const Route = createFileRoute('/employees/$employeeId/')({
-  component: EmployeeDetailPage,
+  component: () => (
+    <RequireRolePage roles={['clinic_admin']}>
+      <EmployeeDetailPage />
+    </RequireRolePage>
+  ),
 })
 
 function EmployeeDetailPage() {
@@ -43,6 +50,7 @@ function EmployeeDetailPage() {
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const commissionsOn = useFeature(COMMISSIONS_FEATURE)
 
   if (isEmployeeLoading) {
     return (
@@ -70,6 +78,10 @@ function EmployeeDetailPage() {
 
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
+  // Commission-only doctors have no salary but still get payroll.
+  const canGenerate =
+    !!employee.currentSalary ||
+    (!!employee.compensationType && employee.compensationType !== 'SALARY')
   const currentMonthRecord = payroll?.find(
     (p: any) => p.month === currentMonth && p.year === currentYear,
   )
@@ -113,8 +125,18 @@ function EmployeeDetailPage() {
       <div className="space-y-6">
 
         <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 max-w-[600px]">
+          <TabsList
+            className={cn(
+              'grid w-full',
+              commissionsOn
+                ? 'grid-cols-5 max-w-[750px]'
+                : 'grid-cols-4 max-w-[600px]',
+            )}
+          >
             <TabsTrigger value="details">Details</TabsTrigger>
+            {commissionsOn && (
+              <TabsTrigger value="compensation">Compensation</TabsTrigger>
+            )}
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="leave">Leave</TabsTrigger>
             <TabsTrigger value="payroll">Payroll</TabsTrigger>
@@ -219,6 +241,12 @@ function EmployeeDetailPage() {
             </Card>
           </TabsContent>
 
+          {commissionsOn && employee.assignmentId && (
+            <TabsContent value="compensation" className="mt-6">
+              <CompensationTab assignmentId={employee.assignmentId} />
+            </TabsContent>
+          )}
+
           <TabsContent value="schedule" className="mt-6 space-y-6">
             <ScheduleTab employeeId={employeeId} />
             <AvailabilityOverrideTab employeeId={employeeId} />
@@ -231,7 +259,7 @@ function EmployeeDetailPage() {
           <TabsContent value="payroll" className="mt-6 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">Payroll History</h3>
-              {!currentMonthRecord && employee.currentSalary && (
+              {!currentMonthRecord && canGenerate && (
                 <Button size="sm" onClick={() => setIsGenerateModalOpen(true)}>
                   Generate This Month
                 </Button>
@@ -260,7 +288,7 @@ function EmployeeDetailPage() {
                     Generate payroll to track monthly salaries
                   </p>
                 </div>
-                {employee.currentSalary && (
+                {canGenerate && (
                   <Button
                     variant="outline"
                     onClick={() => setIsGenerateModalOpen(true)}

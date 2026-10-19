@@ -49,6 +49,12 @@ import {
   planAllocation,
 } from './allocation/allocation-planner';
 import { AllocationWriterService } from './allocation-writer.service';
+import { CommissionService } from '../commissions/commission.service';
+import {
+  COMMISSIONS_FEATURE,
+  CommissionSourceType,
+} from '../commissions/commission.enums';
+import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import {
   DailyCollection,
   PaymentDetail,
@@ -96,6 +102,18 @@ export interface PaymentPreview {
     description: string;
     reason: 'NEEDS_PRICING';
   }>;
+  /**
+   * Admin only, with doctor commissions on: commission this collection
+   * would record, per doctor, in paisa. Internal — never on receipts.
+   */
+  doctorShare: {
+    totalPaisa: number;
+    byDoctor: Array<{
+      assignmentId: string;
+      doctorName: string;
+      amountPaisa: number;
+    }>;
+  } | null;
 }
 
 interface Selection {
@@ -116,6 +134,8 @@ export class PaymentsService {
     private readonly totals: BillingTotalsService,
     private readonly ledger: LedgerService,
     private readonly audit: BillingAuditService,
+    private readonly commissions: CommissionService,
+    private readonly flags: FeatureFlagsService,
   ) {}
 
   /**
@@ -228,6 +248,20 @@ export class PaymentsService {
           description: c.description,
           reason: 'NEEDS_PRICING' as const,
         })),
+      doctorShare:
+        ctx.actor.isAdmin &&
+        (await this.flags.isFeatureEnabled(
+          ctx.tenant.organizationId,
+          COMMISSIONS_FEATURE,
+        ))
+          ? await this.commissions.previewForAllocations(
+              manager,
+              plan.lines.map((l) => ({
+                chargeId: l.chargeId,
+                amountPaisa: l.amountPaisa,
+              })),
+            )
+          : null,
     };
   }
 
@@ -298,6 +332,11 @@ export class PaymentsService {
         invoices.map((i) => i.id),
       );
       await this.totals.recomputePayments(manager, [paymentId]);
+      // Released money reverses its commission (a negative entry; settled
+      // entries stay as they are and the reversal goes to the next period).
+      await this.commissions.recordForCharges(manager, chargeIds, {
+        type: CommissionSourceType.UNAPPLY,
+      });
       await this.audit.log(manager, ctx, {
         entityType: BillingAuditEntity.PAYMENT,
         entityId: paymentId,
@@ -397,6 +436,13 @@ export class PaymentsService {
       invoice?.id ?? null,
     ]);
     await this.totals.recomputePayments(manager, touchedPayments);
+    // Commission is earned on collection — new money and old advance
+    // (FIFO) alike, at allocation time. Source = the new payment when there
+    // is one, else this apply-advance operation.
+    await this.commissions.recordForCharges(manager, ids, {
+      type: CommissionSourceType.ALLOCATION,
+      id: payment?.id,
+    });
 
     if (payment) {
       await this.ledger.post(manager, ctx, {

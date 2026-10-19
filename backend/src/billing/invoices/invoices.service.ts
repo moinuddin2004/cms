@@ -39,6 +39,8 @@ import { BillingTotalsService } from '../totals/billing-totals.service';
 import { InvoiceEditHandlers } from './edit-operations/invoice-edit.handlers';
 import { InvoiceEditOperationInput } from './edit-operations/invoice-edit.types';
 import { InvoiceIssuer } from './invoice-issuer.service';
+import { CommissionService } from '../commissions/commission.service';
+import { CommissionSourceType } from '../commissions/commission.enums';
 import { InvoiceQueries, InvoiceStats } from './invoices.queries';
 
 export interface EditOutcome {
@@ -78,6 +80,7 @@ export class InvoicesService {
     private readonly totals: BillingTotalsService,
     private readonly ledger: LedgerService,
     private readonly audit: BillingAuditService,
+    private readonly commissions: CommissionService,
   ) {}
 
   async list(
@@ -324,6 +327,13 @@ export class InvoicesService {
     await this.totals.recomputePayments(
       manager,
       releases.map((r) => r.paymentId),
+    );
+    // Price / quantity / discount / void changed net and may have released
+    // money: adjust commission to the new target (VOID entries for voids).
+    await this.commissions.recordForCharges(
+      manager,
+      onInvoice.map((c) => c.id),
+      { type: CommissionSourceType.CHARGE_ADJUST },
     );
 
     const after = await manager

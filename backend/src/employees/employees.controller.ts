@@ -23,8 +23,11 @@ import { TogglePortalAccessDto } from './dto/toggle-portal-access.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { AppRole } from 'src/common/enums/app-role.enum';
 
 @Controller('employees')
+@Roles(AppRole.CLINIC_ADMIN)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 

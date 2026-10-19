@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { percentToBps } from '@/features/billing/lib/commission-math'
 
 // ─── Enums (Matching Backend) ───────────────────────────────────────
 
@@ -143,6 +144,8 @@ export interface Employee {
   employeeCode: string
   joiningDate: string
   grossSalary: number | null
+  /** Current compensation plan type at this location (null = none yet). */
+  compensationType?: 'SALARY' | 'COMMISSION' | 'SALARY_PLUS_COMMISSION' | null
   hasPortalAccess: boolean
   isPrimary: boolean
   userId: string | null
@@ -224,6 +227,10 @@ export interface PayrollRecord {
   year: number
   periodLabel: string
   salaryAmount: number
+  /** Breakdown in integer paisa (total = base salary + commission). */
+  baseSalaryPaisa?: number
+  commissionPaisa?: number
+  totalPaisa?: number
   status: PayrollStatus
   paidAt: string | null
   paymentMethod: PaymentMethod | null
@@ -279,8 +286,28 @@ export const employeeFormSchema = z
       .transform((v) => (v === '' ? undefined : v)),
     primaryLocationId: z.string().optional().transform((v) => (v === '' ? undefined : v)),
     grossSalary: z.coerce.number().min(0).optional(),
+    // Optional compensation step (create only, when commissions are on).
+    payType: z
+      .enum(['SALARY', 'COMMISSION', 'SALARY_PLUS_COMMISSION'])
+      .default('SALARY'),
+    commissionRate: z.string().optional(),
+    commissionBasis: z.enum(['NET', 'GROSS']).default('NET'),
   })
   .superRefine((data, ctx) => {
+    if (data.payType !== 'SALARY' && percentToBps(data.commissionRate ?? '') === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Enter a commission between 0 and 100% (max 2 decimals)',
+        path: ['commissionRate'],
+      })
+    }
+    if (data.payType === 'SALARY_PLUS_COMMISSION' && !data.grossSalary) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Salary + commission needs a salary',
+        path: ['grossSalary'],
+      })
+    }
     if (data.hasPortalAccess && !data.userId) {
       if (!data.portalEmail || data.portalEmail.trim() === '') {
         ctx.addIssue({

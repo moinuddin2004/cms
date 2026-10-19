@@ -76,8 +76,32 @@ import { CashClose, CashCloseLine } from './billing/entities/cash-close.entity';
 import { Expense } from './billing/entities/expense.entity';
 import { CreditPackage } from './billing/entities/credit-package.entity';
 import { PatientCredit } from './billing/entities/patient-credit.entity';
+import { CompensationPlan } from './billing/commissions/entities/compensation-plan.entity';
+import { CommissionRule } from './billing/commissions/entities/commission-rule.entity';
+import { CommissionEntry } from './billing/commissions/entities/commission-entry.entity';
+import { CommissionSettlement } from './billing/commissions/entities/commission-settlement.entity';
 
-// Audit entities
+// Audit / support entities
+import { AuditLog } from './common/audit/entities/audit-log.entity';
+import { StatusHistory } from './common/audit/entities/status-history.entity';
+import { NumberSequence } from './common/sequences/number-sequence.entity';
+
+// Lab management entities
+import { Lab } from './labs/entities/lab.entity';
+import { LabMember } from './labs/entities/lab-member.entity';
+import { LabClinicLink } from './labs/entities/lab-clinic-link.entity';
+
+// Engine entities
+import { Specialty } from './engine/entities/specialty.entity';
+import { OrganizationSpecialty } from './engine/entities/organization-specialty.entity';
+import { FormSchema } from './engine/entities/form-schema.entity';
+import { FormSchemaVersion } from './engine/entities/form-schema-version.entity';
+import { WorkflowTemplate } from './engine/entities/workflow-template.entity';
+import { WorkflowTemplateVersion } from './engine/entities/workflow-template-version.entity';
+import { WorkflowState } from './engine/entities/workflow-state.entity';
+import { WorkflowTransition } from './engine/entities/workflow-transition.entity';
+import { WorkflowEffect, TransitionEffect } from './engine/entities/workflow-effect.entity';
+import { StageTemplate, StageTemplateStep } from './engine/entities/stage-template.entity';
 
 // Load environment variables
 config();
@@ -160,6 +184,32 @@ export const AppDataSource = new DataSource({
     Expense,
     CreditPackage,
     PatientCredit,
+    // Doctor compensation / commissions
+    CompensationPlan,
+    CommissionRule,
+    CommissionEntry,
+    CommissionSettlement,
+    // Audit / support
+    AuditLog,
+    StatusHistory,
+    NumberSequence,
+    // Lab management
+    Lab,
+    LabMember,
+    LabClinicLink,
+    // Engine
+    Specialty,
+    OrganizationSpecialty,
+    FormSchema,
+    FormSchemaVersion,
+    WorkflowTemplate,
+    WorkflowTemplateVersion,
+    WorkflowState,
+    WorkflowTransition,
+    WorkflowEffect,
+    TransitionEffect,
+    StageTemplate,
+    StageTemplateStep,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

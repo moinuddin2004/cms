@@ -12,6 +12,25 @@ function money(v: unknown): string {
   });
 }
 
+/** Integer paisa → "50,000.50" (no float math). */
+function paisaMoney(paisa: number): string {
+  const sign = paisa < 0 ? '-' : '';
+  const abs = Math.abs(paisa);
+  return `${sign}${Math.trunc(abs / 100).toLocaleString('en-US')}.${String(abs % 100).padStart(2, '0')}`;
+}
+
+/** Breakdown of a record; rows from before the breakdown count as salary. */
+function breakdown(r: PayrollRecord): { base: number; commission: number; total: number } {
+  if (r.totalPaisa) {
+    return { base: r.baseSalaryPaisa, commission: r.commissionPaisa, total: r.totalPaisa };
+  }
+  const m = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(r.salaryAmount ?? '0'));
+  const total = m
+    ? (m[1] ? -1 : 1) * (Number(m[2]) * 100 + Number((m[3] ?? '').padEnd(2, '0')))
+    : 0;
+  return { base: total, commission: 0, total };
+}
+
 function csvCell(v: unknown): string {
   const s = v == null ? '' : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -83,9 +102,12 @@ export class PayrollExportService {
       page.drawText(value, { x: 545 - w, y, size: 11, font: f });
       y -= 20;
     };
-    row('Gross Salary', money(record.salaryAmount));
+    const pay = breakdown(record);
+    row('Base Salary', paisaMoney(pay.base));
+    row('Commission', paisaMoney(pay.commission));
+    row('Gross Pay', paisaMoney(pay.total));
     row('Deductions', money(0));
-    row('Net Pay', money(record.salaryAmount), true);
+    row('Net Pay', paisaMoney(pay.total), true);
     y -= 10;
     row('Status', record.status);
     row('Payment Method', record.paymentMethod ?? '—');
@@ -120,7 +142,9 @@ export class PayrollExportService {
     const header = [
       'Employee Name',
       'Designation',
-      'Gross Salary',
+      'Base Salary',
+      'Commission',
+      'Gross Pay',
       'Deductions',
       'Net Pay',
       'Status',
@@ -131,13 +155,16 @@ export class PayrollExportService {
 
     for (const r of records) {
       const emp = r.employee as any;
+      const pay = breakdown(r);
       lines.push(
         [
           emp?.fullName ?? '',
           emp?.designation ?? emp?.jobTitle ?? '',
-          money(r.salaryAmount),
+          paisaMoney(pay.base),
+          paisaMoney(pay.commission),
+          paisaMoney(pay.total),
           money(0),
-          money(r.salaryAmount),
+          paisaMoney(pay.total),
           r.status,
           r.paymentMethod ?? '',
           r.paidAt ? new Date(r.paidAt).toISOString().slice(0, 10) : '',

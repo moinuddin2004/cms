@@ -354,6 +354,15 @@ export interface PaymentPreview {
     description: string
     reason: 'NEEDS_PRICING'
   }>
+  /** Admin-only, internal: commission this collection would record (paisa). */
+  doctorShare?: {
+    totalPaisa: number
+    byDoctor: Array<{
+      assignmentId: string
+      doctorName: string
+      amountPaisa: number
+    }>
+  } | null
 }
 
 export interface CollectResult {

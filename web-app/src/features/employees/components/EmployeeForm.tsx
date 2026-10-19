@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import { useFeature } from '@/context/FeatureFlagsContext'
+import { COMMISSIONS_FEATURE } from '@/features/billing/lib/commission-constants'
 import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -50,6 +53,14 @@ function clearError(
   })
 }
 
+type PayType = 'SALARY' | 'COMMISSION' | 'SALARY_PLUS_COMMISSION'
+
+const PAY_TYPES: Array<{ value: PayType; label: string }> = [
+  { value: 'SALARY', label: 'Salaried' },
+  { value: 'COMMISSION', label: 'Commission' },
+  { value: 'SALARY_PLUS_COMMISSION', label: 'Both' },
+]
+
 export function EmployeeForm({
   mode,
   defaultValues,
@@ -60,6 +71,7 @@ export function EmployeeForm({
   variant = 'card',
 }: EmployeeFormProps) {
   const { activeLocationId } = useAuthStore()
+  const commissionsOn = useFeature(COMMISSIONS_FEATURE)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { data: roles } = useQuery({
@@ -85,6 +97,9 @@ export function EmployeeForm({
         profilePictureUrl: defaultValues.profilePictureUrl ?? '',
         userId: defaultValues.userId ?? '',
         grossSalary: undefined as string | number | undefined,
+        payType: 'SALARY' as PayType,
+        commissionRate: '',
+        commissionBasis: 'NET' as 'NET' | 'GROSS',
       }
     : {
         fullName: '',
@@ -103,6 +118,9 @@ export function EmployeeForm({
         profilePictureUrl: '',
         userId: '',
         grossSalary: undefined as string | number | undefined,
+        payType: 'SALARY' as PayType,
+        commissionRate: '',
+        commissionBasis: 'NET' as 'NET' | 'GROSS',
       }
 
   const form = useForm({
@@ -369,6 +387,106 @@ export function EmployeeForm({
               )}
             </form.Field>
           </div>
+
+          {/* Compensation step (optional; default salaried) */}
+          {mode === 'create' && commissionsOn && (
+            <div className="rounded-lg border p-4 space-y-4">
+              <div className="space-y-0.5">
+                <Label className="text-base">Compensation</Label>
+                <p className="text-sm text-muted-foreground">
+                  Salaried by default. Commission is a share of what patients
+                  pay for this doctor's work.
+                </p>
+              </div>
+              <form.Field name="payType">
+                {(field) => (
+                  <div
+                    className="flex overflow-hidden rounded-lg border text-sm"
+                    role="radiogroup"
+                    aria-label="Plan type"
+                  >
+                    {PAY_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={field.state.value === t.value}
+                        onClick={() => field.handleChange(t.value)}
+                        className={cn(
+                          'flex-1 px-3 py-2 transition-colors',
+                          field.state.value === t.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'hover:bg-muted',
+                        )}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </form.Field>
+              <form.Subscribe selector={(s) => s.values.payType}>
+                {(payType) =>
+                  payType !== 'SALARY' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <form.Field name="commissionRate">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label htmlFor="emp-commission-rate">
+                              Default commission (%)
+                            </Label>
+                            <Input
+                              id="emp-commission-rate"
+                              inputMode="decimal"
+                              placeholder="e.g. 40"
+                              value={field.state.value}
+                              onChange={(e) => field.handleChange(e.target.value)}
+                              onBlur={field.handleBlur}
+                            />
+                            {fieldErrors.commissionRate && (
+                              <p className="text-sm text-destructive">
+                                {fieldErrors.commissionRate}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field name="commissionBasis">
+                        {(field) => (
+                          <div className="space-y-1.5">
+                            <Label>Commission on</Label>
+                            <div
+                              className="flex overflow-hidden rounded-lg border text-sm"
+                              role="radiogroup"
+                              aria-label="Commission basis"
+                            >
+                              {(['NET', 'GROSS'] as const).map((b) => (
+                                <button
+                                  key={b}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={field.state.value === b}
+                                  onClick={() => field.handleChange(b)}
+                                  className={cn(
+                                    'flex-1 px-3 py-2 transition-colors',
+                                    field.state.value === b
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'hover:bg-muted',
+                                  )}
+                                >
+                                  {b === 'NET' ? 'After discount' : 'Before discount'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </form.Field>
+                    </div>
+                  )
+                }
+              </form.Subscribe>
+            </div>
+          )}
 
           {/* Portal Access */}
           <form.Field name="hasPortalAccess">

@@ -45,9 +45,7 @@ export class CloudinaryStorageProvider implements StorageProvider {
       throw new BadRequestException('No file provided');
     }
 
-    if (
-      !CloudinaryStorageProvider.ALLOWED_MIME_TYPES.includes(file.mimetype)
-    ) {
+    if (!CloudinaryStorageProvider.ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       throw new BadRequestException(
         `Unsupported file type "${file.mimetype}". Allowed: ${CloudinaryStorageProvider.ALLOWED_MIME_TYPES.join(', ')}`,
       );

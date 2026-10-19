@@ -1,4 +1,8 @@
 import api from '@/lib/api'
+import {
+  percentToBps,
+  rupeesToPaisa,
+} from '@/features/billing/lib/commission-math'
 import type {
   Employee,
   EmployeeFormData,
@@ -24,9 +28,34 @@ export async function fetchEmployeeById(id: string): Promise<Employee> {
 export async function createEmployee(
   payload: EmployeeFormData,
 ): Promise<Employee> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { primaryLocationId, ...body } = payload
-  const { data } = await api.post('/employees', body)
+  const {
+    primaryLocationId: _location,
+    payType,
+    commissionRate,
+    commissionBasis,
+    ...body
+  } = payload
+  // Compensation step: % → basis points and rupees → paisa with integer
+  // math only; a plain salaried employee keeps the old `grossSalary` path.
+  const compensation =
+    payType !== 'SALARY'
+      ? {
+          type: payType,
+          defaultRateBps: percentToBps(commissionRate ?? '') ?? undefined,
+          commissionBasis,
+          effectiveFrom: body.joiningDate,
+          ...(payType === 'SALARY_PLUS_COMMISSION'
+            ? {
+                baseSalaryPaisa:
+                  rupeesToPaisa(String(body.grossSalary ?? '')) ?? undefined,
+              }
+            : {}),
+        }
+      : undefined
+  const { data } = await api.post(
+    '/employees',
+    compensation ? { ...body, grossSalary: undefined, compensation } : body,
+  )
   return data.data
 }
 
@@ -34,8 +63,13 @@ export async function updateEmployee(
   id: string,
   payload: Partial<EmployeeFormData>,
 ): Promise<Employee> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { primaryLocationId, ...body } = payload
+  const {
+    primaryLocationId: _location,
+    payType: _payType,
+    commissionRate: _rate,
+    commissionBasis: _basis,
+    ...body
+  } = payload
   const { data } = await api.put(`/employees/${id}`, body)
   return data.data
 }

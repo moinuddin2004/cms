@@ -54,5 +54,21 @@ export const billingKeys = {
       ['billing', 'reports', 'doctor-revenue', range] as const,
   },
   planSummary: (planId: string) => ['billing', 'plan-summary', planId] as const,
+  /**
+   * Under the `billing` root on purpose: every money mutation (collect,
+   * unapply, invoice edit, refund) already invalidates it, and payroll
+   * mark-paid invalidates `commissions.all`.
+   */
+  commissions: {
+    all: ['billing', 'commissions'] as const,
+    plans: (assignmentId: string) =>
+      ['billing', 'commissions', 'plans', assignmentId] as const,
+    entries: (filters: object) =>
+      ['billing', 'commissions', 'entries', filters] as const,
+    doctorEarnings: (range: object) =>
+      ['billing', 'commissions', 'doctor-earnings', range] as const,
+    myEarnings: (range: object) =>
+      ['billing', 'commissions', 'me', range] as const,
+  },
   activity: (filters: object) => ['billing', 'activity', filters] as const,
 }

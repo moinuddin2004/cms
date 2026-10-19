@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { billingKeys } from '@/features/billing'
 import { markPayrollPaid } from '../services/payroll.api'
 import { PAYROLL_KEY } from './useEmployeePayroll'
 import type { MarkPaidFormData, PayrollRecord } from '../types'
@@ -44,6 +45,8 @@ export function useMarkPaid() {
     },
     onSettled: (_, __, { employeeId }) => {
       queryClient.invalidateQueries({ queryKey: [PAYROLL_KEY, employeeId] })
+      // Payroll settles commission: refresh earnings / doctor reports.
+      queryClient.invalidateQueries({ queryKey: billingKeys.commissions.all })
     },
   })
 }

@@ -17,6 +17,7 @@ import { LeaveService } from './leave.service';
 import { DoctorAvailabilityOverride } from './entities/doctor-availability-override.entity';
 import { AvailabilityOverrideController } from './availability-override.controller';
 import { AvailabilityOverrideService } from './availability-override.service';
+import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AvailabilityOverrideService } from './availability-override.service';
       EmployeeLeave,
       DoctorAvailabilityOverride,
     ]),
+    FeatureFlagsModule,
   ],
   controllers: [
     EmployeesController,

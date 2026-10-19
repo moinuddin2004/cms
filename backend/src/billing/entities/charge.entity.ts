@@ -1,4 +1,5 @@
 import {
+  Check,
   Column,
   CreateDateColumn,
   Entity,
@@ -10,7 +11,10 @@ import {
 } from 'typeorm';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { MoneyColumn, moneyTransformer } from '../common/money-column';
+import { PaisaColumn } from '../common/paisa-column';
+import { CompensationPlan } from '../commissions/entities/compensation-plan.entity';
 import {
   ChargeSource,
   ChargeStatus,
@@ -35,6 +39,10 @@ import { Invoice } from './invoice.entity';
 ])
 @Index('idx_charges_invoice', ['invoiceId'])
 @Index('idx_charges_date', ['organizationId', 'locationId', 'chargeDate'])
+@Check(
+  'chk_charges_commission_rate',
+  `"commission_rate_bps" IS NULL OR "commission_rate_bps" BETWEEN 0 AND 10000`,
+)
 @Index('uq_charges_source', ['organizationId', 'source', 'sourceId'], {
   unique: true,
   where: `status = 'ACTIVE' AND source_id IS NOT NULL`,
@@ -78,6 +86,36 @@ export class Charge {
 
   @Column({ name: 'service_id', type: 'uuid', nullable: true })
   serviceId: string | null;
+
+  /*
+   * Commission snapshot, taken when the charge is created from a visit:
+   * who performed it (assignment = doctor × location), the plan active on
+   * the clinic date and the resolved rate OR fixed amount. Null on old,
+   * manual and salary-only charges, which earn no commission. Internal
+   * clinic cost — never part of totals, invoices or prints.
+   */
+  @ManyToOne(() => EmployeeOrgLocationAssignment, {
+    onDelete: 'RESTRICT',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'performing_assignment_id' })
+  performingAssignment: EmployeeOrgLocationAssignment | null;
+
+  @Column({ name: 'performing_assignment_id', type: 'uuid', nullable: true })
+  performingAssignmentId: string | null;
+
+  @ManyToOne(() => CompensationPlan, { onDelete: 'RESTRICT', nullable: true })
+  @JoinColumn({ name: 'commission_plan_id' })
+  commissionPlan: CompensationPlan | null;
+
+  @Column({ name: 'commission_plan_id', type: 'uuid', nullable: true })
+  commissionPlanId: string | null;
+
+  @Column({ name: 'commission_rate_bps', type: 'int', nullable: true })
+  commissionRateBps: number | null;
+
+  @PaisaColumn('commission_fixed_paisa', { nullable: true })
+  commissionFixedPaisa: number | null;
 
   /** Snapshot; MANUAL "Other" charges count as OTHER for discount rules. */
   @Column({

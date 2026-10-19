@@ -25,3 +25,13 @@ export {
 } from './pages/BillingReportsPages'
 export { ExpensesPage } from './pages/ExpensesPage'
 export { QueueBillingCell } from './components/queue/QueueBillingCell'
+
+// Doctor compensation / commissions
+export * from './types/commission.types'
+export { COMMISSIONS_FEATURE } from './lib/commission-constants'
+export { CompensationTab } from './components/compensation/CompensationTab'
+export {
+  useMyEarnings,
+  useDoctorEarnings,
+} from './hooks/use-commissions'
+export { DoctorEarningsPage, MyEarningsPage } from './pages/CommissionPages'

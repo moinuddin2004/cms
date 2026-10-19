@@ -8,7 +8,10 @@ import {
   IsDateString,
   IsUUID,
   IsEmail,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CompensationPlanDto } from 'src/billing/commissions/dto/compensation.dto';
 import { Gender } from '../enums/employee.enums';
 
 export class CreateEmployeeDto {
@@ -77,4 +80,10 @@ export class CreateEmployeeDto {
 
   @IsOptional()
   isPrimary?: boolean;
+
+  /** Optional compensation step; default: salaried from `grossSalary`. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CompensationPlanDto)
+  compensation?: CompensationPlanDto;
 }

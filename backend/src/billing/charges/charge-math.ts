@@ -87,5 +87,13 @@ export function chargeSnapshot(c: Charge): Record<string, unknown> {
   delete snapshot.patient;
   delete snapshot.invoice;
   delete snapshot.doctor;
+  // Commission is an internal clinic cost: audit snapshots are shown on
+  // invoice revisions / prints and the activity log, so they never carry it.
+  delete snapshot.performingAssignment;
+  delete snapshot.performingAssignmentId;
+  delete snapshot.commissionPlan;
+  delete snapshot.commissionPlanId;
+  delete snapshot.commissionRateBps;
+  delete snapshot.commissionFixedPaisa;
   return snapshot;
 }

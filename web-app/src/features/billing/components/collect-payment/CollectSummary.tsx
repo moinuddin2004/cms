@@ -1,5 +1,6 @@
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { Money } from '../shared/billing-badges'
+import { formatPaisa } from '../../lib/commission-math'
 import { useCollect } from './collect-context'
 
 /** Server-computed outcome of the payment (plan §8.2.6). */
@@ -48,6 +49,31 @@ export function CollectSummary() {
           <Money value={preview.willInvoiceTotal} />
           ).
         </p>
+      )}
+      {preview.doctorShare && preview.doctorShare.byDoctor.length > 0 && (
+        <div className="space-y-1 border-t border-border-soft pt-2 text-xs">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">
+              Doctor share{' '}
+              <span className="text-[11px]">(internal, admin only)</span>
+            </span>
+            <span className="tabular-nums font-medium">
+              {formatPaisa(preview.doctorShare.totalPaisa)}
+            </span>
+          </div>
+          {preview.doctorShare.byDoctor.length > 1 &&
+            preview.doctorShare.byDoctor.map((d) => (
+              <div
+                key={d.assignmentId}
+                className="flex justify-between pl-3 text-muted-foreground"
+              >
+                <span>Dr. {d.doctorName}</span>
+                <span className="tabular-nums">
+                  {formatPaisa(d.amountPaisa)}
+                </span>
+              </div>
+            ))}
+        </div>
       )}
       {preview.blockers.length > 0 && (
         <p className="flex items-center gap-1.5 text-xs font-medium text-amber">

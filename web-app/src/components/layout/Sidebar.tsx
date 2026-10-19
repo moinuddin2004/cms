@@ -11,6 +11,7 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  FlaskConical,
   HandCoins,
   History,
   LayoutDashboard,
@@ -106,6 +107,13 @@ const NAV: NavSection[] = [
         feature: 'appointments.core',
       },
       {
+        label: 'My earnings',
+        icon: Wallet,
+        href: '/my-earnings',
+        feature: 'billing.commissions',
+        roles: ['doctor'],
+      },
+      {
         label: 'Prescriptions',
         icon: FileText,
         href: '/prescriptions',
@@ -116,6 +124,13 @@ const NAV: NavSection[] = [
         icon: ClipboardList,
         href: '/plan-templates',
         feature: 'patients.treatment_plans',
+      },
+      {
+        label: 'Labs',
+        icon: FlaskConical,
+        href: '/labs',
+        feature: 'dental.lab_orders',
+        roles: ADMIN,
       },
     ],
   },
@@ -168,6 +183,13 @@ const NAV: NavSection[] = [
             roles: ADMIN,
           },
           {
+            label: 'Doctor earnings',
+            icon: Wallet,
+            href: '/billing/doctor-earnings',
+            feature: 'billing.commissions',
+            roles: ADMIN,
+          },
+          {
             label: 'Billing activity',
             icon: History,
             href: '/billing/activity',
@@ -181,12 +203,13 @@ const NAV: NavSection[] = [
   {
     label: 'Team',
     items: [
-      { label: 'Employees', icon: UserCog, href: '/employees' },
+      { label: 'Employees', icon: UserCog, href: '/employees', roles: ADMIN },
       {
         label: 'Payroll',
         icon: CreditCard,
         href: '/payroll',
         feature: 'hr.payroll',
+        roles: ADMIN,
       },
     ],
   },
@@ -197,6 +220,12 @@ const NAV: NavSection[] = [
         label: 'Organizations',
         icon: Building2,
         href: '/organizations',
+        show: (a) => a.isSuperAdmin,
+      },
+      {
+        label: 'Lab Directory',
+        icon: FlaskConical,
+        href: '/lab-directory',
         show: (a) => a.isSuperAdmin,
       },
       {

@@ -80,7 +80,10 @@ export class EmployeeOrgLocationAssignment {
   @Column({ name: 'joining_date', type: 'date' })
   joiningDate: Date;
 
-  // Salary for THIS location assignment
+  /**
+   * @deprecated Salary now lives in `compensation_plans` (versioned). Kept
+   * for old rows only and no longer written once a plan exists.
+   */
   @Column({
     name: 'gross_salary',
     type: 'decimal',

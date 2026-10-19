@@ -207,6 +207,16 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 7,
   },
+  {
+    key: 'billing.commissions',
+    name: 'Doctor Commissions',
+    module: 'billing',
+    description:
+      'Pay doctors a share of what patients pay for their treatment, alongside or instead of salary.',
+    specialtyTags: ['general'],
+    enabledByDefault: false,
+    sortOrder: 8,
+  },
 
   // ── communications ──
   {
@@ -327,9 +337,10 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
   // ── dental ──
   {
     key: 'dental.lab_orders',
-    name: 'Lab Orders',
+    name: 'Lab Management',
     module: 'dental',
-    description: 'Manage dental lab orders.',
+    description:
+      'Work with dental labs: your lab list, lab orders, production tracking and lab billing.',
     specialtyTags: ['dental', 'ortho'],
     enabledByDefault: false,
     sortOrder: 0,

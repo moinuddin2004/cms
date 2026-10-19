@@ -12,7 +12,8 @@ export type InvariantId =
   | 'I6'
   | 'I7'
   | 'I8'
-  | 'I9';
+  | 'I9'
+  | 'I10';
 
 export interface InvariantViolation {
   invariant: InvariantId;
@@ -214,7 +215,65 @@ export class BillingInvariantChecker {
         `invoice ${r.id}: refunded ${r.refunded_amount} (actual ${r.refunds}), released ${r.released_amount} (actual ${r.released})`,
     );
 
+    add(
+      'I10',
+      await manager.query(this.commissionSql('c.patient_id = $3'), args),
+      (r) =>
+        `charge ${r.id}: commission entries ${r.recorded} vs target ${r.target} (collected ${r.collected})`,
+    );
+
     return out;
+  }
+
+  /**
+   * I10 for a whole location (the nightly job): every charge with a
+   * commission snapshot has SUM(commission_entries) = its target.
+   */
+  async checkCommissions(
+    manager: EntityManager,
+    tenant: TenantContext,
+  ): Promise<InvariantViolation[]> {
+    const rows: Row[] = await manager.query(this.commissionSql('TRUE'), [
+      tenant.organizationId,
+      tenant.locationId,
+    ]);
+    return rows.map((r) => ({
+      invariant: 'I10' as const,
+      message: `charge ${r.id}: commission entries ${r.recorded} vs target ${r.target} (collected ${r.collected})`,
+    }));
+  }
+
+  /**
+   * Commission target in SQL numeric (exact decimals, ROUND = half away
+   * from zero), deliberately not shared with `commission-math.ts`:
+   * collected = min(allocated, net); NET rate, GROSS rate or fixed share.
+   */
+  private commissionSql(patientFilter: string): string {
+    return `
+      WITH base AS (
+        SELECT c.id,
+               c.commission_rate_bps AS rate, c.commission_fixed_paisa AS fixed,
+               p.commission_basis AS basis,
+               c.gross_amount * 100 AS gross,
+               CASE WHEN c.status = 'VOID' THEN 0 ELSE c.net_amount * 100 END AS net,
+               COALESCE((SELECT SUM(pa.amount) * 100 FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS alloc,
+               COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS recorded
+          FROM charges c
+          JOIN compensation_plans p ON p.id = c.commission_plan_id
+         WHERE c.organization_id = $1 AND c.location_id = $2 AND ${patientFilter}
+           AND c.performing_assignment_id IS NOT NULL
+           AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_paisa IS NOT NULL)
+      ), t AS (
+        SELECT id, recorded, LEAST(GREATEST(alloc, 0), net) AS collected,
+               CASE
+                 WHEN net = 0 THEN 0
+                 WHEN fixed IS NOT NULL THEN ROUND(fixed * LEAST(GREATEST(alloc, 0), net) / net)
+                 WHEN basis = 'GROSS' THEN ROUND(LEAST(GREATEST(alloc, 0), net) * gross * rate / (net * 10000))
+                 ELSE ROUND(LEAST(GREATEST(alloc, 0), net) * rate / 10000.0)
+               END AS target
+          FROM base
+      )
+      SELECT id, recorded, target, collected FROM t WHERE recorded <> target`;
   }
 
   /**

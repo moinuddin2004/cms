@@ -22,6 +22,11 @@ import { PaymentAllocation } from './entities/payment-allocation.entity';
 import { Refund } from './entities/refund.entity';
 import { RefundSource } from './entities/refund-source.entity';
 import { ServicePrice } from './entities/service-price.entity';
+import { CompensationPlan } from './commissions/entities/compensation-plan.entity';
+import { CommissionRule } from './commissions/entities/commission-rule.entity';
+import { CommissionEntry } from './commissions/entities/commission-entry.entity';
+import { CommissionSettlement } from './commissions/entities/commission-settlement.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 
 // Shared helpers (never open transactions)
 import { BillingActivityService } from './activity/billing-activity.service';
@@ -43,6 +48,7 @@ import { InvoiceEditHandlers } from './invoices/edit-operations/invoice-edit.han
 import { InvoiceIssuer } from './invoices/invoice-issuer.service';
 import { InvoicesService } from './invoices/invoices.service';
 import { BillingInvariantChecker } from './invariants/billing-invariant-checker';
+import { BillingInvariantJob } from './invariants/billing-invariant.job';
 import { PatientBillingService } from './patient-billing/patient-billing.service';
 import { PaymentAccountsService } from './payment-accounts/payment-accounts.service';
 import { AllocationWriterService } from './payments/allocation-writer.service';
@@ -55,6 +61,9 @@ import { CreditPackagesService } from './credit-packages.service';
 import { ExpensesService } from './expenses.service';
 import { FinancialSummaryService } from './financial-summary.service';
 import { PatientCreditsService } from './patient-credits.service';
+import { CompensationPlansService } from './commissions/compensation-plans.service';
+import { CommissionService } from './commissions/commission.service';
+import { CommissionReportsService } from './commissions/commission-reports.service';
 
 // Controllers
 import { ChargesController } from './charges/charges.controller';
@@ -69,6 +78,8 @@ import { BillingReportsController } from './patient-billing/billing-reports.cont
 import { PaymentsController } from './payments/payments.controller';
 import { PrintDataController } from './print/print-data.controller';
 import { BillingConfigController } from './settings/billing-config.controller';
+import { CompensationPlansController } from './commissions/compensation-plans.controller';
+import { CommissionsController } from './commissions/commissions.controller';
 
 /**
  * Billing v2: charge-based billing (D1). Money writes go through the
@@ -100,6 +111,11 @@ import { BillingConfigController } from './settings/billing-config.controller';
       Refund,
       RefundSource,
       ServicePrice,
+      CompensationPlan,
+      CommissionRule,
+      CommissionEntry,
+      CommissionSettlement,
+      EmployeeOrgLocationAssignment,
     ]),
   ],
   controllers: [
@@ -113,6 +129,8 @@ import { BillingConfigController } from './settings/billing-config.controller';
     FinancialSummaryController,
     CreditPackagesController,
     PatientCreditsController,
+    CompensationPlansController,
+    CommissionsController,
   ],
   providers: [
     BillingClock,
@@ -121,6 +139,7 @@ import { BillingConfigController } from './settings/billing-config.controller';
     DocumentSequenceService,
     BillingTotalsService,
     BillingInvariantChecker,
+    BillingInvariantJob,
     BillingSettingsService,
     PaymentAccountsService,
     ChargePricingService,
@@ -144,6 +163,9 @@ import { BillingConfigController } from './settings/billing-config.controller';
     CreditPackagesService,
     PatientCreditsService,
     FinancialSummaryService,
+    CompensationPlansService,
+    CommissionService,
+    CommissionReportsService,
   ],
   exports: [ChargeSourcesService],
 })

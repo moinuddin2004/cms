@@ -22,9 +22,12 @@ import { Route as PlanTemplatesRouteImport } from './routes/plan-templates'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as OrganizationsRouteImport } from './routes/organizations'
+import { Route as MyEarningsRouteImport } from './routes/my-earnings'
 import { Route as MedicineDirectoryRouteImport } from './routes/medicine-directory'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocationsRouteImport } from './routes/locations'
+import { Route as LabsRouteImport } from './routes/labs'
+import { Route as LabDirectoryRouteImport } from './routes/lab-directory'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FinancialSummaryRouteImport } from './routes/financial-summary'
@@ -42,11 +45,13 @@ import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
 import { Route as PrescriptionsPrescriptionIdRouteImport } from './routes/prescriptions/$prescriptionId'
 import { Route as PatientsNewRouteImport } from './routes/patients/new'
+import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
 import { Route as ConsultationEncounterIdRouteImport } from './routes/consultation.$encounterId'
 import { Route as BillingDoctorRevenueRouteImport } from './routes/billing.doctor-revenue'
+import { Route as BillingDoctorEarningsRouteImport } from './routes/billing.doctor-earnings'
 import { Route as BillingActivityRouteImport } from './routes/billing.activity'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
@@ -119,6 +124,11 @@ const OrganizationsRoute = OrganizationsRouteImport.update({
   path: '/organizations',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MyEarningsRoute = MyEarningsRouteImport.update({
+  id: '/my-earnings',
+  path: '/my-earnings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MedicineDirectoryRoute = MedicineDirectoryRouteImport.update({
   id: '/medicine-directory',
   path: '/medicine-directory',
@@ -132,6 +142,16 @@ const LoginRoute = LoginRouteImport.update({
 const LocationsRoute = LocationsRouteImport.update({
   id: '/locations',
   path: '/locations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabsRoute = LabsRouteImport.update({
+  id: '/labs',
+  path: '/labs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabDirectoryRoute = LabDirectoryRouteImport.update({
+  id: '/lab-directory',
+  path: '/lab-directory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -220,6 +240,11 @@ const PatientsNewRoute = PatientsNewRouteImport.update({
   path: '/patients/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabDirectoryLabIdRoute = LabDirectoryLabIdRouteImport.update({
+  id: '/lab-directory_/$labId',
+  path: '/lab-directory/$labId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesInvoiceIdRoute = InvoicesInvoiceIdRouteImport.update({
   id: '/invoices/$invoiceId',
   path: '/invoices/$invoiceId',
@@ -243,6 +268,11 @@ const ConsultationEncounterIdRoute = ConsultationEncounterIdRouteImport.update({
 const BillingDoctorRevenueRoute = BillingDoctorRevenueRouteImport.update({
   id: '/billing/doctor-revenue',
   path: '/billing/doctor-revenue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BillingDoctorEarningsRoute = BillingDoctorEarningsRouteImport.update({
+  id: '/billing/doctor-earnings',
+  path: '/billing/doctor-earnings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BillingActivityRoute = BillingActivityRouteImport.update({
@@ -285,9 +315,12 @@ export interface FileRoutesByFullPath {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-directory': typeof LabDirectoryRoute
+  '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
+  '/my-earnings': typeof MyEarningsRoute
   '/organizations': typeof OrganizationsRoute
   '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
@@ -302,11 +335,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -331,9 +366,12 @@ export interface FileRoutesByTo {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-directory': typeof LabDirectoryRoute
+  '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
+  '/my-earnings': typeof MyEarningsRoute
   '/organizations': typeof OrganizationsRoute
   '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
@@ -348,11 +386,13 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -378,9 +418,12 @@ export interface FileRoutesById {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-directory': typeof LabDirectoryRoute
+  '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
   '/medicine-directory': typeof MedicineDirectoryRoute
+  '/my-earnings': typeof MyEarningsRoute
   '/organizations': typeof OrganizationsRoute
   '/payments': typeof PaymentsRoute
   '/payroll': typeof PayrollRoute
@@ -395,11 +438,13 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
   '/billing/activity': typeof BillingActivityRoute
+  '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
   '/patients/new': typeof PatientsNewRoute
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
@@ -426,9 +471,12 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-directory'
+    | '/labs'
     | '/locations'
     | '/login'
     | '/medicine-directory'
+    | '/my-earnings'
     | '/organizations'
     | '/payments'
     | '/payroll'
@@ -443,11 +491,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/billing/activity'
+    | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-directory/$labId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -472,9 +522,12 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-directory'
+    | '/labs'
     | '/locations'
     | '/login'
     | '/medicine-directory'
+    | '/my-earnings'
     | '/organizations'
     | '/payments'
     | '/payroll'
@@ -489,11 +542,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/billing/activity'
+    | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-directory/$labId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -518,9 +573,12 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-directory'
+    | '/labs'
     | '/locations'
     | '/login'
     | '/medicine-directory'
+    | '/my-earnings'
     | '/organizations'
     | '/payments'
     | '/payroll'
@@ -535,11 +593,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/billing/activity'
+    | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-directory_/$labId'
     | '/patients/new'
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
@@ -565,9 +625,12 @@ export interface RootRouteChildren {
   FinancialSummaryRoute: typeof FinancialSummaryRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InventoryRoute: typeof InventoryRoute
+  LabDirectoryRoute: typeof LabDirectoryRoute
+  LabsRoute: typeof LabsRoute
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
   MedicineDirectoryRoute: typeof MedicineDirectoryRoute
+  MyEarningsRoute: typeof MyEarningsRoute
   OrganizationsRoute: typeof OrganizationsRoute
   PaymentsRoute: typeof PaymentsRoute
   PayrollRoute: typeof PayrollRoute
@@ -582,11 +645,13 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
   BillingActivityRoute: typeof BillingActivityRoute
+  BillingDoctorEarningsRoute: typeof BillingDoctorEarningsRoute
   BillingDoctorRevenueRoute: typeof BillingDoctorRevenueRoute
   ConsultationEncounterIdRoute: typeof ConsultationEncounterIdRoute
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
+  LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
   PatientsNewRoute: typeof PatientsNewRoute
   PrescriptionsPrescriptionIdRoute: typeof PrescriptionsPrescriptionIdRoute
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
@@ -697,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OrganizationsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/my-earnings': {
+      id: '/my-earnings'
+      path: '/my-earnings'
+      fullPath: '/my-earnings'
+      preLoaderRoute: typeof MyEarningsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/medicine-directory': {
       id: '/medicine-directory'
       path: '/medicine-directory'
@@ -716,6 +788,20 @@ declare module '@tanstack/react-router' {
       path: '/locations'
       fullPath: '/locations'
       preLoaderRoute: typeof LocationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/labs': {
+      id: '/labs'
+      path: '/labs'
+      fullPath: '/labs'
+      preLoaderRoute: typeof LabsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-directory': {
+      id: '/lab-directory'
+      path: '/lab-directory'
+      fullPath: '/lab-directory'
+      preLoaderRoute: typeof LabDirectoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -837,6 +923,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-directory_/$labId': {
+      id: '/lab-directory_/$labId'
+      path: '/lab-directory/$labId'
+      fullPath: '/lab-directory/$labId'
+      preLoaderRoute: typeof LabDirectoryLabIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/$invoiceId': {
       id: '/invoices/$invoiceId'
       path: '/invoices/$invoiceId'
@@ -870,6 +963,13 @@ declare module '@tanstack/react-router' {
       path: '/billing/doctor-revenue'
       fullPath: '/billing/doctor-revenue'
       preLoaderRoute: typeof BillingDoctorRevenueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/billing/doctor-earnings': {
+      id: '/billing/doctor-earnings'
+      path: '/billing/doctor-earnings'
+      fullPath: '/billing/doctor-earnings'
+      preLoaderRoute: typeof BillingDoctorEarningsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/billing/activity': {
@@ -925,9 +1025,12 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialSummaryRoute: FinancialSummaryRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InventoryRoute: InventoryRoute,
+  LabDirectoryRoute: LabDirectoryRoute,
+  LabsRoute: LabsRoute,
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
   MedicineDirectoryRoute: MedicineDirectoryRoute,
+  MyEarningsRoute: MyEarningsRoute,
   OrganizationsRoute: OrganizationsRoute,
   PaymentsRoute: PaymentsRoute,
   PayrollRoute: PayrollRoute,
@@ -942,11 +1045,13 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
   BillingActivityRoute: BillingActivityRoute,
+  BillingDoctorEarningsRoute: BillingDoctorEarningsRoute,
   BillingDoctorRevenueRoute: BillingDoctorRevenueRoute,
   ConsultationEncounterIdRoute: ConsultationEncounterIdRoute,
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
+  LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
   PatientsNewRoute: PatientsNewRoute,
   PrescriptionsPrescriptionIdRoute: PrescriptionsPrescriptionIdRoute,
   PrescriptionsNewRoute: PrescriptionsNewRoute,

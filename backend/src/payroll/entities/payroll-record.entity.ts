@@ -13,9 +13,11 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { PayrollStatus, PaymentMethod } from '../enums/payroll.enums';
+import { PaisaColumn } from 'src/billing/common/paisa-column';
 
 @Entity({ name: 'payroll_records' })
-@Unique(['employeeId', 'month', 'year'])
+// One record per assignment (employee × location) per month.
+@Unique(['employeeId', 'locationId', 'month', 'year'])
 @Index(['organizationId', 'locationId', 'month', 'year'])
 @Index(['employeeId', 'year'])
 export class PayrollRecord {
@@ -59,6 +61,19 @@ export class PayrollRecord {
     scale: 2,
   })
   salaryAmount: number;
+
+  /*
+   * Breakdown in integer paisa. total = base salary + commission; the
+   * rupee `salaryAmount` above mirrors total for older screens.
+   */
+  @PaisaColumn('base_salary_paisa')
+  baseSalaryPaisa: number;
+
+  @PaisaColumn('commission_paisa')
+  commissionPaisa: number;
+
+  @PaisaColumn('total_paisa')
+  totalPaisa: number;
 
   @Column({
     name: 'status',

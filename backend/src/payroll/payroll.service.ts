@@ -16,6 +16,14 @@ import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
 import { PayrollStatus } from './enums/payroll.enums';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { ClockService } from 'src/common/clock/clock.service';
+import { addDays } from 'src/common/clock/tz.util';
+import { rupeesToPaisa } from 'src/billing/commissions/commission-math';
+import { CompensationPlanVersions } from 'src/billing/commissions/compensation-plan-versions';
+import {
+  CommissionSettlements,
+  paisaToDecimal,
+} from 'src/billing/commissions/commission-settlements';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April',
@@ -34,7 +42,25 @@ export class PayrollService {
     private readonly locationRepo: Repository<Location>,
     private readonly employeesService: EmployeesService,
     private readonly dataSource: DataSource,
+    private readonly clock: ClockService,
   ) {}
+
+  /** First and last clinic date of a payroll month. */
+  private period(month: number, year: number): { start: string; end: string } {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const start = `${year}-${pad(month)}-01`;
+    const next = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
+    return { start, end: addDays(next, -1) };
+  }
+
+  /** Rupee amount from a DTO → exact paisa (no float math). */
+  private paisaOf(rupees: number): number {
+    const paisa = rupeesToPaisa(rupees);
+    if (paisa === null) {
+      throw new BadRequestException('Amount must have at most 2 decimals');
+    }
+    return paisa;
+  }
 
   private periodLabel(month: number, year: number): string {
     return `${MONTH_NAMES[month - 1]} ${year}`;
@@ -56,10 +82,12 @@ export class PayrollService {
   }> {
     const { month, year } = dto;
 
-    // Validate: month/year not in future
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
+    // Validate: month/year not in future (clinic calendar of the location)
+    const tz = await this.clock.timezoneFor(ctx.locationId);
+    const [currentYear, currentMonth] = this.clock
+      .today(tz)
+      .split('-')
+      .map(Number);
 
     if (year > currentYear || (year === currentYear && month > currentMonth)) {
       throw new BadRequestException(
@@ -111,10 +139,16 @@ export class PayrollService {
       const noSalary: string[] = [];
       const records: PayrollRecord[] = [];
 
+      const m = queryRunner.manager;
+      const period = this.period(month, year);
+      const tz = await this.clock.timezoneFor(locationId);
+      // Commission up to the end of the period's last clinic day.
+      const periodEndsAt = this.clock.dayRange(tz, addDays(period.end, 1)).start;
+
       for (const assignment of assignments) {
-        // Payroll is UNIQUE per employee per month/year (across locations).
-        const existing = await queryRunner.manager.findOne(PayrollRecord, {
-          where: { employeeId: assignment.employeeId, month, year },
+        // Payroll is UNIQUE per assignment (employee × location) per month.
+        const existing = await m.findOne(PayrollRecord, {
+          where: { employeeId: assignment.employeeId, locationId, month, year },
         });
 
         if (existing) {
@@ -122,25 +156,62 @@ export class PayrollService {
           continue;
         }
 
-        if (!assignment.grossSalary) {
+        // The plan in force at the end of the period (else at its start);
+        // assignments never migrated to plans fall back to gross_salary.
+        const plan =
+          (await CompensationPlanVersions.activeOn(m, assignment.id, period.end)) ??
+          (await CompensationPlanVersions.activeOn(m, assignment.id, period.start));
+        const basePaisa = plan
+          ? (plan.baseSalaryPaisa ?? 0)
+          : assignment.grossSalary
+            ? (rupeesToPaisa(String(assignment.grossSalary)) ?? 0)
+            : 0;
+
+        // Commission: every unsettled entry up to period end, locked FOR
+        // UPDATE. A net-negative balance (only reversals) is not settled; it
+        // carries into the next period and offsets later earnings.
+        const entries = await CommissionSettlements.lockUnsettled(
+          m,
+          assignment.id,
+          periodEndsAt,
+        );
+        const settle = entries.ids.length > 0 && entries.totalPaisa >= 0;
+        const commissionPaisa = settle ? entries.totalPaisa : 0;
+
+        if (basePaisa === 0 && commissionPaisa === 0) {
           noSalary.push(assignment.employee.fullName);
           continue;
         }
 
-        // Salary SNAPSHOT at time of generation.
-        const record = queryRunner.manager.create(PayrollRecord, {
+        // Pay SNAPSHOT at time of generation (salary + commission).
+        const totalPaisa = basePaisa + commissionPaisa;
+        const record = m.create(PayrollRecord, {
           employeeId: assignment.employeeId,
           organizationId,
           locationId,
           month,
           year,
           periodLabel,
-          salaryAmount: assignment.grossSalary,
+          salaryAmount: paisaToDecimal(totalPaisa) as unknown as number,
+          baseSalaryPaisa: basePaisa,
+          commissionPaisa,
+          totalPaisa,
           status: PayrollStatus.PENDING,
           createdBy: userId,
         });
 
-        const saved = await queryRunner.manager.save(record);
+        const saved = await m.save(record);
+        if (settle) {
+          await CommissionSettlements.create(m, {
+            organizationId,
+            locationId,
+            assignmentId: assignment.id,
+            periodStart: period.start,
+            periodEnd: period.end,
+            payrollRecordId: saved.id,
+            entries,
+          });
+        }
         records.push(saved);
         generated++;
       }
@@ -221,7 +292,12 @@ export class PayrollService {
     userId: string | null,
   ): Promise<PayrollRecord> {
     const existing = await this.payrollRepo.findOne({
-      where: { employeeId: dto.employeeId, month: dto.month, year: dto.year },
+      where: {
+        employeeId: dto.employeeId,
+        locationId: ctx.locationId,
+        month: dto.month,
+        year: dto.year,
+      },
     });
     if (existing) {
       throw new BadRequestException(
@@ -237,6 +313,9 @@ export class PayrollService {
       year: dto.year,
       periodLabel: this.periodLabel(dto.month, dto.year),
       salaryAmount: dto.salaryAmount,
+      baseSalaryPaisa: this.paisaOf(dto.salaryAmount),
+      commissionPaisa: 0,
+      totalPaisa: this.paisaOf(dto.salaryAmount),
       status: dto.status ?? PayrollStatus.PENDING,
       notes: dto.notes ?? null,
       createdBy: userId,
@@ -257,7 +336,18 @@ export class PayrollService {
       throw new NotFoundException('Payroll record not found');
     }
 
-    if (dto.salaryAmount !== undefined) record.salaryAmount = dto.salaryAmount;
+    if (dto.salaryAmount !== undefined) {
+      // The amount is the total; settled commission stays as it is.
+      const total = this.paisaOf(dto.salaryAmount);
+      if (total < record.commissionPaisa) {
+        throw new BadRequestException(
+          'The amount cannot be below the commission already in this payroll',
+        );
+      }
+      record.salaryAmount = dto.salaryAmount;
+      record.totalPaisa = total;
+      record.baseSalaryPaisa = total - record.commissionPaisa;
+    }
     if (dto.status !== undefined) record.status = dto.status;
     if (dto.notes !== undefined) record.notes = dto.notes || null;
     if (dto.month !== undefined) record.month = dto.month;
@@ -282,13 +372,21 @@ export class PayrollService {
     recordId: string,
     organizationId: string,
   ): Promise<{ id: string }> {
-    const record = await this.payrollRepo.findOne({
-      where: { id: recordId, organizationId },
+    await this.dataSource.transaction(async (m) => {
+      const record = await m.findOne(PayrollRecord, {
+        where: { id: recordId, organizationId },
+      });
+      if (!record) {
+        throw new NotFoundException('Payroll record not found');
+      }
+      // Its commission goes back to the unsettled pool (refused once paid).
+      if ((await CommissionSettlements.release(m, record.id)) === 'paid') {
+        throw new BadRequestException(
+          'This payroll paid out commission and cannot be deleted',
+        );
+      }
+      await m.remove(record);
     });
-    if (!record) {
-      throw new NotFoundException('Payroll record not found');
-    }
-    await this.payrollRepo.remove(record);
     return { id: recordId };
   }
 
@@ -310,6 +408,9 @@ export class PayrollService {
       onHoldCount: number;
       paidAmount: number;
       pendingAmount: number;
+      /** Paisa breakdown of all records of the month. */
+      baseSalaryPaisa: number;
+      commissionPaisa: number;
     };
   }> {
     const { organizationId, locationId } = ctx;
@@ -325,6 +426,10 @@ export class PayrollService {
         const amount = Number(r.salaryAmount);
         acc.totalEmployees++;
         acc.totalAmount += amount;
+        acc.baseSalaryPaisa += r.totalPaisa
+          ? r.baseSalaryPaisa
+          : (rupeesToPaisa(String(r.salaryAmount)) ?? 0);
+        acc.commissionPaisa += r.commissionPaisa;
 
         if (r.status === PayrollStatus.PAID) {
           acc.paidCount++;
@@ -346,6 +451,8 @@ export class PayrollService {
         onHoldCount: 0,
         paidAmount: 0,
         pendingAmount: 0,
+        baseSalaryPaisa: 0,
+        commissionPaisa: 0,
       },
     );
 
@@ -394,13 +501,20 @@ export class PayrollService {
       }
 
       record.status = PayrollStatus.PAID;
-      record.paidAt = new Date();
+      record.paidAt = this.clock.now();
       record.paymentMethod = dto.paymentMethod;
       record.paymentReference = dto.paymentReference || null;
       record.paidBy = userId;
       record.notes = dto.notes || null;
 
       const saved = await queryRunner.manager.save(record);
+      // The linked commission settlement is paid with it.
+      await CommissionSettlements.markPaid(
+        queryRunner.manager,
+        record.id,
+        record.paidAt,
+        userId,
+      );
       await queryRunner.commitTransaction();
 
       return saved;

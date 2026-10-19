@@ -17,8 +17,11 @@ import { ScheduleDayDto } from './dto/schedule/schedule-day.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { AppRole } from 'src/common/enums/app-role.enum';
 
 @Controller('employees/:employeeId/schedule')
+@Roles(AppRole.CLINIC_ADMIN)
 export class ScheduleController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
