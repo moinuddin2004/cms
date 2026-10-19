@@ -25,7 +25,11 @@
     "migration:generate": "npm run typeorm -- migration:generate -d src/data-sourse.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/data-sourse.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/data-sourse.ts",
-    "migration:show": "npm run typeorm -- migration:show -d src/data-sourse.ts"
+    "migration:show": "npm run typeorm -- migration:show -d src/data-sourse.ts",
+    "schema:log": "npm run typeorm -- schema:log -d src/data-sourse.ts",
+    "schema:log:prod": "typeorm schema:log -d dist/src/data-sourse.js",
+    "schema:sync:prod": "typeorm schema:sync -d dist/src/data-sourse.js",
+    "migration:run:prod": "typeorm migration:run -d dist/src/data-sourse.js"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.3",
