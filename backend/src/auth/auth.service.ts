@@ -28,6 +28,10 @@ import {
   AuthorizationService,
   AccessibleOrganization,
 } from './services/authorization.service';
+import {
+  findLabMemberships,
+  LabMembership,
+} from 'src/labs/portal/lab-memberships';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
@@ -56,6 +60,11 @@ export interface LoginResponse {
   accessibleOrganizations: AccessibleOrganization[];
   activeOrganizationId: string | null;
   activeLocationId: string | null;
+  /**
+   * Labs the user works in (active membership of an active lab). A user
+   * with labs and no clinic organization belongs in the lab portal.
+   */
+  labMemberships: LabMembership[];
 }
 
 /**
@@ -75,7 +84,7 @@ export class AuthService {
     private readonly securityLogService: SecurityLogService,
     private readonly sessionService: SessionService,
     private readonly authorizationService: AuthorizationService,
-  ) { }
+  ) {}
 
   /**
    * Register a new user with email/password.
@@ -196,6 +205,10 @@ export class AuthService {
       accessibleOrganizations: accessInfo.accessibleOrganizations,
       activeOrganizationId: activeOrgId,
       activeLocationId: activeLocId,
+      labMemberships: await findLabMemberships(
+        this.dataSource.manager,
+        user.uuid,
+      ),
     };
   }
 
@@ -414,6 +427,10 @@ export class AuthService {
         user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
       activeLocationId:
         user.lastAccessedLocationId || accessInfo.defaultLocationId,
+      labMemberships: await findLabMemberships(
+        this.dataSource.manager,
+        user.uuid,
+      ),
     };
   }
 
@@ -675,6 +692,10 @@ export class AuthService {
         user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
       activeLocationId:
         user.lastAccessedLocationId || accessInfo.defaultLocationId,
+      labMemberships: await findLabMemberships(
+        this.dataSource.manager,
+        user.uuid,
+      ),
     };
   }
 

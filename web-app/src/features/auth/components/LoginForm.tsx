@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/store/useAuthStore'
+import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from '@tanstack/react-router'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -45,6 +45,7 @@ export function LoginForm() {
             accessibleOrganizations,
             activeOrganizationId,
             activeLocationId,
+            labMemberships = [],
           } = response.data.data
 
           setAuth({
@@ -57,6 +58,7 @@ export function LoginForm() {
             accessibleOrganizations,
             activeOrganizationId,
             activeLocationId,
+            labMemberships,
           })
 
           toast.success('Welcome back!', {
@@ -64,7 +66,15 @@ export function LoginForm() {
           })
 
           // Redirect based on what selection is needed
-          if (requiresOrgSelection || requiresLocationSelection) {
+          if (
+            isLabOnlyUser({
+              isSuperAdmin,
+              accessibleOrganizations: accessibleOrganizations ?? [],
+              labMemberships,
+            })
+          ) {
+            navigate({ to: '/lab-portal' })
+          } else if (requiresOrgSelection || requiresLocationSelection) {
             navigate({ to: '/select-location' })
           } else {
             navigate({ to: '/dashboard' })

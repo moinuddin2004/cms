@@ -13,6 +13,13 @@ export const apiClient = axios.create({
   withCredentials: true, // Always send cookies
 })
 
+/** `/lab-portal/...` API paths (relative or absolute). */
+export function isLabPortalUrl(url: string | undefined): boolean {
+  if (!url) return false
+  const path = url.startsWith('http') ? new URL(url).pathname : url
+  return /^\/?lab-portal(\/|$|\?)/.test(path)
+}
+
 // ==================== REQUEST INTERCEPTOR ====================
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -21,6 +28,13 @@ apiClient.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+
+    // Lab portal routes carry the lab — never clinic context (the backend
+    // rejects a portal request that has clinic headers).
+    if (isLabPortalUrl(config.url)) {
+      if (state.activeLabId) config.headers['x-lab-id'] = state.activeLabId
+      return config
     }
 
     // Inject tenant context headers
@@ -119,6 +133,7 @@ apiClient.interceptors.response.use(
         accessibleOrganizations,
         activeOrganizationId,
         activeLocationId,
+        labMemberships,
       } = refreshResponse.data.data
 
       // Update store with new token and location context
@@ -132,6 +147,7 @@ apiClient.interceptors.response.use(
         accessibleOrganizations,
         activeOrganizationId,
         activeLocationId,
+        labMemberships,
       })
 
       // Retry queued requests

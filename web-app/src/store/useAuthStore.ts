@@ -18,6 +18,15 @@ interface Location {
   isPrimary: boolean
 }
 
+/** A lab the user works in (from login / refresh / me). */
+export interface LabMembership {
+  labId: string
+  labName: string
+  labType: 'external' | 'internal'
+  city: string | null
+  role: 'lab_admin' | 'lab_technician'
+}
+
 interface User {
   uuid: string
   userUuid?: string
@@ -41,6 +50,10 @@ interface AuthState {
   activeOrganizationId: string | null
   activeLocationId: string | null
 
+  // Lab portal context — sent as x-lab-id on /lab-portal requests only
+  labMemberships: LabMembership[]
+  activeLabId: string | null
+
   setAuth: (data: {
     user: User
     accessToken: string
@@ -51,11 +64,14 @@ interface AuthState {
     accessibleOrganizations?: Organization[]
     activeOrganizationId?: string | null
     activeLocationId?: string | null
+    labMemberships?: LabMembership[]
   }) => void
 
   setAccessToken: (token: string) => void
 
   setLocationContext: (orgId: string, locId: string) => void
+
+  setActiveLab: (labId: string) => void
 
   clearAuth: () => void
 }
@@ -65,7 +81,7 @@ interface AuthState {
  * Access token lives only in Zustand memory.
  * Refresh token lives only in httpOnly cookie (handled by browser).
  */
-export const useAuthStore = create<AuthState>()((set) => ({
+export const useAuthStore = create<AuthState>()((set, get) => ({
   user: null,
   accessToken: null,
   isAuthenticated: false,
@@ -77,8 +93,12 @@ export const useAuthStore = create<AuthState>()((set) => ({
   accessibleOrganizations: [],
   activeOrganizationId: null,
   activeLocationId: null,
+  labMemberships: [],
+  activeLabId: null,
 
-  setAuth: (data) =>
+  setAuth: (data) => {
+    const labs = data.labMemberships ?? []
+    const current = get().activeLabId
     set({
       user: {
         uuid: data.user.uuid || data.user.userUuid || '',
@@ -96,7 +116,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
       accessibleOrganizations: data.accessibleOrganizations || [],
       activeOrganizationId: data.activeOrganizationId || null,
       activeLocationId: data.activeLocationId || null,
-    }),
+      labMemberships: labs,
+      // Keep the chosen lab across token refreshes while it is still valid
+      activeLabId: labs.some((l) => l.labId === current)
+        ? current
+        : (labs[0]?.labId ?? null),
+    })
+  },
 
   setAccessToken: (token) => set({ accessToken: token }),
 
@@ -107,6 +133,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
       requiresOrgSelection: false,
       requiresLocationSelection: false,
     }),
+
+  setActiveLab: (labId) => set({ activeLabId: labId }),
 
   clearAuth: () =>
     set({
@@ -120,5 +148,24 @@ export const useAuthStore = create<AuthState>()((set) => ({
       accessibleOrganizations: [],
       activeOrganizationId: null,
       activeLocationId: null,
+      labMemberships: [],
+      activeLabId: null,
     }),
 }))
+
+/**
+ * Lab-only users (lab staff with no clinic organization) live in the lab
+ * portal: login and the root guard send them to /lab-portal.
+ */
+export function isLabOnlyUser(
+  s: Pick<
+    AuthState,
+    'isSuperAdmin' | 'accessibleOrganizations' | 'labMemberships'
+  >,
+): boolean {
+  return (
+    !s.isSuperAdmin &&
+    s.accessibleOrganizations.length === 0 &&
+    s.labMemberships.length > 0
+  )
+}

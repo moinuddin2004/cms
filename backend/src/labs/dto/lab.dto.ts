@@ -61,7 +61,8 @@ export class PageQueryDto {
 
 // ── Labs (platform admin) ───────────────────────────────────────────────
 
-class LabFieldsDto {
+/** A lab's contact details — the part lab admins edit from the portal. */
+export class LabFieldsDto {
   @IsOptional()
   @Transform(trimToNull)
   @ValidateIf((_, v) => v !== null)
