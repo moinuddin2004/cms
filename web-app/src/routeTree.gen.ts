@@ -35,11 +35,15 @@ import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AppointmentsRouteImport } from './routes/appointments'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as PrescriptionsIndexRouteImport } from './routes/prescriptions/index'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
 import { Route as BillingIndexRouteImport } from './routes/billing.index'
+import { Route as StudioWorkflowsRouteImport } from './routes/studio.workflows'
+import { Route as StudioStagesRouteImport } from './routes/studio.stages'
+import { Route as StudioFormsRouteImport } from './routes/studio.forms'
 import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
@@ -55,6 +59,8 @@ import { Route as BillingDoctorEarningsRouteImport } from './routes/billing.doct
 import { Route as BillingActivityRouteImport } from './routes/billing.activity'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
+import { Route as StudioWorkflowsWorkflowIdRouteImport } from './routes/studio.workflows_.$workflowId'
+import { Route as StudioFormsFormIdRouteImport } from './routes/studio.forms_.$formId'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as OrganizationsIdFeaturesRouteImport } from './routes/organizations_.$id.features'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
@@ -189,6 +195,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/studio/',
+  path: '/studio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrescriptionsIndexRoute = PrescriptionsIndexRouteImport.update({
   id: '/prescriptions/',
   path: '/prescriptions/',
@@ -212,6 +223,21 @@ const EmployeesIndexRoute = EmployeesIndexRouteImport.update({
 const BillingIndexRoute = BillingIndexRouteImport.update({
   id: '/billing/',
   path: '/billing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioWorkflowsRoute = StudioWorkflowsRouteImport.update({
+  id: '/studio/workflows',
+  path: '/studio/workflows',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioStagesRoute = StudioStagesRouteImport.update({
+  id: '/studio/stages',
+  path: '/studio/stages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioFormsRoute = StudioFormsRouteImport.update({
+  id: '/studio/forms',
+  path: '/studio/forms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsBillingRoute = SettingsBillingRouteImport.update({
@@ -291,6 +317,17 @@ const EmployeesEmployeeIdIndexRoute =
     path: '/employees/$employeeId/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const StudioWorkflowsWorkflowIdRoute =
+  StudioWorkflowsWorkflowIdRouteImport.update({
+    id: '/studio/workflows_/$workflowId',
+    path: '/studio/workflows/$workflowId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const StudioFormsFormIdRoute = StudioFormsFormIdRouteImport.update({
+  id: '/studio/forms_/$formId',
+  path: '/studio/forms/$formId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OrganizationsIdSettingsRoute = OrganizationsIdSettingsRouteImport.update({
   id: '/organizations_/$id/settings',
   path: '/organizations/$id/settings',
@@ -347,14 +384,20 @@ export interface FileRoutesByFullPath {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/studio/forms': typeof StudioFormsRoute
+  '/studio/stages': typeof StudioStagesRoute
+  '/studio/workflows': typeof StudioWorkflowsRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
+  '/studio/': typeof StudioIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/studio/forms/$formId': typeof StudioFormsFormIdRoute
+  '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -398,14 +441,20 @@ export interface FileRoutesByTo {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/studio/forms': typeof StudioFormsRoute
+  '/studio/stages': typeof StudioStagesRoute
+  '/studio/workflows': typeof StudioWorkflowsRoute
   '/billing': typeof BillingIndexRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/prescriptions': typeof PrescriptionsIndexRoute
+  '/studio': typeof StudioIndexRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/studio/forms/$formId': typeof StudioFormsFormIdRoute
+  '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/employees/$employeeId': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
@@ -450,14 +499,20 @@ export interface FileRoutesById {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings_/billing': typeof SettingsBillingRoute
+  '/studio/forms': typeof StudioFormsRoute
+  '/studio/stages': typeof StudioStagesRoute
+  '/studio/workflows': typeof StudioWorkflowsRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
+  '/studio/': typeof StudioIndexRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/studio/forms_/$formId': typeof StudioFormsFormIdRoute
+  '/studio/workflows_/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -503,14 +558,20 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/studio/forms'
+    | '/studio/stages'
+    | '/studio/workflows'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
     | '/prescriptions/'
+    | '/studio/'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
+    | '/studio/forms/$formId'
+    | '/studio/workflows/$workflowId'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
@@ -554,14 +615,20 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/studio/forms'
+    | '/studio/stages'
+    | '/studio/workflows'
     | '/billing'
     | '/employees'
     | '/invoices'
     | '/patients'
     | '/prescriptions'
+    | '/studio'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
+    | '/studio/forms/$formId'
+    | '/studio/workflows/$workflowId'
     | '/employees/$employeeId'
     | '/patients/$patientId'
   id:
@@ -605,14 +672,20 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings_/billing'
+    | '/studio/forms'
+    | '/studio/stages'
+    | '/studio/workflows'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
     | '/patients/'
     | '/prescriptions/'
+    | '/studio/'
     | '/locations_/$id/settings'
     | '/organizations_/$id/features'
     | '/organizations_/$id/settings'
+    | '/studio/forms_/$formId'
+    | '/studio/workflows_/$workflowId'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
@@ -657,14 +730,20 @@ export interface RootRouteChildren {
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
   SettingsBillingRoute: typeof SettingsBillingRoute
+  StudioFormsRoute: typeof StudioFormsRoute
+  StudioStagesRoute: typeof StudioStagesRoute
+  StudioWorkflowsRoute: typeof StudioWorkflowsRoute
   BillingIndexRoute: typeof BillingIndexRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
+  StudioIndexRoute: typeof StudioIndexRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdFeaturesRoute: typeof OrganizationsIdFeaturesRoute
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
+  StudioFormsFormIdRoute: typeof StudioFormsFormIdRoute
+  StudioWorkflowsWorkflowIdRoute: typeof StudioWorkflowsWorkflowIdRoute
   EmployeesEmployeeIdIndexRoute: typeof EmployeesEmployeeIdIndexRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
@@ -853,6 +932,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/': {
+      id: '/studio/'
+      path: '/studio'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prescriptions/': {
       id: '/prescriptions/'
       path: '/prescriptions'
@@ -886,6 +972,27 @@ declare module '@tanstack/react-router' {
       path: '/billing'
       fullPath: '/billing/'
       preLoaderRoute: typeof BillingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/workflows': {
+      id: '/studio/workflows'
+      path: '/studio/workflows'
+      fullPath: '/studio/workflows'
+      preLoaderRoute: typeof StudioWorkflowsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/stages': {
+      id: '/studio/stages'
+      path: '/studio/stages'
+      fullPath: '/studio/stages'
+      preLoaderRoute: typeof StudioStagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/forms': {
+      id: '/studio/forms'
+      path: '/studio/forms'
+      fullPath: '/studio/forms'
+      preLoaderRoute: typeof StudioFormsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings_/billing': {
@@ -993,6 +1100,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/workflows_/$workflowId': {
+      id: '/studio/workflows_/$workflowId'
+      path: '/studio/workflows/$workflowId'
+      fullPath: '/studio/workflows/$workflowId'
+      preLoaderRoute: typeof StudioWorkflowsWorkflowIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/forms_/$formId': {
+      id: '/studio/forms_/$formId'
+      path: '/studio/forms/$formId'
+      fullPath: '/studio/forms/$formId'
+      preLoaderRoute: typeof StudioFormsFormIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/organizations_/$id/settings': {
       id: '/organizations_/$id/settings'
       path: '/organizations/$id/settings'
@@ -1057,14 +1178,20 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
   SettingsBillingRoute: SettingsBillingRoute,
+  StudioFormsRoute: StudioFormsRoute,
+  StudioStagesRoute: StudioStagesRoute,
+  StudioWorkflowsRoute: StudioWorkflowsRoute,
   BillingIndexRoute: BillingIndexRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
+  StudioIndexRoute: StudioIndexRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdFeaturesRoute: OrganizationsIdFeaturesRoute,
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
+  StudioFormsFormIdRoute: StudioFormsFormIdRoute,
+  StudioWorkflowsWorkflowIdRoute: StudioWorkflowsWorkflowIdRoute,
   EmployeesEmployeeIdIndexRoute: EmployeesEmployeeIdIndexRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
