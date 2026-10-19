@@ -11,6 +11,7 @@ import {
   Palette,
   Camera,
   HandCoins,
+  BellRing,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -85,6 +86,7 @@ export function SettingsPage() {
             )
           })}
           <BillingSettingsLink />
+          <NotificationSettingsLink />
         </nav>
 
         {/* Content */}
@@ -113,6 +115,21 @@ function BillingSettingsLink() {
         Billing
       </Link>
     </FeatureGuard>
+  )
+}
+
+/** Admins configure who is notified, and see the message log (lab ERD §16). */
+function NotificationSettingsLink() {
+  const { allowed } = useHasClinicRole(['clinic_admin'])
+  if (!allowed) return null
+  return (
+    <Link
+      to="/settings/notifications"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+    >
+      <BellRing className="size-4" />
+      Notifications
+    </Link>
   )
 }
 

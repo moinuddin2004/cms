@@ -6,6 +6,7 @@ import {
   ExecutionContext,
   INestApplication,
   Injectable,
+  ModuleMetadata,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -66,6 +67,7 @@ export interface Clinic {
 }
 
 type Method = 'get' | 'post' | 'patch' | 'put' | 'delete';
+type ModuleImport = NonNullable<ModuleMetadata['imports']>[number];
 
 let seq = Math.floor(Math.random() * 1e7);
 
@@ -220,7 +222,11 @@ async function runAdmin(...sql: string[]): Promise<void> {
  * of the suite's own (`labs_it_*`): never `public`, and never the shared
  * `billing_it`, so a billing run in parallel cannot drop it mid-test.
  */
-export async function createLabsFixture(schema: string): Promise<LabsFixture> {
+export async function createLabsFixture(
+  schema: string,
+  /** Extra modules a suite needs (e.g. NotificationsModule). */
+  opts: { imports?: ModuleImport[] } = {},
+): Promise<LabsFixture> {
   if (!/^labs_it_[a-z_]+$/.test(schema))
     throw new Error(`Bad IT schema ${schema}`);
   await runAdmin(
@@ -256,6 +262,7 @@ export async function createLabsFixture(schema: string): Promise<LabsFixture> {
       FeatureFlagsModule,
       EngineModule,
       LabsModule,
+      ...(opts.imports ?? []),
     ],
     providers: [
       AuthorizationService,

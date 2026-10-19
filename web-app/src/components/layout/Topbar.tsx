@@ -1,5 +1,6 @@
 import { Moon, Sun } from 'lucide-react'
 import { LocationSwitcher } from '@/components/layout/LocationSwitcher'
+import { NotificationBell } from '@/features/notifications'
 import { useTheme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
 
@@ -45,8 +46,9 @@ export function Topbar() {
         </div> */}
       </div>
 
-      {/* Right: theme + location */}
+      {/* Right: notifications + theme + location */}
       <div className="flex items-center gap-2.5">
+        <NotificationBell />
         <ThemeToggle />
         <LocationSwitcher />
       </div>

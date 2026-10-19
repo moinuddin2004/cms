@@ -40,6 +40,7 @@ import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
 import { Route as BillingIndexRouteImport } from './routes/billing.index'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings_.notifications'
 import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
@@ -214,6 +215,11 @@ const BillingIndexRoute = BillingIndexRouteImport.update({
   path: '/billing/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings_/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsBillingRoute = SettingsBillingRouteImport.update({
   id: '/settings_/billing',
   path: '/settings/billing',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
@@ -398,6 +405,7 @@ export interface FileRoutesByTo {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/billing': typeof BillingIndexRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
@@ -450,6 +458,7 @@ export interface FileRoutesById {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings_/billing': typeof SettingsBillingRoute
+  '/settings_/notifications': typeof SettingsNotificationsRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/settings/notifications'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
@@ -554,6 +564,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/settings/notifications'
     | '/billing'
     | '/employees'
     | '/invoices'
@@ -605,6 +616,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings_/billing'
+    | '/settings_/notifications'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
@@ -657,6 +669,7 @@ export interface RootRouteChildren {
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
   SettingsBillingRoute: typeof SettingsBillingRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   BillingIndexRoute: typeof BillingIndexRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
@@ -888,6 +901,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BillingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings_/notifications': {
+      id: '/settings_/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings_/billing': {
       id: '/settings_/billing'
       path: '/settings/billing'
@@ -1057,6 +1077,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
   SettingsBillingRoute: SettingsBillingRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   BillingIndexRoute: BillingIndexRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,

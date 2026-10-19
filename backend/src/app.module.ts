@@ -38,6 +38,8 @@ import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { LabsModule } from './labs/labs.module';
 import { EngineModule } from './engine/engine.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -97,6 +99,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     PlanTemplatesModule,
     EngineModule,
     LabsModule,
+    NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
   ],
   controllers: [AppController],
   providers: [
@@ -154,6 +157,7 @@ export class AppModule {
         }),
         ...(runsJobs(role) ? [ScheduleModule.forRoot()] : []),
         QueueRuntimeModule.forRole(role),
+        NotificationsRuntimeModule.forRole(role),
       ],
     };
   }
