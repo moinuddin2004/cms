@@ -227,7 +227,7 @@ export async function createLabsFixture(
   /** Extra modules a suite needs on top of labs + engine (e.g. later sprints). */
   extraImports: Array<Type<unknown> | DynamicModule> = [],
 ): Promise<LabsFixture> {
-  if (!/^labs_it_[a-z0-9_]+$/.test(schema))
+  if (!/^labs_it_[a-z_]+$/.test(schema))
     throw new Error(`Bad IT schema ${schema}`);
   await runAdmin(
     'CREATE EXTENSION IF NOT EXISTS btree_gist',

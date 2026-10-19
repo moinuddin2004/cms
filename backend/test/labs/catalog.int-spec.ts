@@ -43,7 +43,7 @@ describe('Lab catalog integration (API)', () => {
   const svcUrl = (rest = '') => `/platform/labs/${lab.id}/services${rest}`;
 
   beforeAll(async () => {
-    fx = await createLabsFixture('labs_it_s5_catalog', [LabCatalogModule]);
+    fx = await createLabsFixture('labs_it_catalog_api', [LabCatalogModule]);
     A = fx.clinicA;
     B = fx.clinicB;
     const m = fx.dataSource.manager;
