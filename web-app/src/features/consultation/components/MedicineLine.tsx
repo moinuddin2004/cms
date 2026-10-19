@@ -63,12 +63,12 @@ export function MedicineLine({
         complete ? 'border-border' : 'border-amber/60 bg-amber-soft/30',
       )}
     >
-      <div className="flex items-center gap-2 p-2.5">
+      <div className="flex items-center gap-2 p-2">
         <button
           type="button"
           onClick={onToggle}
           disabled={readOnly}
-          className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-left"
+          className="flex min-h-9 min-w-0 flex-1 items-center gap-3 text-left"
         >
           <Pill className="size-4 shrink-0 text-primary-text" />
           <span className="min-w-0">
@@ -102,7 +102,7 @@ export function MedicineLine({
             tooltip="Remove medicine"
             variant="ghost"
             size="icon"
-            className="size-11 shrink-0 text-muted-foreground hover:text-destructive"
+            className="size-8 shrink-0 text-muted-foreground hover:text-destructive"
             onClick={onRemove}
           >
             <Trash2 className="size-4" />
@@ -111,17 +111,17 @@ export function MedicineLine({
       </div>
 
       {expanded && !readOnly && (
-        <div className="space-y-4 border-t border-border p-3">
+        <div className="space-y-3 border-t border-border p-3">
           <Field label="Dose">
             <Input
               value={line.dosage}
               onChange={(e) => onChange({ dosage: e.target.value })}
               placeholder="e.g. 1 tablet, 5 ml"
-              className="h-11 max-w-60 text-base"
+              className="h-9 max-w-60"
             />
           </Field>
           <Field label="How often">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {FREQUENCY_PRESETS.map((f) => (
                 <Chip
                   key={f}
@@ -134,7 +134,7 @@ export function MedicineLine({
             </div>
           </Field>
           <Field label="For how long">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {DURATION_PRESETS.map((d) => (
                 <Chip
                   key={d}
@@ -147,7 +147,7 @@ export function MedicineLine({
             </div>
           </Field>
           <Field label="With food">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {MEALS.map((m) => (
                 <Chip
                   key={m.value}
@@ -173,13 +173,13 @@ export function MedicineLine({
                 onChange({ specialInstructions: e.target.value })
               }
               placeholder="e.g. dissolve in water"
-              className="h-11 text-base"
+              className="h-9"
             />
           </Field>
           <Button
             type="button"
             variant="secondary"
-            className="h-11"
+            className="h-9"
             onClick={onToggle}
             disabled={!complete}
           >

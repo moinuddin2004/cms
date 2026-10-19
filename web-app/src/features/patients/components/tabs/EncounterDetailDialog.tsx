@@ -8,7 +8,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, CalendarDays, Stethoscope, Banknote, Plus } from 'lucide-react'
+import {
+  Loader2,
+  CalendarDays,
+  Stethoscope,
+  Banknote,
+  Plus,
+} from 'lucide-react'
 import { useEncounterDetail } from '../../hooks/usePatientSubEntities'
 import { TreatmentFormDialog } from './TreatmentFormDialog'
 
@@ -19,12 +25,15 @@ interface EncounterDetailDialogProps {
   patientId: string
   encounterId: string | null
   onClose: () => void
+  /** Clinical-only view (doctor's consultation): no fees, no fee entry. */
+  hideAmounts?: boolean
 }
 
 export function EncounterDetailDialog({
   patientId,
   encounterId,
   onClose,
+  hideAmounts = false,
 }: EncounterDetailDialogProps) {
   const { data: encounter, isLoading } = useEncounterDetail(encounterId)
 
@@ -69,15 +78,13 @@ export function EncounterDetailDialog({
                 </p>
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <Badge variant="outline" className="capitalize">
-                    {encounter.appointment.type?.replace('_', ' ')}
+                    {encounter.appointment.type.replace('_', ' ')}
                   </Badge>
                   <Badge variant="secondary" className="capitalize">
-                    {encounter.appointment.status?.replace('_', ' ')}
+                    {encounter.appointment.status.replace('_', ' ')}
                   </Badge>
                   <span className="text-muted-foreground">
-                    {new Date(
-                      encounter.appointment.startTime,
-                    ).toLocaleString()}
+                    {new Date(encounter.appointment.startTime).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -91,15 +98,17 @@ export function EncounterDetailDialog({
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                   Treatments ({encounter.treatments?.length ?? 0})
                 </p>
-                <TreatmentFormDialog
-                  patientId={patientId}
-                  encounterId={encounter.id}
-                  trigger={
-                    <Button size="sm" variant="outline">
-                      <Plus size={14} className="mr-1.5" /> Add treatment
-                    </Button>
-                  }
-                />
+                {!hideAmounts && (
+                  <TreatmentFormDialog
+                    patientId={patientId}
+                    encounterId={encounter.id}
+                    trigger={
+                      <Button size="sm" variant="outline">
+                        <Plus size={14} className="mr-1.5" /> Add treatment
+                      </Button>
+                    }
+                  />
+                )}
               </div>
 
               {encounter.treatments && encounter.treatments.length > 0 ? (
@@ -118,7 +127,7 @@ export function EncounterDetailDialog({
                           {t.notes ? ` · ${t.notes}` : ''}
                         </p>
                       </div>
-                      {t.cost != null && (
+                      {!hideAmounts && t.cost != null && (
                         <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 shrink-0">
                           <Banknote size={14} /> Rs.{' '}
                           {num(t.cost).toLocaleString()}

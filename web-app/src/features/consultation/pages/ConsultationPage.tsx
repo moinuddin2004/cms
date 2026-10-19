@@ -163,10 +163,11 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
         completing={complete.isPending}
       />
 
-      <main className="grid items-start gap-4 p-3 lg:grid-cols-[320px_minmax(0,1fr)] lg:p-4 xl:grid-cols-[320px_minmax(0,1fr)_minmax(0,1fr)]">
+      <main className="mx-auto grid max-w-[1600px] items-start gap-4 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)] lg:p-4 xl:grid-cols-[260px_minmax(0,1fr)_minmax(340px,420px)]">
         <Button
           variant="outline"
-          className="h-11 justify-between lg:hidden"
+          size="sm"
+          className="h-9 justify-between md:col-span-2 lg:hidden"
           aria-expanded={showSummary}
           onClick={() => setShowSummary((s) => !s)}
         >
@@ -183,7 +184,7 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
 
         <aside
           className={cn(
-            'lg:row-span-2 lg:block xl:row-span-1',
+            'md:col-span-2 lg:col-span-1 lg:row-span-2 lg:block xl:row-span-1',
             showSummary ? 'block' : 'hidden',
           )}
         >
@@ -196,21 +197,21 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
           />
         </aside>
 
-        <div className="space-y-4 lg:col-start-2">
+        <div className="min-w-0 lg:col-start-2">
           <VisitNotes
             value={notes}
             onChange={setNotes}
             saveState={notesSave.state}
             savedAt={notesSave.savedAt}
           />
+        </div>
+
+        <div className="min-w-0 space-y-4 lg:col-start-2 xl:col-start-3 xl:row-start-1">
           <TreatmentsToday
             encounterId={encounterId}
             patientId={patient.id}
             treatments={encounter.treatments ?? []}
           />
-        </div>
-
-        <div className="lg:col-start-2 xl:col-start-3">
           <PrescriptionPanel
             encounterId={encounterId}
             encounterDate={encounter.encounterDate}

@@ -1,0 +1,256 @@
+import type { ComponentType, ReactNode } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { cn } from '@/lib/utils'
+
+/**
+ * Listing chrome copied from the Appointments page so billing lists look
+ * the same: a one-row stats strip, a toolbar card with a top row and a
+ * `border-t` filter row, segmented pills and date presets.
+ */
+
+export interface StatItem {
+  key: string
+  label: string
+  value: ReactNode
+  icon: ComponentType<{ className?: string }>
+  /** Text + soft background tone, e.g. `text-emerald` / `bg-emerald-soft`. */
+  color: string
+  bg: string
+}
+
+const COLS: Record<number, string> = {
+  3: 'sm:grid-cols-3',
+  4: 'sm:grid-cols-4',
+  5: 'sm:grid-cols-5',
+  6: 'sm:grid-cols-6',
+}
+
+export function StatsStrip({
+  items,
+  isLoading,
+}: {
+  items: StatItem[]
+  isLoading?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'grid grid-cols-2 divide-x divide-y rounded-xl border bg-card sm:divide-y-0',
+        COLS[items.length],
+      )}
+    >
+      {items.map((item) => {
+        const Icon = item.icon
+        return (
+          <div
+            key={item.key}
+            className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/40"
+          >
+            <span
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
+                item.bg,
+              )}
+            >
+              <Icon className={cn('size-4', item.color)} />
+            </span>
+            <div className="min-w-0 leading-none">
+              <p className="truncate text-[11px] font-medium text-text-3">
+                {item.label}
+              </p>
+              {isLoading ? (
+                <Skeleton className="mt-1 h-4 w-14" />
+              ) : (
+                <p className="mt-1 truncate text-base font-bold leading-none tabular-nums">
+                  {item.value}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Toolbar card: `top` row (left/right) and an optional filter row below. */
+export function ListToolbar({
+  left,
+  right,
+  filters,
+}: {
+  left?: ReactNode
+  right?: ReactNode
+  filters?: ReactNode
+}) {
+  return (
+    <div className="space-y-2 rounded-xl border bg-card px-3 py-2">
+      {(left || right) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">{left}</div>
+          <div className="flex items-center gap-2">{right}</div>
+        </div>
+      )}
+      {filters && (
+        <div
+          className={cn(
+            'flex flex-row flex-wrap items-center gap-2',
+            (left || right) && 'border-t pt-2',
+          )}
+        >
+          {filters}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Segmented pills (the Appointments calendar-view switcher). */
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T
+  onChange: (value: T) => void
+  options: Array<{
+    value: T
+    label: ReactNode
+    icon?: ComponentType<{ className?: string }>
+  }>
+}) {
+  return (
+    <div className="flex flex-wrap items-center rounded-[9px] border border-border bg-surface p-[3px]">
+      {options.map(({ value: v, label, icon: Icon }) => (
+        <button
+          key={v}
+          type="button"
+          onClick={() => onChange(v)}
+          className={cn(
+            'flex items-center gap-1.5 rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors',
+            value === v
+              ? 'bg-primary text-white shadow-sm'
+              : 'text-text-2 hover:text-foreground',
+          )}
+        >
+          {Icon && <Icon className="size-3" />}
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** "Live" pulse while a list refetches. */
+export function LiveDot({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+      live
+    </span>
+  )
+}
+
+export type RangePreset =
+  | 'today'
+  | 'month'
+  | 'lastMonth'
+  | 'past30'
+  | 'all'
+  | 'custom'
+export interface DateRange {
+  from?: string
+  to?: string
+}
+
+const ymd = (d: Date) => d.toLocaleDateString('en-CA')
+
+/** Clinic-local `{from, to}` of a preset (custom → `custom`). */
+export function presetRange(p: RangePreset, custom: DateRange = {}): DateRange {
+  const t = new Date()
+  switch (p) {
+    case 'today':
+      return { from: ymd(t), to: ymd(t) }
+    case 'month':
+      return {
+        from: ymd(new Date(t.getFullYear(), t.getMonth(), 1)),
+        to: ymd(t),
+      }
+    case 'lastMonth':
+      return {
+        from: ymd(new Date(t.getFullYear(), t.getMonth() - 1, 1)),
+        to: ymd(new Date(t.getFullYear(), t.getMonth(), 0)),
+      }
+    case 'past30': {
+      const from = new Date(t)
+      from.setDate(t.getDate() - 29)
+      return { from: ymd(from), to: ymd(t) }
+    }
+    case 'custom':
+      return custom
+    case 'all':
+      return {}
+  }
+}
+
+const PRESET_LABEL: Record<Exclude<RangePreset, 'custom'>, string> = {
+  today: 'Today',
+  month: 'This month',
+  lastMonth: 'Last month',
+  past30: 'Past 30 days',
+  all: 'All',
+}
+
+/** Date preset buttons + custom range picker (Appointments list style). */
+export function DatePresetBar({
+  presets,
+  preset,
+  custom,
+  onChange,
+  fallback,
+}: {
+  presets: Array<Exclude<RangePreset, 'custom'>>
+  preset: RangePreset
+  custom: DateRange
+  onChange: (preset: RangePreset, custom: DateRange) => void
+  /** Preset to fall back to when the custom range is cleared. */
+  fallback: Exclude<RangePreset, 'custom'>
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-1">
+        {presets.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => onChange(p, custom)}
+            className={cn(
+              'h-8 rounded-md border px-2.5 text-xs font-medium transition-colors',
+              preset === p
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-card text-muted-foreground hover:bg-accent',
+            )}
+          >
+            {PRESET_LABEL[p]}
+          </button>
+        ))}
+      </div>
+      <DateRangePicker
+        aria-label="Custom date range"
+        className={cn(
+          'h-8 w-[240px] text-xs',
+          preset === 'custom' && 'border-primary',
+        )}
+        value={preset === 'custom' ? custom : {}}
+        onChange={(r) =>
+          r.from
+            ? onChange('custom', { from: r.from, to: r.to })
+            : onChange(fallback, {})
+        }
+        placeholder="Custom range"
+      />
+    </>
+  )
+}

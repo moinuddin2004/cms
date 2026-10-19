@@ -48,9 +48,11 @@ export function RecordDrawer({
         side="right"
         className="w-full gap-0 overflow-y-auto p-0 sm:max-w-4xl"
       >
-        <SheetHeader className="border-b border-border p-4">
-          <SheetTitle>{patient.fullName} — patient record</SheetTitle>
-          <SheetDescription>
+        <SheetHeader className="sticky top-0 z-10 gap-0.5 border-b border-border bg-background p-4 pr-12">
+          <SheetTitle className="text-base">
+            {patient.fullName} — patient record
+          </SheetTitle>
+          <SheetDescription className="text-xs">
             Look anything up or add to it. Closing this returns to the
             consultation.
           </SheetDescription>
@@ -59,9 +61,9 @@ export function RecordDrawer({
         <Tabs
           value={tab}
           onValueChange={(v) => onTabChange(v as RecordTab)}
-          className="p-4"
+          className="gap-0 p-4"
         >
-          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-muted/50 p-1">
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-0.5 p-0.5">
             <RecordTrigger value="history">History</RecordTrigger>
             <FeatureGuard feature="patients.teeth_chart">
               <RecordTrigger value="teeth">Teeth chart</RecordTrigger>
@@ -76,9 +78,9 @@ export function RecordDrawer({
             <RecordTrigger value="consents">Consents</RecordTrigger>
           </TabsList>
 
-          <TabsContent value="history" className="space-y-6">
-            <VisitsTab patient={patient} />
-            <TreatmentsTab patient={patient} />
+          <TabsContent value="history" className="space-y-4">
+            <VisitsTab patient={patient} hideAmounts />
+            <TreatmentsTab patient={patient} hideAmounts />
           </TabsContent>
           <FeatureGuard feature="patients.teeth_chart">
             <TabsContent value="teeth">
@@ -115,7 +117,7 @@ function RecordTrigger({
   children: React.ReactNode
 }) {
   return (
-    <TabsTrigger value={value} className="h-10 px-3.5 text-sm">
+    <TabsTrigger value={value} className="h-8 flex-none px-3 text-[13px]">
       {children}
     </TabsTrigger>
   )

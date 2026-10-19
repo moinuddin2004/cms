@@ -1,62 +1,92 @@
-import { Link, useRouterState, useNavigate } from '@tanstack/react-router'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type { ElementType } from 'react'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
-  MapPin,
-  Building2,
-  LayoutDashboard,
-  Users,
-  CalendarDays,
-  CreditCard,
-  Receipt,
-  Wallet,
-  Settings,
-  ChevronLeft,
-  LogOut,
-  Loader2,
-  Shield,
-  FileText,
-  Stethoscope,
-  ClipboardList,
-  HandCoins,
-  Banknote,
-  History,
   BarChart3,
+  Banknote,
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  HandCoins,
+  History,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  MapPin,
+  Receipt,
+  Settings,
+  Shield,
+  Stethoscope,
+  UserCog,
+  Users,
+  Wallet,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useHasClinicRole } from '@/components/feature/RequireRolePage'
 import type { ClinicRole } from '@/components/feature/RequireRolePage'
-
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useFeatures } from '@/context/FeatureFlagsContext'
+import apiClient from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useFeatures } from '@/context/FeatureFlagsContext'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import apiClient from '@/lib/api'
-import { toast } from 'sonner'
-import { useState } from 'react'
 
-interface NavItem {
+type AuthState = ReturnType<typeof useAuthStore.getState>
+
+interface NavLeaf {
   label: string
-  icon: React.ElementType
+  icon: ElementType
   href: string
-  show?: (auth: ReturnType<typeof useAuthStore.getState>) => boolean
-  /** Org feature key — item is hidden entirely when the feature is disabled. */
+  show?: (auth: AuthState) => boolean
+  /** Org feature key — hidden entirely when the feature is disabled. */
   feature?: string
   /** Clinic roles allowed to see the item (any of); omitted = everyone. */
   roles?: ClinicRole[]
 }
 
-const BILLING_ROLES: ClinicRole[] = ['clinic_admin', 'receptionist']
+/** A collapsible parent with nested links. */
+interface NavGroup {
+  label: string
+  icon: ElementType
+  children: NavLeaf[]
+}
+
+type NavEntry = NavLeaf | NavGroup
 
 interface NavSection {
   label?: string
-  items: NavItem[]
+  items: NavEntry[]
 }
 
-const navSections: NavSection[] = [
+const BILLING_ROLES: ClinicRole[] = ['clinic_admin', 'receptionist']
+const ADMIN: ClinicRole[] = ['clinic_admin']
+
+const isGroup = (e: NavEntry): e is NavGroup => 'children' in e
+
+const NAV: NavSection[] = [
   {
+    items: [{ label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }],
+  },
+  {
+    label: 'Clinic',
     items: [
-      { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
       {
         label: 'Patients',
         icon: Users,
@@ -75,19 +105,6 @@ const navSections: NavSection[] = [
         href: '/queue/doctor',
         feature: 'appointments.core',
       },
-      { label: 'Employees', icon: Users, href: '/employees' },
-      {
-        label: 'Payroll',
-        icon: CreditCard,
-        href: '/payroll',
-        feature: 'hr.payroll',
-      },
-    ],
-  },
-  {
-    label: 'Operations',
-    items: [
-      // { label: 'Inventory', icon: Boxes, href: '/inventory', feature: 'inventory.core' },
       {
         label: 'Prescriptions',
         icon: FileText,
@@ -100,47 +117,76 @@ const navSections: NavSection[] = [
         href: '/plan-templates',
         feature: 'patients.treatment_plans',
       },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
       {
         label: 'Billing',
         icon: HandCoins,
-        href: '/billing',
-        feature: 'billing.invoices',
-        roles: BILLING_ROLES,
+        children: [
+          {
+            label: 'Billing desk',
+            icon: HandCoins,
+            href: '/billing',
+            feature: 'billing.invoices',
+            roles: BILLING_ROLES,
+          },
+          {
+            label: 'Invoices',
+            icon: Receipt,
+            href: '/invoices',
+            feature: 'billing.invoices',
+            roles: BILLING_ROLES,
+          },
+          {
+            label: 'Payments',
+            icon: Banknote,
+            href: '/payments',
+            feature: 'billing.invoices',
+            roles: BILLING_ROLES,
+          },
+          {
+            label: 'Expenses',
+            icon: Wallet,
+            href: '/expenses',
+            feature: 'billing.expenses',
+            roles: BILLING_ROLES,
+          },
+        ],
       },
       {
-        label: 'Invoices',
-        icon: Receipt,
-        href: '/invoices',
-        feature: 'billing.invoices',
-        roles: BILLING_ROLES,
-      },
-      {
-        label: 'Payments',
-        icon: Banknote,
-        href: '/payments',
-        feature: 'billing.invoices',
-        roles: BILLING_ROLES,
-      },
-      {
-        label: 'Billing activity',
-        icon: History,
-        href: '/billing/activity',
-        feature: 'billing.invoices',
-        roles: ['clinic_admin'],
-      },
-      {
-        label: 'Doctor revenue',
+        label: 'Reports',
         icon: BarChart3,
-        href: '/billing/doctor-revenue',
-        feature: 'billing.invoices',
-        roles: ['clinic_admin'],
+        children: [
+          {
+            label: 'Doctor revenue',
+            icon: BarChart3,
+            href: '/billing/doctor-revenue',
+            feature: 'billing.invoices',
+            roles: ADMIN,
+          },
+          {
+            label: 'Billing activity',
+            icon: History,
+            href: '/billing/activity',
+            feature: 'billing.invoices',
+            roles: ADMIN,
+          },
+        ],
       },
+    ],
+  },
+  {
+    label: 'Team',
+    items: [
+      { label: 'Employees', icon: UserCog, href: '/employees' },
       {
-        label: 'Expenses',
-        icon: Wallet,
-        href: '/expenses',
-        feature: 'billing.expenses',
-        roles: BILLING_ROLES,
+        label: 'Payroll',
+        icon: CreditCard,
+        href: '/payroll',
+        feature: 'hr.payroll',
       },
     ],
   },
@@ -151,32 +197,65 @@ const navSections: NavSection[] = [
         label: 'Organizations',
         icon: Building2,
         href: '/organizations',
-        show: (auth) => auth.isSuperAdmin,
+        show: (a) => a.isSuperAdmin,
       },
       {
         label: 'Locations',
         icon: MapPin,
         href: '/locations',
-        show: (auth) => auth.isSuperAdmin || auth.accessSource === 'owner',
+        show: (a) => a.isSuperAdmin || a.accessSource === 'owner',
       },
       { label: 'User Admin', icon: Shield, href: '/users' },
     ],
   },
 ]
 
-const bottomNavItems: NavItem[] = [
-  { label: 'Settings', icon: Settings, href: '/settings' },
-]
+/**
+ * Every page renders its own DashboardLayout, so the sidebar remounts on
+ * each navigation. Its scroll offset lives outside React to survive that.
+ */
+let savedNavScroll = 0
 
-const ROLE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-blue-500/10 text-blue-400',
-  DENTIST: 'bg-emerald-500/10 text-emerald-400',
-  RECEPTIONIST: 'bg-purple-500/10 text-purple-400',
-  SUPER_ADMIN: 'bg-slate-500/20 text-slate-300',
+const SETTINGS: NavLeaf = {
+  label: 'Settings',
+  icon: Settings,
+  href: '/settings',
+}
+
+const matches = (path: string, href: string) =>
+  path === href || path.startsWith(href + '/')
+
+const getInitials = (name?: string) =>
+  (name ?? 'U')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+/** Hover label for icon-only links when the sidebar is collapsed. */
+function CollapsedTip({
+  label,
+  enabled,
+  children,
+}: {
+  label: string
+  enabled: boolean
+  children: React.ReactNode
+}) {
+  if (!enabled) return <>{children}</>
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right" className="text-xs">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const { sidebarCollapsed: collapsed, toggleSidebar } = useUIStore()
   const { features } = useFeatures()
   const roleAccess: Record<ClinicRole, boolean> = {
     clinic_admin: useHasClinicRole(['clinic_admin']).allowed,
@@ -185,210 +264,331 @@ export function Sidebar() {
   }
   const authStore = useAuthStore()
   const { user, clearAuth } = authStore
-  const routerState = useRouterState()
-  const currentPath = routerState.location.pathname
+  const currentPath = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const navRef = useRef<HTMLElement>(null)
+
+  // Restore before paint so the list never flashes back to the top.
+  useLayoutEffect(() => {
+    if (navRef.current) navRef.current.scrollTop = savedNavScroll
+  }, [])
+
+  const allowed = (leaf: NavLeaf) =>
+    (!leaf.show || leaf.show(authStore)) &&
+    (!leaf.feature || features.has(leaf.feature)) &&
+    (!leaf.roles || leaf.roles.some((r) => roleAccess[r]))
+
+  // Visible tree: hidden leaves dropped, empty groups and sections removed.
+  const sections = NAV.map((s) => ({
+    ...s,
+    items: s.items
+      .map((e) =>
+        isGroup(e) ? { ...e, children: e.children.filter(allowed) } : e,
+      )
+      .filter((e) => (isGroup(e) ? e.children.length > 0 : allowed(e))),
+  })).filter((s) => s.items.length > 0)
+
+  // Exactly one active link: the longest href that matches the path, so
+  // /billing/activity lights "Billing activity" and not "Billing desk".
+  const leaves = sections.flatMap((s) =>
+    s.items.flatMap((e) => (isGroup(e) ? e.children : [e])),
+  )
+  const activeHref = [...leaves, SETTINGS]
+    .filter((l) => matches(currentPath, l.href))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href
+
+  const groupOf = (href?: string) =>
+    sections
+      .flatMap((s) => s.items)
+      .find((e) => isGroup(e) && e.children.some((c) => c.href === href))?.label
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(['Billing']),
+  )
+  const activeGroup = groupOf(activeHref)
+  const isOpen = (label: string) =>
+    openGroups.has(label) || activeGroup === label
+  const toggleGroup = (label: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(label) || activeGroup === label) next.delete(label)
+      else next.add(label)
+      return next
+    })
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
     try {
       await apiClient.post('/auth/logout')
-      clearAuth()
       toast.success('Signed out successfully')
-      navigate({ to: '/login' })
-    } catch {
+    } finally {
       clearAuth()
-      navigate({ to: '/login' })
+      void navigate({ to: '/login' })
     }
   }
 
-  // Generate initials from user name
-  const getInitials = (name?: string) => {
-    if (!name) return 'U'
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
+  const leafLink = (leaf: NavLeaf, nested = false) => {
+    const active = leaf.href === activeHref
+    return (
+      <CollapsedTip key={leaf.href} label={leaf.label} enabled={collapsed}>
+        <Link
+          to={leaf.href}
+          aria-current={active ? 'page' : undefined}
+          className={cn(
+            'group relative flex items-center gap-3 rounded-[9px] text-sm font-medium transition-colors',
+            nested ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2',
+            active
+              ? 'bg-primary-soft font-semibold text-primary-text'
+              : 'text-text-2 hover:bg-panel hover:text-foreground',
+            collapsed && 'justify-center px-2 py-2',
+          )}
+        >
+          {nested && !collapsed ? (
+            <span
+              className={cn(
+                'absolute -left-[13px] top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full transition-colors',
+                active ? 'bg-primary' : 'bg-transparent',
+              )}
+            />
+          ) : null}
+          <leaf.icon size={nested ? 16 : 18} className="shrink-0" />
+          {!collapsed && <span className="flex-1 truncate">{leaf.label}</span>}
+        </Link>
+      </CollapsedTip>
+    )
+  }
+
+  const groupBlock = (group: NavGroup) => {
+    const hasActive = group.children.some((c) => c.href === activeHref)
+    if (collapsed) {
+      // Collapsed: the group is one icon that opens a flyout of its links.
+      return (
+        <DropdownMenu key={group.label}>
+          <CollapsedTip label={group.label} enabled>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label={group.label}
+                className={cn(
+                  'flex w-full items-center justify-center rounded-[9px] px-2 py-2 transition-colors',
+                  hasActive
+                    ? 'bg-primary-soft text-primary-text'
+                    : 'text-text-2 hover:bg-panel hover:text-foreground',
+                )}
+              >
+                <group.icon size={18} />
+              </button>
+            </DropdownMenuTrigger>
+          </CollapsedTip>
+          <DropdownMenuContent side="right" align="start" className="w-48">
+            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              {group.label}
+            </DropdownMenuLabel>
+            {group.children.map((c) => (
+              <DropdownMenuItem
+                key={c.href}
+                asChild
+                className={cn(
+                  c.href === activeHref && 'font-semibold text-primary-text',
+                )}
+              >
+                <Link to={c.href}>
+                  <c.icon className="mr-2 h-3.5 w-3.5" />
+                  {c.label}
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+    const open = isOpen(group.label)
+    return (
+      <div key={group.label}>
+        <button
+          type="button"
+          onClick={() => toggleGroup(group.label)}
+          aria-expanded={open}
+          className={cn(
+            'flex w-full items-center gap-3 rounded-[9px] px-3 py-2 text-sm font-medium transition-colors',
+            hasActive
+              ? 'text-foreground'
+              : 'text-text-2 hover:bg-panel hover:text-foreground',
+          )}
+        >
+          <group.icon
+            size={18}
+            className={cn('shrink-0', hasActive && 'text-primary')}
+          />
+          <span className="flex-1 text-left">{group.label}</span>
+          <ChevronDown
+            size={15}
+            className={cn(
+              'shrink-0 text-text-3 transition-transform duration-200',
+              open && 'rotate-180',
+            )}
+          />
+        </button>
+        <div
+          className={cn(
+            'grid transition-[grid-template-rows] duration-200',
+            open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+          )}
+        >
+          <ul className="ml-[21px] space-y-0.5 overflow-hidden border-l border-sidebar-border pl-3">
+            {group.children.map((c) => (
+              <li key={c.href} className="first:mt-0.5 last:mb-1">
+                {leafLink(c, true)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <aside
-      className={cn(
-        'fixed top-0 left-0 z-40 h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300',
-        sidebarCollapsed
-          ? 'w-[var(--spacing-sidebar-collapsed)]'
-          : 'w-[var(--spacing-sidebar)]',
-      )}
-    >
-      {/* Logo & Collapse Toggle. Collapsed (74px) there is no room for both,
-          so the logo itself becomes the expand button. */}
-      {sidebarCollapsed ? (
-        <div className="flex h-16 items-center justify-center border-b border-border">
-          <button
-            onClick={toggleSidebar}
-            className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600 text-sm font-bold text-white transition-opacity hover:opacity-90"
-            aria-label="Expand sidebar"
-            title="Expand sidebar"
-          >
-            M
-          </button>
-        </div>
-      ) : (
-        <div className="flex h-16 items-center justify-between border-b border-border px-4">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600">
-              <span className="text-sm font-bold text-white">M</span>
-            </div>
-            <span className="whitespace-nowrap text-lg font-bold text-foreground">
-              MedTrackr
-            </span>
-          </div>
-          <button
-            onClick={toggleSidebar}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-            aria-label="Collapse sidebar"
-            title="Collapse sidebar"
-          >
-            <ChevronLeft size={18} />
-          </button>
-        </div>
-      )}
-
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {navSections.map((section, si) => {
-          const visible = section.items.filter((item) => {
-            if (item.show && !item.show(authStore)) return false
-            if (item.feature && !features.has(item.feature)) return false
-            if (item.roles && !item.roles.some((r) => roleAccess[r]))
-              return false
-            return true
-          })
-          if (visible.length === 0) return null
-          return (
-            <div key={section.label ?? si} className={cn(si > 0 && 'mt-2')}>
-              {section.label && !sidebarCollapsed && (
-                <div className="px-3 pb-1.5 pt-3.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-text-3">
-                  {section.label}
-                </div>
-              )}
-              <ul className="space-y-0.5">
-                {visible.map((item) => {
-                  const isActive =
-                    currentPath === item.href ||
-                    currentPath.startsWith(item.href + '/')
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          'flex items-center gap-3 rounded-[9px] px-3 py-2.5 text-sm font-medium transition-colors',
-                          isActive
-                            ? 'bg-primary-soft font-semibold text-primary-text'
-                            : 'text-text-2 hover:bg-panel hover:text-foreground',
-                          sidebarCollapsed && 'justify-center px-2',
-                        )}
-                        title={sidebarCollapsed ? item.label : undefined}
-                      >
-                        <item.icon size={18} className="flex-shrink-0" />
-                        {!sidebarCollapsed && (
-                          <span className="flex-1">{item.label}</span>
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )
-        })}
-      </nav>
-
-      {/* Bottom Section */}
-      <div className="py-4 px-3 border-t border-border">
-        <ul className="space-y-1 mb-4">
-          {bottomNavItems.map((item) => {
-            if (item.show && !item.show(authStore)) return null
-            const isActive =
-              currentPath === item.href ||
-              currentPath.startsWith(item.href + '/')
-            return (
-              <li key={item.href}>
-                <Link
-                  to={item.href}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-[9px] text-sm transition-colors',
-                    isActive
-                      ? 'bg-primary-soft text-primary-text font-semibold'
-                      : 'text-text-2 hover:bg-panel hover:text-foreground',
-                    sidebarCollapsed && 'justify-center px-2',
-                  )}
-                  title={sidebarCollapsed ? item.label : undefined}
-                >
-                  <item.icon size={18} className="flex-shrink-0" />
-                  {!sidebarCollapsed && <span>{item.label}</span>}
-                </Link>
-              </li>
-            )
-          })}
-          {/* Logout */}
-          <li>
-            <button
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className={cn(
-                'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors',
-                sidebarCollapsed && 'justify-center px-2',
-              )}
-              title={sidebarCollapsed ? 'Sign out' : undefined}
-            >
-              {isLoggingOut ? (
-                <Loader2 size={18} className="flex-shrink-0 animate-spin" />
-              ) : (
-                <LogOut size={18} className="flex-shrink-0" />
-              )}
-              {!sidebarCollapsed && <span>Sign out</span>}
-            </button>
-          </li>
-        </ul>
-
-        <Separator className="mb-4" />
-
-        {/* User Profile */}
-        <Link
-          to="/settings"
+    <TooltipProvider delayDuration={200}>
+      <aside
+        className={cn(
+          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+          collapsed
+            ? 'w-[var(--spacing-sidebar-collapsed)]'
+            : 'w-[var(--spacing-sidebar)]',
+        )}
+      >
+        {/* Brand + collapse toggle */}
+        <div
           className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-accent transition-colors cursor-pointer',
-            sidebarCollapsed && 'justify-center px-0',
+            'flex h-16 shrink-0 items-center border-b border-border',
+            collapsed ? 'justify-center' : 'justify-between px-4',
           )}
         >
-          <Avatar className="w-9 h-9 flex-shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-              {getInitials(user?.name)}
-            </AvatarFallback>
-          </Avatar>
-          {!sidebarCollapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">
-                {user?.name || 'User'}
-              </p>
-              <Badge
-                variant="secondary"
-                className={cn(
-                  'text-[10px] px-1.5 py-0 h-4 font-medium',
-                  ROLE_COLORS[user?.globalRole || ''] ||
-                    'bg-muted text-muted-foreground',
-                )}
+          {collapsed ? (
+            <CollapsedTip label="Expand sidebar" enabled>
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                aria-label="Expand sidebar"
+                className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
-                {user?.globalRole || 'Member'}
-              </Badge>
-            </div>
+                M
+              </button>
+            </CollapsedTip>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600">
+                  <span className="text-sm font-bold text-white">M</span>
+                </div>
+                <span className="whitespace-nowrap text-lg font-bold text-foreground">
+                  MedTrackr
+                </span>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={toggleSidebar}
+                    aria-label="Collapse sidebar"
+                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent"
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  Collapse sidebar
+                </TooltipContent>
+              </Tooltip>
+            </>
           )}
-        </Link>
-      </div>
-    </aside>
+        </div>
+
+        {/* Navigation */}
+        <nav
+          ref={navRef}
+          onScroll={(e) => {
+            savedNavScroll = e.currentTarget.scrollTop
+          }}
+          className="flex-1 overflow-y-auto px-3 py-3"
+          aria-label="Main"
+        >
+          {sections.map((section, i) => (
+            <div key={section.label ?? i} className={cn(i > 0 && 'mt-3')}>
+              {section.label &&
+                (collapsed ? (
+                  <div className="mx-2 mb-2 border-t border-sidebar-border" />
+                ) : (
+                  <div className="px-3 pb-1 text-[10.5px] font-bold uppercase tracking-[0.09em] text-text-3">
+                    {section.label}
+                  </div>
+                ))}
+              <div className="space-y-0.5">
+                {section.items.map((e) =>
+                  isGroup(e) ? groupBlock(e) : leafLink(e),
+                )}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        {/* Footer: settings + profile with sign out */}
+        <div className="shrink-0 space-y-2 border-t border-border px-3 py-3">
+          {leafLink(SETTINGS)}
+          <div
+            className={cn(
+              'flex items-center gap-2 rounded-[9px] bg-panel/60 p-2',
+              collapsed && 'flex-col bg-transparent p-0',
+            )}
+          >
+            <CollapsedTip label={user?.name || 'Profile'} enabled={collapsed}>
+              <Link
+                to="/settings"
+                className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
+              >
+                <Avatar className="size-8 shrink-0">
+                  <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                    {getInitials(user?.name)}
+                  </AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div className="min-w-0 leading-tight">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {user?.name || 'User'}
+                    </p>
+                    <p className="truncate text-[11px] text-text-3">
+                      {user?.email ?? user?.globalRole ?? 'Member'}
+                    </p>
+                  </div>
+                )}
+              </Link>
+            </CollapsedTip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  disabled={isLoggingOut}
+                  aria-label="Sign out"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                >
+                  {isLoggingOut ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <LogOut size={16} />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side={collapsed ? 'right' : 'top'}
+                className="text-xs"
+              >
+                Sign out
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </aside>
+    </TooltipProvider>
   )
 }

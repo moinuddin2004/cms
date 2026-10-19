@@ -10,14 +10,16 @@ import {
   FOLLOW_UP_PICKS,
   appendPhrase,
 } from '../constants/quickPicks'
-import { Chip } from './Chip'
+import { Chip, ChipGroup } from './Chip'
+import { Panel } from './Panel'
 import { SaveBadge } from './SaveBadge'
 
 type NoteField = Exclude<keyof VisitNotesValue, 'followUpDate'>
 
 /**
- * The visit notes. Everything auto-saves; common phrases are one tap each so
- * the doctor rarely needs the keyboard.
+ * The visit notes. Everything auto-saves; the most common phrases are one tap
+ * each (the rest behind "+N more") so the doctor rarely needs the keyboard —
+ * and when they do, Tab simply walks from one note to the next.
  */
 export function VisitNotes({
   value,
@@ -36,80 +38,82 @@ export function VisitNotes({
     set(field, appendPhrase(value[field], phrase))
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-base font-semibold">
-          <ClipboardList className="size-4 text-primary-text" />
-          Visit notes
-        </h2>
-        <SaveBadge state={saveState} savedAt={savedAt} />
-      </div>
+    <Panel
+      icon={<ClipboardList />}
+      title="Visit notes"
+      action={<SaveBadge state={saveState} savedAt={savedAt} />}
+      bodyClassName="space-y-4"
+    >
+      <NoteBlock
+        id="note-complaint"
+        label="Complaint"
+        value={value.chiefComplaint}
+        placeholder="Why did the patient come?"
+        picks={COMPLAINT_PICKS}
+        onText={(t) => set('chiefComplaint', t)}
+        onPick={(p) => pick('chiefComplaint', p)}
+      />
+      <NoteBlock
+        id="note-examination"
+        label="Examination"
+        value={value.examination}
+        placeholder="Findings — tooth numbers, gums, X-ray…"
+        onText={(t) => set('examination', t)}
+      />
+      <NoteBlock
+        id="note-diagnosis"
+        label="Diagnosis"
+        value={value.diagnosis}
+        placeholder="Diagnosis"
+        picks={DIAGNOSIS_PICKS}
+        onText={(t) => set('diagnosis', t)}
+        onPick={(p) => pick('diagnosis', p)}
+      />
+      <NoteBlock
+        id="note-advice"
+        label="Advice to patient"
+        value={value.advice}
+        placeholder="Instructions for the patient"
+        picks={ADVICE_PICKS}
+        onText={(t) => set('advice', t)}
+        onPick={(p) => pick('advice', p)}
+      />
 
-      <div className="space-y-5">
-        <NoteBlock
-          label="Complaint"
-          value={value.chiefComplaint}
-          placeholder="Why did the patient come?"
-          picks={COMPLAINT_PICKS}
-          onText={(t) => set('chiefComplaint', t)}
-          onPick={(p) => pick('chiefComplaint', p)}
-        />
-        <NoteBlock
-          label="Examination"
-          value={value.examination}
-          placeholder="Findings — tooth numbers, gums, X-ray…"
-          onText={(t) => set('examination', t)}
-        />
-        <NoteBlock
-          label="Diagnosis"
-          value={value.diagnosis}
-          placeholder="Diagnosis"
-          picks={DIAGNOSIS_PICKS}
-          onText={(t) => set('diagnosis', t)}
-          onPick={(p) => pick('diagnosis', p)}
-        />
-        <NoteBlock
-          label="Advice to patient"
-          value={value.advice}
-          placeholder="Instructions for the patient"
-          picks={ADVICE_PICKS}
-          onText={(t) => set('advice', t)}
-          onPick={(p) => pick('advice', p)}
-        />
-
-        <div>
-          <p className="mb-1.5 text-sm font-medium">Next visit</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {FOLLOW_UP_PICKS.map((f) => {
-              const date = format(addDays(new Date(), f.days), 'yyyy-MM-dd')
-              return (
-                <Chip
-                  key={f.days}
-                  active={value.followUpDate === date}
-                  onClick={() =>
-                    set('followUpDate', value.followUpDate === date ? '' : date)
-                  }
-                >
-                  {f.label}
-                </Chip>
-              )
-            })}
-            <DatePicker
-              value={value.followUpDate || undefined}
-              onChange={(d) => set('followUpDate', d)}
-              placeholder="Pick a date"
-              clearable
-              min={format(new Date(), 'yyyy-MM-dd')}
-              className="h-10 w-44"
-            />
-          </div>
+      <div className="space-y-1.5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Next visit
+        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {FOLLOW_UP_PICKS.map((f) => {
+            const date = format(addDays(new Date(), f.days), 'yyyy-MM-dd')
+            return (
+              <Chip
+                key={f.days}
+                active={value.followUpDate === date}
+                onClick={() =>
+                  set('followUpDate', value.followUpDate === date ? '' : date)
+                }
+              >
+                {f.label}
+              </Chip>
+            )
+          })}
+          <DatePicker
+            value={value.followUpDate || undefined}
+            onChange={(d) => set('followUpDate', d)}
+            placeholder="Pick a date"
+            clearable
+            min={format(new Date(), 'yyyy-MM-dd')}
+            className="h-8 w-40 text-[13px]"
+          />
         </div>
       </div>
-    </section>
+    </Panel>
   )
 }
 
 function NoteBlock({
+  id,
   label,
   value,
   placeholder,
@@ -117,6 +121,7 @@ function NoteBlock({
   onText,
   onPick,
 }: {
+  id: string
   label: string
   value: string
   placeholder: string
@@ -126,28 +131,31 @@ function NoteBlock({
 }) {
   const chosen = value.toLowerCase()
   return (
-    <div>
-      <p className="mb-1.5 text-sm font-medium">{label}</p>
-      {picks && onPick && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {picks.map((p) => (
-            <Chip
-              key={p}
-              active={chosen.includes(p.toLowerCase())}
-              onClick={() => onPick(p)}
-            >
-              {p}
-            </Chip>
-          ))}
-        </div>
-      )}
+    <div className="space-y-1.5">
+      <label
+        htmlFor={id}
+        className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+      >
+        {label}
+      </label>
       <Textarea
+        id={id}
         value={value}
         onChange={(e) => onText(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="min-h-[72px] text-base"
+        className="min-h-14 resize-none"
       />
+      {picks && onPick && (
+        <ChipGroup
+          items={picks}
+          getKey={(p) => p}
+          getLabel={(p) => p}
+          isActive={(p) => chosen.includes(p.toLowerCase())}
+          onPick={onPick}
+          limit={5}
+        />
+      )}
     </div>
   )
 }

@@ -61,13 +61,13 @@ export function ConsultationHeader({
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 sm:gap-x-3 lg:px-4">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:gap-x-3 lg:px-4">
         <TooltipButton
           tooltip="Back to my queue"
           tooltipSide="bottom"
           variant="ghost"
           size="icon"
-          className="size-11 shrink-0"
+          className="size-9 shrink-0"
           asChild
         >
           <Link to="/queue/doctor">
@@ -76,10 +76,10 @@ export function ConsultationHeader({
         </TooltipButton>
 
         <div className="hidden sm:block">
-          <InitialsAvatar name={patient.fullName} size="md" />
+          <InitialsAvatar name={patient.fullName} size="sm" />
         </div>
         <div className="min-w-0 flex-1 basis-24">
-          <h1 className="truncate text-lg font-semibold leading-tight">
+          <h1 className="truncate text-base font-semibold leading-tight">
             {patient.fullName}
           </h1>
           <p className="truncate text-xs text-muted-foreground">
@@ -92,7 +92,7 @@ export function ConsultationHeader({
 
         <div className="flex shrink-0 items-center gap-2 text-sm">
           {queueEntry && (
-            <span className="rounded-md bg-primary-soft px-2.5 py-1 font-mono text-sm font-bold text-primary-text">
+            <span className="rounded-md bg-primary-soft px-2 py-0.5 font-mono text-xs font-bold text-primary-text">
               {queueEntry.token}
             </span>
           )}
@@ -118,7 +118,7 @@ export function ConsultationHeader({
         </div>
 
         <nav
-          className="order-last flex w-full items-center gap-1 overflow-x-auto lg:order-none lg:w-auto"
+          className="order-last flex w-full items-center gap-0.5 overflow-x-auto rounded-lg border border-border bg-muted/40 p-0.5 md:order-none md:w-auto"
           aria-label="Patient record"
         >
           <RecordShortcut
@@ -126,7 +126,7 @@ export function ConsultationHeader({
             label="History"
             onClick={() => onOpenRecord('history')}
           >
-            <History className="size-5" />
+            <History className="size-4" />
           </RecordShortcut>
           <FeatureGuard feature="patients.teeth_chart">
             <RecordShortcut
@@ -134,7 +134,7 @@ export function ConsultationHeader({
               label="Teeth"
               onClick={() => onOpenRecord('teeth')}
             >
-              <Smile className="size-5" />
+              <Smile className="size-4" />
             </RecordShortcut>
           </FeatureGuard>
           <RecordShortcut
@@ -142,7 +142,7 @@ export function ConsultationHeader({
             label="Vitals"
             onClick={() => onOpenRecord('vitals')}
           >
-            <Activity className="size-5" />
+            <Activity className="size-4" />
           </RecordShortcut>
           <FeatureGuard feature="patients.documents">
             <RecordShortcut
@@ -150,20 +150,20 @@ export function ConsultationHeader({
               label="Files"
               onClick={() => onOpenRecord('files')}
             >
-              <FolderOpen className="size-5" />
+              <FolderOpen className="size-4" />
             </RecordShortcut>
           </FeatureGuard>
         </nav>
 
         <Button
-          className="h-11 shrink-0 gap-2 bg-emerald px-4 text-base text-white hover:bg-emerald/90 sm:px-5"
+          className="h-9 shrink-0 gap-1.5 bg-emerald px-3 text-white hover:bg-emerald/90 sm:px-4"
           onClick={onComplete}
           disabled={completing || done || !queueEntry}
         >
           {completing ? (
-            <Loader2 className="size-5 animate-spin" />
+            <Loader2 className="size-4 animate-spin" />
           ) : (
-            <CheckCircle2 className="size-5" />
+            <CheckCircle2 className="size-4" />
           )}
           <span className="sm:hidden">Complete</span>
           <span className="hidden sm:inline">Complete visit</span>
@@ -172,7 +172,7 @@ export function ConsultationHeader({
 
       {alerts.length > 0 && (
         <div
-          className="flex flex-wrap gap-2 border-t border-border bg-muted/30 px-3 py-2 lg:px-4"
+          className="flex flex-wrap gap-1.5 border-t border-border bg-muted/30 px-3 py-1.5 lg:px-4"
           role="list"
           aria-label="Patient alerts"
         >
@@ -181,7 +181,7 @@ export function ConsultationHeader({
               key={a.key}
               role="listitem"
               className={cn(
-                'inline-flex max-w-full items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
+                'inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                 a.tone === 'danger'
                   ? 'bg-destructive text-white'
                   : 'bg-amber-soft text-amber',
@@ -216,11 +216,11 @@ function RecordShortcut({
       tooltip={tooltip}
       tooltipSide="bottom"
       variant="ghost"
-      className="h-11 gap-1.5 px-3 text-sm"
+      className="h-8 flex-1 gap-1.5 px-2.5 text-[13px] md:flex-none"
       onClick={onClick}
     >
       {children}
-      <span className="hidden xl:inline">{label}</span>
+      <span>{label}</span>
     </TooltipButton>
   )
 }

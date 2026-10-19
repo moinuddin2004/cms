@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
@@ -56,6 +57,8 @@ import type { VisitNotes } from '../types'
 import { MedicineLine, isLineComplete } from './MedicineLine'
 import type { RxLine } from './MedicineLine'
 import { Chip } from './Chip'
+import { Panel, PanelBadge } from './Panel'
+import { PdfPreviewDialog } from './PdfPreviewDialog'
 import { SaveBadge } from './SaveBadge'
 
 /** Medicines handed to the panel from elsewhere on the screen (e.g. "use these again"). */
@@ -281,30 +284,43 @@ export function PrescriptionPanel({
   }, [registerFlush, autosave.flush])
 
   // ── Finalize & print ────────────────────────────────────────────────
-  // The print window is opened inside the tap itself — browsers block a
-  // window that is opened after an await.
-  const openBlankWindow = () => window.open('', '_blank')
-
-  const showPdf = async (id: string, win: Window | null) => {
-    const blob = await fetchPrescriptionPdf(id)
-    const url = URL.createObjectURL(blob)
-    if (win && !win.closed) win.location.href = url
-    else window.open(url, '_blank')
+  // The PDF opens in an in-app preview (with Print), never in a pop-up tab:
+  // a tab opened before the PDF is ready just shows a blank page.
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const closePdf = () => {
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl)
+    setPdfUrl(null)
   }
 
-  const finalizeWith = async (
-    signatureImageUrl: string,
-    win: Window | null,
-  ) => {
+  const showPdf = async (id: string) => {
+    const blob = await fetchPrescriptionPdf(id)
+    setPdfUrl(
+      URL.createObjectURL(new Blob([blob], { type: 'application/pdf' })),
+    )
+  }
+
+  const finalizeWith = async (signatureImageUrl: string) => {
     const id = rxIdRef.current
-    if (!id) return win?.close()
+    if (!id) return false
     try {
       await finalizeMutation.mutateAsync({ id, data: { signatureImageUrl } })
       setAmending(false)
-      await showPdf(id, win)
-    } catch {
-      win?.close()
+    } catch (err) {
+      const msg = isAxiosError<{ message?: string | string[] }>(err)
+        ? err.response?.data.message
+        : undefined
+      toast.error(
+        (Array.isArray(msg) ? msg[0] : msg) ||
+          'Could not sign the prescription — try again',
+      )
+      return false
     }
+    try {
+      await showPdf(id)
+    } catch {
+      toast.error('Signed, but the PDF could not be opened — tap Print')
+    }
+    return true
   }
 
   const startFinalize = async () => {
@@ -318,22 +334,27 @@ export function PrescriptionPanel({
       toast.error('Add at least one medicine')
       return
     }
-    const win = openBlankWindow()
     setBusy(true)
     try {
-      const saved = await autosave.flush()
+      let saved = await autosave.flush()
+      // Amend with no edits: the server still has it as signed and would
+      // refuse to sign it again — save once so it becomes an amendment.
+      if (saved && amending && rxIdRef.current) {
+        saved = await persist(autosaveValue).then(
+          () => true,
+          () => false,
+        )
+      }
       if (!saved || !rxIdRef.current) {
-        win?.close()
         toast.error('Could not save the prescription — try again')
         return
       }
       const signature = mySignature?.signatureImageUrl
       if (!signature) {
-        win?.close()
         setSigOpen(true)
         return
       }
-      await finalizeWith(signature, win)
+      await finalizeWith(signature)
     } finally {
       setBusy(false)
     }
@@ -347,7 +368,6 @@ export function PrescriptionPanel({
       toast.error('Please sign in the box first')
       return
     }
-    const win = openBlankWindow()
     setBusy(true)
     try {
       await saveSignature.mutateAsync({ signatureImageUrl: dataUrl })
@@ -355,21 +375,22 @@ export function PrescriptionPanel({
       // Saving it for next time is a convenience — finalize anyway.
     }
     try {
-      await finalizeWith(dataUrl, win)
-      setSigOpen(false)
+      if (await finalizeWith(dataUrl)) setSigOpen(false)
     } finally {
       setBusy(false)
     }
   }
 
+  const [printing, setPrinting] = useState(false)
   const printAgain = async () => {
     if (!rxId) return
-    const win = openBlankWindow()
+    setPrinting(true)
     try {
-      await showPdf(rxId, win)
+      await showPdf(rxId)
     } catch {
-      win?.close()
       toast.error('Could not open the prescription PDF')
+    } finally {
+      setPrinting(false)
     }
   }
 
@@ -380,36 +401,30 @@ export function PrescriptionPanel({
     .filter((m) => !lines.some((l) => l.medicineName === m.name))
 
   return (
-    <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-base font-semibold">
-          <Pill className="size-4 text-primary-text" />
-          Prescription
-          {existing && (
-            <span
-              className={
-                isFinal
-                  ? 'rounded-full bg-emerald-soft px-2 py-0.5 text-xs font-semibold text-emerald'
-                  : 'rounded-full bg-amber-soft px-2 py-0.5 text-xs font-semibold text-amber'
-              }
-            >
-              {isFinal
-                ? `Signed · ${existing.prescriptionNumber}`
-                : amending || status === PrescriptionStatus.AMENDED
-                  ? 'Amending'
-                  : 'Draft'}
-            </span>
-          )}
-        </h2>
-        {!isFinal && (rxId || lines.length > 0) && (
+    <Panel
+      icon={<Pill />}
+      title="Prescription"
+      badge={
+        existing ? (
+          <PanelBadge tone={isFinal ? 'success' : 'warning'}>
+            {isFinal
+              ? `Signed · ${existing.prescriptionNumber}`
+              : amending || status === PrescriptionStatus.AMENDED
+                ? 'Amending'
+                : 'Draft'}
+          </PanelBadge>
+        ) : undefined
+      }
+      action={
+        !isFinal && (rxId || lines.length > 0) ? (
           <SaveBadge state={autosave.state} savedAt={autosave.savedAt} />
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
       {isLoading ? (
         <Skeleton className="h-32 w-full" />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {!isFinal && (
             <>
               <div className="flex flex-wrap gap-2">
@@ -417,19 +432,25 @@ export function PrescriptionPanel({
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11"
+                    size="sm"
+                    className="h-8"
                     onClick={() => {
                       addLines(lastRx.medicines)
                       toast.success('Last prescription added')
                     }}
                   >
-                    <Repeat className="size-4" /> Repeat last prescription
+                    <Repeat className="size-4" /> Repeat last
                   </Button>
                 )}
                 {planTemplates.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button type="button" variant="outline" className="h-11">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8"
+                      >
                         <LayoutTemplate className="size-4" /> Use a preset
                       </Button>
                     </DropdownMenuTrigger>
@@ -443,7 +464,7 @@ export function PrescriptionPanel({
                       {planTemplates.map((t) => (
                         <DropdownMenuItem
                           key={t.id}
-                          className="min-h-11"
+                          className="min-h-9"
                           onSelect={() => {
                             addLines(t.medicines)
                             if (t.instructionsEnglish) {
@@ -479,7 +500,7 @@ export function PrescriptionPanel({
               </div>
 
               {suggestions.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   {suggestions.map((m) => (
                     <Chip
                       key={m.id}
@@ -494,7 +515,7 @@ export function PrescriptionPanel({
           )}
 
           {lines.length === 0 ? (
-            <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+            <p className="rounded-md border border-dashed border-border p-3 text-center text-[13px] text-muted-foreground">
               No medicines yet. Search above, tap a common one, or use a
               template.
             </p>
@@ -524,7 +545,7 @@ export function PrescriptionPanel({
             </ul>
           )}
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] leading-snug text-muted-foreground">
             Diagnosis, advice, next visit and today’s vitals from your notes are
             printed on the prescription automatically.
           </p>
@@ -532,12 +553,21 @@ export function PrescriptionPanel({
           <div className="flex flex-wrap gap-2">
             {isFinal ? (
               <>
-                <Button className="h-12 px-6 text-base" onClick={printAgain}>
-                  <Printer className="size-5" /> Print
+                <Button
+                  className="h-9 px-4"
+                  disabled={printing}
+                  onClick={() => void printAgain()}
+                >
+                  {printing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Printer className="size-4" />
+                  )}
+                  Print
                 </Button>
                 <Button
                   variant="outline"
-                  className="h-12"
+                  className="h-9"
                   onClick={() => setAmending(true)}
                 >
                   <Pencil className="size-4" /> Amend
@@ -545,14 +575,14 @@ export function PrescriptionPanel({
               </>
             ) : (
               <Button
-                className="h-12 px-6 text-base"
+                className="h-9 px-4"
                 disabled={busy || completeLines.length === 0}
-                onClick={startFinalize}
+                onClick={() => void startFinalize()}
               >
                 {busy || finalizeMutation.isPending ? (
-                  <Loader2 className="size-5 animate-spin" />
+                  <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  <Printer className="size-5" />
+                  <Printer className="size-4" />
                 )}
                 {status === PrescriptionStatus.AMENDED || amending
                   ? 'Sign amendment & print'
@@ -595,6 +625,12 @@ export function PrescriptionPanel({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </section>
+
+      <PdfPreviewDialog
+        url={pdfUrl}
+        title={`Prescription ${existing?.prescriptionNumber ?? ''}`.trim()}
+        onClose={closePdf}
+      />
+    </Panel>
   )
 }

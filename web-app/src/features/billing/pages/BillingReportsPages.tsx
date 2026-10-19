@@ -4,20 +4,15 @@ import {
   Activity,
   BadgePercent,
   Banknote,
+  Percent,
   Stethoscope,
   Users,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/shared/DataTable'
-import { DateRangePicker } from '@/components/shared/DateRangePicker'
-import {
-  ErrorState,
-  InitialsAvatar,
-  LoadingSkeleton,
-  PageWrapper,
-  StatCard,
-} from '@/components/shared'
+import { ErrorState, PageWrapper } from '@/components/shared'
 import { formatCurrency } from '@/lib/formatters'
+import { cn } from '@/lib/utils'
 import {
   useBillingActivity,
   useDoctorRevenue,
@@ -28,58 +23,58 @@ import type {
   DoctorRevenueReport,
 } from '../types/billing.types'
 import { Money } from '../components/shared/billing-badges'
-import { FilterBar, SectionHeading } from '../components/shared/billing-ui'
+import { SectionHeading } from '../components/shared/billing-ui'
+import {
+  DatePresetBar,
+  ListToolbar,
+  LiveDot,
+  presetRange,
+  StatsStrip,
+} from '../components/shared/list-toolbar'
+import type { DateRange, RangePreset } from '../components/shared/list-toolbar'
 
-const todayLocal = () => new Date().toLocaleDateString('en-CA')
-
-function RangeFilter({
-  range,
-  onChange,
-}: {
-  range: { from: string; to: string }
-  onChange: (r: { from: string; to: string }) => void
-}) {
-  return (
-    <FilterBar>
-      <span className="text-xs font-medium text-text-3">Period</span>
-      <DateRangePicker
-        aria-label="Report period"
-        className="h-8 w-[300px] text-xs"
-        value={range}
-        // A report always needs a period, so it can't be cleared.
-        clearable={false}
-        onChange={(r) => r.from && onChange(r)}
-      />
-    </FilterBar>
-  )
+/** Preset + custom range state that always resolves to a full from/to. */
+function useReportRange(initial: Exclude<RangePreset, 'custom' | 'all'>) {
+  const [preset, setPreset] = useState<RangePreset>(initial)
+  const [custom, setCustom] = useState<DateRange>({})
+  const range = useMemo(() => {
+    const r = presetRange(preset, custom)
+    const today = new Date().toLocaleDateString('en-CA')
+    return { from: r.from ?? today, to: r.to ?? r.from ?? today }
+  }, [preset, custom])
+  return {
+    preset,
+    custom,
+    range,
+    set: (p: RangePreset, c: DateRange) => (setPreset(p), setCustom(c)),
+  }
 }
 
 type DoctorRow = DoctorRevenueReport['rows'][number]
 
-/** Admin: billed, discounts and collected per doctor (D24, 6.21). */
+/** Admin: billed, discounts and collected per doctor (D24, 6.21) — Appointments layout. */
 export function DoctorRevenuePage() {
-  const [range, setRange] = useState({
-    from: todayLocal().slice(0, 8) + '01',
-    to: todayLocal(),
-  })
-  const report = useDoctorRevenue(range)
+  const r = useReportRange('month')
+  const report = useDoctorRevenue(r.range)
+  const totals = report.data?.totals
+  const rows = report.data?.rows ?? []
+
   const columns = useMemo<ColumnDef<DoctorRow, unknown>[]>(
     () => [
       {
+        id: 'doctor',
         accessorKey: 'doctorName',
         header: 'Doctor',
-        cell: ({ row }) => (
-          <div className="flex items-center gap-3">
-            <InitialsAvatar
-              name={row.original.doctorName}
-              seed={row.original.doctorId ?? 'none'}
-              size="sm"
-            />
-            <span className="text-sm font-semibold">
-              {row.original.doctorName}
+        cell: ({ row }) =>
+          row.original.doctorId ? (
+            <span className="text-sm font-medium">
+              Dr. {row.original.doctorName}
             </span>
-          </div>
-        ),
+          ) : (
+            <span className="text-sm italic text-muted-foreground">
+              No doctor
+            </span>
+          ),
       },
       {
         accessorKey: 'billed',
@@ -102,50 +97,125 @@ export function DoctorRevenuePage() {
         accessorKey: 'collected',
         header: 'Collected',
         cell: ({ row }) => (
-          <Money value={row.original.collected} className="font-semibold" />
+          <Money
+            value={row.original.collected}
+            className="font-semibold text-foreground"
+          />
         ),
+      },
+      {
+        id: 'rate',
+        header: 'Collected %',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const pct =
+            row.original.billed > 0
+              ? Math.round((row.original.collected / row.original.billed) * 100)
+              : 0
+          return (
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                pct >= 90
+                  ? 'border-emerald/20 bg-emerald-soft text-emerald'
+                  : pct >= 50
+                    ? 'border-amber/20 bg-amber-soft text-amber'
+                    : 'border-danger/20 bg-danger-soft text-danger',
+              )}
+            >
+              {pct}%
+            </span>
+          )
+        },
       },
     ],
     [],
   )
-  const totals = report.data?.totals
 
   return (
-    <PageWrapper
-      title="Doctor revenue"
-      subtitle="Billed by invoice date · collected by payment date (releases subtract)"
-    >
-      <RangeFilter range={range} onChange={setRange} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Billed"
-          value={formatCurrency(totals?.billed ?? 0)}
-          icon={Stethoscope}
-        />
-        <StatCard
-          label="Discounts"
-          value={formatCurrency(totals?.discounts ?? 0)}
-          icon={BadgePercent}
-          iconTone="amber"
-        />
-        <StatCard
-          label="Collected"
-          value={formatCurrency(totals?.collected ?? 0)}
-          icon={Banknote}
-          iconTone="emerald"
-        />
-      </div>
-      {report.isError ? (
-        <ErrorState onRetry={() => void report.refetch()} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={report.data?.rows ?? []}
+    <>
+      <PageWrapper
+        title="Doctor revenue"
+        subtitle="Billed by invoice date; collected by payment date (releases subtract)."
+      />
+      <div className="mt-5 space-y-4">
+        <StatsStrip
           isLoading={report.isLoading}
-          emptyMessage="No billing in this period."
+          items={[
+            {
+              key: 'doctors',
+              label: 'Doctors',
+              value: rows.filter((x) => x.doctorId).length,
+              icon: Users,
+              color: 'text-primary-text',
+              bg: 'bg-primary-soft',
+            },
+            {
+              key: 'billed',
+              label: 'Billed',
+              value: formatCurrency(totals?.billed ?? 0),
+              icon: Stethoscope,
+              color: 'text-primary-text',
+              bg: 'bg-primary-soft',
+            },
+            {
+              key: 'discounts',
+              label: 'Discounts',
+              value: formatCurrency(totals?.discounts ?? 0),
+              icon: BadgePercent,
+              color: 'text-amber',
+              bg: 'bg-amber-soft',
+            },
+            {
+              key: 'collected',
+              label: 'Collected',
+              value: formatCurrency(totals?.collected ?? 0),
+              icon: Banknote,
+              color: 'text-emerald',
+              bg: 'bg-emerald-soft',
+            },
+            {
+              key: 'rate',
+              label: 'Collected %',
+              value: totals?.billed
+                ? `${Math.round((totals.collected / totals.billed) * 100)}%`
+                : '—',
+              icon: Percent,
+              color: 'text-violet',
+              bg: 'bg-violet-soft',
+            },
+          ]}
         />
-      )}
-    </PageWrapper>
+        <ListToolbar
+          filters={
+            <>
+              <DatePresetBar
+                presets={['today', 'month', 'lastMonth', 'past30']}
+                preset={r.preset}
+                custom={r.custom}
+                onChange={r.set}
+                fallback="month"
+              />
+              <LiveDot show={report.isFetching && !report.isLoading} />
+              <div className="ml-auto text-xs text-muted-foreground">
+                {r.range.from} → {r.range.to}
+              </div>
+            </>
+          }
+        />
+        {report.isError ? (
+          <ErrorState onRetry={() => void report.refetch()} />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={rows}
+            isLoading={report.isLoading}
+            skeletonRows={5}
+            emptyMessage="No billing in this period."
+          />
+        )}
+      </div>
+    </>
   )
 }
 
@@ -182,10 +252,10 @@ const ACTION_TONE: Record<
 
 /** Admin audit feed + per-user day totals of edits, refunds, discounts (plan §8.3). */
 export function BillingActivityPage() {
-  const [range, setRange] = useState({ from: todayLocal(), to: todayLocal() })
+  const r = useReportRange('today')
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
-  const activity = useBillingActivity({ ...range, page, limit })
+  const activity = useBillingActivity({ ...r.range, page, limit })
   const feed = activity.data?.feed
 
   const totalColumns = useMemo<ColumnDef<ActivityDayTotal, unknown>[]>(
@@ -237,7 +307,7 @@ export function BillingActivityPage() {
       {
         id: 'user',
         header: 'User',
-        accessorFn: (r) => r.actorName ?? '—',
+        accessorFn: (x) => x.actorName ?? '—',
         cell: ({ getValue }) => (
           <span className="font-medium">{getValue<string>()}</span>
         ),
@@ -285,51 +355,63 @@ export function BillingActivityPage() {
   )
 
   return (
-    <PageWrapper
-      title="Billing activity"
-      subtitle="Every billing change with who, when and why"
-    >
-      <RangeFilter
-        range={range}
-        onChange={(r) => {
-          setRange(r)
-          setPage(1)
-        }}
+    <>
+      <PageWrapper
+        title="Billing activity"
+        subtitle="Every billing change with who, when and why."
       />
-      {!!activity.data?.dayTotals.length && (
-        <section className="space-y-2">
-          <SectionHeading icon={Users} title="Per user per day" />
-          <DataTable
-            columns={totalColumns}
-            data={activity.data.dayTotals}
-            pagination={false}
-          />
-        </section>
-      )}
-      <section className="space-y-2">
-        <SectionHeading icon={Activity} title="Activity feed" />
-        {activity.isLoading ? (
-          <LoadingSkeleton variant="table" />
-        ) : activity.isError ? (
-          <ErrorState onRetry={() => void activity.refetch()} />
-        ) : (
-          <DataTable
-            columns={feedColumns}
-            data={feed?.data ?? []}
-            emptyMessage="No billing activity in this period."
-            serverPagination={{
-              page,
-              pageSize: limit,
-              total: feed?.total ?? 0,
-              onPageChange: setPage,
-              onPageSizeChange: (l) => {
-                setLimit(l)
-                setPage(1)
-              },
-            }}
-          />
+      <div className="mt-5 space-y-4">
+        <ListToolbar
+          filters={
+            <>
+              <DatePresetBar
+                presets={['today', 'month', 'past30']}
+                preset={r.preset}
+                custom={r.custom}
+                onChange={(p, c) => {
+                  r.set(p, c)
+                  setPage(1)
+                }}
+                fallback="today"
+              />
+              <LiveDot show={activity.isFetching && !activity.isLoading} />
+            </>
+          }
+        />
+        {!!activity.data?.dayTotals.length && (
+          <section className="space-y-2">
+            <SectionHeading icon={Users} title="Per user per day" />
+            <DataTable
+              columns={totalColumns}
+              data={activity.data.dayTotals}
+              pagination={false}
+            />
+          </section>
         )}
-      </section>
-    </PageWrapper>
+        <section className="space-y-2">
+          <SectionHeading icon={Activity} title="Activity feed" />
+          {activity.isError ? (
+            <ErrorState onRetry={() => void activity.refetch()} />
+          ) : (
+            <DataTable
+              columns={feedColumns}
+              data={feed?.data ?? []}
+              isLoading={activity.isLoading}
+              emptyMessage="No billing activity in this period."
+              serverPagination={{
+                page,
+                pageSize: limit,
+                total: feed?.total ?? 0,
+                onPageChange: setPage,
+                onPageSizeChange: (l) => {
+                  setLimit(l)
+                  setPage(1)
+                },
+              }}
+            />
+          )}
+        </section>
+      </div>
+    </>
   )
 }

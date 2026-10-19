@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { format } from 'date-fns'
-import { Activity, CalendarCheck2, Pill, Repeat } from 'lucide-react'
+import { Activity, CalendarCheck2, Pill, Repeat, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Patient, PatientVitals } from '@/features/patients'
 import { usePatientHistory } from '@/features/patients/hooks/usePatientSubEntities'
@@ -11,6 +12,7 @@ import {
 } from '@/features/prescriptions'
 import type { PrescriptionMedicine } from '@/features/prescriptions'
 import type { RecordTab } from './RecordDrawer'
+import { Panel } from './Panel'
 
 const day = (iso: string) => format(new Date(iso), 'dd MMM yyyy')
 
@@ -51,24 +53,23 @@ export function PatientSnapshot({
     .slice(0, 3)
 
   return (
-    <div className="space-y-3">
-      <Card
-        icon={<Activity className="size-4" />}
+    <Panel
+      icon={<UserRound />}
+      title="Patient at a glance"
+      bodyClassName="divide-y divide-border p-0"
+    >
+      <Section
+        icon={<Activity />}
         title="Latest vitals"
         action={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3"
-            onClick={() => onOpenRecord('vitals')}
-          >
+          <SectionAction onClick={() => onOpenRecord('vitals')}>
             {vitals ? 'Update' : 'Record'}
-          </Button>
+          </SectionAction>
         }
       >
         {vitals ? (
           <>
-            <dl className="grid grid-cols-3 gap-2 text-center">
+            <dl className="grid grid-cols-3 gap-1.5 text-center">
               <Vital
                 label="BP"
                 value={
@@ -83,48 +84,44 @@ export function PatientSnapshot({
               <Vital label="Weight kg" value={vitals.weightKg} />
               <Vital label="Height cm" value={vitals.heightCm} />
             </dl>
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
               Recorded {day(vitals.recordedAt)}
             </p>
           </>
         ) : (
           <Empty>No vitals recorded yet.</Empty>
         )}
-      </Card>
+      </Section>
 
-      <Card
-        icon={<CalendarCheck2 className="size-4" />}
+      <Section
+        icon={<CalendarCheck2 />}
         title="Earlier visits"
         action={
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 px-3"
-            onClick={() => onOpenRecord('history')}
-          >
-            See all
-          </Button>
+          pastVisits.length > 0 ? (
+            <SectionAction onClick={() => onOpenRecord('history')}>
+              See all
+            </SectionAction>
+          ) : undefined
         }
       >
         {loadingHistory ? (
-          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-10 w-full" />
         ) : pastVisits.length === 0 ? (
           <Empty>First visit — nothing earlier on record.</Empty>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {pastVisits.map((e) => (
-              <li
-                key={e.id}
-                className="rounded-md border border-border px-3 py-2"
-              >
-                <p className="text-xs font-semibold text-muted-foreground">
-                  {day(e.encounterDate)}
-                </p>
-                <p className="text-sm font-medium">
-                  {e.diagnosis || e.chiefComplaint || e.reason || 'Visit'}
-                </p>
+              <li key={e.id} className="rounded-md bg-muted/40 px-2.5 py-1.5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="truncate text-[13px] font-medium">
+                    {e.diagnosis || e.chiefComplaint || e.reason || 'Visit'}
+                  </p>
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {day(e.encounterDate)}
+                  </span>
+                </div>
                 {(e.treatments?.length ?? 0) > 0 && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="truncate text-[11px] text-muted-foreground">
                     {e.treatments!.map((t) => t.treatmentName).join(', ')}
                   </p>
                 )}
@@ -132,46 +129,45 @@ export function PatientSnapshot({
             ))}
           </ul>
         )}
-      </Card>
+      </Section>
 
-      <Card icon={<Pill className="size-4" />} title="Earlier prescriptions">
+      <Section icon={<Pill />} title="Earlier prescriptions">
         {pastRx.length === 0 ? (
           <Empty>No earlier prescriptions.</Empty>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-1.5">
             {pastRx.map((p) => (
               <li
                 key={p.id}
-                className="rounded-md border border-border px-3 py-2"
+                className="flex items-center gap-2 rounded-md bg-muted/40 px-2.5 py-1.5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-muted-foreground">
-                      {day(p.createdAt)}
-                    </p>
-                    <p className="text-sm">
-                      {p.medicines.map((m) => m.medicineName).join(', ')}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 shrink-0 px-3"
-                    onClick={() => onUseMedicines(p.medicines)}
-                  >
-                    <Repeat className="size-3.5" /> Use again
-                  </Button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px]">
+                    {p.medicines.map((m) => m.medicineName).join(', ')}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {day(p.createdAt)}
+                  </p>
                 </div>
+                <TooltipButton
+                  tooltip="Use these medicines again"
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 shrink-0 text-primary-text"
+                  onClick={() => onUseMedicines(p.medicines)}
+                >
+                  <Repeat className="size-4" />
+                </TooltipButton>
               </li>
             ))}
           </ul>
         )}
-      </Card>
-    </div>
+      </Section>
+    </Panel>
   )
 }
 
-function Card({
+function Section({
   icon,
   title,
   action,
@@ -183,16 +179,35 @@ function Card({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-          <span className="text-primary-text">{icon}</span>
+    <div className="px-4 py-3">
+      <div className="mb-1.5 flex min-h-7 items-center justify-between gap-2">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground [&_svg]:size-3.5">
+          {icon}
           {title}
         </h3>
         {action}
       </div>
       {children}
-    </section>
+    </div>
+  )
+}
+
+function SectionAction({
+  onClick,
+  children,
+}: {
+  onClick: () => void
+  children: ReactNode
+}) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 px-2 text-xs text-primary-text"
+      onClick={onClick}
+    >
+      {children}
+    </Button>
   )
 }
 
@@ -204,13 +219,13 @@ function Vital({
   value: string | number | null
 }) {
   return (
-    <div className="rounded-md bg-muted/40 px-1 py-1.5">
-      <dd className="text-base font-semibold">{value ?? '—'}</dd>
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+    <div className="rounded-md bg-muted/40 px-1 py-1">
+      <dd className="text-sm font-semibold tabular-nums">{value ?? '—'}</dd>
+      <dt className="text-[10px] text-muted-foreground">{label}</dt>
     </div>
   )
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>
+  return <p className="text-[13px] text-muted-foreground">{children}</p>
 }
