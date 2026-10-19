@@ -3,9 +3,11 @@ import { randomUUID } from 'crypto';
 import { join } from 'path';
 import {
   CanActivate,
+  DynamicModule,
   ExecutionContext,
   INestApplication,
   Injectable,
+  Type,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -220,7 +222,11 @@ async function runAdmin(...sql: string[]): Promise<void> {
  * of the suite's own (`labs_it_*`): never `public`, and never the shared
  * `billing_it`, so a billing run in parallel cannot drop it mid-test.
  */
-export async function createLabsFixture(schema: string): Promise<LabsFixture> {
+export async function createLabsFixture(
+  schema: string,
+  /** Extra modules a suite needs on top of labs + engine (e.g. later sprints). */
+  extraImports: Array<Type<unknown> | DynamicModule> = [],
+): Promise<LabsFixture> {
   if (!/^labs_it_[a-z_]+$/.test(schema))
     throw new Error(`Bad IT schema ${schema}`);
   await runAdmin(
@@ -256,6 +262,7 @@ export async function createLabsFixture(schema: string): Promise<LabsFixture> {
       FeatureFlagsModule,
       EngineModule,
       LabsModule,
+      ...extraImports,
     ],
     providers: [
       AuthorizationService,

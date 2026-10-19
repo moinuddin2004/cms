@@ -103,6 +103,14 @@ import { WorkflowTransition } from './engine/entities/workflow-transition.entity
 import { WorkflowEffect, TransitionEffect } from './engine/entities/workflow-effect.entity';
 import { StageTemplate, StageTemplateStep } from './engine/entities/stage-template.entity';
 
+// Lab catalog entities
+import { ServiceCategory } from './lab-catalog/entities/service-category.entity';
+import { LabService } from './lab-catalog/entities/lab-service.entity';
+import { LabServiceOption } from './lab-catalog/entities/lab-service-option.entity';
+import { LabServicePrice } from './lab-catalog/entities/lab-service-price.entity';
+import { ServiceMapping } from './lab-catalog/entities/service-mapping.entity';
+import { OrderTemplate } from './lab-catalog/entities/order-template.entity';
+
 // Load environment variables
 config();
 
@@ -210,6 +218,13 @@ export const AppDataSource = new DataSource({
     TransitionEffect,
     StageTemplate,
     StageTemplateStep,
+    // Lab catalog
+    ServiceCategory,
+    LabService,
+    LabServiceOption,
+    LabServicePrice,
+    ServiceMapping,
+    OrderTemplate,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

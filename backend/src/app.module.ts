@@ -37,6 +37,7 @@ import { SequencesModule } from './common/sequences/sequences.module';
 import { IdempotencyModule } from './common/idempotency/idempotency.module';
 import { LabsModule } from './labs/labs.module';
 import { EngineModule } from './engine/engine.module';
+import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
@@ -97,6 +98,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     PlanTemplatesModule,
     EngineModule,
     LabsModule,
+    LabCatalogModule,
   ],
   controllers: [AppController],
   providers: [

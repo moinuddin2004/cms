@@ -27,7 +27,9 @@ import { Route as MedicineDirectoryRouteImport } from './routes/medicine-directo
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as LabsRouteImport } from './routes/labs'
+import { Route as LabOrderTemplatesRouteImport } from './routes/lab-order-templates'
 import { Route as LabDirectoryRouteImport } from './routes/lab-directory'
+import { Route as LabCatalogRouteImport } from './routes/lab-catalog'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FinancialSummaryRouteImport } from './routes/financial-summary'
@@ -159,9 +161,19 @@ const LabsRoute = LabsRouteImport.update({
   path: '/labs',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabOrderTemplatesRoute = LabOrderTemplatesRouteImport.update({
+  id: '/lab-order-templates',
+  path: '/lab-order-templates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LabDirectoryRoute = LabDirectoryRouteImport.update({
   id: '/lab-directory',
   path: '/lab-directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabCatalogRoute = LabCatalogRouteImport.update({
+  id: '/lab-catalog',
+  path: '/lab-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -376,7 +388,9 @@ export interface FileRoutesByFullPath {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
+  '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -437,7 +451,9 @@ export interface FileRoutesByTo {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
+  '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -499,7 +515,9 @@ export interface FileRoutesById {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
+  '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -562,7 +580,9 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-catalog'
     | '/lab-directory'
+    | '/lab-order-templates'
     | '/labs'
     | '/locations'
     | '/login'
@@ -623,7 +643,9 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-catalog'
     | '/lab-directory'
+    | '/lab-order-templates'
     | '/labs'
     | '/locations'
     | '/login'
@@ -684,7 +706,9 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-catalog'
     | '/lab-directory'
+    | '/lab-order-templates'
     | '/labs'
     | '/locations'
     | '/login'
@@ -746,7 +770,9 @@ export interface RootRouteChildren {
   FinancialSummaryRoute: typeof FinancialSummaryRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InventoryRoute: typeof InventoryRoute
+  LabCatalogRoute: typeof LabCatalogRoute
   LabDirectoryRoute: typeof LabDirectoryRoute
+  LabOrderTemplatesRoute: typeof LabOrderTemplatesRoute
   LabsRoute: typeof LabsRoute
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
@@ -928,11 +954,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-order-templates': {
+      id: '/lab-order-templates'
+      path: '/lab-order-templates'
+      fullPath: '/lab-order-templates'
+      preLoaderRoute: typeof LabOrderTemplatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lab-directory': {
       id: '/lab-directory'
       path: '/lab-directory'
       fullPath: '/lab-directory'
       preLoaderRoute: typeof LabDirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-catalog': {
+      id: '/lab-catalog'
+      path: '/lab-catalog'
+      fullPath: '/lab-catalog'
+      preLoaderRoute: typeof LabCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -1226,7 +1266,9 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialSummaryRoute: FinancialSummaryRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InventoryRoute: InventoryRoute,
+  LabCatalogRoute: LabCatalogRoute,
   LabDirectoryRoute: LabDirectoryRoute,
+  LabOrderTemplatesRoute: LabOrderTemplatesRoute,
   LabsRoute: LabsRoute,
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,

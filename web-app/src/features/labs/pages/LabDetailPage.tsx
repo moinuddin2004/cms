@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import { LabServicesPanel } from '@/features/lab-catalog'
 import { ActivityTimeline } from '../components/ActivityTimeline'
 import { LabClinicsPanel } from '../components/LabClinicsPanel'
 import { LabMembersPanel } from '../components/LabMembersPanel'
@@ -68,12 +69,16 @@ export function LabDetailPage({ labId }: { labId: string }) {
 
           <Tabs defaultValue="staff">
             <TabsList>
+              <TabsTrigger value="services">Services & prices</TabsTrigger>
               <TabsTrigger value="staff">Staff ({lab.memberCount})</TabsTrigger>
               <TabsTrigger value="clinics">
                 Clinics ({lab.activeLinkCount})
               </TabsTrigger>
               <TabsTrigger value="activity">Activity</TabsTrigger>
             </TabsList>
+            <TabsContent value="services" className="pt-4">
+              <LabServicesPanel labId={lab.id} />
+            </TabsContent>
             <TabsContent value="staff" className="pt-4">
               <LabMembersPanel labId={lab.id} />
             </TabsContent>
