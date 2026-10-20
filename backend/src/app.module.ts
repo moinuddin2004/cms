@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { CloudinaryModule } from './common/cloudinary';
 import { StorageModule } from './common/storage/storage.module';
 import { APP_GUARD } from '@nestjs/core';
@@ -31,6 +32,10 @@ import { AuthorizationService } from './auth/services/authorization.service';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { ClockModule } from './common/clock/clock.module';
 import { ensurePostgresExtensions } from './common/database/ensure-extensions';
+import {
+  MIGRATIONS_GLOB,
+  runPendingMigrations,
+} from './common/database/migrations';
 import { QueueModule } from './queue/queue.module';
 import { AuditModule } from './common/audit/audit.module';
 import { SequencesModule } from './common/sequences/sequences.module';
@@ -157,11 +162,23 @@ export class AppModule {
               },
               autoLoadEntities: true,
               synchronize: ownsSchema && configService.get('NODE_ENV') !== 'production',
-              migrationsRun: ownsSchema,
-              migrations: ['dist/migrations/*.js'],
+              // Run below, after synchronize (TypeORM's migrationsRun runs first).
+              migrationsRun: false,
+              migrations: [MIGRATIONS_GLOB],
             };
           },
           inject: [ConfigService],
+          dataSourceFactory: async (options) => {
+            const ds = await new DataSource(options!).initialize();
+            if (!ownsSchema) return ds;
+            try {
+              await runPendingMigrations(ds);
+            } catch (err) {
+              await ds.destroy();
+              throw err;
+            }
+            return ds;
+          },
         }),
         ...(runsJobs(role) ? [ScheduleModule.forRoot()] : []),
         QueueRuntimeModule.forRole(role),

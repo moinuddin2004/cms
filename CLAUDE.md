@@ -331,7 +331,7 @@ Stubs/missing: reports, invoices, inventory, chairs, notifications/SMS. The dash
 - **Soft deletes** via `isActive` flag in most modules
 
 ### Database
-PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-sourse.ts` and `app.module.ts`. **`synchronize: true` is ON in dev** — schema auto-syncs from entities. For production: turn off, rely on migrations in `cms/backend/src/migrations/`.
+PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-sourse.ts` and `app.module.ts`. **`synchronize: true` is ON in dev** — schema auto-syncs from entities, THEN pending migrations in `backend/src/migrations/` run on API startup (triggers/backfills; hand-written, idempotent). Production: synchronize off → reviewed `schema:sync:prod`, migrations still run on startup. Legacy baseline `1776356529788` is recorded as applied, never executed. Details + deploy procedure: `docs/database-migrations.md`.
 
 ### Key Environment Variables
 | Variable | Purpose |
