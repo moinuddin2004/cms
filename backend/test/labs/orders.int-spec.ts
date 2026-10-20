@@ -792,7 +792,7 @@ describe('Lab orders (API)', () => {
       );
       expect(res.status).toBe(200);
       expect(res.body.data).toMatchObject({
-        qrValue: expect.stringContaining(`/lab-portal/orders/${order.id}`),
+        qrValue: expect.stringContaining(`/o/${order.id}`),
         patient: { ref: 'Ali Raza' },
         items: [{ serviceName: 'Zirconia crown', teeth: expect.any(Array) }],
       });

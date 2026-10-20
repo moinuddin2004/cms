@@ -30,6 +30,7 @@ import { LabOrdersService } from './services/lab-orders.service';
 import { OrderDraftsService } from './services/order-drafts.service';
 import { OrderReaderService } from './services/order-reader.service';
 import { OrderSubmitService } from './services/order-submit.service';
+import { OrderLifecycleHooks } from './workflow/order-hooks';
 import { OrderWorkflowService } from './workflow/order-workflow.service';
 
 /**
@@ -59,6 +60,7 @@ import { OrderWorkflowService } from './workflow/order-workflow.service';
   ],
   controllers: [LabOrdersController, LabOrdersPortalController],
   providers: [
+    OrderLifecycleHooks,
     OrderWorkflowService,
     OrderDraftsService,
     OrderSubmitService,
@@ -69,6 +71,14 @@ import { OrderWorkflowService } from './workflow/order-workflow.service';
     SnapshotFreezeSubscriber,
     { provide: ATTACHMENT_STORAGE, useClass: CloudinaryAttachmentStorage },
   ],
-  exports: [OrderWorkflowService, LabOrdersService, OrderSubmitService],
+  exports: [
+    OrderWorkflowService,
+    LabOrdersService,
+    OrderSubmitService,
+    OrderReaderService,
+    LabOrdersPortalService,
+    AttachmentsService,
+    OrderLifecycleHooks,
+  ],
 })
 export class LabOrdersModule {}

@@ -11,6 +11,7 @@ import {
 } from '../notifications.enums';
 import { OutgoingNotification, PermanentSendError } from './channel-provider';
 import { ChannelProviderRegistry } from './channel-provider.registry';
+import { PayloadFinalizers } from './payload-finalizers';
 
 export const MAX_SEND_ATTEMPTS = 5;
 const BATCH = 50;
@@ -55,6 +56,7 @@ export class NotificationDispatcher {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly providers: ChannelProviderRegistry,
+    private readonly finalizers: PayloadFinalizers,
   ) {}
 
   /** Sends everything that is due. Concurrent calls coalesce into one run. */
@@ -121,7 +123,7 @@ export class NotificationDispatcher {
       if (!provider) {
         throw new PermanentSendError(`No provider for channel ${n.channel}`);
       }
-      const result = await provider.send(n);
+      const result = await provider.send(await this.finalizers.apply(n));
       await this.dataSource.query(
         `UPDATE notification_outbox
             SET status = '${OutboxStatus.SENT}', sent_at = now(), updated_at = now(),

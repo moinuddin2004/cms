@@ -41,6 +41,7 @@ import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { LabOrdersModule } from './lab-orders/lab-orders.module';
+import { LabAccessModule } from './lab-access/lab-access.module';
 import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
@@ -103,6 +104,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     LabsModule,
     LabCatalogModule,
     LabOrdersModule,
+    LabAccessModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
   ],
   controllers: [AppController],

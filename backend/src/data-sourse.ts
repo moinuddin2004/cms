@@ -118,6 +118,9 @@ import { ItemTooth, DentalItemDetails, ItemFormResponse } from './lab-orders/ent
 import { OrderRevision, OrderMessage, OrderChargeRequest } from './lab-orders/entities/order-records.entity';
 import { Attachment } from './lab-orders/entities/attachment.entity';
 
+// Lab access entities
+import { MagicLink } from './lab-access/entities/magic-link.entity';
+
 // Load environment variables
 config();
 
@@ -241,6 +244,7 @@ export const AppDataSource = new DataSource({
     OrderMessage,
     OrderChargeRequest,
     Attachment,
+    MagicLink,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

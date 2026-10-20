@@ -24,8 +24,13 @@ const PUBLIC_PATHS = [
   '/select-location',
 ]
 
-// Open to everyone, signed in or not, with no redirects (waiting-room TV).
-const OPEN_PATHS = ['/display/']
+// Open to everyone, signed in or not, with no redirects (waiting-room TV,
+// lab magic links — the token in the URL is the credential).
+const OPEN_PATHS = ['/display/', '/lab-link/']
+
+// Work-order QR: signed-in users of either side; the page itself decides
+// between the lab portal and the clinic order, so no workspace redirects.
+const QR_PATH = '/o/'
 
 // Lab staff work here — no clinic org/location context (lab ERD §13)
 const LAB_PORTAL_PATH = '/lab-portal'
@@ -187,6 +192,8 @@ function RootComponent() {
 
     if (!isAuthenticated && !isPublicRoute && location.pathname !== '/') {
       navigate({ to: '/login', replace: true })
+    } else if (isAuthenticated && location.pathname.startsWith(QR_PATH)) {
+      // OrderQrPage switches lab / location itself
     } else if (isAuthenticated && labOnly && !isLabPortal) {
       // Lab staff have no clinic — their home is the lab portal
       navigate({ to: LAB_PORTAL_PATH, replace: true })

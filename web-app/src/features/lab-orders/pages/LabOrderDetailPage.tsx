@@ -21,6 +21,7 @@ import { FileUploadField } from '@/components/shared/FileUploadField'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { formatPaisa } from '@/features/lab-catalog'
+import { LabAccessPanel } from '../components/LabAccessPanel'
 import { LabOrderSheet } from '../components/LabOrderSheet'
 import { ItemStatusBadge, OrderStatusBadge } from '../components/order-badges'
 import { printWorkOrder } from '../components/print-work-order'
@@ -40,6 +41,14 @@ const ACTION_COPY: Partial<
   hold: { label: 'Put on hold' },
   resume: { label: 'Resume' },
   reopen: { label: 'Reopen as draft' },
+}
+
+/** How a status change reached us (lab ERD §7). */
+const VIA_LABEL: Record<string, string> = {
+  portal: 'lab portal',
+  magic_link: 'WhatsApp link',
+  proxy: 'entered by clinic for the lab',
+  qr: 'QR scan',
 }
 
 const fmt = (iso: string) =>
@@ -305,6 +314,7 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
           </div>
         </Section>
 
+        {!isDraft && <LabAccessPanel order={order} />}
         {!isDraft && <Conversation order={order} />}
         {order.charges.length > 0 && <Charges order={order} />}
         {order.revisions.length > 0 && (
@@ -340,8 +350,11 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
                 <li key={h.id} className="text-text-2">
                   {fmt(h.createdAt)} — {statusLabel(h.fromState)} →{' '}
                   {statusLabel(h.toState)}
-                  {h.actor?.name ? ` by ${h.actor.name}` : ''} ({h.actorSide})
-                  {h.reason ? ` — ${h.reason}` : ''}
+                  {h.actor?.name ? ` by ${h.actor.name}` : ''} ({h.actorSide}
+                  {h.via && h.via !== 'app'
+                    ? `, ${VIA_LABEL[h.via] ?? h.via}`
+                    : ''}
+                  ){h.reason ? ` — ${h.reason}` : ''}
                 </li>
               ))}
           </ul>

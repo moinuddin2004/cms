@@ -38,6 +38,7 @@ import {
   promotedColumns,
   ToothRow,
 } from '../submit/order-lines';
+import { OrderLifecycleHooks } from '../workflow/order-hooks';
 import { orderRecipients } from '../workflow/order-recipients';
 import { OrderWorkflowService } from '../workflow/order-workflow.service';
 
@@ -83,6 +84,7 @@ export class OrderSubmitService {
     private readonly prices: LabPriceResolver,
     private readonly templates: OrderTemplatesService,
     private readonly notifications: NotificationService,
+    private readonly hooks: OrderLifecycleHooks,
   ) {}
 
   async submit(
@@ -340,6 +342,7 @@ export class OrderSubmitService {
         link: who.link,
         entity: { type: ORDER_ENTITY.ORDER, id: order.id },
       });
+      await this.hooks.runSubmitted(m, order, c);
 
       const response = { orderId: order.id, orderNo: order.orderNo };
       await this.idempotency.complete(m, org, SUBMIT_SCOPE, key, response);

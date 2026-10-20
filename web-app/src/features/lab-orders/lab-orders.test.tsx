@@ -171,8 +171,14 @@ const detail: LabOrderDetail = {
 function serve(routes: Record<string, unknown>) {
   api.get.mockImplementation((url: string) => {
     if (url in routes) return Promise.resolve(routes[url])
-    if (url === '/appointments/doctors' || url === '/form-schemas')
+    if (
+      url === '/appointments/doctors' ||
+      url === '/form-schemas' ||
+      url.endsWith('/magic-links')
+    )
       return Promise.resolve(ok([]))
+    if (url.endsWith('/proxy/actions'))
+      return Promise.resolve(ok({ actions: [] }))
     return Promise.resolve(paged([]))
   })
 }

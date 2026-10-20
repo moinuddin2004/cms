@@ -55,6 +55,33 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     body: '{lab_name} rejected order {order_no}: {reason}',
   },
   {
+    code: 'order.clarification_requested',
+    name: 'Lab asked a question',
+    description: 'The lab needs clarification before it can accept an order.',
+    audiences: [A.DOCTOR, A.COORDINATOR],
+    isMandatoryInternal: true,
+    variables: ['order_no', 'lab_name', 'question'],
+    title: 'Order {order_no}: the lab has a question',
+    body: '{lab_name} asked about order {order_no}: {question}',
+  },
+  {
+    code: 'order.magic_link',
+    name: 'Order link for the lab (no login)',
+    description:
+      'A one-order link the lab opens without logging in, to view and accept, reject or query the order.',
+    audiences: [A.LAB],
+    isMandatoryInternal: false,
+    variables: [
+      'order_no',
+      'patient_ref',
+      'due_on',
+      'magic_link_url',
+      'expires_at',
+    ],
+    title: 'Order {order_no} from {clinic_name}',
+    body: '{clinic_name} sent order {order_no} ({patient_ref}), due {due_on}. Open: {magic_link_url} (valid until {expires_at})',
+  },
+  {
     code: 'order.expected_date_changed',
     name: 'Lab changed the expected date',
     description: "The lab moved an order's expected date.",

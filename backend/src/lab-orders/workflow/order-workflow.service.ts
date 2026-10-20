@@ -16,6 +16,7 @@ import type { WorkflowEntityType } from 'src/engine/workflows/workflow.types';
 import { NotificationRecipientsRegistry } from 'src/notifications/effects/notification-recipients.registry';
 import { orderError } from '../common/order-errors';
 import { ORDER_ENTITY } from '../enums/order.enums';
+import { OrderLifecycleHooks } from './order-hooks';
 import { orderRecipients } from './order-recipients';
 
 interface SubjectRow {
@@ -56,6 +57,7 @@ export class OrderWorkflowService {
   constructor(
     private readonly engine: WorkflowEngine,
     recipients: NotificationRecipientsRegistry,
+    private readonly hooks: OrderLifecycleHooks,
   ) {
     engine.registerAdapter(this.orderAdapter());
     engine.registerAdapter(this.itemAdapter());
@@ -159,6 +161,7 @@ export class OrderWorkflowService {
            WHERE id = $1 RETURNING version`,
           [s.id, to],
         );
+        await this.hooks.runStateChanged(m, s.id, to);
         return row.version;
       },
       recompute: (s, { m }: AdapterContext) => this.deriveOrder(m, s.id),

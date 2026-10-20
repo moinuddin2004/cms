@@ -168,23 +168,32 @@ describe('axios tenant headers', () => {
 })
 
 describe('lab portal pages', () => {
-  it('dashboard says orders arrive in a later release', async () => {
+  it('dashboard counts the orders waiting for the lab', async () => {
     signIn([LAB_A])
-    api.get.mockResolvedValue({
-      data: {
+    api.get.mockImplementation((url: string) =>
+      Promise.resolve({
         data: {
-          id: 'lab-a',
-          name: 'Precision Dental Lab',
-          memberCount: 3,
-          activeLinkCount: 2,
+          data:
+            url === '/lab-portal/orders'
+              ? { data: [], total: 4, page: 1, limit: 1 }
+              : {
+                  id: 'lab-a',
+                  name: 'Precision Dental Lab',
+                  memberCount: 3,
+                  activeLinkCount: 2,
+                },
         },
-      },
-    })
+      }),
+    )
     renderWithClient(<LabPortalDashboardPage />)
-    expect(screen.getByText('Orders arrive here soon')).toBeTruthy()
     expect(await screen.findByText('Active clinics')).toBeTruthy()
+    expect(screen.getByText('Orders waiting for you')).toBeTruthy()
+    expect(await screen.findByText('4')).toBeTruthy()
     expect(api.get).toHaveBeenCalledWith('/lab-portal/lab', {
       params: undefined,
+    })
+    expect(api.get).toHaveBeenCalledWith('/lab-portal/orders', {
+      params: { page: 1, limit: 1, status: 'submitted' },
     })
   })
 
