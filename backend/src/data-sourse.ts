@@ -117,6 +117,8 @@ import { LabOrderItem } from './lab-orders/entities/lab-order-item.entity';
 import { ItemTooth, DentalItemDetails, ItemFormResponse } from './lab-orders/entities/item-parts.entity';
 import { OrderRevision, OrderMessage, OrderChargeRequest } from './lab-orders/entities/order-records.entity';
 import { Attachment } from './lab-orders/entities/attachment.entity';
+import { OrderItemStage } from './lab-production/entities/order-item-stage.entity';
+import { ItemAssignment, Shipment, ShipmentItem, RemakeRequest, ItemWarranty } from './lab-production/entities/production-records.entity';
 
 // Load environment variables
 config();
@@ -241,6 +243,12 @@ export const AppDataSource = new DataSource({
     OrderMessage,
     OrderChargeRequest,
     Attachment,
+    OrderItemStage,
+    ItemAssignment,
+    Shipment,
+    ShipmentItem,
+    RemakeRequest,
+    ItemWarranty,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],

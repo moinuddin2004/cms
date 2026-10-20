@@ -26,6 +26,7 @@ import { ItemStatusBadge, OrderStatusBadge } from '../components/order-badges'
 import { printWorkOrder } from '../components/print-work-order'
 import { ReasonDialog } from '../components/ReasonDialog'
 import { RevisionSheet } from '../components/RevisionSheet'
+import { ProductionPanel } from '../components/production/ProductionPanel'
 import { useLabOrder, useOrderMutation } from '../hooks/useLabOrders'
 import { toastOrderError } from '../lib/order-errors'
 import { labOrdersApi, newIdempotencyKey } from '../services/lab-orders.api'
@@ -305,6 +306,7 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
           </div>
         </Section>
 
+        {!isDraft && <ProductionPanel order={order} />}
         {!isDraft && <Conversation order={order} />}
         {order.charges.length > 0 && <Charges order={order} />}
         {order.revisions.length > 0 && (

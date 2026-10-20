@@ -27,6 +27,18 @@ interface SubjectRow {
   lab_id: string;
 }
 
+/**
+ * Called after every item transition, before the order is re-derived, in
+ * the same transaction — how other lab modules (production: stages,
+ * warranties, remake requests) react to item states the order module
+ * owns, whichever endpoint or workflow version moved the item.
+ */
+export type ItemListener = (
+  m: EntityManager,
+  item: WorkflowSubject,
+  ctx: AdapterContext,
+) => Promise<void>;
+
 const toSubject = (r: SubjectRow): WorkflowSubject => ({
   id: r.id,
   organizationId: r.organization_id,
@@ -53,6 +65,8 @@ const ORDER_STAMPS: Record<string, string> = {
  */
 @Injectable()
 export class OrderWorkflowService {
+  private readonly itemListeners: ItemListener[] = [];
+
   constructor(
     private readonly engine: WorkflowEngine,
     recipients: NotificationRecipientsRegistry,
@@ -64,15 +78,33 @@ export class OrderWorkflowService {
     );
   }
 
-  /** §9c: recompute the order's status from its items. Locks the order. */
-  async deriveOrder(m: EntityManager, orderId: string): Promise<void> {
+  onItemTransition(listener: ItemListener): void {
+    this.itemListeners.push(listener);
+  }
+
+  /**
+   * §9c: recompute the order's status from its items. Locks the order.
+   * `reopen`: a completed order may be derived again (a remake adds new
+   * work to it, lab ERD §5b "Remake").
+   */
+  async deriveOrder(
+    m: EntityManager,
+    orderId: string,
+    opts: { reopen?: boolean } = {},
+  ): Promise<void> {
     const [row] = await sqlRows<SubjectRow>(
       m,
       `SELECT id, organization_id, workflow_template_version_id, status_code, version, lab_id
          FROM lab_orders WHERE id = $1 FOR UPDATE`,
       [orderId],
     );
-    if (!row || !isDerivable(row.status_code ?? 'draft')) return;
+    const current = row?.status_code ?? 'draft';
+    if (
+      !row ||
+      (!isDerivable(current) && !(opts.reopen && current === 'completed'))
+    ) {
+      return;
+    }
     const items = await sqlRows<{ status_code: string | null }>(
       m,
       `SELECT status_code FROM lab_order_items WHERE order_id = $1`,
@@ -189,7 +221,9 @@ export class OrderWorkflowService {
         );
         return row.version;
       },
-      afterTransition: async (s, { m }) => {
+      afterTransition: async (s, ctx) => {
+        const { m } = ctx;
+        for (const listener of this.itemListeners) await listener(m, s, ctx);
         const [{ order_id }] = await sqlRows<{ order_id: string }>(
           m,
           `SELECT order_id FROM lab_order_items WHERE id = $1`,
