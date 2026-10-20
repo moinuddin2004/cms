@@ -212,6 +212,23 @@ export class LabInvoiceLine {
   @Column({ name: 'doctor_id', type: 'uuid', nullable: true })
   doctorId: string | null;
 
+  /**
+   * Commission snapshot taken at issue (like billing v2's charges): the
+   * doctor's assignment at the invoice's location, the plan in force that
+   * day and the resolved rate or fixed amount. Null = earns no commission.
+   */
+  @Column({ name: 'performing_assignment_id', type: 'uuid', nullable: true })
+  performingAssignmentId: string | null;
+
+  @Column({ name: 'commission_plan_id', type: 'uuid', nullable: true })
+  commissionPlanId: string | null;
+
+  @Column({ name: 'commission_rate_bps', type: 'int', nullable: true })
+  commissionRateBps: number | null;
+
+  @PaisaColumn('commission_fixed_paisa', { nullable: true })
+  commissionFixedPaisa: number | null;
+
   @Column({ name: 'description', type: 'varchar', length: 200 })
   description: string;
 

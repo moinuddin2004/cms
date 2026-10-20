@@ -640,7 +640,7 @@ describe('Billing integration — doctor commissions', () => {
           reason: 'Refund requested',
         },
       );
-      const all = await entriesOf(settled.chargeId);
+      const all = await entriesOf(settled.chargeId!);
       expect(all.map((e) => [e.amountPaisa, !!e.settlementId])).toEqual([
         [20_000, true],
         [-20_000, false],

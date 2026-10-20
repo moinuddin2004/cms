@@ -193,7 +193,10 @@ export interface CaseProfitRow {
   labCostPaisa: number
   billedLabCostPaisa: number
   expensesPaisa: number
-  commissionPaisa: number | null
+  /** Issued lab invoices net of credit notes; null while nothing is invoiced. */
+  invoicedPaisa: number | null
+  collectedPaisa: number
+  commissionPaisa: number
   profitPaisa: number
 }
 

@@ -210,15 +210,21 @@ export class CommissionReportsService {
     }>(
       this.dataSource,
       `SELECT ce.id, ce.created_at, ce.assignment_id, e.full_name AS doctor_name,
-              ce.charge_id, c.description, pt.full_name AS patient_name,
-              i.invoice_number, ce.source_type, ce.base_paisa, ce.rate_bps,
+              COALESCE(ce.charge_id, ce.lab_invoice_line_id) AS charge_id,
+              COALESCE(c.description, ll.description) AS description,
+              pt.full_name AS patient_name,
+              COALESCE(i.invoice_number, li.invoice_no) AS invoice_number,
+              ce.source_type, ce.base_paisa, ce.rate_bps,
               ce.amount_paisa, ce.settlement_id
          FROM commission_entries ce
          JOIN employee_org_location_assignments a ON a.id = ce.assignment_id
          JOIN employees e ON e.id = a.employee_id
-         JOIN charges c ON c.id = ce.charge_id
-         JOIN patients pt ON pt.id = c.patient_id
+         LEFT JOIN charges c ON c.id = ce.charge_id
          LEFT JOIN invoices i ON i.id = c.invoice_id
+         -- lab work earns on lab invoice lines (lab ERD §6c)
+         LEFT JOIN lab_invoice_lines ll ON ll.id = ce.lab_invoice_line_id
+         LEFT JOIN lab_invoices li ON li.id = ll.invoice_id
+         JOIN patients pt ON pt.id = COALESCE(c.patient_id, li.patient_id)
         WHERE ${where}
         ORDER BY ce.created_at DESC, ce.id
         LIMIT ${MAX_ENTRY_ROWS}`,

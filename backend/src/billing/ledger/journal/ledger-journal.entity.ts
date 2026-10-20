@@ -18,6 +18,10 @@ export enum JournalSource {
   EXPENSE = 'expense',
   INVOICE = 'invoice',
   PAYMENT = 'payment',
+  CREDIT_NOTE = 'credit_note',
+  REFUND = 'refund',
+  /** Doctor commission accrued / reversed by a money operation. */
+  COMMISSION = 'commission',
 }
 
 /**
@@ -31,6 +35,14 @@ export const ACCOUNT = {
   LAB_PAYABLE: 'LAB_PAYABLE',
   /** Paid to a lab before a bill was there to settle. */
   LAB_ADVANCES: 'LAB_ADVANCES',
+  /** Lab work billed to patients (lab invoices). */
+  PATIENT_RECEIVABLE: 'PATIENT_RECEIVABLE',
+  /** Patient money not yet applied to an invoice. */
+  PATIENT_ADVANCES: 'PATIENT_ADVANCES',
+  LAB_REVENUE: 'LAB_REVENUE',
+  TAX_PAYABLE: 'TAX_PAYABLE',
+  COMMISSION_EXPENSE: 'COMMISSION_EXPENSE',
+  COMMISSION_PAYABLE: 'COMMISSION_PAYABLE',
 } as const;
 export type AccountCode = (typeof ACCOUNT)[keyof typeof ACCOUNT];
 

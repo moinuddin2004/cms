@@ -133,11 +133,14 @@ export class PayablesReportsService {
   }
 
   /**
-   * Case profit per submitted order (lab ERD §15 formula, from snapshots):
-   * patient price − lab cost − case expenses. Lab cost = the items' frozen
-   * lab cost + approved order-level charges (what the lab is owed); `billed`
-   * shows what the vendor bills say. Doctor commission on lab cases is not
-   * in yet (needs Sprint 9's lab invoices) — the field is null.
+   * Case profit per submitted order (lab ERD §15 formula):
+   * revenue − lab cost − case expenses − doctor commission. Revenue is what
+   * the patient was invoiced for the case (issued lab invoices net of credit
+   * notes), or the frozen patient price while nothing is invoiced. Lab cost =
+   * the items' frozen lab cost + approved order-level charges (what the lab
+   * is owed); `billed` shows what the vendor bills say. Commission = lab
+   * commission entries on the order's invoice lines (signed, so reversals
+   * net out). Invoiced and collected are shown apart (§15).
    */
   async caseProfit(organizationId: string, q: CaseProfitQueryDto) {
     const page = q.page ?? 1;
@@ -169,6 +172,9 @@ export class PayablesReportsService {
       charges_paisa: string;
       billed_paisa: string;
       expense_paisa: string;
+      invoiced_paisa: string | null;
+      collected_paisa: string;
+      commission_paisa: string;
     }>(
       this.dataSource,
       `SELECT o.id, o.order_no, o.status_code, o.submitted_at, l.name AS lab_name, p.full_name AS patient_name,
@@ -181,7 +187,15 @@ export class PayablesReportsService {
               COALESCE((SELECT SUM(b.total_paisa) FROM vendor_bills b
                          WHERE b.lab_order_id = o.id AND b.status IN ('approved', 'partially_paid', 'paid')), 0) AS billed_paisa,
               COALESCE((SELECT (SUM(e.amount) * 100)::bigint FROM expenses e
-                         WHERE e.lab_order_id = o.id), 0) AS expense_paisa
+                         WHERE e.lab_order_id = o.id), 0) AS expense_paisa,
+              (SELECT SUM(li.total_paisa - li.credited_paisa) FROM lab_invoices li
+                WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')) AS invoiced_paisa,
+              COALESCE((SELECT SUM(li.paid_paisa) FROM lab_invoices li
+                         WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')), 0) AS collected_paisa,
+              COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce
+                          JOIN lab_invoice_lines ll ON ll.id = ce.lab_invoice_line_id
+                          JOIN lab_invoices li ON li.id = ll.invoice_id
+                         WHERE li.order_id = o.id), 0) AS commission_paisa
          FROM lab_orders o JOIN labs l ON l.id = o.lab_id
          LEFT JOIN patients p ON p.id = o.patient_id
         WHERE ${where}
@@ -193,6 +207,10 @@ export class PayablesReportsService {
       const patientPricePaisa = Number(r.patient_paisa);
       const labCostPaisa = Number(r.lab_paisa) + Number(r.charges_paisa);
       const expensesPaisa = Number(r.expense_paisa);
+      const invoicedPaisa =
+        r.invoiced_paisa === null ? null : Number(r.invoiced_paisa);
+      const commissionPaisa = Number(r.commission_paisa);
+      const revenuePaisa = invoicedPaisa ?? patientPricePaisa;
       return {
         orderId: r.id,
         orderNo: r.order_no,
@@ -204,8 +222,11 @@ export class PayablesReportsService {
         labCostPaisa,
         billedLabCostPaisa: Number(r.billed_paisa),
         expensesPaisa,
-        commissionPaisa: null as number | null,
-        profitPaisa: patientPricePaisa - labCostPaisa - expensesPaisa,
+        invoicedPaisa,
+        collectedPaisa: Number(r.collected_paisa),
+        commissionPaisa,
+        profitPaisa:
+          revenuePaisa - labCostPaisa - expensesPaisa - commissionPaisa,
       };
     });
     return {

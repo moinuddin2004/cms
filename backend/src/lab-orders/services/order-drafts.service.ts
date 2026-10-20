@@ -69,6 +69,7 @@ export class OrderDraftsService {
         const link = await this.activeLink(m, org, dto.labId);
         const doctorId = await this.doctorFor(m, c, dto.doctorId);
         await this.assertAppointment(m, org, dto.patientId, dto.appointmentId);
+        await this.assertTreatment(m, org, dto.patientId, dto.treatmentId);
         const services = await this.services(m, dto.labId, dto.items);
         const specialtyId = this.oneSpecialty(services);
 
@@ -161,7 +162,10 @@ export class OrderDraftsService {
       }
       if (dto.priority) order.priority = dto.priority;
       if (dto.requestedOn !== undefined) order.requestedOn = dto.requestedOn;
-      if (dto.treatmentId !== undefined) order.treatmentId = dto.treatmentId;
+      if (dto.treatmentId !== undefined) {
+        await this.assertTreatment(m, org, order.patientId, dto.treatmentId);
+        order.treatmentId = dto.treatmentId;
+      }
       if (dto.notes !== undefined) order.notes = dto.notes;
       order.updatedBy = c.actor.userId;
 
@@ -526,6 +530,27 @@ export class OrderDraftsService {
       throw orderError(
         'LAB_ORDER_INVALID',
         'Appointment not found for this patient',
+      );
+    }
+  }
+
+  /** The linked treatment record must be this clinic's, for this patient. */
+  private async assertTreatment(
+    m: EntityManager,
+    organizationId: string,
+    patientId: string,
+    treatmentId: string | null | undefined,
+  ): Promise<void> {
+    if (!treatmentId) return;
+    const [row] = await sqlRows<{ id: string }>(
+      m,
+      `SELECT id FROM treatments WHERE id = $1 AND organization_id = $2 AND patient_id = $3`,
+      [treatmentId, organizationId, patientId],
+    );
+    if (!row) {
+      throw orderError(
+        'LAB_ORDER_INVALID',
+        'Treatment not found for this patient',
       );
     }
   }

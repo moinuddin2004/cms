@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { isIP } from 'net';
@@ -34,6 +35,7 @@ import {
 } from '../dto/lab-access.dto';
 import { MagicLink, MagicLinkPurpose } from '../entities/magic-link.entity';
 import { LabOrder } from 'src/lab-orders/entities/lab-order.entity';
+import { MagicLinkThrottleGuard } from './magic-link-throttle.guard';
 import { MagicLinksService } from './magic-links.service';
 
 /** Actions a magic link may take (§13: view, accept, reject, ask). */
@@ -48,6 +50,7 @@ const LINK_ACTIONS = new Set(['accept', 'reject', 'request_clarification']);
  * Paths are listed in `PUBLIC_ROUTES`.
  */
 @Public()
+@UseGuards(MagicLinkThrottleGuard)
 @Controller('lab-link')
 export class MagicLinkController {
   constructor(

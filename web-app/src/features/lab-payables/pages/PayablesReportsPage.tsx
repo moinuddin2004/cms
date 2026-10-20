@@ -272,8 +272,8 @@ function CaseProfit() {
         />
       </div>
       <p className="text-xs text-text-3">
-        Patient price − lab cost − case expenses, from the prices fixed on each
-        order. Doctor commission on lab cases is not included yet.
+        Invoiced (or the patient price fixed on the order while nothing is
+        invoiced) − lab cost − case expenses − doctor commission.
       </p>
       {isLoading ? (
         <LoadingSkeleton variant="table" />
@@ -295,9 +295,12 @@ function CaseProfit() {
                   <th className={th}>Patient</th>
                   <th className={th}>Lab</th>
                   <th className={`${th} text-right`}>Patient price</th>
+                  <th className={`${th} text-right`}>Invoiced</th>
+                  <th className={`${th} text-right`}>Collected</th>
                   <th className={`${th} text-right`}>Lab cost</th>
                   <th className={`${th} text-right`}>Billed by lab</th>
                   <th className={`${th} text-right`}>Expenses</th>
+                  <th className={`${th} text-right`}>Commission</th>
                   <th className={`${th} text-right`}>Profit</th>
                 </tr>
               </thead>
@@ -314,6 +317,12 @@ function CaseProfit() {
                       {money(r.patientPricePaisa)}
                     </td>
                     <td className={`${td} text-right`}>
+                      {r.invoicedPaisa === null ? '—' : money(r.invoicedPaisa)}
+                    </td>
+                    <td className={`${td} text-right text-text-3`}>
+                      {money(r.collectedPaisa)}
+                    </td>
+                    <td className={`${td} text-right`}>
                       {money(r.labCostPaisa)}
                     </td>
                     <td className={`${td} text-right text-text-3`}>
@@ -321,6 +330,9 @@ function CaseProfit() {
                     </td>
                     <td className={`${td} text-right`}>
                       {money(r.expensesPaisa)}
+                    </td>
+                    <td className={`${td} text-right`}>
+                      {money(r.commissionPaisa)}
                     </td>
                     <td
                       className={`${td} text-right font-semibold ${r.profitPaisa < 0 ? 'text-red-500' : ''}`}

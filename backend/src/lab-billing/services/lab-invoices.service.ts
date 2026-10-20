@@ -81,6 +81,11 @@ type DraftLine = Omit<
   | 'taxPaisa'
   | 'lineTotalPaisa'
   | 'taxRateBp'
+  // commission snapshot: set at issue by lab-finance
+  | 'performingAssignmentId'
+  | 'commissionPlanId'
+  | 'commissionRateBps'
+  | 'commissionFixedPaisa'
 >;
 
 const CHARGE_LABEL: Record<ChargeKind, string> = {

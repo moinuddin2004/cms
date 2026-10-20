@@ -14,7 +14,10 @@ import {
   CommissionSourceType,
 } from './commission.enums';
 import { CompensationPlanVersions } from './compensation-plan-versions';
-import { CommissionEntry } from './entities/commission-entry.entity';
+import {
+  CommissionEntry,
+  CommissionEntryRow,
+} from './entities/commission-entry.entity';
 
 /** What caused a commission write; `id` defaults to a fresh operation id. */
 export interface CommissionSource {
@@ -146,7 +149,7 @@ export class CommissionService {
     if (!ids.length) return [];
     const rows = await this.loadTargets(manager, ids);
     const sourceId = source.id ?? randomUUID();
-    const entries: Array<Partial<CommissionEntry>> = [];
+    const entries: CommissionEntryRow[] = [];
     for (const r of rows) {
       const { collectedPaisa, targetPaisa } = this.targetOf(r);
       const diff = targetPaisa - Number(r.already_paisa);
