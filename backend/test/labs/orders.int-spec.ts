@@ -238,7 +238,12 @@ describe('Lab orders (API)', () => {
       put: (key) => Promise.resolve(key),
       signedUrl: (key, ttl) => `https://files.test/${key}?ttl=${ttl}&sig=x`,
     };
-    fx.app.get(AttachmentsService).storage = fake;
+    // Swap the private storage for a fake (no Cloudinary in tests).
+    (
+      fx.app.get(AttachmentsService) as unknown as {
+        storage: AttachmentStorage;
+      }
+    ).storage = fake;
   }, 300_000);
 
   afterAll(async () => {
