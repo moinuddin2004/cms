@@ -12,4 +12,10 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'POST', path: '/auth/logout' },
   // Waiting-room TV: tokens and doctor names only, never patient data.
   { method: 'GET', path: '/queue/displays/**/state' },
+  // Lab magic links (lab ERD §7): the token in the path is the credential.
+  { method: 'GET', path: '/lab-link/**' },
+  { method: 'POST', path: '/lab-link/**/accept' },
+  { method: 'POST', path: '/lab-link/**/reject' },
+  { method: 'POST', path: '/lab-link/**/clarification' },
+  { method: 'GET', path: '/lab-link/**/attachments/**/url' },
 ];

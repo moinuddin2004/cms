@@ -7,6 +7,7 @@ import { ChannelProviderRegistry } from './delivery/channel-provider.registry';
 import { DevLogChannelProvider } from './delivery/dev-log.provider';
 import { InAppChannelProvider } from './delivery/in-app.provider';
 import { NotificationDispatcher } from './delivery/notification-dispatcher.service';
+import { PayloadFinalizers } from './delivery/payload-finalizers';
 import { NotificationRecipientsRegistry } from './effects/notification-recipients.registry';
 import { NotifyEffect } from './effects/notify.effect';
 import { NotificationAudienceSetting } from './entities/notification-audience-setting.entity';
@@ -55,12 +56,14 @@ import { UserNotificationsService } from './services/user-notifications.service'
     DevLogChannelProvider,
     ChannelProviderRegistry,
     NotificationDispatcher,
+    PayloadFinalizers,
   ],
   exports: [
     NotificationService,
     NotificationRecipientsRegistry,
     ChannelProviderRegistry,
     NotificationDispatcher,
+    PayloadFinalizers,
   ],
 })
 export class NotificationsModule {}

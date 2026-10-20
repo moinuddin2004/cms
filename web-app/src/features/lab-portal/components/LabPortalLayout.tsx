@@ -4,6 +4,7 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ArrowLeftRight,
   Building2,
+  ClipboardList,
   FlaskConical,
   LayoutDashboard,
   Loader2,
@@ -31,6 +32,7 @@ interface NavItem {
 
 export const LAB_PORTAL_NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/lab-portal' },
+  { label: 'Orders', icon: ClipboardList, href: '/lab-portal/orders' },
   { label: 'Lab profile', icon: FlaskConical, href: '/lab-portal/profile' },
   { label: 'Team', icon: Users, href: '/lab-portal/team', adminOnly: true },
   { label: 'Clinics', icon: Building2, href: '/lab-portal/clinics' },

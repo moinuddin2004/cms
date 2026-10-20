@@ -4,7 +4,9 @@ import type {
   LabOrderParams,
   LabOrderRow,
   OrderInput,
+  OrderMagicLink,
   Paginated,
+  ProxyAction,
   WorkOrder,
 } from '../types'
 
@@ -108,4 +110,38 @@ export const labOrdersApi = {
       `/lab-orders/${id}/attachments/${attachmentId}/url`,
     ),
   workOrder: (id: string) => get<WorkOrder>(`/lab-orders/${id}/work-order`),
+
+  // Lab access (Sprint 7): magic links and proxy updates.
+  magicLinks: (id: string) =>
+    get<OrderMagicLink[]>(`/lab-orders/${id}/magic-links`),
+  issueMagicLink: (
+    id: string,
+    body: {
+      delivery: 'notification' | 'copy'
+      purpose?: 'lab_view_order' | 'lab_update_order'
+      expiresInHours?: number
+    },
+  ) =>
+    post<{ id: string; expiresAt: string; url: string | null }>(
+      `/lab-orders/${id}/magic-links`,
+      body,
+    ),
+  revokeMagicLink: (id: string, linkId: string) =>
+    post<null>(`/lab-orders/${id}/magic-links/${linkId}/revoke`),
+  proxyActions: (id: string) =>
+    get<{ actions: ProxyAction[] }>(`/lab-orders/${id}/proxy/actions`),
+  proxy: {
+    accept: (
+      id: string,
+      body: { labExpectedOn: string; note?: string; version?: number },
+    ) => post<null>(`/lab-orders/${id}/proxy/accept`, body),
+    reject: (id: string, body: { reason: string; version?: number }) =>
+      post<null>(`/lab-orders/${id}/proxy/reject`, body),
+    clarify: (id: string, body: { body: string }) =>
+      post<null>(`/lab-orders/${id}/proxy/clarification`, body),
+    changeExpectedDate: (
+      id: string,
+      body: { labExpectedOn: string; reason: string; version?: number },
+    ) => post<null>(`/lab-orders/${id}/proxy/expected-date`, body),
+  },
 }

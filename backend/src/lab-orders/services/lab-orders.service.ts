@@ -611,7 +611,8 @@ export class LabOrdersService {
     );
     return {
       orderNo: order.orderNo,
-      qrValue: `${base}/lab-portal/orders/${order.id}`,
+      // Resolves per viewer: lab members → portal, clinic staff → clinic order.
+      qrValue: `${base}/o/${order.id}`,
       status: order.statusCode,
       priority: order.priority,
       revisionNo: order.currentRevisionNo,

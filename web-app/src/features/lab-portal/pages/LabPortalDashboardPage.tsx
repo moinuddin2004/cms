@@ -1,21 +1,15 @@
 import { Link } from '@tanstack/react-router'
 import { Building2, ClipboardList, Users } from 'lucide-react'
-import {
-  EmptyState,
-  ErrorState,
-  LoadingSkeleton,
-  StatCard,
-} from '@/components/shared'
+import { ErrorState, LoadingSkeleton, StatCard } from '@/components/shared'
 import { LabPortalLayout } from '../components/LabPortalLayout'
 import { useActiveLab, usePortalLab } from '../hooks/useLabPortal'
+import { usePortalOrders } from '../hooks/usePortalOrders'
 
-/**
- * Lab portal home. Orders are not built yet (lab ERD §19, Sprint 6), so it
- * shows the lab's numbers and says where orders will appear.
- */
+/** Lab portal home: orders waiting for an answer, clinics and team. */
 export function LabPortalDashboardPage() {
   const { membership } = useActiveLab()
   const { data: lab, isLoading, isError, refetch } = usePortalLab()
+  const waiting = usePortalOrders({ page: 1, limit: 1, status: 'submitted' })
 
   return (
     <LabPortalLayout
@@ -28,7 +22,14 @@ export function LabPortalDashboardPage() {
         ) : isError ? (
           <ErrorState onRetry={() => void refetch()} />
         ) : lab ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Link to="/lab-portal/orders" className="block">
+              <StatCard
+                label="Orders waiting for you"
+                value={waiting.data?.total ?? '—'}
+                icon={ClipboardList}
+              />
+            </Link>
             <Link to="/lab-portal/clinics" className="block">
               <StatCard
                 label="Active clinics"
@@ -43,12 +44,6 @@ export function LabPortalDashboardPage() {
             />
           </div>
         ) : null}
-
-        <EmptyState
-          icon={ClipboardList}
-          title="Orders arrive here soon"
-          description="Lab orders from your clinics will show up on this page in a later release. Until then, accept clinic invitations and keep your lab details up to date."
-        />
       </div>
     </LabPortalLayout>
   )

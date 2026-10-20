@@ -282,3 +282,38 @@ export interface WorkOrder {
     answers: { label: string; value: string }[]
   }[]
 }
+
+// ── Lab access (Sprint 7) ───────────────────────────────────────────────
+
+export type MagicLinkState = 'active' | 'expired' | 'revoked' | 'used_up'
+
+/** A no-login link the clinic sent the lab, with how its message went. */
+export interface OrderMagicLink {
+  id: string
+  purpose: 'lab_view_order' | 'lab_update_order' | 'receive_shipment'
+  delivery: 'notification' | 'copy'
+  state: MagicLinkState
+  recipientPhone: string | null
+  createdAt: string
+  expiresAt: string
+  revokedAt: string | null
+  revokedReason: string | null
+  usedCount: number
+  lastUsedAt: string | null
+  lastViewedAt: string | null
+  deliveries: {
+    channel: string
+    status: string
+    to: string | null
+    reason: string | null
+    lastError: string | null
+    sentAt: string | null
+  }[]
+}
+
+/** Lab answers a clinic admin can record for the lab (proxy mode). */
+export type ProxyAction =
+  | 'accept'
+  | 'reject'
+  | 'request_clarification'
+  | 'change_expected_date'
