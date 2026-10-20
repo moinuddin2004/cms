@@ -7,3 +7,11 @@ export { LabOrderDetailPage } from './pages/LabOrderDetailPage'
 export { QrCode } from './components/QrCode'
 export { ItemStatusBadge, OrderStatusBadge } from './components/order-badges'
 export { orderError, toastOrderError } from './lib/order-errors'
+export * from './production.types'
+export { productionApi } from './services/production.api'
+export { ReceiveShipmentPage } from './pages/ReceiveShipmentPage'
+export {
+  StageBadge,
+  StageTimeline,
+} from './components/production/ProductionPanel'
+export { ReasonDialog } from './components/ReasonDialog'

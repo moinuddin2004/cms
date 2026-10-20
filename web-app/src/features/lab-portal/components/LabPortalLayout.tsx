@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   Building2,
   ClipboardList,
+  Factory,
   FlaskConical,
   LayoutDashboard,
   Loader2,
@@ -36,6 +37,7 @@ export const LAB_PORTAL_NAV: NavItem[] = [
   { label: 'Lab profile', icon: FlaskConical, href: '/lab-portal/profile' },
   { label: 'Team', icon: Users, href: '/lab-portal/team', adminOnly: true },
   { label: 'Clinics', icon: Building2, href: '/lab-portal/clinics' },
+  { label: 'Production', icon: Factory, href: '/lab-portal/production' },
 ]
 
 const initials = (name?: string) =>

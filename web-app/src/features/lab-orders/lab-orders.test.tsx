@@ -171,6 +171,10 @@ const detail: LabOrderDetail = {
 function serve(routes: Record<string, unknown>) {
   api.get.mockImplementation((url: string) => {
     if (url in routes) return Promise.resolve(routes[url])
+    if (url.endsWith('/production'))
+      return Promise.resolve(
+        ok({ items: [], shipments: [], remakeRequests: [] }),
+      )
     if (
       url === '/appointments/doctors' ||
       url === '/form-schemas' ||
