@@ -145,6 +145,12 @@ const NAV: NavSection[] = [
         show: (a) => a.labMemberships.length > 0,
       },
       {
+        label: 'Lab orders',
+        icon: FlaskConical,
+        href: '/lab-orders',
+        feature: 'dental.lab_orders',
+      },
+      {
         label: 'Lab price list',
         icon: Tags,
         href: '/lab-catalog',
