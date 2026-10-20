@@ -11,6 +11,7 @@ import {
   HandCoins,
 } from 'lucide-react'
 import { PatientBillingTab, useBillingAccess } from '@/features/billing'
+import { PatientMessagesCard } from '@/features/notifications'
 import type { Patient } from '../types'
 import { FeatureGuard } from '@/context/FeatureFlagsContext'
 import { OverviewTab } from './tabs/OverviewTab'
@@ -103,6 +104,7 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
 
       <TabsContent value="overview">
         <OverviewTab patient={patient} />
+        {canBill && <PatientMessagesCard patientId={patient.id} />}
       </TabsContent>
 
       <FeatureGuard feature="appointments.core">

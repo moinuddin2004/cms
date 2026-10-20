@@ -173,3 +173,13 @@ export const REASON_LABEL: Partial<Record<string, string>> = {
   enabled: 'Enabled',
   no_address: 'No phone number or email',
 }
+
+/** A patient's messaging opt-outs (lab ERD §16 "Patient opt-out"). */
+export interface PatientCommPrefs {
+  patientId: string
+  whatsappOptOut: boolean
+  smsOptOut: boolean
+  emailOptOut: boolean
+  preferredLanguage: string | null
+  optedOutAt: string | null
+}

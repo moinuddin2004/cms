@@ -31,6 +31,7 @@ import { Route as LabOrdersRouteImport } from './routes/lab-orders'
 import { Route as LabOrderTemplatesRouteImport } from './routes/lab-order-templates'
 import { Route as LabDirectoryRouteImport } from './routes/lab-directory'
 import { Route as LabCatalogRouteImport } from './routes/lab-catalog'
+import { Route as LabBillingRouteImport } from './routes/lab-billing'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FinancialSummaryRouteImport } from './routes/financial-summary'
@@ -63,6 +64,7 @@ import { Route as LabPortalClinicsRouteImport } from './routes/lab-portal.clinic
 import { Route as LabOrdersOrderIdRouteImport } from './routes/lab-orders_.$orderId'
 import { Route as LabLinkTokenRouteImport } from './routes/lab-link.$token'
 import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
+import { Route as LabBillingInvoiceIdRouteImport } from './routes/lab-billing_.$invoiceId'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
@@ -188,6 +190,11 @@ const LabDirectoryRoute = LabDirectoryRouteImport.update({
 const LabCatalogRoute = LabCatalogRouteImport.update({
   id: '/lab-catalog',
   path: '/lab-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabBillingRoute = LabBillingRouteImport.update({
+  id: '/lab-billing',
+  path: '/lab-billing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -351,6 +358,11 @@ const LabDirectoryLabIdRoute = LabDirectoryLabIdRouteImport.update({
   path: '/lab-directory/$labId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabBillingInvoiceIdRoute = LabBillingInvoiceIdRouteImport.update({
+  id: '/lab-billing_/$invoiceId',
+  path: '/lab-billing/$invoiceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InvoicesInvoiceIdRoute = InvoicesInvoiceIdRouteImport.update({
   id: '/invoices/$invoiceId',
   path: '/invoices/$invoiceId',
@@ -442,6 +454,7 @@ export interface FileRoutesByFullPath {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-billing': typeof LabBillingRoute
   '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
@@ -471,6 +484,7 @@ export interface FileRoutesByFullPath {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
@@ -514,6 +528,7 @@ export interface FileRoutesByTo {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-billing': typeof LabBillingRoute
   '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
@@ -543,6 +558,7 @@ export interface FileRoutesByTo {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
@@ -587,6 +603,7 @@ export interface FileRoutesById {
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
+  '/lab-billing': typeof LabBillingRoute
   '/lab-catalog': typeof LabCatalogRoute
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
@@ -616,6 +633,7 @@ export interface FileRoutesById {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/lab-billing_/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders_/$orderId': typeof LabOrdersOrderIdRoute
@@ -661,6 +679,7 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-billing'
     | '/lab-catalog'
     | '/lab-directory'
     | '/lab-order-templates'
@@ -690,6 +709,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
@@ -733,6 +753,7 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-billing'
     | '/lab-catalog'
     | '/lab-directory'
     | '/lab-order-templates'
@@ -762,6 +783,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
@@ -805,6 +827,7 @@ export interface FileRouteTypes {
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
+    | '/lab-billing'
     | '/lab-catalog'
     | '/lab-directory'
     | '/lab-order-templates'
@@ -834,6 +857,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/lab-billing_/$invoiceId'
     | '/lab-directory_/$labId'
     | '/lab-link/$token'
     | '/lab-orders_/$orderId'
@@ -878,6 +902,7 @@ export interface RootRouteChildren {
   FinancialSummaryRoute: typeof FinancialSummaryRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InventoryRoute: typeof InventoryRoute
+  LabBillingRoute: typeof LabBillingRoute
   LabCatalogRoute: typeof LabCatalogRoute
   LabDirectoryRoute: typeof LabDirectoryRoute
   LabOrderTemplatesRoute: typeof LabOrderTemplatesRoute
@@ -907,6 +932,7 @@ export interface RootRouteChildren {
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
+  LabBillingInvoiceIdRoute: typeof LabBillingInvoiceIdRoute
   LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
   LabLinkTokenRoute: typeof LabLinkTokenRoute
   LabOrdersOrderIdRoute: typeof LabOrdersOrderIdRoute
@@ -1097,6 +1123,13 @@ declare module '@tanstack/react-router' {
       path: '/lab-catalog'
       fullPath: '/lab-catalog'
       preLoaderRoute: typeof LabCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-billing': {
+      id: '/lab-billing'
+      path: '/lab-billing'
+      fullPath: '/lab-billing'
+      preLoaderRoute: typeof LabBillingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -1323,6 +1356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabDirectoryLabIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-billing_/$invoiceId': {
+      id: '/lab-billing_/$invoiceId'
+      path: '/lab-billing/$invoiceId'
+      fullPath: '/lab-billing/$invoiceId'
+      preLoaderRoute: typeof LabBillingInvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invoices/$invoiceId': {
       id: '/invoices/$invoiceId'
       path: '/invoices/$invoiceId'
@@ -1446,6 +1486,7 @@ const rootRouteChildren: RootRouteChildren = {
   FinancialSummaryRoute: FinancialSummaryRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InventoryRoute: InventoryRoute,
+  LabBillingRoute: LabBillingRoute,
   LabCatalogRoute: LabCatalogRoute,
   LabDirectoryRoute: LabDirectoryRoute,
   LabOrderTemplatesRoute: LabOrderTemplatesRoute,
@@ -1475,6 +1516,7 @@ const rootRouteChildren: RootRouteChildren = {
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
+  LabBillingInvoiceIdRoute: LabBillingInvoiceIdRoute,
   LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
   LabLinkTokenRoute: LabLinkTokenRoute,
   LabOrdersOrderIdRoute: LabOrdersOrderIdRoute,

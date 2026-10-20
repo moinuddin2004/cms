@@ -151,6 +151,13 @@ const NAV: NavSection[] = [
         feature: 'dental.lab_orders',
       },
       {
+        label: 'Lab billing',
+        icon: Receipt,
+        href: '/lab-billing',
+        feature: 'dental.lab_orders',
+        roles: ['clinic_admin', 'receptionist'],
+      },
+      {
         label: 'Lab price list',
         icon: Tags,
         href: '/lab-catalog',

@@ -21,6 +21,7 @@ import { FileUploadField } from '@/components/shared/FileUploadField'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { formatPaisa } from '@/features/lab-catalog'
+import { LabBillingPanel } from '@/features/lab-billing'
 import { LabAccessPanel } from '../components/LabAccessPanel'
 import { LabOrderSheet } from '../components/LabOrderSheet'
 import { ItemStatusBadge, OrderStatusBadge } from '../components/order-badges'
@@ -317,6 +318,9 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
 
         {!isDraft && <LabAccessPanel order={order} />}
         {!isDraft && <ProductionPanel order={order} />}
+        {!isDraft && (
+          <LabBillingPanel orderId={order.id} patient={order.patient} />
+        )}
         {!isDraft && <Conversation order={order} />}
         {order.charges.length > 0 && <Charges order={order} />}
         {order.revisions.length > 0 && (
