@@ -39,6 +39,8 @@ import { LabsModule } from './labs/labs.module';
 import { EngineModule } from './engine/engine.module';
 import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 
 // Entities needed by AuthorizationService (for global guard)
@@ -99,6 +101,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     EngineModule,
     LabsModule,
     LabCatalogModule,
+    NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
   ],
   controllers: [AppController],
   providers: [
@@ -156,6 +159,7 @@ export class AppModule {
         }),
         ...(runsJobs(role) ? [ScheduleModule.forRoot()] : []),
         QueueRuntimeModule.forRole(role),
+        NotificationsRuntimeModule.forRole(role),
       ],
     };
   }

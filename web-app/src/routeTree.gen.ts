@@ -47,6 +47,7 @@ import { Route as BillingIndexRouteImport } from './routes/billing.index'
 import { Route as StudioWorkflowsRouteImport } from './routes/studio.workflows'
 import { Route as StudioStagesRouteImport } from './routes/studio.stages'
 import { Route as StudioFormsRouteImport } from './routes/studio.forms'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings_.notifications'
 import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
@@ -261,6 +262,11 @@ const StudioFormsRoute = StudioFormsRouteImport.update({
   path: '/studio/forms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
+  id: '/settings_/notifications',
+  path: '/settings/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsBillingRoute = SettingsBillingRouteImport.update({
   id: '/settings_/billing',
   path: '/settings/billing',
@@ -425,6 +431,7 @@ export interface FileRoutesByFullPath {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -488,6 +495,7 @@ export interface FileRoutesByTo {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/settings_/billing': typeof SettingsBillingRoute
+  '/settings_/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -617,6 +626,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/settings/notifications'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings/billing'
+    | '/settings/notifications'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -743,6 +754,7 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/settings_/billing'
+    | '/settings_/notifications'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -807,6 +819,7 @@ export interface RootRouteChildren {
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
   SettingsBillingRoute: typeof SettingsBillingRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   StudioFormsRoute: typeof StudioFormsRoute
   StudioStagesRoute: typeof StudioStagesRoute
   StudioWorkflowsRoute: typeof StudioWorkflowsRoute
@@ -1094,6 +1107,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioFormsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings_/notifications': {
+      id: '/settings_/notifications'
+      path: '/settings/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof SettingsNotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings_/billing': {
       id: '/settings_/billing'
       path: '/settings/billing'
@@ -1303,6 +1323,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
   SettingsBillingRoute: SettingsBillingRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
   StudioFormsRoute: StudioFormsRoute,
   StudioStagesRoute: StudioStagesRoute,
   StudioWorkflowsRoute: StudioWorkflowsRoute,
