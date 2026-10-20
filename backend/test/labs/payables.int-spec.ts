@@ -463,7 +463,9 @@ describe('Lab payables (API)', () => {
         billedLabCostPaisa: 1_000_000,
         expensesPaisa: 50_000,
         profitPaisa: 1_950_000,
-        commissionPaisa: null,
+        // Nothing invoiced to the patient yet (Sprint 11): price snapshot, no commission.
+        invoicedPaisa: null,
+        commissionPaisa: 0,
       });
     });
   });
