@@ -128,6 +128,39 @@ describe('commissionTarget', () => {
     });
     expect(after.targetPaisa - before.targetPaisa).toBe(-800);
   });
+
+  it('lab case: the rate applies to the price minus the lab cost (lab ERD §15 worked example)', () => {
+    // Two crowns: patient 28,000 after discount, lab 10,000 → 40% of 18,000.
+    const lab = { ...net(2_800_000, 4000), labCostPaisa: 1_000_000 };
+    expect(
+      commissionTarget({ ...lab, allocatedPaisa: 2_800_000 }).targetPaisa,
+    ).toBe(720_000);
+    // Advance of 10,000 first: pro rata to what was collected, drift-free.
+    const entries = entriesFor(lab, [1_000_000, 2_800_000]);
+    expect(entries.reduce((a, b) => a + b, 0)).toBe(720_000);
+    expect(entries[0]).toBe(257_143);
+  });
+
+  it('lab cost at or above the price earns nothing; fixed amounts are not reduced', () => {
+    expect(
+      commissionTarget({
+        ...net(500_000, 4000),
+        labCostPaisa: 600_000,
+        allocatedPaisa: 500_000,
+      }).targetPaisa,
+    ).toBe(0);
+    expect(
+      commissionTarget({
+        netPaisa: 500_000,
+        grossPaisa: 500_000,
+        basis: CommissionBasis.NET,
+        rateBps: null,
+        fixedPaisa: 50_000,
+        labCostPaisa: 200_000,
+        allocatedPaisa: 500_000,
+      }).targetPaisa,
+    ).toBe(50_000);
+  });
 });
 
 describe('divRoundHalfUp', () => {

@@ -19,6 +19,7 @@ import {
 @Entity({ name: 'expenses' })
 @Index(['organizationId', 'locationId', 'expenseDate'])
 @Index(['organizationId', 'category'])
+@Index('idx_expenses_lab_order', ['labOrderId'])
 export class Expense {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -72,6 +73,13 @@ export class Expense {
 
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
+
+  /** Lab case cost (lab ERD §6c): the lab and / or lab order it was spent on. */
+  @Column({ name: 'lab_id', type: 'uuid', nullable: true })
+  labId: string | null;
+
+  @Column({ name: 'lab_order_id', type: 'uuid', nullable: true })
+  labOrderId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

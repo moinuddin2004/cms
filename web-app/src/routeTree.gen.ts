@@ -27,6 +27,7 @@ import { Route as MedicineDirectoryRouteImport } from './routes/medicine-directo
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LocationsRouteImport } from './routes/locations'
 import { Route as LabsRouteImport } from './routes/labs'
+import { Route as LabPayablesRouteImport } from './routes/lab-payables'
 import { Route as LabOrdersRouteImport } from './routes/lab-orders'
 import { Route as LabOrderTemplatesRouteImport } from './routes/lab-order-templates'
 import { Route as LabDirectoryRouteImport } from './routes/lab-directory'
@@ -61,6 +62,10 @@ import { Route as LabPortalProfileRouteImport } from './routes/lab-portal.profil
 import { Route as LabPortalProductionRouteImport } from './routes/lab-portal.production'
 import { Route as LabPortalOrdersRouteImport } from './routes/lab-portal.orders'
 import { Route as LabPortalClinicsRouteImport } from './routes/lab-portal.clinics'
+import { Route as LabPortalBillingRouteImport } from './routes/lab-portal.billing'
+import { Route as LabPayablesStatementsRouteImport } from './routes/lab-payables_.statements'
+import { Route as LabPayablesReportsRouteImport } from './routes/lab-payables_.reports'
+import { Route as LabPayablesPaymentsRouteImport } from './routes/lab-payables_.payments'
 import { Route as LabOrdersOrderIdRouteImport } from './routes/lab-orders_.$orderId'
 import { Route as LabLinkTokenRouteImport } from './routes/lab-link.$token'
 import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
@@ -80,6 +85,8 @@ import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizati
 import { Route as OrganizationsIdFeaturesRouteImport } from './routes/organizations_.$id.features'
 import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id.settings'
 import { Route as LabPortalOrdersOrderIdRouteImport } from './routes/lab-portal.orders_.$orderId'
+import { Route as LabPayablesStatementsStatementIdRouteImport } from './routes/lab-payables_.statements_.$statementId'
+import { Route as LabPayablesBillsBillIdRouteImport } from './routes/lab-payables_.bills.$billId'
 import { Route as LabOrdersReceiveTokenRouteImport } from './routes/lab-orders_.receive.$token'
 
 const UsersRoute = UsersRouteImport.update({
@@ -170,6 +177,11 @@ const LocationsRoute = LocationsRouteImport.update({
 const LabsRoute = LabsRouteImport.update({
   id: '/labs',
   path: '/labs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPayablesRoute = LabPayablesRouteImport.update({
+  id: '/lab-payables',
+  path: '/lab-payables',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LabOrdersRoute = LabOrdersRouteImport.update({
@@ -343,6 +355,26 @@ const LabPortalClinicsRoute = LabPortalClinicsRouteImport.update({
   path: '/lab-portal/clinics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabPortalBillingRoute = LabPortalBillingRouteImport.update({
+  id: '/lab-portal/billing',
+  path: '/lab-portal/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPayablesStatementsRoute = LabPayablesStatementsRouteImport.update({
+  id: '/lab-payables_/statements',
+  path: '/lab-payables/statements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPayablesReportsRoute = LabPayablesReportsRouteImport.update({
+  id: '/lab-payables_/reports',
+  path: '/lab-payables/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LabPayablesPaymentsRoute = LabPayablesPaymentsRouteImport.update({
+  id: '/lab-payables_/payments',
+  path: '/lab-payables/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LabOrdersOrderIdRoute = LabOrdersOrderIdRouteImport.update({
   id: '/lab-orders_/$orderId',
   path: '/lab-orders/$orderId',
@@ -440,6 +472,17 @@ const LabPortalOrdersOrderIdRoute = LabPortalOrdersOrderIdRouteImport.update({
   path: '/lab-portal/orders/$orderId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabPayablesStatementsStatementIdRoute =
+  LabPayablesStatementsStatementIdRouteImport.update({
+    id: '/lab-payables_/statements_/$statementId',
+    path: '/lab-payables/statements/$statementId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LabPayablesBillsBillIdRoute = LabPayablesBillsBillIdRouteImport.update({
+  id: '/lab-payables_/bills/$billId',
+  path: '/lab-payables/bills/$billId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LabOrdersReceiveTokenRoute = LabOrdersReceiveTokenRouteImport.update({
   id: '/lab-orders_/receive/$token',
   path: '/lab-orders/receive/$token',
@@ -459,6 +502,7 @@ export interface FileRoutesByFullPath {
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/lab-orders': typeof LabOrdersRoute
+  '/lab-payables': typeof LabPayablesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -488,6 +532,10 @@ export interface FileRoutesByFullPath {
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
+  '/lab-payables/payments': typeof LabPayablesPaymentsRoute
+  '/lab-payables/reports': typeof LabPayablesReportsRoute
+  '/lab-payables/statements': typeof LabPayablesStatementsRoute
+  '/lab-portal/billing': typeof LabPortalBillingRoute
   '/lab-portal/clinics': typeof LabPortalClinicsRoute
   '/lab-portal/orders': typeof LabPortalOrdersRoute
   '/lab-portal/production': typeof LabPortalProductionRoute
@@ -511,6 +559,8 @@ export interface FileRoutesByFullPath {
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
+  '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
+  '/lab-payables/statements/$statementId': typeof LabPayablesStatementsStatementIdRoute
   '/lab-portal/orders/$orderId': typeof LabPortalOrdersOrderIdRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
@@ -533,6 +583,7 @@ export interface FileRoutesByTo {
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/lab-orders': typeof LabOrdersRoute
+  '/lab-payables': typeof LabPayablesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -562,6 +613,10 @@ export interface FileRoutesByTo {
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
+  '/lab-payables/payments': typeof LabPayablesPaymentsRoute
+  '/lab-payables/reports': typeof LabPayablesReportsRoute
+  '/lab-payables/statements': typeof LabPayablesStatementsRoute
+  '/lab-portal/billing': typeof LabPortalBillingRoute
   '/lab-portal/clinics': typeof LabPortalClinicsRoute
   '/lab-portal/orders': typeof LabPortalOrdersRoute
   '/lab-portal/production': typeof LabPortalProductionRoute
@@ -585,6 +640,8 @@ export interface FileRoutesByTo {
   '/prescriptions': typeof PrescriptionsIndexRoute
   '/studio': typeof StudioIndexRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
+  '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
+  '/lab-payables/statements/$statementId': typeof LabPayablesStatementsStatementIdRoute
   '/lab-portal/orders/$orderId': typeof LabPortalOrdersOrderIdRoute
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
@@ -608,6 +665,7 @@ export interface FileRoutesById {
   '/lab-directory': typeof LabDirectoryRoute
   '/lab-order-templates': typeof LabOrderTemplatesRoute
   '/lab-orders': typeof LabOrdersRoute
+  '/lab-payables': typeof LabPayablesRoute
   '/labs': typeof LabsRoute
   '/locations': typeof LocationsRoute
   '/login': typeof LoginRoute
@@ -637,6 +695,10 @@ export interface FileRoutesById {
   '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders_/$orderId': typeof LabOrdersOrderIdRoute
+  '/lab-payables_/payments': typeof LabPayablesPaymentsRoute
+  '/lab-payables_/reports': typeof LabPayablesReportsRoute
+  '/lab-payables_/statements': typeof LabPayablesStatementsRoute
+  '/lab-portal/billing': typeof LabPortalBillingRoute
   '/lab-portal/clinics': typeof LabPortalClinicsRoute
   '/lab-portal/orders': typeof LabPortalOrdersRoute
   '/lab-portal/production': typeof LabPortalProductionRoute
@@ -660,6 +722,8 @@ export interface FileRoutesById {
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/lab-orders_/receive/$token': typeof LabOrdersReceiveTokenRoute
+  '/lab-payables_/bills/$billId': typeof LabPayablesBillsBillIdRoute
+  '/lab-payables_/statements_/$statementId': typeof LabPayablesStatementsStatementIdRoute
   '/lab-portal/orders_/$orderId': typeof LabPortalOrdersOrderIdRoute
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/features': typeof OrganizationsIdFeaturesRoute
@@ -684,6 +748,7 @@ export interface FileRouteTypes {
     | '/lab-directory'
     | '/lab-order-templates'
     | '/lab-orders'
+    | '/lab-payables'
     | '/labs'
     | '/locations'
     | '/login'
@@ -713,6 +778,10 @@ export interface FileRouteTypes {
     | '/lab-directory/$labId'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
+    | '/lab-payables/payments'
+    | '/lab-payables/reports'
+    | '/lab-payables/statements'
+    | '/lab-portal/billing'
     | '/lab-portal/clinics'
     | '/lab-portal/orders'
     | '/lab-portal/production'
@@ -736,6 +805,8 @@ export interface FileRouteTypes {
     | '/prescriptions/'
     | '/studio/'
     | '/lab-orders/receive/$token'
+    | '/lab-payables/bills/$billId'
+    | '/lab-payables/statements/$statementId'
     | '/lab-portal/orders/$orderId'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
@@ -758,6 +829,7 @@ export interface FileRouteTypes {
     | '/lab-directory'
     | '/lab-order-templates'
     | '/lab-orders'
+    | '/lab-payables'
     | '/labs'
     | '/locations'
     | '/login'
@@ -787,6 +859,10 @@ export interface FileRouteTypes {
     | '/lab-directory/$labId'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
+    | '/lab-payables/payments'
+    | '/lab-payables/reports'
+    | '/lab-payables/statements'
+    | '/lab-portal/billing'
     | '/lab-portal/clinics'
     | '/lab-portal/orders'
     | '/lab-portal/production'
@@ -810,6 +886,8 @@ export interface FileRouteTypes {
     | '/prescriptions'
     | '/studio'
     | '/lab-orders/receive/$token'
+    | '/lab-payables/bills/$billId'
+    | '/lab-payables/statements/$statementId'
     | '/lab-portal/orders/$orderId'
     | '/locations/$id/settings'
     | '/organizations/$id/features'
@@ -832,6 +910,7 @@ export interface FileRouteTypes {
     | '/lab-directory'
     | '/lab-order-templates'
     | '/lab-orders'
+    | '/lab-payables'
     | '/labs'
     | '/locations'
     | '/login'
@@ -861,6 +940,10 @@ export interface FileRouteTypes {
     | '/lab-directory_/$labId'
     | '/lab-link/$token'
     | '/lab-orders_/$orderId'
+    | '/lab-payables_/payments'
+    | '/lab-payables_/reports'
+    | '/lab-payables_/statements'
+    | '/lab-portal/billing'
     | '/lab-portal/clinics'
     | '/lab-portal/orders'
     | '/lab-portal/production'
@@ -884,6 +967,8 @@ export interface FileRouteTypes {
     | '/prescriptions/'
     | '/studio/'
     | '/lab-orders_/receive/$token'
+    | '/lab-payables_/bills/$billId'
+    | '/lab-payables_/statements_/$statementId'
     | '/lab-portal/orders_/$orderId'
     | '/locations_/$id/settings'
     | '/organizations_/$id/features'
@@ -907,6 +992,7 @@ export interface RootRouteChildren {
   LabDirectoryRoute: typeof LabDirectoryRoute
   LabOrderTemplatesRoute: typeof LabOrderTemplatesRoute
   LabOrdersRoute: typeof LabOrdersRoute
+  LabPayablesRoute: typeof LabPayablesRoute
   LabsRoute: typeof LabsRoute
   LocationsRoute: typeof LocationsRoute
   LoginRoute: typeof LoginRoute
@@ -936,6 +1022,10 @@ export interface RootRouteChildren {
   LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
   LabLinkTokenRoute: typeof LabLinkTokenRoute
   LabOrdersOrderIdRoute: typeof LabOrdersOrderIdRoute
+  LabPayablesPaymentsRoute: typeof LabPayablesPaymentsRoute
+  LabPayablesReportsRoute: typeof LabPayablesReportsRoute
+  LabPayablesStatementsRoute: typeof LabPayablesStatementsRoute
+  LabPortalBillingRoute: typeof LabPortalBillingRoute
   LabPortalClinicsRoute: typeof LabPortalClinicsRoute
   LabPortalOrdersRoute: typeof LabPortalOrdersRoute
   LabPortalProductionRoute: typeof LabPortalProductionRoute
@@ -959,6 +1049,8 @@ export interface RootRouteChildren {
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
   StudioIndexRoute: typeof StudioIndexRoute
   LabOrdersReceiveTokenRoute: typeof LabOrdersReceiveTokenRoute
+  LabPayablesBillsBillIdRoute: typeof LabPayablesBillsBillIdRoute
+  LabPayablesStatementsStatementIdRoute: typeof LabPayablesStatementsStatementIdRoute
   LabPortalOrdersOrderIdRoute: typeof LabPortalOrdersOrderIdRoute
   LocationsIdSettingsRoute: typeof LocationsIdSettingsRoute
   OrganizationsIdFeaturesRoute: typeof OrganizationsIdFeaturesRoute
@@ -1095,6 +1187,13 @@ declare module '@tanstack/react-router' {
       path: '/labs'
       fullPath: '/labs'
       preLoaderRoute: typeof LabsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-payables': {
+      id: '/lab-payables'
+      path: '/lab-payables'
+      fullPath: '/lab-payables'
+      preLoaderRoute: typeof LabPayablesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lab-orders': {
@@ -1335,6 +1434,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabPortalClinicsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-portal/billing': {
+      id: '/lab-portal/billing'
+      path: '/lab-portal/billing'
+      fullPath: '/lab-portal/billing'
+      preLoaderRoute: typeof LabPortalBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-payables_/statements': {
+      id: '/lab-payables_/statements'
+      path: '/lab-payables/statements'
+      fullPath: '/lab-payables/statements'
+      preLoaderRoute: typeof LabPayablesStatementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-payables_/reports': {
+      id: '/lab-payables_/reports'
+      path: '/lab-payables/reports'
+      fullPath: '/lab-payables/reports'
+      preLoaderRoute: typeof LabPayablesReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-payables_/payments': {
+      id: '/lab-payables_/payments'
+      path: '/lab-payables/payments'
+      fullPath: '/lab-payables/payments'
+      preLoaderRoute: typeof LabPayablesPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lab-orders_/$orderId': {
       id: '/lab-orders_/$orderId'
       path: '/lab-orders/$orderId'
@@ -1468,6 +1595,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabPortalOrdersOrderIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-payables_/statements_/$statementId': {
+      id: '/lab-payables_/statements_/$statementId'
+      path: '/lab-payables/statements/$statementId'
+      fullPath: '/lab-payables/statements/$statementId'
+      preLoaderRoute: typeof LabPayablesStatementsStatementIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lab-payables_/bills/$billId': {
+      id: '/lab-payables_/bills/$billId'
+      path: '/lab-payables/bills/$billId'
+      fullPath: '/lab-payables/bills/$billId'
+      preLoaderRoute: typeof LabPayablesBillsBillIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lab-orders_/receive/$token': {
       id: '/lab-orders_/receive/$token'
       path: '/lab-orders/receive/$token'
@@ -1491,6 +1632,7 @@ const rootRouteChildren: RootRouteChildren = {
   LabDirectoryRoute: LabDirectoryRoute,
   LabOrderTemplatesRoute: LabOrderTemplatesRoute,
   LabOrdersRoute: LabOrdersRoute,
+  LabPayablesRoute: LabPayablesRoute,
   LabsRoute: LabsRoute,
   LocationsRoute: LocationsRoute,
   LoginRoute: LoginRoute,
@@ -1520,6 +1662,10 @@ const rootRouteChildren: RootRouteChildren = {
   LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
   LabLinkTokenRoute: LabLinkTokenRoute,
   LabOrdersOrderIdRoute: LabOrdersOrderIdRoute,
+  LabPayablesPaymentsRoute: LabPayablesPaymentsRoute,
+  LabPayablesReportsRoute: LabPayablesReportsRoute,
+  LabPayablesStatementsRoute: LabPayablesStatementsRoute,
+  LabPortalBillingRoute: LabPortalBillingRoute,
   LabPortalClinicsRoute: LabPortalClinicsRoute,
   LabPortalOrdersRoute: LabPortalOrdersRoute,
   LabPortalProductionRoute: LabPortalProductionRoute,
@@ -1543,6 +1689,8 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
   StudioIndexRoute: StudioIndexRoute,
   LabOrdersReceiveTokenRoute: LabOrdersReceiveTokenRoute,
+  LabPayablesBillsBillIdRoute: LabPayablesBillsBillIdRoute,
+  LabPayablesStatementsStatementIdRoute: LabPayablesStatementsStatementIdRoute,
   LabPortalOrdersOrderIdRoute: LabPortalOrdersOrderIdRoute,
   LocationsIdSettingsRoute: LocationsIdSettingsRoute,
   OrganizationsIdFeaturesRoute: OrganizationsIdFeaturesRoute,

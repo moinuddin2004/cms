@@ -27,8 +27,10 @@ export class ExpensesService {
     dto: CreateExpenseDto,
     recordedBy: string,
   ): Promise<Expense> {
+    const lab = await this.labLink(ctx.organizationId, dto);
     const expense = this.expenseRepo.create({
       ...dto,
+      ...lab,
       organizationId: ctx.organizationId,
       locationId: ctx.locationId,
       recordedBy,
@@ -78,8 +80,13 @@ export class ExpensesService {
       where: { id, organizationId },
     });
     if (!expense) throw new NotFoundException('Expense not found');
+    const lab =
+      dto.labOrderId !== undefined || dto.labId !== undefined
+        ? await this.labLink(organizationId, dto)
+        : {};
     Object.assign(expense, {
       ...dto,
+      ...lab,
       expenseDate: dto.expenseDate
         ? new Date(dto.expenseDate)
         : expense.expenseDate,
@@ -94,6 +101,23 @@ export class ExpensesService {
     if (!expense) throw new NotFoundException('Expense not found');
     await this.expenseRepo.remove(expense);
     return { id };
+  }
+
+  /**
+   * A lab case cost (e.g. the courier, lab ERD §15 step 4): the order must
+   * be this clinic's; its lab is filled in from the order.
+   */
+  private async labLink(
+    organizationId: string,
+    dto: { labId?: string; labOrderId?: string },
+  ): Promise<{ labId: string | null; labOrderId: string | null }> {
+    if (!dto.labOrderId) return { labId: dto.labId ?? null, labOrderId: null };
+    const rows: Array<{ lab_id: string }> = await this.expenseRepo.query(
+      `SELECT lab_id FROM lab_orders WHERE id = $1 AND organization_id = $2`,
+      [dto.labOrderId, organizationId],
+    );
+    if (!rows.length) throw new NotFoundException('Lab order not found');
+    return { labId: rows[0].lab_id, labOrderId: dto.labOrderId };
   }
 
   async getMonthlySummary(

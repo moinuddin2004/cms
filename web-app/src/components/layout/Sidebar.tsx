@@ -170,6 +170,13 @@ const NAV: NavSection[] = [
         href: '/lab-order-templates',
         feature: 'dental.lab_orders',
       },
+      {
+        label: 'Lab payables',
+        icon: Wallet,
+        href: '/lab-payables',
+        feature: 'dental.lab_orders',
+        roles: ADMIN,
+      },
     ],
   },
   {

@@ -83,6 +83,12 @@ export interface CommissionTargetInput {
   basis: CommissionBasis;
   rateBps: number | null;
   fixedPaisa: number | null;
+  /**
+   * Lab cost of the case (lab ERD §6c basis `net_of_lab_cost`): the doctor
+   * earns on the price minus what the lab charged, pro rata to what was
+   * collected. Omitted / 0 for work without a lab.
+   */
+  labCostPaisa?: number;
 }
 
 export interface CommissionTarget {
@@ -100,6 +106,9 @@ export interface CommissionTarget {
  *   rate, NET basis        → round(collected × rate / 10000)
  *   rate, GROSS basis      → round(collected × gross × rate / (net × 10000))
  *   fixed amount           → round(fixed × collected / net)
+ *   with lab cost L        → rate on (net − L) or (gross − L) instead,
+ *                            round(collected × max(base − L, 0) × rate / (net × 10000));
+ *                            a fixed amount is not reduced
  *
  * Callers insert `target − already recorded`, so installments never drift,
  * unapply reverses itself and price / discount changes adjust automatically.
@@ -121,6 +130,13 @@ export function commissionTarget(i: CommissionTargetInput): CommissionTarget {
   }
   const rate = BigInt(i.rateBps ?? 0);
   const scale = BigInt(MAX_RATE_BPS);
+  const lab = BigInt(Math.max(0, i.labCostPaisa ?? 0));
+  if (lab > 0n) {
+    const price =
+      i.basis === CommissionBasis.GROSS ? BigInt(i.grossPaisa) : net;
+    const base = price > lab ? price - lab : 0n;
+    return result(divRoundHalfUp(collected * base * rate, net * scale));
+  }
   if (i.basis === CommissionBasis.GROSS) {
     return result(
       divRoundHalfUp(collected * BigInt(i.grossPaisa) * rate, net * scale),

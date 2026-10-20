@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Loader2,
   LogOut,
+  Receipt,
   Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -38,6 +39,7 @@ export const LAB_PORTAL_NAV: NavItem[] = [
   { label: 'Team', icon: Users, href: '/lab-portal/team', adminOnly: true },
   { label: 'Clinics', icon: Building2, href: '/lab-portal/clinics' },
   { label: 'Production', icon: Factory, href: '/lab-portal/production' },
+  { label: 'Billing', icon: Receipt, href: '/lab-portal/billing' },
 ]
 
 const initials = (name?: string) =>
