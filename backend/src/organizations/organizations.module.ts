@@ -6,6 +6,7 @@ import { OrganizationSettings } from './entities/organization-settings.entity';
 import { OrganizationsService } from './organizations.service';
 import { OrganizationsController } from './organizations.controller';
 import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
       OrganizationSettings,
     ]),
     FeatureFlagsModule,
+    AuthModule,
   ],
   controllers: [OrganizationsController],
   providers: [OrganizationsService],

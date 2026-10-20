@@ -17,13 +17,16 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
+import { ContextFree } from 'src/common/decorators/context-free.decorator';
 
 /**
- * Location management endpoints.
- * Most operations require tenant context (organization + location headers).
+ * Location management endpoints (super admin, or organization owner).
+ * Context-free: an owner manages locations before/without selecting one, so
+ * every handler authorizes through getAuthorizedOrgId() instead.
  */
 @Controller('locations')
 @UseGuards(JwtAuthGuard)
+@ContextFree()
 export class LocationsController {
   constructor(
     private readonly locationsService: LocationsService,

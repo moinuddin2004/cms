@@ -12,23 +12,18 @@ import { REQUIRE_SUPER_ADMIN_KEY } from 'src/common/decorators/require-super-adm
 import { CONTEXT_FREE_KEY } from 'src/common/decorators/context-free.decorator';
 
 /**
- * Routes that don't require tenant context headers.
- * Overlaps with the middleware list but used for guard enforcement.
- */
-const CONTEXT_FREE_PATHS = [
-  '/auth/',
-  '/organizations', // Org listing (super admin)
-  '/locations', // Locations management (handled in controller)
-];
-
-/**
  * TenantContextGuard — replaces the old RoleAuthGuard.
  *
- * Enforcement logic:
- * 1. Public routes: skip entirely (handled by @Public decorator)
- * 2. Context-free routes: skip tenant validation (auth routes, etc.)
- * 3. Super-admin-only routes: validate super admin role only
+ * Enforcement logic (order matters):
+ * 1. Public routes: skip entirely (@Public)
+ * 2. Super-admin-only routes: validate super admin role (@RequireSuperAdmin).
+ *    Checked before @ContextFree so nothing can skip it.
+ * 3. Context-free routes: skip tenant validation (@ContextFree — auth routes,
+ *    location management, which checks ownership in its controller)
  * 4. All other routes: validate tenant context (org + location must be present and accessible)
+ *
+ * There is deliberately no path-prefix allow-list: a prefix like '/organizations'
+ * used to short-circuit the guard before step 2 ran.
  */
 @Injectable()
 export class TenantContextGuard implements CanActivate {
@@ -39,44 +34,41 @@ export class TenantContextGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<any>();
-    const path = request.url?.split('?')[0]?.toLowerCase() || '';
+    const targets = [context.getHandler(), context.getClass()];
 
     // Check @Public() decorator
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (isPublic) return true;
-
-    // Check @ContextFree() decorator — auth/switching routes
-    const isContextFree = this.reflector.getAllAndOverride<boolean>(
-      CONTEXT_FREE_KEY,
-      [context.getHandler(), context.getClass()],
+    const isPublic = this.reflector.getAllAndOverride<boolean>(
+      IS_PUBLIC_KEY,
+      targets,
     );
-    if (isContextFree) return true;
-
-    // Check path-based context-free
-    if (this.isContextFreePath(path)) return true;
-
-    const user = request.user;
-    if (!user) return false;
+    if (isPublic) return true;
 
     // Check @RequireSuperAdmin() decorator
     const requiresSuperAdmin = this.reflector.getAllAndOverride<boolean>(
       REQUIRE_SUPER_ADMIN_KEY,
-      [context.getHandler(), context.getClass()],
+      targets,
     );
-
-    const isSA = await this.authorizationService.isSuperAdmin(user.uuid);
     if (requiresSuperAdmin) {
-      if (!isSA) {
+      const user = request.user;
+      if (!user) return false;
+      if (!(await this.authorizationService.isSuperAdmin(user.uuid))) {
         throw new ForbiddenException('Super admin access required');
       }
       return true;
     }
 
+    // Check @ContextFree() decorator — auth/switching routes
+    const isContextFree = this.reflector.getAllAndOverride<boolean>(
+      CONTEXT_FREE_KEY,
+      targets,
+    );
+    if (isContextFree) return true;
+
+    const user = request.user;
+    if (!user) return false;
+
     // Super admins are exempt from strict tenant context requirements
-    if (isSA) {
+    if (await this.authorizationService.isSuperAdmin(user.uuid)) {
       return true;
     }
 
@@ -110,9 +102,5 @@ export class TenantContextGuard implements CanActivate {
     request.tenantContext = { organizationId, locationId };
 
     return true;
-  }
-
-  private isContextFreePath(path: string): boolean {
-    return CONTEXT_FREE_PATHS.some((p) => path.startsWith(p));
   }
 }
