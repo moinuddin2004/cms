@@ -1,0 +1,166 @@
+import { z } from 'zod'
+import { rupeesToPaisa } from '@/features/lab-catalog'
+
+const text = (n: number) => z.string().trim().max(n, `At most ${n} characters`)
+const rupees = (label: string) =>
+  z
+    .string()
+    .trim()
+    .refine(
+      (v) => rupeesToPaisa(v) !== null,
+      `${label}: enter an amount like 4500 or 4500.50`,
+    )
+
+/** "17" / "12.5" → basis points; null when not 0–100 with ≤ 2 decimals. */
+export function percentToBp(v: string): number | null {
+  const m = /^\s*(\d{1,3})(?:\.(\d{0,2}))?\s*$/.exec(v)
+  if (!m) return null
+  const bp =
+    Number(m[1]) * 100 +
+    Number(((m[2] as string | undefined) ?? '').padEnd(2, '0'))
+  return bp <= 10_000 ? bp : null
+}
+
+/** Approve a draft bill: the lab's invoice no., due date, tax. */
+export const approveBillSchema = z.object({
+  vendorInvoiceNo: text(60),
+  dueOn: z.string(),
+  taxPercent: z
+    .string()
+    .trim()
+    .refine((v) => percentToBp(v) !== null, 'Tax: 0–100 %'),
+})
+export type ApproveBillValues = z.input<typeof approveBillSchema>
+
+/** Pay a lab: one amount split over its open bills; the rest stays an advance. */
+export const payLabSchema = z
+  .object({
+    amount: rupees('Amount').refine(
+      (v) => (rupeesToPaisa(v) ?? 0) > 0,
+      'Enter the amount paid',
+    ),
+    method: z.enum(['cash', 'bank_transfer', 'cheque', 'other']),
+    reference: text(100),
+    paidOn: z.string(),
+    allocations: z.array(
+      z.object({
+        billId: z.string(),
+        billNo: z.string(),
+        balancePaisa: z.number(),
+        amount: z.string().trim(),
+      }),
+    ),
+  })
+  .superRefine((v, ctx) => {
+    const amount = rupeesToPaisa(v.amount) ?? 0
+    let sum = 0
+    v.allocations.forEach((a, i) => {
+      if (!a.amount) return
+      const p = rupeesToPaisa(a.amount)
+      if (p === null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['allocations', i, 'amount'],
+          message: 'Enter an amount',
+        })
+        return
+      }
+      if (p > a.balancePaisa) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['allocations', i, 'amount'],
+          message: `More than the balance of ${a.billNo}`,
+        })
+      }
+      sum += p
+    })
+    if (sum > amount) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['amount'],
+        message: 'The bills add up to more than the payment',
+      })
+    }
+  })
+export type PayLabValues = z.input<typeof payLabSchema>
+
+/**
+ * Statement lines as typed or pasted from the lab's sheet, one per line:
+ * `reference, amount` (optionally `, date, description`).
+ */
+export function parseStatementLines(raw: string): {
+  lines: Array<{
+    labReference?: string
+    amountPaisa: number
+    lineDate?: string
+    description?: string
+  }>
+  errors: string[]
+} {
+  const lines: Array<{
+    labReference?: string
+    amountPaisa: number
+    lineDate?: string
+    description?: string
+  }> = []
+  const errors: string[] = []
+  raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .forEach((l, i) => {
+      // Pasted sheets use tabs; typed lines use commas (then "1,250" can't be one amount).
+      const sep = l.includes('\t') ? '\t' : l.includes(';') ? ';' : ','
+      const cells: Array<string | undefined> = l.split(sep).map((c) => c.trim())
+      const [ref, amount = '', date, ...rest] = cells
+      const paisa = rupeesToPaisa(amount.replace(/[, ]/g, ''))
+      if (paisa === null) {
+        errors.push(`Line ${i + 1}: "${amount}" is not an amount`)
+        return
+      }
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        errors.push(`Line ${i + 1}: date must be YYYY-MM-DD`)
+        return
+      }
+      lines.push({
+        labReference: ref || undefined,
+        amountPaisa: paisa,
+        lineDate: date || undefined,
+        description: rest.join(', ') || undefined,
+      })
+    })
+  return { lines, errors }
+}
+
+export const statementSchema = z
+  .object({
+    labId: z.string().min(1, 'Choose the lab'),
+    periodStart: z.string().min(1, 'Choose the first day'),
+    periodEnd: z.string().min(1, 'Choose the last day'),
+    statementRef: text(60),
+    lines: z.string(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.periodStart && v.periodEnd && v.periodEnd < v.periodStart) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['periodEnd'],
+        message: 'Ends before it starts',
+      })
+    }
+    const parsed = parseStatementLines(v.lines)
+    if (parsed.errors.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['lines'],
+        message: parsed.errors[0],
+      })
+    } else if (!parsed.lines.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['lines'],
+        message: 'Add the statement’s lines',
+      })
+    }
+  })
+export type StatementValues = z.input<typeof statementSchema>

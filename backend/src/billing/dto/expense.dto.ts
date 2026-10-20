@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsInt,
   IsDateString,
+  IsUUID,
   Min,
   Max,
   MaxLength,
@@ -45,6 +46,14 @@ export class CreateExpenseDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  labId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  labOrderId?: string;
 }
 
 export class UpdateExpenseDto {
@@ -82,6 +91,14 @@ export class UpdateExpenseDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  labId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  labOrderId?: string;
 }
 
 export class ExpenseFilterDto {
