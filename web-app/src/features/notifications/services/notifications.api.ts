@@ -8,6 +8,7 @@ import type {
   NotificationTemplate,
   OutboxLogEntry,
   OutboxLogParams,
+  PatientCommPrefs,
   Paginated,
   RuleChange,
   TemplateInput,
@@ -29,6 +30,19 @@ async function send<T>(
 
 /** Clinic notification settings — clinic admins only. */
 export const notificationSettingsApi = {
+  patientPrefs: (patientId: string) =>
+    get<PatientCommPrefs>(`/notification-settings/patients/${patientId}/prefs`),
+  updatePatientPrefs: (
+    patientId: string,
+    body: Partial<
+      Pick<PatientCommPrefs, 'whatsappOptOut' | 'smsOptOut' | 'emailOptOut'>
+    >,
+  ) =>
+    send<PatientCommPrefs>(
+      'put',
+      `/notification-settings/patients/${patientId}/prefs`,
+      body,
+    ),
   overview: () => get<NotificationOverview>('/notification-settings'),
   updateAudience: (
     audience: NotificationAudience,
