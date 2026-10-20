@@ -75,68 +75,74 @@ export class WorkflowEngine {
   }
 
   async transition(req: TransitionRequest): Promise<TransitionResult> {
+    return this.dataSource.transaction((m) => this.transitionIn(m, req));
+  }
+
+  /**
+   * `transition()` inside the caller's transaction — for operations that
+   * change a status as one step of a larger write (order submit, lab ERD
+   * §10): the status change commits or rolls back with the rest.
+   */
+  async transitionIn(
+    m: EntityManager,
+    req: TransitionRequest,
+  ): Promise<TransitionResult> {
     const adapter = this.adapter(req.entityType);
-    return this.dataSource.transaction(async (m) => {
-      const hash = req.idempotencyKey
-        ? requestHash({
-            entityType: req.entityType,
-            entityId: req.entityId,
-            action: req.action,
-            input: req.input ?? {},
-            reason: req.reason ?? null,
-          })
-        : null;
-      if (req.idempotencyKey && hash) {
-        const replay = await this.idempotency.claim(
-          m,
-          req.organizationId,
-          IDEMPOTENCY_SCOPE,
-          req.idempotencyKey,
-          hash,
-        );
-        if (replay)
-          return { ...(replay.response as TransitionResult), replayed: true };
-      }
-
-      const subject = await adapter.lock(m, req.organizationId, req.entityId);
-      if (!subject) {
-        throw engineError(
-          'WORKFLOW_SUBJECT_NOT_FOUND',
-          `${req.entityType} not found`,
-        );
-      }
-      if (req.expectedVersion !== undefined) {
-        assertVersion(subject.version, req.expectedVersion);
-      }
-
-      const workflow = await this.compiled(m, subject.workflowVersionId);
-      const transition = this.findTransition(
-        workflow,
-        subject.state,
-        req.action,
-      );
-      const effectiveSide = this.authorize(req, transition, subject);
-      this.checkInput(req, transition);
-
-      const result = await this.apply(
+    const hash = req.idempotencyKey
+      ? requestHash({
+          entityType: req.entityType,
+          entityId: req.entityId,
+          action: req.action,
+          input: req.input ?? {},
+          reason: req.reason ?? null,
+        })
+      : null;
+    if (req.idempotencyKey && hash) {
+      const replay = await this.idempotency.claim(
         m,
-        adapter,
-        subject,
-        transition,
-        req,
-        effectiveSide,
+        req.organizationId,
+        IDEMPOTENCY_SCOPE,
+        req.idempotencyKey,
+        hash,
       );
-      if (req.idempotencyKey) {
-        await this.idempotency.complete(
-          m,
-          req.organizationId,
-          IDEMPOTENCY_SCOPE,
-          req.idempotencyKey,
-          result,
-        );
-      }
-      return result;
-    });
+      if (replay)
+        return { ...(replay.response as TransitionResult), replayed: true };
+    }
+
+    const subject = await adapter.lock(m, req.organizationId, req.entityId);
+    if (!subject) {
+      throw engineError(
+        'WORKFLOW_SUBJECT_NOT_FOUND',
+        `${req.entityType} not found`,
+      );
+    }
+    if (req.expectedVersion !== undefined) {
+      assertVersion(subject.version, req.expectedVersion);
+    }
+
+    const workflow = await this.compiled(m, subject.workflowVersionId);
+    const transition = this.findTransition(workflow, subject.state, req.action);
+    const effectiveSide = this.authorize(req, transition, subject);
+    this.checkInput(req, transition);
+
+    const result = await this.apply(
+      m,
+      adapter,
+      subject,
+      transition,
+      req,
+      effectiveSide,
+    );
+    if (req.idempotencyKey) {
+      await this.idempotency.complete(
+        m,
+        req.organizationId,
+        IDEMPOTENCY_SCOPE,
+        req.idempotencyKey,
+        result,
+      );
+    }
+    return result;
   }
 
   /**

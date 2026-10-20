@@ -111,6 +111,13 @@ import { LabServicePrice } from './lab-catalog/entities/lab-service-price.entity
 import { ServiceMapping } from './lab-catalog/entities/service-mapping.entity';
 import { OrderTemplate } from './lab-catalog/entities/order-template.entity';
 
+// Lab order entities
+import { LabOrder } from './lab-orders/entities/lab-order.entity';
+import { LabOrderItem } from './lab-orders/entities/lab-order-item.entity';
+import { ItemTooth, DentalItemDetails, ItemFormResponse } from './lab-orders/entities/item-parts.entity';
+import { OrderRevision, OrderMessage, OrderChargeRequest } from './lab-orders/entities/order-records.entity';
+import { Attachment } from './lab-orders/entities/attachment.entity';
+
 // Load environment variables
 config();
 
@@ -225,6 +232,15 @@ export const AppDataSource = new DataSource({
     LabServicePrice,
     ServiceMapping,
     OrderTemplate,
+    LabOrder,
+    LabOrderItem,
+    ItemTooth,
+    DentalItemDetails,
+    ItemFormResponse,
+    OrderRevision,
+    OrderMessage,
+    OrderChargeRequest,
+    Attachment,
   ],
   migrations: ['src/migrations/*.ts'],
   subscribers: [],
