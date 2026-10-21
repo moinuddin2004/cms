@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PayrollPage } from '@/features/employees/pages/PayrollPage'
 
 export const Route = createFileRoute('/payroll')({
+  staticData: { can: 'payroll.manage' },
   component: () => (
     <RequireFeaturePage feature="hr.payroll">
       <RequireRolePage roles={['clinic_admin']}>
