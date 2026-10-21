@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from 'react'
 import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
 import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
+import { AccessProvider, RouteAccessGate } from '@/features/access'
 import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
@@ -276,7 +277,11 @@ function RootComponent() {
         specialtyTags={activeSpecialtyTags}
         enabled={isAuthenticated && !!activeLocationId}
       >
-        <Outlet />
+        <AccessProvider enabled={isAuthenticated && !!activeLocationId}>
+          <RouteAccessGate>
+            <Outlet />
+          </RouteAccessGate>
+        </AccessProvider>
       </FeatureFlagsProvider>
       <ThemeProvider />
       <Toaster
