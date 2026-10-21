@@ -54,6 +54,7 @@ import { ReportsModule } from './reports/reports.module';
 import { LabFinanceModule } from './lab-finance/lab-finance.module';
 import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
+import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -121,6 +122,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     LabFinanceModule,
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
+    SettingsRegistryModule,
   ],
   controllers: [AppController],
   providers: [

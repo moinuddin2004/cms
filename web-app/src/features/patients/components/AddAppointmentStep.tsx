@@ -305,7 +305,7 @@ export function AddAppointmentStep({
                       <button
                         type="button"
                         onClick={applySuggestion}
-                        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                        className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary-hover transition-colors"
                       >
                         <Lightbulb className="w-3.5 h-3.5" />
                         Apply suggested:{' '}

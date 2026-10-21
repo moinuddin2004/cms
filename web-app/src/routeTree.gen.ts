@@ -80,6 +80,7 @@ import { Route as ConsultationEncounterIdRouteImport } from './routes/consultati
 import { Route as BillingDoctorRevenueRouteImport } from './routes/billing.doctor-revenue'
 import { Route as BillingDoctorEarningsRouteImport } from './routes/billing.doctor-earnings'
 import { Route as BillingActivityRouteImport } from './routes/billing.activity'
+import { Route as AdminThemeRouteImport } from './routes/admin.theme'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
 import { Route as StudioWorkflowsWorkflowIdRouteImport } from './routes/studio.workflows_.$workflowId'
@@ -448,6 +449,11 @@ const BillingActivityRoute = BillingActivityRouteImport.update({
   path: '/billing/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminThemeRoute = AdminThemeRouteImport.update({
+  id: '/admin/theme',
+  path: '/admin/theme',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   id: '/patients/$patientId/',
   path: '/patients/$patientId/',
@@ -540,6 +546,7 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/admin/theme': typeof AdminThemeRoute
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByTo {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/admin/theme': typeof AdminThemeRoute
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
@@ -709,6 +717,7 @@ export interface FileRoutesById {
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
   '/users': typeof UsersRoute
+  '/admin/theme': typeof AdminThemeRoute
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
@@ -795,6 +804,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/admin/theme'
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
@@ -879,6 +889,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/admin/theme'
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
@@ -963,6 +974,7 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/settings'
     | '/users'
+    | '/admin/theme'
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
@@ -1048,6 +1060,7 @@ export interface RootRouteChildren {
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
   UsersRoute: typeof UsersRoute
+  AdminThemeRoute: typeof AdminThemeRoute
   BillingActivityRoute: typeof BillingActivityRoute
   BillingDoctorEarningsRoute: typeof BillingDoctorEarningsRoute
   BillingDoctorRevenueRoute: typeof BillingDoctorRevenueRoute
@@ -1599,6 +1612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BillingActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/theme': {
+      id: '/admin/theme'
+      path: '/admin/theme'
+      fullPath: '/admin/theme'
+      preLoaderRoute: typeof AdminThemeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/patients/$patientId/': {
       id: '/patients/$patientId/'
       path: '/patients/$patientId'
@@ -1712,6 +1732,7 @@ const rootRouteChildren: RootRouteChildren = {
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
   UsersRoute: UsersRoute,
+  AdminThemeRoute: AdminThemeRoute,
   BillingActivityRoute: BillingActivityRoute,
   BillingDoctorEarningsRoute: BillingDoctorEarningsRoute,
   BillingDoctorRevenueRoute: BillingDoctorRevenueRoute,

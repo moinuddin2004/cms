@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { Activity, Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from 'lucide-react'
+import { BrandMark } from '@/components/layout/BrandMark'
 import { useTheme } from '@/hooks/useTheme'
 
 interface AuthLayoutProps {
@@ -13,8 +14,9 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     <div className="flex min-h-screen h-screen">
       {/* ──────────────── Form panel ──────────────── */}
       <div className="flex-1 min-w-0 bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
-        {/* Theme toggle top-right of form panel */}
-        <div className="flex justify-end px-6 pt-5">
+        {/* Clinic brand (small screens, where the brand panel is hidden) + theme toggle */}
+        <div className="flex items-center justify-between px-6 pt-5 lg:justify-end">
+          <BrandMark className="lg:hidden" />
           <button
             type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
@@ -56,11 +58,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           style={{ background: 'radial-gradient(circle, rgba(6,182,212,.14) 0%, transparent 70%)' }} />
 
         {/* Logo */}
-        <div className="relative flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[11px] bg-white/10 border border-white/20 flex items-center justify-center">
-            <Activity className="w-[20px] h-[20px] text-white" strokeWidth={2.2} />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white/90">MedTrackr</span>
+        <div className="relative">
+          <BrandMark tone="inverse" />
         </div>
 
         {/* Main content */}

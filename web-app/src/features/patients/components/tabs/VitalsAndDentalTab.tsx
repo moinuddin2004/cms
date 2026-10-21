@@ -76,7 +76,7 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Droplets className="text-blue-500" size={20} />
+            <Droplets className="text-primary" size={20} />
             Dental Health & Habits
           </h3>
         </div>

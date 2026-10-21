@@ -57,6 +57,7 @@ import apiClient from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
+import { BrandMark } from './BrandMark'
 
 type AuthState = ReturnType<typeof useAuthStore.getState>
 
@@ -592,21 +593,14 @@ export function Sidebar() {
                 type="button"
                 onClick={toggleSidebar}
                 aria-label="Expand sidebar"
-                className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center justify-center rounded-lg transition-opacity hover:opacity-90"
               >
-                M
+                <BrandMark collapsed />
               </button>
             </CollapsedTip>
           ) : (
             <>
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600">
-                  <span className="text-sm font-bold text-white">M</span>
-                </div>
-                <span className="whitespace-nowrap text-lg font-bold text-foreground">
-                  MedTrackr
-                </span>
-              </div>
+              <BrandMark />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button

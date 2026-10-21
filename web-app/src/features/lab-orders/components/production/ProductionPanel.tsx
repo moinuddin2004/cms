@@ -73,7 +73,7 @@ export function StageTimeline({ stages }: { stages: ItemStage[] }) {
               key={r.id}
               className={
                 r.isActive
-                  ? 'flex items-center gap-1 rounded-md ring-2 ring-blue-500/40'
+                  ? 'flex items-center gap-1 rounded-md ring-2 ring-primary/40'
                   : 'flex items-center gap-1'
               }
               title={r.correctionNotes ?? r.tryinNotes ?? undefined}

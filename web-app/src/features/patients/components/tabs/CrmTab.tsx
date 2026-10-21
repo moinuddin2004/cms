@@ -77,7 +77,7 @@ export function CrmTab({ patient }: { patient: Patient }) {
         <Card className="shadow-sm">
           <CardHeader className="pb-2 border-b">
             <CardTitle className="text-md flex items-center gap-2">
-              <UserPlus className="text-blue-600" size={16} />
+              <UserPlus className="text-primary" size={16} />
               Referral Network
             </CardTitle>
             <CardDescription className="text-xs mt-1">

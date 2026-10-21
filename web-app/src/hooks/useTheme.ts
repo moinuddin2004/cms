@@ -4,13 +4,33 @@ export type Theme = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'theme'
 
-function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'system'
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark' || stored === 'system') {
-    return stored
+// The clinic's default mode (theme.default_mode), used while the user has
+// no saved preference of their own. Set by the ThemeProvider.
+let defaultMode: Theme = 'system'
+const defaultModeListeners = new Set<() => void>()
+
+function readStoredTheme(): Theme | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+      return stored
+    }
+  } catch {
+    // storage unavailable
   }
-  return 'system'
+  return null
+}
+
+function getStoredTheme(): Theme {
+  return readStoredTheme() ?? defaultMode
+}
+
+/** The clinic default; applies only to users without a saved preference. */
+export function setDefaultThemeMode(mode: Theme) {
+  if (mode === defaultMode) return
+  defaultMode = mode
+  defaultModeListeners.forEach((l) => l())
 }
 
 function getSystemPreference(): 'light' | 'dark' {
@@ -39,7 +59,11 @@ export function useTheme() {
 
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme)
-    localStorage.setItem(STORAGE_KEY, newTheme)
+    try {
+      localStorage.setItem(STORAGE_KEY, newTheme)
+    } catch {
+      // storage unavailable — the choice lasts for this page only
+    }
     applyTheme(newTheme)
   }, [])
 
@@ -47,6 +71,18 @@ export function useTheme() {
   useEffect(() => {
     applyTheme(theme)
   }, [theme])
+
+  // Follow the clinic default while the user has no saved preference
+  useEffect(() => {
+    const onDefault = () => {
+      if (!readStoredTheme()) setThemeState(defaultMode)
+    }
+    defaultModeListeners.add(onDefault)
+    onDefault()
+    return () => {
+      defaultModeListeners.delete(onDefault)
+    }
+  }, [])
 
   // Listen for system theme changes when in "system" mode
   useEffect(() => {
@@ -63,7 +99,7 @@ export function useTheme() {
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) {
-        const newTheme = (e.newValue as Theme) || 'system'
+        const newTheme = readStoredTheme() ?? defaultMode
         setThemeState(newTheme)
         applyTheme(newTheme)
       }
