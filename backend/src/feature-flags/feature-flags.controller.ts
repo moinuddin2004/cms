@@ -7,6 +7,7 @@ import {
   Param,
   Req,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FeatureFlagsService } from './feature-flags.service';
 import {
@@ -19,11 +20,16 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
+import { AuthorizationService } from 'src/auth/services/authorization.service';
+import type { AppRequest } from 'src/common/types/app-request';
 
 @Controller('feature-flags')
 @UseGuards(JwtAuthGuard)
 export class FeatureFlagsController {
-  constructor(private readonly featureFlagsService: FeatureFlagsService) {}
+  constructor(
+    private readonly featureFlagsService: FeatureFlagsService,
+    private readonly authorizationService: AuthorizationService,
+  ) {}
 
   // ── Catalog (super admin) ──────────────────────────────────────────
 
@@ -105,10 +111,24 @@ export class FeatureFlagsController {
 
   @Get('my-features')
   @ContextFree()
-  async getMyFeatures(@Req() req: any) {
-    const organizationId = req.headers['x-organization-id'];
+  async getMyFeatures(@Req() req: AppRequest) {
+    const header = req.headers['x-organization-id'];
+    const organizationId = Array.isArray(header) ? header[0] : header;
     if (!organizationId) {
       return ResponseWrapper.success([], 'No active organization');
+    }
+    // @ContextFree skips TenantContextGuard, so check membership here.
+    const userId = req.user?.uuid;
+    if (
+      !userId ||
+      !(await this.authorizationService.canAccessOrganization(
+        userId,
+        organizationId,
+      ))
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to this organization',
+      );
     }
     const enabled =
       await this.featureFlagsService.getEnabledFeatures(organizationId);

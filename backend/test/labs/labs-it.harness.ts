@@ -174,6 +174,7 @@ export class LabsFixture {
       name: 'Doctor',
       slug: 'doctor',
       permissions: {
+        'consultation.conduct': 'own', // → doctor (legacy @Roles)
         canManageSettings: false,
         canCreateAppointments: false,
         canConsult: true,

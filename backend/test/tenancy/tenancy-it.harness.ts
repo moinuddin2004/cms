@@ -146,7 +146,8 @@ export class TenancyFixture {
       organizationId: org.id,
       name: 'admin',
       slug: 'admin',
-      permissions: { canManageSettings: true, canCreateAppointments: true },
+      // → clinic_admin + receptionist (legacy @Roles, fail-closed derivation)
+      permissions: { 'admin.settings.manage': true, 'appointments.book': true },
     } as Partial<EmploymentRole>);
     await em.getRepository(EmployeeOrgLocationAssignment).save({
       employeeId: employee.id,
