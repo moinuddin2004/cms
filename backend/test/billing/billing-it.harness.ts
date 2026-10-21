@@ -88,18 +88,26 @@ export interface Clinic {
   cashAccountId: string;
 }
 
-const ROLE_PERMISSIONS: Record<Who, Record<string, boolean>> = {
+/**
+ * New-format permissions drive the legacy @Roles (see legacyRolesFromPermissions);
+ * the old booleans stay because commission code still reads `canConsult`.
+ */
+const ROLE_PERMISSIONS: Record<Who, Record<string, boolean | string>> = {
   admin: {
+    'admin.settings.manage': true,
+    'appointments.book': true,
     canManageSettings: true,
     canCreateAppointments: true,
     canConsult: false,
   },
   reception: {
+    'appointments.book': true,
     canManageSettings: false,
     canCreateAppointments: true,
     canConsult: false,
   },
   doctor: {
+    'consultation.conduct': 'own',
     canManageSettings: false,
     canCreateAppointments: false,
     canConsult: true,

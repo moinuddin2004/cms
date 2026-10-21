@@ -8,11 +8,8 @@ import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
-import {
-  Actor,
-  ALL_APP_ROLES,
-  AppRole,
-} from 'src/common/enums/app-role.enum';
+import { Actor, ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
+import { legacyRolesFromPermissions } from 'src/access/legacy-roles';
 
 /**
  * Represents a user's accessible organization with its locations.
@@ -356,8 +353,12 @@ export class AuthorizationService {
 
     if (!assignment) return this.noPermissions();
 
-    // If role has JSONB permissions, use those
-    const rolePerms = assignment.employmentRole?.permissions || {};
+    // Legacy boolean flags (pre access-control roles); new-format roles are
+    // read by AccessResolver instead.
+    const rolePerms = (assignment.employmentRole?.permissions || {}) as Record<
+      string,
+      boolean | undefined
+    >;
     return {
       canViewAppointments: rolePerms.canViewAppointments ?? true,
       canCreateAppointments: rolePerms.canCreateAppointments ?? true,
@@ -374,10 +375,12 @@ export class AuthorizationService {
    * Resolve the clinic roles a user holds at one organization + location.
    *
    * - Super admin / organization owner → every role.
-   * - Employee with portal access → from the employment role's permissions:
-   *   `canManageSettings` → clinic_admin; `canCreateAppointments` (default on)
-   *   → receptionist; `canConsult` (default on) → doctor. Doctor actions are
-   *   further limited to the doctor's own appointments by the caller.
+   * - Employee with portal access and an active role → derived from the
+   *   role's new-format permissions (see `legacyRolesFromPermissions`):
+   *   any `admin.*` → clinic_admin; `appointments.book` / `billing.desk.use`
+   *   → receptionist; `consultation.conduct` → doctor. Fail-closed: no
+   *   matching permission, no role. Doctor actions are further limited to
+   *   the doctor's own appointments by the caller.
    */
   async resolveActor(
     userId: string,
@@ -397,16 +400,36 @@ export class AuthorizationService {
       return { userId, roles: [...ALL_APP_ROLES], employeeId };
     }
 
-    if (!assignment?.hasPortalAccess) {
+    const role = assignment?.employmentRole;
+    if (!assignment?.hasPortalAccess || !role?.isActive) {
       return { userId, roles: [], employeeId };
     }
 
-    const perms = assignment.employmentRole?.permissions ?? {};
-    const roles: AppRole[] = [];
-    if (perms.canManageSettings === true) roles.push(AppRole.CLINIC_ADMIN);
-    if (perms.canCreateAppointments !== false) roles.push(AppRole.RECEPTIONIST);
-    if (perms.canConsult !== false) roles.push(AppRole.DOCTOR);
-    return { userId, roles, employeeId };
+    return {
+      userId,
+      roles: legacyRolesFromPermissions(role.permissions),
+      employeeId,
+    };
+  }
+
+  /**
+   * Whether the user may act in this organization at all: super admin,
+   * owner, or an active portal assignment at any of its locations.
+   */
+  async canAccessOrganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (await this.isSuperAdmin(userId)) return true;
+    if (await this.isOwner(userId, organizationId)) return true;
+    return this.assignmentRepo.exists({
+      where: {
+        userId,
+        organizationId,
+        hasPortalAccess: true,
+        isActive: true,
+      },
+    });
   }
 
   private fullPermissions(): UserPermissions {

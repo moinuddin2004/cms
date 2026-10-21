@@ -2,12 +2,14 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmploymentRole } from './entities/employment-role.entity';
 import { CreateEmploymentRoleDto } from './dto/create-employment-role.dto';
 import { UpdateEmploymentRoleDto } from './dto/update-employment-role.dto';
+import { validatePermissionMap } from 'src/access/catalog/permissions';
 
 @Injectable()
 export class EmploymentRolesService {
@@ -22,6 +24,14 @@ export class EmploymentRolesService {
       .trim()
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_|_$/g, '');
+  }
+
+  /** Rejects maps with unknown keys or bad scopes (the DTO checks too). */
+  private assertValidPermissions(permissions: unknown) {
+    const problem = validatePermissionMap(permissions);
+    if (problem) {
+      throw new BadRequestException(`Invalid permissions: ${problem}`);
+    }
   }
 
   async findAll(organizationId: string): Promise<EmploymentRole[]> {
@@ -46,6 +56,9 @@ export class EmploymentRolesService {
     dto: CreateEmploymentRoleDto,
   ): Promise<EmploymentRole> {
     const slug = this.slugify(dto.name);
+    if (dto.permissions !== undefined) {
+      this.assertValidPermissions(dto.permissions);
+    }
 
     // Check for duplicate slug within the org
     const existing = await this.roleRepo.findOne({
@@ -63,6 +76,8 @@ export class EmploymentRolesService {
       slug,
       isSystemRole: dto.isSystemRole ?? false,
       permissions: dto.permissions ?? {},
+      description: dto.description ?? null,
+      homeRoute: dto.homeRoute ?? null,
       isActive: true,
     });
 
@@ -96,8 +111,12 @@ export class EmploymentRolesService {
     }
 
     if (dto.permissions !== undefined) {
+      this.assertValidPermissions(dto.permissions);
       role.permissions = dto.permissions;
     }
+
+    if (dto.description !== undefined) role.description = dto.description;
+    if (dto.homeRoute !== undefined) role.homeRoute = dto.homeRoute;
 
     return this.roleRepo.save(role);
   }

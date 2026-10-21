@@ -54,6 +54,8 @@ import { ReportsModule } from './reports/reports.module';
 import { LabFinanceModule } from './lab-finance/lab-finance.module';
 import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
+import { AccessModule } from './access/access.module';
+import { AccessGuard } from './access/access.guard';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -121,6 +123,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     LabFinanceModule,
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
+    AccessModule, // permission catalog, AccessResolver, /me/access (global)
   ],
   controllers: [AppController],
   providers: [
@@ -140,7 +143,11 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard, // Finally: enforce @Roles (clinic RBAC)
+      useClass: RolesGuard, // Then: enforce @Roles (legacy clinic RBAC)
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AccessGuard, // Finally: enforce @Can / @AnyMember, set request.access
     },
   ],
 })

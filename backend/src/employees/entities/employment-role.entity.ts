@@ -10,6 +10,7 @@ import {
   Index,
 } from 'typeorm';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import type { Grant } from 'src/access/catalog/permissions';
 
 @Entity({ name: 'employment_roles' })
 @Unique(['organizationId', 'slug'])
@@ -31,8 +32,25 @@ export class EmploymentRole {
   @Column({ name: 'slug', type: 'varchar', length: 100 })
   slug: string;
 
+  /**
+   * `{ [permission]: 'own' | 'location' | 'org' | true }` — granted only; a
+   * missing key is no access (see src/access/catalog/permissions.ts). Old
+   * rows may still hold legacy booleans (`canManageSettings`…), which the
+   * resolver ignores.
+   */
   @Column({ name: 'permissions', type: 'jsonb', default: '{}' })
-  permissions: Record<string, boolean>;
+  permissions: Record<string, Grant | false>;
+
+  @Column({ name: 'description', type: 'text', nullable: true })
+  description: string | null;
+
+  /** System template this role was seeded from (`doctor`, `receptionist`…). */
+  @Column({ name: 'template_key', type: 'varchar', length: 50, nullable: true })
+  templateKey: string | null;
+
+  /** Where members land after login, e.g. `/queue/doctor`. */
+  @Column({ name: 'home_route', type: 'varchar', length: 255, nullable: true })
+  homeRoute: string | null;
 
   @Column({ name: 'is_system_role', type: 'boolean', default: true })
   isSystemRole: boolean;
