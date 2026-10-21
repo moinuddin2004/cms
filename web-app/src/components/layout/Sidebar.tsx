@@ -31,6 +31,9 @@ import {
   UserCog,
   Users,
   Wallet,
+  Activity,
+  FileBarChart,
+  PieChart,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHasClinicRole } from '@/components/feature/RequireRolePage'
@@ -62,8 +65,8 @@ interface NavLeaf {
   icon: ElementType
   href: string
   show?: (auth: AuthState) => boolean
-  /** Org feature key — hidden entirely when the feature is disabled. */
-  feature?: string
+  /** Org feature key(s) — hidden when none of them is enabled. */
+  feature?: string | string[]
   /** Clinic roles allowed to see the item (any of); omitted = everyone. */
   roles?: ClinicRole[]
 }
@@ -94,6 +97,13 @@ const NAV: NavSection[] = [
   {
     label: 'Clinic',
     items: [
+      {
+        label: 'Clinic overview',
+        icon: Activity,
+        href: '/clinic-overview',
+        feature: 'reports.clinical',
+        roles: ADMIN,
+      },
       {
         label: 'Patients',
         icon: Users,
@@ -183,6 +193,13 @@ const NAV: NavSection[] = [
     label: 'Finance',
     items: [
       {
+        label: 'Finance overview',
+        icon: PieChart,
+        href: '/finance',
+        feature: 'reports.financial',
+        roles: ADMIN,
+      },
+      {
         label: 'Billing',
         icon: HandCoins,
         children: [
@@ -220,6 +237,13 @@ const NAV: NavSection[] = [
         label: 'Reports',
         icon: BarChart3,
         children: [
+          {
+            label: 'All reports',
+            icon: FileBarChart,
+            href: '/reports',
+            feature: ['reports.financial', 'reports.clinical'],
+            roles: ADMIN,
+          },
           {
             label: 'Doctor revenue',
             icon: BarChart3,
@@ -374,7 +398,7 @@ export function Sidebar() {
 
   const allowed = (leaf: NavLeaf) =>
     (!leaf.show || leaf.show(authStore)) &&
-    (!leaf.feature || features.has(leaf.feature)) &&
+    (!leaf.feature || [leaf.feature].flat().some((f) => features.has(f))) &&
     (!leaf.roles || leaf.roles.some((r) => roleAccess[r]))
 
   // Visible tree: hidden leaves dropped, empty groups and sections removed.

@@ -34,6 +34,7 @@
     "migration:run:prod": "typeorm migration:run -d dist/src/data-sourse.js"
   },
   "dependencies": {
+    "@fontsource/noto-naskh-arabic": "^5.3.0",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/cache-manager": "^3.1.0",
     "@nestjs/common": "^11.0.1",
@@ -57,6 +58,7 @@
     "class-validator": "^0.14.2",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
+    "exceljs": "^4.4.0",
     "ioredis": "^5.8.0",
     "mongoose": "^8.15.2",
     "multer": "^2.0.2",
@@ -67,6 +69,7 @@
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pdf-lib": "^1.17.1",
+    "pdfmake": "^0.3.12",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
@@ -91,6 +94,7 @@
     "@types/passport-google-oauth20": "^2.0.16",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
+    "@types/pdfmake": "^0.3.3",
     "@types/supertest": "^6.0.2",
     "@types/useragent": "^2.3.4",
     "eslint": "^9.18.0",

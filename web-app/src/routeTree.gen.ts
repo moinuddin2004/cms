@@ -14,7 +14,6 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SelectLocationRouteImport } from './routes/select-location'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PrescriptionTemplatesRouteImport } from './routes/prescription-templates'
 import { Route as PrescriptionPresetsRouteImport } from './routes/prescription-presets'
@@ -36,11 +35,14 @@ import { Route as LabBillingRouteImport } from './routes/lab-billing'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FinancialSummaryRouteImport } from './routes/financial-summary'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ClinicOverviewRouteImport } from './routes/clinic-overview'
 import { Route as AppointmentsRouteImport } from './routes/appointments'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as PrescriptionsIndexRouteImport } from './routes/prescriptions/index'
 import { Route as PatientsIndexRouteImport } from './routes/patients/index'
 import { Route as LabPortalIndexRouteImport } from './routes/lab-portal.index'
@@ -52,6 +54,7 @@ import { Route as StudioStagesRouteImport } from './routes/studio.stages'
 import { Route as StudioFormsRouteImport } from './routes/studio.forms'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings_.notifications'
 import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
+import { Route as ReportsReportKeyRouteImport } from './routes/reports.$reportKey'
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new'
 import { Route as PrescriptionsPrescriptionIdRouteImport } from './routes/prescriptions/$prescriptionId'
@@ -112,11 +115,6 @@ const SelectLocationRoute = SelectLocationRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -224,6 +222,11 @@ const FinancialSummaryRoute = FinancialSummaryRouteImport.update({
   path: '/financial-summary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ExpensesRoute = ExpensesRouteImport.update({
   id: '/expenses',
   path: '/expenses',
@@ -232,6 +235,11 @@ const ExpensesRoute = ExpensesRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClinicOverviewRoute = ClinicOverviewRouteImport.update({
+  id: '/clinic-overview',
+  path: '/clinic-overview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppointmentsRoute = AppointmentsRouteImport.update({
@@ -247,6 +255,11 @@ const IndexRoute = IndexRouteImport.update({
 const StudioIndexRoute = StudioIndexRouteImport.update({
   id: '/studio/',
   path: '/studio/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrescriptionsIndexRoute = PrescriptionsIndexRouteImport.update({
@@ -302,6 +315,11 @@ const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
 const SettingsBillingRoute = SettingsBillingRouteImport.update({
   id: '/settings_/billing',
   path: '/settings/billing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsReportKeyRoute = ReportsReportKeyRouteImport.update({
+  id: '/reports/$reportKey',
+  path: '/reports/$reportKey',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QueueDoctorRoute = QueueDoctorRouteImport.update({
@@ -492,8 +510,10 @@ const LabOrdersReceiveTokenRoute = LabOrdersReceiveTokenRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
+  '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
@@ -515,7 +535,6 @@ export interface FileRoutesByFullPath {
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
@@ -546,6 +565,7 @@ export interface FileRoutesByFullPath {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings/billing': typeof SettingsBillingRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
@@ -557,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/lab-portal/': typeof LabPortalIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
@@ -573,8 +594,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
+  '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
@@ -596,7 +619,6 @@ export interface FileRoutesByTo {
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
@@ -627,6 +649,7 @@ export interface FileRoutesByTo {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings/billing': typeof SettingsBillingRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
@@ -638,6 +661,7 @@ export interface FileRoutesByTo {
   '/lab-portal': typeof LabPortalIndexRoute
   '/patients': typeof PatientsIndexRoute
   '/prescriptions': typeof PrescriptionsIndexRoute
+  '/reports': typeof ReportsIndexRoute
   '/studio': typeof StudioIndexRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
@@ -655,8 +679,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
+  '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/inventory': typeof InventoryRoute
@@ -678,7 +704,6 @@ export interface FileRoutesById {
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
   '/register': typeof RegisterRoute
-  '/reports': typeof ReportsRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
@@ -709,6 +734,7 @@ export interface FileRoutesById {
   '/prescriptions/$prescriptionId': typeof PrescriptionsPrescriptionIdRoute
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
+  '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings_/billing': typeof SettingsBillingRoute
   '/settings_/notifications': typeof SettingsNotificationsRoute
   '/studio/forms': typeof StudioFormsRoute
@@ -720,6 +746,7 @@ export interface FileRoutesById {
   '/lab-portal/': typeof LabPortalIndexRoute
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/lab-orders_/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables_/bills/$billId': typeof LabPayablesBillsBillIdRoute
@@ -738,8 +765,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/appointments'
+    | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
+    | '/finance'
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
@@ -761,7 +790,6 @@ export interface FileRouteTypes {
     | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
-    | '/reports'
     | '/reset-password'
     | '/select-location'
     | '/sessions'
@@ -792,6 +820,7 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/reports/$reportKey'
     | '/settings/billing'
     | '/settings/notifications'
     | '/studio/forms'
@@ -803,6 +832,7 @@ export interface FileRouteTypes {
     | '/lab-portal/'
     | '/patients/'
     | '/prescriptions/'
+    | '/reports/'
     | '/studio/'
     | '/lab-orders/receive/$token'
     | '/lab-payables/bills/$billId'
@@ -819,8 +849,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/appointments'
+    | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
+    | '/finance'
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
@@ -842,7 +874,6 @@ export interface FileRouteTypes {
     | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
-    | '/reports'
     | '/reset-password'
     | '/select-location'
     | '/sessions'
@@ -873,6 +904,7 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/reports/$reportKey'
     | '/settings/billing'
     | '/settings/notifications'
     | '/studio/forms'
@@ -884,6 +916,7 @@ export interface FileRouteTypes {
     | '/lab-portal'
     | '/patients'
     | '/prescriptions'
+    | '/reports'
     | '/studio'
     | '/lab-orders/receive/$token'
     | '/lab-payables/bills/$billId'
@@ -900,8 +933,10 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/appointments'
+    | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
+    | '/finance'
     | '/financial-summary'
     | '/forgot-password'
     | '/inventory'
@@ -923,7 +958,6 @@ export interface FileRouteTypes {
     | '/prescription-presets'
     | '/prescription-templates'
     | '/register'
-    | '/reports'
     | '/reset-password'
     | '/select-location'
     | '/sessions'
@@ -954,6 +988,7 @@ export interface FileRouteTypes {
     | '/prescriptions/$prescriptionId'
     | '/prescriptions/new'
     | '/queue/doctor'
+    | '/reports/$reportKey'
     | '/settings_/billing'
     | '/settings_/notifications'
     | '/studio/forms'
@@ -965,6 +1000,7 @@ export interface FileRouteTypes {
     | '/lab-portal/'
     | '/patients/'
     | '/prescriptions/'
+    | '/reports/'
     | '/studio/'
     | '/lab-orders_/receive/$token'
     | '/lab-payables_/bills/$billId'
@@ -982,8 +1018,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppointmentsRoute: typeof AppointmentsRoute
+  ClinicOverviewRoute: typeof ClinicOverviewRoute
   DashboardRoute: typeof DashboardRoute
   ExpensesRoute: typeof ExpensesRoute
+  FinanceRoute: typeof FinanceRoute
   FinancialSummaryRoute: typeof FinancialSummaryRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   InventoryRoute: typeof InventoryRoute
@@ -1005,7 +1043,6 @@ export interface RootRouteChildren {
   PrescriptionPresetsRoute: typeof PrescriptionPresetsRoute
   PrescriptionTemplatesRoute: typeof PrescriptionTemplatesRoute
   RegisterRoute: typeof RegisterRoute
-  ReportsRoute: typeof ReportsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectLocationRoute: typeof SelectLocationRoute
   SessionsRoute: typeof SessionsRoute
@@ -1036,6 +1073,7 @@ export interface RootRouteChildren {
   PrescriptionsPrescriptionIdRoute: typeof PrescriptionsPrescriptionIdRoute
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
+  ReportsReportKeyRoute: typeof ReportsReportKeyRoute
   SettingsBillingRoute: typeof SettingsBillingRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   StudioFormsRoute: typeof StudioFormsRoute
@@ -1047,6 +1085,7 @@ export interface RootRouteChildren {
   LabPortalIndexRoute: typeof LabPortalIndexRoute
   PatientsIndexRoute: typeof PatientsIndexRoute
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
   StudioIndexRoute: typeof StudioIndexRoute
   LabOrdersReceiveTokenRoute: typeof LabOrdersReceiveTokenRoute
   LabPayablesBillsBillIdRoute: typeof LabPayablesBillsBillIdRoute
@@ -1096,13 +1135,6 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -1252,6 +1284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FinancialSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/expenses': {
       id: '/expenses'
       path: '/expenses'
@@ -1264,6 +1303,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clinic-overview': {
+      id: '/clinic-overview'
+      path: '/clinic-overview'
+      fullPath: '/clinic-overview'
+      preLoaderRoute: typeof ClinicOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/appointments': {
@@ -1285,6 +1331,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio/'
       preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/': {
+      id: '/reports/'
+      path: '/reports'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prescriptions/': {
@@ -1362,6 +1415,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/billing'
       fullPath: '/settings/billing'
       preLoaderRoute: typeof SettingsBillingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/$reportKey': {
+      id: '/reports/$reportKey'
+      path: '/reports/$reportKey'
+      fullPath: '/reports/$reportKey'
+      preLoaderRoute: typeof ReportsReportKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/queue/doctor': {
@@ -1622,8 +1682,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppointmentsRoute: AppointmentsRoute,
+  ClinicOverviewRoute: ClinicOverviewRoute,
   DashboardRoute: DashboardRoute,
   ExpensesRoute: ExpensesRoute,
+  FinanceRoute: FinanceRoute,
   FinancialSummaryRoute: FinancialSummaryRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   InventoryRoute: InventoryRoute,
@@ -1645,7 +1707,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionPresetsRoute: PrescriptionPresetsRoute,
   PrescriptionTemplatesRoute: PrescriptionTemplatesRoute,
   RegisterRoute: RegisterRoute,
-  ReportsRoute: ReportsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SelectLocationRoute: SelectLocationRoute,
   SessionsRoute: SessionsRoute,
@@ -1676,6 +1737,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsPrescriptionIdRoute: PrescriptionsPrescriptionIdRoute,
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
+  ReportsReportKeyRoute: ReportsReportKeyRoute,
   SettingsBillingRoute: SettingsBillingRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   StudioFormsRoute: StudioFormsRoute,
@@ -1687,6 +1749,7 @@ const rootRouteChildren: RootRouteChildren = {
   LabPortalIndexRoute: LabPortalIndexRoute,
   PatientsIndexRoute: PatientsIndexRoute,
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
   StudioIndexRoute: StudioIndexRoute,
   LabOrdersReceiveTokenRoute: LabOrdersReceiveTokenRoute,
   LabPayablesBillsBillIdRoute: LabPayablesBillsBillIdRoute,
