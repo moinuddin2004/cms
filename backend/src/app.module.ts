@@ -56,6 +56,7 @@ import { NotificationsRuntimeModule } from './notifications/notifications-runtim
 import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
 import { AccessModule } from './access/access.module';
 import { AccessGuard } from './access/access.guard';
+import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -124,6 +125,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
+    SettingsRegistryModule,
   ],
   controllers: [AppController],
   providers: [

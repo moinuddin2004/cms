@@ -14,6 +14,7 @@ import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
 import { useTheme } from '@/hooks/useTheme'
+import { ThemeProvider } from '@/features/theme'
 import appCss from '../styles.css?url'
 
 const PUBLIC_PATHS = [
@@ -277,6 +278,7 @@ function RootComponent() {
       >
         <Outlet />
       </FeatureFlagsProvider>
+      <ThemeProvider />
       <Toaster
         position="top-right"
         closeButton

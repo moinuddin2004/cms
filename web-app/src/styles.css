@@ -459,3 +459,61 @@
 .animate-loading-juggle {
   animation: loading-juggle 1.6s cubic-bezier(0.6, 0, 0.3, 1) infinite;
 }
+
+/* ── Clinic theme (features/theme) ─────────────────────────────────────
+   The ThemeProvider overrides the brand seed above at runtime and sets
+   <html data-sidebar-style> from theme.sidebar_style. The theme builder's
+   preview uses [data-sidebar-preview] for the same looks. */
+
+/* Sidebar style: dark / brand surfaces. Variables are re-declared on the
+   sidebar so its token-based classes pick up the new surface. */
+:root[data-sidebar-style='dark'] aside.bg-sidebar,
+[data-sidebar-preview='dark'] {
+  color-scheme: dark;
+  --sidebar: #0b1120;
+  --sidebar-border: #1e293b;
+  --border: #1e293b;
+  --foreground: #f1f5f9;
+  --text-2: #cbd5e1;
+  --text-3: #94a3b8;
+  --muted-foreground: #94a3b8;
+  --panel: #1e293b;
+  --accent: #1e293b;
+  --primary-soft: color-mix(in oklab, var(--brand) 24%, transparent);
+  --primary-text: #ffffff;
+}
+
+:root[data-sidebar-style='brand'] aside.bg-sidebar,
+[data-sidebar-preview='brand'] {
+  --sidebar: var(--brand);
+  --sidebar-border: color-mix(in oklab, var(--primary-foreground) 16%, transparent);
+  --border: var(--sidebar-border);
+  --foreground: var(--primary-foreground);
+  --text-2: color-mix(in oklab, var(--primary-foreground) 85%, transparent);
+  --text-3: color-mix(in oklab, var(--primary-foreground) 65%, transparent);
+  --muted-foreground: var(--text-3);
+  --panel: color-mix(in oklab, var(--primary-foreground) 12%, transparent);
+  --accent: var(--panel);
+  --primary-soft: color-mix(in oklab, var(--primary-foreground) 20%, transparent);
+  --primary-text: var(--primary-foreground);
+  --primary: var(--primary-foreground);
+}
+
+/* BrandMark with both logos: show the one that suits the surface. */
+[data-logo='dark'] {
+  display: none;
+}
+.dark [data-logo='light'],
+:root[data-sidebar-style='dark'] aside.bg-sidebar [data-logo='light'],
+:root[data-sidebar-style='brand'] aside.bg-sidebar [data-logo='light'],
+[data-sidebar-preview='dark'] [data-logo='light'],
+[data-sidebar-preview='brand'] [data-logo='light'] {
+  display: none;
+}
+.dark [data-logo='dark'],
+:root[data-sidebar-style='dark'] aside.bg-sidebar [data-logo='dark'],
+:root[data-sidebar-style='brand'] aside.bg-sidebar [data-logo='dark'],
+[data-sidebar-preview='dark'] [data-logo='dark'],
+[data-sidebar-preview='brand'] [data-logo='dark'] {
+  display: block;
+}

@@ -87,6 +87,7 @@ export function SettingsPage() {
           })}
           <BillingSettingsLink />
           <NotificationSettingsLink />
+          <ThemeSettingsLink />
         </nav>
 
         {/* Content */}
@@ -129,6 +130,21 @@ function NotificationSettingsLink() {
     >
       <BellRing className="size-4" />
       Notifications
+    </Link>
+  )
+}
+
+/** Admins brand the clinic: logo, name, colours (theme builder). */
+function ThemeSettingsLink() {
+  const { allowed } = useHasClinicRole(['clinic_admin'])
+  if (!allowed) return null
+  return (
+    <Link
+      to="/admin/theme"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+    >
+      <Palette className="size-4" />
+      Branding & theme
     </Link>
   )
 }

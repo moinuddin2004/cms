@@ -236,7 +236,7 @@ export default function PatientsRoute() {
 ### Colors (Tailwind classes only — no hardcoded values)
 | Purpose | Class |
 |---------|-------|
-| Primary action | `bg-blue-600 hover:bg-blue-700` |
+| Primary action / brand | `bg-primary hover:bg-primary/90` (also `text-primary`, `ring-primary`, `border-primary`, `bg-primary/10`) — follows the clinic's theme brand colour; never `blue-*` for brand |
 | Destructive | `bg-red-500 hover:bg-red-600` |
 | Surface | `bg-white dark:bg-slate-900` |
 | Border | `border-slate-200 dark:border-slate-800` |
