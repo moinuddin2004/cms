@@ -1,9 +1,10 @@
+import type { Permission } from '../generated/catalog'
+
 /**
- * Permission key from the shared catalog. Plain string for now; once the
- * generated catalog (`../generated/catalog.ts`) lands this narrows to its
- * `Permission` union so a typo fails at compile time.
+ * Permission key from the shared catalog (`../generated/catalog.ts`, written
+ * by the backend's `npm run access:export`), so a typo fails at compile time.
  */
-export type PermissionKey = string
+export type PermissionKey = Permission
 
 /** Row-level reach of a scoped permission. */
 export type Scope = 'own' | 'location' | 'org'
@@ -22,7 +23,7 @@ export interface MeAccess {
   /** Enabled feature keys for the active org/location. */
   features: string[]
   /** Granted permissions only; a missing key means no access. */
-  permissions: Record<PermissionKey, Scope | true>
+  permissions: Partial<Record<PermissionKey, Scope | true>>
   roles: { id: string; name: string; templateKey: string | null }[]
   employeeId: string | null
   homeRoute: string | null

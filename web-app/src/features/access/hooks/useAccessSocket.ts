@@ -8,7 +8,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 /** Org-wide room the API emits `access.changed` into. */
-export const accessRoom = (orgId: string) => `org:${orgId}:access`
+export const accessRoom = (orgId: string) => `org:${orgId}`
 
 /**
  * Listen for `access.changed` on the `/realtime` socket (same handshake and
