@@ -15,7 +15,6 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ErrorState, LoadingSkeleton, StatusBadge } from '@/components/shared'
-import { useBillingAccess } from '@/features/billing'
 import { formatPaisa } from '@/features/lab-catalog'
 import {
   LabInvoiceStatusBadge,
@@ -24,6 +23,7 @@ import {
   ReasonDialog,
 } from '../components/billing-bits'
 import { InvoiceSheet } from '../components/InvoiceSheet'
+import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import {
   CollectPaymentSheet,
   CreditNoteSheet,
@@ -57,7 +57,7 @@ const fmtTime = (iso: string) =>
 
 /** One lab invoice or estimate (lab ERD §6a). */
 export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
-  const access = useBillingAccess()
+  const access = useLabBillingAccess()
   const q = useLabInvoice(invoiceId)
   const inv = q.data
   const orderBilling = useOrderBilling(
@@ -153,12 +153,12 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
   const open = inv.status === 'issued' || inv.status === 'partially_paid'
   const advance = inv.patientSummary.advancePaisa
   const canVoid =
-    access.isAdmin &&
+    access.canVoid &&
     inv.status !== 'void' &&
     inv.paidPaisa === 0 &&
     inv.creditedPaisa === 0
   const canCredit =
-    access.isAdmin &&
+    access.canVoid &&
     ['issued', 'partially_paid', 'paid'].includes(inv.status) &&
     inv.totalPaisa > inv.creditedPaisa
 
@@ -361,7 +361,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                 value={inv.patientSummary.receivablePaisa}
               />
               <MoneyRow label="Advance" value={advance} />
-              {access.isAdmin && advance > 0 && (
+              {access.canRefund && advance > 0 && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -437,15 +437,17 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                       tone={c.status === 'issued' ? 'warning' : 'success'}
                     />
                     <Paisa value={c.amountPaisa} />
-                    {access.isAdmin && c.status === 'issued' && advance > 0 && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRefundFor(c)}
-                      >
-                        Refund
-                      </Button>
-                    )}
+                    {access.canRefund &&
+                      c.status === 'issued' &&
+                      advance > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRefundFor(c)}
+                        >
+                          Refund
+                        </Button>
+                      )}
                   </span>
                 </li>
               ))}

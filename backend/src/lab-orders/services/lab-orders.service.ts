@@ -4,7 +4,6 @@ import { Brackets, DataSource, EntityManager } from 'typeorm';
 import { AuditAction } from 'src/common/audit/audit.enums';
 import { AuditService } from 'src/common/audit/audit.service';
 import { assertVersion } from 'src/common/errors/optimistic-lock';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import { validateFormData } from 'src/engine/forms/form-data.validator';
 import { WorkflowEngine } from 'src/engine/runtime/workflow-engine.service';
 import { LabPriceResolver } from 'src/lab-catalog/pricing/lab-price-resolver.service';
@@ -17,6 +16,7 @@ import {
   labTransitionActor,
 } from '../common/order-context';
 import { orderError, OrderIssue } from '../common/order-errors';
+import { canSeeOrder, scopeOrders } from '../common/order-scope';
 import {
   CreateChargeDto,
   CreateMessageDto,
@@ -113,6 +113,7 @@ export class LabOrdersService {
             .andWhere(`COALESCE(i3.status_code, '') <> 'cancelled'`),
         'patient_price',
       );
+    scopeOrders(qb, c.actor);
     if (q.status) qb.andWhere('o.status_code = :status', { status: q.status });
     if (q.submittedOnly) qb.andWhere(`o.status_code <> 'draft'`);
     if (q.labId) qb.andWhere('o.lab_id = :labId', { labId: q.labId });
@@ -178,11 +179,7 @@ export class LabOrdersService {
   }
 
   async get(c: ClinicCall, id: string): Promise<ClinicOrderResponse> {
-    const order = await this.find(
-      this.dataSource.manager,
-      c.tenant.organizationId,
-      id,
-    );
+    const order = await this.visible(c, id);
     const bundle = await this.reader.load(order);
     return toClinicOrder(bundle, {
       availableActions: (
@@ -517,7 +514,7 @@ export class LabOrdersService {
   }
 
   /**
-   * Approve or reject a charge request (clinic admin / doctor). An approved
+   * Approve or reject a charge request (`lab.orders.create`). An approved
    * item-level charge is added to the item's lab line cost — the only way
    * besides a revision a frozen price moves (inv. 3). Order-level charges
    * (shipping …) stay separate rows for the vendor bill.
@@ -528,14 +525,10 @@ export class LabOrdersService {
     chargeId: string,
     dto: DecideChargeDto,
   ): Promise<void> {
-    if (
-      !c.actor.roles.some(
-        (r) => r === AppRole.CLINIC_ADMIN || r === AppRole.DOCTOR,
-      )
-    ) {
+    if (!c.actor.access.can('lab.orders.create')) {
       throw orderError(
         'LAB_ORDER_FORBIDDEN',
-        'Only doctors and clinic admins decide charges',
+        'You do not have permission to decide lab charges',
       );
     }
     const org = c.tenant.organizationId;
@@ -590,11 +583,7 @@ export class LabOrdersService {
    * to the lab with the case, so it carries no prices.
    */
   async workOrder(c: ClinicCall, id: string) {
-    const order = await this.find(
-      this.dataSource.manager,
-      c.tenant.organizationId,
-      id,
-    );
+    const order = await this.visible(c, id);
     if (!order.orderNo) {
       throw orderError(
         'LAB_ORDER_INVALID',
@@ -654,6 +643,22 @@ export class LabOrdersService {
           };
         }),
     };
+  }
+
+  /**
+   * The tenant's order when it is inside the caller's `lab.orders.view`
+   * scope (see `scopeOrders`), else 404.
+   */
+  async visible(c: ClinicCall, id: string): Promise<LabOrder> {
+    const order = await this.find(
+      this.dataSource.manager,
+      c.tenant.organizationId,
+      id,
+    );
+    if (!canSeeOrder(c.actor, order)) {
+      throw orderError('LAB_ORDER_NOT_FOUND', 'Order not found');
+    }
+    return order;
   }
 
   /** The tenant's order (for attachment routes), or 404. */

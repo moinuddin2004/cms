@@ -3,9 +3,9 @@ import { Link } from '@tanstack/react-router'
 import { HandCoins, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
-import { useBillingAccess } from '@/features/billing'
 import { formatPaisa } from '@/features/lab-catalog'
 import { useLabBillingMutation, useOrderBilling } from '../hooks/useLabBilling'
+import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import { labBillingApi } from '../services/lab-billing.api'
 import type { PatientRef } from '../types'
 import { LabInvoiceStatusBadge, MoneyRow } from './billing-bits'
@@ -24,7 +24,7 @@ export function LabBillingPanel({
   orderId: string
   patient: PatientRef
 }) {
-  const access = useBillingAccess()
+  const access = useLabBillingAccess()
   const billing = useOrderBilling(orderId, access.canBill)
   const [billingOpen, setBillingOpen] = useState(false)
   const [collecting, setCollecting] = useState(false)

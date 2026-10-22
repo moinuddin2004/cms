@@ -21,6 +21,7 @@ import { FileUploadField } from '@/components/shared/FileUploadField'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { formatPaisa } from '@/features/lab-catalog'
+import { useAccess } from '@/features/access'
 import { LabBillingPanel } from '@/features/lab-billing'
 import { LabAccessPanel } from '../components/LabAccessPanel'
 import { LabOrderSheet } from '../components/LabOrderSheet'
@@ -83,6 +84,7 @@ function Section({
 
 /** One lab order: what was asked, prices, conversation, files and history. */
 export function LabOrderDetailPage({ orderId }: { orderId: string }) {
+  const canOrder = useAccess().can('lab.orders.create')
   const navigate = useNavigate()
   const { data: order, isLoading, isError, refetch } = useLabOrder(orderId)
   const [editing, setEditing] = useState(false)
@@ -137,22 +139,24 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
   const actions = (
     <div className="flex flex-wrap items-center gap-2">
       {isDraft ? (
-        <>
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <Pencil className="size-4" /> Edit draft
-          </Button>
-          <Button
-            disabled={submit.isPending}
-            onClick={() => submit.mutate(order)}
-          >
-            {submit.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Send className="size-4" />
-            )}
-            Submit to lab
-          </Button>
-        </>
+        canOrder && (
+          <>
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="size-4" /> Edit draft
+            </Button>
+            <Button
+              disabled={submit.isPending}
+              onClick={() => submit.mutate(order)}
+            >
+              {submit.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              Submit to lab
+            </Button>
+          </>
+        )
       ) : (
         <>
           <Button
@@ -161,51 +165,55 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
           >
             <Printer className="size-4" /> Work order
           </Button>
-          {[
-            'submitted',
-            'clarification_needed',
-            'accepted',
-            'in_progress',
-            'on_hold',
-          ].includes(order.status) && (
-            <Button variant="outline" onClick={() => setRevising(true)}>
-              <FileText className="size-4" /> Revise
+          {canOrder &&
+            [
+              'submitted',
+              'clarification_needed',
+              'accepted',
+              'in_progress',
+              'on_hold',
+            ].includes(order.status) && (
+              <Button variant="outline" onClick={() => setRevising(true)}>
+                <FileText className="size-4" /> Revise
+              </Button>
+            )}
+          {canOrder && (
+            <Button
+              variant="outline"
+              disabled={repeat.isPending}
+              onClick={() =>
+                repeat.mutate(undefined, {
+                  onSuccess: (d) =>
+                    void navigate({
+                      to: '/lab-orders/$orderId',
+                      params: { orderId: d.id },
+                    }),
+                })
+              }
+            >
+              {repeat.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Repeat className="size-4" />
+              )}
+              Repeat
             </Button>
           )}
-          <Button
-            variant="outline"
-            disabled={repeat.isPending}
-            onClick={() =>
-              repeat.mutate(undefined, {
-                onSuccess: (d) =>
-                  void navigate({
-                    to: '/lab-orders/$orderId',
-                    params: { orderId: d.id },
-                  }),
-              })
-            }
-          >
-            {repeat.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Repeat className="size-4" />
-            )}
-            Repeat
-          </Button>
         </>
       )}
-      {order.availableActions.map((a) => {
-        const copy = ACTION_COPY[a]
-        return copy ? (
-          <Button
-            key={a}
-            variant={copy.destructive ? 'destructive' : 'outline'}
-            onClick={() => setAction(a)}
-          >
-            {copy.label}
-          </Button>
-        ) : null
-      })}
+      {canOrder &&
+        order.availableActions.map((a) => {
+          const copy = ACTION_COPY[a]
+          return copy ? (
+            <Button
+              key={a}
+              variant={copy.destructive ? 'destructive' : 'outline'}
+              onClick={() => setAction(a)}
+            >
+              {copy.label}
+            </Button>
+          ) : null
+        })}
     </div>
   )
 
@@ -321,8 +329,10 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
         {!isDraft && (
           <LabBillingPanel orderId={order.id} patient={order.patient} />
         )}
-        {!isDraft && <Conversation order={order} />}
-        {order.charges.length > 0 && <Charges order={order} />}
+        {!isDraft && <Conversation order={order} canWrite={canOrder} />}
+        {order.charges.length > 0 && (
+          <Charges order={order} canDecide={canOrder} />
+        )}
         {order.revisions.length > 0 && (
           <Section title="Revisions">
             <ul className="space-y-2 text-sm">
@@ -347,7 +357,7 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
             </ul>
           </Section>
         )}
-        <Files order={order} />
+        <Files order={order} canUpload={canOrder} />
         <Section title="History">
           <ul className="space-y-1 text-sm">
             {order.history
@@ -394,7 +404,13 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
   )
 }
 
-function Conversation({ order }: { order: LabOrderDetail }) {
+function Conversation({
+  order,
+  canWrite,
+}: {
+  order: LabOrderDetail
+  canWrite: boolean
+}) {
   const [body, setBody] = useState('')
   const asking = order.status === 'clarification_needed'
   const send = useOrderMutation(
@@ -426,35 +442,43 @@ function Conversation({ order }: { order: LabOrderDetail }) {
           <li className="text-sm text-text-3">No messages yet.</li>
         )}
       </ul>
-      <div className="flex items-end gap-2">
-        <Textarea
-          aria-label={asking ? 'Reply to the lab' : 'Message the lab'}
-          rows={2}
-          value={body}
-          placeholder={
-            asking ? 'Answer the lab’s question…' : 'Write to the lab…'
-          }
-          onChange={(e) => setBody(e.target.value)}
-        />
-        <Button
-          disabled={!body.trim() || send.isPending}
-          onClick={() =>
-            send.mutate(undefined, { onSuccess: () => setBody('') })
-          }
-        >
-          {send.isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-          {asking ? 'Reply' : 'Send'}
-        </Button>
-      </div>
+      {canWrite && (
+        <div className="flex items-end gap-2">
+          <Textarea
+            aria-label={asking ? 'Reply to the lab' : 'Message the lab'}
+            rows={2}
+            value={body}
+            placeholder={
+              asking ? 'Answer the lab’s question…' : 'Write to the lab…'
+            }
+            onChange={(e) => setBody(e.target.value)}
+          />
+          <Button
+            disabled={!body.trim() || send.isPending}
+            onClick={() =>
+              send.mutate(undefined, { onSuccess: () => setBody('') })
+            }
+          >
+            {send.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            {asking ? 'Reply' : 'Send'}
+          </Button>
+        </div>
+      )}
     </Section>
   )
 }
 
-function Charges({ order }: { order: LabOrderDetail }) {
+function Charges({
+  order,
+  canDecide,
+}: {
+  order: LabOrderDetail
+  canDecide: boolean
+}) {
   const decide = useOrderMutation(
     (v: { id: string; version: number; decision: 'approve' | 'reject' }) =>
       labOrdersApi.decideCharge(order.id, v.id, {
@@ -474,7 +498,7 @@ function Charges({ order }: { order: LabOrderDetail }) {
             <span>
               {statusLabel(c.kind)} · {formatPaisa(c.amountPaisa)} — {c.reason}
             </span>
-            {c.status === 'pending' ? (
+            {c.status === 'pending' && canDecide ? (
               <span className="flex gap-1">
                 <TooltipButton
                   tooltip="Approve charge"
@@ -524,7 +548,13 @@ const VISIBILITY = [
   { value: 'internal', label: 'Clinic only' },
 ]
 
-function Files({ order }: { order: LabOrderDetail }) {
+function Files({
+  order,
+  canUpload,
+}: {
+  order: LabOrderDetail
+  canUpload: boolean
+}) {
   const [visibility, setVisibility] = useState('lab_shared')
   const upload = useOrderMutation(
     (file: File) => labOrdersApi.upload(order.id, file, { visibility }),
@@ -567,20 +597,22 @@ function Files({ order }: { order: LabOrderDetail }) {
           <li className="text-text-3">No files yet.</li>
         )}
       </ul>
-      <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
-        <FileUploadField
-          accept="*/*"
-          maxSizeMb={50}
-          disabled={upload.isPending}
-          onFileSelected={(f) => f && upload.mutate(f)}
-        />
-        <FormSelect
-          label="Who can see it"
-          value={visibility}
-          onValueChange={setVisibility}
-          options={VISIBILITY}
-        />
-      </div>
+      {canUpload && (
+        <div className="grid gap-3 sm:grid-cols-[1fr_14rem]">
+          <FileUploadField
+            accept="*/*"
+            maxSizeMb={50}
+            disabled={upload.isPending}
+            onFileSelected={(f) => f && upload.mutate(f)}
+          />
+          <FormSelect
+            label="Who can see it"
+            value={visibility}
+            onValueChange={setVisibility}
+            options={VISIBILITY}
+          />
+        </div>
+      )}
     </Section>
   )
 }

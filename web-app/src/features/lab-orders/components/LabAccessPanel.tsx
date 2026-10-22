@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { useAccess } from '@/features/access'
 import { LabOrderActions } from '@/features/lab-portal'
 import type { LabActionsApi } from '@/features/lab-portal'
 import { useOrderMutation } from '../hooks/useLabOrders'
@@ -54,19 +55,23 @@ const describeDelivery = (l: OrderMagicLink) =>
 
 /**
  * How the lab gets to this order without the portal (lab ERD §7, §14 step
- * 5): WhatsApp magic links (send, copy, revoke) and — for clinic admins,
- * when the lab doesn't answer — proxy updates recorded as `via = proxy`.
+ * 5): WhatsApp magic links (send, copy, revoke — `lab.orders.create`) and,
+ * for lab coordinators (`lab.orders.create` + `lab.links.manage`) when the
+ * lab doesn't answer, proxy updates recorded as `via = proxy`.
  */
 export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
   const queryClient = useQueryClient()
+  const { can, canAll } = useAccess()
+  const canSend = can('lab.orders.create')
+  const canProxy = canAll(['lab.orders.create', 'lab.links.manage'])
   const links = useQuery({
     queryKey: labOrderKeys.magicLinks(order.id),
     queryFn: () => labOrdersApi.magicLinks(order.id),
   })
-  // 403 for anyone but a clinic admin (the lab-coordinator capability).
   const proxy = useQuery({
     queryKey: labOrderKeys.proxyActions(order.id),
     queryFn: () => labOrdersApi.proxyActions(order.id),
+    enabled: canProxy,
     retry: false,
   })
   const [revoking, setRevoking] = useState<OrderMagicLink | null>(null)
@@ -143,7 +148,7 @@ export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
     <section className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-medium">Lab access</h2>
-        {open && (
+        {open && canSend && (
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -206,7 +211,7 @@ export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
                   {l.usedCount ? ` · used ${l.usedCount}×` : ''}
                 </p>
               </div>
-              {l.state === 'active' && (
+              {canSend && l.state === 'active' && (
                 <TooltipButton
                   tooltip="Revoke link"
                   size="icon"
@@ -221,7 +226,7 @@ export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
         </ul>
       )}
 
-      {proxy.data && proxy.data.actions.length > 0 && (
+      {canProxy && proxy.data && proxy.data.actions.length > 0 && (
         <div className="space-y-2 border-t border-border pt-3">
           <p className="text-sm font-medium">Update for the lab</p>
           <p className="text-xs text-text-3">

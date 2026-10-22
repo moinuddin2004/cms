@@ -10,15 +10,15 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { Actor, ALL_APP_ROLES, AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PageQueryDto } from 'src/labs/dto/lab.dto';
+import { ClinicActor, CurrentClinicActor } from 'src/labs/common/clinic-actor';
 import { LAB_FEATURE } from 'src/labs/labs.constants';
 import {
   ClinicLabServicesQueryDto,
@@ -36,12 +36,13 @@ import { OrderTemplatesService } from '../templates/order-templates.service';
 import { ClinicCatalogService } from './clinic-catalog.service';
 
 /**
- * The clinic side of the lab catalog. Every clinic role reads it (doctors
- * pick services and see prices when ordering); only clinic admins change
- * the treatment mappings. Doctors keep their own order templates.
+ * The clinic side of the lab catalog. Every clinic member reads it (doctors
+ * pick services and see prices when ordering; the `@AnyMember` reads keep
+ * the lab feature gate); `lab.catalog.manage` changes the clinic price list
+ * (treatment mappings). Order templates belong to whoever orders
+ * (`lab.orders.create`); sharing one needs `lab.templates.share`.
  */
 @Controller('lab-catalog')
-@RequireFeature(LAB_FEATURE)
 export class ClinicCatalogController {
   constructor(
     private readonly catalog: ClinicCatalogService,
@@ -51,7 +52,8 @@ export class ClinicCatalogController {
   ) {}
 
   @Get('categories')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async categories(@ActiveTenant() t: TenantContext) {
     return ResponseWrapper.success(
       await this.catalog.categories(t.organizationId),
@@ -59,7 +61,8 @@ export class ClinicCatalogController {
   }
 
   @Get('services')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async services(
     @ActiveTenant() t: TenantContext,
     @Query() q: ClinicLabServicesQueryDto,
@@ -68,7 +71,8 @@ export class ClinicCatalogController {
   }
 
   @Get('services/:id')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async service(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -78,7 +82,8 @@ export class ClinicCatalogController {
 
   /** Lab cost + patient price of one line, as an order would snapshot it. */
   @Get('price-quote')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async quote(
     @ActiveTenant() t: TenantContext,
     @Query() q: PriceQuoteQueryDto,
@@ -99,7 +104,7 @@ export class ClinicCatalogController {
 
   /** The clinic's treatments (billing catalog) with patient prices. */
   @Get('treatments')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.catalog.manage')
   async treatments(@ActiveTenant() t: TenantContext, @Query() q: PageQueryDto) {
     return ResponseWrapper.success(await this.catalog.treatments(t, q.search));
   }
@@ -107,7 +112,7 @@ export class ClinicCatalogController {
   // ── Mappings ──────────────────────────────────────────────────────────
 
   @Get('mappings')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.catalog.manage')
   async listMappings(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListMappingsQueryDto,
@@ -119,7 +124,7 @@ export class ClinicCatalogController {
 
   @Post('mappings')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.catalog.manage')
   async createMapping(
     @ActiveTenant() t: TenantContext,
     @Body() dto: CreateMappingDto,
@@ -132,7 +137,7 @@ export class ClinicCatalogController {
   }
 
   @Patch('mappings/:id')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.catalog.manage')
   async updateMapping(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -148,10 +153,10 @@ export class ClinicCatalogController {
   // ── Order templates ───────────────────────────────────────────────────
 
   @Get('order-templates')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async listTemplates(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @Query() q: ListTemplatesQueryDto,
   ) {
     return ResponseWrapper.success(
@@ -160,10 +165,10 @@ export class ClinicCatalogController {
   }
 
   @Get('order-templates/:id')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async getTemplate(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return ResponseWrapper.success(
@@ -173,10 +178,10 @@ export class ClinicCatalogController {
 
   @Post('order-templates')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async createTemplate(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CreateTemplateDto,
   ) {
@@ -187,10 +192,10 @@ export class ClinicCatalogController {
   }
 
   @Patch('order-templates/:id')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async updateTemplate(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTemplateDto,
@@ -202,10 +207,10 @@ export class ClinicCatalogController {
   }
 
   @Post('order-templates/:id/use')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async useTemplate(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return ResponseWrapper.success(

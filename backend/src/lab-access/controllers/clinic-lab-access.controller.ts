@@ -1,3 +1,4 @@
+import { Can } from 'src/access/decorators/access.decorators';
 import {
   Body,
   Controller,
@@ -17,14 +18,12 @@ import {
 } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { Actor, ALL_APP_ROLES, AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { PROXY_PERMISSIONS } from 'src/engine/runtime/workflow-engine.service';
 import { orderError } from 'src/lab-orders/common/order-errors';
 import { LabOrdersService } from 'src/lab-orders/services/lab-orders.service';
-import { LAB_FEATURE } from 'src/labs/labs.constants';
+import { ClinicActor, CurrentClinicActor } from 'src/labs/common/clinic-actor';
 import {
   LabOrderActionsService,
   LabSideCall,
@@ -40,21 +39,14 @@ import { MagicLinkDelivery } from '../entities/magic-link.entity';
 import { MagicLinksService } from '../magic-links/magic-links.service';
 
 /**
- * Proxy updates need the lab-coordinator capability. There is no such role
- * yet; the closest is `clinic_admin` (the engine's proxy check uses it too),
- * so only clinic admins may act for a lab.
- */
-const LAB_COORDINATOR = AppRole.CLINIC_ADMIN;
-
-/**
  * Clinic side of lab access (lab ERD §7, §14 step 5):
  * - magic links of an order: list (with delivery status), send / copy a
  *   new one, revoke;
- * - proxy mode: when the lab doesn't answer, a clinic admin records the
- *   lab's answer — `via = proxy`, `on_behalf_of_lab_id` = the order's lab.
+ * - proxy mode: when the lab doesn't answer, a lab coordinator
+ *   (PROXY_PERMISSIONS, the engine checks them too) records the lab's
+ *   answer — `via = proxy`, `on_behalf_of_lab_id` = the order's lab.
  */
 @Controller('lab-orders')
-@RequireFeature(LAB_FEATURE)
 export class ClinicLabAccessController {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
@@ -64,12 +56,14 @@ export class ClinicLabAccessController {
   ) {}
 
   @Get(':id/magic-links')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.view')
   async listLinks(
     @ActiveTenant() tenant: TenantContext,
+    @CurrentClinicActor() actor: ClinicActor,
+    @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const order = await this.orders.byId(tenant.organizationId, id);
+    const order = await this.orders.visible({ tenant, actor, ref }, id);
     return ResponseWrapper.success(
       await this.links.forOrder(tenant.organizationId, order.id),
     );
@@ -77,15 +71,15 @@ export class ClinicLabAccessController {
 
   @Post(':id/magic-links')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async issueLink(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: IssueMagicLinkDto,
   ) {
-    const order = await this.orders.byId(tenant.organizationId, id);
+    const order = await this.orders.visible({ tenant, actor, ref }, id);
     if (!order.orderNo || order.statusCode === 'draft') {
       throw orderError(
         'LAB_ORDER_INVALID',
@@ -121,13 +115,15 @@ export class ClinicLabAccessController {
   }
 
   @Post(':id/magic-links/:linkId/revoke')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async revokeLink(
     @ActiveTenant() tenant: TenantContext,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('linkId', ParseUUIDPipe) linkId: string,
   ) {
+    await this.orders.visible({ tenant, actor, ref }, id);
     await this.links.revoke(tenant.organizationId, id, linkId, ref);
     return ResponseWrapper.success(null, 'Link revoked');
   }
@@ -135,10 +131,10 @@ export class ClinicLabAccessController {
   // ── proxy mode ────────────────────────────────────────────────────────
 
   @Get(':id/proxy/actions')
-  @Roles(LAB_COORDINATOR)
+  @Can(...PROXY_PERMISSIONS)
   async proxyActions(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
@@ -152,10 +148,10 @@ export class ClinicLabAccessController {
   }
 
   @Post(':id/proxy/accept')
-  @Roles(LAB_COORDINATOR)
+  @Can(...PROXY_PERMISSIONS)
   async proxyAccept(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AcceptOrderDto,
@@ -166,10 +162,10 @@ export class ClinicLabAccessController {
   }
 
   @Post(':id/proxy/reject')
-  @Roles(LAB_COORDINATOR)
+  @Can(...PROXY_PERMISSIONS)
   async proxyReject(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RejectOrderDto,
@@ -180,10 +176,10 @@ export class ClinicLabAccessController {
   }
 
   @Post(':id/proxy/clarification')
-  @Roles(LAB_COORDINATOR)
+  @Can(...PROXY_PERMISSIONS)
   async proxyClarify(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ClarificationDto,
@@ -194,10 +190,10 @@ export class ClinicLabAccessController {
   }
 
   @Post(':id/proxy/expected-date')
-  @Roles(LAB_COORDINATOR)
+  @Can(...PROXY_PERMISSIONS)
   async proxyExpectedDate(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ExpectedDateDto,
@@ -211,12 +207,13 @@ export class ClinicLabAccessController {
     return ResponseWrapper.success(null, 'Expected date changed');
   }
 
-  private proxy(actor: Actor, ref: ActorRef, labId: string): LabSideCall {
+  private proxy(actor: ClinicActor, ref: ActorRef, labId: string): LabSideCall {
     return {
       actor: {
         userId: actor.userId,
         side: 'clinic',
         roles: actor.roles,
+        can: (p) => actor.access.can(p),
         via: TransitionVia.PROXY,
         ip: ref.ip ?? null,
         requestId: ref.requestId ?? null,

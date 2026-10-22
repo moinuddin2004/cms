@@ -5,12 +5,12 @@ import { ActorRef, AuditAction } from 'src/common/audit/audit.enums';
 import { snapshotOf } from 'src/common/audit/audit-diff';
 import { AuditService } from 'src/common/audit/audit.service';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
 import { assertVersion } from 'src/common/errors/optimistic-lock';
 import { FormSchema } from 'src/engine/entities/form-schema.entity';
 import { Specialty } from 'src/engine/entities/specialty.entity';
 import type { FormIssue } from 'src/engine/forms/form-definition.types';
 import { FormResolverService } from 'src/engine/forms/form-resolver.service';
+import type { ClinicActor } from 'src/labs/common/clinic-actor';
 import { likePattern } from 'src/labs/common/lab-query';
 import { LabClinicLink } from 'src/labs/entities/lab-clinic-link.entity';
 import { LabLinkStatus } from 'src/labs/enums/lab.enums';
@@ -36,12 +36,15 @@ import {
   validateTemplateAnswers,
 } from './order-template.types';
 
-const isAdmin = (actor: Actor) => actor.roles.includes(AppRole.CLINIC_ADMIN);
+/** Shared (clinic-wide) templates are created and edited with this permission. */
+const canShare = (actor: ClinicActor) =>
+  actor.access.can('lab.templates.share');
 
 /**
  * Saved orders (lab ERD §13 "Doctor speed"). Tenant-scoped. A template is
  * the caller's own or shared with the clinic; nobody sees another user's
- * own templates. Shared ones are created and edited by clinic admins.
+ * own templates. Shared ones are created and edited with
+ * `lab.templates.share`.
  */
 @Injectable()
 export class OrderTemplatesService {
@@ -53,7 +56,7 @@ export class OrderTemplatesService {
 
   async list(
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     q: ListTemplatesQueryDto,
   ): Promise<PaginatedResponseDto<OrderTemplateResponse>> {
     const scope = q.scope ?? 'all';
@@ -97,7 +100,7 @@ export class OrderTemplatesService {
 
   async get(
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     id: string,
   ): Promise<OrderTemplateResponse> {
     const t = await this.visible(
@@ -111,14 +114,14 @@ export class OrderTemplatesService {
 
   async create(
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     ref: ActorRef,
     dto: CreateTemplateDto,
   ): Promise<OrderTemplateResponse> {
-    if (dto.shared && !isAdmin(actor)) {
+    if (dto.shared && !canShare(actor)) {
       throw catalogError(
         'ORDER_TEMPLATE_FORBIDDEN',
-        'Only clinic admins can share templates with the whole clinic',
+        'You do not have permission to share templates with the whole clinic',
       );
     }
     return this.dataSource.transaction(async (m) => {
@@ -158,7 +161,7 @@ export class OrderTemplatesService {
 
   async update(
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     ref: ActorRef,
     id: string,
     dto: UpdateTemplateDto,
@@ -170,10 +173,10 @@ export class OrderTemplatesService {
         lock: { mode: 'pessimistic_write' },
       });
       assertVersion(t.version, dto.version);
-      if (!this.canEdit(t, actor) || (dto.shared && !isAdmin(actor))) {
+      if (!this.canEdit(t, actor) || (dto.shared && !canShare(actor))) {
         throw catalogError(
           'ORDER_TEMPLATE_FORBIDDEN',
-          'Only clinic admins can change shared templates',
+          'You do not have permission to change shared templates',
         );
       }
       const before = snapshotOf(t, TEMPLATE_AUDIT_FIELDS);
@@ -220,7 +223,7 @@ export class OrderTemplatesService {
   async markUsed(
     m: EntityManager,
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     id: string,
   ): Promise<void> {
     await this.visible(m, organizationId, actor, id);
@@ -234,7 +237,7 @@ export class OrderTemplatesService {
 
   async use(
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     id: string,
   ): Promise<OrderTemplateResponse> {
     await this.dataSource.transaction((m) =>
@@ -398,9 +401,9 @@ export class OrderTemplatesService {
     };
   }
 
-  private canEdit(t: OrderTemplate, actor: Actor): boolean {
+  private canEdit(t: OrderTemplate, actor: ClinicActor): boolean {
     return t.ownerUserId === null
-      ? isAdmin(actor)
+      ? canShare(actor)
       : t.ownerUserId === actor.userId;
   }
 
@@ -408,7 +411,7 @@ export class OrderTemplatesService {
   private async visible(
     m: EntityManager,
     organizationId: string,
-    actor: Actor,
+    actor: ClinicActor,
     id: string,
   ): Promise<OrderTemplate> {
     const t = await m.getRepository(OrderTemplate).findOne({
@@ -441,7 +444,7 @@ export class OrderTemplatesService {
 
   private toResponse(
     t: OrderTemplate,
-    actor: Actor,
+    actor: ClinicActor,
     owners: Map<string, string | null>,
   ): OrderTemplateResponse {
     return {

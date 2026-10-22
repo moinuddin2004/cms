@@ -11,16 +11,14 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { ClinicCall } from 'src/lab-orders/common/order-context';
-import { LAB_FEATURE } from 'src/labs/labs.constants';
+import { ClinicActor, CurrentClinicActor } from 'src/labs/common/clinic-actor';
 import { requireKey } from './common/lab-billing-errors';
 import {
   ApplyAdvanceDto,
@@ -41,17 +39,16 @@ import { LabCreditsService } from './services/lab-credits.service';
 import { LabInvoicesService } from './services/lab-invoices.service';
 import { LabPaymentsService } from './services/lab-payments.service';
 
-const DESK = [AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST];
-
 /**
- * Patient billing for lab work (lab ERD §6a, §10, §15). The front desk
- * (admin + receptionist, as billing v2) estimates, issues and collects;
- * corrections that undo money — void, reversal, credit note, refund — and
- * settings are admin only. Every money-moving POST needs `Idempotency-Key`.
+ * Patient billing for lab work (lab ERD §6a, §10, §15). `lab.billing.manage`
+ * estimates, issues and collects; corrections that undo money also need the
+ * patient-billing key for that act (void / credit note →
+ * `billing.invoice.void`, reversal / refund → `billing.refund.issue`), and
+ * settings need `admin.settings.manage`. Every money-moving POST needs
+ * `Idempotency-Key`.
  */
 @Controller('lab-billing')
-@RequireFeature(LAB_FEATURE)
-@Roles(...DESK)
+@Can('lab.billing.manage')
 export class LabBillingController {
   constructor(
     private readonly invoices: LabInvoicesService,
@@ -65,7 +62,7 @@ export class LabBillingController {
   @Get('invoices')
   async list(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Query() q: ListInvoicesQueryDto,
   ) {
@@ -79,7 +76,7 @@ export class LabBillingController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CreateInvoiceDto,
   ) {
@@ -94,7 +91,7 @@ export class LabBillingController {
   @Get('invoices/:id')
   async get(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
@@ -106,7 +103,7 @@ export class LabBillingController {
   @Patch('invoices/:id')
   async update(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInvoiceDto,
@@ -123,7 +120,7 @@ export class LabBillingController {
   @HttpCode(HttpStatus.OK)
   async issue(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: IssueInvoiceDto,
@@ -138,10 +135,10 @@ export class LabBillingController {
 
   @Post('invoices/:id/void')
   @HttpCode(HttpStatus.OK)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('billing.invoice.void')
   async void(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: VoidInvoiceDto,
@@ -158,7 +155,7 @@ export class LabBillingController {
   @HttpCode(HttpStatus.OK)
   async applyAdvance(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApplyAdvanceDto,
@@ -174,10 +171,10 @@ export class LabBillingController {
 
   @Post('invoices/:id/credit-notes')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('billing.invoice.void')
   async creditNote(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreditNoteDto,
@@ -196,7 +193,7 @@ export class LabBillingController {
   @HttpCode(HttpStatus.OK)
   async remind(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
@@ -215,7 +212,7 @@ export class LabBillingController {
   @Get('payments')
   async listPayments(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Query() q: ListPaymentsQueryDto,
   ) {
@@ -229,7 +226,7 @@ export class LabBillingController {
   @HttpCode(HttpStatus.CREATED)
   async collect(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CollectPaymentDto,
     @Headers('idempotency-key') key?: string,
@@ -245,7 +242,7 @@ export class LabBillingController {
   @Get('payments/:id')
   async payment(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
@@ -257,10 +254,10 @@ export class LabBillingController {
   /** Lab ERD §10 "Payment reversal". Returns the reversal row. */
   @Post('payments/:id/reverse')
   @HttpCode(HttpStatus.OK)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('billing.refund.issue')
   async reverse(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReasonDto,
@@ -276,10 +273,10 @@ export class LabBillingController {
 
   @Post('refunds')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('billing.refund.issue')
   async refund(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: RefundDto,
     @Headers('idempotency-key') key?: string,
@@ -297,7 +294,7 @@ export class LabBillingController {
   @Get('orders/:orderId')
   async order(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('orderId', ParseUUIDPipe) orderId: string,
   ) {
@@ -309,7 +306,7 @@ export class LabBillingController {
   @Get('patients/:patientId/summary')
   async patient(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('patientId', ParseUUIDPipe) patientId: string,
   ) {
@@ -326,10 +323,10 @@ export class LabBillingController {
   }
 
   @Patch('settings')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updateSettings(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: SettingsDto,
   ) {

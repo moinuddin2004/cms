@@ -22,7 +22,7 @@ import type {
   ServiceMapping,
 } from './types'
 
-// ── Mocks: API transport, router, toasts, page chrome, roles ─────────────
+// ── Mocks: API transport, router, toasts, page chrome, access ────────────
 const api = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
@@ -55,9 +55,13 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
     </main>
   ),
 }))
-const role = vi.hoisted(() => ({ admin: false }))
-vi.mock('@/components/feature/RequireRolePage', () => ({
-  useHasClinicRole: () => ({ allowed: role.admin, isLoading: false }),
+const granted = vi.hoisted(() => ({ perms: new Set<string>() }))
+vi.mock('@/features/access', () => ({
+  useAccess: () => ({
+    isLoading: false,
+    can: (p: string | string[]) =>
+      (Array.isArray(p) ? p : [p]).some((k) => granted.perms.has(k)),
+  }),
 }))
 
 const ok = <T,>(data: T) => ({ data: { data } })
@@ -181,7 +185,7 @@ function renderWithClient(ui: ReactNode) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  role.admin = false
+  granted.perms = new Set(['lab.orders.create'])
 })
 
 describe('money helpers (integer paisa)', () => {
@@ -361,7 +365,7 @@ describe('OrderTemplatesPage', () => {
     expect(screen.getByRole('button', { name: 'Edit My crown' })).toBeTruthy()
   })
 
-  it('only clinic admins see the share switch', async () => {
+  it('hides the share switch without lab.templates.share', async () => {
     routeGets({ '/lab-catalog/order-templates': page([]) })
     renderWithClient(<OrderTemplatesPage />)
     fireEvent.click(
@@ -370,6 +374,17 @@ describe('OrderTemplatesPage', () => {
     expect(await screen.findByText('New order template')).toBeTruthy()
     expect(screen.getByText('Services')).toBeTruthy()
     expect(screen.queryByText('Share with the whole clinic')).toBeNull()
+  })
+
+  it('shows the share switch with lab.templates.share', async () => {
+    granted.perms = new Set(['lab.orders.create', 'lab.templates.share'])
+    routeGets({ '/lab-catalog/order-templates': page([]) })
+    renderWithClient(<OrderTemplatesPage />)
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: /new template/i }))[0],
+    )
+    expect(await screen.findByText('New order template')).toBeTruthy()
+    expect(screen.getByText('Share with the whole clinic')).toBeTruthy()
   })
 })
 
