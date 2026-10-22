@@ -1,15 +1,13 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ClockService } from 'src/common/clock/clock.service';
 import { addDays, isYmd } from 'src/common/clock/tz.util';
 import { sqlRows } from 'src/common/database/sql';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { AuthorizationService } from 'src/auth/services/authorization.service';
+import type { AccessContext } from 'src/access/access-context';
+import type { Permission } from 'src/access/catalog/permissions';
+import { noPermission } from 'src/access/decorators/access.decorators';
 import { dayCount, monthStart } from './report-dates';
 import type { ReportQueryDto } from './report-query.dto';
 import type { ReportParams, ReportScope } from './report.types';
@@ -18,32 +16,61 @@ import type { ReportParams, ReportScope } from './report.types';
 const MAX_RANGE_DAYS = 3 * 366;
 
 /**
+ * How far a report may reach, from the permission that gates it:
+ * - `perm` — its scope decides: `org` → may run for every location,
+ *   `location` → the active one, `own` → the active one narrowed to the
+ *   caller's own rows (only reports with a doctor filter can do that).
+ * - `orgPerm` — when set, the "all locations" view needs `org` scope on
+ *   this permission instead (finance overview: gated by the unscoped
+ *   `finance.overview.view`, reach from `reports.financial.view`).
+ */
+export interface ReportScopeRule {
+  perm: Permission;
+  orgPerm?: Permission;
+  /** The report can be narrowed to one doctor (`filters.doctor`). */
+  doctorFilter?: boolean;
+}
+
+/**
  * Resolves where a report runs (the active location, or every location of
- * the organization for its owners) and its clinic-local date range.
+ * the organization for org-wide grants) and its clinic-local date range.
  */
 @Injectable()
 export class ReportScopeService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly clock: ClockService,
-    private readonly authorization: AuthorizationService,
   ) {}
 
   async resolve(
     tenant: TenantContext,
-    userId: string,
+    access: AccessContext,
+    rule: ReportScopeRule,
     q: Pick<ReportQueryDto, 'scope'>,
   ): Promise<ReportScope> {
     const { organizationId, locationId } = tenant;
+    const reach = access.scope(rule.perm);
+    if (!reach) throw noPermission([rule.perm]);
+
     const wholeOrg = q.scope === 'organization';
-    if (
-      wholeOrg &&
-      !(await this.authorization.isOwner(userId, organizationId)) &&
-      !(await this.authorization.isSuperAdmin(userId))
-    ) {
-      throw new ForbiddenException(
-        'Only the organization owner can see all locations together.',
+    const orgPerm = rule.orgPerm ?? rule.perm;
+    if (wholeOrg && access.scope(orgPerm) !== 'org') {
+      throw noPermission(
+        [orgPerm],
+        'Your access does not cover all locations together.',
       );
+    }
+
+    // `own` reach: only the caller's own rows, i.e. one doctor's.
+    let doctorId: string | undefined;
+    if (reach === 'own') {
+      if (!rule.doctorFilter || !access.employeeId) {
+        throw noPermission(
+          [rule.perm],
+          'Your access covers only your own data; this report has no per-doctor view.',
+        );
+      }
+      doctorId = access.employeeId;
     }
 
     const rows = await sqlRows<{ id: string; name: string; org_name: string }>(
@@ -64,6 +91,7 @@ export class ReportScopeService {
       locationIds: rows.map((r) => r.id),
       label: wholeOrg ? `All locations (${rows.length})` : rows[0].name,
       wholeOrg,
+      doctorId,
       tz,
       today: this.clock.today(tz),
     };
@@ -87,7 +115,8 @@ export class ReportScopeService {
       to,
       start: this.clock.dayRange(scope.tz, from).start,
       end: this.clock.dayRange(scope.tz, addDays(to, 1)).start,
-      doctorId: q.doctorId,
+      // An `own`-scoped caller sees only their own rows, whatever they ask.
+      doctorId: scope.doctorId ?? q.doctorId,
       category: q.category,
       basis: q.basis ?? 'collected',
       limit,

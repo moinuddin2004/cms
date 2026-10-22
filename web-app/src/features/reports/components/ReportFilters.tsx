@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useCanSeeAllLocations } from '../hooks/use-reports'
 import { PERIOD_LABEL, useReportsStore } from '../hooks/use-reports-store'
 import type { PeriodPreset } from '../hooks/use-reports-store'
+import type { ReportPermission } from '../types/reports.types'
 
 const PRESETS = Object.keys(PERIOD_LABEL) as Array<
   Exclude<PeriodPreset, 'custom'>
@@ -17,18 +18,21 @@ const BASIS_HINT = {
 }
 
 /**
- * Period presets + custom range, "this location / all locations" for
- * owners, and the revenue basis — the shared filters of the finance
+ * Period presets + custom range, "this location / all locations" for an
+ * org-wide grant of `reach`, and the revenue basis — the shared filters of the finance
  * dashboard and the reports. `dates={false}` hides the period (snapshot
  * reports such as outstanding balances).
  */
 export function ReportFilters({
+  reach = 'reports.financial.view',
   dates = true,
   basis = false,
   fetching = false,
   extra,
   right,
 }: {
+  /** Permission whose scope allows the "all locations" view. */
+  reach?: ReportPermission
   dates?: boolean
   basis?: boolean
   fetching?: boolean
@@ -36,7 +40,7 @@ export function ReportFilters({
   right?: ReactNode
 }) {
   const store = useReportsStore()
-  const canSeeAll = useCanSeeAllLocations()
+  const canSeeAll = useCanSeeAllLocations(reach)
 
   return (
     <ListToolbar

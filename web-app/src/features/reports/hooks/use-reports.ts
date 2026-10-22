@@ -3,9 +3,13 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useFeatures } from '@/context/FeatureFlagsContext'
+import { useAccess } from '@/features/access'
 import * as api from '../services/reports.api'
-import type { ExportFormat, ReportQuery } from '../types/reports.types'
+import type {
+  ExportFormat,
+  ReportPermission,
+  ReportQuery,
+} from '../types/reports.types'
 import { periodRange, useReportsStore } from './use-reports-store'
 
 export const REPORTS_FEATURE = 'reports.financial'
@@ -23,21 +27,32 @@ export const reportKeys = {
     ['reports', 'clinic', loc, q] as const,
 }
 
-/** The shared period / scope / basis as API filters. */
-export function useReportQuery(): ReportQuery {
+/**
+ * The shared period / scope / basis as API filters. "All locations" is
+ * only sent when `perm` reaches the whole org (see useCanSeeAllLocations).
+ */
+export function useReportQuery(
+  perm: ReportPermission = 'reports.financial.view',
+): ReportQuery {
   const { preset, custom, scope, basis } = useReportsStore()
-  const canSeeAll = useCanSeeAllLocations()
+  const canSeeAll = useCanSeeAllLocations(perm)
   return useMemo(() => {
     const range = periodRange(preset, custom)
     return { ...range, scope: canSeeAll ? scope : 'location', basis }
   }, [preset, custom, scope, basis, canSeeAll])
 }
 
-/** Owners (and super admins) of a multi-location org can view all locations together. */
-export function useCanSeeAllLocations(): boolean {
+/**
+ * "All locations together" needs an org-wide grant of the report's
+ * permission, and an organization with more than one location.
+ */
+export function useCanSeeAllLocations(
+  perm: ReportPermission = 'reports.financial.view',
+): boolean {
+  const { scope } = useAccess()
   const { accessibleOrganizations, activeOrganizationId } = useAuthStore()
   const org = accessibleOrganizations.find((o) => o.id === activeOrganizationId)
-  return !!org && org.accessSource !== 'employee' && org.locations.length > 1
+  return !!org && org.locations.length > 1 && scope(perm) === 'org'
 }
 
 export function useReportCatalog() {
@@ -93,7 +108,7 @@ export function errorMessage(err: unknown): string {
 
 /** Excel / PDF download with a per-format loading state. */
 export function useReportExport() {
-  const { features } = useFeatures()
+  const { can } = useAccess()
   const [busy, setBusy] = useState<string | null>(null)
   const run = async (key: string, q: ReportQuery, format: ExportFormat) => {
     const id = `${key}:${format}`
@@ -110,7 +125,7 @@ export function useReportExport() {
     }
   }
   return {
-    enabled: features.has(REPORTS_EXPORT_FEATURE),
+    enabled: can('reports.export'),
     run,
     isBusy: (key: string, format?: ExportFormat) =>
       format ? busy === `${key}:${format}` : !!busy?.startsWith(`${key}:`),

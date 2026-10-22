@@ -29,6 +29,7 @@ import { Location } from 'src/locations/entities/location.entity';
 import { LocationSettings } from 'src/locations/entities/location-settings.entity';
 import { LocationsController } from 'src/locations/locations.controller';
 import { LocationsService } from 'src/locations/locations.service';
+import { AccessModule } from 'src/access/access.module';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
 import { OrganizationSettings } from 'src/organizations/entities/organization-settings.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -213,6 +214,8 @@ export async function createTenancyFixture(): Promise<TenancyFixture> {
         EmployeeOrgLocationAssignment,
       ]),
       FeatureFlagsModule,
+      // LocationsController checks admin.locations.manage via AccessResolver
+      AccessModule,
     ],
     controllers: [OrganizationsController, LocationsController],
     providers: [

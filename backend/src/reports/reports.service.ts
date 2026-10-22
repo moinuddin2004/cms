@@ -9,7 +9,12 @@ import { localDate, localHHMM } from 'src/common/clock/tz.util';
 import { displayDate } from './core/report-dates';
 import { rowToRupees, summaryToRupees, totalsOf } from './core/report-format';
 import type { ExportFormat, ReportQueryDto } from './core/report-query.dto';
-import { ReportScopeService } from './core/report-scope.service';
+import type { AccessContext } from 'src/access/access-context';
+import type { Permission } from 'src/access/catalog/permissions';
+import {
+  type ReportScopeRule,
+  ReportScopeService,
+} from './core/report-scope.service';
 import type {
   ReportDefinition,
   ReportScope,
@@ -24,10 +29,22 @@ import { revenueReports } from './definitions/revenue.reports';
 import { exportPdf, MAX_PDF_ROWS } from './exporters/pdf.exporter';
 import { exportXlsx } from './exporters/xlsx.exporter';
 import { FinanceOverviewService } from './finance/finance-overview.service';
-import { REPORTS_FEATURE } from './reports.constants';
+import { REPORTS_CLINICAL_FEATURE, REPORTS_FEATURE } from './reports.constants';
 
 /** The feature flag a report is gated by. */
 export const featureOf = (d: ReportDefinition) => d.feature ?? REPORTS_FEATURE;
+
+/** The permission a report is gated by (it implies the report's feature). */
+export const permissionOf = (d: ReportDefinition): Permission =>
+  featureOf(d) === REPORTS_CLINICAL_FEATURE
+    ? 'reports.clinical.view'
+    : 'reports.financial.view';
+
+/** How far `access` may run report `d` (see ReportScopeService). */
+export const scopeRuleOf = (d: ReportDefinition): ReportScopeRule => ({
+  perm: permissionOf(d),
+  doctorFilter: !!d.filters.doctor,
+});
 
 /** Rows a report returns to the screen / puts in a file before truncating. */
 const MAX_VIEW_ROWS = 5000;
@@ -60,16 +77,24 @@ export class ReportsService {
     this.byKey = new Map(this.definitions.map((d) => [d.key, d]));
   }
 
-  /** Reports the organization has the features for (`null` = all). */
-  catalog(enabled: Set<string> | null) {
+  /**
+   * Reports this caller can run: they hold the report's permission (which
+   * also means its feature is on), and an `own`-scoped grant only lists
+   * reports that can be narrowed to one doctor.
+   */
+  catalog(access: AccessContext) {
     return this.definitions
-      .filter((d) => !enabled || enabled.has(featureOf(d)))
+      .filter((d) => {
+        const reach = access.scope(permissionOf(d));
+        return !!reach && (reach !== 'own' || !!d.filters.doctor);
+      })
       .map((d) => ({
         key: d.key,
         title: d.title,
         description: d.description,
         category: d.category,
         filters: d.filters,
+        permission: permissionOf(d),
       }));
   }
 

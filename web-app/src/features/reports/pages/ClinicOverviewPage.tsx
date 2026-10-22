@@ -197,7 +197,7 @@ function WhatWeTreat({ d }: { d: ClinicOverview }) {
  * who the patients are.
  */
 export function ClinicOverviewPage() {
-  const query = useReportQuery()
+  const query = useReportQuery('reports.clinical.view')
   const overview = useClinicOverview({ ...query, basis: undefined })
   const d = overview.data
 
@@ -220,7 +220,10 @@ export function ClinicOverviewPage() {
         }
       />
 
-      <ReportFilters fetching={overview.isFetching && !overview.isLoading} />
+      <ReportFilters
+        reach="reports.clinical.view"
+        fetching={overview.isFetching && !overview.isLoading}
+      />
 
       {overview.isError ? (
         <ErrorState

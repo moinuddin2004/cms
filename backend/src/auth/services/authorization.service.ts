@@ -10,6 +10,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { Actor, ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
 import { legacyRolesFromPermissions } from 'src/access/legacy-roles';
+import type { AccessContext } from 'src/access/access-context';
 
 /**
  * Represents a user's accessible organization with its locations.
@@ -33,6 +34,12 @@ export interface AccessibleLocation {
   timezone: string;
 }
 
+/**
+ * @deprecated Legacy per-location flags still returned by
+ * `POST /auth/switch-location`; the web app reads `/me/access` instead.
+ * Derived from the AccessContext (`legacyLocationFlags`), never from the
+ * old role booleans.
+ */
 export interface UserPermissions {
   canViewAppointments: boolean;
   canCreateAppointments: boolean;
@@ -75,7 +82,7 @@ export class AuthorizationService {
     private readonly employeeRepo: Repository<Employee>,
     @InjectRepository(EmployeeOrgLocationAssignment)
     private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
-  ) { }
+  ) {}
 
   /**
    * Check if user is a super admin.
@@ -322,56 +329,6 @@ export class AuthorizationService {
   }
 
   /**
-   * Get user permissions at a specific location.
-   */
-  async getUserPermissionsAtLocation(
-    userId: string,
-    organizationId: string,
-    locationId: string,
-  ): Promise<UserPermissions> {
-    // Super admin: full permissions
-    if (await this.isSuperAdmin(userId)) {
-      return this.fullPermissions();
-    }
-
-    // Owner: full permissions
-    if (await this.isOwner(userId, organizationId)) {
-      return this.fullPermissions();
-    }
-
-    // Employee: get permissions from employment_role via assignment
-    const assignment = await this.assignmentRepo.findOne({
-      where: {
-        userId,
-        organizationId,
-        locationId,
-        hasPortalAccess: true,
-        isActive: true,
-      },
-      relations: ['employmentRole'],
-    });
-
-    if (!assignment) return this.noPermissions();
-
-    // Legacy boolean flags (pre access-control roles); new-format roles are
-    // read by AccessResolver instead.
-    const rolePerms = (assignment.employmentRole?.permissions || {}) as Record<
-      string,
-      boolean | undefined
-    >;
-    return {
-      canViewAppointments: rolePerms.canViewAppointments ?? true,
-      canCreateAppointments: rolePerms.canCreateAppointments ?? true,
-      canManageStaff: rolePerms.canManageStaff ?? false,
-      canViewFinance: rolePerms.canViewFinance ?? false,
-      canManageLocations: rolePerms.canManageLocations ?? false,
-      canManageUsers: rolePerms.canManageUsers ?? false,
-      canViewBilling: rolePerms.canViewBilling ?? false,
-      canManageSettings: rolePerms.canManageSettings ?? false,
-    };
-  }
-
-  /**
    * Resolve the clinic roles a user holds at one organization + location.
    *
    * - Super admin / organization owner → every role.
@@ -431,30 +388,21 @@ export class AuthorizationService {
       },
     });
   }
+}
 
-  private fullPermissions(): UserPermissions {
-    return {
-      canViewAppointments: true,
-      canCreateAppointments: true,
-      canManageStaff: true,
-      canViewFinance: true,
-      canManageLocations: true,
-      canManageUsers: true,
-      canViewBilling: true,
-      canManageSettings: true,
-    };
-  }
-
-  private noPermissions(): UserPermissions {
-    return {
-      canViewAppointments: false,
-      canCreateAppointments: false,
-      canManageStaff: false,
-      canViewFinance: false,
-      canManageLocations: false,
-      canManageUsers: false,
-      canViewBilling: false,
-      canManageSettings: false,
-    };
-  }
+/**
+ * @deprecated The old 8 flags, derived from the new permissions so the
+ * switch-location response stays truthful until it is removed.
+ */
+export function legacyLocationFlags(access: AccessContext): UserPermissions {
+  return {
+    canViewAppointments: access.can('appointments.view'),
+    canCreateAppointments: access.can('appointments.book'),
+    canManageStaff: access.can('employees.manage'),
+    canViewFinance: access.can('finance.overview.view'),
+    canManageLocations: access.can('admin.locations.manage'),
+    canManageUsers: access.can('admin.users.manage'),
+    canViewBilling: access.can('billing.invoice.view'),
+    canManageSettings: access.can('admin.settings.manage'),
+  };
 }

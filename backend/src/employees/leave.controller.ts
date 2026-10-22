@@ -20,14 +20,11 @@ import {
 } from './dto/update-leave.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { Can } from 'src/access/decorators/access.decorators';
 
-@RequireFeature('hr.leave')
+@Can('leave.approve')
 @Controller('leaves')
-@Roles(AppRole.CLINIC_ADMIN)
 export class LeaveController {
   constructor(private readonly leaveService: LeaveService) {}
 
@@ -48,7 +45,10 @@ export class LeaveController {
     @ActiveTenant() ctx: TenantContext,
   ) {
     const data = await this.leaveService.findAll(filters, ctx);
-    return ResponseWrapper.success(data, 'Leave requests retrieved successfully');
+    return ResponseWrapper.success(
+      data,
+      'Leave requests retrieved successfully',
+    );
   }
 
   @Get('balance/:employeeId')
@@ -57,7 +57,10 @@ export class LeaveController {
     @ActiveTenant() ctx: TenantContext,
   ) {
     const data = await this.leaveService.getBalance(employeeId, ctx);
-    return ResponseWrapper.success(data, 'Leave balance retrieved successfully');
+    return ResponseWrapper.success(
+      data,
+      'Leave balance retrieved successfully',
+    );
   }
 
   @Get(':id')
@@ -66,7 +69,10 @@ export class LeaveController {
     @ActiveTenant() ctx: TenantContext,
   ) {
     const data = await this.leaveService.findOne(id, ctx);
-    return ResponseWrapper.success(data, 'Leave request retrieved successfully');
+    return ResponseWrapper.success(
+      data,
+      'Leave request retrieved successfully',
+    );
   }
 
   @Patch(':id')

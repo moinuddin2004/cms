@@ -14,6 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { QueueSettingsSection } from '@/features/queue'
+import { Can } from '@/features/access'
+import { EmptyState } from '@/components/feedback/EmptyState'
+import { ShieldOff } from 'lucide-react'
 
 interface OrganizationSettings {
   allowLocationOverride: boolean
@@ -48,11 +51,32 @@ interface LocationSettings {
   theme: string
 }
 
+/**
+ * Location settings. The route already requires `admin.locations.manage`;
+ * this guard keeps the feature safe wherever else it gets mounted.
+ */
 export function LocationSettingsFeature({
   locationId,
 }: {
   locationId: string
 }) {
+  return (
+    <Can
+      perm="admin.locations.manage"
+      fallback={
+        <EmptyState
+          icon={ShieldOff}
+          title="No access"
+          description="You don't have permission to manage this location's settings."
+        />
+      }
+    >
+      <LocationSettingsContent locationId={locationId} />
+    </Can>
+  )
+}
+
+function LocationSettingsContent({ locationId }: { locationId: string }) {
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState<Partial<LocationSettings>>({})
 

@@ -25,10 +25,8 @@ import type { ViewMode } from '@/components/shared'
 import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
 import { ReportFilters } from '../components/ReportFilters'
-import { useFeatures } from '@/context/FeatureFlagsContext'
+import { useAccess } from '@/features/access'
 import {
-  REPORTS_CLINICAL_FEATURE,
-  REPORTS_FEATURE,
   useReportCatalog,
   useReportExport,
   useReportQuery,
@@ -49,8 +47,16 @@ function QuickDownloads({
   query: ReportQuery
 }) {
   const exporter = useReportExport()
+  const { scope } = useAccess()
   if (!exporter.enabled) return null
-  const q = report.filters.basis ? query : { ...query, basis: undefined }
+  // "All locations" only where this report's own grant reaches the org.
+  const reach =
+    scope(report.permission) === 'org' ? query.scope : ('location' as const)
+  const q = {
+    ...query,
+    scope: reach,
+    basis: report.filters.basis ? query.basis : undefined,
+  }
   return (
     <div className="flex items-center gap-1">
       <TooltipButton
@@ -126,8 +132,13 @@ function ReportCard({
 /** Every report in one place: open on screen or download Excel / PDF. */
 export function ReportsHubPage() {
   const catalog = useReportCatalog()
-  const { features } = useFeatures()
-  const query = useReportQuery()
+  const { can, scope } = useAccess()
+  // The scope toggle follows whichever report grant reaches the whole org.
+  const reach =
+    scope('reports.financial.view') === 'org'
+      ? 'reports.financial.view'
+      : 'reports.clinical.view'
+  const query = useReportQuery(reach)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<ReportCategory | 'all'>('all')
   const [view, setView] = useState<ViewMode>('card')
@@ -221,12 +232,12 @@ export function ReportsHubPage() {
         subtitle="Every report in one place — view on screen or download as Excel / PDF."
         actions={
           <div className="flex items-center gap-2">
-            {features.has(REPORTS_CLINICAL_FEATURE) && (
+            {can('reports.clinical.view') && (
               <Button asChild size="sm" variant="outline">
                 <Link to="/clinic-overview">Clinic overview</Link>
               </Button>
             )}
-            {features.has(REPORTS_FEATURE) && (
+            {can('finance.overview.view') && (
               <Button asChild size="sm" variant="outline">
                 <Link to="/finance">Finance overview</Link>
               </Button>
@@ -236,6 +247,7 @@ export function ReportsHubPage() {
       />
 
       <ReportFilters
+        reach={reach}
         right={<ViewToggle value={view} onChange={setView} size="sm" />}
         extra={
           <>

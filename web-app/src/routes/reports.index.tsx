@@ -1,21 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
-import { RequireRolePage } from '@/components/feature/RequireRolePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import {
-  REPORTS_CLINICAL_FEATURE,
-  REPORTS_FEATURE,
-  ReportsHubPage,
-} from '@/features/reports'
+import { ReportsHubPage } from '@/features/reports'
 
 export const Route = createFileRoute('/reports/')({
+  staticData: { can: ['reports.financial.view', 'reports.clinical.view'] },
   component: () => (
-    <RequireFeaturePage feature={[REPORTS_FEATURE, REPORTS_CLINICAL_FEATURE]}>
-      <RequireRolePage roles={['clinic_admin']}>
-        <DashboardLayout>
-          <ReportsHubPage />
-        </DashboardLayout>
-      </RequireRolePage>
-    </RequireFeaturePage>
+    <DashboardLayout>
+      <ReportsHubPage />
+    </DashboardLayout>
   ),
 })

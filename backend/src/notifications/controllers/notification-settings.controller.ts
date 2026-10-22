@@ -11,12 +11,11 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
+import { Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import {
   OutboxLogQueryDto,
@@ -30,17 +29,18 @@ import type { NotificationAudience } from '../notifications.enums';
 import { NotificationSettingsService } from '../services/notification-settings.service';
 
 /**
- * Clinic notification settings (lab ERD §16). Clinic admins only, except
- * patient opt-outs, which reception records from the patient's profile.
+ * Clinic notification settings (lab ERD §16): `notifications.settings.manage`,
+ * except patient opt-outs, which reception records from the patient's
+ * profile (`patients.view` / `patients.edit`).
  * Not behind the lab feature flag: notifications are cross-cutting.
  */
 @Controller('notification-settings')
-@Roles(AppRole.CLINIC_ADMIN)
 export class NotificationSettingsController {
   constructor(private readonly settings: NotificationSettingsService) {}
 
   /** Master switches, quiet hours and every event × channel rule (defaults filled in). */
   @Get()
+  @Can('notifications.settings.manage')
   async overview(@ActiveTenant() t: TenantContext) {
     return ResponseWrapper.success(
       await this.settings.overview(t.organizationId),
@@ -48,6 +48,7 @@ export class NotificationSettingsController {
   }
 
   @Patch('audiences/:audience')
+  @Can('notifications.settings.manage')
   async updateAudience(
     @ActiveTenant() t: TenantContext,
     @RequestActor(ActorSide.CLINIC) actor: ActorRef,
@@ -66,6 +67,7 @@ export class NotificationSettingsController {
   }
 
   @Put('rules')
+  @Can('notifications.settings.manage')
   async updateRules(
     @ActiveTenant() t: TenantContext,
     @RequestActor(ActorSide.CLINIC) actor: ActorRef,
@@ -78,6 +80,7 @@ export class NotificationSettingsController {
   }
 
   @Get('templates')
+  @Can('notifications.settings.manage')
   async templates(
     @ActiveTenant() t: TenantContext,
     @Query() q: TemplateQueryDto,
@@ -88,6 +91,7 @@ export class NotificationSettingsController {
   }
 
   @Put('templates')
+  @Can('notifications.settings.manage')
   async upsertTemplate(
     @ActiveTenant() t: TenantContext,
     @RequestActor(ActorSide.CLINIC) actor: ActorRef,
@@ -101,6 +105,7 @@ export class NotificationSettingsController {
 
   /** Back to the platform wording. */
   @Delete('templates/:id')
+  @Can('notifications.settings.manage')
   @HttpCode(HttpStatus.OK)
   async resetTemplate(
     @ActiveTenant() t: TenantContext,
@@ -112,6 +117,7 @@ export class NotificationSettingsController {
   }
 
   @Get('log')
+  @Can('notifications.settings.manage')
   async log(@ActiveTenant() t: TenantContext, @Query() q: OutboxLogQueryDto) {
     return ResponseWrapper.success(
       await this.settings.log(t.organizationId, q),
@@ -119,7 +125,7 @@ export class NotificationSettingsController {
   }
 
   @Get('patients/:patientId/prefs')
-  @Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
+  @Can('patients.view')
   async patientPrefs(
     @ActiveTenant() t: TenantContext,
     @Param('patientId', ParseUUIDPipe) patientId: string,
@@ -130,7 +136,7 @@ export class NotificationSettingsController {
   }
 
   @Put('patients/:patientId/prefs')
-  @Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
+  @Can('patients.edit')
   async updatePatientPrefs(
     @ActiveTenant() t: TenantContext,
     @RequestActor(ActorSide.CLINIC) actor: ActorRef,

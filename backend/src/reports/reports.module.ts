@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from 'src/auth/auth.module';
-import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 import { ClinicOverviewService } from './clinic/clinic-overview.service';
 import { ReportScopeService } from './core/report-scope.service';
 import { FinanceDataService } from './finance/finance-data.service';
@@ -14,7 +12,6 @@ import { ReportsService } from './reports.service';
  * the owner's finance dashboard. Owns no tables.
  */
 @Module({
-  imports: [AuthModule, FeatureFlagsModule],
   controllers: [ReportsController],
   providers: [
     ReportScopeService,

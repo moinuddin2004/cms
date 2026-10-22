@@ -12,6 +12,8 @@ interface UserTableProps {
   isLoading?: boolean
   onEdit: (user: User) => void
   onDelete: (user: User) => void
+  /** Hide the edit / delete actions (e.g. owner accounts for non-owners). */
+  readOnly?: boolean
   serverPagination?: ServerPagination
 }
 
@@ -20,6 +22,7 @@ export function UserTable({
   isLoading,
   onEdit,
   onDelete,
+  readOnly = false,
   serverPagination,
 }: UserTableProps) {
   const columns = useMemo<ColumnDef<User, unknown>[]>(
@@ -34,7 +37,9 @@ export function UserTable({
               <span className="font-medium text-sm">
                 {user.name || 'Unknown Name'}
               </span>
-              <span className="text-xs text-muted-foreground">{user.email}</span>
+              <span className="text-xs text-muted-foreground">
+                {user.email}
+              </span>
               {user.phone && (
                 <span className="text-xs text-muted-foreground/60">
                   {user.phone}
@@ -108,6 +113,7 @@ export function UserTable({
         enableSorting: false,
         cell: ({ row }) => {
           const user = row.original
+          if (readOnly) return null
           return (
             <div className="flex items-center justify-end gap-1">
               <TooltipButton
@@ -133,7 +139,7 @@ export function UserTable({
         },
       },
     ],
-    [onEdit, onDelete],
+    [onEdit, onDelete, readOnly],
   )
 
   return (

@@ -3,6 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { LocationSettingsFeature } from '@/features/locations/LocationSettingsFeature'
 
 export const Route = createFileRoute('/locations_/$id/settings')({
+  staticData: { can: 'admin.locations.manage' },
   component: LocationSettingsRouteComponent,
 })
 

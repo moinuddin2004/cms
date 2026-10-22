@@ -83,7 +83,7 @@ function summaryItems(
 export function ReportViewerPage({ reportKey }: { reportKey: string }) {
   const catalog = useReportCatalog()
   const item = catalog.data?.find((r) => r.key === reportKey)
-  const shared = useReportQuery()
+  const shared = useReportQuery(item?.permission)
   const [doctorId, setDoctorId] = useState('all')
   const [category, setCategory] = useState('all')
   const doctors = useDoctors()
@@ -142,6 +142,7 @@ export function ReportViewerPage({ reportKey }: { reportKey: string }) {
       </div>
 
       <ReportFilters
+        reach={item?.permission}
         dates={filters?.dates !== 'asOf'}
         basis={!!filters?.basis}
         fetching={report.isFetching && !report.isLoading}

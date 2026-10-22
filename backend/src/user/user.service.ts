@@ -10,6 +10,8 @@ import { SessionService } from 'src/session/session.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AccountStatus } from './enum/AccountStatus';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
@@ -19,6 +21,18 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+/**
+ * Who is managing users. The controller has already authorized them: a
+ * super admin, or `admin.users.manage` in `organizationId`.
+ */
+export interface UserManager {
+  isSuperAdmin: boolean;
+  /** Owner of `organizationId` (may manage owner accounts). */
+  isOwner: boolean;
+  /** Org being managed; null only for a super admin without one. */
+  organizationId: string | null;
+}
+
 @Injectable()
 export class UserService {
   constructor(
@@ -27,7 +41,7 @@ export class UserService {
     private readonly sessionService: SessionService,
     private readonly context: RequestContextService,
     private readonly logger: AppLogger,
-  ) { }
+  ) {}
 
   async createLocalUser(command: RegisterRequestDto): Promise<User> {
     const { email, password, name } = command;
@@ -161,48 +175,19 @@ export class UserService {
   }
 
   async findUsers(
-    contextUser: User,
+    manager: UserManager,
     type: 'super_admin' | 'owner' | 'employee',
     page: number = 1,
     limit: number = 10,
-    orgId?: string,
   ): Promise<PaginatedResponseDto<User>> {
     this.logger.debug(`Fetching users with type: ${type}`, UserService.name);
 
-    // Authorization check
-    if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN) {
-      if (!orgId) {
-        throw new ForbiddenException(
-          'Organization ID is required for non-super-admins',
-        );
-      }
-
-      // If the contextUser is an employee, they are not allowed
-      const isEmployeeContext = await this.userRepository.manager.findOne(
-        EmployeeOrgLocationAssignment,
-        { where: { userId: contextUser.uuid } },
-      );
-      if (isEmployeeContext) {
-        throw new ForbiddenException('Employees cannot access user management');
-      }
-
-      // If the contextUser is owner, check they own the orgId
-      const isOwnerContext = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: contextUser.uuid, organizationId: orgId } },
-      );
-      if (!isOwnerContext) {
-        throw new ForbiddenException(
-          'You can only view users within an organization you own',
-        );
-      }
-    }
-
     const query = this.userRepository.createQueryBuilder('user');
     query.skip((page - 1) * limit).take(limit);
+    const orgId = manager.organizationId;
 
     if (type === 'super_admin') {
-      if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN) {
+      if (!manager.isSuperAdmin) {
         throw new ForbiddenException(
           'Only super admins can view other super admins',
         );
@@ -214,12 +199,16 @@ export class UserService {
         'owner',
         'owner.userId = user.uuid',
       );
-      if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN && orgId) {
+      if (!manager.isSuperAdmin) {
         query.andWhere('owner.organizationId = :orgId', { orgId });
       }
     } else if (type === 'employee') {
-      query.innerJoin(EmployeeOrgLocationAssignment, 'assignment', 'assignment.userId = user.uuid');
-      if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN && orgId) {
+      query.innerJoin(
+        EmployeeOrgLocationAssignment,
+        'assignment',
+        'assignment.userId = user.uuid',
+      );
+      if (!manager.isSuperAdmin) {
         query.andWhere('assignment.organizationId = :orgId', { orgId });
       }
     }
@@ -229,27 +218,18 @@ export class UserService {
   }
 
   async createUser(
-    contextUser: User,
-    body: any,
-    orgId?: string,
+    manager: UserManager,
+    body: CreateUserDto & { status?: AccountStatus },
   ): Promise<User> {
-    if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN) {
-      if (!orgId) throw new ForbiddenException('Organization ID is required');
-
-      const isOwnerContext = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: contextUser.uuid, organizationId: orgId } },
-      );
-      if (!isOwnerContext) {
-        throw new ForbiddenException(
-          'You can only create users within your organization',
-        );
-      }
-
+    const orgId = manager.organizationId;
+    if (!manager.isSuperAdmin) {
       if (body.type === 'super_admin') {
         throw new ForbiddenException(
           'Only super admins can create super admins',
         );
+      }
+      if (body.type === 'owner' && !manager.isOwner) {
+        throw new ForbiddenException('Only an owner can add another owner');
       }
     }
 
@@ -269,10 +249,7 @@ export class UserService {
     if (!body.password) {
       throw new BadRequestException('Password is required');
     }
-    const hashedPassword = await bcrypt.hash(
-      body.password,
-      12,
-    );
+    const hashedPassword = await bcrypt.hash(body.password, 12);
     user = this.userRepository.create({
       email: body.email,
       name: body.name,
@@ -300,48 +277,17 @@ export class UserService {
   }
 
   async updateUser(
-    contextUser: User,
+    manager: UserManager,
     targetUserId: string,
-    body: any,
-    orgId?: string,
+    body: UpdateUserDto & { type?: string },
   ): Promise<User> {
     const targetUser = await this.userRepository.findOne({
       where: { uuid: targetUserId },
     });
     if (!targetUser) throw new NotFoundException('User not found');
 
-    if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN) {
-      if (!orgId) throw new ForbiddenException('Organization ID is required');
-
-      // Ensure context user is owner
-      const isOwnerContext = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: contextUser.uuid, organizationId: orgId } },
-      );
-      if (!isOwnerContext) {
-        throw new ForbiddenException('You do not have access');
-      }
-
-      // Ensure target user is not super admin
-      if (targetUser.globalRole === GlobalRole.SUPER_ADMIN) {
-        throw new ForbiddenException('Cannot modify super admins');
-      }
-
-      // Ensure target user is within the org
-      const targetIsOwner = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: targetUserId, organizationId: orgId } },
-      );
-      const targetIsEmployee = await this.userRepository.manager.findOne(
-        EmployeeOrgLocationAssignment,
-        { where: { userId: targetUserId, organizationId: orgId } },
-      );
-
-      if (!targetIsOwner && !targetIsEmployee) {
-        throw new ForbiddenException(
-          'Cannot modify users outside your organization',
-        );
-      }
+    if (!manager.isSuperAdmin) {
+      await this.assertManageable(manager, targetUser, 'modify');
 
       if (
         body.type === 'super_admin' ||
@@ -354,7 +300,7 @@ export class UserService {
     if (body.email) targetUser.email = body.email;
     if (body.name) targetUser.name = body.name;
     if (body.phone) targetUser.phone = body.phone;
-    if (body.status) targetUser.status = body.status;
+    if (body.status) targetUser.status = body.status as AccountStatus;
 
     if (body.password) {
       targetUser.password = await bcrypt.hash(body.password, 12);
@@ -364,44 +310,16 @@ export class UserService {
   }
 
   async deleteUser(
-    contextUser: User,
+    manager: UserManager,
     targetUserId: string,
-    orgId?: string,
   ): Promise<{ deleted: boolean }> {
     const targetUser = await this.userRepository.findOne({
       where: { uuid: targetUserId },
     });
     if (!targetUser) throw new NotFoundException('User not found');
 
-    if (contextUser.globalRole !== GlobalRole.SUPER_ADMIN) {
-      if (!orgId) throw new ForbiddenException('Organization ID is required');
-
-      const isOwnerContext = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: contextUser.uuid, organizationId: orgId } },
-      );
-      if (!isOwnerContext) {
-        throw new ForbiddenException('You do not have access');
-      }
-
-      if (targetUser.globalRole === GlobalRole.SUPER_ADMIN) {
-        throw new ForbiddenException('Cannot delete super admins');
-      }
-
-      const targetIsOwner = await this.userRepository.manager.findOne(
-        OrganizationOwnership,
-        { where: { userId: targetUserId, organizationId: orgId } },
-      );
-      const targetIsEmployee = await this.userRepository.manager.findOne(
-        EmployeeOrgLocationAssignment,
-        { where: { userId: targetUserId, organizationId: orgId } },
-      );
-
-      if (!targetIsOwner && !targetIsEmployee) {
-        throw new ForbiddenException(
-          'Cannot delete users outside your organization',
-        );
-      }
+    if (!manager.isSuperAdmin) {
+      await this.assertManageable(manager, targetUser, 'delete');
     }
 
     targetUser.deletedAt = new Date();
@@ -412,5 +330,37 @@ export class UserService {
     await this.sessionService.revokeAllSessions(targetUserId);
 
     return { deleted: true };
+  }
+
+  /**
+   * A non-super-admin manager may only touch users of their organization,
+   * never a super admin, and an owner account only when they are an owner
+   * themselves (so `admin.users.manage` can't take over an owner login).
+   */
+  private async assertManageable(
+    manager: UserManager,
+    target: User,
+    verb: 'modify' | 'delete',
+  ): Promise<void> {
+    const orgId = manager.organizationId;
+    if (target.globalRole === GlobalRole.SUPER_ADMIN) {
+      throw new ForbiddenException(`Cannot ${verb} super admins`);
+    }
+    const targetIsOwner = await this.userRepository.manager.findOne(
+      OrganizationOwnership,
+      { where: { userId: target.uuid, organizationId: orgId! } },
+    );
+    const targetIsEmployee = await this.userRepository.manager.findOne(
+      EmployeeOrgLocationAssignment,
+      { where: { userId: target.uuid, organizationId: orgId! } },
+    );
+    if (!targetIsOwner && !targetIsEmployee) {
+      throw new ForbiddenException(
+        `Cannot ${verb} users outside your organization`,
+      );
+    }
+    if (targetIsOwner && !manager.isOwner) {
+      throw new ForbiddenException(`Only an owner can ${verb} an owner`);
+    }
   }
 }

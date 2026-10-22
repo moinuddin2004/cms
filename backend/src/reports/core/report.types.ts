@@ -71,8 +71,10 @@ export interface ReportScope {
   locationIds: string[];
   /** "Main branch" or "All locations (3)". */
   label: string;
-  /** Every location of the organization (owner view). */
+  /** Every location of the organization (org-wide grant). */
   wholeOrg: boolean;
+  /** Set for an `own`-scoped caller: every report runs for this doctor only. */
+  doctorId?: string;
   /** Active location's timezone (timestamp columns → clinic days). */
   tz: string;
   /** Clinic-local today. */
