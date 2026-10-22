@@ -12,7 +12,13 @@ import {
 import { Organization } from 'src/organizations/entities/organization.entity';
 
 /**
- * Per-organization toggle for a catalog feature.
+ * Per-organization state of a catalog feature:
+ *
+ * - `is_entitled` — set by the super admin: the org may use the feature
+ *   (until `entitled_until` when that is set — a trial expiry).
+ * - `is_enabled` — the clinic owner's switch.
+ *
+ * Active = active catalog entry ∧ entitled (not expired) ∧ enabled.
  * featureKey is denormalized from feature_catalog for fast lookups.
  */
 @Entity({ name: 'org_feature_flags' })
@@ -39,6 +45,24 @@ export class OrgFeatureFlag {
   /** userId of whoever last toggled this flag */
   @Column({ name: 'enabled_by', type: 'uuid', nullable: true })
   enabledBy: string | null;
+
+  /**
+   * Super admin's entitlement. Defaults to true so orgs that predate
+   * entitlement keep every feature they had.
+   */
+  @Column({ name: 'is_entitled', type: 'boolean', default: true })
+  isEntitled: boolean;
+
+  /** userId of the super admin who last changed the entitlement */
+  @Column({ name: 'entitled_by', type: 'uuid', nullable: true })
+  entitledBy: string | null;
+
+  @Column({ name: 'entitled_at', type: 'timestamptz', nullable: true })
+  entitledAt: Date | null;
+
+  /** Trial expiry: from this moment on the feature is not entitled. */
+  @Column({ name: 'entitled_until', type: 'timestamptz', nullable: true })
+  entitledUntil: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

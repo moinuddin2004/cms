@@ -39,11 +39,13 @@ function makeService(opts: {
     save: jest.fn(),
   };
   const flagRepo = { find: jest.fn(() => Promise.resolve(opts.flags ?? [])) };
+  const overrideRepo = { find: jest.fn(() => Promise.resolve([])) };
   const logger = { info: jest.fn() };
   const bus = { onChange: (l: (c: AccessChange) => void) => listeners.push(l) };
   const svc = new FeatureFlagsService(
     catalogRepo as never,
     flagRepo as never,
+    overrideRepo as never,
     logger as never,
     bus as never,
   );
@@ -88,10 +90,9 @@ describe('enabled features fall back to the catalog default', () => {
     { featureKey: 'd.enabled_row', isEnabled: true },
   ];
 
-  it('resolveEnabledFeatures', () => {
+  it('resolveEnabledFeatures (rows outside the active catalog never count)', () => {
     expect([...resolveEnabledFeatures(flags, catalog)].sort()).toEqual([
       'a.default_on',
-      'd.enabled_row',
     ]);
   });
 
@@ -99,7 +100,6 @@ describe('enabled features fall back to the catalog default', () => {
     const { svc } = makeService({ catalog, flags });
     expect([...(await svc.getEnabledFeatures(ORG))].sort()).toEqual([
       'a.default_on',
-      'd.enabled_row',
     ]);
     const status = (await svc.getCatalogWithOrgStatus(ORG)).flatMap(
       (g) => g.features,
@@ -195,6 +195,7 @@ describe('GET /feature-flags/my-features membership check', () => {
   const controller = (member: boolean) =>
     new FeatureFlagsController(
       { getEnabledFeatures: () => Promise.resolve(new Set(['x'])) } as never,
+      {} as never,
       {
         canAccessOrganization: jest.fn(() => Promise.resolve(member)),
       } as never,

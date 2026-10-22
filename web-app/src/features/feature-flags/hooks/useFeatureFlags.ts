@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
+  bulkSetEntitlement,
   bulkToggleFeatures,
   fetchMyFeatures,
   fetchOrgFeatures,
   seedOrgFlags,
+  setEntitlement,
   toggleFeature,
-  type ModuleFeatureGroup,
+} from '../services/feature-flags.api'
+import type {
+  ModuleFeatureGroup,
+  OrgFeature,
 } from '../services/feature-flags.api'
 
 export const FEATURE_FLAGS_QUERY_KEY = 'featureFlags'
@@ -41,14 +46,20 @@ export function useToggleFeature(orgId: string) {
     // Optimistically flip the toggle
     onMutate: async ({ featureKey, isEnabled }) => {
       await queryClient.cancelQueries({ queryKey })
-      const previous =
-        queryClient.getQueryData<ModuleFeatureGroup[]>(queryKey)
+      const previous = queryClient.getQueryData<ModuleFeatureGroup[]>(queryKey)
 
       queryClient.setQueryData<ModuleFeatureGroup[]>(queryKey, (old) =>
         old?.map((group) => ({
           ...group,
           features: group.features.map((f) =>
-            f.key === featureKey ? { ...f, isEnabled } : f,
+            f.key === featureKey
+              ? {
+                  ...f,
+                  isEnabled,
+                  enabled: isEnabled,
+                  active: f.entitled && isEnabled,
+                }
+              : f,
           ),
         })),
       )
@@ -91,6 +102,88 @@ export function useBulkToggleFeatures(orgId: string) {
       toast.success(`Features ${isEnabled ? 'enabled' : 'disabled'}`)
     },
     onError: () => toast.error('Failed to update features'),
+  })
+}
+
+/** Patch one feature in the cached org list. */
+function patchFeature(
+  groups: ModuleFeatureGroup[] | undefined,
+  featureKey: string,
+  patch: (f: OrgFeature) => Partial<OrgFeature>,
+) {
+  return groups?.map((group) => ({
+    ...group,
+    features: group.features.map((f) =>
+      f.key === featureKey ? { ...f, ...patch(f) } : f,
+    ),
+  }))
+}
+
+/**
+ * Super admin: entitle (or withdraw) one feature, optionally as a trial
+ * until a date. Optimistic.
+ */
+export function useSetEntitlement(orgId: string) {
+  const queryClient = useQueryClient()
+  const queryKey = [FEATURE_FLAGS_QUERY_KEY, orgId]
+
+  return useMutation({
+    mutationFn: ({
+      featureKey,
+      entitled,
+      until,
+    }: {
+      featureKey: string
+      entitled: boolean
+      until?: string | null
+    }) => setEntitlement(orgId, featureKey, { entitled, until }),
+
+    onMutate: async ({ featureKey, entitled, until }) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<ModuleFeatureGroup[]>(queryKey)
+      queryClient.setQueryData<ModuleFeatureGroup[]>(queryKey, (old) =>
+        patchFeature(old, featureKey, (f) => ({
+          entitled,
+          entitledUntil: entitled ? (until ?? null) : null,
+          active: entitled && f.enabled,
+          lockedReason: entitled ? null : 'not_entitled',
+        })),
+      )
+      return { previous }
+    },
+
+    onError: (err: any, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKey, context.previous)
+      }
+      toast.error(
+        err?.response?.data?.message || 'Failed to update entitlement',
+      )
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey })
+    },
+  })
+}
+
+/** Super admin: entitle (or withdraw) every feature of a module. */
+export function useBulkSetEntitlement(orgId: string) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: {
+      module?: string
+      featureKeys?: string[]
+      entitled: boolean
+    }) => bulkSetEntitlement(orgId, payload),
+    onSuccess: (_data, { entitled }) => {
+      queryClient.invalidateQueries({
+        queryKey: [FEATURE_FLAGS_QUERY_KEY, orgId],
+      })
+      toast.success(entitled ? 'Features entitled' : 'Entitlement withdrawn')
+    },
+    onError: () => toast.error('Failed to update entitlements'),
   })
 }
 
