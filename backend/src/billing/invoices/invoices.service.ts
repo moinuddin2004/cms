@@ -5,7 +5,7 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { BillingAuditService } from '../audit/billing-audit.service';
 import { BillingClock, ClinicTime } from '../common/billing-clock.service';
-import { BillingContext } from '../common/billing-context';
+import { assertBillingCan, BillingContext } from '../common/billing-context';
 import { billingError } from '../common/billing-errors';
 import { BillingLocks } from '../common/billing-locks';
 import { BillingLookups } from '../common/billing-lookups';
@@ -41,7 +41,11 @@ import { InvoiceEditOperationInput } from './edit-operations/invoice-edit.types'
 import { InvoiceIssuer } from './invoice-issuer.service';
 import { CommissionService } from '../commissions/commission.service';
 import { CommissionSourceType } from '../commissions/commission.enums';
-import { InvoiceQueries, InvoiceStats } from './invoices.queries';
+import {
+  InvoiceQueries,
+  InvoiceStats,
+  InvoiceViewAccess,
+} from './invoices.queries';
 
 export interface EditOutcome {
   invoice: Invoice;
@@ -86,9 +90,16 @@ export class InvoicesService {
   async list(
     tenant: TenantContext,
     q: ListInvoicesQueryDto,
+    access: InvoiceViewAccess,
   ): Promise<PaginatedResponseDto<InvoiceResponse>> {
     const { today } = await this.clock.read(tenant.locationId);
-    return InvoiceQueries.list(this.dataSource.manager, tenant, q, today);
+    return InvoiceQueries.list(
+      this.dataSource.manager,
+      tenant,
+      q,
+      today,
+      access,
+    );
   }
 
   async stats(
@@ -202,6 +213,7 @@ export class InvoicesService {
     invoiceId: string,
     reason: string,
   ): Promise<InvoiceResponse> {
+    assertBillingCan(ctx.actor, 'billing.invoice.void');
     await this.dataSource.transaction(async (manager) => {
       const [invoice] = await BillingLocks.invoices(manager, ctx.tenant, [
         invoiceId,
@@ -275,6 +287,7 @@ export class InvoicesService {
     dto: EditInvoicePreviewDto,
     reason: string,
   ): Promise<EditOutcome> {
+    assertBillingCan(ctx.actor, 'billing.invoice.edit');
     const commands = this.handlers.parseAll(
       dto.operations as InvoiceEditOperationInput[],
     );

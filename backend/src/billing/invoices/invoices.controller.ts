@@ -10,11 +10,9 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { BILLING_FEATURE } from '../billing.constants';
 import { billingContext } from '../common/billing-context';
 import { ReasonDto } from '../dto/charge.dto';
 import {
@@ -30,8 +28,6 @@ import { InvoicesService } from './invoices.service';
 
 /** Invoices v2 (7.3). No status / total is ever accepted from the client (10.2). */
 @Controller('invoices')
-@RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class InvoicesController {
   constructor(
     private readonly invoices: InvoicesService,
@@ -39,17 +35,20 @@ export class InvoicesController {
   ) {}
 
   @Get()
+  @Can('billing.invoice.view')
   async list(
     @ActiveTenant() t: TenantContext,
+    @Access() a: AccessContext,
     @Query() q: ListInvoicesQueryDto,
   ) {
     return ResponseWrapper.success(
-      await this.invoices.list(t, q),
+      await this.invoices.list(t, q, a),
       'Invoices fetched',
     );
   }
 
   @Get('stats')
+  @Can('billing.invoice.view')
   async stats(@ActiveTenant() t: TenantContext, @Query() q: DateRangeQueryDto) {
     return ResponseWrapper.success(
       await this.invoices.stats(t, q.from, q.to),
@@ -58,6 +57,7 @@ export class InvoicesController {
   }
 
   @Get(':invoiceId')
+  @Can('billing.invoice.view')
   async detail(
     @ActiveTenant() t: TenantContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
@@ -69,6 +69,7 @@ export class InvoicesController {
   }
 
   @Get(':invoiceId/revisions/:revision')
+  @Can('billing.invoice.view')
   async revision(
     @ActiveTenant() t: TenantContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
@@ -81,9 +82,10 @@ export class InvoicesController {
   }
 
   @Post()
+  @Can('billing.desk.use')
   async create(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateInvoiceDto,
   ) {
     return ResponseWrapper.success(
@@ -93,9 +95,10 @@ export class InvoicesController {
   }
 
   @Post(':invoiceId/edit/preview')
+  @Can('billing.invoice.edit')
   async editPreview(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
     @Body() dto: EditInvoicePreviewDto,
   ) {
@@ -106,9 +109,10 @@ export class InvoicesController {
   }
 
   @Post(':invoiceId/edit')
+  @Can('billing.invoice.edit')
   async edit(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
     @Body() dto: EditInvoiceDto,
   ) {
@@ -119,9 +123,10 @@ export class InvoicesController {
   }
 
   @Post(':invoiceId/cancel')
+  @Can('billing.invoice.void')
   async cancel(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
     @Body() dto: ReasonDto,
   ) {
@@ -132,9 +137,10 @@ export class InvoicesController {
   }
 
   @Post(':invoiceId/refund')
+  @Can('billing.refund.issue')
   async refund(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('invoiceId', ParseUUIDPipe) id: string,
     @Body() dto: InvoiceRefundDto,
   ) {

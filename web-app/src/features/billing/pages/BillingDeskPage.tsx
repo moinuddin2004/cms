@@ -13,7 +13,7 @@ import {
   PageWrapper,
 } from '@/components/shared'
 import { formatDate } from '@/lib/formatters'
-import { useBillingAccess } from '../hooks/use-billing-access'
+import { Can, useAccess } from '@/features/access'
 import {
   useBillingSettings,
   useInvoiceList,
@@ -57,7 +57,7 @@ function PatientCell({
  * charges for a day) and "Outstanding" (overdue / unpaid invoices).
  */
 export function BillingDeskPage() {
-  const { isAdmin } = useBillingAccess()
+  const { can } = useAccess()
   const [date, setDate] = useState<string | undefined>()
   const [patient, setPatient] = useState<PatientRef | null>(null)
   const settings = useBillingSettings()
@@ -184,14 +184,16 @@ export function BillingDeskPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8"
-              onClick={() => setPatient(row.original.patient)}
-            >
-              Collect
-            </Button>
+            <Can perm="billing.payment.collect">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => setPatient(row.original.patient)}
+              >
+                Collect
+              </Button>
+            </Can>
           </div>
         ),
       },
@@ -223,7 +225,7 @@ export function BillingDeskPage() {
           <AlertTriangle className="size-3.5" />
           This location has no document code, so invoices and receipts cannot be
           numbered yet.
-          {isAdmin && (
+          {can('admin.settings.manage') && (
             <Link to="/settings/billing" className="font-semibold underline">
               Set it in billing settings
             </Link>

@@ -11,11 +11,9 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { BILLING_FEATURE, DISCOUNTS_FEATURE } from '../billing.constants';
 import { billingContext } from '../common/billing-context';
 import {
   ChargesFromPlanDto,
@@ -28,10 +26,9 @@ import {
 import { ApplyDiscountDto, BulkDiscountDto } from '../dto/discount.dto';
 import { ChargesService } from './charges.service';
 
-/** Unbilled charges (7.2). Doctors get 403 on every route (D17). */
+/** Unbilled charges (7.2) at the billing desk; discounts also need `billing.discount.apply`. */
 @Controller()
-@RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
+@Can('billing.desk.use')
 export class ChargesController {
   constructor(private readonly charges: ChargesService) {}
 
@@ -50,7 +47,7 @@ export class ChargesController {
   @Post('patients/:patientId/charges')
   async addManual(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Body() dto: CreateManualChargeDto,
   ) {
@@ -63,7 +60,7 @@ export class ChargesController {
   @Post('patients/:patientId/charges/from-treatment-plan/:planId')
   async fromPlan(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Param('planId', ParseUUIDPipe) planId: string,
     @Body() dto: ChargesFromPlanDto,
@@ -80,7 +77,7 @@ export class ChargesController {
   @Patch('charges/:chargeId')
   async update(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('chargeId', ParseUUIDPipe) chargeId: string,
     @Body() dto: UpdateChargeDto,
   ) {
@@ -91,10 +88,10 @@ export class ChargesController {
   }
 
   @Post('charges/discount/bulk')
-  @RequireFeature(DISCOUNTS_FEATURE)
+  @Can('billing.discount.apply')
   async bulkDiscount(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: BulkDiscountDto,
   ) {
     return ResponseWrapper.success(
@@ -104,10 +101,10 @@ export class ChargesController {
   }
 
   @Post('charges/:chargeId/discount')
-  @RequireFeature(DISCOUNTS_FEATURE)
+  @Can('billing.discount.apply')
   async setDiscount(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('chargeId', ParseUUIDPipe) chargeId: string,
     @Body() dto: ApplyDiscountDto,
   ) {
@@ -118,10 +115,10 @@ export class ChargesController {
   }
 
   @Delete('charges/:chargeId/discount')
-  @RequireFeature(DISCOUNTS_FEATURE)
+  @Can('billing.discount.apply')
   async removeDiscount(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('chargeId', ParseUUIDPipe) chargeId: string,
   ) {
     return ResponseWrapper.success(
@@ -133,7 +130,7 @@ export class ChargesController {
   @Post('charges/:chargeId/void')
   async void(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('chargeId', ParseUUIDPipe) chargeId: string,
     @Body() dto: ReasonDto,
   ) {

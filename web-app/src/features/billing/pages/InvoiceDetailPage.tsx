@@ -19,6 +19,7 @@ import {
   InitialsAvatar,
   LoadingSkeleton,
 } from '@/components/shared'
+import { useAccess } from '@/features/access'
 import { formatDate } from '@/lib/formatters'
 import { useBillingMutation } from '../hooks/use-billing-mutation'
 import { useInvoiceDetail } from '../hooks/use-billing-queries'
@@ -88,6 +89,7 @@ function InvoiceActions({
       success: 'Invoice cancelled',
     },
   )
+  const { can } = useAccess()
   const issued = invoice.status === 'ISSUED'
   const close = (o: boolean) => !o && setOpen(null)
 
@@ -105,17 +107,17 @@ function InvoiceActions({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <PrintButton documentType="invoice" id={invoice.id} />
-      {issued && (
+      {issued && can('billing.invoice.edit') && (
         <Button size="sm" variant="outline" onClick={() => setOpen('edit')}>
           <Pencil className="size-3.5" /> Edit
         </Button>
       )}
-      {invoice.refundableAmount > 0 && (
+      {invoice.refundableAmount > 0 && can('billing.refund.issue') && (
         <Button size="sm" variant="outline" onClick={() => openRefund()}>
           <Undo2 className="size-3.5" /> Refund
         </Button>
       )}
-      {issued && invoice.paidAmount === 0 && (
+      {issued && invoice.paidAmount === 0 && can('billing.invoice.void') && (
         <Button
           size="sm"
           variant="outline"
@@ -125,7 +127,7 @@ function InvoiceActions({
           <Ban className="size-3.5" /> Cancel
         </Button>
       )}
-      {issued && invoice.balanceDue > 0 && (
+      {issued && invoice.balanceDue > 0 && can('billing.payment.collect') && (
         <Button size="sm" onClick={() => setOpen('collect')}>
           <Receipt className="size-3.5" /> Collect payment
         </Button>
