@@ -22,6 +22,7 @@ import {
   isNavGroup as isGroup,
   resolveNav,
   useAccess,
+  useNavViewer,
 } from '@/features/access'
 import type { NavGroupView, NavLink } from '@/features/access'
 import apiClient from '@/lib/api'
@@ -39,7 +40,12 @@ type NavGroup = NavGroupView
  */
 let savedNavScroll = 0
 
-const SETTINGS: NavLeaf = { key: 'nav.settings', ...NAV_ITEMS['nav.settings'] }
+// Read on render, not at import: `@/features/access` → DashboardLayout →
+// Sidebar is an import cycle, so NAV_ITEMS may not exist yet at load time.
+const settingsLeaf = (): NavLeaf => ({
+  key: 'nav.settings',
+  ...NAV_ITEMS['nav.settings'],
+})
 
 const matches = (path: string, href: string) =>
   path === href || path.startsWith(href + '/')
@@ -76,8 +82,8 @@ function CollapsedTip({
 export function Sidebar() {
   const { sidebarCollapsed: collapsed, toggleSidebar } = useUIStore()
   const access = useAccess()
-  const authStore = useAuthStore()
-  const { user, clearAuth } = authStore
+  const viewer = useNavViewer()
+  const { user, clearAuth } = useAuthStore()
   const currentPath = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -88,19 +94,16 @@ export function Sidebar() {
     if (navRef.current) navRef.current.scrollTop = savedNavScroll
   }, [])
 
-  // Visible tree: hidden leaves dropped, empty groups and sections removed.
-  const sections = resolveNav(DEFAULT_NAV_LAYOUT, {
-    can: access.can,
-    isSuperAdmin: access.isSuperAdmin,
-    isOwner: access.isOwner,
-    isLabMember: authStore.labMemberships.length > 0,
-  })
+  // Visible tree from the clinic's layout (or the code default): unknown,
+  // hidden and not-permitted items dropped, then empty groups and sections.
+  const sections = resolveNav(access.nav ?? DEFAULT_NAV_LAYOUT, viewer)
 
   // Exactly one active link: the longest href that matches the path, so
   // /billing/activity lights "Billing activity" and not "Billing desk".
   const leaves = sections.flatMap((s) =>
     s.items.flatMap((e) => (isGroup(e) ? e.children : [e])),
   )
+  const SETTINGS = settingsLeaf()
   const activeHref = [...leaves, SETTINGS]
     .filter((l) => matches(currentPath, l.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href

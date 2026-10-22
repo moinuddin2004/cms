@@ -1,4 +1,5 @@
 import type { Permission } from '../generated/catalog'
+import type { NavLayout } from '../nav/nav.registry'
 
 /**
  * Permission key from the shared catalog (`../generated/catalog.ts`, written
@@ -27,8 +28,11 @@ export interface MeAccess {
   roles: { id: string; name: string; templateKey: string | null }[]
   employeeId: string | null
   homeRoute: string | null
-  /** Reserved for the server nav layout (later sprint). */
-  nav: null
+  /**
+   * The clinic's sidebar layout (`nav_layouts`), or null to use the code
+   * default. Arranges only — the sidebar still filters every item by `can`.
+   */
+  nav: NavLayout | null
 }
 
 /** Payload of the `access.changed` realtime event. */

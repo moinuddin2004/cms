@@ -41,7 +41,11 @@ export const isNavGroup = (e: NavEntryView): e is NavGroupView =>
 
 const isLayoutGroup = (
   i: NavLayoutItem | NavLayoutGroup,
-): i is NavLayoutGroup => 'group' in i
+): i is NavLayoutGroup => (i as { group?: unknown }).group === true
+
+/** Server layouts are data: tolerate missing arrays and junk entries. */
+const listOf = <T>(v: T[] | undefined | null): T[] =>
+  Array.isArray(v) ? v.filter((x) => x != null && typeof x === 'object') : []
 
 const registry: Record<string, NavItemDef | undefined> = NAV_ITEMS
 const icons: Record<string, ElementType | undefined> = NAV_ICONS
@@ -65,7 +69,7 @@ export function resolveNav(
   layout: NavLayout,
   viewer: NavViewer,
 ): NavSectionView[] {
-  const hidden = new Set(layout.hidden)
+  const hidden = new Set(Array.isArray(layout.hidden) ? layout.hidden : [])
   const placed = new Set<string>(FOOTER_NAV_KEYS)
 
   const link = (item: NavLayoutItem): NavLink | null => {
@@ -75,7 +79,7 @@ export function resolveNav(
     if (hidden.has(item.key) || !canSeeNavItem(def, viewer)) return null
     return {
       key: item.key,
-      label: item.label ?? def.label,
+      label: (typeof item.label === 'string' && item.label.trim()) || def.label,
       icon: def.icon,
       href: def.href,
     }
@@ -83,23 +87,27 @@ export function resolveNav(
   const group = (g: NavLayoutGroup): NavGroupView => ({
     label: g.label,
     icon: (g.icon ? icons[g.icon] : undefined) ?? Folder,
-    children: g.items.map(link).filter((l) => l !== null),
+    children: listOf(g.items)
+      .map(link)
+      .filter((l) => l !== null),
   })
 
-  const sections: NavSectionView[] = layout.sections.map((s) => {
+  const sections: NavSectionView[] = listOf(layout.sections).map((s) => {
     if (s.group) {
       // Whole section is one collapsible group (no section header).
       const g = group({
         label: s.label ?? '',
         group: true,
         icon: s.icon,
-        items: s.items.flatMap((i) => (isLayoutGroup(i) ? i.items : [i])),
+        items: listOf(s.items).flatMap((i) =>
+          isLayoutGroup(i) ? listOf(i.items) : [i],
+        ),
       })
       return { items: [g] }
     }
     return {
       label: s.label,
-      items: s.items
+      items: listOf(s.items)
         .map((i) => (isLayoutGroup(i) ? group(i) : link(i)))
         .filter((e) => e !== null),
     }

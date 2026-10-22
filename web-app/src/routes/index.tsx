@@ -1,8 +1,7 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { HomeRedirect } from '@/features/access'
 
+// No explicit destination: forward to the user's home page.
 export const Route = createFileRoute('/')({
-  beforeLoad: () => {
-    throw redirect({ to: '/dashboard' })
-  },
-  component: () => null,
+  component: HomeRedirect,
 })

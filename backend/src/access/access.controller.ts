@@ -23,6 +23,8 @@ import {
 import { BUNDLES } from './catalog/bundles';
 import { ROLE_TEMPLATES } from './catalog/templates';
 import { Can } from './decorators/access.decorators';
+import { NavLayoutsService } from './nav/nav-layouts.service';
+import type { NavLayoutJson } from './nav/nav-layout.types';
 
 /** `GET /me/access` — the contract the web app builds on (sprint S2). */
 export interface MeAccess {
@@ -38,11 +40,14 @@ export interface MeAccess {
   roles: { id: string; name: string; templateKey: string | null }[];
   employeeId: string | null;
   homeRoute: string | null;
-  /** Reserved for sprint N (sidebar layouts). */
-  nav: null;
+  /** The clinic's sidebar layout; null = the web app's code default. Never grants access. */
+  nav: NavLayoutJson | null;
 }
 
-export function toMeAccess(ctx: AccessContext): MeAccess {
+export function toMeAccess(
+  ctx: AccessContext,
+  nav: NavLayoutJson | null = null,
+): MeAccess {
   return {
     version: ctx.version,
     organizationId: ctx.organizationId,
@@ -54,7 +59,7 @@ export function toMeAccess(ctx: AccessContext): MeAccess {
     roles: ctx.roles.map((r) => ({ ...r })),
     employeeId: ctx.employeeId,
     homeRoute: ctx.homeRoute,
-    nav: null,
+    nav,
   };
 }
 
@@ -68,6 +73,7 @@ export class MeAccessController {
   constructor(
     private readonly resolver: AccessResolver,
     private readonly authorization: AuthorizationService,
+    private readonly navLayouts: NavLayoutsService,
   ) {}
 
   /**
@@ -104,8 +110,11 @@ export class MeAccessController {
       );
     }
 
-    const ctx = await this.resolver.resolve(userId, organizationId, locationId);
-    return ResponseWrapper.success(toMeAccess(ctx), 'Access resolved');
+    const [ctx, nav] = await Promise.all([
+      this.resolver.resolve(userId, organizationId, locationId),
+      this.navLayouts.clinicLayout(organizationId),
+    ]);
+    return ResponseWrapper.success(toMeAccess(ctx, nav), 'Access resolved');
   }
 }
 

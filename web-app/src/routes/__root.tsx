@@ -201,9 +201,10 @@ function RootComponent() {
       navigate({ to: LAB_PORTAL_PATH, replace: true })
     } else if (isAuthenticated && isLabPortal) {
       // The portal needs a lab membership, never a clinic location
-      if (!labMemberships.length) navigate({ to: '/dashboard', replace: true })
+      if (!labMemberships.length) navigate({ to: '/', replace: true })
     } else if (isAuthenticated && isPublicRoute && !isSelectLocationPage) {
-      navigate({ to: '/dashboard', replace: true })
+      // `/` forwards to the user's home page (HomeRedirect)
+      navigate({ to: '/', replace: true })
     } else if (
       isAuthenticated &&
       !isPublicRoute &&
@@ -226,7 +227,7 @@ function RootComponent() {
       !needsSelection
     ) {
       // Already has a location selected — skip selector
-      navigate({ to: '/dashboard', replace: true })
+      navigate({ to: '/', replace: true })
     }
   }, [
     isAuthenticated,

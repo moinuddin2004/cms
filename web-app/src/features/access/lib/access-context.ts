@@ -1,6 +1,7 @@
 import { createContext } from 'react'
 import { createAccessChecks } from './access'
 import type { AccessChecks } from './access'
+import type { NavLayout } from '../nav/nav.registry'
 
 /**
  * - `disabled`: not signed in / no active location — nothing fetched
@@ -14,6 +15,8 @@ export interface AccessContextValue extends AccessChecks {
   isOwner: boolean
   employeeId: string | null
   homeRoute: string | null
+  /** Clinic sidebar layout from the server; null = `DEFAULT_NAV_LAYOUT`. */
+  nav: NavLayout | null
   /** `/me/access` version the checks were built from (0 when none). */
   version: number
   isLoading: boolean
@@ -28,6 +31,7 @@ export const DISABLED_ACCESS: AccessContextValue = {
   isOwner: false,
   employeeId: null,
   homeRoute: null,
+  nav: null,
   version: 0,
   isLoading: false,
   isError: false,
