@@ -19,7 +19,6 @@ import { DataSource } from 'typeorm';
 import type { App } from 'supertest/types';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { FeatureFlagGuard } from 'src/feature-flags/guards/feature-flag.guard';
 import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
@@ -153,7 +152,6 @@ describe('Access core (API)', () => {
         { provide: APP_GUARD, useClass: HeaderAuthGuard },
         { provide: APP_GUARD, useClass: TenantContextGuard },
         { provide: APP_GUARD, useClass: FeatureFlagGuard },
-        { provide: APP_GUARD, useClass: RolesGuard },
         { provide: APP_GUARD, useClass: AccessGuard },
       ],
     })

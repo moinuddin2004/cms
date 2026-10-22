@@ -13,8 +13,7 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
+import { legacyRolesFromPermissions } from 'src/access/legacy-roles';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import type { AccessContext } from 'src/access/access-context';
 import {
@@ -82,11 +81,13 @@ export class QueueController {
    * hide actions the server would refuse. The server still enforces them.
    */
   @AnyMember()
-  @Roles(...ALL_APP_ROLES)
   @Get('me')
-  me(@CurrentActor() actor: Actor) {
+  me(@Access() access: AccessContext) {
     return ResponseWrapper.success(
-      { roles: actor.roles, employeeId: actor.employeeId },
+      {
+        roles: legacyRolesFromPermissions(access.permissions),
+        employeeId: access.employeeId,
+      },
       'Your queue roles',
     );
   }

@@ -14,7 +14,7 @@ export interface ClinicActor extends Actor {
 }
 
 /**
- * Legacy roles are derived from permissions the same way RolesGuard does
+ * Legacy roles are derived from permissions the same way the removed RolesGuard did
  * (`legacyRolesFromPermissions`); owners and super admins get every role.
  */
 export function clinicActorOf(access: AccessContext): ClinicActor {

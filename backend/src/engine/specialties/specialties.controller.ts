@@ -14,9 +14,8 @@ import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { AnyMember } from 'src/access/decorators/access.decorators';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import {
   CreateSpecialtyDto,
@@ -90,7 +89,7 @@ export class SpecialtiesController {
   constructor(private readonly specialties: SpecialtiesService) {}
 
   @Get()
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
   async enabled(@ActiveTenant() t: TenantContext) {
     return ResponseWrapper.success(
       await this.specialties.enabledFor(t.organizationId),

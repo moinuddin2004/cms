@@ -1,5 +1,6 @@
 /**
- * Clinic roles enforced on the server by `RolesGuard`.
+ * Legacy clinic roles. Access is enforced by `@Can` (AccessGuard); these
+ * names remain only for workflow transitions' `allowedRoles`.
  *
  * They are derived per (user, organization, location) — not stored on the
  * user — by `AuthorizationService.resolveActor()`:

@@ -29,7 +29,6 @@ import { InventoryModule } from './inventory/inventory.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { PlanTemplatesModule } from './plan-templates/plan-templates.module';
 import { AuthorizationService } from './auth/services/authorization.service';
-import { RolesGuard } from './auth/guards/roles.guard';
 import { ClockModule } from './common/clock/clock.module';
 import { ensurePostgresExtensions } from './common/database/ensure-extensions';
 import {
@@ -142,10 +141,6 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     {
       provide: APP_GUARD,
       useClass: FeatureFlagGuard, // Then: enforce @RequireFeature gating
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard, // Then: enforce @Roles (legacy clinic RBAC)
     },
     {
       provide: APP_GUARD,

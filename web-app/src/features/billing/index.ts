@@ -1,7 +1,6 @@
 // Billing feature barrel — import from here across features.
 export * from './types/billing.types'
 export { billingKeys } from './query-keys'
-export { useBillingAccess } from './hooks/use-billing-access'
 export {
   useOutstanding,
   usePlanBillingSummary,

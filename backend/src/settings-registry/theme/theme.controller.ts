@@ -15,8 +15,7 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { Public } from 'src/common/decorators/publicDecorator';
 import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { UpdateLocationThemeDto, UpdateThemeDto } from './theme.dto';
 import { ThemeService } from './theme.service';
@@ -46,6 +45,7 @@ export class ThemeController {
   }
 
   /** The resolved theme for the active tenant — any signed-in member. */
+  @AnyMember()
   @Get('theme')
   async current(@ActiveTenant() tenant: TenantContext) {
     return ResponseWrapper.success(
@@ -56,18 +56,16 @@ export class ThemeController {
     );
   }
 
-  // TODO(access): @Can('admin.theme.manage') — wave 3 replaces @Roles below.
   @Get('admin/theme')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.theme.manage')
   async orgTheme(@ActiveTenant() tenant: TenantContext) {
     return ResponseWrapper.success(
       await this.theme.orgView(tenant.organizationId),
     );
   }
 
-  // TODO(access): @Can('admin.theme.manage')
   @Put('admin/theme')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.theme.manage')
   async updateOrgTheme(
     @ActiveTenant() tenant: TenantContext,
     @Body() dto: UpdateThemeDto,
@@ -80,9 +78,8 @@ export class ThemeController {
     );
   }
 
-  // TODO(access): @Can('admin.theme.manage')
   @Get('admin/theme/location/:locationId')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.theme.manage')
   async locationTheme(
     @ActiveTenant() tenant: TenantContext,
     @Param('locationId', ParseUUIDPipe) locationId: string,
@@ -92,9 +89,8 @@ export class ThemeController {
     );
   }
 
-  // TODO(access): @Can('admin.theme.manage')
   @Put('admin/theme/location/:locationId')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.theme.manage')
   async updateLocationTheme(
     @ActiveTenant() tenant: TenantContext,
     @Param('locationId', ParseUUIDPipe) locationId: string,

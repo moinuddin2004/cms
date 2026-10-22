@@ -20,7 +20,6 @@ import { DataSource } from 'typeorm';
 import { AccessGuard } from 'src/access/access.guard';
 import { AccessModule } from 'src/access/access.module';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { AuditModule } from 'src/common/audit/audit.module';
 import { ClockModule } from 'src/common/clock/clock.module';
@@ -275,7 +274,6 @@ export async function createLabsFixture(
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
       { provide: APP_GUARD, useClass: AccessGuard },
     ],
   }).compile();

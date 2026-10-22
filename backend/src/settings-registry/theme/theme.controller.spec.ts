@@ -2,8 +2,7 @@ import { Reflector } from '@nestjs/core';
 import { PUBLIC_ROUTES } from 'src/auth/constants/public-routes';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/publicDecorator';
 import { REQUIRE_SUPER_ADMIN_KEY } from 'src/common/decorators/require-super-admin.decorator';
-import { REQUIRED_ROLES_KEY } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { CAN_KEY } from 'src/access/decorators/access.decorators';
 import { ThemeController } from './theme.controller';
 
 const reflector = new Reflector();
@@ -38,14 +37,14 @@ describe('ThemeController access', () => {
     expect(isPublicPath('GET', '/admin/theme')).toBe(false);
   });
 
-  it('clinic admin edits the org theme; super admin the platform one', () => {
+  it('admin.theme.manage edits the org theme; super admin the platform one', () => {
     for (const h of [
       'orgTheme',
       'updateOrgTheme',
       'locationTheme',
       'updateLocationTheme',
     ] as const) {
-      expect(meta(REQUIRED_ROLES_KEY, h)).toEqual([AppRole.CLINIC_ADMIN]);
+      expect(meta(CAN_KEY, h)).toEqual(['admin.theme.manage']);
     }
     expect(meta(REQUIRE_SUPER_ADMIN_KEY, 'platformTheme')).toBe(true);
     expect(meta(REQUIRE_SUPER_ADMIN_KEY, 'updatePlatformTheme')).toBe(true);

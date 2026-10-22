@@ -16,7 +16,6 @@ import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ClockService } from 'src/common/clock/clock.service';
 import { ClockModule } from 'src/common/clock/clock.module';
 import { AuditModule } from 'src/common/audit/audit.module';
@@ -390,7 +389,6 @@ export async function createBillingFixture(): Promise<BillingFixture> {
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
       { provide: APP_GUARD, useClass: AccessGuard },
     ],
   }).compile();

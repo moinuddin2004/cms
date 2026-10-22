@@ -15,7 +15,6 @@ import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
@@ -181,7 +180,7 @@ export class TenancyFixture {
 
 /**
  * Boots the organizations + locations controllers behind the real global
- * guard chain (TenantContextGuard → FeatureFlagGuard → RolesGuard) on an
+ * guard chain (TenantContextGuard → FeatureFlagGuard → AccessGuard) on an
  * isolated schema. Only the JWT check is swapped for a header, as in the
  * billing harness.
  */
@@ -225,7 +224,6 @@ export async function createTenancyFixture(): Promise<TenancyFixture> {
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
     ],
   })
     // Controller-level @UseGuards(JwtAuthGuard): identity comes from the header guard.

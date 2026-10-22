@@ -7,12 +7,8 @@ import type { QueueEntry, QueueLane, QueuePolicy } from '../types'
 import { formatClock } from '../utils/queueError'
 import { matchesQueueSearch } from '../utils/queueSearch'
 import { EntryBadges } from './EntryBadges'
-import { useFeatures } from '@/context/FeatureFlagsContext'
-import {
-  QueueBillingCell,
-  useBillingAccess,
-  useOutstanding,
-} from '@/features/billing'
+import { useAccess } from '@/features/access/hooks/useAccess'
+import { QueueBillingCell, useOutstanding } from '@/features/billing'
 import { QueueEntryActions } from './QueueEntryActions'
 import type { EntryActionHandlers } from './QueueEntryActions'
 
@@ -88,9 +84,8 @@ export function QueueEntriesTable({
   }, [lanes, q])
 
   // Billing (admin + reception only, D22): dues badge + "Bill" when done.
-  const { canBill } = useBillingAccess()
-  const { features } = useFeatures()
-  const showBilling = canBill && features.has('billing.invoices')
+  // `billing.desk.use` implies the billing.invoices feature.
+  const showBilling = useAccess().can('billing.desk.use')
   const patientIds = useMemo(
     () => [
       ...new Set(

@@ -32,7 +32,7 @@ export function requiredPermissionsOf(
 
 /**
  * AccessGuard — runs last (after JwtAuthGuard → TenantContextGuard →
- * FeatureFlagGuard → RolesGuard).
+ * FeatureFlagGuard).
  *
  * - `@Public()` → skip.
  * - `@Can(...)` → every permission (class + method, merged) must be held,

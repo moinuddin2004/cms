@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/store/useAuthStore'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -209,8 +210,11 @@ export function useSeedOrgFlags(orgId: string) {
  * Fetch the current user's enabled feature keys.
  */
 export function useMyFeatures(enabled = true) {
+  // Keyed by tenant: features differ per org and (location overrides) per location.
+  const orgId = useAuthStore((s) => s.activeOrganizationId)
+  const locationId = useAuthStore((s) => s.activeLocationId)
   return useQuery({
-    queryKey: [MY_FEATURES_QUERY_KEY],
+    queryKey: [MY_FEATURES_QUERY_KEY, orgId, locationId],
     queryFn: fetchMyFeatures,
     staleTime: 5 * 60 * 1000, // 5 min
     enabled,
