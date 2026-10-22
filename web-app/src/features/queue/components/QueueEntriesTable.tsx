@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTable } from '@/components/shared'
-import type { useQueueRole } from '../hooks/useQueueRole'
+import type { QueuePermissions } from '../hooks/useQueuePermissions'
 import { ENTRY_STATUS_LABELS } from '../types'
 import type { QueueEntry, QueueLane, QueuePolicy } from '../types'
 import { formatClock } from '../utils/queueError'
@@ -54,7 +54,7 @@ export function QueueEntriesTable({
   q: string
   now: Date
   policy: QueuePolicy
-  role: ReturnType<typeof useQueueRole>
+  role: QueuePermissions
   handlers: EntryActionHandlers
 }) {
   const rows = useMemo<Row[]>(() => {

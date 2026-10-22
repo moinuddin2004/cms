@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Can, useAccess } from '@/features/access'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +45,8 @@ export function AppointmentCard({
   compact = false,
 }: AppointmentCardProps) {
   const { openEditModal, openDetailModal } = useAppointmentStore()
+  const { can } = useAccess()
+  const canEdit = can('appointments.reschedule')
   const cancelMutation = useCancelAppointment()
   const noShowMutation = useNoShow()
   const confirmMutation = useConfirmAppointment()
@@ -56,11 +59,7 @@ export function AppointmentCard({
   const statusClass =
     STATUS_BG_COLORS[appointment.status] || STATUS_BG_COLORS.scheduled
 
-  const handleAction = async (
-    action: string,
-    mutation: any,
-    payload?: any,
-  ) => {
+  const handleAction = async (action: string, mutation: any, payload?: any) => {
     try {
       await mutation.mutateAsync(payload || appointment.id)
       toast.success(`Appointment ${action}`)
@@ -79,7 +78,9 @@ export function AppointmentCard({
       }`}
       style={style}
       onClick={() =>
-        isNotArrived ? openEditModal(appointment.id) : openDetailModal(appointment.id)
+        isNotArrived && canEdit
+          ? openEditModal(appointment.id)
+          : openDetailModal(appointment.id)
       }
     >
       <div className="flex items-start justify-between gap-1">
@@ -129,60 +130,70 @@ export function AppointmentCard({
             <MoreVertical className="w-3.5 h-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-44">
-            {!isNotArrived && (
+            {(!isNotArrived || !canEdit) && (
               <DropdownMenuItem onClick={() => openDetailModal(appointment.id)}>
                 View details
               </DropdownMenuItem>
             )}
             {isNotArrived && (
               <>
-                <DropdownMenuItem onClick={() => openEditModal(appointment.id)}>
-                  <Pencil className="w-3.5 h-3.5 mr-2" />
-                  Edit
-                </DropdownMenuItem>
+                <Can perm="appointments.reschedule">
+                  <DropdownMenuItem
+                    onClick={() => openEditModal(appointment.id)}
+                  >
+                    <Pencil className="w-3.5 h-3.5 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                </Can>
                 <DropdownMenuSeparator />
-                {appointment.status === AppointmentStatus.SCHEDULED && (
+                <Can perm="appointments.book">
+                  {appointment.status === AppointmentStatus.SCHEDULED && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAction('confirmed', confirmMutation)
+                      }}
+                    >
+                      <ThumbsUp className="w-3.5 h-3.5 mr-2" />
+                      Confirm
+                    </DropdownMenuItem>
+                  )}
+                </Can>
+                <Can perm="queue.checkin">
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation()
-                      handleAction('confirmed', confirmMutation)
+                      setCheckingIn(true)
                     }}
                   >
-                    <ThumbsUp className="w-3.5 h-3.5 mr-2" />
-                    Confirm
+                    <LogIn className="w-3.5 h-3.5 mr-2" />
+                    Check In
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setCheckingIn(true)
-                  }}
-                >
-                  <LogIn className="w-3.5 h-3.5 mr-2" />
-                  Check In
-                </DropdownMenuItem>
+                </Can>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAction('marked as no-show', noShowMutation)
-                  }}
-                >
-                  <UserX className="w-3.5 h-3.5 mr-2" />
-                  No Show
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAction('cancelled', cancelMutation, {
-                      id: appointment.id,
-                    })
-                  }}
-                >
-                  <XCircle className="w-3.5 h-3.5 mr-2" />
-                  Cancel
-                </DropdownMenuItem>
+                <Can perm="appointments.cancel">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAction('marked as no-show', noShowMutation)
+                    }}
+                  >
+                    <UserX className="w-3.5 h-3.5 mr-2" />
+                    No Show
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleAction('cancelled', cancelMutation, {
+                        id: appointment.id,
+                      })
+                    }}
+                  >
+                    <XCircle className="w-3.5 h-3.5 mr-2" />
+                    Cancel
+                  </DropdownMenuItem>
+                </Can>
               </>
             )}
           </DropdownMenuContent>

@@ -23,7 +23,7 @@ import { ErrorState, LoadingSkeleton } from '@/components/shared'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { cn } from '@/lib/utils'
 import { useMySession, useQueuePolicies } from '../hooks/useQueueData'
-import { useQueueRole } from '../hooks/useQueueRole'
+import { useQueuePermissions } from '../hooks/useQueuePermissions'
 import { useDoctors } from '@/features/appointments'
 import { useOpenConsultation } from '@/features/consultation/hooks/useConsultation'
 import {
@@ -63,13 +63,13 @@ import { CloseSessionDialog } from '../components/CloseSessionDialog'
  * doctor picks; audited with the engine's suggestion), and session controls.
  */
 export function DoctorQueuePage() {
-  const role = useQueueRole()
+  const role = useQueuePermissions()
   const navigate = useNavigate()
   const openConsultation = useOpenConsultation()
   const { data: doctors = [] } = useDoctors()
-  // Admins who aren't doctors themselves pick whose queue to run.
+  // `queue.doctor.any` without a doctor profile here: pick whose queue to run.
   const [pickedDoctor, setPickedDoctor] = useState('')
-  const needsPicker = role.isAdmin && !role.employeeId
+  const needsPicker = role.canRunAnyQueue && !role.employeeId
   const { data, isLoading, isError, error, refetch, live } = useMySession(
     needsPicker ? pickedDoctor || undefined : undefined,
     !needsPicker || !!pickedDoctor,
@@ -156,7 +156,7 @@ export function DoctorQueuePage() {
       <>
         <PageWrapper
           title="My queue"
-          subtitle="Run a doctor's queue as clinic admin"
+          subtitle="Choose which doctor's queue to run"
         />
         <div className="mt-5">{picker}</div>
       </>

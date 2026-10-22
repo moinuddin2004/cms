@@ -6,7 +6,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { Can } from '@/features/access'
 import type { Patient } from '@/features/patients'
 import { VisitsTab } from '@/features/patients/components/tabs/VisitsTab'
 import { TreatmentsTab } from '@/features/patients/components/tabs/TreatmentsTab'
@@ -65,16 +65,16 @@ export function RecordDrawer({
         >
           <TabsList className="h-auto w-full flex-wrap justify-start gap-0.5 p-0.5">
             <RecordTrigger value="history">History</RecordTrigger>
-            <FeatureGuard feature="patients.teeth_chart">
+            <Can perm="patients.chart.edit">
               <RecordTrigger value="teeth">Teeth chart</RecordTrigger>
-            </FeatureGuard>
+            </Can>
             <RecordTrigger value="vitals">Vitals & dental</RecordTrigger>
-            <FeatureGuard feature="patients.prescriptions">
+            <Can perm="prescriptions.create">
               <RecordTrigger value="rx">Prescriptions</RecordTrigger>
-            </FeatureGuard>
-            <FeatureGuard feature="patients.documents">
+            </Can>
+            <Can perm="patients.documents.manage">
               <RecordTrigger value="files">X-rays & files</RecordTrigger>
-            </FeatureGuard>
+            </Can>
             <RecordTrigger value="consents">Consents</RecordTrigger>
           </TabsList>
 
@@ -82,24 +82,24 @@ export function RecordDrawer({
             <VisitsTab patient={patient} hideAmounts />
             <TreatmentsTab patient={patient} hideAmounts />
           </TabsContent>
-          <FeatureGuard feature="patients.teeth_chart">
+          <Can perm="patients.chart.edit">
             <TabsContent value="teeth">
               <TeethChartTab patient={patient} />
             </TabsContent>
-          </FeatureGuard>
+          </Can>
           <TabsContent value="vitals">
             <VitalsAndDentalTab patient={patient} />
           </TabsContent>
-          <FeatureGuard feature="patients.prescriptions">
+          <Can perm="prescriptions.create">
             <TabsContent value="rx">
               <ClinicalTab patient={patient} />
             </TabsContent>
-          </FeatureGuard>
-          <FeatureGuard feature="patients.documents">
+          </Can>
+          <Can perm="patients.documents.manage">
             <TabsContent value="files">
               <FilesTab patient={patient} />
             </TabsContent>
-          </FeatureGuard>
+          </Can>
           <TabsContent value="consents">
             <ConsentsTab patient={patient} />
           </TabsContent>

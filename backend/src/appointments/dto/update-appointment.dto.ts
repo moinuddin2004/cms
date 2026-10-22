@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsBoolean,
 } from 'class-validator';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';
 
@@ -36,4 +37,9 @@ export class UpdateAppointmentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  /** Move outside working hours / past the daily limit (`appointments.override_rules`). */
+  @IsBoolean()
+  @IsOptional()
+  overrideRules?: boolean;
 }

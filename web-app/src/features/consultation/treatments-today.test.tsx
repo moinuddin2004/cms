@@ -75,7 +75,9 @@ describe('TreatmentsToday', () => {
   it('has no fee field and adds the picked service', () => {
     renderIt()
     expect(screen.queryByLabelText('Fee')).toBeNull()
-    expect(screen.getByRole('button', { name: 'Add' }).disabled).toBe(true)
+    expect(
+      screen.getByRole('button', { name: 'Add' }).hasAttribute('disabled'),
+    ).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Filling' }))
     fireEvent.change(screen.getByLabelText('Tooth number'), {

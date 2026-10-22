@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Can } from '@/features/access'
 import { type ColumnDef } from '@tanstack/react-table'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
@@ -394,59 +395,69 @@ export function AppointmentsList() {
                   )}
                   {isNotArrived && (
                     <>
-                      <DropdownMenuItem onClick={() => openEditModal(appt.id)}>
-                        <Pencil className="w-3.5 h-3.5 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
+                      <Can perm="appointments.reschedule">
+                        <DropdownMenuItem
+                          onClick={() => openEditModal(appt.id)}
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                      </Can>
                       <DropdownMenuSeparator />
-                      {appt.status === AppointmentStatus.SCHEDULED && (
+                      <Can perm="appointments.book">
+                        {appt.status === AppointmentStatus.SCHEDULED && (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              handle('confirmed', () =>
+                                confirmMutation.mutateAsync(appt.id),
+                              )
+                            }
+                          >
+                            <ThumbsUp className="w-3.5 h-3.5 mr-2" />
+                            Confirm
+                          </DropdownMenuItem>
+                        )}
+                      </Can>
+                      <Can perm="queue.checkin">
                         <DropdownMenuItem
                           onClick={() =>
-                            handle('confirmed', () =>
-                              confirmMutation.mutateAsync(appt.id),
+                            setCheckInTarget({
+                              id: appt.id,
+                              patientName: appt.patient?.fullName,
+                              doctorName: appt.doctor?.fullName,
+                              startTime: appt.startTime,
+                              isEmergency: appt.isEmergency,
+                            })
+                          }
+                        >
+                          <LogIn className="w-3.5 h-3.5 mr-2" />
+                          Check in
+                        </DropdownMenuItem>
+                      </Can>
+                      <DropdownMenuSeparator />
+                      <Can perm="appointments.cancel">
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handle('marked no-show', () =>
+                              noShowMutation.mutateAsync(appt.id),
                             )
                           }
                         >
-                          <ThumbsUp className="w-3.5 h-3.5 mr-2" />
-                          Confirm
+                          <UserX className="w-3.5 h-3.5 mr-2" />
+                          No show
                         </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem
-                        onClick={() =>
-                          setCheckInTarget({
-                            id: appt.id,
-                            patientName: appt.patient?.fullName,
-                            doctorName: appt.doctor?.fullName,
-                            startTime: appt.startTime,
-                            isEmergency: appt.isEmergency,
-                          })
-                        }
-                      >
-                        <LogIn className="w-3.5 h-3.5 mr-2" />
-                        Check in
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() =>
-                          handle('marked no-show', () =>
-                            noShowMutation.mutateAsync(appt.id),
-                          )
-                        }
-                      >
-                        <UserX className="w-3.5 h-3.5 mr-2" />
-                        No show
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() =>
-                          handle('cancelled', () =>
-                            cancelMutation.mutateAsync({ id: appt.id }),
-                          )
-                        }
-                      >
-                        <XCircle className="w-3.5 h-3.5 mr-2" />
-                        Cancel
-                      </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() =>
+                            handle('cancelled', () =>
+                              cancelMutation.mutateAsync({ id: appt.id }),
+                            )
+                          }
+                        >
+                          <XCircle className="w-3.5 h-3.5 mr-2" />
+                          Cancel
+                        </DropdownMenuItem>
+                      </Can>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -559,14 +570,16 @@ export function AppointmentsList() {
                 Clear filters
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openCreateModal()}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              New appointment
-            </Button>
+            <Can perm="appointments.book">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openCreateModal()}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New appointment
+              </Button>
+            </Can>
           </div>
         }
         onRowClick={(appt) =>

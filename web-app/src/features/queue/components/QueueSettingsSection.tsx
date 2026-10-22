@@ -20,7 +20,7 @@ import {
 import { FieldWrapper } from '@/components/shared'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQueueSettingsForm } from '../hooks/useQueueSettingsForm'
-import { useQueueRole } from '../hooks/useQueueRole'
+import { useQueuePermissions } from '../hooks/useQueuePermissions'
 import { fieldError } from '../utils/fieldError'
 
 type MinuteField =
@@ -56,12 +56,12 @@ const MINUTE_FIELDS: { name: MinuteField; label: string; hint: string }[] = [
  * Queue settings for the ACTIVE location (location override, or the
  * organization default). Changes apply from the next day's queues so
  * nobody's place moves mid-day; today's mode can be switched per doctor on
- * the queue board. Only clinic admins can save.
+ * the queue board. Saving needs `admin.settings.manage`.
  */
 export function QueueSettingsSection({ locationId }: { locationId: string }) {
   const activeLocationId = useAuthStore((s) => s.activeLocationId)
   const isActive = activeLocationId === locationId
-  const { isAdmin } = useQueueRole()
+  const { canManageSettings: canSave } = useQueuePermissions()
   const { form, data, isLoading, removeOverride } = useQueueSettingsForm()
 
   return (
@@ -100,7 +100,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
               void form.handleSubmit()
             }}
           >
-            <fieldset disabled={!isAdmin} className="space-y-6">
+            <fieldset disabled={!canSave} className="space-y-6">
               <form.Field name="smartQueueEnabled">
                 {(field) => (
                   <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
@@ -117,7 +117,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                       id="smart"
                       checked={field.state.value}
                       onCheckedChange={field.handleChange}
-                      disabled={!isAdmin}
+                      disabled={!canSave}
                     />
                   </div>
                 )}
@@ -155,7 +155,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                         onValueChange={(v) =>
                           field.handleChange(v as typeof field.state.value)
                         }
-                        disabled={!isAdmin}
+                        disabled={!canSave}
                       >
                         <SelectTrigger aria-label="Skipped patient rejoins">
                           <SelectValue />
@@ -226,7 +226,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                         id="reasonReq"
                         checked={field.state.value}
                         onCheckedChange={field.handleChange}
-                        disabled={!isAdmin}
+                        disabled={!canSave}
                       />
                     </div>
                   )}
@@ -234,9 +234,9 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
               </div>
             </fieldset>
 
-            {!isAdmin ? (
+            {!canSave ? (
               <p className="border-t border-border pt-4 text-sm text-muted-foreground">
-                Only clinic admins can change queue settings.
+                You can view these settings but not change them.
               </p>
             ) : (
               <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4">
