@@ -19,6 +19,7 @@ import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ClockService } from 'src/common/clock/clock.service';
 import { ClockModule } from 'src/common/clock/clock.module';
+import { AuditModule } from 'src/common/audit/audit.module';
 import { AccessContext } from 'src/access/access-context';
 import { AccessGuard } from 'src/access/access.guard';
 import { AccessModule } from 'src/access/access.module';
@@ -28,6 +29,7 @@ import {
   PermissionMap,
 } from 'src/access/catalog/permissions';
 import { ROLE_TEMPLATES } from 'src/access/catalog/templates';
+import { SettingsRegistryModule } from 'src/settings-registry/settings-registry.module';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
@@ -377,6 +379,9 @@ export async function createBillingFixture(): Promise<BillingFixture> {
       ClockModule,
       FeatureFlagsModule,
       AccessModule,
+      // PrintDataService reads print branding from the settings registry.
+      AuditModule,
+      SettingsRegistryModule,
       BillingModule,
       TreatmentsModule,
     ],
