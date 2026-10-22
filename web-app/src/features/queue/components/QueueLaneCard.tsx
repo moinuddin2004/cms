@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
-import type { useQueueRole } from '../hooks/useQueueRole'
+import type { QueuePermissions } from '../hooks/useQueuePermissions'
 import { ENTRY_STATUS_LABELS, SESSION_STATUS_LABELS } from '../types'
 import type { QueueEntry, QueueLane, QueuePolicy } from '../types'
 import { matchesQueueSearch } from '../utils/queueSearch'
@@ -47,7 +47,7 @@ export function QueueLaneCard({
   q: string
   now: Date
   policy: QueuePolicy
-  role: ReturnType<typeof useQueueRole>
+  role: QueuePermissions
   handlers: EntryActionHandlers
   onWalkIn: () => void
   onForceComplete: (entry: QueueEntry) => void
@@ -107,7 +107,7 @@ export function QueueLaneCard({
               ? ` · ${session.pauseReason}`
               : ''}
           </Badge>
-          {role.isAdmin && session && session.status !== 'closed' && (
+          {role.canReprioritize && session && session.status !== 'closed' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <TooltipButton
@@ -155,16 +155,17 @@ export function QueueLaneCard({
                 </p>
               </div>
               <div className="flex items-center gap-1">
-                {withDoctor.status === 'in_consultation' && role.isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7"
-                    onClick={() => onForceComplete(withDoctor)}
-                  >
-                    Force complete
-                  </Button>
-                )}
+                {withDoctor.status === 'in_consultation' &&
+                  role.canRunAnyQueue && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      onClick={() => onForceComplete(withDoctor)}
+                    >
+                      Force complete
+                    </Button>
+                  )}
                 <QueueEntryActions entry={withDoctor} {...actionProps} />
               </div>
             </div>
@@ -263,7 +264,7 @@ export function QueueLaneCard({
         )}
       </div>
 
-      {role.canReception && (
+      {role.canCheckIn && (
         <div className="border-t border-border p-2">
           <Button
             variant="ghost"

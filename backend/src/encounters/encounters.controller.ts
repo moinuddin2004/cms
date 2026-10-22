@@ -18,10 +18,15 @@ import { CreateEncounterTreatmentDto } from 'src/treatments/dto/create-encounter
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { UpdateEncounterNotesDto } from './dto/update-encounter-notes.dto';
 
+/**
+ * Consultation screen (`consultation.conduct`, scoped: a doctor with `own`
+ * reaches only encounters from their own queue) plus the patient record's
+ * encounter reads and treatment entry.
+ */
 @Controller('encounters')
 @UseInterceptors(HideTreatmentPricesInterceptor)
 export class EncountersController {
@@ -31,47 +36,55 @@ export class EncountersController {
   ) {}
 
   /** Back into a consultation from a queue entry (doctor screen, after a reload). */
+  @Can('consultation.conduct')
   @Get('by-queue-entry/:queueEntryId')
   async findByQueueEntry(
     @Param('queueEntryId', ParseUUIDPipe) queueEntryId: string,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
     const data = await this.encountersService.getWorkspaceByQueueEntry(
       queueEntryId,
       ctx,
+      access,
     );
     return ResponseWrapper.success(data, 'Consultation retrieved successfully');
   }
 
   /** The consultation screen's one-call load: encounter + queue entry + doctor. */
+  @Can('consultation.conduct')
   @Get(':id/workspace')
   async workspace(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
+    await this.encountersService.assertConductScope(id, ctx, access);
     const data = await this.encountersService.getWorkspace(id, ctx);
     return ResponseWrapper.success(data, 'Consultation retrieved successfully');
   }
 
   /** Auto-save of the doctor's visit notes. */
-  @Roles(AppRole.DOCTOR, AppRole.CLINIC_ADMIN)
+  @Can('consultation.conduct')
   @Patch(':id')
   async updateNotes(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEncounterNotesDto,
     @ActiveTenant() ctx: TenantContext,
-    @CurrentActor() actor: Actor,
+    @Access() access: AccessContext,
   ) {
+    await this.encountersService.assertConductScope(id, ctx, access);
     const data = await this.encountersService.updateNotes(
       id,
       ctx,
       dto,
-      actor.userId,
+      access.userId,
     );
     return ResponseWrapper.success(data, 'Notes saved');
   }
 
   /** Flow H — a single encounter with appointment, patient and treatments. */
+  @Can('patients.clinical.view')
   @Get(':id')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -82,6 +95,7 @@ export class EncountersController {
   }
 
   /** Flow E — add a treatment to this encounter (patient derived from the encounter). */
+  @Can('patients.clinical.edit')
   @Post(':encounterId/treatments')
   @HttpCode(HttpStatus.CREATED)
   async addTreatment(

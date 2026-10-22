@@ -25,7 +25,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQueueBoard } from '../hooks/useQueueData'
 import { useQueueAction } from '../hooks/useQueueAction'
-import { useQueueRole } from '../hooks/useQueueRole'
+import { useQueuePermissions } from '../hooks/useQueuePermissions'
 import {
   cancelEntry,
   entryAction,
@@ -46,11 +46,11 @@ import { WalkInSheet } from './WalkInSheet'
  * Reception board. Card view: one lane per doctor, waiting patients in the
  * order the engine would call them. List view: every patient in one table.
  * Live over WebSocket; falls back to polling while disconnected. Actions
- * follow the user's clinic role (the API enforces the same rules).
+ * follow the user's queue permissions (the API enforces the same rules).
  */
 export function QueueBoard() {
   const locationId = useAuthStore((s) => s.activeLocationId)
-  const role = useQueueRole()
+  const role = useQueuePermissions()
   const { data, isLoading, isError, refetch, isFetching, live } =
     useQueueBoard()
   const [view, setView] = useState<ViewMode>('card')
@@ -224,7 +224,7 @@ export function QueueBoard() {
               <MonitorPlay className="size-3.5" />
             </TooltipButton>
           )}
-          {role.canReception && (
+          {role.canCheckIn && (
             <Button size="sm" className="h-8" onClick={() => setWalkInFor('')}>
               <Plus className="size-3.5" /> Walk-in
             </Button>

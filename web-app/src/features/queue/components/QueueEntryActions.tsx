@@ -27,7 +27,7 @@ import {
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { entryAction, rejoinEntry } from '../services/queue.api'
 import { useQueueAction } from '../hooks/useQueueAction'
-import type { useQueueRole } from '../hooks/useQueueRole'
+import type { QueuePermissions } from '../hooks/useQueuePermissions'
 import type { QueueEntry, RejoinPolicy } from '../types'
 import { printQueueTicket } from '../utils/printTicket'
 
@@ -38,10 +38,10 @@ export interface EntryActionHandlers {
 }
 
 /**
- * Reception actions for one queue entry, by status and role:
+ * Reception actions for one queue entry, by status and permission:
  * called → "Didn't come"; at a test → "Back from test"; skipped → "Rejoin";
  * plus a menu (print ticket, transfer, urgent priority, remove). Buttons the
- * user's role can't use are hidden — the API enforces the same rules.
+ * user can't use are hidden — the API enforces the same rules.
  */
 export function QueueEntryActions({
   entry,
@@ -53,19 +53,19 @@ export function QueueEntryActions({
 }: {
   entry: QueueEntry
   doctorId: string
-  role: ReturnType<typeof useQueueRole>
+  role: QueuePermissions
   rejoinPolicy: RejoinPolicy
   waiting: QueueEntry[]
   handlers: EntryActionHandlers
 }) {
-  const canSkip = role.canReception || role.isDoctorOf(doctorId)
+  const canSkip = role.canManageEntries || role.isDoctorOf(doctorId)
   return (
     <div className="flex items-center justify-end gap-1">
       {entry.status === 'called' && canSkip && <SkipButton entry={entry} />}
-      {entry.status === 'on_hold' && role.canReception && (
+      {entry.status === 'on_hold' && role.canCheckIn && (
         <ReturnFromTestButton entry={entry} />
       )}
-      {entry.status === 'skipped' && role.canReception && (
+      {entry.status === 'skipped' && role.canManageEntries && (
         <RejoinButton entry={entry} policy={rejoinPolicy} waiting={waiting} />
       )}
       <EntryMenu
@@ -86,16 +86,18 @@ function EntryMenu({
 }: {
   entry: QueueEntry
   doctorId: string
-  role: ReturnType<typeof useQueueRole>
+  role: QueuePermissions
   handlers: EntryActionHandlers
 }) {
   const stillWaiting = ['waiting', 'skipped', 'on_hold'].includes(entry.status)
   const canTransfer =
-    (entry.status === 'waiting' && role.canReception) ||
+    (entry.status === 'waiting' && role.canManageEntries) ||
     (entry.status === 'in_consultation' && role.isDoctorOf(doctorId))
   const canUrgent =
-    role.isAdmin && stillWaiting && entry.priorityClass !== 'authorized_urgent'
-  const canRemove = role.canReception && stillWaiting
+    role.canReprioritize &&
+    stillWaiting &&
+    entry.priorityClass !== 'authorized_urgent'
+  const canRemove = role.canManageEntries && stillWaiting
 
   return (
     <DropdownMenu>

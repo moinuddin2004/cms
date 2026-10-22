@@ -1,7 +1,10 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { createHash } from 'crypto';
 import type { AppRequest } from 'src/common/types/app-request';
+import type { AccessContext } from 'src/access/access-context';
+import { noPermission } from 'src/access/decorators/access.decorators';
 import { QueueErrors } from '../queue.errors';
+import { QueueActor, queueActorFrom } from '../queue-actor';
 import type { IdempotencyInput } from '../services/queue-orchestrator.service';
 
 function firstHeader(v: string | string[] | undefined): string {
@@ -39,5 +42,20 @@ export const IfMatch = createParamDecorator(
     if (!raw) return undefined;
     const n = Number(raw.replace(/^W\//, '').replace(/"/g, ''));
     return Number.isInteger(n) ? n : undefined;
+  },
+);
+
+/**
+ * The request's AccessContext as a QueueActor (user, employee id and the
+ * queue permissions the orchestrator's rules need). AccessGuard puts the
+ * context on every request that names an organization.
+ */
+export const CurrentQueueActor = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): QueueActor => {
+    const access = ctx
+      .switchToHttp()
+      .getRequest<{ access?: AccessContext }>().access;
+    if (!access) throw noPermission([], 'No organization selected');
+    return queueActorFrom(access);
   },
 );
