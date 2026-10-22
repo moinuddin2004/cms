@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
-import { useBillingAccess } from '@/features/billing'
+import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import { InvoicesList } from '../components/InvoicesList'
 import { PaymentsList } from '../components/PaymentsList'
 import { SettingsSheet } from '../components/SettingsSheet'
 
 /** Patient billing for lab work (lab ERD §6a): invoices + estimates, payments. */
 export function LabBillingPage() {
-  const access = useBillingAccess()
+  const access = useLabBillingAccess()
   const [tab, setTab] = useState('invoices')
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -20,7 +20,7 @@ export function LabBillingPage() {
       title="Lab billing"
       subtitle="What patients are billed and pay for lab work — kept apart from clinic billing."
       actions={
-        access.isAdmin ? (
+        access.canEditSettings ? (
           <Button variant="outline" onClick={() => setSettingsOpen(true)}>
             <Settings className="size-4" /> Settings
           </Button>
@@ -31,8 +31,8 @@ export function LabBillingPage() {
         <LoadingSkeleton variant="table" />
       ) : !access.canBill ? (
         <ErrorState
-          title="Front desk only"
-          description="Lab billing is open to clinic admins and reception."
+          title="No access to lab billing"
+          description="Lab billing needs the “Manage lab billing” permission."
         />
       ) : (
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">

@@ -25,6 +25,7 @@ import { ListToolbar } from '@/components/shared/ListToolbar'
 import { useDoctors } from '@/features/appointments'
 import { formatPaisa, useClinicServices } from '@/features/lab-catalog'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAccess } from '@/features/access'
 import { LabOrderSheet } from '../components/LabOrderSheet'
 import {
   ORDER_STATUS_OPTIONS,
@@ -55,6 +56,7 @@ export function LabOrdersPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [creating, setCreating] = useState(false)
+  const canOrder = useAccess().can('lab.orders.create')
   const query = useDebounce(search, 300).trim()
 
   const params = {
@@ -181,11 +183,11 @@ export function LabOrdersPage() {
     [],
   )
 
-  const addButton = (
+  const addButton = canOrder ? (
     <Button onClick={() => setCreating(true)}>
       <Plus className="size-4" /> New lab order
     </Button>
-  )
+  ) : undefined
   const rows = data?.data ?? []
   const total = data?.total ?? 0
   const onPageSize = (size: number) => {

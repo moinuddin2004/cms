@@ -13,7 +13,7 @@ import {
   IdempotencyService,
   requestHash,
 } from 'src/common/idempotency/idempotency.service';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import type { Permission } from 'src/access/catalog/permissions';
 import { engineError } from '../common/engine-errors';
 import { TransitionEffect } from '../entities/workflow-effect.entity';
 import { WorkflowState } from '../entities/workflow-state.entity';
@@ -32,6 +32,16 @@ import type {
 } from './runtime.types';
 
 const IDEMPOTENCY_SCOPE = 'workflow.transition';
+
+/**
+ * Acting for a lab (proxy mode): the caller must run lab orders and manage
+ * the clinic's lab relationships (the "lab coordinator" capability).
+ */
+export const PROXY_PERMISSIONS: readonly Permission[] = [
+  'lab.orders.create',
+  'lab.links.manage',
+];
+
 const SYSTEM_ACTOR: TransitionActor = {
   userId: null,
   side: 'system',
@@ -310,9 +320,11 @@ export class WorkflowEngine {
   }
 
   /**
-   * Side + role check. A proxy update (clinic admin acting for a lab that
-   * isn't answering, lab ERD §7) is checked as the lab side, without lab
-   * roles, and recorded with `via = proxy` and the lab's id.
+   * Side + role check. A proxy update (clinic staff acting for a lab that
+   * isn't answering, lab ERD §7) needs PROXY_PERMISSIONS, is checked as the
+   * lab side without lab roles, and is recorded with `via = proxy` and the
+   * lab's id. Role matching against `allowedRoles` stays by role name: clinic
+   * roles are the legacy ones derived from permissions.
    */
   private authorize(
     req: TransitionRequest,
@@ -327,13 +339,13 @@ export class WorkflowEngine {
       const labId = req.onBehalfOfLabId ?? null;
       if (
         actor.side !== 'clinic' ||
-        !actor.roles.includes(AppRole.CLINIC_ADMIN) ||
+        !PROXY_PERMISSIONS.every((p) => actor.can?.(p) === true) ||
         !labId ||
         (subject.labId !== undefined && subject.labId !== labId)
       ) {
         throw engineError(
           'TRANSITION_FORBIDDEN',
-          'Only a clinic admin can update on behalf of this case’s lab',
+          'You cannot update on behalf of this case’s lab',
         );
       }
       side = 'lab';

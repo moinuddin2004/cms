@@ -3,15 +3,15 @@ import {
   ActorSide,
   TransitionVia,
 } from 'src/common/audit/audit.enums';
-import type { Actor } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import type { TransitionActor } from 'src/engine/runtime/runtime.types';
+import type { ClinicActor } from 'src/labs/common/clinic-actor';
 import type { LabActorContext } from 'src/labs/portal/lab-portal.constants';
 
 /** Everything a clinic-side order call needs to know about the caller. */
 export interface ClinicCall {
   tenant: TenantContext;
-  actor: Actor;
+  actor: ClinicActor;
   ref: ActorRef;
 }
 

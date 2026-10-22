@@ -21,9 +21,9 @@ import type { ViewMode } from '@/components/shared'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { ListToolbar } from '@/components/shared/ListToolbar'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { useBillingAccess } from '@/features/billing'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useLabBillingMutation, useLabPayments } from '../hooks/useLabBilling'
+import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import { labBillingApi, newIdempotencyKey } from '../services/lab-billing.api'
 import { METHOD_LABEL } from '../types'
 import type { LabPaymentMethod, LabPaymentRow } from '../types'
@@ -42,9 +42,9 @@ function PaymentStatus({ p }: { p: LabPaymentRow }) {
   return <StatusBadge status="posted" tone="success" label="Posted" />
 }
 
-/** Lab payments (receipts and reversals). Admins reverse a payment or refund advance. */
+/** Lab payments (receipts and reversals). `canRefund` reverses a payment or refunds advance. */
 export function PaymentsList() {
-  const { isAdmin } = useBillingAccess()
+  const { canRefund } = useLabBillingAccess()
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState(ALL)
@@ -99,7 +99,7 @@ export function PaymentsList() {
   }
 
   const actions = (p: LabPaymentRow) =>
-    isAdmin ? (
+    canRefund ? (
       <div className="flex justify-end gap-1">
         {p.advancePaisa > 0 && (
           <TooltipButton
@@ -187,7 +187,7 @@ export function PaymentsList() {
         cell: ({ row }) => actions(row.original),
       },
     ],
-    [isAdmin],
+    [canRefund],
   )
 
   const rows = data?.data ?? []

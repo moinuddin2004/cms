@@ -22,6 +22,14 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))
+// Orders + lab coordination granted; lab billing (its own suite) is not.
+vi.mock('@/features/access', () => ({
+  useAccess: () => ({
+    isLoading: false,
+    can: (p: string) => p !== 'lab.billing.manage',
+    canAll: (ps: string[]) => !ps.includes('lab.billing.manage'),
+  }),
+}))
 vi.mock('@/components/layout/DashboardLayout', () => ({
   DashboardLayout: ({
     title,
