@@ -77,7 +77,7 @@ export function LoginForm() {
           } else if (requiresOrgSelection || requiresLocationSelection) {
             navigate({ to: '/select-location' })
           } else {
-            navigate({ to: '/dashboard' })
+            navigate({ to: '/' }) // → the user's home page
           }
         }
       } catch (err: any) {

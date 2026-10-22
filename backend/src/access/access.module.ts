@@ -11,6 +11,7 @@ import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { AccessVersionModule } from './version/access-version.module';
+import { NavLayoutsModule } from './nav/nav-layouts.module';
 import { AccessResolver } from './access.resolver';
 import { AccessGuard } from './access.guard';
 import { AccessTemplatesService } from './templates/access-templates.service';
@@ -44,6 +45,7 @@ import { VisibleIfInterceptor } from './visible-if/visible-if';
     ]),
     AccessVersionModule,
     FeatureFlagsModule,
+    NavLayoutsModule,
   ],
   controllers: [MeAccessController, AccessCatalogController],
   providers: [

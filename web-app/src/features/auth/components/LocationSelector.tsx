@@ -70,7 +70,7 @@ export function LocationSelector() {
         toast.success('Location selected', {
           description: `You're now working in ${orgName}`,
         })
-        navigate({ to: '/dashboard' })
+        navigate({ to: '/' }) // → the user's home page
       }
     } catch (err: any) {
       toast.error('Failed to select location', {

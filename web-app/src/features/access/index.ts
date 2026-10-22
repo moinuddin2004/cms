@@ -7,10 +7,13 @@ export type { AccessContextValue, AccessStatus } from './lib/access-context'
 export { fetchMyAccess } from './services/access.api'
 export { accessKeys, useMyAccess } from './hooks/useMyAccess'
 export { useAccess } from './hooks/useAccess'
+export { useNavViewer } from './hooks/useNavViewer'
+export { useHomeRoute } from './hooks/useHomeRoute'
 export { AccessProvider } from './components/AccessProvider'
 export { Can, CanAll } from './components/Can'
 export { NoAccess } from './components/NoAccess'
 export { RouteAccessGate } from './components/RouteAccessGate'
+export { HomeRedirect } from './components/HomeRedirect'
 export {
   NAV_ITEMS,
   NAV_ICONS,
@@ -33,3 +36,8 @@ export {
   type NavSectionView,
   type NavViewer,
 } from './nav/resolveNav'
+export {
+  resolveHomeRoute,
+  DEFAULT_HOME_ROUTE,
+  type RouteRequirementsFn,
+} from './nav/homeRoute'

@@ -61,6 +61,7 @@ export function AccessProvider({
       isOwner: data?.isOwner ?? false,
       employeeId: data?.employeeId ?? null,
       homeRoute: data?.homeRoute ?? null,
+      nav: data?.nav ?? null,
       version: data?.version ?? 0,
       isLoading: isPending,
       isError,
