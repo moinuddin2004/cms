@@ -85,6 +85,7 @@ import { Route as AdminNavigationRouteImport } from './routes/admin.navigation'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
+import { Route as AdminRolesIndexRouteImport } from './routes/admin.roles.index'
 import { Route as StudioWorkflowsWorkflowIdRouteImport } from './routes/studio.workflows_.$workflowId'
 import { Route as StudioFormsFormIdRouteImport } from './routes/studio.forms_.$formId'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
@@ -94,6 +95,7 @@ import { Route as LabPortalOrdersOrderIdRouteImport } from './routes/lab-portal.
 import { Route as LabPayablesStatementsStatementIdRouteImport } from './routes/lab-payables_.statements_.$statementId'
 import { Route as LabPayablesBillsBillIdRouteImport } from './routes/lab-payables_.bills.$billId'
 import { Route as LabOrdersReceiveTokenRouteImport } from './routes/lab-orders_.receive.$token'
+import { Route as AdminRolesRoleIdRouteImport } from './routes/admin.roles.$roleId'
 
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
@@ -477,6 +479,11 @@ const EmployeesEmployeeIdIndexRoute =
     path: '/employees/$employeeId/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
+  id: '/admin/roles/',
+  path: '/admin/roles/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudioWorkflowsWorkflowIdRoute =
   StudioWorkflowsWorkflowIdRouteImport.update({
     id: '/studio/workflows_/$workflowId',
@@ -522,6 +529,11 @@ const LabPayablesBillsBillIdRoute = LabPayablesBillsBillIdRouteImport.update({
 const LabOrdersReceiveTokenRoute = LabOrdersReceiveTokenRouteImport.update({
   id: '/lab-orders_/receive/$token',
   path: '/lab-orders/receive/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRolesRoleIdRoute = AdminRolesRoleIdRouteImport.update({
+  id: '/admin/roles/$roleId',
+  path: '/admin/roles/$roleId',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -600,6 +612,7 @@ export interface FileRoutesByFullPath {
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/studio/': typeof StudioIndexRoute
+  '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
   '/lab-payables/statements/$statementId': typeof LabPayablesStatementsStatementIdRoute
@@ -609,6 +622,7 @@ export interface FileRoutesByFullPath {
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/studio/forms/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
+  '/admin/roles/': typeof AdminRolesIndexRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -687,6 +701,7 @@ export interface FileRoutesByTo {
   '/prescriptions': typeof PrescriptionsIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/studio': typeof StudioIndexRoute
+  '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables/bills/$billId': typeof LabPayablesBillsBillIdRoute
   '/lab-payables/statements/$statementId': typeof LabPayablesStatementsStatementIdRoute
@@ -696,6 +711,7 @@ export interface FileRoutesByTo {
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
   '/studio/forms/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
+  '/admin/roles': typeof AdminRolesIndexRoute
   '/employees/$employeeId': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
 }
@@ -775,6 +791,7 @@ export interface FileRoutesById {
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/studio/': typeof StudioIndexRoute
+  '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders_/receive/$token': typeof LabOrdersReceiveTokenRoute
   '/lab-payables_/bills/$billId': typeof LabPayablesBillsBillIdRoute
   '/lab-payables_/statements_/$statementId': typeof LabPayablesStatementsStatementIdRoute
@@ -784,6 +801,7 @@ export interface FileRoutesById {
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
   '/studio/forms_/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows_/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
+  '/admin/roles/': typeof AdminRolesIndexRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
 }
@@ -864,6 +882,7 @@ export interface FileRouteTypes {
     | '/prescriptions/'
     | '/reports/'
     | '/studio/'
+    | '/admin/roles/$roleId'
     | '/lab-orders/receive/$token'
     | '/lab-payables/bills/$billId'
     | '/lab-payables/statements/$statementId'
@@ -873,6 +892,7 @@ export interface FileRouteTypes {
     | '/organizations/$id/settings'
     | '/studio/forms/$formId'
     | '/studio/workflows/$workflowId'
+    | '/admin/roles/'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesByTo: FileRoutesByTo
@@ -951,6 +971,7 @@ export interface FileRouteTypes {
     | '/prescriptions'
     | '/reports'
     | '/studio'
+    | '/admin/roles/$roleId'
     | '/lab-orders/receive/$token'
     | '/lab-payables/bills/$billId'
     | '/lab-payables/statements/$statementId'
@@ -960,6 +981,7 @@ export interface FileRouteTypes {
     | '/organizations/$id/settings'
     | '/studio/forms/$formId'
     | '/studio/workflows/$workflowId'
+    | '/admin/roles'
     | '/employees/$employeeId'
     | '/patients/$patientId'
   id:
@@ -1038,6 +1060,7 @@ export interface FileRouteTypes {
     | '/prescriptions/'
     | '/reports/'
     | '/studio/'
+    | '/admin/roles/$roleId'
     | '/lab-orders_/receive/$token'
     | '/lab-payables_/bills/$billId'
     | '/lab-payables_/statements_/$statementId'
@@ -1047,6 +1070,7 @@ export interface FileRouteTypes {
     | '/organizations_/$id/settings'
     | '/studio/forms_/$formId'
     | '/studio/workflows_/$workflowId'
+    | '/admin/roles/'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
   fileRoutesById: FileRoutesById
@@ -1126,6 +1150,7 @@ export interface RootRouteChildren {
   PrescriptionsIndexRoute: typeof PrescriptionsIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
   StudioIndexRoute: typeof StudioIndexRoute
+  AdminRolesRoleIdRoute: typeof AdminRolesRoleIdRoute
   LabOrdersReceiveTokenRoute: typeof LabOrdersReceiveTokenRoute
   LabPayablesBillsBillIdRoute: typeof LabPayablesBillsBillIdRoute
   LabPayablesStatementsStatementIdRoute: typeof LabPayablesStatementsStatementIdRoute
@@ -1135,6 +1160,7 @@ export interface RootRouteChildren {
   OrganizationsIdSettingsRoute: typeof OrganizationsIdSettingsRoute
   StudioFormsFormIdRoute: typeof StudioFormsFormIdRoute
   StudioWorkflowsWorkflowIdRoute: typeof StudioWorkflowsWorkflowIdRoute
+  AdminRolesIndexRoute: typeof AdminRolesIndexRoute
   EmployeesEmployeeIdIndexRoute: typeof EmployeesEmployeeIdIndexRoute
   PatientsPatientIdIndexRoute: typeof PatientsPatientIdIndexRoute
 }
@@ -1673,6 +1699,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/roles/': {
+      id: '/admin/roles/'
+      path: '/admin/roles'
+      fullPath: '/admin/roles/'
+      preLoaderRoute: typeof AdminRolesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/studio/workflows_/$workflowId': {
       id: '/studio/workflows_/$workflowId'
       path: '/studio/workflows/$workflowId'
@@ -1734,6 +1767,13 @@ declare module '@tanstack/react-router' {
       path: '/lab-orders/receive/$token'
       fullPath: '/lab-orders/receive/$token'
       preLoaderRoute: typeof LabOrdersReceiveTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/roles/$roleId': {
+      id: '/admin/roles/$roleId'
+      path: '/admin/roles/$roleId'
+      fullPath: '/admin/roles/$roleId'
+      preLoaderRoute: typeof AdminRolesRoleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1814,6 +1854,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsIndexRoute: PrescriptionsIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
   StudioIndexRoute: StudioIndexRoute,
+  AdminRolesRoleIdRoute: AdminRolesRoleIdRoute,
   LabOrdersReceiveTokenRoute: LabOrdersReceiveTokenRoute,
   LabPayablesBillsBillIdRoute: LabPayablesBillsBillIdRoute,
   LabPayablesStatementsStatementIdRoute: LabPayablesStatementsStatementIdRoute,
@@ -1823,6 +1864,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrganizationsIdSettingsRoute: OrganizationsIdSettingsRoute,
   StudioFormsFormIdRoute: StudioFormsFormIdRoute,
   StudioWorkflowsWorkflowIdRoute: StudioWorkflowsWorkflowIdRoute,
+  AdminRolesIndexRoute: AdminRolesIndexRoute,
   EmployeesEmployeeIdIndexRoute: EmployeesEmployeeIdIndexRoute,
   PatientsPatientIdIndexRoute: PatientsPatientIdIndexRoute,
 }
