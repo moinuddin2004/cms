@@ -11,6 +11,7 @@ import { EmployeesService } from './employees.service';
 import { ScheduleService } from './schedule.service';
 import { EmploymentRolesController } from './employment-roles.controller';
 import { EmploymentRolesService } from './employment-roles.service';
+import { EmploymentRolesAdminController } from './employment-roles.admin.controller';
 import { EmployeeLeave } from './entities/employee-leave.entity';
 import { LeaveController } from './leave.controller';
 import { LeaveService } from './leave.service';
@@ -36,6 +37,7 @@ import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
     EmployeesController,
     ScheduleController,
     EmploymentRolesController,
+    EmploymentRolesAdminController,
     LeaveController,
     AvailabilityOverrideController,
   ],
