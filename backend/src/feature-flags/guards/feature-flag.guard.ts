@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { isUUID } from 'class-validator';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/publicDecorator';
 import { REQUIRE_FEATURE_KEY } from 'src/common/decorators/require-feature.decorator';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
@@ -18,7 +19,7 @@ import { FeatureFlagsService } from '../feature-flags.service';
  *    @RequireFeature are merged: every listed feature must be enabled.
  * 2. @Public() routes → skip (auth already handled upstream)
  * 3. Super admins → always allow
- * 4. Everyone else → feature must be enabled for their active org
+ * 4. Everyone else → feature must be active for their org and location
  */
 @Injectable()
 export class FeatureFlagGuard implements CanActivate {
@@ -62,13 +63,23 @@ export class FeatureFlagGuard implements CanActivate {
       );
     }
 
-    const enabled =
-      await this.featureFlagsService.getEnabledFeatures(organizationId);
+    // A location can only switch features off, so an unverified header is safe.
+    const rawLocation: unknown =
+      request.tenantContext?.locationId || request.headers['x-location-id'];
+    const locationId =
+      typeof rawLocation === 'string' && isUUID(rawLocation)
+        ? rawLocation
+        : null;
+
+    const enabled = await this.featureFlagsService.getEnabledFeatures(
+      organizationId,
+      locationId,
+    );
     const missing = requiredFeatures.find((f) => !enabled.has(f));
 
     if (missing) {
       throw new ForbiddenException(
-        `The "${missing}" feature is not enabled for this organization`,
+        `The "${missing}" feature is not enabled for this ${locationId ? 'location' : 'organization'}`,
       );
     }
 

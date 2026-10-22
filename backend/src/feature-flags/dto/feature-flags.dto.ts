@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -93,4 +94,48 @@ export class BulkToggleDto {
   @IsNotEmpty()
   @IsBoolean()
   isEnabled: boolean;
+}
+
+// ── Entitlement (super admin) ────────────────────────────────────────
+
+export class SetEntitlementDto {
+  @IsBoolean()
+  entitled: boolean;
+
+  /** Trial expiry (ISO date-time); null/omitted = no expiry. */
+  @IsOptional()
+  @IsDateString()
+  until?: string | null;
+}
+
+export class BulkEntitlementDto {
+  /** Either explicit keys or a whole catalog module. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  featureKeys?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  module?: string;
+
+  @IsBoolean()
+  entitled: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  until?: string | null;
+}
+
+// ── Owner Features page ──────────────────────────────────────────────
+
+export class SetFeatureEnabledDto {
+  @IsBoolean()
+  enabled: boolean;
+}
+
+export class SetLocationOverrideDto {
+  @IsBoolean()
+  disabled: boolean;
 }

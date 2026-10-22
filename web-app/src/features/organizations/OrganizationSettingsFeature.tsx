@@ -18,12 +18,6 @@ import { EmploymentRolesManager } from './EmploymentRolesManager'
 interface OrganizationSettings {
   id: string
   organizationId: string
-  featureAppointments: boolean
-  featureInventory: boolean
-  featureFinance: boolean
-  featureReminders: boolean
-  featureWhatsapp: boolean
-  featurePatientPortal: boolean
   allowLocationOverride: boolean
   defaultSlotDuration: number
   advanceBookingDays: number
@@ -100,64 +94,6 @@ export function OrganizationSettingsFeature({
               checked={!!formData.allowLocationOverride}
               onCheckedChange={(val) =>
                 handleChange('allowLocationOverride', val)
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Feature Flags</CardTitle>
-          <CardDescription>
-            Enable or disable specific modules for this organization.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-6">
-          <div className="flex items-center justify-between border rounded p-4">
-            <Label>Appointments</Label>
-            <Switch
-              checked={!!formData.featureAppointments}
-              onCheckedChange={(val) =>
-                handleChange('featureAppointments', val)
-              }
-            />
-          </div>
-          {/* Inventory feature toggle — hidden until feature is ready */}
-          {/* <div className="flex items-center justify-between border rounded p-4">
-            <Label>Inventory</Label>
-            <Switch
-              checked={!!formData.featureInventory}
-              onCheckedChange={(val) => handleChange('featureInventory', val)}
-            />
-          </div> */}
-          <div className="flex items-center justify-between border rounded p-4">
-            <Label>Finance</Label>
-            <Switch
-              checked={!!formData.featureFinance}
-              onCheckedChange={(val) => handleChange('featureFinance', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between border rounded p-4">
-            <Label>Reminders</Label>
-            <Switch
-              checked={!!formData.featureReminders}
-              onCheckedChange={(val) => handleChange('featureReminders', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between border rounded p-4">
-            <Label>WhatsApp Integration</Label>
-            <Switch
-              checked={!!formData.featureWhatsapp}
-              onCheckedChange={(val) => handleChange('featureWhatsapp', val)}
-            />
-          </div>
-          <div className="flex items-center justify-between border rounded p-4">
-            <Label>Patient Portal</Label>
-            <Switch
-              checked={!!formData.featurePatientPortal}
-              onCheckedChange={(val) =>
-                handleChange('featurePatientPortal', val)
               }
             />
           </div>

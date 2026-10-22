@@ -34,7 +34,8 @@ export const isUuid = (v: unknown): v is string =>
  * - super admin / owner → every catalog permission at its widest scope
  * - employee → the employment role on their active, portal-enabled
  *   assignment at that location (inactive role / no assignment → nothing)
- * - then every permission whose feature is off for the org is dropped
+ * - then every permission whose feature is off for the org (or for that
+ *   location) is dropped
  *
  * Cached per (user, org, location, access_version); any access change bumps
  * the version, so a stale entry is simply never hit again.
@@ -109,7 +110,8 @@ export class AccessResolver {
             relations: { employmentRole: true },
           })
         : Promise.resolve(null),
-      this.featureFlags.getEnabledFeatures(organizationId),
+      // The location narrows the org set (owner switched features off there).
+      this.featureFlags.getEnabledFeatures(organizationId, locationId),
     ]);
 
     const isSuperAdmin = user?.globalRole === GlobalRole.SUPER_ADMIN;

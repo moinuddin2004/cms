@@ -8,7 +8,17 @@ export interface OrgFeature {
   specialtyTags: string[]
   enabledByDefault: boolean
   sortOrder: number
+  /** Same as `enabled` (older field). */
   isEnabled: boolean
+  /** Super admin's entitlement (false once a trial has expired). */
+  entitled: boolean
+  /** The clinic owner's switch. */
+  enabled: boolean
+  /** entitled AND enabled. */
+  active: boolean
+  /** Trial expiry (ISO) or null. */
+  entitledUntil: string | null
+  lockedReason: 'not_entitled' | 'trial_expired' | null
 }
 
 export interface ModuleFeatureGroup {
@@ -42,6 +52,34 @@ export async function bulkToggleFeatures(
   payload: { featureKeys: string[]; isEnabled: boolean },
 ): Promise<any> {
   const { data } = await api.post(`/feature-flags/org/${orgId}/bulk`, payload)
+  return data.data
+}
+
+export async function setEntitlement(
+  orgId: string,
+  featureKey: string,
+  payload: { entitled: boolean; until?: string | null },
+): Promise<any> {
+  const { data } = await api.patch(
+    `/feature-flags/org/${orgId}/${encodeURIComponent(featureKey)}/entitlement`,
+    payload,
+  )
+  return data.data
+}
+
+export async function bulkSetEntitlement(
+  orgId: string,
+  payload: {
+    featureKeys?: string[]
+    module?: string
+    entitled: boolean
+    until?: string | null
+  },
+): Promise<{ updated: number }> {
+  const { data } = await api.post(
+    `/feature-flags/org/${orgId}/entitlement/bulk`,
+    payload,
+  )
   return data.data
 }
 
