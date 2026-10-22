@@ -14,6 +14,12 @@ import {
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { CurrentUserId } from 'src/common/decorators/current-user.decorator';
+import {
+  Access,
+  AnyMember,
+  Can,
+} from 'src/access/decorators/access.decorators';
+import type { AccessContext } from 'src/access/access-context';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PlanTemplatesService } from './plan-templates.service';
@@ -23,25 +29,35 @@ import {
 } from './dto/plan-template.dto';
 
 /** Predefined treatment plans (Root Canal, Implant …) a doctor picks for a patient. */
+// Reads are @AnyMember, so the feature check stays at class level.
 @RequireFeature('patients.treatment_plans')
 @Controller('plan-templates')
 export class PlanTemplatesController {
   constructor(private readonly service: PlanTemplatesService) {}
 
   @Get()
+  @AnyMember()
   async findAll(
     @Query('includeInactive') includeInactive: string | undefined,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
     const data = await this.service.findAll(
       ctx.organizationId,
       includeInactive === 'true',
     );
+    // Item fees live in jsonb (plain objects), out of @VisibleIf's reach.
+    if (!access.can('patients.price.view')) {
+      for (const t of data)
+        for (const item of t.items ?? [])
+          delete (item as Partial<typeof item>).estimatedCost;
+    }
     return ResponseWrapper.success(data);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('plans.templates.manage')
   async create(
     @Body() dto: CreatePlanTemplateDto,
     @ActiveTenant() ctx: TenantContext,
@@ -52,6 +68,7 @@ export class PlanTemplatesController {
   }
 
   @Patch(':id')
+  @Can('plans.templates.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePlanTemplateDto,
@@ -62,6 +79,7 @@ export class PlanTemplatesController {
   }
 
   @Delete(':id')
+  @Can('plans.templates.manage')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

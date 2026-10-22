@@ -10,6 +10,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import { VisibleIf } from 'src/access/visible-if/visible-if';
 import { Patient } from './patient.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -60,17 +61,43 @@ export class PatientTreatmentPlan {
   description: string | null;
 
   // ─── Financials ─────────────────────────────────────────
-  @Column({ name: 'estimated_cost', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  @VisibleIf('patients.price.view')
+  @Column({
+    name: 'estimated_cost',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
   estimatedCost: number | null;
 
-  @Column({ name: 'discount_amount', type: 'decimal', precision: 12, scale: 2, default: 0 })
+  @VisibleIf('patients.price.view')
+  @Column({
+    name: 'discount_amount',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+  })
   discountAmount: number;
 
-  @Column({ name: 'final_estimated_cost', type: 'decimal', precision: 12, scale: 2, nullable: true })
+  @VisibleIf('patients.price.view')
+  @Column({
+    name: 'final_estimated_cost',
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
   finalEstimatedCost: number | null;
 
   // ─── Status & Timeline ──────────────────────────────────
-  @Column({ name: 'status', type: 'enum', enum: TreatmentPlanStatus, default: TreatmentPlanStatus.DRAFT })
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: TreatmentPlanStatus,
+    default: TreatmentPlanStatus.DRAFT,
+  })
   status: TreatmentPlanStatus;
 
   @Column({ name: 'start_date', type: 'date', nullable: true })

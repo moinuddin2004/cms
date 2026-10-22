@@ -20,10 +20,18 @@ import { TokensDto } from '../auth/dto/response/token.dto';
 import { UserDto } from './dto/user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ContextFree } from 'src/common/decorators/context-free.decorator';
 
+/**
+ * Authenticated-only (JWT), no tenant needed — like `GET /me/access`.
+ * `GET /user/me` is the caller's own profile. User management is for super
+ * admins (no org needed) and owners of `x-organization-id`; UserService
+ * enforces both, since `@Can` would refuse a super admin without an org.
+ */
+@ContextFree()
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')

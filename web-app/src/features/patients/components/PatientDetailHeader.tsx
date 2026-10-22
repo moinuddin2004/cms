@@ -1,9 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import {
-  OutstandingBadge,
-  useBillingAccess,
-  useOutstanding,
-} from '@/features/billing'
+import { OutstandingBadge, useOutstanding } from '@/features/billing'
+import { useAccess } from '@/features/access'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'
@@ -94,9 +91,9 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
   )
 }
 
-/** Dues / advance badge for admin + reception when the location shows it (D22). */
+/** Dues / advance badge for whoever may see invoices, when the location shows it (D22). */
 function PatientDuesBadge({ patientId }: { patientId: string }) {
-  const { canBill } = useBillingAccess()
+  const canBill = useAccess().can('billing.invoice.view')
   const dues = useOutstanding(canBill ? [patientId] : [])
   if (!canBill) return null
   return (

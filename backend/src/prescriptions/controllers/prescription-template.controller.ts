@@ -19,18 +19,19 @@ import {
 } from '../dto/prescription-template.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+// Reads are @AnyMember, so the feature check stays at class level.
 @RequireFeature('patients.prescriptions')
 @Controller('prescription-templates')
 export class PrescriptionTemplateController {
-  constructor(
-    private readonly service: PrescriptionTemplateService,
-  ) {}
+  constructor(private readonly service: PrescriptionTemplateService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('prescriptions.library.manage')
   async create(
     @Body() dto: CreatePrescriptionTemplateDto,
     @ActiveTenant() ctx: TenantContext,
@@ -45,6 +46,7 @@ export class PrescriptionTemplateController {
   }
 
   @Get()
+  @AnyMember()
   async findAll(
     @Query('locationId') locationId: string | undefined,
     @ActiveTenant() ctx: TenantContext,
@@ -54,6 +56,7 @@ export class PrescriptionTemplateController {
   }
 
   @Get('default')
+  @AnyMember()
   async getDefault(
     @Query('locationId') locationId: string,
     @ActiveTenant() ctx: TenantContext,
@@ -67,6 +70,7 @@ export class PrescriptionTemplateController {
   }
 
   @Get(':id')
+  @AnyMember()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -76,6 +80,7 @@ export class PrescriptionTemplateController {
   }
 
   @Patch(':id')
+  @Can('prescriptions.library.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePrescriptionTemplateDto,
@@ -86,6 +91,7 @@ export class PrescriptionTemplateController {
   }
 
   @Delete(':id')
+  @Can('prescriptions.library.manage')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

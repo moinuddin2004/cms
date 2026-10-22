@@ -17,18 +17,17 @@ import {
 } from '../dto/patient-consumption.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
+import { Can } from 'src/access/decorators/access.decorators';
+import { PatientInScope } from 'src/patients/access/patient-scope';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('patient-consumptions')
-@RequireFeature('inventory.core')
 export class PatientConsumptionController {
-  constructor(
-    private readonly consumptionService: PatientConsumptionService,
-  ) {}
+  constructor(private readonly consumptionService: PatientConsumptionService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.stock.adjust')
   async recordConsumption(
     @Body() dto: RecordConsumptionDto,
     @ActiveTenant() ctx: TenantContext,
@@ -44,6 +43,7 @@ export class PatientConsumptionController {
   }
 
   @Get('report')
+  @Can('inventory.view')
   async getConsumptionReport(
     @Query() query: ConsumptionReportQueryDto,
     @ActiveTenant() ctx: TenantContext,
@@ -58,6 +58,7 @@ export class PatientConsumptionController {
   }
 
   @Get('appointment/:appointmentId')
+  @Can('inventory.view')
   async getByAppointment(
     @Param('appointmentId', ParseUUIDPipe) appointmentId: string,
     @ActiveTenant() ctx: TenantContext,
@@ -70,6 +71,8 @@ export class PatientConsumptionController {
   }
 
   @Get('patient/:patientId')
+  @Can('inventory.view')
+  @PatientInScope('patientId')
   async getByPatient(
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Query('page') page: string,

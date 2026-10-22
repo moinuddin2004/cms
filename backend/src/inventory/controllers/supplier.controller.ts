@@ -14,16 +14,16 @@ import { SupplierService } from '../services/supplier.service';
 import { CreateSupplierDto, UpdateSupplierDto } from '../dto/supplier.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
+import { Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('suppliers')
-@RequireFeature('inventory.core')
 export class SupplierController {
   constructor(private readonly supplierService: SupplierService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.po.manage')
   async create(
     @Body() dto: CreateSupplierDto,
     @ActiveTenant() ctx: TenantContext,
@@ -33,12 +33,14 @@ export class SupplierController {
   }
 
   @Get()
+  @Can('inventory.view')
   async findAll(@ActiveTenant() ctx: TenantContext) {
     const data = await this.supplierService.findAll(ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Get(':id')
+  @Can('inventory.view')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -48,6 +50,7 @@ export class SupplierController {
   }
 
   @Patch(':id')
+  @Can('inventory.po.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSupplierDto,
@@ -58,6 +61,7 @@ export class SupplierController {
   }
 
   @Delete(':id')
+  @Can('inventory.po.manage')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

@@ -21,16 +21,16 @@ import {
 } from '../dto/purchase-order.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
+import { Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('purchase-orders')
-@RequireFeature('inventory.core')
 export class PurchaseOrderController {
   constructor(private readonly poService: PurchaseOrderService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.po.manage')
   async create(
     @Body() dto: CreatePurchaseOrderDto,
     @ActiveTenant() ctx: TenantContext,
@@ -46,6 +46,7 @@ export class PurchaseOrderController {
   }
 
   @Get()
+  @Can('inventory.view')
   async findAll(
     @Query() query: PurchaseOrderFilterDto,
     @ActiveTenant() ctx: TenantContext,
@@ -59,6 +60,7 @@ export class PurchaseOrderController {
   }
 
   @Get(':id')
+  @Can('inventory.view')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -68,6 +70,7 @@ export class PurchaseOrderController {
   }
 
   @Patch(':id/status')
+  @Can('inventory.po.manage')
   async updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePurchaseOrderStatusDto,
@@ -82,6 +85,7 @@ export class PurchaseOrderController {
   }
 
   @Post(':id/receive')
+  @Can('inventory.po.manage')
   async receiveItems(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: BulkReceiveDto,
@@ -99,6 +103,7 @@ export class PurchaseOrderController {
   }
 
   @Delete(':id')
+  @Can('inventory.po.manage')
   async cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

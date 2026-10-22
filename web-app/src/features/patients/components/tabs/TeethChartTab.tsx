@@ -25,6 +25,7 @@ import {
   useCreateTeethChart,
 } from '../../hooks/usePatientSubEntities'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAccess } from '@/features/access'
 import type { Patient, PatientTeethChart } from '../../types'
 
 // FDI two-digit notation, arranged left→right as seen facing the patient.
@@ -35,41 +36,39 @@ const TEETH_LOWER = [
   48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
 ]
 
-const CONDITIONS: Record<
-  string,
-  { label: string; dot: string; chip: string }
-> = {
-  HEALTHY: {
-    label: 'Healthy',
-    dot: 'bg-green-500',
-    chip: 'bg-green-100 text-green-700 border-green-300',
-  },
-  CARIES: {
-    label: 'Caries',
-    dot: 'bg-red-500',
-    chip: 'bg-red-100 text-red-700 border-red-300',
-  },
-  FILLED: {
-    label: 'Filled',
-    dot: 'bg-blue-500',
-    chip: 'bg-blue-100 text-blue-700 border-blue-300',
-  },
-  CROWN: {
-    label: 'Crown',
-    dot: 'bg-purple-500',
-    chip: 'bg-purple-100 text-purple-700 border-purple-300',
-  },
-  EXTRACTION_NEEDED: {
-    label: 'Extraction',
-    dot: 'bg-orange-500',
-    chip: 'bg-orange-100 text-orange-700 border-orange-300',
-  },
-  MISSING: {
-    label: 'Missing',
-    dot: 'bg-muted-foreground',
-    chip: 'bg-muted text-muted-foreground border-border',
-  },
-}
+const CONDITIONS: Record<string, { label: string; dot: string; chip: string }> =
+  {
+    HEALTHY: {
+      label: 'Healthy',
+      dot: 'bg-green-500',
+      chip: 'bg-green-100 text-green-700 border-green-300',
+    },
+    CARIES: {
+      label: 'Caries',
+      dot: 'bg-red-500',
+      chip: 'bg-red-100 text-red-700 border-red-300',
+    },
+    FILLED: {
+      label: 'Filled',
+      dot: 'bg-blue-500',
+      chip: 'bg-blue-100 text-blue-700 border-blue-300',
+    },
+    CROWN: {
+      label: 'Crown',
+      dot: 'bg-purple-500',
+      chip: 'bg-purple-100 text-purple-700 border-purple-300',
+    },
+    EXTRACTION_NEEDED: {
+      label: 'Extraction',
+      dot: 'bg-orange-500',
+      chip: 'bg-orange-100 text-orange-700 border-orange-300',
+    },
+    MISSING: {
+      label: 'Missing',
+      dot: 'bg-muted-foreground',
+      chip: 'bg-muted text-muted-foreground border-border',
+    },
+  }
 
 const CONDITION_KEYS = Object.keys(CONDITIONS)
 
@@ -110,13 +109,23 @@ function ToothShape({
   fill: string
   stroke: string
 }) {
-  const root = (cx: number, halfW: number, baseY: number, tipX: number, tipY: number) =>
+  const root = (
+    cx: number,
+    halfW: number,
+    baseY: number,
+    tipX: number,
+    tipY: number,
+  ) =>
     `M ${cx - halfW},${baseY} Q ${cx - halfW * 0.5},${(baseY + tipY) / 2} ${tipX},${tipY} Q ${cx + halfW * 0.5},${(baseY + tipY) / 2} ${cx + halfW},${baseY} Z`
 
   let roots: string[] = []
   let crown = ''
   if (kind === 'molar') {
-    roots = [root(13, 4, 30, 9, 4), root(20, 4, 30, 20, 3), root(27, 4, 30, 31, 4)]
+    roots = [
+      root(13, 4, 30, 9, 4),
+      root(20, 4, 30, 20, 3),
+      root(27, 4, 30, 31, 4),
+    ]
     crown = 'M5,30 Q4,54 9,57 Q14,61 20,57 Q26,61 31,57 Q36,54 35,30 Z'
   } else if (kind === 'premolar') {
     roots = [root(15, 4, 30, 13, 5), root(25, 4, 30, 27, 5)]
@@ -170,6 +179,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
   const { data: charts = [], isLoading } = useTeethCharts(patient.id)
   const [isAdding, setIsAdding] = useState(false)
   const [viewing, setViewing] = useState<PatientTeethChart | null>(null)
+  const canEdit = useAccess().can('patients.chart.edit')
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-4 animate-in fade-in duration-300">
@@ -184,7 +194,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
               Medico-legal append-only charting.
             </p>
           </div>
-          {!isAdding && (
+          {!isAdding && canEdit && (
             <Button
               onClick={() => {
                 setViewing(null)
@@ -532,7 +542,13 @@ function ChartViewer({
         <div className="flex flex-col items-center gap-3">
           <div className="flex flex-nowrap justify-center gap-0.5 overflow-x-auto">
             {TEETH_UPPER.map((t) => (
-              <Tooth key={t} id={t} entry={data[t.toString()]} readOnly isUpper />
+              <Tooth
+                key={t}
+                id={t}
+                entry={data[t.toString()]}
+                readOnly
+                isUpper
+              />
             ))}
           </div>
           <div className="h-px w-3/4 bg-border my-1" />

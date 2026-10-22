@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Can } from '@/features/access'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -127,9 +128,11 @@ export function ItemsTab() {
             Expiring
           </Button>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Item
-        </Button>
+        <Can perm="inventory.stock.adjust">
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Add Item
+          </Button>
+        </Can>
       </div>
 
       {/* Table */}
@@ -185,21 +188,29 @@ export function ItemsTab() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(item)}>
-                            Edit item
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setAdjustItem(item)}>
-                            Adjust stock
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setDetailId(item.id)}>
+                          <Can perm="inventory.stock.adjust">
+                            <DropdownMenuItem onClick={() => openEdit(item)}>
+                              Edit item
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setAdjustItem(item)}
+                            >
+                              Adjust stock
+                            </DropdownMenuItem>
+                          </Can>
+                          <DropdownMenuItem
+                            onClick={() => setDetailId(item.id)}
+                          >
                             View movements
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDeactivate(item)}
-                          >
-                            Deactivate
-                          </DropdownMenuItem>
+                          <Can perm="inventory.stock.adjust">
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeactivate(item)}
+                            >
+                              Deactivate
+                            </DropdownMenuItem>
+                          </Can>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -247,7 +258,11 @@ export function ItemsTab() {
       )}
 
       {/* Dialogs */}
-      <ItemFormDialog open={formOpen} onOpenChange={setFormOpen} item={editItem} />
+      <ItemFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        item={editItem}
+      />
       <AdjustStockDialog
         open={!!adjustItem}
         onOpenChange={(o) => !o && setAdjustItem(null)}

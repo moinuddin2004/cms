@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Can } from '@/features/access'
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pill, Plus, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -140,10 +141,13 @@ export function MedicinesPage() {
     [],
   )
 
+  // Writing the library is `prescriptions.library.manage`; reading is open.
   const addButton = (
-    <Button size="sm" onClick={() => setCreating(true)}>
-      <Plus className="size-3.5" /> Add medicine
-    </Button>
+    <Can perm="prescriptions.library.manage">
+      <Button size="sm" onClick={() => setCreating(true)}>
+        <Plus className="size-3.5" /> Add medicine
+      </Button>
+    </Can>
   )
 
   return (
@@ -197,13 +201,15 @@ export function MedicinesPage() {
           description="Start with a ready-made list of common medicines, or add your own one by one."
           action={
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                disabled={seed.isPending}
-                onClick={() => seed.mutate()}
-              >
-                <Sparkles className="size-4" /> Add common medicines
-              </Button>
+              <Can perm="prescriptions.library.manage">
+                <Button
+                  variant="outline"
+                  disabled={seed.isPending}
+                  onClick={() => seed.mutate()}
+                >
+                  <Sparkles className="size-4" /> Add common medicines
+                </Button>
+              </Can>
               {addButton}
             </div>
           }

@@ -30,10 +30,16 @@ export class InventoryAlertService {
       .getRawMany<{ organizationId: string; locationId: string }>();
 
     for (const { organizationId, locationId } of pairs) {
-      const enabled = await this.featureFlagsService.isFeatureEnabled(
-        organizationId,
-        'inventory.alerts',
-      );
+      // Alerts are an add-on of inventory: both features must be on.
+      const enabled =
+        (await this.featureFlagsService.isFeatureEnabled(
+          organizationId,
+          'inventory.core',
+        )) &&
+        (await this.featureFlagsService.isFeatureEnabled(
+          organizationId,
+          'inventory.alerts',
+        ));
       if (!enabled) continue;
 
       const lowStock = await this.inventoryService.getLowStockItems(
@@ -53,6 +59,7 @@ export class InventoryAlertService {
       );
 
       // TODO: Create in-app notifications when the notification system is built.
+      // Recipients = members holding `inventory.view` at this location.
       // await this.notificationService.create({ type: 'LOW_STOCK', ... })
     }
   }

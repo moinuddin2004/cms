@@ -18,16 +18,16 @@ import {
 } from '../dto/consumption-template.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
+import { Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('consumption-templates')
-@RequireFeature('inventory.core')
 export class ConsumptionTemplateController {
   constructor(private readonly templateService: ConsumptionTemplateService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.stock.adjust')
   async create(
     @Body() dto: CreateConsumptionTemplateDto,
     @ActiveTenant() ctx: TenantContext,
@@ -37,12 +37,14 @@ export class ConsumptionTemplateController {
   }
 
   @Get()
+  @Can('inventory.view')
   async findAll(@ActiveTenant() ctx: TenantContext) {
     const data = await this.templateService.findAll(ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Get('by-type')
+  @Can('inventory.view')
   async findByAppointmentType(
     @Query('appointmentType') appointmentType: string,
     @ActiveTenant() ctx: TenantContext,
@@ -55,6 +57,7 @@ export class ConsumptionTemplateController {
   }
 
   @Get(':id')
+  @Can('inventory.view')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -64,6 +67,7 @@ export class ConsumptionTemplateController {
   }
 
   @Patch(':id')
+  @Can('inventory.stock.adjust')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateConsumptionTemplateDto,
@@ -74,6 +78,7 @@ export class ConsumptionTemplateController {
   }
 
   @Delete(':id')
+  @Can('inventory.stock.adjust')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

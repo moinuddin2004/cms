@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Can } from '@/features/access'
 import {
   Dialog,
   DialogContent,
@@ -57,9 +58,11 @@ export function SuppliersTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Supplier
-        </Button>
+        <Can perm="inventory.po.manage">
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Add Supplier
+          </Button>
+        </Can>
       </div>
 
       <Card>
@@ -91,24 +94,26 @@ export function SuppliersTab() {
                     <TableCell>{s.email ?? '—'}</TableCell>
                     <TableCell>{s.city ?? '—'}</TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(s)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => handleDelete(s)}
-                          >
-                            Deactivate
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Can perm="inventory.po.manage">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(s)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDelete(s)}
+                            >
+                              Deactivate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </Can>
                     </TableCell>
                   </TableRow>
                 ))}

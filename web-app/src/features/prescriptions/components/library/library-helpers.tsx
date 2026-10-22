@@ -3,8 +3,12 @@ import { Pencil, PowerOff } from 'lucide-react'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import type { ServerPagination } from '@/components/shared/DataTable'
 import { Pagination } from '@/components/shared'
+import { useAccess } from '@/features/access'
 
-/** Edit + Deactivate icon buttons used on every Library row and card. */
+/**
+ * Edit + Deactivate icon buttons used on every Library row and card; only
+ * for `prescriptions.library.manage` holders (everyone else reads).
+ */
 export function LibraryRowActions({
   noun,
   onEdit,
@@ -15,6 +19,8 @@ export function LibraryRowActions({
   onEdit: () => void
   onDeactivate?: () => void
 }) {
+  const { can } = useAccess()
+  if (!can('prescriptions.library.manage')) return null
   return (
     <div className="flex items-center justify-end">
       <TooltipButton

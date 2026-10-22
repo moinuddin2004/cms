@@ -8,6 +8,8 @@ import { Repository, IsNull, Not } from 'typeorm';
 import { AppLogger } from 'src/common/services/logger.service';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import type { AccessContext } from 'src/access/access-context';
+import { patientScope } from './access/patient-scope';
 
 // Entities
 import { Patient } from './entities/patient.entity';
@@ -32,7 +34,11 @@ import { TreatmentsService } from 'src/treatments/treatments.service';
 // DTOs
 import { CreatePatientDto } from './dto/request/create-patient.dto';
 import { UpdatePatientDto } from './dto/request/update-patient.dto';
-import { PatientQueryDto, PatientSortBy, SortOrder } from './dto/request/patient-query.dto';
+import {
+  PatientQueryDto,
+  PatientSortBy,
+  SortOrder,
+} from './dto/request/patient-query.dto';
 import { PatientResponseDto } from './dto/response/patient-response.dto';
 import {
   UpsertDentalInfoDto,
@@ -99,31 +105,50 @@ export class PatientsService {
   // ═══════════════════════════════════════════════════════════
 
   private async generatePatientNumber(organizationId: string): Promise<string> {
-    const count = await this.patientRepo.count({ where: { organizationId }, withDeleted: true });
+    const count = await this.patientRepo.count({
+      where: { organizationId },
+      withDeleted: true,
+    });
     return `P-${String(count + 1).padStart(5, '0')}`;
   }
 
   private async generatePlanNumber(organizationId: string): Promise<string> {
-    const count = await this.treatmentPlanRepo.count({ where: { organizationId }, withDeleted: true });
+    const count = await this.treatmentPlanRepo.count({
+      where: { organizationId },
+      withDeleted: true,
+    });
     return `TP-${String(count + 1).padStart(5, '0')}`;
   }
 
   private async generateRxNumber(organizationId: string): Promise<string> {
-    const count = await this.prescriptionRepo.count({ where: { organizationId } });
+    const count = await this.prescriptionRepo.count({
+      where: { organizationId },
+    });
     return `RX-${String(count + 1).padStart(5, '0')}`;
   }
 
-  private async validatePhoneUnique(organizationId: string, phone: string, excludeId?: string): Promise<void> {
+  private async validatePhoneUnique(
+    organizationId: string,
+    phone: string,
+    excludeId?: string,
+  ): Promise<void> {
     const where: any = { organizationId, phone };
     if (excludeId) where.id = Not(excludeId);
     const existing = await this.patientRepo.findOne({ where });
     if (existing) {
-      throw new ConflictException('A patient with this phone number already exists in this organization');
+      throw new ConflictException(
+        'A patient with this phone number already exists in this organization',
+      );
     }
   }
 
-  private async getPatientOrFail(id: string, organizationId: string): Promise<Patient> {
-    const patient = await this.patientRepo.findOne({ where: { id, organizationId } });
+  private async getPatientOrFail(
+    id: string,
+    organizationId: string,
+  ): Promise<Patient> {
+    const patient = await this.patientRepo.findOne({
+      where: { id, organizationId },
+    });
     if (!patient) throw new NotFoundException(`Patient not found`);
     return patient;
   }
@@ -132,7 +157,11 @@ export class PatientsService {
   // PATIENT CRUD
   // ═══════════════════════════════════════════════════════════
 
-  async create(ctx: TenantContext, dto: CreatePatientDto, userId?: string): Promise<PatientResponseDto> {
+  async create(
+    ctx: TenantContext,
+    dto: CreatePatientDto,
+    userId?: string,
+  ): Promise<PatientResponseDto> {
     const { organizationId, locationId } = ctx;
     this.logger.info(`Creating patient: ${dto.fullName}`, PatientsService.name);
 
@@ -151,11 +180,19 @@ export class PatientsService {
     });
 
     const saved = await this.patientRepo.save(patient);
-    this.logger.info(`Patient created: ${saved.patientNumber}`, PatientsService.name);
+    this.logger.info(
+      `Patient created: ${saved.patientNumber}`,
+      PatientsService.name,
+    );
     return PatientResponseDto.toDto(saved);
   }
 
-  async findAll(organizationId: string, query: PatientQueryDto): Promise<PaginatedResponseDto<PatientResponseDto>> {
+  /** Patients list / search, limited to the caller's `patients.view` scope. */
+  async findAll(
+    organizationId: string,
+    query: PatientQueryDto,
+    access: AccessContext,
+  ): Promise<PaginatedResponseDto<PatientResponseDto>> {
     const {
       page = 1,
       limit = 10,
@@ -172,19 +209,28 @@ export class PatientsService {
       sortOrder = SortOrder.DESC,
     } = query;
 
-    const qb = this.patientRepo.createQueryBuilder('p').where('p.organization_id = :organizationId', { organizationId });
+    const qb = this.patientRepo
+      .createQueryBuilder('p')
+      .where('p.organization_id = :organizationId', { organizationId });
+    access.applyScope(qb, 'patients.view', patientScope('p.id'));
 
     if (search?.trim()) {
-      qb.andWhere('(p.full_name ILIKE :s OR p.phone ILIKE :s OR p.patient_number ILIKE :s)', { s: `%${search.trim()}%` });
+      qb.andWhere(
+        '(p.full_name ILIKE :s OR p.phone ILIKE :s OR p.patient_number ILIKE :s)',
+        { s: `%${search.trim()}%` },
+      );
     }
     if (gender) qb.andWhere('p.gender = :gender', { gender });
     if (bloodGroup) qb.andWhere('p.blood_group = :bloodGroup', { bloodGroup });
     if (source) qb.andWhere('p.source = :source', { source });
     if (city) qb.andWhere('p.city ILIKE :city', { city: `%${city}%` });
     if (tag) qb.andWhere('p.tags @> :tag', { tag: JSON.stringify([tag]) });
-    if (isActive !== undefined) qb.andWhere('p.is_active = :isActive', { isActive });
-    if (isBlacklisted !== undefined) qb.andWhere('p.is_blacklisted = :isBlacklisted', { isBlacklisted });
-    if (isMinor !== undefined) qb.andWhere('p.is_minor = :isMinor', { isMinor });
+    if (isActive !== undefined)
+      qb.andWhere('p.is_active = :isActive', { isActive });
+    if (isBlacklisted !== undefined)
+      qb.andWhere('p.is_blacklisted = :isBlacklisted', { isBlacklisted });
+    if (isMinor !== undefined)
+      qb.andWhere('p.is_minor = :isMinor', { isMinor });
 
     const sortMap: Record<string, string> = {
       createdAt: 'p.created_at',
@@ -195,15 +241,27 @@ export class PatientsService {
     qb.skip((page - 1) * limit).take(limit);
 
     const [patients, total] = await qb.getManyAndCount();
-    return PaginatedResponseDto.create(PatientResponseDto.toDtoList(patients), total, page, limit);
+    return PaginatedResponseDto.create(
+      PatientResponseDto.toDtoList(patients),
+      total,
+      page,
+      limit,
+    );
   }
 
-  async findOne(id: string, organizationId: string): Promise<PatientResponseDto> {
+  async findOne(
+    id: string,
+    organizationId: string,
+  ): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
     return PatientResponseDto.toDto(patient);
   }
 
-  async update(id: string, organizationId: string, dto: UpdatePatientDto): Promise<PatientResponseDto> {
+  async update(
+    id: string,
+    organizationId: string,
+    dto: UpdatePatientDto,
+  ): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
 
     if (dto.phone && dto.phone !== patient.phone) {
@@ -219,7 +277,11 @@ export class PatientsService {
     return PatientResponseDto.toDto(saved);
   }
 
-  async setActive(id: string, organizationId: string, isActive: boolean): Promise<PatientResponseDto> {
+  async setActive(
+    id: string,
+    organizationId: string,
+    isActive: boolean,
+  ): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
     patient.isActive = isActive;
     const saved = await this.patientRepo.save(patient);
@@ -237,7 +299,11 @@ export class PatientsService {
     await this.patientRepo.delete({ id, organizationId });
   }
 
-  async checkPhoneExists(organizationId: string, phone: string, excludeId?: string): Promise<{ exists: boolean }> {
+  async checkPhoneExists(
+    organizationId: string,
+    phone: string,
+    excludeId?: string,
+  ): Promise<{ exists: boolean }> {
     const where: any = { organizationId, phone };
     if (excludeId) where.id = Not(excludeId);
     const existing = await this.patientRepo.findOne({ where });
@@ -250,17 +316,29 @@ export class PatientsService {
 
   async getDentalInfo(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.dentalInfoRepo.findOne({ where: { patientId, organizationId } });
+    return this.dentalInfoRepo.findOne({
+      where: { patientId, organizationId },
+    });
   }
 
-  async upsertDentalInfo(patientId: string, ctx: TenantContext, dto: UpsertDentalInfoDto) {
+  async upsertDentalInfo(
+    patientId: string,
+    ctx: TenantContext,
+    dto: UpsertDentalInfoDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
-    let info = await this.dentalInfoRepo.findOne({ where: { patientId, organizationId: ctx.organizationId } });
+    let info = await this.dentalInfoRepo.findOne({
+      where: { patientId, organizationId: ctx.organizationId },
+    });
 
     if (info) {
       Object.assign(info, dto);
     } else {
-      info = this.dentalInfoRepo.create({ ...dto, patientId, organizationId: ctx.organizationId });
+      info = this.dentalInfoRepo.create({
+        ...dto,
+        patientId,
+        organizationId: ctx.organizationId,
+      });
     }
     return this.dentalInfoRepo.save(info);
   }
@@ -271,14 +349,23 @@ export class PatientsService {
 
   async getTeethCharts(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.teethChartRepo.find({ where: { patientId, organizationId }, order: { recordedAt: 'DESC' } });
+    return this.teethChartRepo.find({
+      where: { patientId, organizationId },
+      order: { recordedAt: 'DESC' },
+    });
   }
 
-  async createTeethChart(patientId: string, ctx: TenantContext, dto: CreateTeethChartDto) {
+  async createTeethChart(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateTeethChartDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
 
     // Check if this is the first chart
-    const existingCount = await this.teethChartRepo.count({ where: { patientId, organizationId: ctx.organizationId } });
+    const existingCount = await this.teethChartRepo.count({
+      where: { patientId, organizationId: ctx.organizationId },
+    });
 
     const chart = this.teethChartRepo.create({
       ...dto,
@@ -296,10 +383,17 @@ export class PatientsService {
 
   async getVitals(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.vitalsRepo.find({ where: { patientId, organizationId }, order: { recordedAt: 'DESC' } });
+    return this.vitalsRepo.find({
+      where: { patientId, organizationId },
+      order: { recordedAt: 'DESC' },
+    });
   }
 
-  async createVitals(patientId: string, ctx: TenantContext, dto: CreateVitalsDto) {
+  async createVitals(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateVitalsDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
 
     // Auto-compute BMI
@@ -332,7 +426,12 @@ export class PatientsService {
     });
   }
 
-  async createTreatmentPlan(patientId: string, ctx: TenantContext, dto: CreateTreatmentPlanDto, userId?: string) {
+  async createTreatmentPlan(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateTreatmentPlanDto,
+    userId?: string,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const planNumber = await this.generatePlanNumber(ctx.organizationId);
 
@@ -348,15 +447,24 @@ export class PatientsService {
       planNumber,
       finalEstimatedCost,
       startDate: dto.startDate ? new Date(dto.startDate) : null,
-      expectedEndDate: dto.expectedEndDate ? new Date(dto.expectedEndDate) : null,
+      expectedEndDate: dto.expectedEndDate
+        ? new Date(dto.expectedEndDate)
+        : null,
       createdBy: userId || null,
     });
     return this.treatmentPlanRepo.save(plan);
   }
 
-  async updateTreatmentPlan(patientId: string, planId: string, organizationId: string, dto: UpdateTreatmentPlanDto) {
+  async updateTreatmentPlan(
+    patientId: string,
+    planId: string,
+    organizationId: string,
+    dto: UpdateTreatmentPlanDto,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
-    const plan = await this.treatmentPlanRepo.findOne({ where: { id: planId, patientId, organizationId } });
+    const plan = await this.treatmentPlanRepo.findOne({
+      where: { id: planId, patientId, organizationId },
+    });
     if (!plan) throw new NotFoundException('Treatment plan not found');
 
     if (dto.patientAccepted && !plan.patientAccepted) {
@@ -376,14 +484,28 @@ export class PatientsService {
 
   // ─── Plan Items ─────────────────────────────────────────
 
-  async getPlanItems(patientId: string, planId: string, organizationId: string) {
+  async getPlanItems(
+    patientId: string,
+    planId: string,
+    organizationId: string,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.planItemRepo.find({ where: { planId }, order: { sequenceOrder: 'ASC' } });
+    return this.planItemRepo.find({
+      where: { planId },
+      order: { sequenceOrder: 'ASC' },
+    });
   }
 
-  async createPlanItem(patientId: string, planId: string, ctx: TenantContext, dto: CreatePlanItemDto) {
+  async createPlanItem(
+    patientId: string,
+    planId: string,
+    ctx: TenantContext,
+    dto: CreatePlanItemDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
-    const plan = await this.treatmentPlanRepo.findOne({ where: { id: planId, patientId, organizationId: ctx.organizationId } });
+    const plan = await this.treatmentPlanRepo.findOne({
+      where: { id: planId, patientId, organizationId: ctx.organizationId },
+    });
     if (!plan) throw new NotFoundException('Treatment plan not found');
 
     const item = this.planItemRepo.create({ ...dto, planId });
@@ -403,7 +525,9 @@ export class PatientsService {
     });
     if (!plan) throw new NotFoundException('Treatment plan not found');
 
-    const item = await this.planItemRepo.findOne({ where: { id: itemId, planId } });
+    const item = await this.planItemRepo.findOne({
+      where: { id: itemId, planId },
+    });
     if (!item) throw new NotFoundException('Plan item not found');
 
     Object.assign(item, dto);
@@ -419,10 +543,17 @@ export class PatientsService {
 
   async getPrescriptions(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.prescriptionRepo.find({ where: { patientId, organizationId }, order: { prescriptionDate: 'DESC' } });
+    return this.prescriptionRepo.find({
+      where: { patientId, organizationId },
+      order: { prescriptionDate: 'DESC' },
+    });
   }
 
-  async createPrescription(patientId: string, ctx: TenantContext, dto: CreatePrescriptionDto) {
+  async createPrescription(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreatePrescriptionDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const prescriptionNumber = await this.generateRxNumber(ctx.organizationId);
 
@@ -443,10 +574,17 @@ export class PatientsService {
 
   async getDocuments(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.documentRepo.find({ where: { patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.documentRepo.find({
+      where: { patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createDocument(patientId: string, ctx: TenantContext, dto: CreateDocumentDto) {
+  async createDocument(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateDocumentDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const doc = this.documentRepo.create({
       ...dto,
@@ -464,10 +602,17 @@ export class PatientsService {
 
   async getConsents(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.consentRepo.find({ where: { patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.consentRepo.find({
+      where: { patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createConsent(patientId: string, ctx: TenantContext, dto: CreateConsentDto) {
+  async createConsent(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateConsentDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const consent = this.consentRepo.create({
       ...dto,
@@ -484,10 +629,17 @@ export class PatientsService {
 
   async getCommunications(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.communicationRepo.find({ where: { patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.communicationRepo.find({
+      where: { patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createCommunication(patientId: string, ctx: TenantContext, dto: CreateCommunicationDto) {
+  async createCommunication(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateCommunicationDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const comm = this.communicationRepo.create({
       ...dto,
@@ -504,10 +656,18 @@ export class PatientsService {
 
   async getRecalls(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.recallRepo.find({ where: { patientId, organizationId }, order: { dueDate: 'ASC' } });
+    return this.recallRepo.find({
+      where: { patientId, organizationId },
+      order: { dueDate: 'ASC' },
+    });
   }
 
-  async createRecall(patientId: string, ctx: TenantContext, dto: CreateRecallDto, userId?: string) {
+  async createRecall(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateRecallDto,
+    userId?: string,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const recall = this.recallRepo.create({
       ...dto,
@@ -520,9 +680,16 @@ export class PatientsService {
     return this.recallRepo.save(recall);
   }
 
-  async updateRecall(patientId: string, recallId: string, organizationId: string, dto: UpdateRecallDto) {
+  async updateRecall(
+    patientId: string,
+    recallId: string,
+    organizationId: string,
+    dto: UpdateRecallDto,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
-    const recall = await this.recallRepo.findOne({ where: { id: recallId, patientId, organizationId } });
+    const recall = await this.recallRepo.findOne({
+      where: { id: recallId, patientId, organizationId },
+    });
     if (!recall) throw new NotFoundException('Recall not found');
     Object.assign(recall, dto);
     return this.recallRepo.save(recall);
@@ -534,12 +701,23 @@ export class PatientsService {
 
   async getReferrals(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.referralRepo.find({ where: { referringPatientId: patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.referralRepo.find({
+      where: { referringPatientId: patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createReferral(patientId: string, organizationId: string, dto: CreateReferralDto) {
+  async createReferral(
+    patientId: string,
+    organizationId: string,
+    dto: CreateReferralDto,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
-    const referral = this.referralRepo.create({ ...dto, referringPatientId: patientId, organizationId });
+    const referral = this.referralRepo.create({
+      ...dto,
+      referringPatientId: patientId,
+      organizationId,
+    });
     return this.referralRepo.save(referral);
   }
 
@@ -549,10 +727,17 @@ export class PatientsService {
 
   async getFeedback(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.feedbackRepo.find({ where: { patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.feedbackRepo.find({
+      where: { patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createFeedback(patientId: string, ctx: TenantContext, dto: CreateFeedbackDto) {
+  async createFeedback(
+    patientId: string,
+    ctx: TenantContext,
+    dto: CreateFeedbackDto,
+  ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const feedback = this.feedbackRepo.create({
       ...dto,
@@ -569,10 +754,17 @@ export class PatientsService {
 
   async getInsurance(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.insuranceRepo.find({ where: { patientId, organizationId }, order: { createdAt: 'DESC' } });
+    return this.insuranceRepo.find({
+      where: { patientId, organizationId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
-  async createInsurance(patientId: string, organizationId: string, dto: CreateInsuranceDto) {
+  async createInsurance(
+    patientId: string,
+    organizationId: string,
+    dto: CreateInsuranceDto,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
     const insurance = this.insuranceRepo.create({
       ...dto,
@@ -584,9 +776,16 @@ export class PatientsService {
     return this.insuranceRepo.save(insurance);
   }
 
-  async updateInsurance(patientId: string, insuranceId: string, organizationId: string, dto: UpdateInsuranceDto) {
+  async updateInsurance(
+    patientId: string,
+    insuranceId: string,
+    organizationId: string,
+    dto: UpdateInsuranceDto,
+  ) {
     await this.getPatientOrFail(patientId, organizationId);
-    const insurance = await this.insuranceRepo.findOne({ where: { id: insuranceId, patientId, organizationId } });
+    const insurance = await this.insuranceRepo.findOne({
+      where: { id: insuranceId, patientId, organizationId },
+    });
     if (!insurance) throw new NotFoundException('Insurance record not found');
     Object.assign(insurance, dto);
     return this.insuranceRepo.save(insurance);
@@ -598,7 +797,10 @@ export class PatientsService {
 
   async getVisits(patientId: string, organizationId: string) {
     await this.getPatientOrFail(patientId, organizationId);
-    return this.visitRepo.find({ where: { patientId, organizationId }, order: { lastVisitDate: 'DESC' } });
+    return this.visitRepo.find({
+      where: { patientId, organizationId },
+      order: { lastVisitDate: 'DESC' },
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -618,10 +820,18 @@ export class PatientsService {
       order: { startTime: 'DESC' },
     });
 
-    const encounters = await this.encountersService.findByPatient(patientId, ctx);
+    const encounters = await this.encountersService.findByPatient(
+      patientId,
+      ctx,
+    );
 
-    const allTreatments = await this.treatmentsService.findByPatient(patientId, ctx);
-    const standaloneTreatments = allTreatments.filter((t) => t.encounterId === null);
+    const allTreatments = await this.treatmentsService.findByPatient(
+      patientId,
+      ctx,
+    );
+    const standaloneTreatments = allTreatments.filter(
+      (t) => t.encounterId === null,
+    );
 
     return {
       patient: PatientResponseDto.toDto(patient),

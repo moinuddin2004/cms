@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Can } from '@/features/access'
 import {
   Dialog,
   DialogContent,
@@ -65,9 +66,11 @@ export function TemplatesTab() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Template
-        </Button>
+        <Can perm="inventory.stock.adjust">
+          <Button onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" /> Add Template
+          </Button>
+        </Can>
       </div>
 
       <Card>
@@ -101,27 +104,29 @@ export function TemplatesTab() {
                       {t.items?.length ?? 0}
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openEdit(t)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => {
-                              if (confirm(`Deactivate "${t.name}"?`))
-                                deleteMutation.mutate(t.id)
-                            }}
-                          >
-                            Deactivate
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Can perm="inventory.stock.adjust">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(t)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => {
+                                if (confirm(`Deactivate "${t.name}"?`))
+                                  deleteMutation.mutate(t.id)
+                              }}
+                            >
+                              Deactivate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </Can>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -203,12 +208,20 @@ function TemplateFormDialog({
       if (prev.some((p) => p.inventoryItemId === item.id)) return prev
       return [
         ...prev,
-        { inventoryItemId: item.id, name: item.name, unit: item.unit, quantity: 1, notes: '' },
+        {
+          inventoryItemId: item.id,
+          name: item.name,
+          unit: item.unit,
+          quantity: 1,
+          notes: '',
+        },
       ]
     })
   }
   const setItem = (idx: number, patch: Partial<DraftItem>) =>
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)))
+    setItems((prev) =>
+      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
+    )
 
   const submit = () => {
     if (!name.trim() || !procedureName.trim()) {
@@ -274,9 +287,7 @@ function TemplateFormDialog({
             <Label>Appointment Type (for auto-matching)</Label>
             <Select
               value={appointmentType || 'none'}
-              onValueChange={(v) =>
-                setAppointmentType(v === 'none' ? '' : v)
-              }
+              onValueChange={(v) => setAppointmentType(v === 'none' ? '' : v)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="None" />

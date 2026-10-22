@@ -61,11 +61,25 @@ interface WhereBuilder {
 export interface ScopeColumns {
   /** Column holding the owning employee id, e.g. `p.primary_doctor_id`. */
   own?: string;
+  /**
+   * Raw SQL predicate for `own` when ownership is not one column, e.g.
+   * `EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = :employeeId)`.
+   * `:employeeId` is the only parameter: it is bound to the caller's
+   * employee id under a fresh name. Wins over `own`.
+   */
+  ownWhere?: string;
   /** Column holding the location id, e.g. `p.location_id`. */
   location?: string;
+  /** Raw SQL predicate for `location`, like `ownWhere`, binding `:locationId`. */
+  locationWhere?: string;
 }
 
 let paramSeq = 0;
+
+const SCOPE_TOKEN = {
+  own: /:employeeId\b/g,
+  location: /:locationId\b/g,
+} as const;
 
 /**
  * What one user may do in one org + location, resolved once per
@@ -119,11 +133,12 @@ export class AccessContext {
   }
 
   /**
-   * Row-level filter for `perm`: `own` → `cols.own = employeeId`,
-   * `location` → `cols.location = locationId`, `org` → nothing (the org
-   * filter is the caller's). No grant (or no employee / location to match)
-   * → no rows. Throws when the needed column was not given: that is a
-   * programming error, not a reason to show nothing.
+   * Row-level filter for `perm`: `own` → `cols.ownWhere` or
+   * `cols.own = employeeId`, `location` → `cols.locationWhere` or
+   * `cols.location = locationId`, `org` → nothing (the org filter is the
+   * caller's). No grant (or no employee / location to match) → no rows.
+   * Throws when the needed column was not given: that is a programming
+   * error, not a reason to show nothing.
    */
   applyScope<Q extends WhereBuilder>(
     qb: Q,
@@ -137,19 +152,33 @@ export class AccessContext {
     }
     if (scope === 'org') return qb;
 
-    const column = scope === 'own' ? cols.own : cols.location;
-    if (!column) {
+    const own = scope === 'own';
+    const where = own ? cols.ownWhere : cols.locationWhere;
+    const column = own ? cols.own : cols.location;
+    if (!where && !column) {
       throw new Error(
         `applyScope('${perm}'): no column given for scope "${scope}"`,
       );
     }
-    const value = scope === 'own' ? this.employeeId : this.locationId;
+    const token = SCOPE_TOKEN[scope];
+    if (where && !where.match(token)) {
+      throw new Error(
+        `applyScope('${perm}'): the "${scope}" predicate must use ${token.source.replace('\\b', '')}`,
+      );
+    }
+    const value = own ? this.employeeId : this.locationId;
     if (!value) {
       qb.andWhere('1 = 0');
       return qb;
     }
     const param = `access_scope_${++paramSeq}`;
-    qb.andWhere(`${column} = :${param}`, { [param]: value });
+    if (where) {
+      qb.andWhere(`(${where.replace(token, `:${param}`)})`, {
+        [param]: value,
+      });
+    } else {
+      qb.andWhere(`${column} = :${param}`, { [param]: value });
+    }
     return qb;
   }
 

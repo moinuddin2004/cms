@@ -17,7 +17,10 @@ import {
 import { HideTreatmentPricesInterceptor } from 'src/common/interceptors/hide-treatment-prices.interceptor';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/request/create-patient.dto';
-import { UpdatePatientDto, UpdatePatientStatusDto } from './dto/request/update-patient.dto';
+import {
+  UpdatePatientDto,
+  UpdatePatientStatusDto,
+} from './dto/request/update-patient.dto';
 import { PatientQueryDto } from './dto/request/patient-query.dto';
 import {
   UpsertDentalInfoDto,
@@ -42,8 +45,15 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { Access, Can } from 'src/access/decorators/access.decorators';
+import type { AccessContext } from 'src/access/access-context';
+import { PatientInScope } from './access/patient-scope';
 
-@RequireFeature('patients.core')
+/**
+ * Every `:id` route is limited to patients inside the caller's
+ * `patients.view` scope (doctor `own` / `location` / `org`): others are 404.
+ */
+@PatientInScope('id')
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
@@ -54,34 +64,58 @@ export class PatientsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreatePatientDto, @ActiveTenant() ctx: TenantContext, @Req() req: any) {
+  @Can('patients.create')
+  async create(
+    @Body() dto: CreatePatientDto,
+    @ActiveTenant() ctx: TenantContext,
+    @Req() req: any,
+  ) {
     const data = await this.patientsService.create(ctx, dto, req.user?.uuid);
     return ResponseWrapper.success(data, 'Patient created successfully');
   }
 
   @Get()
-  async findAll(@Query() query: PatientQueryDto, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.findAll(ctx.organizationId, query);
+  @Can('patients.view')
+  async findAll(
+    @Query() query: PatientQueryDto,
+    @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
+  ) {
+    const data = await this.patientsService.findAll(
+      ctx.organizationId,
+      query,
+      access,
+    );
     return ResponseWrapper.success(data, 'Patients retrieved successfully');
   }
 
   @Get('check-phone/:phone')
+  @Can('patients.view')
   async checkPhone(
     @Param('phone') phone: string,
     @Query('excludeId') excludeId: string | undefined,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.checkPhoneExists(ctx.organizationId, phone, excludeId);
+    const data = await this.patientsService.checkPhoneExists(
+      ctx.organizationId,
+      phone,
+      excludeId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.view')
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.findOne(id, ctx.organizationId);
     return ResponseWrapper.success(data, 'Patient retrieved successfully');
   }
 
   @Put(':id')
+  @Can('patients.edit')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePatientDto,
@@ -92,20 +126,31 @@ export class PatientsController {
   }
 
   @Patch(':id/status')
+  @Can('patients.edit')
   async setStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePatientStatusDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.setActive(id, ctx.organizationId, dto.isActive);
+    const data = await this.patientsService.setActive(
+      id,
+      ctx.organizationId,
+      dto.isActive,
+    );
     return ResponseWrapper.success(
       data,
-      dto.isActive ? 'Patient activated successfully' : 'Patient deactivated successfully',
+      dto.isActive
+        ? 'Patient activated successfully'
+        : 'Patient deactivated successfully',
     );
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.delete')
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     await this.patientsService.remove(id, ctx.organizationId);
     return ResponseWrapper.success(null, 'Patient deleted permanently');
   }
@@ -115,7 +160,11 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/visits')
-  async getVisits(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.view')
+  async getVisits(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getVisits(id, ctx.organizationId);
     return ResponseWrapper.success(data);
   }
@@ -126,9 +175,16 @@ export class PatientsController {
 
   @Get(':id/history')
   @UseInterceptors(HideTreatmentPricesInterceptor)
-  async getHistory(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.clinical.view')
+  async getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getHistory(id, ctx);
-    return ResponseWrapper.success(data, 'Patient history retrieved successfully');
+    return ResponseWrapper.success(
+      data,
+      'Patient history retrieved successfully',
+    );
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -136,12 +192,20 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/dental-info')
-  async getDentalInfo(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getDentalInfo(id, ctx.organizationId);
+  @Can('patients.clinical.view')
+  async getDentalInfo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getDentalInfo(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/dental-info')
+  @Can('patients.clinical.edit')
   async upsertDentalInfo(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertDentalInfoDto,
@@ -156,13 +220,22 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/teeth-charts')
-  async getTeethCharts(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getTeethCharts(id, ctx.organizationId);
+  @Can('patients.clinical.view')
+  @RequireFeature('patients.teeth_chart')
+  async getTeethCharts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getTeethCharts(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/teeth-charts')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.chart.edit')
   async createTeethChart(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTeethChartDto,
@@ -177,13 +250,18 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/vitals')
-  async getVitals(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.clinical.view')
+  async getVitals(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getVitals(id, ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/vitals')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.clinical.edit')
   async createVitals(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateVitalsDto,
@@ -198,59 +276,92 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/treatment-plans')
-  async getTreatmentPlans(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getTreatmentPlans(id, ctx.organizationId);
+  @Can('patients.clinical.view')
+  @RequireFeature('patients.treatment_plans')
+  async getTreatmentPlans(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getTreatmentPlans(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/treatment-plans')
   @HttpCode(HttpStatus.CREATED)
+  @Can('plans.manage')
   async createTreatmentPlan(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTreatmentPlanDto,
     @ActiveTenant() ctx: TenantContext,
     @Req() req: any,
   ) {
-    const data = await this.patientsService.createTreatmentPlan(id, ctx, dto, req.user?.uuid);
+    const data = await this.patientsService.createTreatmentPlan(
+      id,
+      ctx,
+      dto,
+      req.user?.uuid,
+    );
     return ResponseWrapper.success(data, 'Treatment plan created successfully');
   }
 
   @Patch(':id/treatment-plans/:planId')
+  @Can('plans.manage')
   async updateTreatmentPlan(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('planId', ParseUUIDPipe) planId: string,
     @Body() dto: UpdateTreatmentPlanDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.updateTreatmentPlan(id, planId, ctx.organizationId, dto);
+    const data = await this.patientsService.updateTreatmentPlan(
+      id,
+      planId,
+      ctx.organizationId,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Treatment plan updated successfully');
   }
 
   // ─── Plan Items ─────────────────────────────────────────
 
   @Get(':id/treatment-plans/:planId/items')
+  @Can('patients.clinical.view')
+  @RequireFeature('patients.treatment_plans')
   async getPlanItems(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('planId', ParseUUIDPipe) planId: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.getPlanItems(id, planId, ctx.organizationId);
+    const data = await this.patientsService.getPlanItems(
+      id,
+      planId,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/treatment-plans/:planId/items')
   @HttpCode(HttpStatus.CREATED)
+  @Can('plans.manage')
   async createPlanItem(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('planId', ParseUUIDPipe) planId: string,
     @Body() dto: CreatePlanItemDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.createPlanItem(id, planId, ctx, dto);
+    const data = await this.patientsService.createPlanItem(
+      id,
+      planId,
+      ctx,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Plan item added successfully');
   }
 
   @Patch(':id/treatment-plans/:planId/items/:itemId')
+  @Can('plans.manage')
   async updatePlanItem(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('planId', ParseUUIDPipe) planId: string,
@@ -273,13 +384,22 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/prescriptions')
-  async getPrescriptions(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getPrescriptions(id, ctx.organizationId);
+  @Can('patients.clinical.view')
+  @RequireFeature('patients.prescriptions')
+  async getPrescriptions(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getPrescriptions(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/prescriptions')
   @HttpCode(HttpStatus.CREATED)
+  @Can('prescriptions.create')
   async createPrescription(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreatePrescriptionDto,
@@ -294,13 +414,21 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/documents')
-  async getDocuments(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getDocuments(id, ctx.organizationId);
+  @Can('patients.documents.manage')
+  async getDocuments(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getDocuments(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/documents')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.documents.manage')
   async createDocument(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateDocumentDto,
@@ -315,13 +443,18 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/consents')
-  async getConsents(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.clinical.view')
+  async getConsents(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getConsents(id, ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/consents')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.clinical.edit')
   async createConsent(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateConsentDto,
@@ -336,13 +469,21 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/communications')
-  async getCommunications(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getCommunications(id, ctx.organizationId);
+  @Can('patients.view')
+  async getCommunications(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getCommunications(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/communications')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.edit')
   async createCommunication(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateCommunicationDto,
@@ -357,31 +498,47 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/recalls')
-  async getRecalls(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.view')
+  async getRecalls(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getRecalls(id, ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/recalls')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.edit')
   async createRecall(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateRecallDto,
     @ActiveTenant() ctx: TenantContext,
     @Req() req: any,
   ) {
-    const data = await this.patientsService.createRecall(id, ctx, dto, req.user?.uuid);
+    const data = await this.patientsService.createRecall(
+      id,
+      ctx,
+      dto,
+      req.user?.uuid,
+    );
     return ResponseWrapper.success(data, 'Recall scheduled successfully');
   }
 
   @Patch(':id/recalls/:recallId')
+  @Can('patients.edit')
   async updateRecall(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('recallId', ParseUUIDPipe) recallId: string,
     @Body() dto: UpdateRecallDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.updateRecall(id, recallId, ctx.organizationId, dto);
+    const data = await this.patientsService.updateRecall(
+      id,
+      recallId,
+      ctx.organizationId,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Recall updated successfully');
   }
 
@@ -390,19 +547,31 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/referrals')
-  async getReferrals(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getReferrals(id, ctx.organizationId);
+  @Can('patients.view')
+  async getReferrals(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getReferrals(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/referrals')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.edit')
   async createReferral(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReferralDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.createReferral(id, ctx.organizationId, dto);
+    const data = await this.patientsService.createReferral(
+      id,
+      ctx.organizationId,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Referral recorded successfully');
   }
 
@@ -411,13 +580,18 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/feedback')
-  async getFeedback(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
+  @Can('patients.view')
+  async getFeedback(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
     const data = await this.patientsService.getFeedback(id, ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/feedback')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.edit')
   async createFeedback(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateFeedbackDto,
@@ -432,30 +606,51 @@ export class PatientsController {
   // ═══════════════════════════════════════════════════════════
 
   @Get(':id/insurance')
-  async getInsurance(@Param('id', ParseUUIDPipe) id: string, @ActiveTenant() ctx: TenantContext) {
-    const data = await this.patientsService.getInsurance(id, ctx.organizationId);
+  @Can('patients.view')
+  @RequireFeature('patients.insurance')
+  async getInsurance(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.patientsService.getInsurance(
+      id,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Post(':id/insurance')
   @HttpCode(HttpStatus.CREATED)
+  @Can('patients.edit')
+  @RequireFeature('patients.insurance')
   async createInsurance(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateInsuranceDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.createInsurance(id, ctx.organizationId, dto);
+    const data = await this.patientsService.createInsurance(
+      id,
+      ctx.organizationId,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Insurance added successfully');
   }
 
   @Patch(':id/insurance/:insuranceId')
+  @Can('patients.edit')
+  @RequireFeature('patients.insurance')
   async updateInsurance(
     @Param('id', ParseUUIDPipe) id: string,
     @Param('insuranceId', ParseUUIDPipe) insuranceId: string,
     @Body() dto: UpdateInsuranceDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.patientsService.updateInsurance(id, insuranceId, ctx.organizationId, dto);
+    const data = await this.patientsService.updateInsurance(
+      id,
+      insuranceId,
+      ctx.organizationId,
+      dto,
+    );
     return ResponseWrapper.success(data, 'Insurance updated successfully');
   }
 }

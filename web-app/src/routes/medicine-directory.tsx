@@ -1,11 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { MedicinesPage } from '@/features/prescriptions/pages/MedicinesPage'
 
 export const Route = createFileRoute('/medicine-directory')({
-  component: () => (
-    <RequireFeaturePage feature="patients.prescriptions">
-      <MedicinesPage />
-    </RequireFeaturePage>
-  ),
+  // Doctors read the library; managers edit it.
+  staticData: { can: ['prescriptions.create', 'prescriptions.library.manage'] },
+  component: () => <MedicinesPage />,
 })

@@ -19,18 +19,19 @@ import {
 } from '../dto/medicine-directory.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+// Reads are @AnyMember, so the feature check stays at class level.
 @RequireFeature('patients.prescriptions')
 @Controller('medicine-directory')
 export class MedicineDirectoryController {
-  constructor(
-    private readonly service: MedicineDirectoryService,
-  ) {}
+  constructor(private readonly service: MedicineDirectoryService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('prescriptions.library.manage')
   async create(
     @Body() dto: CreateMedicineDirectoryDto,
     @ActiveTenant() ctx: TenantContext,
@@ -40,12 +41,14 @@ export class MedicineDirectoryController {
   }
 
   @Get()
+  @AnyMember()
   async findAll(@ActiveTenant() ctx: TenantContext) {
     const data = await this.service.findAll(ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Get('search')
+  @AnyMember()
   async search(
     @Query() query: SearchMedicineDto,
     @ActiveTenant() ctx: TenantContext,
@@ -56,6 +59,7 @@ export class MedicineDirectoryController {
 
   @Post('seed-common')
   @HttpCode(HttpStatus.OK)
+  @Can('prescriptions.library.manage')
   async seedCommon(@ActiveTenant() ctx: TenantContext) {
     const data = await this.service.seedCommonMedicines(ctx.organizationId);
     return ResponseWrapper.success(
@@ -65,6 +69,7 @@ export class MedicineDirectoryController {
   }
 
   @Patch(':id')
+  @Can('prescriptions.library.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateMedicineDirectoryDto,
@@ -75,6 +80,7 @@ export class MedicineDirectoryController {
   }
 
   @Delete(':id')
+  @Can('prescriptions.library.manage')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

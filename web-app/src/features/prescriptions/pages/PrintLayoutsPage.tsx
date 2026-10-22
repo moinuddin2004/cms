@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Can } from '@/features/access'
 import type { ColumnDef } from '@tanstack/react-table'
 import { LayoutTemplate, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -139,10 +140,13 @@ export function PrintLayoutsPage() {
     [],
   )
 
+  // Writing the library is `prescriptions.library.manage`; reading is open.
   const newButton = (
-    <Button size="sm" onClick={() => setCreating(true)}>
-      <Plus className="size-3.5" /> New layout
-    </Button>
+    <Can perm="prescriptions.library.manage">
+      <Button size="sm" onClick={() => setCreating(true)}>
+        <Plus className="size-3.5" /> New layout
+      </Button>
+    </Can>
   )
 
   return (

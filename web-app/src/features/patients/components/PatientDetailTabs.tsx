@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Stethoscope,
@@ -10,10 +11,12 @@ import {
   Syringe,
   HandCoins,
 } from 'lucide-react'
-import { PatientBillingTab, useBillingAccess } from '@/features/billing'
+import { PatientBillingTab } from '@/features/billing'
 import { PatientMessagesCard } from '@/features/notifications'
+import { useAccess } from '@/features/access'
 import type { Patient } from '../types'
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { visiblePatientTabs } from '../utils/patientTabs'
+import type { PatientTab } from '../utils/patientTabs'
 import { OverviewTab } from './tabs/OverviewTab'
 import { AppointmentsTab } from './tabs/AppointmentsTab'
 import { VisitsTab } from './tabs/VisitsTab'
@@ -28,124 +31,98 @@ interface PatientDetailTabsProps {
   patient: Patient
 }
 
+const TAB_LABELS: Record<PatientTab, { label: string; icon?: ReactNode }> = {
+  overview: { label: 'Overview' },
+  appointments: {
+    label: 'Appointments',
+    icon: <CalendarClock size={14} className="mr-1.5" />,
+  },
+  visits: {
+    label: 'Visits',
+    icon: <CalendarCheck2 size={14} className="mr-1.5" />,
+  },
+  treatments: {
+    label: 'Treatments',
+    icon: <Syringe size={14} className="mr-1.5" />,
+  },
+  'vitals-dental': {
+    label: 'Vitals & Dental',
+    icon: <Activity size={14} className="mr-1.5" />,
+  },
+  'teeth-chart': {
+    label: 'Teeth Chart',
+    icon: <Stethoscope size={14} className="mr-1.5" />,
+  },
+  clinical: {
+    label: 'Clinical & Rx',
+    icon: <ClipboardList size={14} className="mr-1.5" />,
+  },
+  consents: {
+    label: 'Consents',
+    icon: <FileSignature size={14} className="mr-1.5" />,
+  },
+  billing: {
+    label: 'Billing',
+    icon: <HandCoins size={14} className="mr-1.5" />,
+  },
+  files: {
+    label: 'Files',
+    icon: <FolderOpen size={14} className="mr-1.5" />,
+  },
+}
+
 export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
-  // Billing is admin + reception only; doctors never see the tab (D17).
-  const { canBill } = useBillingAccess()
+  const access = useAccess()
+  const tabs = visiblePatientTabs(access)
+  // Fees are for `patients.price.view` holders (the API strips them too).
+  const hideAmounts = !access.can('patients.price.view')
+
+  const content: Record<PatientTab, ReactNode> = {
+    overview: (
+      <>
+        <OverviewTab patient={patient} />
+        {/* Message history is front-desk work (was admin + reception). */}
+        {access.can('patients.edit') && (
+          <PatientMessagesCard patientId={patient.id} />
+        )}
+      </>
+    ),
+    appointments: <AppointmentsTab patient={patient} />,
+    visits: <VisitsTab patient={patient} hideAmounts={hideAmounts} />,
+    treatments: <TreatmentsTab patient={patient} hideAmounts={hideAmounts} />,
+    'vitals-dental': <VitalsAndDentalTab patient={patient} />,
+    'teeth-chart': <TeethChartTab patient={patient} />,
+    clinical: <ClinicalTab patient={patient} />,
+    consents: <ConsentsTab patient={patient} />,
+    billing: (
+      <PatientBillingTab
+        patient={{
+          id: patient.id,
+          name: patient.fullName,
+          phone: patient.phone,
+          mrn: patient.patientNumber,
+        }}
+      />
+    ),
+    files: <FilesTab patient={patient} />,
+  }
+
   return (
     <Tabs defaultValue="overview" className="mt-6">
       <TabsList className="bg-muted/50 p-1 flex-wrap h-auto gap-1 justify-start">
-        <TabsTrigger value="overview" className="text-sm">
-          Overview
-        </TabsTrigger>
-        <FeatureGuard feature="appointments.core">
-          <TabsTrigger value="appointments" className="text-sm">
-            <CalendarClock size={14} className="mr-1.5" />
-            Appointments
+        {tabs.map((tab) => (
+          <TabsTrigger key={tab} value={tab} className="text-sm">
+            {TAB_LABELS[tab].icon}
+            {TAB_LABELS[tab].label}
           </TabsTrigger>
-        </FeatureGuard>
-        <TabsTrigger value="visits" className="text-sm">
-          <CalendarCheck2 size={14} className="mr-1.5" />
-          Visits
-        </TabsTrigger>
-        <TabsTrigger value="treatments" className="text-sm">
-          <Syringe size={14} className="mr-1.5" />
-          Treatments
-        </TabsTrigger>
-        <TabsTrigger value="vitals-dental" className="text-sm">
-          <Activity size={14} className="mr-1.5" />
-          Vitals & Dental
-        </TabsTrigger>
-        <FeatureGuard feature="patients.teeth_chart">
-          <TabsTrigger value="teeth-chart" className="text-sm">
-            <Stethoscope size={14} className="mr-1.5" />
-            Teeth Chart
-          </TabsTrigger>
-        </FeatureGuard>
-        <FeatureGuard feature="patients.prescriptions">
-          <TabsTrigger value="clinical" className="text-sm">
-            <ClipboardList size={14} className="mr-1.5" />
-            Clinical & Rx
-          </TabsTrigger>
-        </FeatureGuard>
-        <TabsTrigger value="consents" className="text-sm">
-          <FileSignature size={14} className="mr-1.5" />
-          Consents
-        </TabsTrigger>
-        {canBill && (
-          <FeatureGuard feature="billing.invoices">
-            <TabsTrigger value="billing" className="text-sm">
-              <HandCoins size={14} className="mr-1.5" />
-              Billing
-            </TabsTrigger>
-          </FeatureGuard>
-        )}
-        <FeatureGuard feature="patients.documents">
-          <TabsTrigger value="files" className="text-sm">
-            <FolderOpen size={14} className="mr-1.5" />
-            Files
-          </TabsTrigger>
-        </FeatureGuard>
+        ))}
       </TabsList>
 
-      {canBill && (
-        <FeatureGuard feature="billing.invoices">
-          <TabsContent value="billing">
-            <PatientBillingTab
-              patient={{
-                id: patient.id,
-                name: patient.fullName,
-                phone: patient.phone,
-                mrn: patient.patientNumber,
-              }}
-            />
-          </TabsContent>
-        </FeatureGuard>
-      )}
-
-      <TabsContent value="overview">
-        <OverviewTab patient={patient} />
-        {canBill && <PatientMessagesCard patientId={patient.id} />}
-      </TabsContent>
-
-      <FeatureGuard feature="appointments.core">
-        <TabsContent value="appointments">
-          <AppointmentsTab patient={patient} />
+      {tabs.map((tab) => (
+        <TabsContent key={tab} value={tab}>
+          {content[tab]}
         </TabsContent>
-      </FeatureGuard>
-
-      <TabsContent value="visits">
-        <VisitsTab patient={patient} />
-      </TabsContent>
-
-      <TabsContent value="treatments">
-        <TreatmentsTab patient={patient} />
-      </TabsContent>
-
-      <TabsContent value="vitals-dental">
-        <VitalsAndDentalTab patient={patient} />
-      </TabsContent>
-
-      <FeatureGuard feature="patients.teeth_chart">
-        <TabsContent value="teeth-chart">
-          <TeethChartTab patient={patient} />
-        </TabsContent>
-      </FeatureGuard>
-
-      <FeatureGuard feature="patients.prescriptions">
-        <TabsContent value="clinical">
-          <ClinicalTab patient={patient} />
-        </TabsContent>
-      </FeatureGuard>
-
-      <TabsContent value="consents">
-        <ConsentsTab patient={patient} />
-      </TabsContent>
-
-      <FeatureGuard feature="patients.documents">
-        <TabsContent value="files">
-          <FilesTab patient={patient} />
-        </TabsContent>
-      </FeatureGuard>
+      ))}
     </Tabs>
   )
 }
