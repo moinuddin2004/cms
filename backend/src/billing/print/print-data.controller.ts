@@ -1,18 +1,14 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
+import { Can } from 'src/access/decorators/access.decorators';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { BILLING_FEATURE } from '../billing.constants';
 import { PrintInvoiceQueryDto, StatementQueryDto } from '../dto/report.dto';
 import { PrintDataService } from './print-data.service';
 
 /** Print payloads for browser-printed templates (9.1). */
 @Controller('print')
-@RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
+@Can('billing.invoice.view')
 export class PrintDataController {
   constructor(private readonly print: PrintDataService) {}
 
@@ -63,6 +59,7 @@ export class PrintDataController {
   }
 
   @Get('cash-close/:id')
+  @Can('billing.cash_close')
   async cashClose(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,

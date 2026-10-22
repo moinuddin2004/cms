@@ -9,12 +9,10 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { BillingActivityService } from '../activity/billing-activity.service';
-import { BILLING_FEATURE } from '../billing.constants';
 import { CashCloseService } from '../cash-close/cash-close.service';
 import { BillingClock } from '../common/billing-clock.service';
 import { billingContext } from '../common/billing-context';
@@ -30,8 +28,6 @@ import { PatientBillingService } from './patient-billing.service';
 
 /** Patient billing tab, check-in badges, cash close, reports, activity (7.5). */
 @Controller()
-@RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class BillingReportsController {
   constructor(
     private readonly patientBilling: PatientBillingService,
@@ -42,6 +38,7 @@ export class BillingReportsController {
   ) {}
 
   @Get('patients/:patientId/billing/summary')
+  @Can('billing.invoice.view')
   async summary(
     @ActiveTenant() t: TenantContext,
     @Param('patientId', ParseUUIDPipe) id: string,
@@ -53,6 +50,7 @@ export class BillingReportsController {
   }
 
   @Get('patients/:patientId/billing/open-charges')
+  @Can('billing.invoice.view')
   async openCharges(
     @ActiveTenant() t: TenantContext,
     @Param('patientId', ParseUUIDPipe) id: string,
@@ -64,6 +62,7 @@ export class BillingReportsController {
   }
 
   @Get('patients/:patientId/billing/statement')
+  @Can('billing.invoice.view')
   async statement(
     @ActiveTenant() t: TenantContext,
     @Param('patientId', ParseUUIDPipe) id: string,
@@ -76,6 +75,7 @@ export class BillingReportsController {
   }
 
   @Get('billing/outstanding')
+  @Can('billing.invoice.view')
   async outstanding(
     @ActiveTenant() t: TenantContext,
     @Query() q: OutstandingQueryDto,
@@ -89,6 +89,7 @@ export class BillingReportsController {
   // ─── Cash close (D23) ─────────────────────────────────────────────
 
   @Get('billing/cash-close/preview')
+  @Can('billing.cash_close')
   async cashClosePreview(@ActiveTenant() t: TenantContext) {
     return ResponseWrapper.success(
       await this.cashClose.preview(t),
@@ -97,9 +98,10 @@ export class BillingReportsController {
   }
 
   @Post('billing/cash-close')
+  @Can('billing.cash_close')
   async createCashClose(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateCashCloseDto,
   ) {
     return ResponseWrapper.success(
@@ -109,6 +111,7 @@ export class BillingReportsController {
   }
 
   @Get('billing/cash-close')
+  @Can('billing.cash_close')
   async cashCloseHistory(
     @ActiveTenant() t: TenantContext,
     @Query() q: DateRangeQueryDto,
@@ -120,6 +123,7 @@ export class BillingReportsController {
   }
 
   @Get('billing/cash-close/:id')
+  @Can('billing.cash_close')
   async cashCloseDetail(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -133,7 +137,7 @@ export class BillingReportsController {
   // ─── Reports ──────────────────────────────────────────────────────
 
   @Get('billing/reports/doctor-revenue')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('reports.financial.view')
   async doctorRevenue(
     @ActiveTenant() t: TenantContext,
     @Query() q: DateRangeQueryDto,
@@ -147,6 +151,7 @@ export class BillingReportsController {
 
   /** Lives in billing so the treatment-plan module stays free of billing code. */
   @Get('treatment-plans/:planId/billing-summary')
+  @Can('billing.invoice.view')
   async planSummary(
     @ActiveTenant() t: TenantContext,
     @Param('planId', ParseUUIDPipe) id: string,
@@ -158,7 +163,7 @@ export class BillingReportsController {
   }
 
   @Get('billing/activity')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('billing.activity.view')
   async activityFeed(
     @ActiveTenant() t: TenantContext,
     @Query() q: ActivityQueryDto,

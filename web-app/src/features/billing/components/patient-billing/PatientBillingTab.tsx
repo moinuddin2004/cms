@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DataTable } from '@/components/shared/DataTable'
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
 import { formatDate } from '@/lib/formatters'
-import { useBillingAccess } from '../../hooks/use-billing-access'
+import { useAccess } from '@/features/access'
 import {
   usePatientBillingSummary,
   usePatientInvoices,
@@ -26,19 +26,19 @@ import { StatementPanel } from './StatementPanel'
 const TRIGGER = 'text-xs'
 
 /**
- * Billing tab on the patient page (plan §8.3) — admin and reception only;
- * renders nothing for doctors (D17). Same layout rhythm as the Overview tab.
+ * Billing tab on the patient page (plan §8.3). Renders nothing without
+ * `billing.invoice.view` (D17). Same layout rhythm as the Overview tab.
  */
 export function PatientBillingTab({
   patient,
 }: {
   patient: Pick<PatientRef, 'id' | 'name'> & Partial<PatientRef>
 }) {
-  const { canBill } = useBillingAccess()
+  const { can } = useAccess()
   const summary = usePatientBillingSummary(patient.id)
   const [collectOpen, setCollectOpen] = useState(false)
   const [refundOpen, setRefundOpen] = useState(false)
-  if (!canBill) return null
+  if (!can('billing.invoice.view')) return null
   const advance = summary.data?.advance ?? 0
 
   return (
@@ -64,7 +64,7 @@ export function PatientBillingTab({
               Statement
             </TabsTrigger>
           </TabsList>
-          {advance > 0 && (
+          {advance > 0 && can('billing.refund.issue') && (
             <Button
               size="sm"
               variant="outline"

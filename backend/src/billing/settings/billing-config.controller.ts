@@ -12,8 +12,8 @@ import {
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { BILLING_FEATURE, DISCOUNTS_FEATURE } from '../billing.constants';
 import { CatalogServicesService } from '../catalog/catalog.service';
@@ -40,10 +40,12 @@ import { DiscountTypesService } from '../discounts/discount-types.service';
 import { PaymentAccountsService } from '../payment-accounts/payment-accounts.service';
 import { BillingSettingsService } from './billing-settings.service';
 
-/** Billing configuration (7.1). Reads: admin + reception; writes: admin. */
+/**
+ * Billing configuration (7.1). Reads: the billing desk; writes:
+ * `admin.settings.manage` (core, so the billing feature is still checked).
+ */
 @Controller('billing')
 @RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class BillingConfigController {
   constructor(
     private readonly catalog: CatalogServicesService,
@@ -55,6 +57,7 @@ export class BillingConfigController {
   // ─── Services and prices ──────────────────────────────────────────
 
   @Get('services')
+  @Can('billing.desk.use')
   async listServices(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListServicesQueryDto,
@@ -66,10 +69,10 @@ export class BillingConfigController {
   }
 
   @Post('services')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async createService(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateServiceDto,
   ) {
     return ResponseWrapper.success(
@@ -79,10 +82,10 @@ export class BillingConfigController {
   }
 
   @Patch('services/:serviceId')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updateService(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('serviceId', ParseUUIDPipe) id: string,
     @Body() dto: UpdateServiceDto,
   ) {
@@ -93,6 +96,7 @@ export class BillingConfigController {
   }
 
   @Get('services/:serviceId/resolved-price')
+  @Can('billing.desk.use')
   async resolvedPrice(
     @ActiveTenant() t: TenantContext,
     @Param('serviceId', ParseUUIDPipe) id: string,
@@ -105,7 +109,7 @@ export class BillingConfigController {
   }
 
   @Get('service-prices')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async listPrices(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListServicePricesQueryDto,
@@ -117,10 +121,10 @@ export class BillingConfigController {
   }
 
   @Post('service-prices')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async createPrice(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateServicePriceDto,
   ) {
     return ResponseWrapper.success(
@@ -130,10 +134,10 @@ export class BillingConfigController {
   }
 
   @Patch('service-prices/:id')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updatePrice(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateServicePriceDto,
   ) {
@@ -144,10 +148,10 @@ export class BillingConfigController {
   }
 
   @Delete('service-prices/:id')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async deletePrice(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     await this.catalog.deletePrice(billingContext(t, a), id);
@@ -157,6 +161,7 @@ export class BillingConfigController {
   // ─── Settings ─────────────────────────────────────────────────────
 
   @Get('settings')
+  @Can('billing.desk.use')
   async getSettings(@ActiveTenant() t: TenantContext) {
     return ResponseWrapper.success(
       await this.settings.get(t),
@@ -165,10 +170,10 @@ export class BillingConfigController {
   }
 
   @Patch('settings')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updateSettings(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: UpdateBillingSettingsDto,
   ) {
     return ResponseWrapper.success(
@@ -180,6 +185,7 @@ export class BillingConfigController {
   // ─── Payment accounts ─────────────────────────────────────────────
 
   @Get('payment-accounts')
+  @Can('billing.desk.use')
   async listAccounts(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListActiveQueryDto,
@@ -191,10 +197,10 @@ export class BillingConfigController {
   }
 
   @Post('payment-accounts')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async createAccount(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreatePaymentAccountDto,
   ) {
     return ResponseWrapper.success(
@@ -204,10 +210,10 @@ export class BillingConfigController {
   }
 
   @Patch('payment-accounts/:id')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updateAccount(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePaymentAccountDto,
   ) {
@@ -220,7 +226,7 @@ export class BillingConfigController {
   // ─── Discount types ───────────────────────────────────────────────
 
   @Get('discount-types')
-  @RequireFeature(DISCOUNTS_FEATURE)
+  @Can('billing.discount.apply')
   async listDiscountTypes(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListDiscountTypesQueryDto,
@@ -233,10 +239,10 @@ export class BillingConfigController {
 
   @Post('discount-types')
   @RequireFeature(DISCOUNTS_FEATURE)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async createDiscountType(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateDiscountTypeDto,
   ) {
     return ResponseWrapper.success(
@@ -247,10 +253,10 @@ export class BillingConfigController {
 
   @Patch('discount-types/:id')
   @RequireFeature(DISCOUNTS_FEATURE)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('admin.settings.manage')
   async updateDiscountType(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateDiscountTypeDto,
   ) {

@@ -27,6 +27,7 @@ import { DataTable } from '@/components/shared/DataTable'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { ErrorState, PageWrapper } from '@/components/shared'
+import { Can } from '@/features/access'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import {
@@ -266,10 +267,12 @@ export function PaymentsPage() {
         title="Payments"
         subtitle="The day's collection per payment account, refunds subtracted."
         actions={
-          <Button size="sm" onClick={() => setCloseOpen(true)}>
-            <Lock className="size-3.5" />
-            Close counter
-          </Button>
+          <Can perm="billing.cash_close">
+            <Button size="sm" onClick={() => setCloseOpen(true)}>
+              <Lock className="size-3.5" />
+              Close counter
+            </Button>
+          </Can>
         }
       />
 

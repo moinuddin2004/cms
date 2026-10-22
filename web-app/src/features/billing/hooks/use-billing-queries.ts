@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useAccess } from '@/features/access'
 import { useAuthStore } from '@/store/useAuthStore'
 import { billingKeys } from '../query-keys'
 import {
@@ -9,13 +10,13 @@ import {
   reportsApi,
 } from '../services/billing-v2.api'
 import type { InvoiceFiltersV2 } from '../services/billing-v2.api'
-import { useBillingAccess } from './use-billing-access'
+import { BILLING_READ_PERMS } from '../lib/billing-permissions'
 
-/** Billing reads are enabled only for admin / reception at a location. */
+/** Billing reads run only with some billing access at a location (the API checks each). */
 function useEnabled(extra = true): boolean {
   const locationId = useAuthStore((s) => s.activeLocationId)
-  const { canBill } = useBillingAccess()
-  return !!locationId && canBill && extra
+  const { can } = useAccess()
+  return !!locationId && can(BILLING_READ_PERMS) && extra
 }
 
 // ─── Configuration ──────────────────────────────────────────────────

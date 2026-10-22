@@ -1,15 +1,15 @@
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import { Controller, Get, Query } from '@nestjs/common';
+import { Can } from 'src/access/decorators/access.decorators';
 import { FinancialSummaryService } from './financial-summary.service';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+/** No permission belongs to `billing.financial_summary`, so the feature stays checked. */
 @Controller('financial-summary')
 @RequireFeature('billing.financial_summary')
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
+@Can('reports.financial.view')
 export class FinancialSummaryController {
   constructor(
     private readonly financialSummaryService: FinancialSummaryService,

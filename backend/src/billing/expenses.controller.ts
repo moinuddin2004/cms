@@ -1,5 +1,3 @@
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import {
   Controller,
   Get,
@@ -9,11 +7,12 @@ import {
   Body,
   Param,
   Query,
-  Req,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { ExpensesService } from './expenses.service';
 import {
   CreateExpenseDto,
@@ -23,27 +22,26 @@ import {
 } from './dto/expense.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('expenses')
-@RequireFeature('billing.expenses')
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) {}
 
   @Post()
+  @Can('expenses.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateExpenseDto,
     @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
+    @Access() a: AccessContext,
   ) {
-    const data = await this.expensesService.create(ctx, dto, req.user?.uuid);
+    const data = await this.expensesService.create(ctx, dto, a.userId);
     return ResponseWrapper.success(data, 'Expense recorded successfully');
   }
 
   @Get()
+  @Can('expenses.view')
   async findAll(
     @Query() query: ExpenseFilterDto,
     @ActiveTenant() ctx: TenantContext,
@@ -53,6 +51,7 @@ export class ExpensesController {
   }
 
   @Get('summary')
+  @Can('expenses.view')
   async summary(
     @Query() query: ExpenseSummaryQueryDto,
     @ActiveTenant() ctx: TenantContext,
@@ -66,6 +65,7 @@ export class ExpensesController {
   }
 
   @Patch(':id')
+  @Can('expenses.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateExpenseDto,
@@ -76,6 +76,7 @@ export class ExpensesController {
   }
 
   @Delete(':id')
+  @Can('expenses.manage')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

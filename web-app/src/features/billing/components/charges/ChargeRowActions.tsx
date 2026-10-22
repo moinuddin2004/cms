@@ -7,13 +7,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { Can } from '@/features/access'
 import { formatCurrency } from '@/lib/formatters'
 import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import { chargesApi } from '../../services/billing-v2.api'
 import type { Charge } from '../../types/billing.types'
 import { ReasonDialog } from '../shared/ReasonDialog'
+import { DISCOUNT_PERMS } from '../../lib/billing-permissions'
 import { DiscountSheet } from './DiscountSheet'
+
 import { EditChargeSheet } from './EditChargeSheet'
 
 /**
@@ -52,7 +54,7 @@ export function ChargeRowActions({ charge }: { charge: Charge }) {
           </TooltipButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <FeatureGuard feature="billing.discounts">
+          <Can perm={DISCOUNT_PERMS}>
             <DropdownMenuItem onClick={() => setOpen('discount')}>
               <Percent className="size-4" /> Discount
             </DropdownMenuItem>
@@ -63,7 +65,7 @@ export function ChargeRowActions({ charge }: { charge: Charge }) {
                 <Percent className="size-4" /> Remove discount
               </DropdownMenuItem>
             )}
-          </FeatureGuard>
+          </Can>
           <DropdownMenuItem onClick={() => setOpen('edit')}>
             <Pencil className="size-4" /> Edit quantity / price
           </DropdownMenuItem>

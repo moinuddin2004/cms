@@ -37,6 +37,7 @@ import {
   PageWrapper,
   Pagination,
 } from '@/components/shared'
+import { useAccess } from '@/features/access'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -209,6 +210,8 @@ function InvoiceStatsStrip({
 /** Invoices — laid out like the Appointments list view. */
 export function InvoicesPage() {
   const navigate = useNavigate()
+  const { can } = useAccess()
+  const mayCollect = can('billing.payment.collect')
   const [view, setView] = useState<'list' | 'cards'>('list')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [searchInput, setSearchInput] = useState('')
@@ -342,7 +345,8 @@ export function InvoicesPage() {
         enableSorting: false,
         cell: ({ row }) => {
           const inv = row.original
-          const canCollect = inv.status === 'ISSUED' && inv.balanceDue > 0
+          const canCollect =
+            mayCollect && inv.status === 'ISSUED' && inv.balanceDue > 0
           return (
             <div onClick={(e) => e.stopPropagation()}>
               <DropdownMenu>
@@ -382,7 +386,7 @@ export function InvoicesPage() {
         },
       },
     ],
-    [openInvoice, print],
+    [mayCollect, openInvoice, print],
   )
 
   const viewToggle = (

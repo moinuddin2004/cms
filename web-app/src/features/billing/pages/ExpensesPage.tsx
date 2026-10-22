@@ -13,11 +13,13 @@ import {
 import { Loader2, Trash2, Wallet } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   useExpenses,
   useExpenseSummary,
   useDeleteExpense,
 } from '@/features/billing/hooks/useExpenses'
+import { Can } from '@/features/access'
 import { ExpenseFormDialog } from '@/features/billing/components/ExpenseFormDialog'
 import { ExpenseCategory } from '@/features/billing/types'
 
@@ -43,7 +45,11 @@ export function ExpensesPage() {
     <PageWrapper
       title="Expenses"
       subtitle="Track and categorise clinic spending"
-      actions={<ExpenseFormDialog />}
+      actions={
+        <Can perm="expenses.manage">
+          <ExpenseFormDialog />
+        </Can>
+      }
     >
       <div className="space-y-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -128,14 +134,17 @@ export function ExpensesPage() {
                         {formatCurrency(e.amount)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => del.mutate(e.id)}
-                          disabled={del.isPending}
-                        >
-                          <Trash2 className="size-4 text-text-3" />
-                        </Button>
+                        <Can perm="expenses.manage">
+                          <TooltipButton
+                            tooltip="Delete expense"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => del.mutate(e.id)}
+                            disabled={del.isPending}
+                          >
+                            <Trash2 className="size-4 text-text-3" />
+                          </TooltipButton>
+                        </Can>
                       </TableCell>
                     </TableRow>
                   ))}

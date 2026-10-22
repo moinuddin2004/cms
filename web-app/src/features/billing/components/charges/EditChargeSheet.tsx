@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/features/queue/utils/fieldError'
-import { useBillingAccess } from '../../hooks/use-billing-access'
+import { useAccess } from '@/features/access'
 import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import { editChargeSchema, toAmount } from '../../schemas/billing.schema'
 import type { EditChargeValues } from '../../schemas/billing.schema'
@@ -14,9 +14,9 @@ import { chargesApi } from '../../services/billing-v2.api'
 import type { Charge } from '../../types/billing.types'
 
 /**
- * Quantity / price of an unbilled charge. Reception may price only "Other"
- * charges or ones that still need a price (D5); the field is read-only
- * otherwise and the server enforces the same rule.
+ * Quantity / price of an unbilled charge. Without `billing.price.override`
+ * only "Other" charges or ones that still need a price can be priced (D5);
+ * the field is read-only otherwise and the server enforces the same rule.
  */
 export function EditChargeSheet({
   charge,
@@ -27,9 +27,10 @@ export function EditChargeSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { isAdmin } = useBillingAccess()
+  const { can } = useAccess()
   const canPrice =
-    !!charge && (isAdmin || !charge.serviceId || charge.needsPricing)
+    !!charge &&
+    (can('billing.price.override') || !charge.serviceId || charge.needsPricing)
   const save = useBillingMutation(
     (v: EditChargeValues) =>
       chargesApi.update((charge as Charge).id, {

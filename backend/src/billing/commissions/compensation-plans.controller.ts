@@ -9,21 +9,18 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { COMMISSIONS_FEATURE } from './commission.enums';
 import { CompensationPlansService } from './compensation-plans.service';
 import {
   CompensationPlanDto,
   ReplaceCommissionRulesDto,
 } from './dto/compensation.dto';
 
-/** Doctor compensation plans (salary / commission), admin only. */
+/** Doctor compensation plans (salary / commission). */
 @Controller()
-@RequireFeature(COMMISSIONS_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN)
+@Can('compensation.manage')
 export class CompensationPlansController {
   constructor(private readonly plans: CompensationPlansService) {}
 
@@ -41,7 +38,7 @@ export class CompensationPlansController {
   @Post('assignments/:assignmentId/compensation-plans')
   async create(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('assignmentId', ParseUUIDPipe) assignmentId: string,
     @Body() dto: CompensationPlanDto,
   ) {

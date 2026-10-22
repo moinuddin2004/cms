@@ -1,25 +1,22 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { COMMISSIONS_FEATURE } from './commission.enums';
 import { CommissionReportsService } from './commission-reports.service';
 import { CommissionsQueryDto, EarningsQueryDto } from './dto/compensation.dto';
 
 /** Commission ledger reads (feature billing.commissions). */
 @Controller()
-@RequireFeature(COMMISSIONS_FEATURE)
 export class CommissionsController {
   constructor(private readonly reports: CommissionReportsService) {}
 
   @Get('commissions')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('earnings.all.view')
   async list(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Query() q: CommissionsQueryDto,
   ) {
     return ResponseWrapper.success(
@@ -29,10 +26,10 @@ export class CommissionsController {
   }
 
   @Get('reports/doctor-earnings')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('earnings.all.view')
   async doctorEarnings(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Query() q: EarningsQueryDto,
   ) {
     return ResponseWrapper.success(
@@ -41,12 +38,12 @@ export class CommissionsController {
     );
   }
 
-  /** Any actor who can consult; strictly their own assignments. */
+  /** Strictly the caller's own assignments. */
   @Get('me/earnings')
-  @Roles(AppRole.DOCTOR)
+  @Can('earnings.own.view')
   async myEarnings(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Query() q: EarningsQueryDto,
   ) {
     return ResponseWrapper.success(

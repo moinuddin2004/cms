@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable } from '@/components/shared/DataTable'
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
+import { Can, useAccess } from '@/features/access'
 import { formatDate } from '@/lib/formatters'
 import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import { useOpenCharges } from '../../hooks/use-billing-queries'
@@ -26,6 +27,8 @@ export function OpenChargesPanel({
   patientId: string
   onCollect: () => void
 }) {
+  const { can } = useAccess()
+  const canDesk = can('billing.desk.use')
   const charges = useOpenCharges(patientId)
   const [selected, setSelected] = useState<string[]>([])
   const [addOpen, setAddOpen] = useState(false)
@@ -133,36 +136,47 @@ export function OpenChargesPanel({
         id: 'actions',
         header: '',
         enableSorting: false,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <ChargeRowActions charge={row.original} />
-          </div>
-        ),
+        cell: ({ row }) =>
+          canDesk && (
+            <div className="flex justify-end">
+              <ChargeRowActions charge={row.original} />
+            </div>
+          ),
       },
     ],
-    [selected, unbilled],
+    [canDesk, selected, unbilled],
   )
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap justify-end gap-2">
-        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
-          <Plus className="size-3.5" /> Add charge
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!selected.length || issue.isPending}
-          onClick={() =>
-            issue.mutate(undefined, { onSuccess: () => setSelected([]) })
-          }
-        >
-          <FileText className="size-3.5" /> Issue invoice
-          {selected.length ? ` (${selected.length})` : ''}
-        </Button>
-        <Button size="sm" onClick={onCollect}>
-          <Receipt className="size-3.5" /> Collect payment
-        </Button>
+        {canDesk && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAddOpen(true)}
+            >
+              <Plus className="size-3.5" /> Add charge
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!selected.length || issue.isPending}
+              onClick={() =>
+                issue.mutate(undefined, { onSuccess: () => setSelected([]) })
+              }
+            >
+              <FileText className="size-3.5" /> Issue invoice
+              {selected.length ? ` (${selected.length})` : ''}
+            </Button>
+          </>
+        )}
+        <Can perm="billing.payment.collect">
+          <Button size="sm" onClick={onCollect}>
+            <Receipt className="size-3.5" /> Collect payment
+          </Button>
+        </Can>
       </div>
 
       {charges.isLoading ? (
@@ -175,9 +189,11 @@ export function OpenChargesPanel({
           title="Nothing to bill"
           description="All charges of this patient are paid."
           action={
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="size-3.5" /> Add charge
-            </Button>
+            canDesk && (
+              <Button size="sm" onClick={() => setAddOpen(true)}>
+                <Plus className="size-3.5" /> Add charge
+              </Button>
+            )
           }
         />
       ) : (

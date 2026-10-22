@@ -9,11 +9,9 @@ import {
 } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { BILLING_FEATURE } from '../billing.constants';
 import { billingContext } from '../common/billing-context';
 import {
   ApplyAdvanceDto,
@@ -29,8 +27,6 @@ import { PaymentsService } from './payments.service';
 
 /** Payments, advance and refunds (7.4). Payments are immutable (D12). */
 @Controller()
-@RequireFeature(BILLING_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class PaymentsController {
   constructor(
     private readonly payments: PaymentsService,
@@ -38,9 +34,10 @@ export class PaymentsController {
   ) {}
 
   @Post('payments/preview')
+  @Can('billing.payment.collect')
   async preview(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: PreviewPaymentDto,
   ) {
     return ResponseWrapper.success(
@@ -50,9 +47,10 @@ export class PaymentsController {
   }
 
   @Post('payments')
+  @Can('billing.payment.collect')
   async collect(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CollectPaymentDto,
   ) {
     return ResponseWrapper.success(
@@ -62,6 +60,7 @@ export class PaymentsController {
   }
 
   @Get('payments')
+  @Can('billing.invoice.view')
   async list(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListPaymentsQueryDto,
@@ -73,6 +72,7 @@ export class PaymentsController {
   }
 
   @Get('payments/daily-collection')
+  @Can('billing.desk.use')
   async dailyCollection(
     @ActiveTenant() t: TenantContext,
     @Query() q: DailyCollectionQueryDto,
@@ -84,6 +84,7 @@ export class PaymentsController {
   }
 
   @Get('payments/:paymentId')
+  @Can('billing.invoice.view')
   async detail(
     @ActiveTenant() t: TenantContext,
     @Param('paymentId', ParseUUIDPipe) id: string,
@@ -95,9 +96,10 @@ export class PaymentsController {
   }
 
   @Post('payments/:paymentId/unapply')
+  @Can('billing.invoice.edit')
   async unapply(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('paymentId', ParseUUIDPipe) id: string,
     @Body() dto: UnapplyPaymentDto,
   ) {
@@ -108,9 +110,10 @@ export class PaymentsController {
   }
 
   @Post('patients/:patientId/advance/apply')
+  @Can('billing.payment.collect')
   async applyAdvance(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Body() dto: ApplyAdvanceDto,
   ) {
@@ -121,9 +124,10 @@ export class PaymentsController {
   }
 
   @Post('refunds')
+  @Can('billing.refund.issue')
   async refund(
     @ActiveTenant() t: TenantContext,
-    @CurrentActor() a: Actor,
+    @Access() a: AccessContext,
     @Body() dto: CreateRefundDto,
   ) {
     return ResponseWrapper.success(
@@ -133,6 +137,7 @@ export class PaymentsController {
   }
 
   @Get('refunds')
+  @Can('billing.invoice.view')
   async listRefunds(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListRefundsQueryDto,
@@ -144,6 +149,7 @@ export class PaymentsController {
   }
 
   @Get('refunds/:refundId')
+  @Can('billing.invoice.view')
   async refundDetail(
     @ActiveTenant() t: TenantContext,
     @Param('refundId', ParseUUIDPipe) id: string,

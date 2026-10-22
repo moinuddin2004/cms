@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ChargePricingService } from '../../catalog/charge-pricing.service';
-import { BillingContext } from '../../common/billing-context';
+import { assertBillingCan } from '../../common/billing-context';
+import { assertCanSetPrice } from '../../charges/price-policy';
 import { billingError } from '../../common/billing-errors';
 import { BillingLookups } from '../../common/billing-lookups';
 import { Charge } from '../../entities/charge.entity';
@@ -50,18 +51,6 @@ function chargeOnInvoice(ctx: InvoiceEditContext, chargeId: string): Charge {
     );
   }
   return charge;
-}
-
-/** D5: reception may price only "Other" charges (or ones still needing a price). */
-function assertCanSetPrice(
-  actor: BillingContext['actor'],
-  charge: Charge,
-): void {
-  if (actor.isAdmin || !charge.serviceId || charge.needsPricing) return;
-  throw billingError(
-    'BILLING_PRICE_CHANGE_NOT_ALLOWED',
-    'Only an admin can change a catalog price',
-  );
 }
 
 class UpdateQuantityHandler
@@ -150,6 +139,7 @@ class VoidChargeHandler
     return { op: this.op, chargeId: required(i.chargeId, this.op, 'chargeId') };
   }
   apply(cmd: Op<'voidCharge'>, ctx: InvoiceEditContext): void {
+    assertBillingCan(ctx.ctx.actor, 'billing.invoice.void');
     voidCharge(
       chargeOnInvoice(ctx, cmd.chargeId),
       ctx.reason,

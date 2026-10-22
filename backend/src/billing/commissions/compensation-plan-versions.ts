@@ -5,6 +5,7 @@ import {
   LessThanOrEqual,
   MoreThanOrEqual,
 } from 'typeorm';
+import { expandImplies, normalizeGrants } from 'src/access/catalog/permissions';
 import { addDays } from 'src/common/clock/tz.util';
 import { pgError } from 'src/common/database/sql';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
@@ -39,11 +40,14 @@ const earnsCommission = (t: CompensationPlanType) =>
  * (no DI), so the employees module needs no billing wiring.
  */
 export const CompensationPlanVersions = {
-  /** Same rule as `AuthorizationService.resolveActor`: canConsult defaults on. */
+  /** The role grants `consultation.conduct` (fail-closed: no role, no grant). */
   canConsult(
     a: Pick<EmployeeOrgLocationAssignment, 'employmentRole'>,
   ): boolean {
-    return a.employmentRole?.permissions?.canConsult !== false;
+    const grants = expandImplies(
+      normalizeGrants(a.employmentRole?.permissions),
+    );
+    return grants['consultation.conduct'] !== undefined;
   },
 
   /** Field checks that need no database (422 on failure). */

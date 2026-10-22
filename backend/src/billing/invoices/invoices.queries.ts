@@ -1,4 +1,5 @@
-import { EntityManager } from 'typeorm';
+import { EntityManager, SelectQueryBuilder } from 'typeorm';
+import type { AccessContext } from 'src/access/access-context';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { DEFAULT_PAGE_SIZE } from '../billing.constants';
@@ -34,6 +35,36 @@ export interface InvoiceStats {
   };
 }
 
+/** What the invoice list needs to apply the `billing.invoice.view` scope. */
+export type InvoiceViewAccess = Pick<
+  AccessContext,
+  'scope' | 'applyScope' | 'employeeId'
+>;
+
+/**
+ * Row scope of `billing.invoice.view` on alias `i`: `location` / `org` go
+ * through applyScope; `own` = invoices carrying one of the doctor's charges.
+ */
+function scopeInvoices(
+  qb: SelectQueryBuilder<Invoice>,
+  access: InvoiceViewAccess,
+): void {
+  if (access.scope('billing.invoice.view') !== 'own') {
+    access.applyScope(qb, 'billing.invoice.view', {
+      location: 'i.location_id',
+    });
+    return;
+  }
+  if (!access.employeeId) {
+    qb.andWhere('1 = 0');
+    return;
+  }
+  qb.andWhere(
+    'EXISTS (SELECT 1 FROM charges sc WHERE sc.invoice_id = i.id AND sc.doctor_id = :scopeDoctorId)',
+    { scopeDoctorId: access.employeeId },
+  );
+}
+
 /** Read side for invoices (CQRS-lite): list, stats, detail, revisions. */
 export const InvoiceQueries = {
   async list(
@@ -41,6 +72,7 @@ export const InvoiceQueries = {
     tenant: TenantContext,
     q: ListInvoicesQueryDto,
     today: string,
+    access: InvoiceViewAccess,
   ): Promise<PaginatedResponseDto<InvoiceResponse>> {
     const page = q.page ?? 1;
     const limit = q.limit ?? DEFAULT_PAGE_SIZE;
@@ -53,6 +85,7 @@ export const InvoiceQueries = {
         loc: tenant.locationId,
       })
       .setParameter('today', today);
+    scopeInvoices(qb, access);
     if (q.paymentStatus)
       qb.andWhere(paymentStatusSql(q.paymentStatus as InvoiceListStatus));
     if (q.patientId)

@@ -8,13 +8,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useBillingAccess } from '../../hooks/use-billing-access'
+import { useAccess } from '@/features/access'
 import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import {
   useDiscountTypes,
   usePatientCharges,
 } from '../../hooks/use-billing-queries'
 import { billingError } from '../../lib/billing-errors'
+import { DISCOUNT_PERMS } from '../../lib/billing-permissions'
 import { invoicesApi } from '../../services/billing-v2.api'
 import type { Charge, Invoice, InvoiceEditOp } from '../../types/billing.types'
 import { OptionSelect } from '../shared/OptionSelect'
@@ -53,7 +54,10 @@ export function EditInvoiceSheet({
   onSaveAndRefund: (edit: InvoiceEditRequest, releasedToAdvance: number) => void
   onReload: () => void
 }) {
-  const { isAdmin } = useBillingAccess()
+  const { can } = useAccess()
+  const canOverridePrice = can('billing.price.override')
+  const canDiscount = can(DISCOUNT_PERMS)
+  const canVoid = can('billing.invoice.void')
   const [state, dispatch] = useReducer(editInvoiceReducer, emptyEditState)
   const discountTypes = useDiscountTypes(true, open)
   const unbilled = usePatientCharges(invoice.patient.id, 'unbilled')
@@ -161,7 +165,9 @@ export function EditInvoiceSheet({
               key={c.id}
               charge={c}
               edit={state.edits[c.id] ?? {}}
-              canPrice={isAdmin || !c.serviceId}
+              canPrice={canOverridePrice || !c.serviceId}
+              canDiscount={canDiscount}
+              canVoid={canVoid}
               discountOptions={(discountTypes.data ?? []).map((t) => ({
                 value: t.id,
                 label: t.name,
@@ -262,6 +268,8 @@ function EditRow({
   charge,
   edit,
   canPrice,
+  canDiscount,
+  canVoid,
   discountOptions,
   onChange,
 }: {
@@ -273,6 +281,8 @@ function EditRow({
     discountTypeId?: string | null
   }
   canPrice: boolean
+  canDiscount: boolean
+  canVoid: boolean
   discountOptions: Array<{ value: string; label: string }>
   onChange: (patch: {
     quantity?: number
@@ -318,7 +328,7 @@ function EditRow({
       />
       <OptionSelect
         className="h-8 w-full"
-        disabled={edit.void}
+        disabled={edit.void || !canDiscount}
         value={discountValue}
         onChange={(v) =>
           onChange({
@@ -336,14 +346,18 @@ function EditRow({
           ...discountOptions,
         ]}
       />
-      <label className="flex items-center gap-1.5 text-xs">
-        <Checkbox
-          checked={!!edit.void}
-          onCheckedChange={(v) => onChange({ void: v === true })}
-          aria-label={`Void ${charge.description}`}
-        />
-        Void
-      </label>
+      {canVoid ? (
+        <label className="flex items-center gap-1.5 text-xs">
+          <Checkbox
+            checked={!!edit.void}
+            onCheckedChange={(v) => onChange({ void: v === true })}
+            aria-label={`Void ${charge.description}`}
+          />
+          Void
+        </label>
+      ) : (
+        <span />
+      )}
     </div>
   )
 }

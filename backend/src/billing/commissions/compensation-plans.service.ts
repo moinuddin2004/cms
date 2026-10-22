@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In } from 'typeorm';
-import { Actor } from 'src/common/enums/app-role.enum';
+import type { Actor } from 'src/common/enums/app-role.enum';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { BillingClock } from '../common/billing-clock.service';
@@ -88,7 +88,7 @@ export class CompensationPlansService {
   /** Closes the current version the day before and adds this one (one transaction). */
   async create(
     tenant: TenantContext,
-    actor: Actor,
+    actor: Pick<Actor, 'userId'>,
     assignmentId: string,
     dto: CompensationPlanDto,
   ): Promise<CompensationOverview> {
@@ -123,7 +123,7 @@ export class CompensationPlansService {
   ): Promise<CompensationOverview> {
     const { today } = await this.clock.read(tenant.locationId);
     const assignmentId = await this.dataSource.transaction(async (manager) => {
-      const [locked] = await manager.query(
+      const [locked]: Array<{ id: string }> = await manager.query(
         `SELECT id FROM compensation_plans WHERE id = $1 AND organization_id = $2 FOR UPDATE`,
         [planId, tenant.organizationId],
       );
