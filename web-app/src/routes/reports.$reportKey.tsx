@@ -1,26 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
-import { RequireRolePage } from '@/components/feature/RequireRolePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import {
-  REPORTS_CLINICAL_FEATURE,
-  REPORTS_FEATURE,
-  ReportViewerPage,
-} from '@/features/reports'
+import { ReportViewerPage } from '@/features/reports'
 
+// Each report also needs its own permission (financial / clinical): the
+// API answers 403 for the other kind, shown by the viewer's error state.
 export const Route = createFileRoute('/reports/$reportKey')({
+  staticData: { can: ['reports.financial.view', 'reports.clinical.view'] },
   component: ReportRoute,
 })
 
 function ReportRoute() {
   const { reportKey } = Route.useParams()
   return (
-    <RequireFeaturePage feature={[REPORTS_FEATURE, REPORTS_CLINICAL_FEATURE]}>
-      <RequireRolePage roles={['clinic_admin']}>
-        <DashboardLayout>
-          <ReportViewerPage key={reportKey} reportKey={reportKey} />
-        </DashboardLayout>
-      </RequireRolePage>
-    </RequireFeaturePage>
+    <DashboardLayout>
+      <ReportViewerPage key={reportKey} reportKey={reportKey} />
+    </DashboardLayout>
   )
 }

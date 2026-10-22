@@ -34,7 +34,13 @@ export interface ReportCatalogItem {
   description: string
   category: ReportCategory
   filters: ReportFilterSpec
+  /** Permission that gates the report; its scope decides the reach. */
+  permission: ReportPermission
 }
+
+export type ReportPermission =
+  | 'reports.financial.view'
+  | 'reports.clinical.view'
 
 export interface ReportColumn {
   key: string

@@ -22,14 +22,11 @@ import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { Can } from 'src/access/decorators/access.decorators';
 
-@RequireFeature('hr.payroll')
+@Can('payroll.manage')
 @Controller('payroll')
-@Roles(AppRole.CLINIC_ADMIN)
 export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
@@ -115,10 +112,7 @@ export class PayrollController {
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.payrollService.markOnHold(
-      id,
-      ctx.organizationId,
-    );
+    const data = await this.payrollService.markOnHold(id, ctx.organizationId);
     return ResponseWrapper.success(
       data,
       'Payroll marked as on hold successfully',

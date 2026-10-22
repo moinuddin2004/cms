@@ -3,6 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/useAuthStore'
+import { createAccessChecks } from '@/features/access/lib/access'
+import {
+  AccessContext,
+  DISABLED_ACCESS,
+} from '@/features/access/lib/access-context'
+import type { AccessContextValue } from '@/features/access/lib/access-context'
+import type { MeAccess } from '@/features/access'
 
 import { periodRange, useReportsStore } from './hooks/use-reports-store'
 import { compactMoney, formatReportValue } from './lib/report-format'
@@ -39,6 +46,10 @@ vi.mock('@tanstack/react-router', () => ({
   ),
   useNavigate: () => vi.fn(),
 }))
+vi.mock('@/components/layout/DashboardLayout', () => ({
+  // breaks the access barrel → NoAccess → DashboardLayout → Sidebar cycle
+  DashboardLayout: ({ children }: { children: ReactNode }) => <>{children}</>,
+}))
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))
@@ -62,6 +73,7 @@ const catalog: ReportCatalogItem[] = [
     description: 'Revenue, costs and net profit.',
     category: 'finance',
     filters: { dates: 'range', basis: true },
+    permission: 'reports.financial.view',
   },
   {
     key: 'collections',
@@ -69,6 +81,7 @@ const catalog: ReportCatalogItem[] = [
     description: 'Every receipt.',
     category: 'revenue',
     filters: { dates: 'range' },
+    permission: 'reports.financial.view',
   },
   {
     key: 'outstanding',
@@ -76,6 +89,7 @@ const catalog: ReportCatalogItem[] = [
     description: 'Who owes money.',
     category: 'revenue',
     filters: { dates: 'asOf' },
+    permission: 'reports.financial.view',
   },
   {
     key: 'expenses',
@@ -83,6 +97,7 @@ const catalog: ReportCatalogItem[] = [
     description: 'Every expense.',
     category: 'expenses',
     filters: { dates: 'range', expenseCategory: true },
+    permission: 'reports.financial.view',
   },
 ]
 
@@ -304,14 +319,58 @@ function routeApi() {
   })
 }
 
+/** Access as the page sees it: owner-like by default (every grant, org-wide). */
+function accessOf(
+  permissions: MeAccess['permissions'],
+  isOwner = false,
+): AccessContextValue {
+  const data = {
+    version: 1,
+    organizationId: 'o1',
+    locationId: 'l1',
+    isSuperAdmin: false,
+    isOwner,
+    features: [],
+    permissions,
+    roles: [],
+    employeeId: 'e1',
+    homeRoute: null,
+    nav: null,
+  } satisfies MeAccess
+  return {
+    ...DISABLED_ACCESS,
+    ...createAccessChecks(data),
+    status: 'ready',
+    isOwner,
+    employeeId: 'e1',
+    version: 1,
+  }
+}
+
+const OWNER = accessOf(
+  {
+    'reports.financial.view': 'org',
+    'reports.clinical.view': 'org',
+    'reports.export': true,
+    'finance.overview.view': true,
+  },
+  true,
+)
+let access = OWNER
+
 function renderWithQuery(ui: ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+  return render(
+    <QueryClientProvider client={client}>
+      <AccessContext.Provider value={access}>{ui}</AccessContext.Provider>
+    </QueryClientProvider>,
+  )
 }
 
 beforeEach(() => {
+  access = OWNER
   api.get.mockReset()
   routeApi()
   useReportsStore.setState({
@@ -428,6 +487,22 @@ describe('FinanceDashboardPage', () => {
     })
   })
 
+  it('keeps a location-scoped grant on this location', async () => {
+    access = accessOf({
+      'finance.overview.view': true,
+      'reports.financial.view': 'location',
+    })
+    renderWithQuery(<FinanceDashboardPage />)
+    await screen.findByText('Revenue (collected)')
+    expect(screen.queryByRole('button', { name: /All locations/ })).toBeNull()
+    const call = api.get.mock.calls.find(
+      ([u]) => u === '/reports/finance/overview',
+    )
+    expect((call?.[1] as { params: Record<string, string> }).params.scope).toBe(
+      'location',
+    )
+  })
+
   it('shows a retry state when the overview fails', async () => {
     api.get.mockImplementation((url: string) =>
       url === '/reports/finance/overview'
@@ -464,6 +539,13 @@ describe('ReportViewerPage', () => {
     expect(screen.getByText('PKR 3,900')).toBeTruthy()
     expect(screen.getByText('A note about this report.')).toBeTruthy()
     expect(screen.getByText('Download')).toBeTruthy()
+  })
+
+  it('hides the download without reports.export', async () => {
+    access = accessOf({ 'reports.financial.view': 'org' })
+    renderWithQuery(<ReportViewerPage reportKey="collections" />)
+    expect(await screen.findByText('QA One')).toBeTruthy()
+    expect(screen.queryByText('Download')).toBeNull()
   })
 
   it('renders the P&L as a statement and sends the basis', async () => {
