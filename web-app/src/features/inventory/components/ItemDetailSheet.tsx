@@ -4,6 +4,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Can } from '@/features/access/components/Can'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -54,7 +55,10 @@ export function ItemDetailSheet({
               <Info label="SKU" value={item.sku ?? '—'} />
               <Info label="Category" value={item.category?.name ?? '—'} />
               <Info label="Unit" value={item.unit} />
-              <Info label="Cost Price" value={formatCurrency(Number(item.unitPrice))} />
+              <Info
+                label="Cost Price"
+                value={formatCurrency(Number(item.unitPrice))}
+              />
               {item.isBillable && (
                 <Info
                   label="Selling Price"
@@ -76,18 +80,22 @@ export function ItemDetailSheet({
             </div>
 
             {item.description && (
-              <p className="text-sm text-muted-foreground">{item.description}</p>
+              <p className="text-sm text-muted-foreground">
+                {item.description}
+              </p>
             )}
 
             {/* Stock bar */}
             <StockBar item={item} />
 
-            <div className="flex gap-2">
-              <Button onClick={() => onAdjust(item)}>Adjust Stock</Button>
-              <Button variant="outline" onClick={() => onEdit(item)}>
-                Edit Item
-              </Button>
-            </div>
+            <Can perm="inventory.stock.adjust">
+              <div className="flex gap-2">
+                <Button onClick={() => onAdjust(item)}>Adjust Stock</Button>
+                <Button variant="outline" onClick={() => onEdit(item)}>
+                  Edit Item
+                </Button>
+              </div>
+            </Can>
 
             {/* Movement history */}
             <div className="space-y-2">
@@ -156,7 +164,9 @@ function Info({ label, value }: { label: string; value: string }) {
 function StockBar({ item }: { item: InventoryItem }) {
   const stock = Number(item.currentStock)
   const reorder = Number(item.reorderLevel)
-  const max = item.maxStock ? Number(item.maxStock) : Math.max(reorder * 3, stock)
+  const max = item.maxStock
+    ? Number(item.maxStock)
+    : Math.max(reorder * 3, stock)
   const pct = max > 0 ? Math.min(100, (stock / max) * 100) : 0
   const level = getStockLevel(item)
   const barColor =

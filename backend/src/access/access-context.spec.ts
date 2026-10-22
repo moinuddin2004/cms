@@ -115,6 +115,101 @@ describe('AccessContext', () => {
         c.applyScope(fakeQb(), 'patients.view', { location: 'x' }),
       ).toThrow(/no column given for scope "own"/);
     });
+
+    describe('ownWhere / locationWhere', () => {
+      const pred = {
+        own: 'p.primary_doctor_id',
+        ownWhere:
+          'EXISTS (SELECT 1 FROM appointments a WHERE a.patient_id = p.id AND a.doctor_id = :employeeId) OR p.x = :employeeId',
+        locationWhere: 'p.primary_location_id = :locationId',
+      };
+
+      it('own → the predicate, every :employeeId bound to one fresh name', () => {
+        const qb = fakeQb();
+        ctx({ permissions: { 'patients.view': 'own' } }).applyScope(
+          qb,
+          'patients.view',
+          pred,
+        );
+        const [w] = qb.wheres;
+        const [name] = Object.keys(w.params!);
+        expect(name).toMatch(/^access_scope_\d+$/);
+        expect(w.params).toEqual({ [name]: 'emp1' });
+        expect(w.sql).not.toContain(':employeeId');
+        expect(w.sql.split(`:${name}`)).toHaveLength(3);
+        // wrapped so a top-level OR cannot escape the caller's other filters
+        expect(w.sql.startsWith('(EXISTS')).toBe(true);
+        expect(w.sql.endsWith(')')).toBe(true);
+      });
+
+      it('location → locationWhere bound to the active location', () => {
+        const qb = fakeQb();
+        ctx({ permissions: { 'patients.view': 'location' } }).applyScope(
+          qb,
+          'patients.view',
+          pred,
+        );
+        expect(qb.wheres[0].sql).toMatch(
+          /^\(p\.primary_location_id = :access_scope_\d+\)$/,
+        );
+        expect(Object.values(qb.wheres[0].params!)).toEqual(['loc1']);
+      });
+
+      it('never interpolates the value into the SQL', () => {
+        const qb = fakeQb();
+        const evil = "x' OR '1'='1";
+        ctx({
+          permissions: { 'patients.view': 'own' },
+          employeeId: evil,
+        }).applyScope(qb, 'patients.view', pred);
+        expect(qb.wheres[0].sql).not.toContain(evil);
+        expect(Object.values(qb.wheres[0].params!)).toEqual([evil]);
+      });
+
+      it('does not touch longer names that start with the token', () => {
+        const qb = fakeQb();
+        ctx({ permissions: { 'patients.view': 'own' } }).applyScope(
+          qb,
+          'patients.view',
+          { ownWhere: 'a.doctor_id = :employeeId AND b.y = :employeeIds' },
+        );
+        expect(qb.wheres[0].sql).toContain(':employeeIds');
+      });
+
+      it('no grant or no employee → no rows', () => {
+        for (const c of [
+          ctx(),
+          ctx({ permissions: { 'patients.view': 'own' }, employeeId: null }),
+          ctx({
+            permissions: { 'patients.view': 'location' },
+            locationId: null,
+          }),
+        ]) {
+          const qb = fakeQb();
+          c.applyScope(qb, 'patients.view', pred);
+          expect(qb.wheres).toEqual([{ sql: '1 = 0', params: undefined }]);
+        }
+      });
+
+      it('org → no filter', () => {
+        const qb = fakeQb();
+        ctx({ permissions: { 'patients.view': 'org' } }).applyScope(
+          qb,
+          'patients.view',
+          pred,
+        );
+        expect(qb.wheres).toEqual([]);
+      });
+
+      it('throws when the predicate does not use its token', () => {
+        const c = ctx({ permissions: { 'patients.view': 'own' } });
+        expect(() =>
+          c.applyScope(fakeQb(), 'patients.view', {
+            ownWhere: 'p.doctor_id = :doctorId',
+          }),
+        ).toThrow(/must use :employeeId/);
+      });
+    });
   });
 
   describe('decide', () => {

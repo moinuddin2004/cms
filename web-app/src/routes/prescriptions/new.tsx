@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
-import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { PrescriptionBuilder } from '@/features/prescriptions'
 
@@ -10,12 +9,9 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/prescriptions/new')({
+  staticData: { can: 'prescriptions.create' },
   validateSearch: searchSchema,
-  component: () => (
-    <RequireFeaturePage feature="patients.prescriptions">
-      <NewPrescriptionPage />
-    </RequireFeaturePage>
-  ),
+  component: () => <NewPrescriptionPage />,
 })
 
 function NewPrescriptionPage() {

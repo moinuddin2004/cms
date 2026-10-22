@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { Can } from '@/features/access/components/Can'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -99,15 +100,17 @@ export function EncounterDetailDialog({
                   Treatments ({encounter.treatments?.length ?? 0})
                 </p>
                 {!hideAmounts && (
-                  <TreatmentFormDialog
-                    patientId={patientId}
-                    encounterId={encounter.id}
-                    trigger={
-                      <Button size="sm" variant="outline">
-                        <Plus size={14} className="mr-1.5" /> Add treatment
-                      </Button>
-                    }
-                  />
+                  <Can perm="patients.clinical.edit">
+                    <TreatmentFormDialog
+                      patientId={patientId}
+                      encounterId={encounter.id}
+                      trigger={
+                        <Button size="sm" variant="outline">
+                          <Plus size={14} className="mr-1.5" /> Add treatment
+                        </Button>
+                      }
+                    />
+                  </Can>
                 )}
               </div>
 

@@ -25,6 +25,8 @@ import { PrescriptionTemplateService } from './prescription-template.service';
 import { DoctorSignatureService } from './doctor-signature.service';
 import { PrescriptionHistoryService } from './prescription-history.service';
 import { PrescriptionPdfService } from './prescription-pdf.service';
+import type { AccessContext } from 'src/access/access-context';
+import { patientScope } from 'src/patients/access/patient-scope';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Injectable()
@@ -151,10 +153,7 @@ export class PrescriptionService {
   // READ
   // ═══════════════════════════════════════════════════════════
 
-  async findOne(
-    id: string,
-    organizationId: string,
-  ): Promise<Prescription> {
+  async findOne(id: string, organizationId: string): Promise<Prescription> {
     const row = await this.repo.findOne({
       where: { id, organizationId },
       relations: [
@@ -169,9 +168,11 @@ export class PrescriptionService {
     return row;
   }
 
+  /** Prescriptions of patients inside the caller's `patients.view` scope. */
   async findAll(
     ctx: TenantContext,
     filters: PrescriptionFilterDto,
+    access: AccessContext,
   ): Promise<{
     data: Prescription[];
     total: number;
@@ -190,9 +191,12 @@ export class PrescriptionService {
         organizationId: ctx.organizationId,
       })
       .andWhere('p.location_id = :locationId', { locationId: ctx.locationId });
+    access.applyScope(qb, 'patients.view', patientScope('p.patient_id'));
 
     if (filters.patientId) {
-      qb.andWhere('p.patient_id = :patientId', { patientId: filters.patientId });
+      qb.andWhere('p.patient_id = :patientId', {
+        patientId: filters.patientId,
+      });
     }
     if (filters.doctorId) {
       qb.andWhere('p.doctor_id = :doctorId', { doctorId: filters.doctorId });
@@ -258,7 +262,13 @@ export class PrescriptionService {
 
   async getStats(
     ctx: TenantContext,
-  ): Promise<{ total: number; thisMonth: number; finalized: number; draft: number }> {
+    access: AccessContext,
+  ): Promise<{
+    total: number;
+    thisMonth: number;
+    finalized: number;
+    draft: number;
+  }> {
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
@@ -269,6 +279,7 @@ export class PrescriptionService {
         organizationId: ctx.organizationId,
       })
       .andWhere('p.location_id = :locationId', { locationId: ctx.locationId });
+    access.applyScope(base, 'patients.view', patientScope('p.patient_id'));
 
     const total = await base.clone().getCount();
     const thisMonth = await base

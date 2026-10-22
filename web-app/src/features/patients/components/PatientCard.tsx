@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   Tooltip,
@@ -10,7 +11,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
-import { Eye, Pencil, Trash2, Phone, Mail, MapPin, Droplets, Calendar } from 'lucide-react'
+import {
+  Eye,
+  Pencil,
+  Trash2,
+  Phone,
+  Mail,
+  MapPin,
+  Droplets,
+  Calendar,
+} from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientCardProps {
@@ -51,7 +61,11 @@ export function PatientCard({
 
         <CardContent className="p-5">
           <div className="flex items-start gap-3 mb-4">
-            <InitialsAvatar name={patient.fullName} seed={patient.id} size="md" />
+            <InitialsAvatar
+              name={patient.fullName}
+              seed={patient.id}
+              size="md"
+            />
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
@@ -66,11 +80,16 @@ export function PatientCard({
                   <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">
                     {patient.patientNumber}
                     {patient.dob && (
-                      <span className="text-muted-foreground/60"> · {getAge(patient.dob)}</span>
+                      <span className="text-muted-foreground/60">
+                        {' '}
+                        · {getAge(patient.dob)}
+                      </span>
                     )}
                   </p>
                 </div>
-                <StatusBadge status={patient.isActive ? 'active' : 'inactive'} />
+                <StatusBadge
+                  status={patient.isActive ? 'active' : 'inactive'}
+                />
               </div>
             </div>
           </div>
@@ -78,7 +97,10 @@ export function PatientCard({
           <div className="space-y-2 text-xs text-muted-foreground mb-4">
             {patient.phone && (
               <div className="flex items-center gap-2.5">
-                <Phone size={12} className="shrink-0 text-muted-foreground/50" />
+                <Phone
+                  size={12}
+                  className="shrink-0 text-muted-foreground/50"
+                />
                 <span className="truncate">{patient.phone}</span>
               </div>
             )}
@@ -90,13 +112,19 @@ export function PatientCard({
             )}
             {patient.city && (
               <div className="flex items-center gap-2.5">
-                <MapPin size={12} className="shrink-0 text-muted-foreground/50" />
+                <MapPin
+                  size={12}
+                  className="shrink-0 text-muted-foreground/50"
+                />
                 <span>{patient.city}</span>
               </div>
             )}
             {patient.dob && (
               <div className="flex items-center gap-2.5">
-                <Calendar size={12} className="shrink-0 text-muted-foreground/50" />
+                <Calendar
+                  size={12}
+                  className="shrink-0 text-muted-foreground/50"
+                />
                 <span>{getDobDisplay(patient.dob)}</span>
               </div>
             )}
@@ -124,47 +152,58 @@ export function PatientCard({
                 className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
                 asChild
               >
-                <Link to="/patients/$patientId" params={{ patientId: patient.id }}>
+                <Link
+                  to="/patients/$patientId"
+                  params={{ patientId: patient.id }}
+                >
                   <Eye className="h-3.5 w-3.5" />
                 </Link>
               </TooltipButton>
-              <TooltipButton
-                tooltip="Edit patient"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
-                onClick={() => onEdit(patient)}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </TooltipButton>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <Switch
-                      size="sm"
-                      checked={patient.isActive}
-                      disabled={isStatusPending}
-                      onCheckedChange={(v) => onToggleStatus(patient, v)}
-                      aria-label={
-                        patient.isActive ? 'Deactivate patient' : 'Activate patient'
-                      }
-                    />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {patient.isActive ? 'Deactivate patient' : 'Activate patient'}
-                </TooltipContent>
-              </Tooltip>
+              <Can perm="patients.edit">
+                <TooltipButton
+                  tooltip="Edit patient"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                  onClick={() => onEdit(patient)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </TooltipButton>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <Switch
+                        size="sm"
+                        checked={patient.isActive}
+                        disabled={isStatusPending}
+                        onCheckedChange={(v) => onToggleStatus(patient, v)}
+                        aria-label={
+                          patient.isActive
+                            ? 'Deactivate patient'
+                            : 'Activate patient'
+                        }
+                      />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {patient.isActive
+                      ? 'Deactivate patient'
+                      : 'Activate patient'}
+                  </TooltipContent>
+                </Tooltip>
+              </Can>
 
-              <TooltipButton
-                tooltip="Delete patient permanently"
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                onClick={() => onDelete(patient)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </TooltipButton>
+              <Can perm="patients.delete">
+                <TooltipButton
+                  tooltip="Delete patient permanently"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => onDelete(patient)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </TooltipButton>
+              </Can>
             </div>
           </div>
         </CardContent>

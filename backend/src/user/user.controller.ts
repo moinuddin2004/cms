@@ -22,6 +22,7 @@ import { User } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ContextFree } from 'src/common/decorators/context-free.decorator';
 
 type UserRequest = {
   user: User;
@@ -31,6 +32,7 @@ type UserRequest = {
 /** What user management needs (super admins are exempt: platform-level). */
 export const USERS_PERMISSION: Permission = 'admin.users.manage';
 
+@ContextFree()
 @Controller('user')
 export class UserController {
   constructor(

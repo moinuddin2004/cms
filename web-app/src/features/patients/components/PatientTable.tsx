@@ -9,6 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
@@ -115,9 +116,7 @@ export function PatientTable({
         cell: ({ getValue }) => {
           const v = getValue<string | null>()
           return (
-            <span className="text-sm text-muted-foreground">
-              {v ?? '—'}
-            </span>
+            <span className="text-sm text-muted-foreground">{v ?? '—'}</span>
           )
         },
       },
@@ -149,42 +148,48 @@ export function PatientTable({
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Link>
                 </TooltipButton>
-                <TooltipButton
-                  tooltip="Edit patient"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => onEdit(p)}
-                >
-                  <Pencil className="h-4 w-4 text-muted-foreground" />
-                </TooltipButton>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <Switch
-                        size="sm"
-                        checked={p.isActive}
-                        disabled={pendingStatusId === p.id}
-                        onCheckedChange={(v) => onToggleStatus(p, v)}
-                        aria-label={
-                          p.isActive ? 'Deactivate patient' : 'Activate patient'
-                        }
-                      />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {p.isActive ? 'Deactivate patient' : 'Activate patient'}
-                  </TooltipContent>
-                </Tooltip>
-                <TooltipButton
-                  tooltip="Delete patient permanently"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => onDelete(p)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </TooltipButton>
+                <Can perm="patients.edit">
+                  <TooltipButton
+                    tooltip="Edit patient"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => onEdit(p)}
+                  >
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                  </TooltipButton>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Switch
+                          size="sm"
+                          checked={p.isActive}
+                          disabled={pendingStatusId === p.id}
+                          onCheckedChange={(v) => onToggleStatus(p, v)}
+                          aria-label={
+                            p.isActive
+                              ? 'Deactivate patient'
+                              : 'Activate patient'
+                          }
+                        />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      {p.isActive ? 'Deactivate patient' : 'Activate patient'}
+                    </TooltipContent>
+                  </Tooltip>
+                </Can>
+                <Can perm="patients.delete">
+                  <TooltipButton
+                    tooltip="Delete patient permanently"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => onDelete(p)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </TooltipButton>
+                </Can>
               </div>
             </TooltipProvider>
           )

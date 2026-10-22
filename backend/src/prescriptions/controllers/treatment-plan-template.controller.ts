@@ -19,18 +19,19 @@ import {
 } from '../dto/treatment-plan-template.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+// Reads are @AnyMember, so the feature check stays at class level.
 @RequireFeature('patients.prescriptions')
 @Controller('treatment-plan-templates')
 export class TreatmentPlanTemplateController {
-  constructor(
-    private readonly service: TreatmentPlanTemplateService,
-  ) {}
+  constructor(private readonly service: TreatmentPlanTemplateService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Can('prescriptions.library.manage')
   async create(
     @Body() dto: CreateTreatmentPlanTemplateDto,
     @ActiveTenant() ctx: TenantContext,
@@ -45,6 +46,7 @@ export class TreatmentPlanTemplateController {
   }
 
   @Get()
+  @AnyMember()
   async findAll(
     @Query('category') category: string | undefined,
     @ActiveTenant() ctx: TenantContext,
@@ -54,6 +56,7 @@ export class TreatmentPlanTemplateController {
   }
 
   @Get(':id')
+  @AnyMember()
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -63,6 +66,7 @@ export class TreatmentPlanTemplateController {
   }
 
   @Patch(':id')
+  @Can('prescriptions.library.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTreatmentPlanTemplateDto,
@@ -73,6 +77,7 @@ export class TreatmentPlanTemplateController {
   }
 
   @Delete(':id')
+  @Can('prescriptions.library.manage')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,

@@ -23,12 +23,14 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useAccess } from '@/features/access/hooks/useAccess'
 
 export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
   const { data: vitals = [], isLoading: loadingVitals } = useVitals(patient.id)
   const { data: dentalInfo, isLoading: loadingDental } = useDentalInfo(
     patient.id,
   )
+  const canEdit = useAccess().can('patients.clinical.edit')
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-4 animate-in fade-in duration-300">
@@ -60,16 +62,18 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
           </div>
         )}
 
-        <Card className="mt-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-md flex items-center gap-2">
-              <Plus size={16} /> Record New Vitals
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <VitalsForm patientId={patient.id} />
-          </CardContent>
-        </Card>
+        {canEdit && (
+          <Card className="mt-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-md flex items-center gap-2">
+                <Plus size={16} /> Record New Vitals
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VitalsForm patientId={patient.id} />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Dental Info Section */}
@@ -90,11 +94,14 @@ export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
             ) : (
               // Re-key on the record id so the form re-initialises with the
               // saved values once the upsert completes.
-              <DentalInfoForm
-                key={dentalInfo?.id ?? 'new'}
-                patientId={patient.id}
-                existing={dentalInfo ?? undefined}
-              />
+              // View-only without `patients.clinical.edit`.
+              <fieldset disabled={!canEdit} className="min-w-0">
+                <DentalInfoForm
+                  key={dentalInfo?.id ?? 'new'}
+                  patientId={patient.id}
+                  existing={dentalInfo ?? undefined}
+                />
+              </fieldset>
             )}
           </CardContent>
         </Card>
@@ -113,7 +120,10 @@ function VitalCard({ vital }: { vital: PatientVitals }) {
           </span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-sm mt-3">
-          <Metric label="BP" value={`${vital.bpSystolic || '-'}/${vital.bpDiastolic || '-'}`} />
+          <Metric
+            label="BP"
+            value={`${vital.bpSystolic || '-'}/${vital.bpDiastolic || '-'}`}
+          />
           <Metric label="Pulse" value={vital.pulseRate} unit="bpm" />
           <Metric label="Temp" value={vital.temperature} unit="°C" />
           <Metric label="SpO₂" value={vital.oxygenSaturation} unit="%" />
@@ -162,8 +172,7 @@ function range(min: number, max: number, label: string) {
     if (value === undefined || value === '') return undefined
     const n = typeof value === 'string' ? Number(value) : value
     if (Number.isNaN(n)) return undefined
-    if (n < min || n > max)
-      return `${label} must be between ${min} and ${max}`
+    if (n < min || n > max) return `${label} must be between ${min} and ${max}`
     return undefined
   }
 }
@@ -429,7 +438,10 @@ function DentalInfoForm({
                   checked={field.state.value}
                   onCheckedChange={(v) => field.handleChange(!!v)}
                 />
-                <Label htmlFor="smokingStatus" className="text-xs cursor-pointer">
+                <Label
+                  htmlFor="smokingStatus"
+                  className="text-xs cursor-pointer"
+                >
                   Smoker
                 </Label>
               </div>

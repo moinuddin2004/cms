@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { RequireFeaturePage } from '@/components/feature/RequireFeaturePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -8,11 +7,8 @@ import { PatientDetailHeader } from '@/features/patients/components/PatientDetai
 import { PatientDetailTabs } from '@/features/patients/components/PatientDetailTabs'
 
 export const Route = createFileRoute('/patients/$patientId/')({
-  component: () => (
-    <RequireFeaturePage feature="patients.core">
-      <PatientDetailPage />
-    </RequireFeaturePage>
-  ),
+  staticData: { can: 'patients.view' },
+  component: () => <PatientDetailPage />,
 })
 
 function PatientDetailPage() {

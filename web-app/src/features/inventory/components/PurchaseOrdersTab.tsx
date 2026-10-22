@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Can } from '@/features/access/components/Can'
 import {
   Dialog,
   DialogContent,
@@ -89,9 +90,11 @@ export function PurchaseOrdersTab() {
             </Button>
           ))}
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Create PO
-        </Button>
+        <Can perm="inventory.po.manage">
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Create PO
+          </Button>
+        </Can>
       </div>
 
       <Card>
@@ -454,38 +457,40 @@ function PODetailSheet({
               <POStatusBadge status={po.status} />
             </div>
 
-            {/* Action buttons per status */}
-            <div className="flex flex-wrap gap-2">
-              {po.status === 'DRAFT' && (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={() =>
-                      statusMutation.mutate({ id: po.id, status: 'ORDERED' })
-                    }
-                    disabled={statusMutation.isPending}
-                  >
-                    Mark as Ordered
+            <Can perm="inventory.po.manage">
+              {/* Action buttons per status */}
+              <div className="flex flex-wrap gap-2">
+                {po.status === 'DRAFT' && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        statusMutation.mutate({ id: po.id, status: 'ORDERED' })
+                      }
+                      disabled={statusMutation.isPending}
+                    >
+                      Mark as Ordered
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => cancelMutation.mutate(po.id)}
+                      disabled={cancelMutation.isPending}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
+                {(po.status === 'ORDERED' ||
+                  po.status === 'PARTIALLY_RECEIVED') && (
+                  <Button size="sm" onClick={() => setReceiveOpen(true)}>
+                    {po.status === 'PARTIALLY_RECEIVED'
+                      ? 'Receive More Items'
+                      : 'Receive Items'}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => cancelMutation.mutate(po.id)}
-                    disabled={cancelMutation.isPending}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              )}
-              {(po.status === 'ORDERED' ||
-                po.status === 'PARTIALLY_RECEIVED') && (
-                <Button size="sm" onClick={() => setReceiveOpen(true)}>
-                  {po.status === 'PARTIALLY_RECEIVED'
-                    ? 'Receive More Items'
-                    : 'Receive Items'}
-                </Button>
-              )}
-            </div>
+                )}
+              </div>
+            </Can>
 
             {/* Items table */}
             <div className="rounded-md border">
