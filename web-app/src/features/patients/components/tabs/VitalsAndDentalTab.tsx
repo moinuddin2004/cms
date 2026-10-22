@@ -23,7 +23,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useAccess } from '@/features/access'
+import { useAccess } from '@/features/access/hooks/useAccess'
 
 export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
   const { data: vitals = [], isLoading: loadingVitals } = useVitals(patient.id)

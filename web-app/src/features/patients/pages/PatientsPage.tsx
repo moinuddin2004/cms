@@ -22,7 +22,8 @@ import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
 import { EditPatientSheet } from '../components/EditPatientSheet'
 import type { Patient, PatientListParams } from '../types'
-import { Can, useAccess } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
+import { useAccess } from '@/features/access/hooks/useAccess'
 
 const DEFAULT_PARAMS: PatientListParams = {
   page: 1,

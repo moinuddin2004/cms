@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { PatientBillingTab } from '@/features/billing'
 import { PatientMessagesCard } from '@/features/notifications'
-import { useAccess } from '@/features/access'
+import { useAccess } from '@/features/access/hooks/useAccess'
 import type { Patient } from '../types'
 import { visiblePatientTabs } from '../utils/patientTabs'
 import type { PatientTab } from '../utils/patientTabs'

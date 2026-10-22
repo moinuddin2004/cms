@@ -3,7 +3,7 @@ import { Pencil, PowerOff } from 'lucide-react'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import type { ServerPagination } from '@/components/shared/DataTable'
 import { Pagination } from '@/components/shared'
-import { useAccess } from '@/features/access'
+import { useAccess } from '@/features/access/hooks/useAccess'
 
 /**
  * Edit + Deactivate icon buttons used on every Library row and card; only

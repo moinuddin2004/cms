@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar, StatusBadge } from '@/components/shared'

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ClipboardList, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'

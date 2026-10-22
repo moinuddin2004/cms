@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import {
   Tooltip,

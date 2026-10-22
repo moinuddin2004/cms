@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {

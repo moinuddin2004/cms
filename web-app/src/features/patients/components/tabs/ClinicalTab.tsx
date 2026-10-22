@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'

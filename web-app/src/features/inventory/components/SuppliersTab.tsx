@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import {
   Dialog,
   DialogContent,

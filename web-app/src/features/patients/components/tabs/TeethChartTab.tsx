@@ -25,7 +25,7 @@ import {
   useCreateTeethChart,
 } from '../../hooks/usePatientSubEntities'
 import { useAuthStore } from '@/store/useAuthStore'
-import { useAccess } from '@/features/access'
+import { useAccess } from '@/features/access/hooks/useAccess'
 import type { Patient, PatientTeethChart } from '../../types'
 
 // FDI two-digit notation, arranged left→right as seen facing the patient.

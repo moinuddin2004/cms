@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { OutstandingBadge, useOutstanding } from '@/features/billing'
-import { useAccess } from '@/features/access'
+import { useAccess } from '@/features/access/hooks/useAccess'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { ArrowLeft, Phone, Mail } from 'lucide-react'

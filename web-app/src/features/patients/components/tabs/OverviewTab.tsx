@@ -14,7 +14,7 @@ import {
 import type { Patient } from '../../types'
 import { useVitals } from '../../hooks/usePatientSubEntities'
 import { EditPatientSheet } from '../EditPatientSheet'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 
 export function OverviewTab({ patient }: { patient: Patient }) {
   const [editOpen, setEditOpen] = useState(false)

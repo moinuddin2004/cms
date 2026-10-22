@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Stethoscope, Banknote, Link2, FileText } from 'lucide-react'
 import { usePatientTreatments } from '../../hooks/usePatientSubEntities'

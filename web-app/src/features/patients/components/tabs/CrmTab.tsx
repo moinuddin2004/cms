@@ -5,7 +5,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
-import { Can } from '@/features/access'
+import { Can } from '@/features/access/components/Can'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
