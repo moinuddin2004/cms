@@ -1,7 +1,11 @@
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/publicDecorator';
 import { REQUIRE_SUPER_ADMIN_KEY } from 'src/common/decorators/require-super-admin.decorator';
@@ -112,6 +116,9 @@ describe('AC-GRD (unit)', () => {
     'UserController.',
     'MeAccessController.getMyAccess',
     'FeatureFlagsController.getMyFeatures',
+    // Self-service @ContextFree reads scoped to the signed-in user.
+    'MyNotificationsController.',
+    'OrderLinkController.resolve',
   ];
 
   const files = (dir: string): string[] =>
@@ -146,19 +153,38 @@ describe('AC-GRD (unit)', () => {
               has(IS_PUBLIC_KEY, fn, ctrl) ||
               has(REQUIRE_SUPER_ADMIN_KEY, fn, ctrl);
             if (decorated) continue;
+            const guardNames = [fn, ctrl].flatMap(
+              (t) =>
+                (
+                  (Reflect.getMetadata(GUARDS_METADATA, t) as
+                    | { name: string }[]
+                    | undefined) ?? []
+                ).map((g) => g.name),
+            );
+            // The lab portal is another trust domain: @LabPortalController =
+            // @ContextFree + LabPortalGuard (a lab membership, never a clinic role).
             const exempt =
               has(CONTEXT_FREE_KEY, fn, ctrl) &&
-              HANDLER_CHECKED.some((p) => id.startsWith(p));
+              (HANDLER_CHECKED.some((p) => id.startsWith(p)) ||
+                guardNames.includes('LabPortalGuard'));
             if (!exempt) {
               const path = Reflect.getMetadata(PATH_METADATA, fn) as string;
-              undecorated.push(`${id} (${path})`);
+              const guards = [fn, ctrl].flatMap(
+                (t) =>
+                  (Reflect.getMetadata(GUARDS_METADATA, t) as
+                    | { name: string }[]
+                    | undefined) ?? [],
+              );
+              undecorated.push(
+                `${id} (${path}) guards=[${guards.map((g) => g.name).join(',')}]`,
+              );
             }
           }
         }
       }
     }
     expect(seen).toBeGreaterThan(300);
-    expect(undecorated).toEqual([]);
+    expect(undecorated.join('\n')).toBe('');
   });
 
   /** SEC-05 — no endpoint still sits on `@Roles`; the derivation helper stays fail-closed. */

@@ -4,7 +4,10 @@
     {
       "name": "web-app",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "cwd": "web-app",
       "autoPort": false
@@ -12,9 +15,32 @@
     {
       "name": "backend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "start:dev"],
+      "runtimeArgs": [
+        "run",
+        "start:dev"
+      ],
       "port": 5000,
       "cwd": "backend",
+      "autoPort": false
+    },
+    {
+      "name": "acceptance-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "test/access/acceptance/browser/start-api.cjs"
+      ],
+      "port": 5100,
+      "cwd": "backend",
+      "autoPort": false
+    },
+    {
+      "name": "acceptance-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "../backend/test/access/acceptance/browser/start-web.cjs"
+      ],
+      "port": 3100,
+      "cwd": "web-app",
       "autoPort": false
     }
   ]

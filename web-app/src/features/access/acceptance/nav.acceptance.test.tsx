@@ -230,6 +230,28 @@ describe('NAV — sidebar', () => {
   })
 })
 
+describe('NAV — builder access', () => {
+  it('NAV-13 RecU opens /admin/navigation → NoAccess page; the owner gets the page', () => {
+    router.matches = [{ staticData: { can: routeCan('admin.navigation.tsx') } }]
+    const rec = renderAs(
+      'RecU',
+      <RouteAccessGate>
+        <span>sidebar builder</span>
+      </RouteAccessGate>,
+    )
+    expect(screen.queryByText('sidebar builder')).toBeNull()
+    expect(screen.getByText('Aapke paas is page ki permission nahi')).toBeTruthy()
+    rec.unmount()
+    renderAs(
+      'OwnerA',
+      <RouteAccessGate>
+        <span>sidebar builder</span>
+      </RouteAccessGate>,
+    )
+    expect(screen.getByText('sidebar builder')).toBeTruthy()
+  })
+})
+
 describe('NAV — home redirect', () => {
   beforeEach(() => {
     router.routes = {

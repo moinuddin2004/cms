@@ -575,6 +575,7 @@ export async function seedWorld(env: Env, label = 'w'): Promise<World> {
       serviceDate: today,
       status: SessionStatus.OPEN,
       tokenPrefix: prefix,
+      lastTokenNumber: 1, // the seeded entry below holds token 1
       smartQueueEnabled: false,
     } as Partial<QueueSession>);
     const now = new Date();
