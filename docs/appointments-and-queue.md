@@ -57,40 +57,44 @@ Principles that hold everywhere:
 ## 2. Roles & access
 
 Global guard chain (`app.module.ts`, order matters):
-`JwtAuthGuard → TenantContextGuard → FeatureFlagGuard → RolesGuard`.
+`JwtAuthGuard → TenantContextGuard → FeatureFlagGuard → AccessGuard`.
+Access is permission-based (`@Can(...)`), never by role name — see
+[access-control/README.md](access-control/README.md) for the whole system.
 
-- Feature flag: `appointments.core` gates both modules (backend controllers and
-  frontend routes/sidebar).
+- Feature: every permission below belongs to `appointments.core`, so turning
+  that feature off removes them (backend, routes and sidebar).
 - Tenant: `x-organization-id` + `x-location-id` headers (set by the web
   Axios client). Every queue row carries `organization_id`; sessions carry
   `location_id`.
-- **Clinic roles** (`common/enums/app-role.enum.ts`), resolved per
-  org + location by `AuthorizationService.resolveActor()`:
+- What a user may do comes from the permissions of their role at the active
+  location (owners and super admins hold all of them).
 
-| Role | Who gets it |
+| Action | Permission |
 |---|---|
-| `clinic_admin` | super admin, org owner, or employee role with `canManageSettings` |
-| `receptionist` | employee role with `canCreateAppointments` (default **on**) |
-| `doctor` | employee role with `canConsult` (default **on**) |
-
-| Action | Roles |
-|---|---|
-| Book / edit / validate / confirm / cancel / no-show / check-in / convert-to-walk-in | receptionist, clinic_admin |
-| Walk-in, cancel entry, rejoin, return-from-test | receptionist, clinic_admin |
-| Transfer | any staff (reception or the doctor) |
-| Call Next, select, recall, undo-call, start/complete/abort consultation, send-for-test, pause/resume/close | **that session's doctor** or clinic_admin |
-| Skip | doctor (own), receptionist, clinic_admin |
-| Urgent priority, force-complete, per-session mode switch, queue settings, audit history | clinic_admin only |
-| Read board / snapshot / ticket | any member of the location |
+| List / read appointments, doctors, availability, stats | `appointments.view` (scoped: `own` = the doctor's own) |
+| Book, validate, confirm | `appointments.book` |
+| Edit / reschedule | `appointments.reschedule` |
+| Cancel, no-show | `appointments.cancel` |
+| Check-in, convert-to-walk-in, walk-in, return-from-test | `queue.checkin` |
+| Cancel entry, rejoin | `queue.entry.manage` |
+| Reception board (`GET /queue/sessions`) | `queue.board.view` |
+| Doctor screen: my session, start/pause/resume/close, call next, select, recall, undo-call, start/complete/abort consultation, send-for-test | `queue.doctor.own` — and the session must be the caller's own unless they hold `queue.doctor.any` |
+| Run another doctor's queue (`GET /queue/my-session?doctorId=`), force-complete | `queue.doctor.any` |
+| Urgent priority, per-session mode switch | `queue.entry.reprioritize` |
+| Skip, transfer, session snapshot, next preview, ticket, policies (read) | any member of the location (`@AnyMember`); skip/transfer rules are checked in `QueueOrchestrator` |
+| Queue settings (policies write / reset) | `admin.settings.manage` |
+| Audit history (`/queue/sessions/:id/events`) | `admin.audit.view` |
+| Patient visit history | `patients.view` |
 | TV display state | **public** (no login) — tokens + doctor names only |
 
-`doctor` actions additionally check `actor.employeeId === session.doctorId`
-(see `QueueOrchestrator.assertSessionDoctor`). Admins can run any doctor's
-queue: `GET /queue/my-session?doctorId=` (the web "My Queue" page shows a
-picker for admins who are not doctors themselves).
+Doctor actions also check that the session's `doctor_id` is the caller's
+employee id (`QueueOrchestrator.assertSessionDoctor`) unless the caller holds
+`queue.doctor.any`; the web "My Queue" page shows a doctor picker to them.
 
-The UI hides buttons the role can't use (`useQueueRole`, fed by
-`GET /queue/me`) — the server still enforces everything.
+The UI hides what the user can't do with `useAccess().can(...)` (from
+`GET /me/access`) — the server still enforces everything. `GET /queue/me`
+remains for the caller's `employeeId` (its `roles` are derived from
+permissions and are legacy).
 
 ---
 
@@ -457,7 +461,7 @@ validation), `AppointmentDetailModal`, `FullCalendarView` (drag/resize only for
 | `pages/DisplayPage` | public TV screen (`/display/:locationId`) |
 | `hooks/useQueueData`, `useQueueSocket` | snapshots + realtime + polling fallback |
 | `hooks/useQueueAction` | mutation wrapper (refresh + error toasts, `VERSION_CONFLICT` handling) |
-| `hooks/useQueueRole` | server-derived roles for hiding buttons |
+| `hooks/useQueuePermissions` | `useAccess()` permissions (+ own employee id) for hiding buttons |
 | `services/queue.api.ts` | all axios calls; adds `Idempotency-Key`, retries `LOCK_TIMEOUT` |
 | `schemas/queue.schema.ts` | Zod schemas (walk-in, queue settings) |
 | `utils/printTicket.ts` | token ticket print window |
@@ -507,8 +511,9 @@ property-based tests (fast-check), Playwright full-day e2e.
 1. Queue state changes **only** through `QueueOrchestrator` — never write
    `queue_entries` from a controller or another service.
 2. New transition? Add it to the map in `queue-transitions.ts` *and* a test.
-3. New mutation endpoint? It needs `@Roles`, `@Idempotency()`, optional
-   `@IfMatch()`, and must emit an audit event through `tx.emit`.
+3. New mutation endpoint? It needs `@Can(...)` (or `@AnyMember()` plus a
+   check in the orchestrator), `@Idempotency()`, optional `@IfMatch()`, and
+   must emit an audit event through `tx.emit`.
 4. Never use `new Date()` for clinic days/times — use `ClockService` /
    `tz.util`.
 5. Never put patient names in outbox/display payloads.

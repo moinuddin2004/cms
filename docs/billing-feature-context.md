@@ -3,6 +3,8 @@
 **Snapshot:** 2026-10-17, branch `feat/doctor-wise-queue`. Everything below was read from the code (not assumed). Where something is *unverified* it says so.
 **Purpose:** give a planning AI everything it needs to design the "Billing, Invoices & Payments" feature for DentalFlow **without having to explore the repo first**. The feature is NOT greenfield: a billing module already exists and covers part of the requirement. The job is to close the gaps and fix the foundation, not rebuild.
 
+> **Outdated on access (2026-10-23):** this is a pre-billing-v2 snapshot. Roles (`clinic_admin` / `receptionist` / `doctor`), `RolesGuard`, `@Roles` and `@CurrentActor` no longer exist. Billing is gated by permissions — `billing.desk.use`, `billing.invoice.view` (scoped), `billing.invoice.void`, `billing.refund.issue`, `billing.price.override`, `billing.discount.apply` / `.custom`, `billing.cash_close`, … — via `@Can(...)` and `AccessContext.decide()` for discount limits. See [access-control/README.md](access-control/README.md).
+
 ---
 
 ## 1. The requirement (owner's words, translated)
@@ -32,7 +34,7 @@ Multi-tenant SaaS for dental/medical clinics, Pakistan-focused (currency PKR, ti
 | DB schema in dev | `synchronize: true` — schema changes go **in entities only**. Owner's standing rule: **no migration files** during dev. |
 
 ### Request pipeline (backend)
-Global guards in order: `JwtAuthGuard` → `TenantContextGuard` (reads `x-organization-id` + `x-location-id` headers → `@ActiveTenant()` gives `{organizationId, locationId}`) → `FeatureFlagGuard` (`@RequireFeature('key')`) → `RolesGuard` (`@Roles(AppRole.CLINIC_ADMIN | RECEPTIONIST | DOCTOR)`, gives `@CurrentActor()`; routes without `@Roles()` are open to any member of the location).
+Global guards in order: `JwtAuthGuard` → `TenantContextGuard` (reads `x-organization-id` + `x-location-id` headers → `@ActiveTenant()` gives `{organizationId, locationId}`) → `FeatureFlagGuard` (`@RequireFeature('key')`) → `RolesGuard` (`@Roles(AppRole.CLINIC_ADMIN | RECEPTIONIST | DOCTOR)`, gives `@CurrentActor()`; routes without `@Roles()` are open to any member of the location). *(Historical — now `AccessGuard` + `@Can`; see the note at the top.)*
 Controllers return `ResponseWrapper.success(data, message)`; frontend unwraps `res.data.data`. DTOs use class-validator with `whitelist + forbidNonWhitelisted`. UUID PKs, composite indexes for tenant queries.
 
 ### Clinic time
