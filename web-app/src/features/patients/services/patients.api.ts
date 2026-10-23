@@ -41,8 +41,12 @@ export async function fetchPatientById(id: string): Promise<Patient> {
 export async function createPatient(
   payload: PatientFormData,
 ): Promise<Patient> {
-  // convert allergies string/array logic before payload? Or leave to form.
-  const { data } = await api.post('/patients', payload)
+  // Optional fields left blank in the form are '' — the API validates those
+  // (`dob` IsDateString, `email` IsEmail) and would refuse the whole request.
+  const body = Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== ''),
+  ) as unknown as PatientFormData
+  const { data } = await api.post('/patients', body)
   return data.data
 }
 
