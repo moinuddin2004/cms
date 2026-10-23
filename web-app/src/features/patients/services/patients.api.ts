@@ -33,6 +33,33 @@ export async function fetchPatients(
   return data.data // response is PaginatedResponseDto
 }
 
+/**
+ * Downloads the filtered patient list as CSV (`GET /patients/export`, same
+ * filters and scope as the list, no paging). Returns whether the server cut
+ * the file at its row cap.
+ */
+export async function exportPatientsCsv(
+  params: PatientListParams,
+): Promise<{ truncated: boolean }> {
+  const { page: _page, limit: _limit, ...filters } = params
+  const res = await api.get('/patients/export', {
+    params: filters,
+    responseType: 'blob',
+    timeout: 120_000,
+  })
+  const disposition = String(res.headers['content-disposition'] ?? '')
+  const name = /filename="([^"]+)"/.exec(disposition)?.[1] ?? 'patients.csv'
+  const url = URL.createObjectURL(res.data as Blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  return { truncated: res.headers['x-export-truncated'] === 'true' }
+}
+
 export async function fetchPatientById(id: string): Promise<Patient> {
   const { data } = await api.get(`/patients/${id}`)
   return data.data // data.data is the actual Patient

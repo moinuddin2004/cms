@@ -60,6 +60,20 @@ import {
   UpdateInsuranceDto,
 } from './dto/request/sub-entity.dto';
 
+/** Most rows one patient export returns. */
+export const EXPORT_MAX_ROWS = 10000;
+
+/** One CSV cell: quoted when needed; formula-leading values neutralised. */
+export function csvCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  let text = String(value);
+  // `+923…` phones and `-5` numbers stay as they are; anything else that a
+  // spreadsheet would run as a formula gets a leading quote.
+  const plainNumber = /^[+-][\d\s().-]+$/.test(text);
+  if (/^[=+\-@\t\r]/.test(text) && !plainNumber) text = `'${text}`;
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
 @Injectable()
 export class PatientsService {
   constructor(
@@ -193,9 +207,75 @@ export class PatientsService {
     query: PatientQueryDto,
     access: AccessContext,
   ): Promise<PaginatedResponseDto<PatientResponseDto>> {
+    const { page = 1, limit = 10 } = query;
+    const qb = this.listQuery(organizationId, query, access);
+    qb.skip((page - 1) * limit).take(limit);
+
+    const [patients, total] = await qb.getManyAndCount();
+    return PaginatedResponseDto.create(
+      PatientResponseDto.toDtoList(patients),
+      total,
+      page,
+      limit,
+    );
+  }
+
+  /**
+   * The patient list as CSV: same filters, sort and `patients.view` scope as
+   * `findAll`, without paging (capped at EXPORT_MAX_ROWS).
+   */
+  async exportCsv(
+    organizationId: string,
+    query: PatientQueryDto,
+    access: AccessContext,
+  ): Promise<{ csv: string; rows: number; truncated: boolean }> {
+    const patients = await this.listQuery(organizationId, query, access)
+      .take(EXPORT_MAX_ROWS + 1)
+      .getMany();
+    const truncated = patients.length > EXPORT_MAX_ROWS;
+    const rows = patients.slice(0, EXPORT_MAX_ROWS);
+    const header = [
+      'Patient number',
+      'Name',
+      'Phone',
+      'Email',
+      'Gender',
+      'Date of birth',
+      'Blood group',
+      'City',
+      'Source',
+      'Active',
+      'Registered on',
+    ];
+    const lines = rows.map((p) =>
+      [
+        p.patientNumber,
+        p.fullName,
+        p.phone,
+        p.email,
+        p.gender,
+        p.dob ? new Date(p.dob).toISOString().slice(0, 10) : '',
+        p.bloodGroup,
+        p.city,
+        p.source,
+        p.isActive ? 'yes' : 'no',
+        p.createdAt.toISOString().slice(0, 10),
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+    // BOM so Excel opens UTF-8 (Urdu names) correctly.
+    const csv = '\uFEFF' + [header.join(','), ...lines].join('\r\n');
+    return { csv, rows: rows.length, truncated };
+  }
+
+  /** Filtered, sorted, scope-limited patient query shared by list and export. */
+  private listQuery(
+    organizationId: string,
+    query: PatientQueryDto,
+    access: AccessContext,
+  ) {
     const {
-      page = 1,
-      limit = 10,
       search,
       gender,
       bloodGroup,
@@ -238,15 +318,7 @@ export class PatientsService {
       patientNumber: 'p.patient_number',
     };
     qb.orderBy(sortMap[sortBy] || 'p.created_at', sortOrder);
-    qb.skip((page - 1) * limit).take(limit);
-
-    const [patients, total] = await qb.getManyAndCount();
-    return PaginatedResponseDto.create(
-      PatientResponseDto.toDtoList(patients),
-      total,
-      page,
-      limit,
-    );
+    return qb;
   }
 
   async findOne(

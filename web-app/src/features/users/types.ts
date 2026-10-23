@@ -23,6 +23,16 @@ export interface CreateUserPayload {
   name: string
   password?: string
   type: UserRoleType
+  /** `type: 'employee'`: the existing employee this login is for. */
+  employeeId?: string
+}
+
+/** An employee of the active org that has no login yet. */
+export interface StaffCandidate {
+  employeeId: string
+  name: string
+  phone: string
+  locations: string[]
 }
 
 export interface UpdateUserPayload {

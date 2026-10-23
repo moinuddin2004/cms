@@ -1,4 +1,13 @@
-import { IsEmail, IsString, IsOptional, MinLength, MaxLength, IsIn, IsEnum } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  IsIn,
+  IsUUID,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsEmail()
@@ -18,6 +27,14 @@ export class CreateUserDto {
   password: string;
 
   @IsString()
-  @IsIn(['super_admin', 'owner'])
+  @IsIn(['super_admin', 'owner', 'employee'])
   type: string;
+
+  /**
+   * `type: 'employee'` only: the existing employee (of the active org) this
+   * login is for. Their role per location stays what the Employee module set.
+   */
+  @ValidateIf((o: CreateUserDto) => o.type === 'employee')
+  @IsUUID()
+  employeeId?: string;
 }

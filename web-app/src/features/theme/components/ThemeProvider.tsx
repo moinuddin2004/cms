@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/useAuthStore'
 import { themeApi } from '../services/theme.api'
@@ -51,11 +51,18 @@ export function ThemeProvider() {
   const setTheme = useThemeStore((s) => s.setTheme)
   const withOrg = isAuthenticated && !!orgId
 
-  const [preAuthOrg] = useState(() =>
-    typeof window === 'undefined' ? null : preAuthOrgId(),
+  // Re-read on every sign-in / sign-out: after an in-app sign-out the login
+  // page must use the org remembered while signed in, not the value from
+  // when the app first loaded.
+  const preAuthOrg = useMemo(
+    () =>
+      typeof window === 'undefined' || isAuthenticated ? null : preAuthOrgId(),
+    [isAuthenticated],
   )
-  const [cached] = useState(() =>
-    typeof window === 'undefined' ? null : cachedTheme(),
+  // `isAuthenticated` is not read inside: it only re-reads the cache on auth change.
+  const cached = useMemo(
+    () => (typeof window === 'undefined' ? null : cachedTheme()),
+    [isAuthenticated],
   )
 
   const current = useQuery({

@@ -13,7 +13,14 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
+import { DataSource } from 'typeorm';
+import { AuditService } from 'src/common/audit/audit.service';
+import { ActorSide, AuditAction } from 'src/common/audit/audit.enums';
+import type { ActorRef } from 'src/common/audit/audit.enums';
+import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { HideTreatmentPricesInterceptor } from 'src/common/interceptors/hide-treatment-prices.interceptor';
 import { PatientsService } from './patients.service';
 import { CreatePatientDto } from './dto/request/create-patient.dto';
@@ -56,7 +63,11 @@ import { PatientInScope } from './access/patient-scope';
 @PatientInScope('id')
 @Controller('patients')
 export class PatientsController {
-  constructor(private readonly patientsService: PatientsService) {}
+  constructor(
+    private readonly patientsService: PatientsService,
+    private readonly audit: AuditService,
+    private readonly dataSource: DataSource,
+  ) {}
 
   // ═══════════════════════════════════════════════════════════
   // PATIENT CRUD
@@ -87,6 +98,48 @@ export class PatientsController {
       access,
     );
     return ResponseWrapper.success(data, 'Patients retrieved successfully');
+  }
+
+  /**
+   * The (filtered) patient list as CSV — same filters and scope as
+   * `GET /patients`, no paging. Patient data leaves the system, so every
+   * export is written to `audit_logs`. Declared before `:id`.
+   */
+  @Get('export')
+  @Can('patients.export')
+  async export(
+    @Query() query: PatientQueryDto,
+    @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
+    @Res() res: Response,
+  ) {
+    const file = await this.patientsService.exportCsv(
+      ctx.organizationId,
+      query,
+      access,
+    );
+    await this.audit.record(this.dataSource.manager, actor, {
+      organizationId: ctx.organizationId,
+      entityType: 'patient_export',
+      entityId: ctx.locationId,
+      action: AuditAction.EXPORT,
+      after: {
+        rows: file.rows,
+        truncated: file.truncated,
+        filters: { ...query, page: undefined, limit: undefined },
+      },
+    });
+    const day = new Date().toISOString().slice(0, 10);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="patients-${day}.csv"`,
+      'Access-Control-Expose-Headers':
+        'Content-Disposition, X-Export-Truncated',
+      'X-Export-Truncated': String(file.truncated),
+      'Cache-Control': 'no-store',
+    });
+    res.end(file.csv);
   }
 
   @Get('check-phone/:phone')

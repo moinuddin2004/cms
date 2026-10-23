@@ -31,6 +31,8 @@ import {
   useTodayAppointments,
 } from '@/features/dashboard/hooks/useAnalytics'
 import { RevenueExpensesChart } from '@/features/dashboard/components/RevenueExpensesChart'
+import { useAccess } from '@/features/access/hooks/useAccess'
+import { Can } from '@/features/access/components/Can'
 import { AppointmentStatusDonut } from '@/features/dashboard/components/AppointmentStatusDonut'
 import { TodayScheduleTable } from '@/features/dashboard/components/TodayScheduleTable'
 
@@ -71,6 +73,15 @@ export function DashboardPage() {
   const [year, setYear] = useState(now.getFullYear())
   const [activePeriod, setActivePeriod] = useState<string>('This month')
 
+  // Only ask for (and show) what this user may see: no 403 retries and no
+  // misleading PKR 0 cards for roles without billing / finance.
+  const { can, hasFeature } = useAccess()
+  const seePatients = can('patients.view')
+  const seeAppointments = can('appointments.view')
+  const seeInvoices = can('billing.invoice.view')
+  const seeFinance =
+    can('reports.financial.view') && hasFeature('billing.financial_summary')
+
   const isCurrentMonth =
     month === now.getMonth() + 1 && year === now.getFullYear()
 
@@ -88,24 +99,27 @@ export function DashboardPage() {
     return { monthStart, monthEnd, todayStart, todayEnd }
   }, [month, year])
 
-  const patientCount = usePatientCount()
-  const invoiceStats = useInvoiceStats()
-  const monthly = useMonthlySummary(month, year)
-  const trend = useRevenueTrend(6)
+  const patientCount = usePatientCount(seePatients)
+  const invoiceStats = useInvoiceStats(seeInvoices)
+  const monthly = useMonthlySummary(month, year, seeFinance)
+  const trend = useRevenueTrend(6, seeFinance)
   const todayAppts = useAppointmentStats(
     ranges.todayStart,
     ranges.todayEnd,
     'today',
+    seeAppointments,
   )
   const monthAppts = useAppointmentStats(
     ranges.monthStart,
     ranges.monthEnd,
     `month-${year}-${month}`,
+    seeAppointments,
   )
   const todaySchedule = useTodayAppointments(
     ranges.todayStart,
     ranges.todayEnd,
     8,
+    seeAppointments,
   )
 
   const revenue = monthly.data?.totalRevenue ?? 0
@@ -139,15 +153,17 @@ export function DashboardPage() {
             today.
           </p>
         </div>
-        <Button
-          onClick={() =>
-            navigate({ to: '/appointments', search: { create: '1' } })
-          }
-          className="h-[38px] gap-1.5 px-4"
-        >
-          <Plus className="size-4" />
-          New appointment
-        </Button>
+        <Can perm="appointments.book">
+          <Button
+            onClick={() =>
+              navigate({ to: '/appointments', search: { create: '1' } })
+            }
+            className="h-[38px] gap-1.5 px-4"
+          >
+            <Plus className="size-4" />
+            New appointment
+          </Button>
+        </Can>
       </div>
 
       {/* Filter bar */}
@@ -213,59 +229,71 @@ export function DashboardPage() {
 
       {/* 4 KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Total Patients"
-          value={patientCount.data?.toLocaleString() ?? '0'}
-          icon={Users}
-          iconTone="primary"
-          trend={revenueDelta !== undefined ? 12 : undefined}
-          trendSuffix="vs last month"
-        />
-        <StatCard
-          label="Appointments Today"
-          value={todayAppts.data?.total ?? 0}
-          icon={CalendarDays}
-          iconTone="violet"
-          hint={
-            <span>
-              <span className="font-semibold text-emerald">
-                {todayAppts.data?.completed ?? 0} completed
-              </span>{' '}
-              &middot;{' '}
-              {(todayAppts.data?.total ?? 0) -
-                (todayAppts.data?.completed ?? 0)}{' '}
-              upcoming
-            </span>
-          }
-        />
-        <StatCard
-          label={`Revenue (${MONTHS[month - 1]})`}
-          value={formatCurrency(revenue)}
-          icon={DollarSign}
-          iconTone="emerald"
-          trend={revenueDelta}
-        />
-        <StatCard
-          label="Outstanding"
-          value={formatCurrency(invoiceStats.data?.outstandingAmount ?? 0)}
-          icon={AlertTriangle}
-          iconTone="amber"
-          hint={
-            <span className="font-semibold text-amber">
-              {invoiceStats.data?.overdueCount ?? 0} invoices overdue
-            </span>
-          }
-        />
+        {seePatients && (
+          <StatCard
+            label="Total Patients"
+            value={patientCount.data?.toLocaleString() ?? '0'}
+            icon={Users}
+            iconTone="primary"
+            trend={revenueDelta !== undefined ? 12 : undefined}
+            trendSuffix="vs last month"
+          />
+        )}
+        {seeAppointments && (
+          <StatCard
+            label="Appointments Today"
+            value={todayAppts.data?.total ?? 0}
+            icon={CalendarDays}
+            iconTone="violet"
+            hint={
+              <span>
+                <span className="font-semibold text-emerald">
+                  {todayAppts.data?.completed ?? 0} completed
+                </span>{' '}
+                &middot;{' '}
+                {(todayAppts.data?.total ?? 0) -
+                  (todayAppts.data?.completed ?? 0)}{' '}
+                upcoming
+              </span>
+            }
+          />
+        )}
+        {seeFinance && (
+          <StatCard
+            label={`Revenue (${MONTHS[month - 1]})`}
+            value={formatCurrency(revenue)}
+            icon={DollarSign}
+            iconTone="emerald"
+            trend={revenueDelta}
+          />
+        )}
+        {seeInvoices && (
+          <StatCard
+            label="Outstanding"
+            value={formatCurrency(invoiceStats.data?.outstandingAmount ?? 0)}
+            icon={AlertTriangle}
+            iconTone="amber"
+            hint={
+              <span className="font-semibold text-amber">
+                {invoiceStats.data?.overdueCount ?? 0} invoices overdue
+              </span>
+            }
+          />
+        )}
       </div>
 
       {/* Charts: 2fr + 1fr */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
-        <RevenueExpensesChart data={trend.data ?? []} />
-        {monthAppts.data && <AppointmentStatusDonut stats={monthAppts.data} />}
+        {seeFinance && <RevenueExpensesChart data={trend.data ?? []} />}
+        {seeAppointments && monthAppts.data && (
+          <AppointmentStatusDonut stats={monthAppts.data} />
+        )}
       </div>
 
       {/* Today's Schedule */}
-      <TodayScheduleTable data={todaySchedule.data?.data ?? []} />
+      {seeAppointments && (
+        <TodayScheduleTable data={todaySchedule.data?.data ?? []} />
+      )}
     </div>
   )
 }

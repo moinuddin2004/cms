@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Users } from 'lucide-react'
+import { Download, Loader2, Plus, Users } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -22,6 +23,7 @@ import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
 import { EditPatientSheet } from '../components/EditPatientSheet'
 import type { Patient, PatientListParams } from '../types'
+import { exportPatientsCsv } from '../services/patients.api'
 import { Can } from '@/features/access/components/Can'
 import { useAccess } from '@/features/access/hooks/useAccess'
 
@@ -44,6 +46,23 @@ export function PatientsPage() {
   const [editTarget, setEditTarget] = useState<Patient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const { truncated } = await exportPatientsCsv(params)
+      toast.success(
+        truncated
+          ? 'Export downloaded (first 10,000 patients only)'
+          : 'Export downloaded',
+      )
+    } catch {
+      toast.error('Could not export patients')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const { data, isLoading, isError, refetch } = usePatients(params)
 
@@ -104,6 +123,21 @@ export function PatientsPage() {
       actions={
         <>
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
+          <Can perm="patients.export">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={exporting || total === 0}
+            >
+              {exporting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Download className="size-3.5" />
+              )}
+              Export
+            </Button>
+          </Can>
           <Can perm="patients.create">
             <Button
               onClick={() => setShowCreate(true)}

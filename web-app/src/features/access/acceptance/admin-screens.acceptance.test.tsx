@@ -61,7 +61,7 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
   ),
 }))
 const features = vi.hoisted(() => ({
-  has: (_k: string) => true,
+  has: (_k: string): boolean => true,
 }))
 vi.mock('@/features/access', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),

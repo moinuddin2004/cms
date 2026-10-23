@@ -11,20 +11,20 @@ export function useDailySummary(date: string) {
   })
 }
 
-export function useMonthlySummary(month: number, year: number) {
+export function useMonthlySummary(month: number, year: number, enabled = true) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['financial-monthly', activeLocationId, month, year],
     queryFn: () => api.fetchMonthlyFinancialSummary(month, year),
-    enabled: !!activeLocationId,
+    enabled: enabled && !!activeLocationId,
   })
 }
 
-export function useRevenueTrend(months: number) {
+export function useRevenueTrend(months: number, enabled = true) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['financial-trend', activeLocationId, months],
     queryFn: () => api.fetchRevenueTrend(months),
-    enabled: !!activeLocationId,
+    enabled: enabled && !!activeLocationId,
   })
 }

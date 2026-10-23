@@ -330,3 +330,16 @@ Test tooling added (not product changes): the acceptance specs and harness, `npm
 | `a42a34c` | `fix(encounters)`: `GET /encounters/:id` and `POST /encounters/:id/treatments` now check the caller's `patients.view` scope and answer 404 for another doctor's patient (bug B5). | Unit test (`encounter-patient-scope.spec.ts`). The DB probes XTRA-01 / XTRA-02 (+ new XTRA-01b: owner and Admin still get 200) were **not re-run**. |
 
 Still open from B5's family: `POST /treatments` and `GET /treatments?patientId=` (patients.clinical.* without a patient-scope check) were not touched.
+
+## Update 2 — B2, B3, B4, B6, B7 and the treatments scope fixed (2026-10-23)
+
+| Bug | Fix | Verified by |
+| --- | --- | --- |
+| B2 | `GET /patients/export` (`@Can('patients.export')`): CSV of the filtered list with the same `patients.view` scope as `GET /patients`, no paging, capped at 10,000 rows (`X-Export-Truncated`), UTF-8 BOM, formula-safe cells (phones like `+92…` kept readable); every export writes an `audit_logs` row (`entity_type = patient_export`, action `export`). Patients page has an Export button behind `<Can perm="patients.export">`. | `patient-export.spec.ts` (cell quoting / formula guard); coverage spec. Not run against a DB or in a browser. |
+| B3 | `POST /user` accepts `type: 'employee'` + `employeeId`: creates a login for an existing employee of the active org, links it to all their active assignments and turns portal access on (fails 404 if not in the org, 409 if they already have a login). What they can do still comes from their role — no permission is granted here. New `GET /user/staff-candidates` lists employees without a login; the user form offers "Staff (existing employee)" with that picker. | Typecheck, M5 handler-list spec. Not run against a DB or in a browser. |
+| B4 | `GET /payroll/location` and `GET /payroll/export` validate `month` (1–12) and `year`; bad or missing → 400 instead of 500. | Typecheck. |
+| B5 family | `POST /treatments` now checks the patient against the caller's `patients.view` scope (404 outside it). `GET /treatments?patientId=` already had `@PatientInScope`. | Typecheck. |
+| B6 | Dashboard only queries and shows what the user may see: patients (`patients.view`), appointments (`appointments.view`), outstanding (`billing.invoice.view`), revenue + trend (`reports.financial.view` + feature `billing.financial_summary`); "New appointment" behind `appointments.book`. | Typecheck, vitest suite. Not checked in a browser. |
+| B7 | `ThemeProvider` re-reads the remembered org and cached theme whenever sign-in state changes, so the login page after an in-app sign-out uses the clinic theme. | Typecheck. Not checked in a browser. |
+
+Suites after these fixes: backend `npx jest` 709 pass; web `npx vitest run` 325 pass; both builds pass.

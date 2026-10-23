@@ -19,7 +19,7 @@ import { fetchInvoiceStats } from '@/features/billing/services/billing.api'
  */
 
 /** Total active patients in the organization. */
-export function usePatientCount() {
+export function usePatientCount(enabled = true) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['dashboard', 'patient-count', activeLocationId],
@@ -27,7 +27,7 @@ export function usePatientCount() {
       const res = await fetchPatients({ page: 1, limit: 1, isActive: true })
       return res.total
     },
-    enabled: !!activeLocationId,
+    enabled: enabled && !!activeLocationId,
     retry: false,
     staleTime: 60_000,
   })
@@ -53,24 +53,25 @@ export function useAppointmentStats(
   startDate: string,
   endDate: string,
   bucket: string,
+  enabled = true,
 ) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['dashboard', 'appt-stats', activeLocationId, bucket],
     queryFn: () => fetchAppointmentStats(startDate, endDate),
-    enabled: !!activeLocationId,
+    enabled: enabled && !!activeLocationId,
     retry: false,
     staleTime: 30_000,
   })
 }
 
 /** Outstanding / overdue / revenue invoice rollup. */
-export function useInvoiceStats() {
+export function useInvoiceStats(enabled = true) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['dashboard', 'invoice-stats', activeLocationId],
     queryFn: fetchInvoiceStats,
-    enabled: !!activeLocationId,
+    enabled: enabled && !!activeLocationId,
     retry: false,
     staleTime: 60_000,
   })
@@ -81,13 +82,13 @@ export function useTodayAppointments(
   startDate: string,
   endDate: string,
   limit = 8,
+  enabled = true,
 ) {
   const { activeLocationId } = useAuthStore()
   return useQuery({
     queryKey: ['dashboard', 'today-appts', activeLocationId, startDate, limit],
-    queryFn: () =>
-      fetchAppointments({ startDate, endDate, page: 1, limit }),
-    enabled: !!activeLocationId,
+    queryFn: () => fetchAppointments({ startDate, endDate, page: 1, limit }),
+    enabled: enabled && !!activeLocationId,
     retry: false,
     staleTime: 30_000,
   })

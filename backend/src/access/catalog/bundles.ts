@@ -1,12 +1,10 @@
 import {
   fullGrant,
-  Permission,
   PERMISSION_GROUPS,
   PERMISSION_KEYS,
-  PermissionGroup,
-  PermissionMap,
   PERMISSIONS,
 } from './permissions';
+import type { Permission, PermissionGroup, PermissionMap } from './permissions';
 
 /**
  * Ready-made per-module levels for the roles screen ("None / Basic / Full"),

@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PayrollService } from './payroll.service';
@@ -24,6 +25,19 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Can } from 'src/access/decorators/access.decorators';
+
+/** `?month=&year=` as numbers; missing or out of range → 400 (not a SQL NaN). */
+function payrollPeriod(month: string, year: string): [number, number] {
+  const m = Number(month);
+  const y = Number(year);
+  if (!Number.isInteger(m) || m < 1 || m > 12) {
+    throw new BadRequestException('month must be 1–12');
+  }
+  if (!Number.isInteger(y) || y < 2000 || y > 2100) {
+    throw new BadRequestException('year must be a four-digit year');
+  }
+  return [m, y];
+}
 
 @Can('payroll.manage')
 @Controller('payroll')
@@ -67,8 +81,7 @@ export class PayrollController {
   ) {
     const data = await this.payrollService.findByLocation(
       ctx,
-      parseInt(month, 10),
-      parseInt(year, 10),
+      ...payrollPeriod(month, year),
     );
     return ResponseWrapper.success(
       data,
@@ -147,8 +160,7 @@ export class PayrollController {
   ) {
     const csv = await this.payrollExportService.generatePayrollSummaryCsv(
       ctx,
-      parseInt(month, 10),
-      parseInt(year, 10),
+      ...payrollPeriod(month, year),
     );
     res.set({
       'Content-Type': 'text/csv',

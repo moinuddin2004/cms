@@ -108,6 +108,16 @@ export class UserController {
     );
   }
 
+  /** Staff of the active org who have no login yet (for a staff user). */
+  @UseGuards(AuthGuard('jwt'))
+  @Get('staff-candidates')
+  async staffCandidates(
+    @Req() req: UserRequest,
+    @Headers('x-organization-id') orgId: string,
+  ) {
+    return this.userService.staffCandidates(await this.manager(req, orgId));
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post()
   async createUser(

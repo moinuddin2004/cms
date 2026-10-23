@@ -19,6 +19,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
 import {
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 /**
@@ -233,11 +234,7 @@ export class UserService {
       }
     }
 
-    if (body.type === 'employee') {
-      throw new ForbiddenException(
-        'Employees must be created from the Employee module',
-      );
-    }
+    if (body.type === 'employee') return this.createStaffLogin(manager, body);
 
     let user = await this.userRepository.findOne({
       where: { email: body.email },
@@ -274,6 +271,105 @@ export class UserService {
       await this.userRepository.manager.save(ownership);
     }
     return savedUser;
+  }
+
+  /**
+   * Staff without a login in the active org (active assignments, none linked
+   * to a user yet) — the choices for a `type: 'employee'` user.
+   */
+  async staffCandidates(manager: UserManager) {
+    const orgId = manager.organizationId;
+    if (!orgId) throw new BadRequestException('Organization ID is required');
+    const rows = await this.userRepository.manager
+      .getRepository(EmployeeOrgLocationAssignment)
+      .createQueryBuilder('a')
+      .innerJoinAndSelect('a.employee', 'e')
+      .leftJoinAndSelect('a.location', 'l')
+      .where('a.organization_id = :orgId AND a.is_active = true', { orgId })
+      .andWhere(
+        `NOT EXISTS (SELECT 1 FROM employee_org_location_assignments x
+          WHERE x.employee_id = a.employee_id AND x.organization_id = :orgId
+          AND x.user_id IS NOT NULL)`,
+      )
+      .orderBy('e.full_name', 'ASC')
+      .getMany();
+    const byEmployee = new Map<
+      string,
+      { employeeId: string; name: string; phone: string; locations: string[] }
+    >();
+    for (const a of rows) {
+      const entry = byEmployee.get(a.employeeId) ?? {
+        employeeId: a.employeeId,
+        name: a.employee.fullName,
+        phone: a.employee.phone,
+        locations: [],
+      };
+      if (a.location?.name) entry.locations.push(a.location.name);
+      byEmployee.set(a.employeeId, entry);
+    }
+    return [...byEmployee.values()];
+  }
+
+  /**
+   * A login for an existing employee: linked to all their active assignments
+   * in the org, with portal access on. Their role at each location is the
+   * one the Employee module assigned — this grants no permission by itself.
+   */
+  private async createStaffLogin(
+    manager: UserManager,
+    body: CreateUserDto & { status?: AccountStatus },
+  ): Promise<User> {
+    const orgId = manager.organizationId;
+    if (!orgId) throw new BadRequestException('Organization ID is required');
+    if (!body.employeeId) {
+      throw new BadRequestException('employeeId is required for staff users');
+    }
+    if (!body.password) {
+      throw new BadRequestException('Password is required');
+    }
+
+    return this.userRepository.manager.transaction(async (em) => {
+      const assignments = await em
+        .getRepository(EmployeeOrgLocationAssignment)
+        .find({
+          where: {
+            employeeId: body.employeeId,
+            organizationId: orgId,
+            isActive: true,
+          },
+          lock: { mode: 'pessimistic_write' },
+        });
+      if (!assignments.length) {
+        throw new NotFoundException('Employee not found in this organization');
+      }
+      if (assignments.some((a) => a.userId)) {
+        throw new ConflictException('This employee already has a login');
+      }
+      if (
+        await em.getRepository(User).exists({ where: { email: body.email } })
+      ) {
+        throw new BadRequestException('User with email already exists');
+      }
+
+      const user = await em.getRepository(User).save(
+        em.getRepository(User).create({
+          email: body.email,
+          name: body.name,
+          phone: body.phone,
+          password: await bcrypt.hash(body.password, 12),
+          provider: ProviderEnum.LOCAL,
+          globalRole: null,
+          status: body.status || AccountStatus.ACTIVE,
+        }),
+      );
+      for (const a of assignments) {
+        a.userId = user.uuid;
+        a.hasPortalAccess = true;
+      }
+      // Saved through the repository so the access-version subscriber bumps.
+      await em.getRepository(EmployeeOrgLocationAssignment).save(assignments);
+      return user;
+    });
   }
 
   async updateUser(

@@ -40,8 +40,14 @@ export class TreatmentsController {
   async create(
     @Body() dto: CreateTreatmentDto,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
     @Req() req: any,
   ) {
+    // Same reach as reading the patient: a doctor with `own` scope may only
+    // record treatment for their own patients (others look like 404).
+    if (!(await isPatientInScope(this.dataSource, access, dto.patientId))) {
+      throw new NotFoundException('Patient not found');
+    }
     const data = await this.treatmentsService.create(ctx, dto, req.user?.uuid);
     return ResponseWrapper.success(data, 'Treatment recorded successfully');
   }

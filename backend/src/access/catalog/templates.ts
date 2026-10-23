@@ -1,5 +1,6 @@
 import { BUNDLES } from './bundles';
-import { Permission, PERMISSION_GROUPS, PermissionMap } from './permissions';
+import { PERMISSION_GROUPS } from './permissions';
+import type { Permission, PermissionMap } from './permissions';
 
 /**
  * System role templates, seeded into every org (insert-missing only). The

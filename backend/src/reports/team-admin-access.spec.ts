@@ -53,6 +53,7 @@ const CHECKED_IN_HANDLER: Record<string, string[]> = {
   UserController: [
     'getMe',
     'getUsers',
+    'staffCandidates',
     'createUser',
     'updateUser',
     'deleteUser',
