@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import type * as request from 'supertest';
 import {
+  addStaff,
   bearer,
   bootApp,
   dataOf,
@@ -293,19 +294,41 @@ describe('AC-MOD module permissions', () => {
   });
 
   it('MOD-22 patient export (patients.export)', async () => {
-    // There is no patient export endpoint in the API: the permission is in the
-    // catalog and the Admin bundle but nothing enforces it.
     const p = w.people;
-    const probes = ['/patients/export', '/patients/export.csv', '/patients?export=true'];
-    const statuses: number[] = [];
-    for (const u of probes) statuses.push((await env.get(u, p.RecU)).status);
-    const guarded = statuses.some((s) => s === 403);
-    note('MOD-22', `probe statuses ${statuses.join(',')} — no endpoint declares @Can('patients.export')`);
-    // Expected by the plan: AdminU allowed, RecU 403 NO_PERMISSION(patients.export).
-    const res = await env.get('/patients/export', p.RecU);
-    expect(res.status).toBe(403);
-    expect(errorOf(res).missing).toContain('patients.export');
-    expect(guarded).toBe(true);
+    // Denied: Receptionist has no patients.export.
+    const denied = await env.get('/patients/export', p.RecU);
+    expect(denied.status).toBe(403);
+    expect(errorOf(denied).missing).toContain('patients.export');
+
+    // Allowed: Admin (org scope) gets a CSV with every OrgA patient.
+    const res = await env.get('/patients/export', p.AdminU);
+    expect(res.status).toBe(200);
+    expect(String(res.headers['content-type'])).toContain('text/csv');
+    expect(String(res.headers['content-disposition'])).toMatch(/patients-.*\.csv/);
+    const csv = res.text.replace(/^﻿/, '');
+    const lines = csv.split('\r\n');
+    expect(lines[0]).toContain('Patient number');
+    expect(csv).toContain('Patient One');
+    expect(csv).toContain('Patient Three');
+
+    // The export follows patients.view scope: an `own` role with export rights
+    // but no patients of its own gets the header only.
+    const { person: ownExporter } = await addStaff(env, 'Exporter', {
+      'patients.view': 'own',
+      'patients.export': true,
+    });
+    const own = await env.get('/patients/export', ownExporter);
+    expect(own.status).toBe(200);
+    expect(own.text.replace(/^﻿/, '').split('\r\n')).toHaveLength(1);
+
+    // Every export is audited.
+    const audit = await env.ds.query<{ n: string }[]>(
+      `SELECT count(*)::int AS n FROM audit_logs
+        WHERE organization_id = $1 AND entity_type = 'patient_export' AND action = 'export'`,
+      [w.orgA],
+    );
+    expect(Number(audit[0].n)).toBeGreaterThanOrEqual(2);
+    note('MOD-22', `AdminU → 200 CSV (${lines.length - 1} rows), own-scope exporter → header only, RecU → 403, audit rows ${audit[0].n}`);
   });
 
   it('MOD-23 prescription create', async () => {
@@ -429,25 +452,56 @@ describe('AC-MOD module permissions', () => {
     note('MOD-37', `AdminU ${allowed.status}`);
   });
 
-  it('MOD-38 users admin (create user)', async () => {
+  it('MOD-38 users admin (create a staff login)', async () => {
     const p = w.people;
-    const call = (who: Person) =>
-      env.call('post', '/user', who, {
-        body: {
-          email: `new.user.${Date.now()}@acceptance-it.test`,
-          name: 'New User',
-          password: 'Acceptance#12345',
-          type: 'owner',
-        },
-        headers: { Authorization: bearer(who) },
-      });
-    const denied = await call(p.RecU);
+    // An employee of OrgA at L1 with no login yet.
+    const [employee] = await env.ds.query<{ id: string }[]>(
+      `INSERT INTO employees (full_name, phone) VALUES ($1, $2) RETURNING id`,
+      [`No Login ${uuid().slice(0, 6)}`, `0399${Date.now().toString().slice(-7)}`],
+    );
+    await env.ds.query(
+      `INSERT INTO employee_org_location_assignments
+         (employee_id, organization_id, location_id, designation, employee_code,
+          joining_date, has_portal_access, created_by)
+       VALUES ($1, $2, $3, 'Nurse', $4, '2024-01-01', false, $5)`,
+      [employee.id, w.orgA, w.L1, `NL${Date.now() % 100000}`, p.AdminU.userId],
+    );
+    const auth = (who: Person) => ({ headers: { Authorization: bearer(who) } });
+    const staffBody = () => ({
+      email: `staff.${uuid().slice(0, 8)}@acceptance-it.test`,
+      name: 'Staff Login',
+      password: 'Acceptance#12345',
+      type: 'employee',
+      employeeId: employee.id,
+    });
+
+    // RecU: no admin.users.manage.
+    const denied = await env.call('post', '/user', p.RecU, { body: staffBody(), ...auth(p.RecU) });
     expect(denied.status).toBe(403);
     expect(errorOf(denied).missing).toContain('admin.users.manage');
-    const allowed = await call(p.AdminU);
-    note('MOD-38', `AdminU → ${allowed.status} ${JSON.stringify((allowed.body as { message?: string }).message ?? '')}; the permission gate passed but the service refuses a non-owner (only owners may add owners, super admins only by SA)`);
-    // The plan expects the Admin to be allowed to create a user.
+
+    // The employee is offered as a candidate, then the Admin creates the login.
+    const candidates = await env.call('get', '/user/staff-candidates', p.AdminU, auth(p.AdminU));
+    expect(candidates.status).toBe(200);
+    expect((candidates.body as { employeeId: string }[]).map((c) => c.employeeId)).toContain(employee.id);
+    const allowed = await env.call('post', '/user', p.AdminU, { body: staffBody(), ...auth(p.AdminU) });
     expect(ok2xx(allowed.status)).toBe(true);
+    const [assignment] = await env.ds.query<{ user_id: string; has_portal_access: boolean }[]>(
+      `SELECT user_id, has_portal_access FROM employee_org_location_assignments WHERE employee_id = $1`,
+      [employee.id],
+    );
+    expect(assignment.user_id).toBe((allowed.body as { uuid: string }).uuid);
+    expect(assignment.has_portal_access).toBe(true);
+
+    // A second login for the same employee is refused; an Admin (not owner) still cannot add owners.
+    const again = await env.call('post', '/user', p.AdminU, { body: staffBody(), ...auth(p.AdminU) });
+    expect(again.status).toBe(409);
+    const owner = await env.call('post', '/user', p.AdminU, {
+      body: { ...staffBody(), type: 'owner', employeeId: undefined },
+      ...auth(p.AdminU),
+    });
+    expect(owner.status).toBe(403);
+    note('MOD-38', `RecU → 403, AdminU staff login → ${allowed.status} (linked, portal on), repeat → 409, owner by Admin → 403`);
   });
 
   it('MOD-39 owner account protection', async () => {

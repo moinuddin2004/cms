@@ -10,7 +10,7 @@ Run of `docs/access-control/test-cases.md` on branch `claude/ac-acceptance-ba883
 - Browser (REG-*, plus UI-01 and THEME-11 as extra evidence): API on :5100 against schema `acceptit`, web app on :3100; one screenshot set per case in `docs/access-control/screenshots/`. Test credentials are in `backend/test/access/acceptance/browser/browser-fixture.json` (localhost only).
 - Redis was not available: realtime used the in-process bus; the `access.changed` socket test uses the real Socket.IO gateway.
 
-**Totals: 166 cases — 163 pass, 3 fail, 0 blocked.**
+**Totals: 166 cases — 166 pass, 0 fail, 0 blocked** (after the fixes below; sections 6 and the extra probes re-run on the DB 2026-10-23). First run: 163 pass, 3 fail.
 
 | Section | Pass | Fail | Blocked |
 | --- | --- | --- | --- |
@@ -19,14 +19,14 @@ Run of `docs/access-control/test-cases.md` on branch `claude/ac-acceptance-ba883
 | 3. Feature entitlement (AC-FEAT) | 14 | 0 | 0 |
 | 4. Roles & bundles (AC-ROLE) | 18 | 0 | 0 |
 | 5. Scope: own / location / org (AC-SCOPE) | 11 | 0 | 0 |
-| 6. Module permission checks (AC-MOD) | 38 | 3 | 0 |
+| 6. Module permission checks (AC-MOD) | 41 | 0 | 0 |
 | 7. Sidebar, nav builder, home redirect (AC-NAV) | 16 | 0 | 0 |
 | 8. Theme & settings registry (AC-THEME) | 15 | 0 | 0 |
 | 9. Realtime & cache invalidation (AC-RT) | 6 | 0 | 0 |
 | 10. Security & tenant isolation (AC-SEC) | 7 | 0 | 0 |
 | 11. UI gating (AC-UI) | 11 | 0 | 0 |
 | 12. Regression smoke (AC-REG) | 7 | 0 | 0 |
-| **All** | **163** | **3** | **0** |
+| **All** | **166** | **0** | **0** |
 
 ## Results
 
@@ -139,11 +139,11 @@ Run of `docs/access-control/test-cases.md` on branch `claude/ac-acceptance-ba883
 | MOD-15 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(queue.entry.manage) |
 | MOD-16 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(queue.entry.reprioritize) |
 | MOD-17 | pass | API 06-modules | allowed → 200, denied → 403 NO_PERMISSION(queue.doctor.own) |
-| MOD-18 | fail | API 06-modules | FAIL — the Admin template has no `queue.doctor.any` (templates.ts NOT_FOR_ADMIN lists it), so AdminU gets 403 NO_PERMISSION(queue.doctor.any) on PATCH /queue/entries/:id/force-complete. Plan expects AdminU allowed. See bug B1. |
+| MOD-18 | pass | API 06-modules | pass (re-run) — fixed by 6699505: the Admin template holds `queue.doctor.any`. |
 | MOD-19 | pass | API 06-modules | Doc2 on Doc1's encounter: 404 (scope reads as "not found"), not 403. Doc1: 200. |
 | MOD-20 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(patients.clinical.edit) |
 | MOD-21 | pass | API 06-modules |  |
-| MOD-22 | fail | API 06-modules | FAIL — no patient export endpoint exists; `patients.export` is never enforced (GET /patients/export hits `:id` → 400). See bug B2. |
+| MOD-22 | pass | API 06-modules | pass (re-run) — `GET /patients/export`: AdminU 200 CSV, own-scope exporter header only, RecU 403, audit rows written. |
 | MOD-23 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(prescriptions.create) |
 | MOD-24 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(inventory.stock.adjust) |
 | MOD-25 | pass | API 06-modules | allowed → 200, denied → 403 NO_PERMISSION(inventory.view) |
@@ -159,7 +159,7 @@ Run of `docs/access-control/test-cases.md` on branch `claude/ac-acceptance-ba883
 | MOD-35 | pass | API 06-modules | allowed → 200, denied → 403 NO_PERMISSION(finance.overview.view) |
 | MOD-36 | pass | API 06-modules | allowed → 400, denied → 403 NO_PERMISSION(notifications.settings.manage) |
 | MOD-37 | pass | API 06-modules | AdminU 200 |
-| MOD-38 | fail | API 06-modules | FAIL — RecU 403 NO_PERMISSION(admin.users.manage) ✓, but AdminU gets 403 "Only an owner can add another owner" (POST /user only creates owner / super_admin). See bug B3. |
+| MOD-38 | pass | API 06-modules | pass (re-run) — Admin creates a staff login for an existing employee (201, linked, portal on); repeat 409; owner by Admin 403; RecU 403. |
 | MOD-39 | pass | API 06-modules | AdminU 403; OwnerA 200 |
 | MOD-40 | pass | API 06-modules | allowed → 200, denied → 403 NO_PERMISSION(admin.theme.manage) |
 | MOD-41 | pass | API 06-modules | lab_admin 200; clinic AdminU/OwnerA refused by LabPortalGuard |
@@ -306,9 +306,9 @@ Test tooling added (not product changes): the acceptance specs and harness, `npm
 
 | ID | Result | Note |
 | --- | --- | --- |
-| XTRA-01 | fail | Doc2 can read Doc1's encounter (200) — bug B5. |
-| XTRA-02 | fail | Doc2's treatment POST on Doc1's encounter passes access checks (400 validation) — bug B5. |
-| XTRA-03 | fail | `GET /payroll/location` with no params → 500 — bug B4. |
+| XTRA-01 | pass | pass (re-run) — Doc2 → 404. |
+| XTRA-02 | pass | pass (re-run) — Doc2 → 404. |
+| XTRA-03 | pass | pass (re-run) — 400. |
 
 ## Housekeeping
 
@@ -343,3 +343,7 @@ Still open from B5's family: `POST /treatments` and `GET /treatments?patientId=`
 | B7 | `ThemeProvider` re-reads the remembered org and cached theme whenever sign-in state changes, so the login page after an in-app sign-out uses the clinic theme. | Typecheck. Not checked in a browser. |
 
 Suites after these fixes: backend `npx jest` 709 pass; web `npx vitest run` 325 pass; both builds pass.
+
+## Update 3 — re-run on the DB (2026-10-23)
+
+`npm run test:int:acceptance -- "06-modules|11-extra"` on schema `acceptit`: **2 suites, 47 tests, all pass**. New probes: XTRA-04 (payroll month 13 / year `abc` → 400, valid period → 200) and XTRA-05 (`POST /treatments`: Doc2 for Doc1's patient → 404, Doc1 → 201). Still not checked in a browser: the Export button, the staff option in the user form, the gated dashboard and the login theme after sign-out.

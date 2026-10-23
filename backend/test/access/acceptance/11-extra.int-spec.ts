@@ -46,6 +46,26 @@ describe('XTRA probes (not in the plan)', () => {
   it('XTRA-03 GET /payroll/location without month/year must be a 400, not a 500', async () => {
     const res = await env.get('/payroll/location', w.people.AdminU);
     note('XTRA-03', `AdminU GET /payroll/location (no params): ${res.status}`);
-    expect(res.status).toBeLessThan(500);
+    expect(res.status).toBe(400);
+  });
+
+  it('XTRA-04 payroll month / year out of range are 400; a valid period still works', async () => {
+    const bad = await env.get('/payroll/location?month=13&year=2026', w.people.AdminU);
+    expect(bad.status).toBe(400);
+    const badExport = await env.get('/payroll/export?month=1&year=abc', w.people.AdminU);
+    expect(badExport.status).toBe(400);
+    const good = await env.get('/payroll/location?month=1&year=2026', w.people.AdminU);
+    expect(good.status).toBe(200);
+    note('XTRA-04', `month=13 → ${bad.status}, year=abc export → ${badExport.status}, valid → ${good.status}`);
+  });
+
+  it("XTRA-05 POST /treatments — a doctor cannot record treatment for another doctor's patient", async () => {
+    const body = { patientId: w.patients.P1, treatmentName: 'Scaling' };
+    // P1 has an appointment with Doc1 only, so it is outside Doc2's `own` scope.
+    const other = await env.post('/treatments', w.people.Doc2, body);
+    expect(other.status).toBe(404);
+    const mine = await env.post('/treatments', w.people.Doc1, body);
+    expect([403, 404]).not.toContain(mine.status);
+    note('XTRA-05', `Doc2 → ${other.status}, Doc1 (own patient) → ${mine.status}`);
   });
 });
