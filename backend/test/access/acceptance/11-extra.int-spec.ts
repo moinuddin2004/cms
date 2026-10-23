@@ -36,6 +36,13 @@ describe('XTRA probes (not in the plan)', () => {
     expect([403, 404]).toContain(res.status);
   });
 
+  it('XTRA-01b the owning doctor, and a location-wide role, still reach the encounter', async () => {
+    await env.get(`/encounters/${enc.doc1}`, w.people.Doc1).expect(200);
+    await env.get(`/encounters/${enc.doc1}`, w.people.AdminU).expect(200);
+    const mine = await env.post(`/encounters/${enc.doc1}/treatments`, w.people.Doc1, {});
+    expect([400, 201]).toContain(mine.status); // past the access checks (body validation only)
+  });
+
   it('XTRA-03 GET /payroll/location without month/year must be a 400, not a 500', async () => {
     const res = await env.get('/payroll/location', w.people.AdminU);
     note('XTRA-03', `AdminU GET /payroll/location (no params): ${res.status}`);

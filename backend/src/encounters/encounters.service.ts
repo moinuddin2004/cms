@@ -5,6 +5,7 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { QueueEntry } from 'src/queue/entities/queue-entry.entity';
 import { QueueSession } from 'src/queue/entities/queue-session.entity';
 import type { AccessContext } from 'src/access/access-context';
+import { isPatientInScope } from 'src/patients/access/patient-scope';
 import { PatientEncounter } from './entities/patient-encounter.entity';
 import { UpdateEncounterNotesDto } from './dto/update-encounter-notes.dto';
 
@@ -137,6 +138,36 @@ export class EncountersService {
       location: 'enc.location_id',
     });
     if ((await qb.getCount()) === 0) {
+      throw new NotFoundException('Encounter not found');
+    }
+  }
+
+  /**
+   * Record-level reads and writes of an encounter (`patients.clinical.*`,
+   * unscoped permissions) still follow the caller's `patients.view` scope:
+   * an encounter of a patient outside it reads as not found.
+   */
+  async assertPatientInScope(
+    id: string,
+    ctx: TenantContext,
+    access: AccessContext,
+  ): Promise<void> {
+    const encounter = await this.encounterRepo.findOne({
+      where: {
+        id,
+        organizationId: ctx.organizationId,
+        locationId: ctx.locationId,
+      },
+      select: { id: true, patientId: true },
+    });
+    if (
+      !encounter ||
+      !(await isPatientInScope(
+        this.encounterRepo.manager.connection,
+        access,
+        encounter.patientId,
+      ))
+    ) {
       throw new NotFoundException('Encounter not found');
     }
   }
