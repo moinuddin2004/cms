@@ -24,6 +24,7 @@
     "test:int:labs": "jest --config ./test/jest-int-labs.json --runInBand",
     "test:int:tenancy": "jest --config ./test/jest-int-tenancy.json --runInBand",
     "test:int:access": "jest --config ./test/jest-int-access.json --runInBand --forceExit",
+    "test:int:acceptance": "jest --config ./test/jest-int-acceptance.json --runInBand --forceExit",
     "access:export": "ts-node scripts/export-access-catalog.ts",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/data-sourse.ts",
