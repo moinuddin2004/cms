@@ -218,4 +218,12 @@ describe('AC-GRD (unit)', () => {
       legacyRolesFromPermissions({ canManageSettings: true, canConsult: true }),
     ).toEqual([]);
   });
+
+  it('MOD-18 (unit) the Admin template can run any doctor queue; Doctor and Receptionist cannot', () => {
+    const grants = (key: string) =>
+      ROLE_TEMPLATES.find((t) => t.key === key)!.permissions;
+    expect(grants('admin')['queue.doctor.any']).toBe(true);
+    expect(grants('doctor')['queue.doctor.any']).toBeUndefined();
+    expect(grants('receptionist')['queue.doctor.any']).toBeUndefined();
+  });
 });
