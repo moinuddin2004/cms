@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import type { User, UserRoleType } from '../types'
-import { useCreateUser, useUpdateUser } from '../api'
+import { useCreateUser, useStaffCandidates, useUpdateUser } from '../api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
@@ -52,6 +52,7 @@ export function UserFormDialog({
       type: activeTab as string,
       status: 'active',
       organizationId: '',
+      employeeId: '',
     },
     onSubmit: async ({ value }) => {
       if (isEditing && user) {
@@ -80,7 +81,12 @@ export function UserFormDialog({
             email: value.email,
             password: value.password,
             type: value.type as UserRoleType,
-            ...(value.organizationId ? { organizationId: value.organizationId } : {}),
+            ...(value.type === 'employee'
+              ? { employeeId: value.employeeId }
+              : {}),
+            ...(value.organizationId
+              ? { organizationId: value.organizationId }
+              : {}),
           },
           {
             onSuccess: () => {
@@ -102,10 +108,17 @@ export function UserFormDialog({
     enabled: isSuperAdmin && selectedType === 'owner',
   })
 
+  const isStaff = selectedType === 'employee' && !isEditing
+  const { data: candidates, isLoading: candidatesLoading } = useStaffCandidates(
+    activeOrganizationId || undefined,
+    open && isStaff,
+  )
+
   useEffect(() => {
     if (open) {
       if (user) {
-        const type = user.globalRole === 'super_admin' ? 'super_admin' : activeTab
+        const type =
+          user.globalRole === 'super_admin' ? 'super_admin' : activeTab
         form.setFieldValue('name', user.name || '')
         form.setFieldValue('email', user.email || '')
         form.setFieldValue('status', user.status || 'active')
@@ -176,7 +189,7 @@ export function UserFormDialog({
                     field.handleChange(val)
                     setSelectedType(val)
                   }}
-                  disabled={isEditing || !isSuperAdmin}
+                  disabled={isEditing}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
@@ -186,17 +199,80 @@ export function UserFormDialog({
                       <SelectItem value="super_admin">Super Admin</SelectItem>
                     )}
                     <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="employee" disabled>
-                      Employee (Create via Employee Module)
+                    <SelectItem value="employee">
+                      Staff (existing employee)
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Employees can only be created from the Employee directory.
-                </p>
+                {field.state.value === 'employee' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Gives an employee a login. What they can do comes from their
+                    role in the Employee directory.
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
+
+          {isStaff && (
+            <form.Field
+              name="employeeId"
+              validators={{
+                onSubmit: ({ value }) =>
+                  value ? undefined : 'Choose the employee',
+              }}
+            >
+              {(field) => (
+                <div className="space-y-2">
+                  <Label>Employee</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(val) => {
+                      field.handleChange(val)
+                      const picked = candidates?.find(
+                        (c) => c.employeeId === val,
+                      )
+                      if (picked && !form.getFieldValue('name')) {
+                        form.setFieldValue('name', picked.name)
+                      }
+                    }}
+                    disabled={candidatesLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          candidatesLoading
+                            ? 'Loading employees…'
+                            : 'Select an employee without a login'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {candidates?.map((c) => (
+                        <SelectItem key={c.employeeId} value={c.employeeId}>
+                          {c.name}
+                          {c.locations.length
+                            ? ` · ${c.locations.join(', ')}`
+                            : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!candidatesLoading && candidates?.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Every employee already has a login. Add new staff from the
+                      Employee directory first.
+                    </p>
+                  )}
+                  {field.state.meta.errors[0] && (
+                    <p className="text-xs text-destructive">
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+          )}
 
           {isSuperAdmin && selectedType === 'owner' && !isEditing && (
             <form.Field name="organizationId">

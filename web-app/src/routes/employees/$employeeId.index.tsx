@@ -1,5 +1,4 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { RequireRolePage } from '@/components/feature/RequireRolePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,36 +20,35 @@ import {
   formatDate,
   getEmploymentTypeLabel,
 } from '@/lib/formatters'
-import {
-  Edit,
-  Shield,
-  ShieldOff,
-  Loader2,
-  Receipt,
-} from 'lucide-react'
+import { Edit, Shield, ShieldOff, Loader2, Receipt } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
-import { useFeature } from '@/context/FeatureFlagsContext'
-import { CompensationTab, COMMISSIONS_FEATURE } from '@/features/billing'
+import { CompensationTab } from '@/features/billing'
+import { useAccess } from '@/features/access'
 
 export const Route = createFileRoute('/employees/$employeeId/')({
-  component: () => (
-    <RequireRolePage roles={['clinic_admin']}>
-      <EmployeeDetailPage />
-    </RequireRolePage>
-  ),
+  staticData: { can: 'employees.view' },
+  component: () => <EmployeeDetailPage />,
 })
 
 function EmployeeDetailPage() {
   const { employeeId } = Route.useParams()
   const navigate = useNavigate()
-  const { data: employee, isLoading: isEmployeeLoading } = useEmployee(employeeId)
-  const { data: payroll, isLoading: isPayrollLoading } = useEmployeePayroll(employeeId)
+  const { can } = useAccess()
+  const canManage = can('employees.manage')
+  const canPayroll = can('payroll.manage')
+  const canLeave = can('leave.approve')
+  const { data: employee, isLoading: isEmployeeLoading } =
+    useEmployee(employeeId)
+  const { data: payroll, isLoading: isPayrollLoading } = useEmployeePayroll(
+    employeeId,
+    canPayroll,
+  )
 
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false)
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  const commissionsOn = useFeature(COMMISSIONS_FEATURE)
+  const commissionsOn = can('compensation.manage')
 
   if (isEmployeeLoading) {
     return (
@@ -82,6 +80,8 @@ function EmployeeDetailPage() {
   const canGenerate =
     !!employee.currentSalary ||
     (!!employee.compensationType && employee.compensationType !== 'SALARY')
+  const tabCount =
+    2 + (commissionsOn ? 1 : 0) + (canLeave ? 1 : 0) + (canPayroll ? 1 : 0)
   const currentMonthRecord = payroll?.find(
     (p: any) => p.month === currentMonth && p.year === currentYear,
   )
@@ -111,35 +111,29 @@ function EmployeeDetailPage() {
             />
             {employee.isActive ? 'Active' : 'Inactive'}
           </Badge>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsEditOpen(true)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Edit
-          </Button>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditOpen(true)}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+          )}
         </div>
       }
     >
       <div className="space-y-6">
-
         <Tabs defaultValue="details" className="w-full">
-          <TabsList
-            className={cn(
-              'grid w-full',
-              commissionsOn
-                ? 'grid-cols-5 max-w-[750px]'
-                : 'grid-cols-4 max-w-[600px]',
-            )}
-          >
+          <TabsList className={cn('grid w-full', TAB_GRID[tabCount])}>
             <TabsTrigger value="details">Details</TabsTrigger>
             {commissionsOn && (
               <TabsTrigger value="compensation">Compensation</TabsTrigger>
             )}
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="leave">Leave</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll</TabsTrigger>
+            {canLeave && <TabsTrigger value="leave">Leave</TabsTrigger>}
+            {canPayroll && <TabsTrigger value="payroll">Payroll</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="details" className="mt-6 space-y-6">
@@ -207,13 +201,15 @@ function EmployeeDetailPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-lg">💰 Current Salary</CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsSalaryModalOpen(true)}
-                >
-                  {employee.currentSalary ? 'Update' : 'Set Salary'}
-                </Button>
+                {canManage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsSalaryModalOpen(true)}
+                  >
+                    {employee.currentSalary ? 'Update' : 'Set Salary'}
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {employee.currentSalary ? (
@@ -252,53 +248,60 @@ function EmployeeDetailPage() {
             <AvailabilityOverrideTab employeeId={employeeId} />
           </TabsContent>
 
-          <TabsContent value="leave" className="mt-6">
-            <LeaveTable employeeId={employeeId} />
-          </TabsContent>
+          {canLeave && (
+            <TabsContent value="leave" className="mt-6">
+              <LeaveTable employeeId={employeeId} />
+            </TabsContent>
+          )}
 
-          <TabsContent value="payroll" className="mt-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Payroll History</h3>
-              {!currentMonthRecord && canGenerate && (
-                <Button size="sm" onClick={() => setIsGenerateModalOpen(true)}>
-                  Generate This Month
-                </Button>
-              )}
-            </div>
-
-            {isPayrollLoading ? (
-              <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-16 w-full rounded-md border animate-pulse bg-muted/20"
-                  />
-                ))}
-              </div>
-            ) : payroll && payroll.length > 0 ? (
-              <PayrollTable records={payroll} />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 gap-4 border rounded-lg bg-slate-50/50">
-                <div className="rounded-full bg-white p-6 border shadow-sm">
-                  <Receipt className="h-10 w-10 text-muted-foreground" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="font-medium">No payroll records yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    Generate payroll to track monthly salaries
-                  </p>
-                </div>
-                {canGenerate && (
+          {canPayroll && (
+            <TabsContent value="payroll" className="mt-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Payroll History</h3>
+                {!currentMonthRecord && canGenerate && (
                   <Button
-                    variant="outline"
+                    size="sm"
                     onClick={() => setIsGenerateModalOpen(true)}
                   >
-                    Generate Payroll
+                    Generate This Month
                   </Button>
                 )}
               </div>
-            )}
-          </TabsContent>
+
+              {isPayrollLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-16 w-full rounded-md border animate-pulse bg-muted/20"
+                    />
+                  ))}
+                </div>
+              ) : payroll && payroll.length > 0 ? (
+                <PayrollTable records={payroll} />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 gap-4 border rounded-lg bg-slate-50/50">
+                  <div className="rounded-full bg-white p-6 border shadow-sm">
+                    <Receipt className="h-10 w-10 text-muted-foreground" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="font-medium">No payroll records yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      Generate payroll to track monthly salaries
+                    </p>
+                  </div>
+                  {canGenerate && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsGenerateModalOpen(true)}
+                    >
+                      Generate Payroll
+                    </Button>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
@@ -320,6 +323,14 @@ function EmployeeDetailPage() {
       />
     </DashboardLayout>
   )
+}
+
+/** Tab strip width by how many tabs the viewer may see. */
+const TAB_GRID: Record<number, string> = {
+  2: 'grid-cols-2 max-w-[300px]',
+  3: 'grid-cols-3 max-w-[450px]',
+  4: 'grid-cols-4 max-w-[600px]',
+  5: 'grid-cols-5 max-w-[750px]',
 }
 
 function InfoItem({

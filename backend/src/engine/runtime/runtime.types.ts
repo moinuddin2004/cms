@@ -1,4 +1,5 @@
 import type { EntityManager } from 'typeorm';
+import type { Permission } from 'src/access/catalog/permissions';
 import type { TransitionVia } from 'src/common/audit/audit.enums';
 import type { TransitionSide } from '../workflows/workflow.types';
 
@@ -9,6 +10,8 @@ export interface TransitionActor {
   side: TransitionSide;
   /** Clinic roles at the active location, or lab member roles. */
   roles: string[];
+  /** Clinic caller's permission check (AccessContext.can); proxy updates need it. */
+  can?: (permission: Permission) => boolean;
   via?: TransitionVia;
   ip?: string | null;
   requestId?: string | null;

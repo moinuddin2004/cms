@@ -8,11 +8,9 @@ import { Location } from 'src/locations/entities/location.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
-import {
-  Actor,
-  ALL_APP_ROLES,
-  AppRole,
-} from 'src/common/enums/app-role.enum';
+import { Actor, ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
+import { legacyRolesFromPermissions } from 'src/access/legacy-roles';
+import type { AccessContext } from 'src/access/access-context';
 
 /**
  * Represents a user's accessible organization with its locations.
@@ -36,6 +34,12 @@ export interface AccessibleLocation {
   timezone: string;
 }
 
+/**
+ * @deprecated Legacy per-location flags still returned by
+ * `POST /auth/switch-location`; the web app reads `/me/access` instead.
+ * Derived from the AccessContext (`legacyLocationFlags`), never from the
+ * old role booleans.
+ */
 export interface UserPermissions {
   canViewAppointments: boolean;
   canCreateAppointments: boolean;
@@ -78,7 +82,7 @@ export class AuthorizationService {
     private readonly employeeRepo: Repository<Employee>,
     @InjectRepository(EmployeeOrgLocationAssignment)
     private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
-  ) { }
+  ) {}
 
   /**
    * Check if user is a super admin.
@@ -325,59 +329,15 @@ export class AuthorizationService {
   }
 
   /**
-   * Get user permissions at a specific location.
-   */
-  async getUserPermissionsAtLocation(
-    userId: string,
-    organizationId: string,
-    locationId: string,
-  ): Promise<UserPermissions> {
-    // Super admin: full permissions
-    if (await this.isSuperAdmin(userId)) {
-      return this.fullPermissions();
-    }
-
-    // Owner: full permissions
-    if (await this.isOwner(userId, organizationId)) {
-      return this.fullPermissions();
-    }
-
-    // Employee: get permissions from employment_role via assignment
-    const assignment = await this.assignmentRepo.findOne({
-      where: {
-        userId,
-        organizationId,
-        locationId,
-        hasPortalAccess: true,
-        isActive: true,
-      },
-      relations: ['employmentRole'],
-    });
-
-    if (!assignment) return this.noPermissions();
-
-    // If role has JSONB permissions, use those
-    const rolePerms = assignment.employmentRole?.permissions || {};
-    return {
-      canViewAppointments: rolePerms.canViewAppointments ?? true,
-      canCreateAppointments: rolePerms.canCreateAppointments ?? true,
-      canManageStaff: rolePerms.canManageStaff ?? false,
-      canViewFinance: rolePerms.canViewFinance ?? false,
-      canManageLocations: rolePerms.canManageLocations ?? false,
-      canManageUsers: rolePerms.canManageUsers ?? false,
-      canViewBilling: rolePerms.canViewBilling ?? false,
-      canManageSettings: rolePerms.canManageSettings ?? false,
-    };
-  }
-
-  /**
    * Resolve the clinic roles a user holds at one organization + location.
    *
    * - Super admin / organization owner → every role.
-   * - Employee with portal access → from the employment role's permissions:
-   *   `canManageSettings` → clinic_admin; `canCreateAppointments` (default on)
-   *   → receptionist; `canConsult` (default on) → doctor. Doctor actions are
-   *   further limited to the doctor's own appointments by the caller.
+   * - Employee with portal access and an active role → derived from the
+   *   role's new-format permissions (see `legacyRolesFromPermissions`):
+   *   any `admin.*` → clinic_admin; `appointments.book` / `billing.desk.use`
+   *   → receptionist; `consultation.conduct` → doctor. Fail-closed: no
+   *   matching permission, no role. Doctor actions are further limited to
+   *   the doctor's own appointments by the caller.
    */
   async resolveActor(
     userId: string,
@@ -397,41 +357,52 @@ export class AuthorizationService {
       return { userId, roles: [...ALL_APP_ROLES], employeeId };
     }
 
-    if (!assignment?.hasPortalAccess) {
+    const role = assignment?.employmentRole;
+    if (!assignment?.hasPortalAccess || !role?.isActive) {
       return { userId, roles: [], employeeId };
     }
 
-    const perms = assignment.employmentRole?.permissions ?? {};
-    const roles: AppRole[] = [];
-    if (perms.canManageSettings === true) roles.push(AppRole.CLINIC_ADMIN);
-    if (perms.canCreateAppointments !== false) roles.push(AppRole.RECEPTIONIST);
-    if (perms.canConsult !== false) roles.push(AppRole.DOCTOR);
-    return { userId, roles, employeeId };
-  }
-
-  private fullPermissions(): UserPermissions {
     return {
-      canViewAppointments: true,
-      canCreateAppointments: true,
-      canManageStaff: true,
-      canViewFinance: true,
-      canManageLocations: true,
-      canManageUsers: true,
-      canViewBilling: true,
-      canManageSettings: true,
+      userId,
+      roles: legacyRolesFromPermissions(role.permissions),
+      employeeId,
     };
   }
 
-  private noPermissions(): UserPermissions {
-    return {
-      canViewAppointments: false,
-      canCreateAppointments: false,
-      canManageStaff: false,
-      canViewFinance: false,
-      canManageLocations: false,
-      canManageUsers: false,
-      canViewBilling: false,
-      canManageSettings: false,
-    };
+  /**
+   * Whether the user may act in this organization at all: super admin,
+   * owner, or an active portal assignment at any of its locations.
+   */
+  async canAccessOrganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    if (await this.isSuperAdmin(userId)) return true;
+    if (await this.isOwner(userId, organizationId)) return true;
+    return this.assignmentRepo.exists({
+      where: {
+        userId,
+        organizationId,
+        hasPortalAccess: true,
+        isActive: true,
+      },
+    });
   }
+}
+
+/**
+ * @deprecated The old 8 flags, derived from the new permissions so the
+ * switch-location response stays truthful until it is removed.
+ */
+export function legacyLocationFlags(access: AccessContext): UserPermissions {
+  return {
+    canViewAppointments: access.can('appointments.view'),
+    canCreateAppointments: access.can('appointments.book'),
+    canManageStaff: access.can('employees.manage'),
+    canViewFinance: access.can('finance.overview.view'),
+    canManageLocations: access.can('admin.locations.manage'),
+    canManageUsers: access.can('admin.users.manage'),
+    canViewBilling: access.can('billing.invoice.view'),
+    canManageSettings: access.can('admin.settings.manage'),
+  };
 }

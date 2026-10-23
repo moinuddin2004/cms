@@ -28,7 +28,7 @@ const iconMap: Record<string, React.ElementType> = {
 }
 
 const iconBgMap: Record<string, string> = {
-  users: 'bg-blue-50 text-blue-600',
+  users: 'bg-primary/10 text-primary',
   'calendar-check': 'bg-purple-50 text-purple-600',
   'dollar-sign': 'bg-green-50 text-green-600',
   smile: 'bg-amber-50 text-amber-600',

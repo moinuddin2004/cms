@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,7 @@ import {
   UpdateOrganizationDto,
 } from './dto/organization.dto';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
+import { AccessTemplatesService } from 'src/access/templates/access-templates.service';
 
 @Injectable()
 export class OrganizationsService {
@@ -21,6 +23,7 @@ export class OrganizationsService {
     @InjectRepository(OrganizationSettings)
     private readonly settingsRepo: Repository<OrganizationSettings>,
     private readonly featureFlagsService: FeatureFlagsService,
+    @Optional() private readonly accessTemplates?: AccessTemplatesService,
   ) {}
 
   /**
@@ -43,6 +46,8 @@ export class OrganizationsService {
 
     // Seed default feature flags for the new organization
     await this.featureFlagsService.seedFlagsForOrg(saved.id);
+    // System role templates (Admin, Doctor, Receptionist, …)
+    await this.accessTemplates?.seedForOrg(saved.id);
 
     return saved;
   }

@@ -1,0 +1,35 @@
+{
+  "note": "Localhost-only test credentials for the acceptance browser run (schema acceptit).",
+  "password": "Acceptance#Test12345",
+  "organizationId": "31463883-0550-4a23-bc83-3e218dadfb62",
+  "locations": {
+    "L1": "eae9698f-c8d0-428f-b5b2-0c733399ffaa",
+    "L2": "48b15057-5320-4b64-90e4-3b218fabcab7"
+  },
+  "users": {
+    "OwnerA": {
+      "email": "ownera@browser.acceptance-it.test",
+      "userId": "9aa2469a-4fef-4c47-a1ea-29e8ea2c0cd0"
+    },
+    "AdminU": {
+      "email": "adminu@browser.acceptance-it.test",
+      "userId": "1e2484f2-aee9-4b60-a8dc-51f739c4a0ff"
+    },
+    "Doc1": {
+      "email": "doc1@browser.acceptance-it.test",
+      "userId": "67c4eb89-c7de-4d2e-9968-80f30e037fda"
+    },
+    "RecU": {
+      "email": "recu@browser.acceptance-it.test",
+      "userId": "c80edab2-d981-49f9-a1ec-d9a7dd49189a"
+    },
+    "AcctU": {
+      "email": "acctu@browser.acceptance-it.test",
+      "userId": "fc9e6614-3d3c-46ae-8366-6fb283d9e621"
+    },
+    "SA": {
+      "email": "sa@browser.acceptance-it.test",
+      "userId": "a531b0b8-920a-41ca-a1a8-55080de2e45f"
+    }
+  }
+}

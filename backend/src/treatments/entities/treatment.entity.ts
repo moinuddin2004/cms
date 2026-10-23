@@ -8,6 +8,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import { VisibleIf } from 'src/access/visible-if/visible-if';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -79,6 +80,7 @@ export class Treatment {
   notes: string | null;
 
   /** Legacy fee; billing falls back to it only when no service is set. */
+  @VisibleIf('patients.price.view')
   @Column({
     name: 'cost',
     type: 'decimal',

@@ -5,6 +5,8 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Location } from 'src/locations/entities/location.entity';
 import { LocationSettings } from 'src/locations/entities/location-settings.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
+import { SettingsRegistryService } from 'src/settings-registry/settings-registry.service';
+import { THEME_SETTINGS } from 'src/settings-registry/theme/theme.settings';
 import { amountInWords } from '../common/amount-in-words';
 import { BillingClock } from '../common/billing-clock.service';
 import { BillingLookups } from '../common/billing-lookups';
@@ -42,6 +44,7 @@ export class PrintDataService {
     private readonly settings: BillingSettingsService,
     private readonly refunds: RefundsService,
     private readonly cashClose: CashCloseService,
+    private readonly registry: SettingsRegistryService,
   ) {}
 
   async invoice(tenant: TenantContext, invoiceId: string, revision?: number) {
@@ -177,34 +180,39 @@ export class PrintDataService {
     tenant: TenantContext,
     format: PrintFormat,
   ): Promise<PrintHeader> {
-    const [org, location, locSettings, settings, time] = await Promise.all([
-      manager.getRepository(Organization).findOne({
-        where: { id: tenant.organizationId },
-        select: { id: true, name: true },
-      }),
-      manager.getRepository(Location).findOne({
-        where: { id: tenant.locationId },
-        select: {
-          id: true,
-          name: true,
-          address: true,
-          city: true,
-          phone: true,
-        },
-      }),
-      manager
-        .getRepository(LocationSettings)
-        .findOne({ where: { locationId: tenant.locationId } }),
-      this.settings.getOrCreate(manager, tenant),
-      this.clock.read(tenant.locationId),
-    ]);
+    const [org, location, locSettings, settings, time, themeLogo] =
+      await Promise.all([
+        manager.getRepository(Organization).findOne({
+          where: { id: tenant.organizationId },
+          select: { id: true, name: true },
+        }),
+        manager.getRepository(Location).findOne({
+          where: { id: tenant.locationId },
+          select: {
+            id: true,
+            name: true,
+            address: true,
+            city: true,
+            phone: true,
+          },
+        }),
+        manager
+          .getRepository(LocationSettings)
+          .findOne({ where: { locationId: tenant.locationId } }),
+        this.settings.getOrCreate(manager, tenant),
+        this.clock.read(tenant.locationId),
+        // The theme logo wins; `location_settings.logo_url` is the old source.
+        this.registry.get<string | null>(THEME_SETTINGS.logoUrl.key, tenant),
+      ]);
     return {
       clinicName: org?.name ?? '',
       locationName: location?.name ?? '',
       address:
         [location?.address, location?.city].filter(Boolean).join(', ') || null,
       phone: location?.phone ?? null,
-      logoUrl: settings.showLogo ? (locSettings?.logoUrl ?? null) : null,
+      logoUrl: settings.showLogo
+        ? (themeLogo ?? locSettings?.logoUrl ?? null)
+        : null,
       footerNote: settings.footerNote,
       format,
       generatedAt: time.now.toLocaleString('en-GB', { timeZone: time.tz }),

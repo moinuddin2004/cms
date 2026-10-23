@@ -66,6 +66,21 @@ export class Organization {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
+  /**
+   * +1 on every access change in the org (roles, assignments, feature
+   * flags, ownership); access caches key on it. Written only by
+   * AccessVersionService (raw SQL) — never by entity saves, which would
+   * write back a stale value.
+   */
+  @Column({
+    name: 'access_version',
+    type: 'int',
+    default: 1,
+    insert: false,
+    update: false,
+  })
+  accessVersion: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

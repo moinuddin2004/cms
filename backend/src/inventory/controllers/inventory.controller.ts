@@ -26,11 +26,10 @@ import {
 } from '../dto/inventory-category.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
+import { Can } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 @Controller('inventory')
-@RequireFeature('inventory.core')
 export class InventoryController {
   constructor(
     private readonly inventoryService: InventoryService,
@@ -40,6 +39,7 @@ export class InventoryController {
   // ─── Categories ─────────────────────────────────────────
   @Post('categories')
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.stock.adjust')
   async createCategory(
     @Body() dto: CreateInventoryCategoryDto,
     @ActiveTenant() ctx: TenantContext,
@@ -49,12 +49,14 @@ export class InventoryController {
   }
 
   @Get('categories')
+  @Can('inventory.view')
   async getCategories(@ActiveTenant() ctx: TenantContext) {
     const data = await this.categoryService.findAll(ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Patch('categories/:id')
+  @Can('inventory.stock.adjust')
   async updateCategory(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInventoryCategoryDto,
@@ -65,6 +67,7 @@ export class InventoryController {
   }
 
   @Delete('categories/:id')
+  @Can('inventory.stock.adjust')
   async deactivateCategory(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -76,6 +79,7 @@ export class InventoryController {
   // ─── Items ──────────────────────────────────────────────
   @Post('items')
   @HttpCode(HttpStatus.CREATED)
+  @Can('inventory.stock.adjust')
   async createItem(
     @Body() dto: CreateInventoryItemDto,
     @ActiveTenant() ctx: TenantContext,
@@ -91,6 +95,7 @@ export class InventoryController {
   }
 
   @Get('items')
+  @Can('inventory.view')
   async getItems(
     @Query() query: InventoryItemFilterDto,
     @ActiveTenant() ctx: TenantContext,
@@ -104,6 +109,7 @@ export class InventoryController {
   }
 
   @Get('items/stats')
+  @Can('inventory.view')
   async getStats(@ActiveTenant() ctx: TenantContext) {
     const data = await this.inventoryService.getStats(
       ctx.organizationId,
@@ -113,6 +119,7 @@ export class InventoryController {
   }
 
   @Get('items/low-stock')
+  @Can('inventory.view')
   async getLowStockItems(@ActiveTenant() ctx: TenantContext) {
     const data = await this.inventoryService.getLowStockItems(
       ctx.organizationId,
@@ -122,6 +129,7 @@ export class InventoryController {
   }
 
   @Get('items/expiring')
+  @Can('inventory.view')
   async getExpiringItems(
     @Query('daysAhead') daysAhead: string,
     @ActiveTenant() ctx: TenantContext,
@@ -136,6 +144,7 @@ export class InventoryController {
   }
 
   @Get('items/out-of-stock')
+  @Can('inventory.view')
   async getOutOfStockItems(@ActiveTenant() ctx: TenantContext) {
     const data = await this.inventoryService.getOutOfStockItems(
       ctx.organizationId,
@@ -145,6 +154,7 @@ export class InventoryController {
   }
 
   @Get('items/:id')
+  @Can('inventory.view')
   async getItem(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -158,6 +168,7 @@ export class InventoryController {
   }
 
   @Patch('items/:id')
+  @Can('inventory.stock.adjust')
   async updateItem(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateInventoryItemDto,
@@ -173,6 +184,7 @@ export class InventoryController {
   }
 
   @Delete('items/:id')
+  @Can('inventory.stock.adjust')
   async deactivateItem(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -186,6 +198,7 @@ export class InventoryController {
   }
 
   @Post('items/:id/adjust-stock')
+  @Can('inventory.stock.adjust')
   async adjustStock(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AdjustStockDto,
@@ -203,6 +216,7 @@ export class InventoryController {
   }
 
   @Get('items/:id/movements')
+  @Can('inventory.view')
   async getStockMovements(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('page') page: string,

@@ -77,7 +77,7 @@ export function LoginForm() {
           } else if (requiresOrgSelection || requiresLocationSelection) {
             navigate({ to: '/select-location' })
           } else {
-            navigate({ to: '/dashboard' })
+            navigate({ to: '/' }) // → the user's home page
           }
         }
       } catch (err: any) {
@@ -132,7 +132,7 @@ export function LoginForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="email"
-                  className="h-11 pl-[38px] rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500 dark:focus-visible:border-blue-400 transition-colors"
+                  className="h-11 pl-[38px] rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
                 />
               </div>
             )}
@@ -168,7 +168,7 @@ export function LoginForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="current-password"
-                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:border-blue-500 dark:focus-visible:border-blue-400 transition-colors"
+                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
                 />
                 <Button
                   type="button"

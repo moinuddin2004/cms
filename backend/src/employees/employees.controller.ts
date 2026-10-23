@@ -23,11 +23,9 @@ import { TogglePortalAccessDto } from './dto/toggle-portal-access.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { Can } from 'src/access/decorators/access.decorators';
 
 @Controller('employees')
-@Roles(AppRole.CLINIC_ADMIN)
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
@@ -36,6 +34,7 @@ export class EmployeesController {
   // ═══════════════════════════════════════════════════════════
 
   @Post()
+  @Can('employees.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateEmployeeDto,
@@ -47,6 +46,7 @@ export class EmployeesController {
   }
 
   @Get()
+  @Can('employees.view')
   async findAll(
     @Query() filters: EmployeeFilterDto,
     @ActiveTenant() ctx: TenantContext,
@@ -56,6 +56,7 @@ export class EmployeesController {
   }
 
   @Get(':id')
+  @Can('employees.view')
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -65,6 +66,7 @@ export class EmployeesController {
   }
 
   @Put(':id')
+  @Can('employees.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
@@ -75,6 +77,7 @@ export class EmployeesController {
   }
 
   @Patch(':id/status')
+  @Can('employees.manage')
   async setStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeStatusDto,
@@ -90,6 +93,7 @@ export class EmployeesController {
   }
 
   @Delete(':id')
+  @Can('employees.manage')
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -103,6 +107,7 @@ export class EmployeesController {
   // ═══════════════════════════════════════════════════════════
 
   @Patch(':id/portal-access')
+  @Can('employees.manage')
   async togglePortalAccess(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: TogglePortalAccessDto,
@@ -115,9 +120,7 @@ export class EmployeesController {
     );
     return ResponseWrapper.success(
       data,
-      data.hasPortalAccess
-        ? 'Portal access enabled'
-        : 'Portal access disabled',
+      data.hasPortalAccess ? 'Portal access enabled' : 'Portal access disabled',
     );
   }
 
@@ -126,6 +129,7 @@ export class EmployeesController {
   // ═══════════════════════════════════════════════════════════
 
   @Patch(':id/salary')
+  @Can('employees.manage')
   async updateSalary(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateSalaryDto,

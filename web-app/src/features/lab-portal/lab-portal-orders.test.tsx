@@ -35,6 +35,10 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
   useRouterState: () => '/lab-portal/orders',
 }))
+// The clinic-side LabAccessPanel gates sending and proxy actions on access.
+vi.mock('@/features/access', () => ({
+  useAccess: () => ({ isLoading: false, can: () => true, canAll: () => true }),
+}))
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), {
     success: vi.fn(),

@@ -14,15 +14,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { Actor, ALL_APP_ROLES, AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { LAB_FEATURE } from 'src/labs/labs.constants';
+import { ClinicActor, CurrentClinicActor } from 'src/labs/common/clinic-actor';
 import {
   MAX_ATTACHMENT_BYTES,
   AttachmentsService,
@@ -46,15 +44,13 @@ import { LabOrdersService } from '../services/lab-orders.service';
 import { OrderDraftsService } from '../services/order-drafts.service';
 import { OrderSubmitService } from '../services/order-submit.service';
 
-const DOCTORS = [AppRole.CLINIC_ADMIN, AppRole.DOCTOR];
-
 /**
- * Clinic lab orders (lab ERD §14 steps 2–5). Any clinic role reads and
- * prepares drafts; the workflow decides who may submit (doctors, clinic
- * admins) and which status actions each role has.
+ * Clinic lab orders (lab ERD §14 steps 2–5). `lab.orders.view` reads
+ * (scoped: own = the ordering doctor), `lab.orders.create` prepares and
+ * changes orders; the workflow still decides which status actions each
+ * (derived legacy) role has.
  */
 @Controller('lab-orders')
-@RequireFeature(LAB_FEATURE)
 export class LabOrdersController {
   constructor(
     private readonly drafts: OrderDraftsService,
@@ -64,10 +60,10 @@ export class LabOrdersController {
   ) {}
 
   @Get()
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.view')
   async list(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Query() q: ListOrdersQueryDto,
   ) {
@@ -79,10 +75,10 @@ export class LabOrdersController {
   /** Draft. `Idempotency-Key` (optional): the same key returns the same draft. */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async create(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CreateOrderDto,
     @Headers('idempotency-key') key?: string,
@@ -94,10 +90,10 @@ export class LabOrdersController {
 
   @Post('from-template')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async fromTemplate(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: FromTemplateDto,
   ) {
@@ -107,10 +103,10 @@ export class LabOrdersController {
   }
 
   @Get(':id')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.view')
   async get(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
@@ -120,31 +116,33 @@ export class LabOrdersController {
   }
 
   @Patch(':id')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async update(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateOrderDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     await this.drafts.update(c, id, dto);
     return ResponseWrapper.success(await this.orders.get(c, id), 'Draft saved');
   }
 
   /** Lab ERD §10 "Order submit" — `Idempotency-Key` required. */
   @Post(':id/submit')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async submit(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: VersionDto,
     @Headers('idempotency-key') key?: string,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     const result = await this.submitter.submit(c, id, dto.version, key);
     return ResponseWrapper.success(
       { ...(await this.orders.get(c, id)), replayed: result.replayed },
@@ -154,15 +152,16 @@ export class LabOrdersController {
 
   @Post(':id/repeat')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async repeat(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: RepeatOrderDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     const newId = await this.drafts.repeat(c, id, dto);
     return ResponseWrapper.success(
       await this.orders.get(c, newId),
@@ -171,30 +170,32 @@ export class LabOrdersController {
   }
 
   @Post(':id/transitions')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async transition(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: OrderTransitionDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     await this.orders.transition(c, id, dto);
     return ResponseWrapper.success(await this.orders.get(c, id));
   }
 
   @Post(':id/revisions')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...DOCTORS)
+  @Can('lab.orders.create')
   async revise(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateRevisionDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     const no = await this.orders.revise(c, id, dto);
     return ResponseWrapper.success(
       await this.orders.get(c, id),
@@ -204,15 +205,16 @@ export class LabOrdersController {
 
   @Post(':id/messages')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   async message(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateMessageDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     await this.orders.clinicMessage(c, id, dto);
     return ResponseWrapper.success(
       await this.orders.get(c, id),
@@ -221,35 +223,36 @@ export class LabOrdersController {
   }
 
   @Post(':id/charge-requests/:chargeId/decision')
-  @Roles(...DOCTORS)
+  @Can('lab.orders.create')
   async decideCharge(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('chargeId', ParseUUIDPipe) chargeId: string,
     @Body() dto: DecideChargeDto,
   ) {
     const c: ClinicCall = { tenant, actor, ref };
+    await this.orders.visible(c, id);
     await this.orders.decideCharge(c, id, chargeId, dto);
     return ResponseWrapper.success(await this.orders.get(c, id));
   }
 
   @Post(':id/attachments')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.create')
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: MAX_ATTACHMENT_BYTES } }),
   )
   async upload(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: UploadAttachmentDto,
   ) {
-    const order = await this.orders.byId(tenant.organizationId, id);
+    const order = await this.orders.visible({ tenant, actor, ref }, id);
     const row = await this.attachments.upload({
       order,
       file,
@@ -267,13 +270,15 @@ export class LabOrdersController {
 
   /** A 10-minute signed download URL. */
   @Get(':id/attachments/:attachmentId/url')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.view')
   async attachmentUrl(
     @ActiveTenant() tenant: TenantContext,
+    @CurrentClinicActor() actor: ClinicActor,
+    @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Param('attachmentId', ParseUUIDPipe) attachmentId: string,
   ) {
-    const order = await this.orders.byId(tenant.organizationId, id);
+    const order = await this.orders.visible({ tenant, actor, ref }, id);
     return ResponseWrapper.success(
       await this.attachments.signedUrl(order, attachmentId, false),
     );
@@ -281,10 +286,10 @@ export class LabOrdersController {
 
   /** Print payload: QR + instructions, no prices. */
   @Get(':id/work-order')
-  @Roles(...ALL_APP_ROLES)
+  @Can('lab.orders.view')
   async workOrder(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
   ) {

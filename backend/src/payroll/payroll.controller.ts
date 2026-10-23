@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { PayrollService } from './payroll.service';
@@ -22,14 +23,24 @@ import { UpdatePayrollDto } from './dto/update-payroll.dto';
 import { MarkPaidDto } from './dto/mark-paid.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { Can } from 'src/access/decorators/access.decorators';
 
-@RequireFeature('hr.payroll')
+/** `?month=&year=` as numbers; missing or out of range → 400 (not a SQL NaN). */
+function payrollPeriod(month: string, year: string): [number, number] {
+  const m = Number(month);
+  const y = Number(year);
+  if (!Number.isInteger(m) || m < 1 || m > 12) {
+    throw new BadRequestException('month must be 1–12');
+  }
+  if (!Number.isInteger(y) || y < 2000 || y > 2100) {
+    throw new BadRequestException('year must be a four-digit year');
+  }
+  return [m, y];
+}
+
+@Can('payroll.manage')
 @Controller('payroll')
-@Roles(AppRole.CLINIC_ADMIN)
 export class PayrollController {
   constructor(
     private readonly payrollService: PayrollService,
@@ -70,8 +81,7 @@ export class PayrollController {
   ) {
     const data = await this.payrollService.findByLocation(
       ctx,
-      parseInt(month, 10),
-      parseInt(year, 10),
+      ...payrollPeriod(month, year),
     );
     return ResponseWrapper.success(
       data,
@@ -115,10 +125,7 @@ export class PayrollController {
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
   ) {
-    const data = await this.payrollService.markOnHold(
-      id,
-      ctx.organizationId,
-    );
+    const data = await this.payrollService.markOnHold(id, ctx.organizationId);
     return ResponseWrapper.success(
       data,
       'Payroll marked as on hold successfully',
@@ -153,8 +160,7 @@ export class PayrollController {
   ) {
     const csv = await this.payrollExportService.generatePayrollSummaryCsv(
       ctx,
-      parseInt(month, 10),
-      parseInt(year, 10),
+      ...payrollPeriod(month, year),
     );
     res.set({
       'Content-Type': 'text/csv',

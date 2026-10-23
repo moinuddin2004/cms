@@ -5,6 +5,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, FileSignature, AlertTriangle, Printer } from 'lucide-react'
@@ -29,7 +30,9 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
             captured, they cannot be deleted or modified.
           </p>
         </div>
-        <ConsentFormDialog patientId={patient.id} isMinor={patient.isMinor} />
+        <Can perm="patients.clinical.edit">
+          <ConsentFormDialog patientId={patient.id} isMinor={patient.isMinor} />
+        </Can>
       </div>
 
       {isLoading ? (

@@ -48,7 +48,7 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Cleanup old entries periodically
+// Cleanup old entries periodically (unref: never keeps the process alive)
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
@@ -56,7 +56,7 @@ setInterval(() => {
       rateLimitStore.delete(key);
     }
   }
-}, 60000); // Cleanup every minute
+}, 60000).unref(); // Cleanup every minute
 
 /**
  * Rate Limiter Guard

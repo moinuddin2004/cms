@@ -7,7 +7,7 @@ import { join } from 'path';
  * else in the database is read or written. Schema name is fixed on purpose —
  * do not make it configurable, `DROP SCHEMA … CASCADE` runs against it.
  */
-export const IT_SCHEMA = 'billing_it';
+export const IT_SCHEMA = 'billingit';
 
 config({ path: join(__dirname, '../../.env') });
 

@@ -14,7 +14,8 @@ export function RequireFeaturePage({
   feature,
   children,
 }: {
-  feature: string
+  /** One feature, or several of which any one is enough. */
+  feature: string | string[]
   children: ReactNode
 }) {
   const { features, isLoading } = useFeatures()
@@ -29,7 +30,8 @@ export function RequireFeaturePage({
     )
   }
 
-  if (features.has(feature)) return <>{children}</>
+  const needed = Array.isArray(feature) ? feature : [feature]
+  if (needed.some((f) => features.has(f))) return <>{children}</>
 
   return (
     <DashboardLayout title="Feature not available">

@@ -13,7 +13,7 @@ import {
 } from './schemas/lab-billing.schema'
 import type { LabInvoiceDetail, LabInvoiceRow, OrderBilling } from './types'
 
-// ── Mocks: API transport, router, toasts, roles, page chrome ─────────────
+// ── Mocks: API transport, router, toasts, access, page chrome ─────────────
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn() }))
 vi.mock('@/lib/api', () => ({ default: api, apiClient: api }))
 vi.mock('@tanstack/react-router', () => ({
@@ -25,8 +25,12 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))
-vi.mock('@/features/billing', () => ({
-  useBillingAccess: () => ({ isLoading: false, canBill: true, isAdmin: true }),
+vi.mock('@/features/access', () => ({
+  useAccess: () => ({
+    isLoading: false,
+    can: () => true,
+    canAll: () => true,
+  }),
 }))
 vi.mock('@/components/layout/DashboardLayout', () => ({
   DashboardLayout: ({

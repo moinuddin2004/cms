@@ -35,7 +35,6 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { CancelReason } from 'src/appointments/enums/cancel-reason.enum';
 import { assertTransition as assertAppointmentTransition } from 'src/appointments/appointment-transitions';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import {
   CheckInDto,
@@ -46,13 +45,15 @@ import {
 } from '../dto/queue.dto';
 import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { pgError, sqlRows } from 'src/common/database/sql';
+import {
+  canHandleEntry,
+  canOpenSession,
+  canRunSession,
+  QueueActor,
+  SYSTEM_ACTOR,
+} from '../queue-actor';
 
-/** Actor used by background jobs (no user). */
-export const SYSTEM_ACTOR: Actor = {
-  userId: '00000000-0000-0000-0000-000000000000',
-  roles: [],
-  employeeId: null,
-};
+export { SYSTEM_ACTOR } from '../queue-actor';
 
 export type IdempotencyInput = { key: string; hash: string } | null;
 
@@ -91,13 +92,11 @@ class QueueTx {
     readonly manager: EntityManager,
     readonly now: Date,
     readonly ctx: TenantContext,
-    readonly actor: Actor,
+    readonly actor: QueueActor,
   ) {}
 
   get actorRole(): string {
-    return this.actor === SYSTEM_ACTOR
-      ? 'system'
-      : this.actor.roles.join(',') || 'member';
+    return this.actor.label;
   }
 
   /** Lock order rule: always the session first, then its entries. */
@@ -286,7 +285,7 @@ export class QueueOrchestrator {
   /** Booked patient arrives: token in the appointment doctor's session. */
   async checkInAppointment(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     appointmentId: string,
     dto: CheckInDto,
     idem: IdempotencyInput,
@@ -366,7 +365,7 @@ export class QueueOrchestrator {
   /** Walk-in registration: straight into the chosen doctor's queue (FIFO). */
   async registerWalkIn(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     dto: WalkInDto,
     idem: IdempotencyInput,
   ) {
@@ -446,7 +445,7 @@ export class QueueOrchestrator {
    */
   async convertToWalkIn(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     appointmentId: string,
     dto: CheckInDto,
     idem: IdempotencyInput,
@@ -534,7 +533,7 @@ export class QueueOrchestrator {
 
   async callNext(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     idem: IdempotencyInput,
   ) {
@@ -585,7 +584,7 @@ export class QueueOrchestrator {
   /** Doctor picks a specific waiting patient; the engine's pick is audited too. */
   async selectPatient(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     reasonText: string | undefined,
     ifMatch: number | undefined,
@@ -640,7 +639,7 @@ export class QueueOrchestrator {
   /** Announce again; no state change. */
   async recall(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     idem: IdempotencyInput,
   ) {
@@ -665,7 +664,7 @@ export class QueueOrchestrator {
   /** Wrong call: back to WAITING, same position. */
   async undoCall(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
@@ -688,14 +687,14 @@ export class QueueOrchestrator {
   /** Called patient did not come (doctor, reception, or the call-timeout job). */
   async skip(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
       const { entry, session } = await tx.lockEntry(entryId);
-      if (this.isDoctorOnly(actor)) this.assertSessionDoctor(actor, session);
+      this.assertHandleEntry(actor, session);
       await tx.transition(
         session,
         entry,
@@ -713,7 +712,7 @@ export class QueueOrchestrator {
 
   async startConsultation(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
@@ -742,7 +741,7 @@ export class QueueOrchestrator {
 
   async sendForTest(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     reason: string | undefined,
     ifMatch: number | undefined,
@@ -769,7 +768,7 @@ export class QueueOrchestrator {
   /** Back from lab/X-ray: same token, ahead of walk-ins (smart mode). */
   async returnFromTest(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
@@ -792,7 +791,7 @@ export class QueueOrchestrator {
 
   async complete(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
@@ -800,7 +799,8 @@ export class QueueOrchestrator {
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
       const { entry, session } = await tx.lockEntry(entryId);
-      if (!force) this.assertSessionDoctor(actor, session);
+      if (force) this.assertAnyDoctor(actor);
+      else this.assertSessionDoctor(actor, session);
       await tx.transition(
         session,
         entry,
@@ -838,7 +838,7 @@ export class QueueOrchestrator {
   /** Consultation stopped half-way; the booking is closed as cancelled. */
   async abort(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     reason: string | undefined,
     ifMatch: number | undefined,
@@ -877,13 +877,14 @@ export class QueueOrchestrator {
   /** Patient left: waiting / skipped / on-hold entry is cancelled; its token is never reissued. */
   async cancel(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     reason: string | undefined,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
+      this.assertManageEntries(actor);
       const { entry, session } = await tx.lockEntry(entryId);
       await this.cancelEntry(tx, session, entry, reason, ifMatch);
       return this.entryResult(session, entry);
@@ -892,13 +893,14 @@ export class QueueOrchestrator {
 
   async rejoin(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     dto: RejoinDto,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
+      this.assertManageEntries(actor);
       const { entry, session } = await tx.lockEntry(entryId);
       const policy = await this.policies.getEffective(
         ctx.organizationId,
@@ -955,7 +957,7 @@ export class QueueOrchestrator {
    */
   async transfer(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     dto: TransferDto,
     ifMatch: number | undefined,
@@ -967,6 +969,7 @@ export class QueueOrchestrator {
         relations: { session: true },
       });
       if (!ref) throw QueueErrors.notFound('Queue entry');
+      this.assertHandleEntry(actor, ref.session);
       if (ref.session.doctorId === dto.toDoctorId) {
         throw QueueErrors.invalidTransition(
           "The patient is already in this doctor's queue",
@@ -999,13 +1002,14 @@ export class QueueOrchestrator {
   /** Emergency priority — authorized staff only, reason required. */
   async setPriority(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     entryId: string,
     reason: string,
     ifMatch: number | undefined,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
+      this.assertReprioritize(actor);
       const { entry, session } = await tx.lockEntry(entryId);
       if (
         ![
@@ -1057,7 +1061,14 @@ export class QueueOrchestrator {
   // ═══════════════════════════════════════════════════════════
 
   /** Make sure a doctor's session exists for today (doctor screen opens before any check-in). */
-  async ensureTodaySession(ctx: TenantContext, actor: Actor, doctorId: string) {
+  async ensureTodaySession(
+    ctx: TenantContext,
+    actor: QueueActor,
+    doctorId: string,
+  ) {
+    if (!canOpenSession(actor, doctorId)) {
+      throw QueueErrors.forbidden("You can't open this doctor's queue");
+    }
     return this.mutate(ctx, actor, null, async (tx) => {
       await this.assertDoctorAtLocation(tx, doctorId);
       const policy = await this.policies.getEffective(
@@ -1077,7 +1088,7 @@ export class QueueOrchestrator {
 
   async startSession(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     idem: IdempotencyInput,
   ) {
@@ -1097,7 +1108,7 @@ export class QueueOrchestrator {
 
   async pauseSession(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     reason: string,
     idem: IdempotencyInput,
@@ -1118,7 +1129,7 @@ export class QueueOrchestrator {
 
   async resumeSession(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     idem: IdempotencyInput,
   ) {
@@ -1141,14 +1152,14 @@ export class QueueOrchestrator {
    */
   async closeSession(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     dto: CloseSessionDto,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
       const session = await tx.lockSession(sessionId);
-      if (actor !== SYSTEM_ACTOR) this.assertSessionDoctor(actor, session);
+      this.assertSessionDoctor(actor, session);
       assertSessionTransition(session.status, SessionStatus.CLOSED);
       await this.assertDoctorFree(tx, session);
 
@@ -1212,12 +1223,13 @@ export class QueueOrchestrator {
   /** Admin switches smart/FIFO mode for one session of today. */
   async setMode(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     smartQueueEnabled: boolean,
     idem: IdempotencyInput,
   ) {
     return this.mutate(ctx, actor, idem, async (tx) => {
+      this.assertReprioritize(actor);
       const session = await tx.lockSession(sessionId);
       if (session.smartQueueEnabled === smartQueueEnabled)
         return this.sessionResult(session);
@@ -1281,7 +1293,7 @@ export class QueueOrchestrator {
 
   private async mutate<T>(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     idem: IdempotencyInput,
     work: (tx: QueueTx) => Promise<T>,
   ): Promise<T> {
@@ -1584,7 +1596,7 @@ export class QueueOrchestrator {
 
   private async sessionChange(
     ctx: TenantContext,
-    actor: Actor,
+    actor: QueueActor,
     sessionId: string,
     idem: IdempotencyInput,
     to: SessionStatus,
@@ -1639,25 +1651,38 @@ export class QueueOrchestrator {
     if (busy) throw QueueErrors.doctorBusy();
   }
 
-  /** Doctor actions: only this session's doctor, or a clinic admin. */
-  private assertSessionDoctor(actor: Actor, session: QueueSession) {
-    if (actor === SYSTEM_ACTOR) return;
-    if (actor.roles.includes(AppRole.CLINIC_ADMIN)) return;
-    if (
-      actor.roles.includes(AppRole.DOCTOR) &&
-      actor.employeeId === session.doctorId
-    )
-      return;
+  /** Doctor actions: `queue.doctor.any`, or `queue.doctor.own` in your own session. */
+  private assertSessionDoctor(actor: QueueActor, session: QueueSession) {
+    if (canRunSession(actor, session.doctorId)) return;
     throw QueueErrors.forbidden("Only this queue's doctor can do that");
   }
 
-  /** A doctor without reception rights may only skip in their own session. */
-  private isDoctorOnly(actor: Actor): boolean {
-    return (
-      actor !== SYSTEM_ACTOR &&
-      !actor.roles.includes(AppRole.CLINIC_ADMIN) &&
-      !actor.roles.includes(AppRole.RECEPTIONIST)
+  /** Acting for a doctor regardless of whose session it is (force complete). */
+  private assertAnyDoctor(actor: QueueActor) {
+    if (actor.anyDoctor) return;
+    throw QueueErrors.forbidden(
+      "Only staff who run any doctor's queue can do that",
     );
+  }
+
+  /** Skip / transfer: `queue.entry.manage`, or this session's doctor. */
+  private assertHandleEntry(actor: QueueActor, session: QueueSession) {
+    if (canHandleEntry(actor, session.doctorId)) return;
+    throw QueueErrors.forbidden(
+      "Only reception or this queue's doctor can do that",
+    );
+  }
+
+  /** Rejoin / remove: `queue.entry.manage`. */
+  private assertManageEntries(actor: QueueActor) {
+    if (actor.manageEntries) return;
+    throw QueueErrors.forbidden('You cannot manage queue entries');
+  }
+
+  /** Urgent priority / smart-FIFO switch: `queue.entry.reprioritize`. */
+  private assertReprioritize(actor: QueueActor) {
+    if (actor.reprioritize) return;
+    throw QueueErrors.forbidden('You cannot change the queue order');
   }
 
   private async assertDoctorAtLocation(tx: QueueTx, doctorId: string) {

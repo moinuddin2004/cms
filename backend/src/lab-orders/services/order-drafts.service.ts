@@ -5,7 +5,6 @@ import { AuditAction } from 'src/common/audit/audit.enums';
 import { AuditService } from 'src/common/audit/audit.service';
 import { pgError, sqlRows } from 'src/common/database/sql';
 import { assertVersion } from 'src/common/errors/optimistic-lock';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import { FormResolverService } from 'src/engine/forms/form-resolver.service';
 import type { FormDefinition } from 'src/engine/forms/form-definition.types';
 import { FormSchemaVersion } from 'src/engine/entities/form-schema-version.entity';
@@ -32,6 +31,13 @@ import { ORDER_ENTITY, OrderPriority } from '../enums/order.enums';
 import { OrderWorkflowService } from '../workflow/order-workflow.service';
 
 const DRAFT = 'draft';
+
+/**
+ * The caller orders as a doctor (consults patients themself): a new order
+ * defaults its doctor to them.
+ */
+export const ordersAsDoctor = (c: ClinicCall): boolean =>
+  !!c.actor.employeeId && c.actor.access.can('consultation.conduct');
 
 /**
  * Draft orders (lab ERD §14.2): created from scratch, from an order
@@ -285,10 +291,7 @@ export class OrderDraftsService {
       {
         patientId,
         labId: source.labId,
-        doctorId:
-          c.actor.employeeId && c.actor.roles.includes(AppRole.DOCTOR)
-            ? c.actor.employeeId
-            : source.doctorId,
+        doctorId: ordersAsDoctor(c) ? c.actor.employeeId : source.doctorId,
         priority: source.priority,
         notes: source.notes,
         items,
@@ -562,7 +565,7 @@ export class OrderDraftsService {
     doctorId: string | null | undefined,
   ): Promise<string | null> {
     if (!doctorId) {
-      return c.actor.roles.includes(AppRole.DOCTOR) ? c.actor.employeeId : null;
+      return ordersAsDoctor(c) ? c.actor.employeeId : null;
     }
     const [row] = await sqlRows<{ employee_id: string }>(
       m,

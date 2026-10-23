@@ -8,6 +8,7 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
+import { VisibleIf } from 'src/access/visible-if/visible-if';
 import { PatientTreatmentPlan } from './patient-treatment-plan.entity';
 import { PlanItemStatus } from '../enums/plan-item-status.enum';
 
@@ -19,7 +20,9 @@ export class TreatmentPlanItem {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => PatientTreatmentPlan, (p) => p.items, { onDelete: 'CASCADE' })
+  @ManyToOne(() => PatientTreatmentPlan, (p) => p.items, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'plan_id' })
   plan: PatientTreatmentPlan;
 
@@ -29,13 +32,23 @@ export class TreatmentPlanItem {
   @Column({ name: 'procedure_name', type: 'varchar', length: 200 })
   procedureName: string;
 
-  @Column({ name: 'procedure_code', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'procedure_code',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   procedureCode: string | null;
 
   @Column({ name: 'tooth_number', type: 'varchar', length: 10, nullable: true })
   toothNumber: string | null;
 
-  @Column({ name: 'tooth_surface', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'tooth_surface',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   toothSurface: string | null;
 
   @Column({ name: 'estimated_sessions', type: 'int', default: 1 })
@@ -44,10 +57,22 @@ export class TreatmentPlanItem {
   @Column({ name: 'completed_sessions', type: 'int', default: 0 })
   completedSessions: number;
 
-  @Column({ name: 'estimated_cost', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @VisibleIf('patients.price.view')
+  @Column({
+    name: 'estimated_cost',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   estimatedCost: number | null;
 
-  @Column({ name: 'status', type: 'enum', enum: PlanItemStatus, default: PlanItemStatus.PENDING })
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: PlanItemStatus,
+    default: PlanItemStatus.PENDING,
+  })
   status: PlanItemStatus;
 
   @Column({ name: 'sequence_order', type: 'int', default: 1 })

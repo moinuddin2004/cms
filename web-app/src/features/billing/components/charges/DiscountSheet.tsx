@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/features/queue/utils/fieldError'
-import { useBillingAccess } from '../../hooks/use-billing-access'
+import { useAccess } from '@/features/access'
 import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import { useDiscountTypes } from '../../hooks/use-billing-queries'
 import { discountSchema } from '../../schemas/billing.schema'
@@ -47,7 +47,8 @@ export function toDiscountInput(
 /**
  * Apply one discount to one charge, or to every selected unbilled charge
  * ("apply to all", plan §8.2.4). Only types usable today are offered;
- * custom discounts are admin-only (D8). The server validates everything.
+ * custom discounts and values outside a preset's range need
+ * `billing.discount.custom` (D8). The server validates everything.
  */
 export function DiscountSheet({
   chargeIds,
@@ -58,7 +59,8 @@ export function DiscountSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { isAdmin } = useBillingAccess()
+  const { can } = useAccess()
+  const canCustom = can('billing.discount.custom')
   const types = useDiscountTypes(true, open)
   const apply = useBillingMutation(async (input: DiscountInput) => {
     if (chargeIds.length === 1) {
@@ -142,11 +144,11 @@ export function DiscountSheet({
       }
     >
       <div className="space-y-4">
-        {isAdmin && (
+        {canCustom && (
           <form.Field name="custom">
             {(field) => (
               <label className="flex items-center justify-between gap-3 text-sm">
-                <span>Custom discount (admin)</span>
+                <span>Custom discount</span>
                 <Switch
                   checked={field.state.value}
                   onCheckedChange={field.handleChange}
@@ -205,9 +207,9 @@ export function DiscountSheet({
                   )}
                 </form.Field>
                 {type &&
-                  (type.receptionEditable || isAdmin) &&
+                  (type.receptionEditable || canCustom) &&
                   valueField(
-                    type.receptionEditable && !isAdmin
+                    type.receptionEditable && !canCustom
                       ? `Value (${type.minValue}–${type.maxValue})`
                       : 'Value (optional)',
                     String(type.value),

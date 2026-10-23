@@ -27,15 +27,8 @@ import type { Theme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
-import { useHasClinicRole } from '@/components/feature/RequireRolePage'
+import { useAccess, useMyAccess } from '@/features/access'
 import apiClient from '@/lib/api'
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'Administrator',
-  DENTIST: 'Dentist',
-  RECEPTIONIST: 'Receptionist',
-}
 
 type SectionId = 'profile' | 'appearance' | 'security' | 'sessions'
 
@@ -87,6 +80,7 @@ export function SettingsPage() {
           })}
           <BillingSettingsLink />
           <NotificationSettingsLink />
+          <ThemeSettingsLink />
         </nav>
 
         {/* Content */}
@@ -101,27 +95,27 @@ export function SettingsPage() {
   )
 }
 
-/** Admins reach billing configuration from here (plan §8.1). */
+/** Clinic settings managers reach billing configuration from here (plan §8.1). */
 function BillingSettingsLink() {
-  const { allowed } = useHasClinicRole(['clinic_admin'])
-  if (!allowed) return null
+  const { can, hasFeature } = useAccess()
+  if (!can('admin.settings.manage') || !hasFeature('billing.invoices')) {
+    return null
+  }
   return (
-    <FeatureGuard feature="billing.invoices">
-      <Link
-        to="/settings/billing"
-        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
-      >
-        <HandCoins className="size-4" />
-        Billing
-      </Link>
-    </FeatureGuard>
+    <Link
+      to="/settings/billing"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+    >
+      <HandCoins className="size-4" />
+      Billing
+    </Link>
   )
 }
 
-/** Admins configure who is notified, and see the message log (lab ERD §16). */
+/** Who is notified, and the message log (lab ERD §16). */
 function NotificationSettingsLink() {
-  const { allowed } = useHasClinicRole(['clinic_admin'])
-  if (!allowed) return null
+  const { can } = useAccess()
+  if (!can('notifications.settings.manage')) return null
   return (
     <Link
       to="/settings/notifications"
@@ -129,6 +123,21 @@ function NotificationSettingsLink() {
     >
       <BellRing className="size-4" />
       Notifications
+    </Link>
+  )
+}
+
+/** Brand the clinic: logo, name, colours (theme builder). */
+function ThemeSettingsLink() {
+  const { can } = useAccess()
+  if (!can('admin.theme.manage')) return null
+  return (
+    <Link
+      to="/admin/theme"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+    >
+      <Palette className="size-4" />
+      Branding & theme
     </Link>
   )
 }
@@ -159,8 +168,14 @@ function SettingsCard({
 
 function ProfileSection() {
   const { user } = useAuthStore()
-  const roleLabel =
-    ROLE_LABELS[user?.globalRole || ''] || user?.globalRole || 'Member'
+  const { isSuperAdmin, isOwner } = useAccess()
+  // Same cached /me/access payload the AccessProvider loaded.
+  const roles = useMyAccess().data?.roles ?? []
+  const roleLabel = isSuperAdmin
+    ? 'Super admin'
+    : isOwner
+      ? 'Owner'
+      : roles.map((r) => r.name).join(', ') || 'Member'
 
   return (
     <SettingsCard

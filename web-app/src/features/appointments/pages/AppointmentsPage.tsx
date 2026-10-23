@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
+import { Can, useAccess } from '@/features/access'
 import { Plus, CalendarDays, List, Loader2, ListChecks } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -35,15 +36,24 @@ const VIEW_LABELS: Record<string, string> = {
 }
 
 export function AppointmentsPage() {
-  const { selectedDate, setSelectedDate, doctorFilter, setDoctorFilter, openCreateModal } =
-    useAppointmentStore()
+  const {
+    selectedDate,
+    setSelectedDate,
+    doctorFilter,
+    setDoctorFilter,
+    openCreateModal,
+  } = useAppointmentStore()
   const { create } = useSearch({ from: '/appointments' })
+  const { can } = useAccess()
+  // The route opens for either permission; each tab needs its own.
+  const canSeeBoard = can('queue.board.view')
+  const canSeeBookings = can('appointments.view')
   const [viewMode, setViewMode] = useState<'queue' | 'list' | 'calendar'>(
-    'queue',
+    canSeeBoard ? 'queue' : 'list',
   )
 
   useEffect(() => {
-    if (create === '1') openCreateModal()
+    if (create === '1' && can('appointments.book')) openCreateModal()
   }, []) // eslint-disable-line
   const [calendarView, setCalendarView] = useState<CalendarView>(
     'resourceTimeGridDay',
@@ -92,15 +102,19 @@ export function AppointmentsPage() {
     return d.toISOString()
   }, [selectedDate])
 
-  const { data: appointmentsData, isLoading: loadingAppts } = useAppointments({
-    startDate: rangeStart,
-    endDate: rangeEnd,
-    limit: 500,
-  })
+  const { data: appointmentsData, isLoading: loadingAppts } = useAppointments(
+    {
+      startDate: rangeStart,
+      endDate: rangeEnd,
+      limit: 500,
+    },
+    canSeeBookings,
+  )
   const { data: doctors = [], isLoading: loadingDoctors } = useDoctors()
   const { data: stats, isLoading: loadingStats } = useAppointmentStats(
     monthStart,
     monthEnd,
+    canSeeBookings,
   )
   const { data: availability = [] } = useQuery({
     queryKey: ['appointment-availability', rangeStart, rangeEnd],
@@ -203,21 +217,23 @@ export function AppointmentsPage() {
           { key: 'list', icon: List, label: 'List' },
           { key: 'calendar', icon: CalendarDays, label: 'Calendar' },
         ] as const
-      ).map(({ key, icon: Icon, label }) => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => setViewMode(key)}
-          className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-            viewMode === key
-              ? 'bg-primary text-white shadow-sm'
-              : 'text-text-2 hover:text-foreground'
-          }`}
-        >
-          <Icon className="size-3" />
-          {label}
-        </button>
-      ))}
+      )
+        .filter(({ key }) => (key === 'queue' ? canSeeBoard : canSeeBookings))
+        .map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setViewMode(key)}
+            className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+              viewMode === key
+                ? 'bg-primary text-white shadow-sm'
+                : 'text-text-2 hover:text-foreground'
+            }`}
+          >
+            <Icon className="size-3" />
+            {label}
+          </button>
+        ))}
     </div>
   )
 
@@ -229,16 +245,20 @@ export function AppointmentsPage() {
         actions={
           <div className="flex items-center gap-2.5">
             {viewToggle}
-            <Button onClick={() => openCreateModal()} size="sm">
-              <Plus className="size-3.5" />
-              Create
-            </Button>
+            <Can perm="appointments.book">
+              <Button onClick={() => openCreateModal()} size="sm">
+                <Plus className="size-3.5" />
+                Create
+              </Button>
+            </Can>
           </div>
         }
       />
 
       <div className="mt-5 space-y-4">
-        <StatsCards stats={stats} isLoading={loadingStats} />
+        {canSeeBookings && (
+          <StatsCards stats={stats} isLoading={loadingStats} />
+        )}
 
         {viewMode === 'queue' ? (
           <QueueBoard />

@@ -24,6 +24,9 @@ import { AppointmentFilterDto } from './dto/appointment-filter.dto';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { AppointmentType } from 'src/common/enums/appointment-type.enum';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import type { AccessContext } from 'src/access/access-context';
+import { noPermission } from 'src/access/decorators/access.decorators';
+import { rowInScope, scopeSql } from './appointment-scope';
 import { ClockService } from 'src/common/clock/clock.service';
 import { addDays, dayOfWeekOf } from 'src/common/clock/tz.util';
 import { assertEditable, assertTransition } from './appointment-transitions';
@@ -86,6 +89,10 @@ const BLOCKING_EXCLUDED = [
   AppointmentStatus.NO_SHOW,
 ];
 
+/** `appointments.view` scope columns for bookings and for walk-in sessions. */
+const APPOINTMENT_SCOPE = { own: 'a.doctor_id', location: 'a.location_id' };
+const SESSION_SCOPE = { own: 's.doctor_id', location: 's.location_id' };
+
 @Injectable()
 export class AppointmentsService {
   constructor(
@@ -113,7 +120,9 @@ export class AppointmentsService {
     ctx: TenantContext,
     dto: CreateAppointmentDto,
     userId: string,
+    access?: AccessContext,
   ): Promise<Appointment> {
+    const override = this.overridesRules(dto.overrideRules, access);
     const tz = await this.clock.timezoneFor(ctx.locationId);
     const startTime = new Date(dto.startTime);
     const endTime = new Date(startTime.getTime() + dto.duration * 60000);
@@ -140,13 +149,15 @@ export class AppointmentsService {
     await this.assertDoctorAtLocation(ctx, dto.doctorId);
 
     // 6. Check GLOBAL schedule validity (location-local weekday + time)
-    await this.validateSchedule(dto.doctorId, startTime, endTime, tz);
+    if (!override) {
+      await this.validateSchedule(dto.doctorId, startTime, endTime, tz);
+    }
 
     // 7. Check GLOBAL appointment conflict
     await this.checkGlobalConflict(dto.doctorId, startTime, endTime);
 
     // 8. Location's daily booking limit (location_settings.max_appointments_per_day)
-    await this.assertDailyLimit(ctx, startTime, tz);
+    if (!override) await this.assertDailyLimit(ctx, startTime, tz);
 
     // 9. Save appointment. A booking never gets a token — the doctor-wise
     //    token is issued by the queue when the patient actually arrives.
@@ -254,7 +265,9 @@ export class AppointmentsService {
     ctx: TenantContext,
     dto: UpdateAppointmentDto,
     userId: string,
+    access?: AccessContext,
   ): Promise<Appointment> {
+    const override = this.overridesRules(dto.overrideRules, access);
     const existing = await this.appointmentRepo.findOne({
       where: { id, locationId: ctx.locationId },
     });
@@ -303,9 +316,11 @@ export class AppointmentsService {
           'Cannot move an appointment into the past',
         );
       }
-      await this.validateSchedule(doctorId, startTime, endTime, tz);
+      if (!override) {
+        await this.validateSchedule(doctorId, startTime, endTime, tz);
+      }
       await this.checkGlobalConflict(doctorId, startTime, endTime, id);
-      await this.assertDailyLimit(ctx, startTime, tz, id);
+      if (!override) await this.assertDailyLimit(ctx, startTime, tz, id);
     }
 
     // Update fields — status is deliberately left as it is.
@@ -403,8 +418,18 @@ export class AppointmentsService {
   // 5. QUERIES
   // ═══════════════════════════════════════════════════════════
 
-  async findAll(ctx: TenantContext, filters: AppointmentFilterDto) {
-    if (filters.includeWalkIns) return this.findAllWithWalkIns(ctx, filters);
+  /**
+   * The appointments list, limited to what `appointments.view` reaches:
+   * `own` → the doctor's own bookings, `location` / `org` → the location.
+   */
+  async findAll(
+    ctx: TenantContext,
+    filters: AppointmentFilterDto,
+    access: AccessContext,
+  ) {
+    if (filters.includeWalkIns) {
+      return this.findAllWithWalkIns(ctx, filters, access);
+    }
     if (filters.type === 'walk_in') {
       // Walk-ins are not bookings — nothing to return unless they were asked for.
       return {
@@ -420,6 +445,7 @@ export class AppointmentsService {
       .leftJoinAndSelect('a.doctor', 'doctor')
       .leftJoinAndSelect('a.location', 'location')
       .where('a.location_id = :locationId', { locationId: ctx.locationId });
+    access.applyScope(qb, 'appointments.view', APPOINTMENT_SCOPE);
 
     if (filters.startDate) {
       qb.andWhere('a.start_time >= :startDate', {
@@ -483,6 +509,7 @@ export class AppointmentsService {
   private async findAllWithWalkIns(
     ctx: TenantContext,
     filters: AppointmentFilterDto,
+    access: AccessContext,
   ) {
     const page = filters.page || 1;
     const limit = filters.limit || 50;
@@ -510,6 +537,7 @@ export class AppointmentsService {
           FROM appointments a
           JOIN patients p ON p.id = a.patient_id
          WHERE a.location_id = ${loc}
+           ${scopeSql(access, 'appointments.view', APPOINTMENT_SCOPE, arg)}
            ${from ? `AND a.start_time >= ${from}` : ''}
            ${to ? `AND a.start_time <= ${to}` : ''}
            ${doctor ? `AND a.doctor_id = ${doctor}` : ''}
@@ -533,6 +561,7 @@ export class AppointmentsService {
           JOIN patients p ON p.id = e.patient_id
          WHERE s.location_id = ${loc}
            AND e.queue_type = 'walk_in'
+           ${scopeSql(access, 'appointments.view', SESSION_SCOPE, arg)}
            ${from ? `AND e.checked_in_at >= ${from}` : ''}
            ${to ? `AND e.checked_in_at <= ${to}` : ''}
            ${doctor ? `AND s.doctor_id = ${doctor}` : ''}
@@ -668,15 +697,26 @@ export class AppointmentsService {
     return out;
   }
 
+  /** One booking; with `access`, outside the `appointments.view` scope reads as not found. */
   async findOne(
     id: string,
     ctx: TenantContext,
+    access?: AccessContext,
   ): Promise<Appointment & { queueEntry: QueueEntrySummary | null }> {
     const appt = await this.appointmentRepo.findOne({
       where: { id, locationId: ctx.locationId },
       relations: ['patient', 'doctor', 'location'],
     });
-    if (!appt) throw new NotFoundException('Appointment not found');
+    if (
+      !appt ||
+      (access &&
+        !rowInScope(access, 'appointments.view', {
+          own: appt.doctorId,
+          location: appt.locationId,
+        }))
+    ) {
+      throw new NotFoundException('Appointment not found');
+    }
     const [withEntry] = await this.withQueueEntries([appt]);
     return withEntry;
   }
@@ -749,7 +789,12 @@ export class AppointmentsService {
   /**
    * Get appointment analytics/stats for a date range
    */
-  async getStats(ctx: TenantContext, startDate?: string, endDate?: string) {
+  async getStats(
+    ctx: TenantContext,
+    access: AccessContext,
+    startDate?: string,
+    endDate?: string,
+  ) {
     const qb = this.appointmentRepo
       .createQueryBuilder('a')
       .select('COUNT(*)', 'total')
@@ -774,6 +819,7 @@ export class AppointmentsService {
         'checkedIn',
       )
       .where('a.location_id = :locationId', { locationId: ctx.locationId });
+    access.applyScope(qb, 'appointments.view', APPOINTMENT_SCOPE);
 
     if (startDate) {
       qb.andWhere('a.start_time >= :startDate', {
@@ -786,7 +832,15 @@ export class AppointmentsService {
 
     // Walk-ins, waiting and wait times come from the queue, not from bookings.
     const queueParams: unknown[] = [ctx.locationId];
-    let queueRange = '';
+    let queueRange = scopeSql(
+      access,
+      'appointments.view',
+      SESSION_SCOPE,
+      (v) => {
+        queueParams.push(v);
+        return `$${queueParams.length}`;
+      },
+    );
     if (startDate) {
       queueParams.push(new Date(startDate));
       queueRange += ` AND e.checked_in_at >= $${queueParams.length}`;
@@ -822,7 +876,7 @@ export class AppointmentsService {
              FILTER (WHERE e.consultation_started_at IS NOT NULL)) AS avg_wait_min
          FROM queue_entries e
          JOIN queue_sessions s ON s.id = e.queue_session_id
-        WHERE s.location_id = $1${queueRange}`,
+        WHERE s.location_id = $1 ${queueRange}`,
         queueParams,
       ),
     ]);
@@ -930,6 +984,22 @@ export class AppointmentsService {
    * has the final say on double booking (two concurrent requests can both
    * pass the read check above): Postgres 23P01 → 409.
    */
+  /**
+   * `overrideRules` skips the doctor's working hours and the daily limit
+   * (never the double-booking check — the DB constraint holds regardless).
+   * Needs `appointments.override_rules`.
+   */
+  private overridesRules(
+    requested: boolean | undefined,
+    access: AccessContext | undefined,
+  ): boolean {
+    if (!requested) return false;
+    if (!access?.can('appointments.override_rules')) {
+      throw noPermission(['appointments.override_rules']);
+    }
+    return true;
+  }
+
   private async saveBooking(appointment: Appointment): Promise<Appointment> {
     try {
       return await this.appointmentRepo.save(appointment);

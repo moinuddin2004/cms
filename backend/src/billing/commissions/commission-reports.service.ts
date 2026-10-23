@@ -1,6 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { AccessResolver } from 'src/access/access.resolver';
+import { noPermission } from 'src/access/decorators/access.decorators';
 import { sqlRows } from 'src/common/database/sql';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { BillingClock } from '../common/billing-clock.service';
@@ -56,6 +58,7 @@ export class CommissionReportsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly clock: BillingClock,
+    private readonly access: AccessResolver,
   ) {}
 
   /** Ledger lines of one location (admin), newest first. */
@@ -257,8 +260,8 @@ export class CommissionReportsService {
 
   /**
    * The active location, or another location of the organization where
-   * the caller is also an admin (super admin, owner, or a role with
-   * canManageSettings — the same rule as RolesGuard).
+   * the caller also holds `earnings.all.view` (resolved like any request
+   * there: owner / super admin, or the role of their assignment).
    */
   private async adminLocation(
     tenant: TenantContext,
@@ -267,24 +270,22 @@ export class CommissionReportsService {
   ): Promise<string> {
     if (!locationId || locationId === tenant.locationId)
       return tenant.locationId;
-    const [row] = await sqlRows<{ in_org: boolean; admin: boolean }>(
+    const [row] = await sqlRows<{ in_org: boolean }>(
       this.dataSource,
-      `SELECT EXISTS (SELECT 1 FROM locations WHERE id = $3 AND organization_id = $2) AS in_org,
-              (EXISTS (SELECT 1 FROM users WHERE uuid = $1 AND global_role = 'super_admin')
-               OR EXISTS (SELECT 1 FROM organization_ownership WHERE user_id = $1 AND organization_id = $2)
-               OR EXISTS (SELECT 1 FROM employee_org_location_assignments a
-                            JOIN employment_roles r ON r.id = a.employment_role_id
-                           WHERE a.user_id = $1 AND a.organization_id = $2 AND a.location_id = $3
-                             AND a.is_active AND a.has_portal_access
-                             AND (r.permissions ->> 'canManageSettings') = 'true')) AS admin`,
-      [userId, tenant.organizationId, locationId],
+      `SELECT EXISTS (SELECT 1 FROM locations WHERE id = $2 AND organization_id = $1) AS in_org`,
+      [tenant.organizationId, locationId],
     );
     if (!row?.in_org) throw notFound('Location');
-    if (!row.admin) {
-      throw new ForbiddenException({
-        message: 'You are not an admin at that location',
-        code: 'FORBIDDEN',
-      });
+    const there = await this.access.resolve(
+      userId,
+      tenant.organizationId,
+      locationId,
+    );
+    if (!there.can('earnings.all.view')) {
+      throw noPermission(
+        ['earnings.all.view'],
+        'You cannot see earnings at that location',
+      );
     }
     return locationId;
   }

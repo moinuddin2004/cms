@@ -10,13 +10,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { AnyMember, Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { AppRole, ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import {
   CreateLabLinkDto,
@@ -36,16 +35,17 @@ const TRANSITION_MESSAGES = {
 
 /**
  * The clinic's own lab list (lab ↔ clinic links). Every member of the
- * clinic may read it (doctors pick a lab when ordering); only clinic admins
- * change it.
+ * clinic may read it (doctors pick a lab when ordering, billing filters by
+ * lab); `lab.links.manage` changes it. The `@AnyMember` reads keep the lab
+ * feature gate (a `@Can` permission implies its feature, membership doesn't).
  */
 @Controller('lab-links')
-@RequireFeature(LAB_FEATURE)
 export class LabLinksController {
   constructor(private readonly links: LabLinksService) {}
 
   @Get()
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async list(
     @ActiveTenant() t: TenantContext,
     @Query() q: ListLabLinksQueryDto,
@@ -55,7 +55,7 @@ export class LabLinksController {
 
   /** Labs this clinic can add. Declared before `:id`. */
   @Get('directory')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.links.manage')
   async directory(
     @ActiveTenant() t: TenantContext,
     @Query() q: LabDirectoryQueryDto,
@@ -66,7 +66,8 @@ export class LabLinksController {
   }
 
   @Get(':id')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
+  @RequireFeature(LAB_FEATURE)
   async get(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -75,7 +76,7 @@ export class LabLinksController {
   }
 
   @Get(':id/history')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.links.manage')
   async history(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -87,7 +88,7 @@ export class LabLinksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.links.manage')
   async create(
     @ActiveTenant() t: TenantContext,
     @Body() dto: CreateLabLinkDto,
@@ -100,7 +101,7 @@ export class LabLinksController {
   }
 
   @Patch(':id')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.links.manage')
   async update(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,
@@ -114,7 +115,7 @@ export class LabLinksController {
   }
 
   @Post(':id/transitions')
-  @Roles(AppRole.CLINIC_ADMIN)
+  @Can('lab.links.manage')
   async transition(
     @ActiveTenant() t: TenantContext,
     @Param('id', ParseUUIDPipe) id: string,

@@ -20,10 +20,10 @@ import {
 } from '@/components/shared'
 import type { ViewMode } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { useHasClinicRole } from '@/components/feature/RequireRolePage'
 import { ListToolbar } from '@/components/shared/ListToolbar'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useAccess } from '@/features/access'
 import { ActiveSwitch } from '../components/ActiveSwitch'
 import { OrderTemplateSheet } from '../components/OrderTemplateSheet'
 import {
@@ -54,7 +54,7 @@ export function OrderTemplatesPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const query = useDebounce(search, 300).trim()
-  const { allowed: isAdmin } = useHasClinicRole(['clinic_admin'])
+  const canShare = useAccess().can('lab.templates.share')
 
   const params = {
     page,
@@ -353,7 +353,7 @@ export function OrderTemplatesPage() {
         open={!!sheet}
         onOpenChange={(o) => !o && setSheet(null)}
         template={sheet?.template ?? null}
-        canShare={isAdmin}
+        canShare={canShare}
       />
     </DashboardLayout>
   )

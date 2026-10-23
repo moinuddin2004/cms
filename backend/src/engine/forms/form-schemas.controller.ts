@@ -15,9 +15,8 @@ import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { AnyMember } from 'src/access/decorators/access.decorators';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { ALL_APP_ROLES } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import {
   CreateDraftDto,
@@ -170,7 +169,7 @@ export class FormSchemasController {
   constructor(private readonly resolver: FormResolverService) {}
 
   @Get()
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
   async current(
     @ActiveTenant() t: TenantContext,
     @Query() q: CurrentFormsQueryDto,
@@ -181,7 +180,7 @@ export class FormSchemasController {
   }
 
   @Get('versions/:versionId')
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
   async version(
     @ActiveTenant() t: TenantContext,
     @Param('versionId', ParseUUIDPipe) versionId: string,
@@ -193,7 +192,7 @@ export class FormSchemasController {
 
   @Post('versions/:versionId/validate')
   @HttpCode(HttpStatus.OK)
-  @Roles(...ALL_APP_ROLES)
+  @AnyMember()
   async validate(
     @ActiveTenant() t: TenantContext,
     @Param('versionId', ParseUUIDPipe) versionId: string,

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Can } from '@/features/access'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
@@ -137,9 +138,7 @@ function DetailBody({
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border-b px-6 pt-6 pb-5">
         <DialogHeader className="space-y-1">
           <DialogTitle className="flex items-center justify-between gap-4">
-            <span className="text-base font-semibold">
-              Appointment Details
-            </span>
+            <span className="text-base font-semibold">Appointment Details</span>
             <span
               className={cn(
                 'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full border capitalize',
@@ -176,9 +175,7 @@ function DetailBody({
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {appt.isEmergency && (
-              <Badge variant="destructive">Emergency</Badge>
-            )}
+            {appt.isEmergency && <Badge variant="destructive">Emergency</Badge>}
             <Badge variant="outline" className="capitalize">
               {appt.type.replace('_', ' ')}
             </Badge>
@@ -232,9 +229,7 @@ function DetailBody({
               {appt.doctor?.fullName ? (
                 <>Dr. {appt.doctor.fullName}</>
               ) : (
-                <span className="italic text-muted-foreground">
-                  Unassigned
-                </span>
+                <span className="italic text-muted-foreground">Unassigned</span>
               )}
             </p>
             {appt.doctor?.designation && (
@@ -284,22 +279,26 @@ function DetailBody({
               </p>
               <div className="flex flex-wrap gap-2">
                 {appt.status === AppointmentStatus.SCHEDULED && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      handle('confirmed', () =>
-                        confirmMutation.mutateAsync(appt.id),
-                      )
-                    }
-                  >
-                    <ThumbsUp size={14} className="mr-1.5" /> Confirm
-                  </Button>
+                  <Can perm="appointments.book">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        handle('confirmed', () =>
+                          confirmMutation.mutateAsync(appt.id),
+                        )
+                      }
+                    >
+                      <ThumbsUp size={14} className="mr-1.5" /> Confirm
+                    </Button>
+                  </Can>
                 )}
                 {isNotArrived && (
-                  <Button size="sm" onClick={() => setCheckingIn(true)}>
-                    <LogIn size={14} className="mr-1.5" /> Check in
-                  </Button>
+                  <Can perm="queue.checkin">
+                    <Button size="sm" onClick={() => setCheckingIn(true)}>
+                      <LogIn size={14} className="mr-1.5" /> Check in
+                    </Button>
+                  </Can>
                 )}
                 {appt.status === AppointmentStatus.CHECKED_IN && (
                   <p className="text-xs text-muted-foreground">
@@ -308,7 +307,7 @@ function DetailBody({
                   </p>
                 )}
                 {isNotArrived && (
-                  <>
+                  <Can perm="appointments.cancel">
                     <Button
                       size="sm"
                       variant="outline"
@@ -332,7 +331,7 @@ function DetailBody({
                     >
                       <XCircle size={14} className="mr-1.5" /> Cancel
                     </Button>
-                  </>
+                  </Can>
                 )}
               </div>
             </div>
@@ -358,9 +357,11 @@ function DetailBody({
             Close
           </Button>
           {isNotArrived && (
-            <Button size="sm" onClick={onEdit}>
-              <Pencil size={14} className="mr-1.5" /> Edit
-            </Button>
+            <Can perm="appointments.reschedule">
+              <Button size="sm" onClick={onEdit}>
+                <Pencil size={14} className="mr-1.5" /> Edit
+              </Button>
+            </Can>
           )}
         </div>
       </div>

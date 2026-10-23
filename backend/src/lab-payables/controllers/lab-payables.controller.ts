@@ -11,15 +11,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
-import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
-import { CurrentActor, Roles } from 'src/common/decorators/roles.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
 import type { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { LAB_FEATURE } from 'src/labs/labs.constants';
+import { ClinicActor, CurrentClinicActor } from 'src/labs/common/clinic-actor';
 import {
   AddBillLineDto,
   AgingQueryDto,
@@ -43,12 +41,11 @@ import { VendorPaymentsService } from '../services/vendor-payments.service';
 
 /**
  * Clinic finance for labs (lab ERD §6b, §15): vendor bills, payments,
- * monthly statements and reports. Clinic admins only — it is the
+ * monthly statements and reports. `lab.payables.manage` — the
  * accountant's desk.
  */
 @Controller('lab-payables')
-@RequireFeature(LAB_FEATURE)
-@Roles(AppRole.CLINIC_ADMIN)
+@Can('lab.payables.manage')
 export class LabPayablesController {
   constructor(
     private readonly bills: VendorBillsService,
@@ -77,7 +74,7 @@ export class LabPayablesController {
   @Patch('bills/:id')
   async updateBill(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateBillDto,
@@ -91,7 +88,7 @@ export class LabPayablesController {
   @Post('bills/:id/lines')
   async addLine(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddBillLineDto,
@@ -117,7 +114,7 @@ export class LabPayablesController {
   @HttpCode(HttpStatus.OK)
   async approve(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ApproveBillDto,
@@ -132,7 +129,7 @@ export class LabPayablesController {
   @HttpCode(HttpStatus.OK)
   async voidBill(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReasonVersionDto,
@@ -168,7 +165,7 @@ export class LabPayablesController {
   @Post('payments')
   async pay(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CreatePaymentDto,
     @Headers('idempotency-key') idempotencyKey?: string,
@@ -182,7 +179,7 @@ export class LabPayablesController {
   @Post('payments/:id/allocations')
   async allocate(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AllocatePaymentDto,
@@ -197,7 +194,7 @@ export class LabPayablesController {
   @HttpCode(HttpStatus.OK)
   async reverse(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: ReasonVersionDto,
@@ -233,7 +230,7 @@ export class LabPayablesController {
   @Post('statements')
   async createStatement(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Body() dto: CreateStatementDto,
   ) {
@@ -247,7 +244,7 @@ export class LabPayablesController {
   @HttpCode(HttpStatus.OK)
   async statementStatus(
     @ActiveTenant() tenant: TenantContext,
-    @CurrentActor() actor: Actor,
+    @CurrentClinicActor() actor: ClinicActor,
     @RequestActor(ActorSide.CLINIC) ref: ActorRef,
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: StatementStatusDto,

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Can } from '@/features/access/components/Can'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {
@@ -52,10 +53,18 @@ export function PrescriptionsPage() {
     ? Math.max(0, stats.total - stats.draft - stats.finalized)
     : undefined
 
-  const filterOptions: { value: StatusFilter; label: string; count?: number }[] = [
+  const filterOptions: {
+    value: StatusFilter
+    label: string
+    count?: number
+  }[] = [
     { value: 'all', label: 'All', count: stats?.total },
     { value: PrescriptionStatus.DRAFT, label: 'Drafts', count: stats?.draft },
-    { value: PrescriptionStatus.FINALIZED, label: 'Finalized', count: stats?.finalized },
+    {
+      value: PrescriptionStatus.FINALIZED,
+      label: 'Finalized',
+      count: stats?.finalized,
+    },
     { value: PrescriptionStatus.AMENDED, label: 'Amended', count: amended },
   ]
 
@@ -89,32 +98,65 @@ export function PrescriptionsPage() {
               Library
             </Link>
           </Button>
-          <Button asChild size="sm">
-            <Link to={'/prescriptions/new' as any}>
-              <Plus className="size-3.5" />
-              New Prescription
-            </Link>
-          </Button>
+          <Can perm="prescriptions.create">
+            <Button asChild size="sm">
+              <Link to={'/prescriptions/new' as any}>
+                <Plus className="size-3.5" />
+                New Prescription
+              </Link>
+            </Button>
+          </Can>
         </div>
       }
     >
       {/* KPIs — compact strip, same style as Appointments */}
       <div className="grid grid-cols-2 divide-x divide-y rounded-xl border bg-card sm:grid-cols-4 sm:divide-y-0">
         {[
-          { label: 'Total', value: stats?.total, icon: FileText, color: 'text-primary-text', bg: 'bg-primary-soft' },
-          { label: 'This month', value: stats?.thisMonth, icon: CalendarDays, color: 'text-violet', bg: 'bg-violet-soft' },
-          { label: 'Drafts', value: stats?.draft, icon: PencilLine, color: 'text-amber', bg: 'bg-amber-soft' },
-          { label: 'Finalized', value: stats?.finalized, icon: CheckCircle2, color: 'text-emerald', bg: 'bg-emerald-soft' },
+          {
+            label: 'Total',
+            value: stats?.total,
+            icon: FileText,
+            color: 'text-primary-text',
+            bg: 'bg-primary-soft',
+          },
+          {
+            label: 'This month',
+            value: stats?.thisMonth,
+            icon: CalendarDays,
+            color: 'text-violet',
+            bg: 'bg-violet-soft',
+          },
+          {
+            label: 'Drafts',
+            value: stats?.draft,
+            icon: PencilLine,
+            color: 'text-amber',
+            bg: 'bg-amber-soft',
+          },
+          {
+            label: 'Finalized',
+            value: stats?.finalized,
+            icon: CheckCircle2,
+            color: 'text-emerald',
+            bg: 'bg-emerald-soft',
+          },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div
             key={label}
             className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/40"
           >
-            <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-lg', bg)}>
+            <span
+              className={cn(
+                'flex size-8 shrink-0 items-center justify-center rounded-lg',
+                bg,
+              )}
+            >
               <Icon className={cn('size-4', color)} />
             </span>
             <div className="min-w-0 leading-none">
-              <p className="truncate text-[11px] font-medium text-text-3">{label}</p>
+              <p className="truncate text-[11px] font-medium text-text-3">
+                {label}
+              </p>
               <p className="mt-1 text-base font-bold leading-none tabular-nums">
                 {value ?? 0}
               </p>
@@ -151,7 +193,9 @@ export function PrescriptionsPage() {
                   <span
                     className={cn(
                       'rounded-full px-1.5 text-[10px] font-semibold tabular-nums',
-                      active ? 'bg-primary-soft text-primary-text' : 'bg-panel-2 text-text-3',
+                      active
+                        ? 'bg-primary-soft text-primary-text'
+                        : 'bg-panel-2 text-text-3',
                     )}
                   >
                     {opt.count}
@@ -196,12 +240,14 @@ export function PrescriptionsPage() {
             title="No prescriptions yet"
             description="Write your first prescription — pick a patient, add medicines, and print it on your letterhead."
             action={
-              <Button asChild>
-                <Link to={'/prescriptions/new' as any}>
-                  <Plus className="size-4" />
-                  New Prescription
-                </Link>
-              </Button>
+              <Can perm="prescriptions.create">
+                <Button asChild>
+                  <Link to={'/prescriptions/new' as any}>
+                    <Plus className="size-4" />
+                    New Prescription
+                  </Link>
+                </Button>
+              </Can>
             }
           />
         )

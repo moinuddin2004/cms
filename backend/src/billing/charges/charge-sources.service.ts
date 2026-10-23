@@ -11,7 +11,11 @@ import {
   ResolvedPrice,
 } from '../catalog/charge-pricing.service';
 import { BillingClock } from '../common/billing-clock.service';
-import { BillingContext, SYSTEM_BILLING_ROLE } from '../common/billing-context';
+import {
+  BillingContext,
+  NO_BILLING_ACCESS,
+  SYSTEM_BILLING_ROLE,
+} from '../common/billing-context';
 import { BillingException } from '../common/billing-errors';
 import { Charge } from '../entities/charge.entity';
 import {
@@ -89,7 +93,7 @@ export class ChargeSourcesService {
       actor: {
         userId: input.actorUserId,
         employeeId: null,
-        isAdmin: false,
+        access: NO_BILLING_ACCESS,
         role: SYSTEM_BILLING_ROLE,
       },
     };

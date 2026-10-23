@@ -14,6 +14,7 @@ import { QueueBoard } from './components/QueueBoard'
 import { CheckInDialog } from './components/CheckInDialog'
 import { DoctorQueuePage } from './pages/DoctorQueuePage'
 import type { QueueEntry, SessionSnapshot } from './types'
+import { accessWith, PERMS, WithAccess } from './test-access'
 
 // ── Mocks: API transport, router Link, realtime socket, toasts ───────────
 const api = vi.hoisted(() => ({
@@ -128,7 +129,11 @@ function renderWithClient(ui: ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+  return render(
+    <QueryClientProvider client={client}>
+      <WithAccess value={accessWith(myPerms)}>{ui}</WithAccess>
+    </QueryClientProvider>,
+  )
 }
 
 const doctorsReply = {
@@ -150,21 +155,17 @@ const doctorsReply = {
   },
 }
 
-let myRoles: string[] = ['clinic_admin', 'receptionist', 'doctor']
+let myPerms: Parameters<typeof accessWith>[0] = PERMS.admin
 
-/** Answers shared by every screen: my roles + the doctor list. */
+/** Answers shared by every screen: the doctor list. */
 function common(url: string) {
-  if (url === '/queue/me')
-    return Promise.resolve({
-      data: { data: { roles: myRoles, employeeId: 'd1' } },
-    })
   if (url === '/appointments/doctors') return Promise.resolve(doctorsReply)
   return null
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  myRoles = ['clinic_admin', 'receptionist', 'doctor']
+  myPerms = PERMS.admin
   useAuthStore.setState({
     activeOrganizationId: 'o',
     activeLocationId: 'l',
@@ -624,7 +625,7 @@ describe('CheckInDialog', () => {
   })
 })
 
-describe('QueueBoard — roles, admin options and list view', () => {
+describe('QueueBoard — permissions, admin options and list view', () => {
   const lane = (snap: SessionSnapshot | null) => ({
     doctor: {
       id: 'd1',
@@ -661,7 +662,7 @@ describe('QueueBoard — roles, admin options and list view', () => {
   }
 
   it('a receptionist sees reception actions but not admin-only ones', async () => {
-    myRoles = ['receptionist']
+    myPerms = PERMS.reception
     mockBoard([
       lane(
         snapshot([
@@ -689,7 +690,7 @@ describe('QueueBoard — roles, admin options and list view', () => {
   })
 
   it('a doctor-only user cannot add walk-ins or remove patients', async () => {
-    myRoles = ['doctor']
+    myPerms = PERMS.doctor
     mockBoard([lane(snapshot([entry({ id: 'w1' })]))])
     renderWithClient(<QueueBoard />)
     await screen.findByRole('button', { name: 'Actions for A-001' })

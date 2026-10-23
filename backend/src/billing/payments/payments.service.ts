@@ -249,7 +249,7 @@ export class PaymentsService {
           reason: 'NEEDS_PRICING' as const,
         })),
       doctorShare:
-        ctx.actor.isAdmin &&
+        ctx.actor.access.can('earnings.all.view') &&
         (await this.flags.isFeatureEnabled(
           ctx.tenant.organizationId,
           COMMISSIONS_FEATURE,

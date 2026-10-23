@@ -3,6 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { QueueEntry } from 'src/queue/entities/queue-entry.entity';
+import { QueueSession } from 'src/queue/entities/queue-session.entity';
+import type { AccessContext } from 'src/access/access-context';
+import { isPatientInScope } from 'src/patients/access/patient-scope';
 import { PatientEncounter } from './entities/patient-encounter.entity';
 import { UpdateEncounterNotesDto } from './dto/update-encounter-notes.dto';
 
@@ -105,15 +108,75 @@ export class EncountersService {
           }
         : null,
       doctor: entry?.session?.doctor
-        ? { id: entry.session.doctor.id, fullName: entry.session.doctor.fullName }
+        ? {
+            id: entry.session.doctor.id,
+            fullName: entry.session.doctor.fullName,
+          }
         : null,
     };
+  }
+
+  /**
+   * `consultation.conduct` reach for one encounter: `own` → only the doctor
+   * of the queue session it came from, `location` / `org` → any encounter
+   * here. Outside that reach it reads as not found.
+   */
+  async assertConductScope(
+    id: string,
+    ctx: TenantContext,
+    access: AccessContext,
+  ): Promise<void> {
+    const qb = this.encounterRepo
+      .createQueryBuilder('enc')
+      .innerJoin(QueueEntry, 'e', 'e.id = enc.queue_entry_id')
+      .innerJoin(QueueSession, 's', 's.id = e.queue_session_id')
+      .where('enc.id = :id', { id })
+      .andWhere('enc.organization_id = :org', { org: ctx.organizationId })
+      .andWhere('enc.location_id = :loc', { loc: ctx.locationId });
+    access.applyScope(qb, 'consultation.conduct', {
+      own: 's.doctor_id',
+      location: 'enc.location_id',
+    });
+    if ((await qb.getCount()) === 0) {
+      throw new NotFoundException('Encounter not found');
+    }
+  }
+
+  /**
+   * Record-level reads and writes of an encounter (`patients.clinical.*`,
+   * unscoped permissions) still follow the caller's `patients.view` scope:
+   * an encounter of a patient outside it reads as not found.
+   */
+  async assertPatientInScope(
+    id: string,
+    ctx: TenantContext,
+    access: AccessContext,
+  ): Promise<void> {
+    const encounter = await this.encounterRepo.findOne({
+      where: {
+        id,
+        organizationId: ctx.organizationId,
+        locationId: ctx.locationId,
+      },
+      select: { id: true, patientId: true },
+    });
+    if (
+      !encounter ||
+      !(await isPatientInScope(
+        this.encounterRepo.manager.connection,
+        access,
+        encounter.patientId,
+      ))
+    ) {
+      throw new NotFoundException('Encounter not found');
+    }
   }
 
   /** Reload-safe way back into a consultation from the doctor's queue screen. */
   async getWorkspaceByQueueEntry(
     queueEntryId: string,
     ctx: TenantContext,
+    access: AccessContext,
   ): Promise<ConsultationWorkspace> {
     const encounter = await this.encounterRepo.findOne({
       where: {
@@ -126,6 +189,7 @@ export class EncountersService {
     if (!encounter) {
       throw new NotFoundException('This patient has not been started yet');
     }
+    await this.assertConductScope(encounter.id, ctx, access);
     return this.getWorkspace(encounter.id, ctx);
   }
 

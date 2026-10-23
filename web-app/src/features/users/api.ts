@@ -4,6 +4,7 @@ import type {
   UserRoleType,
   PaginatedUsersResponse,
   CreateUserPayload,
+  StaffCandidate,
   UpdateUserPayload,
 } from './types'
 
@@ -27,6 +28,22 @@ export const useUsers = (
   })
 }
 
+/** Employees of the org without a login (choices for a staff user). */
+export const useStaffCandidates = (
+  orgId: string | undefined,
+  enabled: boolean,
+) =>
+  useQuery({
+    queryKey: ['users', 'staff-candidates', orgId],
+    queryFn: async () => {
+      const res = await apiClient.get('/user/staff-candidates', {
+        headers: orgId ? { 'x-organization-id': orgId } : undefined,
+      })
+      return res.data as StaffCandidate[]
+    },
+    enabled: enabled && !!orgId,
+  })
+
 export const useCreateUser = (defaultOrgId?: string) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -43,6 +60,8 @@ export const useCreateUser = (defaultOrgId?: string) => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users', variables.type] })
+      // A staff login takes that employee off the candidates list.
+      queryClient.invalidateQueries({ queryKey: ['users', 'staff-candidates'] })
     },
   })
 }

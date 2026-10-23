@@ -236,7 +236,7 @@ export default function PatientsRoute() {
 ### Colors (Tailwind classes only — no hardcoded values)
 | Purpose | Class |
 |---------|-------|
-| Primary action | `bg-blue-600 hover:bg-blue-700` |
+| Primary action / brand | `bg-primary hover:bg-primary/90` (also `text-primary`, `ring-primary`, `border-primary`, `bg-primary/10`) — follows the clinic's theme brand colour; never `blue-*` for brand |
 | Destructive | `bg-red-500 hover:bg-red-600` |
 | Surface | `bg-white dark:bg-slate-900` |
 | Border | `border-slate-200 dark:border-slate-800` |
@@ -296,9 +296,11 @@ Registered as `APP_GUARD` in `app.module.ts`:
 2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
 3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
 
-4. **`RolesGuard`** — enforces `@Roles(AppRole...)` (clinic_admin / receptionist / doctor), resolved per org+location by `AuthorizationService.resolveActor()`; attaches `request.actor` (`@CurrentActor()`).
+4. **`AccessGuard`** (`src/access/`) — enforces `@Can(...perms)` (all required; class + method lists merge) and `@AnyMember()`. `AccessResolver` builds an `AccessContext` per (user, org, location, `organizations.access_version`): owner / super admin get every permission; staff get their employment role's `permissions` jsonb (`{ perm: 'own'|'location'|'org'|true }`) at that location; permissions whose feature is not active (entitled ∧ enabled ∧ not disabled at the location) are dropped. Missing key = no access (fail-closed). `@Access()` injects the context: `can`, `scope`, `applyScope(qb, perm, { own, location, ownWhere })`, `decide`. `@VisibleIf(perm)` strips DTO fields.
 
-Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)`, `@Roles(...)`, `@ActiveTenant()` → `{ organizationId, locationId }`. Old `RoleAuthGuard` is legacy and NOT wired in. Note: `JwtAuthGuard` ignores `@Public()` — unauthenticated routes must also be listed in `auth/constants/public-routes.ts`.
+**Access control rules:** never check role names in code — ask `ctx.can('...')` / `useAccess().can('...')`. Permission keys live in `src/access/catalog/permissions.ts` (each tied to a feature); after editing run `npm run access:export` to regenerate `web-app/src/features/access/generated/catalog.ts`. Every handler needs `@Can`, `@AnyMember`, `@Public`, `@RequireSuperAdmin` or `@ContextFree` (handler checks itself) — `src/access/access-coverage.spec.ts` fails otherwise. Role/flag/nav changes bump `access_version` and emit realtime `access.changed` to room `org:<id>`. Frontend: routes declare `staticData: { can }` (checked once in `__root.tsx`), sidebar items come from `features/access/nav/nav.registry.ts` filtered by `can` and arranged by the clinic's `nav_layouts`. Clinic setup screens: `/admin/roles`, `/admin/features`, `/admin/navigation`, `/admin/theme`.
+
+Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)` (only needed on `@AnyMember` routes — a permission already implies its feature), `@ActiveTenant()` → `{ organizationId, locationId }`. `@Roles`/`RolesGuard` and the old `RoleAuthGuard` are removed. Note: `JwtAuthGuard` ignores `@Public()` — unauthenticated routes must also be listed in `auth/constants/public-routes.ts`.
 
 ### Auth / Login Flow
 Login resolves accessible orgs/locations, returns `requiresOrgSelection` / `requiresLocationSelection`. `__root.tsx` handles redirects: unauthenticated → `/login`; needs selection → `/select-location`. Super admins on `SUPER_ADMIN_SETUP_PATHS` bypass location-selection to bootstrap empty system. Session restore via silent `/auth/refresh` on mount.
@@ -314,7 +316,9 @@ Each domain is a self-contained NestJS module under `src/`:
 - `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times.
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
-- `feature-flags/` — dynamic per-org feature toggles. Auto-seeds catalog on `OnModuleInit`, caches enabled keys `Map<orgId, Set>`. Call `invalidateCache(orgId)` after mutations. `seedFlagsForOrg()` runs on org creation.
+- `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis.
+- `access/` — permission catalog, bundles, system role templates (seeded per org), resolver, guard, `/me/access`, roles admin (`/admin/roles`), nav layouts (`/admin/navigation`).
+- `settings-registry/` — `config_values` (platform → org → location cascade with locks) for theme (`theme.*`) and new long-tail settings; typed settings tables (`queue_policies`, `location_billing_settings`, …) stay as they are.
 - `chairs/`, `inventory/`, `invoices/` — entity-only stubs (no controller/service yet)
 - `common/` — shared guards, decorators, utilities
 - `session/` — user session tracking

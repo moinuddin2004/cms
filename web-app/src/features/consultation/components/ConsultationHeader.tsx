@@ -15,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { InitialsAvatar } from '@/components/shared'
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { Can } from '@/features/access'
 import { cn } from '@/lib/utils'
 import type { Patient } from '@/features/patients'
 import type { ConsultationWorkspace } from '../types'
@@ -128,7 +128,7 @@ export function ConsultationHeader({
           >
             <History className="size-4" />
           </RecordShortcut>
-          <FeatureGuard feature="patients.teeth_chart">
+          <Can perm="patients.chart.edit">
             <RecordShortcut
               tooltip="Teeth chart"
               label="Teeth"
@@ -136,7 +136,7 @@ export function ConsultationHeader({
             >
               <Smile className="size-4" />
             </RecordShortcut>
-          </FeatureGuard>
+          </Can>
           <RecordShortcut
             tooltip="Vitals & dental info"
             label="Vitals"
@@ -144,7 +144,7 @@ export function ConsultationHeader({
           >
             <Activity className="size-4" />
           </RecordShortcut>
-          <FeatureGuard feature="patients.documents">
+          <Can perm="patients.documents.manage">
             <RecordShortcut
               tooltip="X-rays & files"
               label="Files"
@@ -152,7 +152,7 @@ export function ConsultationHeader({
             >
               <FolderOpen className="size-4" />
             </RecordShortcut>
-          </FeatureGuard>
+          </Can>
         </nav>
 
         <Button

@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import { FeatureGuard } from '@/context/FeatureFlagsContext'
+import { Can } from '@/features/access'
 import { formatDate } from '@/lib/formatters'
+import { DISCOUNT_PERMS } from '../../lib/billing-permissions'
 import type { Charge } from '../../types/billing.types'
 import { AddChargeSheet } from '../charges/AddChargeSheet'
 import { ChargeRowActions } from '../charges/ChargeRowActions'
@@ -66,7 +67,7 @@ export function CollectCharges() {
           Charges
         </label>
         <div className="flex gap-2">
-          <FeatureGuard feature="billing.discounts">
+          <Can perm={DISCOUNT_PERMS}>
             <Button
               size="sm"
               variant="outline"
@@ -75,7 +76,7 @@ export function CollectCharges() {
             >
               <Percent className="size-3.5" /> Discount
             </Button>
-          </FeatureGuard>
+          </Can>
           <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
             <Plus className="size-3.5" /> Add charge
           </Button>

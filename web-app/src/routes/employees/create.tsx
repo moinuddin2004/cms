@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { RequireRolePage } from '@/components/feature/RequireRolePage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { EmployeeForm, useCreateEmployee, type EmployeeFormData } from '@/features/employees'
+import {
+  EmployeeForm,
+  useCreateEmployee,
+  type EmployeeFormData,
+} from '@/features/employees'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/employees/create')({
-  component: () => (
-    <RequireRolePage roles={['clinic_admin']}>
-      <CreateEmployeePage />
-    </RequireRolePage>
-  ),
+  staticData: { can: 'employees.manage' },
+  component: () => <CreateEmployeePage />,
 })
 
 function CreateEmployeePage() {

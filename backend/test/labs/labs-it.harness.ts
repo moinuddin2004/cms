@@ -17,8 +17,9 @@ import { Test } from '@nestjs/testing';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import * as request from 'supertest';
 import { DataSource } from 'typeorm';
+import { AccessGuard } from 'src/access/access.guard';
+import { AccessModule } from 'src/access/access.module';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { AuditModule } from 'src/common/audit/audit.module';
 import { ClockModule } from 'src/common/clock/clock.module';
@@ -174,6 +175,9 @@ export class LabsFixture {
       name: 'Doctor',
       slug: 'doctor',
       permissions: {
+        'consultation.conduct': 'own', // → doctor (legacy @Roles)
+        'lab.orders.view': 'org',
+        'lab.orders.create': true,
         canManageSettings: false,
         canCreateAppointments: false,
         canConsult: true,
@@ -260,6 +264,7 @@ export async function createLabsFixture(
       SequencesModule,
       IdempotencyModule,
       FeatureFlagsModule,
+      AccessModule,
       EngineModule,
       LabsModule,
       ...extraImports,
@@ -269,7 +274,7 @@ export async function createLabsFixture(
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
+      { provide: APP_GUARD, useClass: AccessGuard },
     ],
   }).compile();
 

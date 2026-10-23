@@ -10,6 +10,8 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'POST', path: '/auth/forgot-password' },
   { method: 'PATCH', path: '/auth/reset-password' },
   { method: 'POST', path: '/auth/logout' },
+  // Login-page theme: theme tokens only (settings-registry ThemeController).
+  { method: 'GET', path: '/public/theme/**' },
   // Waiting-room TV: tokens and doctor names only, never patient data.
   { method: 'GET', path: '/queue/displays/**/state' },
   // Lab magic links (lab ERD §7): the token in the path is the credential.

@@ -41,4 +41,9 @@ export class CreateAppointmentDto {
   @IsBoolean()
   @IsOptional()
   isEmergency?: boolean;
+
+  /** Book outside working hours / past the daily limit (`appointments.override_rules`). */
+  @IsBoolean()
+  @IsOptional()
+  overrideRules?: boolean;
 }

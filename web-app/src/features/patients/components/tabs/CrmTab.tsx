@@ -5,6 +5,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card'
+import { Can } from '@/features/access/components/Can'
 import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
@@ -52,7 +53,9 @@ export function CrmTab({ patient }: { patient: Patient }) {
                 WhatsApp, SMS, Email, and Phone calls
               </CardDescription>
             </div>
-            <CommunicationFormDialog patientId={patient.id} />
+            <Can perm="patients.edit">
+              <CommunicationFormDialog patientId={patient.id} />
+            </Can>
           </CardHeader>
           <CardContent className="pt-4">
             {loadingComms ? (
@@ -77,7 +80,7 @@ export function CrmTab({ patient }: { patient: Patient }) {
         <Card className="shadow-sm">
           <CardHeader className="pb-2 border-b">
             <CardTitle className="text-md flex items-center gap-2">
-              <UserPlus className="text-blue-600" size={16} />
+              <UserPlus className="text-primary" size={16} />
               Referral Network
             </CardTitle>
             <CardDescription className="text-xs mt-1">

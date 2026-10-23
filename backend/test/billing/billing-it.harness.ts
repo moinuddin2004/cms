@@ -16,10 +16,19 @@ import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { ClockService } from 'src/common/clock/clock.service';
 import { ClockModule } from 'src/common/clock/clock.module';
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import { AuditModule } from 'src/common/audit/audit.module';
+import { AccessContext } from 'src/access/access-context';
+import { AccessGuard } from 'src/access/access.guard';
+import { AccessModule } from 'src/access/access.module';
+import {
+  expandImplies,
+  normalizeGrants,
+  PermissionMap,
+} from 'src/access/catalog/permissions';
+import { ROLE_TEMPLATES } from 'src/access/catalog/templates';
+import { SettingsRegistryModule } from 'src/settings-registry/settings-registry.module';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
@@ -78,7 +87,6 @@ export type Who = 'admin' | 'reception' | 'doctor';
 export interface Person {
   userId: string;
   employeeId: string;
-  roles: AppRole[];
 }
 
 export interface Clinic {
@@ -88,29 +96,53 @@ export interface Clinic {
   cashAccountId: string;
 }
 
-const ROLE_PERMISSIONS: Record<Who, Record<string, boolean>> = {
-  admin: {
-    canManageSettings: true,
-    canCreateAppointments: true,
-    canConsult: false,
-  },
+const template = (key: string): PermissionMap =>
+  ROLE_TEMPLATES.find((t) => t.key === key)!.permissions;
+
+/**
+ * Stored role permissions (new format only). Admin and doctor are the system
+ * templates; reception is the old receptionist's billing reach (everything
+ * but custom discounts, price overrides, settings and reports).
+ */
+const ROLE_PERMISSIONS: Record<Who, PermissionMap> = {
+  admin: template('admin'),
   reception: {
-    canManageSettings: false,
-    canCreateAppointments: true,
-    canConsult: false,
+    'appointments.book': true,
+    'billing.desk.use': true,
+    'billing.invoice.view': 'location',
+    'billing.invoice.edit': true,
+    'billing.invoice.void': true,
+    'billing.payment.collect': true,
+    'billing.refund.issue': true,
+    'billing.cash_close': true,
+    'billing.discount.apply': true,
+    'expenses.manage': true,
   },
-  doctor: {
-    canManageSettings: false,
-    canCreateAppointments: false,
-    canConsult: true,
-  },
+  doctor: template('doctor'),
 };
 
-const ROLES: Record<Who, AppRole[]> = {
-  admin: [AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST],
-  reception: [AppRole.RECEPTIONIST],
-  doctor: [AppRole.DOCTOR],
-};
+/** AccessContext for a fixture person (features are not filtered here). */
+export function accessFor(
+  tenant: TenantContext,
+  person: Pick<Person, 'userId' | 'employeeId'>,
+  permissions: PermissionMap,
+  label = 'test',
+): AccessContext {
+  return new AccessContext({
+    userId: person.userId,
+    organizationId: tenant.organizationId,
+    locationId: tenant.locationId,
+    version: 0,
+    isSuperAdmin: false,
+    isOwner: false,
+    isMember: true,
+    employeeId: person.employeeId,
+    features: [],
+    permissions: expandImplies(normalizeGrants(permissions)),
+    roles: [{ id: label, name: label, templateKey: label }],
+    homeRoute: null,
+  });
+}
 
 let phoneSeq = Math.floor(Math.random() * 1e7);
 let patientSeq = 0;
@@ -160,13 +192,13 @@ export class BillingFixture {
   }
 
   ctx(clinic: Clinic, who: Who = 'reception'): BillingContext {
-    const p = clinic.people[who];
-    const actor: Actor = {
-      userId: p.userId,
-      roles: p.roles,
-      employeeId: p.employeeId,
-    };
-    return billingContext(clinic.tenant, actor);
+    const access = accessFor(
+      clinic.tenant,
+      clinic.people[who],
+      ROLE_PERMISSIONS[who],
+      who,
+    );
+    return billingContext(clinic.tenant, access);
   }
 
   /** Pins "now" for the clinic clock (ClockService.now is what BillingClock reads). */
@@ -291,7 +323,6 @@ export class BillingFixture {
       people[who] = {
         userId: user.uuid,
         employeeId: employee.id,
-        roles: ROLES[who],
       };
     }
 
@@ -346,6 +377,10 @@ export async function createBillingFixture(): Promise<BillingFixture> {
       ]),
       ClockModule,
       FeatureFlagsModule,
+      AccessModule,
+      // PrintDataService reads print branding from the settings registry.
+      AuditModule,
+      SettingsRegistryModule,
       BillingModule,
       TreatmentsModule,
     ],
@@ -354,7 +389,7 @@ export async function createBillingFixture(): Promise<BillingFixture> {
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
+      { provide: APP_GUARD, useClass: AccessGuard },
     ],
   }).compile();
 

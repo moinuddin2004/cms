@@ -1,12 +1,17 @@
-import { Actor, AppRole } from 'src/common/enums/app-role.enum';
+import type { AccessContext } from 'src/access/access-context';
+import type { Permission } from 'src/access/catalog/permissions';
+import { noPermission } from 'src/access/decorators/access.decorators';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+
+/** The part of AccessContext billing rules ask (`can` / `decide`). */
+export type BillingAccess = Pick<AccessContext, 'can' | 'decide'>;
 
 /** Who performs a billing write, reduced to what billing rules need (10.3). */
 export interface BillingActor {
   readonly userId: string;
   readonly employeeId: string | null;
-  /** Any admin role grants admin rights (V6). */
-  readonly isAdmin: boolean;
+  /** Permission checks (price override, custom discount, void …). */
+  readonly access: BillingAccess;
   /** Stored on audit rows. */
   readonly role: string;
 }
@@ -19,23 +24,36 @@ export interface BillingContext {
 
 export const SYSTEM_BILLING_ROLE = 'system';
 
-export function toBillingActor(actor: Actor): BillingActor {
-  const isAdmin = actor.roles.includes(AppRole.CLINIC_ADMIN);
+/** System writes (charges from a completed visit) hold no permission. */
+export const NO_BILLING_ACCESS: BillingAccess = {
+  can: () => false,
+  decide: () => 'deny',
+};
+
+/** Audit label: owner / super admin, else the role (template key or name). */
+function auditRole(access: AccessContext): string {
+  if (access.isOwner) return 'owner';
+  if (access.isSuperAdmin) return 'super_admin';
+  return access.roles.map((r) => r.templateKey ?? r.name).join(',') || 'member';
+}
+
+export function toBillingActor(access: AccessContext): BillingActor {
   return {
-    userId: actor.userId,
-    employeeId: actor.employeeId,
-    isAdmin,
-    role: isAdmin
-      ? AppRole.CLINIC_ADMIN
-      : actor.roles.includes(AppRole.RECEPTIONIST)
-        ? AppRole.RECEPTIONIST
-        : actor.roles.join(',') || 'member',
+    userId: access.userId,
+    employeeId: access.employeeId,
+    access,
+    role: auditRole(access),
   };
 }
 
 export function billingContext(
   tenant: TenantContext,
-  actor: Actor,
+  access: AccessContext,
 ): BillingContext {
-  return { tenant, actor: toBillingActor(actor) };
+  return { tenant, actor: toBillingActor(access) };
+}
+
+/** 403 NO_PERMISSION (same body as AccessGuard) unless the actor holds `perm`. */
+export function assertBillingCan(actor: BillingActor, perm: Permission): void {
+  if (!actor.access.can(perm)) throw noPermission([perm]);
 }

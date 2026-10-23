@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Plus, Users } from 'lucide-react'
+import { Download, Loader2, Plus, Users } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -22,6 +23,9 @@ import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
 import { EditPatientSheet } from '../components/EditPatientSheet'
 import type { Patient, PatientListParams } from '../types'
+import { exportPatientsCsv } from '../services/patients.api'
+import { Can } from '@/features/access/components/Can'
+import { useAccess } from '@/features/access/hooks/useAccess'
 
 const DEFAULT_PARAMS: PatientListParams = {
   page: 1,
@@ -34,6 +38,7 @@ const DEFAULT_PARAMS: PatientListParams = {
 }
 
 export function PatientsPage() {
+  const { can } = useAccess()
   const { viewMode, setViewMode } = usePatientStore()
   const statusMutation = useSetPatientStatus()
   const deleteMutation = useDeletePatient()
@@ -41,11 +46,31 @@ export function PatientsPage() {
   const [editTarget, setEditTarget] = useState<Patient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const { truncated } = await exportPatientsCsv(params)
+      toast.success(
+        truncated
+          ? 'Export downloaded (first 10,000 patients only)'
+          : 'Export downloaded',
+      )
+    } catch {
+      toast.error('Could not export patients')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const { data, isLoading, isError, refetch } = usePatients(params)
 
   const updateParam = useCallback(
-    <K extends keyof PatientListParams>(key: K, value: PatientListParams[K]) => {
+    <K extends keyof PatientListParams>(
+      key: K,
+      value: PatientListParams[K],
+    ) => {
       setParams((prev) => ({
         ...prev,
         [key]: value,
@@ -66,10 +91,7 @@ export function PatientsPage() {
   }, [])
 
   const filtersActive = useMemo(
-    () =>
-      !!params.search ||
-      !!params.gender ||
-      params.isActive !== undefined,
+    () => !!params.search || !!params.gender || params.isActive !== undefined,
     [params],
   )
 
@@ -101,10 +123,31 @@ export function PatientsPage() {
       actions={
         <>
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
-          <Button onClick={() => setShowCreate(true)} id="new-patient-btn" size="sm">
-            <Plus className="size-3.5" />
-            Create
-          </Button>
+          <Can perm="patients.export">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={exporting || total === 0}
+            >
+              {exporting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Download className="size-3.5" />
+              )}
+              Export
+            </Button>
+          </Can>
+          <Can perm="patients.create">
+            <Button
+              onClick={() => setShowCreate(true)}
+              id="new-patient-btn"
+              size="sm"
+            >
+              <Plus className="size-3.5" />
+              Create
+            </Button>
+          </Can>
         </>
       }
     >
@@ -117,7 +160,9 @@ export function PatientsPage() {
           <FiltersBar
             gender={params.gender || ''}
             onGenderChange={(v) => updateParam('gender', v)}
-            status={params.isActive === undefined ? '' : String(params.isActive)}
+            status={
+              params.isActive === undefined ? '' : String(params.isActive)
+            }
             onStatusChange={(v) =>
               updateParam('isActive', v === '' ? undefined : v === 'true')
             }
@@ -139,13 +184,18 @@ export function PatientsPage() {
               onEdit={setEditTarget}
               onDelete={setDeleteTarget}
               pendingStatusId={pendingStatusId}
-              serverPagination={data ? {
-                page: data.page,
-                pageSize: data.limit,
-                total: data.total,
-                onPageChange: (p) => updateParam('page', p),
-                onPageSizeChange: (l) => setParams((prev) => ({ ...prev, limit: l, page: 1 })),
-              } : undefined}
+              serverPagination={
+                data
+                  ? {
+                      page: data.page,
+                      pageSize: data.limit,
+                      total: data.total,
+                      onPageChange: (p) => updateParam('page', p),
+                      onPageSizeChange: (l) =>
+                        setParams((prev) => ({ ...prev, limit: l, page: 1 })),
+                    }
+                  : undefined
+              }
             />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -170,10 +220,12 @@ export function PatientsPage() {
           title="No patients yet"
           description="Get started by registering your first patient."
           action={
-            <Button onClick={() => setShowCreate(true)}>
-              <Plus className="size-4" />
-              New Patient
-            </Button>
+            can('patients.create') ? (
+              <Button onClick={() => setShowCreate(true)}>
+                <Plus className="size-4" />
+                New Patient
+              </Button>
+            ) : undefined
           }
         />
       )}

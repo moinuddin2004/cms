@@ -11,8 +11,8 @@ export interface AuthUser {
 
 /**
  * An authenticated API request: `user` from the JWT guard, `tenantContext`
- * from TenantContextGuard (declared on Express.Request globally), and
- * `actor` from RolesGuard on routes that declare `@Roles()`.
+ * from TenantContextGuard (declared on Express.Request globally); `actor`
+ * is legacy and no longer set by a guard (AccessGuard sets `access`).
  */
 export type AppRequest = Request & {
   user?: AuthUser;

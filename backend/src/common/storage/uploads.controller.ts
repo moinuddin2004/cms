@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
+import { AnyMember } from 'src/access/decorators/access.decorators';
 import {
   StorageProvider,
   STORAGE_PROVIDER,
@@ -25,6 +26,7 @@ import {
  * Auth: `JwtAuthGuard` + `TenantContextGuard` apply globally, so only
  * authenticated users with a valid tenant context can upload.
  */
+@AnyMember()
 @Controller('uploads')
 export class UploadsController {
   constructor(

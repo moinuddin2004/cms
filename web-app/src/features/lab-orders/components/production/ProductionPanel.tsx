@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingSkeleton, StatusBadge } from '@/components/shared'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { useAccess } from '@/features/access'
 import { ReasonDialog } from '../ReasonDialog'
 import { ItemStatusBadge } from '../order-badges'
 import {
@@ -73,7 +74,7 @@ export function StageTimeline({ stages }: { stages: ItemStage[] }) {
               key={r.id}
               className={
                 r.isActive
-                  ? 'flex items-center gap-1 rounded-md ring-2 ring-blue-500/40'
+                  ? 'flex items-center gap-1 rounded-md ring-2 ring-primary/40'
                   : 'flex items-center gap-1'
               }
               title={r.correctionNotes ?? r.tryinNotes ?? undefined}
@@ -97,6 +98,9 @@ export function StageTimeline({ stages }: { stages: ItemStage[] }) {
  */
 export function ProductionPanel({ order }: { order: LabOrderDetail }) {
   const orderId = order.id
+  // Item steps and remake decisions need `lab.orders.create`; receiving a
+  // shipment is desk work open to `lab.orders.view` (as the API).
+  const canAct = useAccess().can('lab.orders.create')
   const { data, isLoading, isError, refetch } = useOrderProduction(orderId)
   const [receiving, setReceiving] = useState<Shipment | null>(null)
   const [losing, setLosing] = useState<Shipment | null>(null)
@@ -274,107 +278,109 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
               </p>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {(tryinStage?.status === 'received' ||
-                finalStage?.status === 'received') &&
-                (tryinStage ?? finalStage)!.requiresPatientVisit && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={tryin.isPending}
-                    onClick={() => tryin.mutate((tryinStage ?? finalStage)!)}
-                  >
-                    {tryin.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <Stethoscope className="size-4" />
-                    )}
-                    Record try-in
-                  </Button>
-                )}
-              {tryinStage &&
-                (tryinStage.status === 'tryin_done' ||
-                  (tryinStage.status === 'received' &&
-                    !tryinStage.requiresPatientVisit)) && (
+            {canAct && (
+              <div className="flex flex-wrap gap-2">
+                {(tryinStage?.status === 'received' ||
+                  finalStage?.status === 'received') &&
+                  (tryinStage ?? finalStage)!.requiresPatientVisit && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={tryin.isPending}
+                      onClick={() => tryin.mutate((tryinStage ?? finalStage)!)}
+                    >
+                      {tryin.isPending ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Stethoscope className="size-4" />
+                      )}
+                      Record try-in
+                    </Button>
+                  )}
+                {tryinStage &&
+                  (tryinStage.status === 'tryin_done' ||
+                    (tryinStage.status === 'received' &&
+                      !tryinStage.requiresPatientVisit)) && (
+                    <>
+                      <Button
+                        size="sm"
+                        disabled={decide.isPending}
+                        onClick={() =>
+                          decide.mutate({
+                            stage: tryinStage,
+                            decision: 'approve',
+                          })
+                        }
+                      >
+                        {decide.isPending ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Check className="size-4" />
+                        )}
+                        Approve {tryinStage.name}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setCorrecting(tryinStage)}
+                      >
+                        <Wrench className="size-4" /> Needs correction
+                      </Button>
+                    </>
+                  )}
+                {finalReceived && (
                   <>
                     <Button
                       size="sm"
-                      disabled={decide.isPending}
-                      onClick={() =>
-                        decide.mutate({
-                          stage: tryinStage,
-                          decision: 'approve',
-                        })
-                      }
+                      disabled={approve.isPending}
+                      onClick={() => approve.mutate(item)}
                     >
-                      {decide.isPending ? (
+                      {approve.isPending ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : (
                         <Check className="size-4" />
                       )}
-                      Approve {tryinStage.name}
+                      Approve work
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => setCorrecting(tryinStage)}
+                      variant="destructive"
+                      onClick={() => setRejecting(item)}
                     >
-                      <Wrench className="size-4" /> Needs correction
+                      <RotateCcw className="size-4" /> Reject — remake
                     </Button>
                   </>
                 )}
-              {finalReceived && (
-                <>
+                {item.status === 'approved' && (
                   <Button
                     size="sm"
-                    disabled={approve.isPending}
-                    onClick={() => approve.mutate(item)}
+                    disabled={deliver.isPending}
+                    onClick={() => deliver.mutate(item)}
                   >
-                    {approve.isPending ? (
+                    {deliver.isPending ? (
                       <Loader2 className="size-4 animate-spin" />
                     ) : (
                       <Check className="size-4" />
                     )}
-                    Approve work
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => setRejecting(item)}
-                  >
-                    <RotateCcw className="size-4" /> Reject — remake
-                  </Button>
-                </>
-              )}
-              {item.status === 'approved' && (
-                <Button
-                  size="sm"
-                  disabled={deliver.isPending}
-                  onClick={() => deliver.mutate(item)}
-                >
-                  {deliver.isPending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Check className="size-4" />
-                  )}
-                  Fitted — mark delivered
-                </Button>
-              )}
-              {item.status === 'delivered' &&
-                !data.remakeRequests.some(
-                  (r) =>
-                    r.originalItemId === item.id &&
-                    (r.status === 'requested' || r.status === 'disputed'),
-                ) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setAftercare(item)}
-                  >
-                    <RotateCcw className="size-4" /> Request remake
+                    Fitted — mark delivered
                   </Button>
                 )}
-            </div>
+                {item.status === 'delivered' &&
+                  !data.remakeRequests.some(
+                    (r) =>
+                      r.originalItemId === item.id &&
+                      (r.status === 'requested' || r.status === 'disputed'),
+                  ) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAftercare(item)}
+                    >
+                      <RotateCcw className="size-4" /> Request remake
+                    </Button>
+                  )}
+              </div>
+            )}
           </div>
         )
       })}
@@ -401,11 +407,12 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
               </span>
               <span className="flex items-center gap-2">
                 <StatusBadge status={r.status} />
-                {(r.status === 'requested' || r.status === 'disputed') && (
-                  <Button size="sm" onClick={() => setDeciding(r)}>
-                    Decide
-                  </Button>
-                )}
+                {canAct &&
+                  (r.status === 'requested' || r.status === 'disputed') && (
+                    <Button size="sm" onClick={() => setDeciding(r)}>
+                      Decide
+                    </Button>
+                  )}
               </span>
             </div>
           ))}

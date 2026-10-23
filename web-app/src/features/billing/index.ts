@@ -1,7 +1,6 @@
 // Billing feature barrel — import from here across features.
 export * from './types/billing.types'
 export { billingKeys } from './query-keys'
-export { useBillingAccess } from './hooks/use-billing-access'
 export {
   useOutstanding,
   usePlanBillingSummary,
@@ -24,6 +23,13 @@ export {
   DoctorRevenuePage,
 } from './pages/BillingReportsPages'
 export { ExpensesPage } from './pages/ExpensesPage'
+export {
+  ListToolbar,
+  LiveDot,
+  Segmented,
+  StatsStrip,
+  type StatItem,
+} from './components/shared/list-toolbar'
 export { QueueBillingCell } from './components/queue/QueueBillingCell'
 
 // Doctor compensation / commissions

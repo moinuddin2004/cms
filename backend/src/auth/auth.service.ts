@@ -27,7 +27,10 @@ import { SessionService } from '../session/session.service';
 import {
   AuthorizationService,
   AccessibleOrganization,
+  legacyLocationFlags,
+  UserPermissions,
 } from './services/authorization.service';
+import { AccessResolver } from 'src/access/access.resolver';
 import {
   findLabMemberships,
   LabMembership,
@@ -84,6 +87,7 @@ export class AuthService {
     private readonly securityLogService: SecurityLogService,
     private readonly sessionService: SessionService,
     private readonly authorizationService: AuthorizationService,
+    private readonly accessResolver: AccessResolver,
   ) {}
 
   /**
@@ -256,7 +260,8 @@ export class AuthService {
   ): Promise<{
     activeOrganizationId: string;
     activeLocationId: string;
-    permissions: any;
+    /** @deprecated See `legacyLocationFlags`. */
+    permissions: UserPermissions;
   }> {
     // Validate access
     const hasAccess = await this.authorizationService.validateAccess(
@@ -269,13 +274,11 @@ export class AuthService {
       throw new ForbiddenException('You do not have access to this location');
     }
 
-    // Get permissions at new location
-    const permissions =
-      await this.authorizationService.getUserPermissionsAtLocation(
-        userId,
-        organizationId,
-        locationId,
-      );
+    // Deprecated legacy flags (the web app reads /me/access), derived
+    // from the new permissions at the new location.
+    const permissions = legacyLocationFlags(
+      await this.accessResolver.resolve(userId, organizationId, locationId),
+    );
 
     // Save last accessed context
     await this.userService.updateLastAccessed(

@@ -7,7 +7,7 @@ interface KpiCardProps {
   title: string
   value: string
   icon: LucideIcon
-  /** Tailwind classes for the icon chip, e.g. "bg-blue-50 text-blue-600" */
+  /** Tailwind classes for the icon chip, e.g. "bg-primary/10 text-primary" */
   accent?: string
   subLabel?: string
   /** Period-over-period change. Omit to hide the trend chip. */

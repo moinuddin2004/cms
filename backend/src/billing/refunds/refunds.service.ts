@@ -9,7 +9,7 @@ import {
 } from '../audit/billing-audit.service';
 import { DEFAULT_PAGE_SIZE } from '../billing.constants';
 import { BillingClock, ClinicTime } from '../common/billing-clock.service';
-import { BillingContext } from '../common/billing-context';
+import { assertBillingCan, BillingContext } from '../common/billing-context';
 import { billingError, invariant, notFound } from '../common/billing-errors';
 import { BillingLocks, paymentAdvancePaisa } from '../common/billing-locks';
 import { BillingLookups, toPatientRef } from '../common/billing-lookups';
@@ -61,6 +61,7 @@ export class RefundsService {
     ctx: BillingContext,
     dto: CreateRefundDto,
   ): Promise<RefundResponse> {
+    assertBillingCan(ctx.actor, 'billing.refund.issue');
     return this.idempotent(ctx, dto.clientRequestId, (manager) =>
       this.runRefund(manager, ctx, dto.patientId, dto, null),
     );
@@ -72,6 +73,7 @@ export class RefundsService {
     invoiceId: string,
     dto: InvoiceRefundDto,
   ): Promise<RefundResponse> {
+    assertBillingCan(ctx.actor, 'billing.refund.issue');
     return this.idempotent(ctx, dto.refund.clientRequestId, async (manager) => {
       if (dto.edit) {
         const time = await this.clock.read(ctx.tenant.locationId);

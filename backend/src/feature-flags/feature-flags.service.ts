@@ -3,20 +3,38 @@ import {
   NotFoundException,
   ConflictException,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { FeatureCatalog } from './entities/feature-catalog.entity';
 import { OrgFeatureFlag } from './entities/org-feature-flag.entity';
+import { LocationFeatureOverride } from './entities/location-feature-override.entity';
 import {
   CreateCatalogItemDto,
   UpdateCatalogItemDto,
 } from './dto/feature-flags.dto';
 import { FEATURE_CATALOG_SEED } from './feature-catalog.seed';
 import { AppLogger } from 'src/common/services/logger.service';
+import { AccessChangeBus } from 'src/access/version/access-change-bus';
+import {
+  featureState,
+  FeatureLockedReason,
+  narrowByLocation,
+  resolveEnabledFeatures,
+} from './feature-state';
+
+export { resolveEnabledFeatures } from './feature-state';
 
 /**
- * Feature grouped by module with per-org enabled status.
+ * How long an org's enabled-set is trusted. Changes made on another instance
+ * normally arrive over the access bus at once; this bounds staleness when a
+ * bus message is missed (Redis down).
+ */
+export const FEATURE_CACHE_TTL_MS = 30_000;
+
+/**
+ * Feature grouped by module with per-org entitlement + enabled status.
  */
 export interface ModuleFeatureGroup {
   module: string;
@@ -28,25 +46,41 @@ export interface ModuleFeatureGroup {
     specialtyTags: string[];
     enabledByDefault: boolean;
     sortOrder: number;
+    /** Same as `enabled` (kept for older clients). */
     isEnabled: boolean;
+    entitled: boolean;
+    enabled: boolean;
+    active: boolean;
+    entitledUntil: Date | null;
+    lockedReason: FeatureLockedReason | null;
   }>;
 }
 
 @Injectable()
 export class FeatureFlagsService implements OnModuleInit {
-  /** In-memory cache: orgId → Set of enabled feature keys */
-  private readonly cache = new Map<string, Set<string>>();
+  /**
+   * In-memory cache: `orgId` → active org keys, `orgId|locationId` → the
+   * location's keys (+ when each was loaded).
+   */
+  private readonly cache = new Map<string, { keys: Set<string>; at: number }>();
 
   constructor(
     @InjectRepository(FeatureCatalog)
     private readonly catalogRepo: Repository<FeatureCatalog>,
     @InjectRepository(OrgFeatureFlag)
     private readonly flagRepo: Repository<OrgFeatureFlag>,
+    @InjectRepository(LocationFeatureOverride)
+    private readonly overrideRepo: Repository<LocationFeatureOverride>,
     private readonly logger: AppLogger,
-  ) {}
+    @Optional() bus?: AccessChangeBus,
+  ) {
+    // Flag changes bump the org's access version; every instance drops its
+    // cached set when it hears about it.
+    bus?.onChange((c) => this.invalidateCache(c.organizationId));
+  }
 
   /**
-   * Seed the catalog on startup (upsert by key — safe to run repeatedly).
+   * Add catalog keys that are missing on startup (safe to run repeatedly).
    */
   async onModuleInit(): Promise<void> {
     await this.seedCatalog();
@@ -55,28 +89,23 @@ export class FeatureFlagsService implements OnModuleInit {
   // ── Catalog ────────────────────────────────────────────────────────
 
   /**
-   * Upsert all seed features into the catalog.
+   * Insert seed features whose key is not in the catalog yet. Existing rows
+   * are never touched, so super-admin edits (name, default, active…) stick.
    */
   async seedCatalog(): Promise<void> {
-    for (const seed of FEATURE_CATALOG_SEED) {
-      const existing = await this.catalogRepo.findOne({
-        where: { key: seed.key },
-      });
-      if (existing) {
-        // Keep curated fields fresh, but don't clobber manual overrides of isActive
-        existing.name = seed.name;
-        existing.module = seed.module;
-        existing.description = seed.description;
-        existing.specialtyTags = seed.specialtyTags;
-        existing.enabledByDefault = seed.enabledByDefault;
-        existing.sortOrder = seed.sortOrder;
-        await this.catalogRepo.save(existing);
-      } else {
-        await this.catalogRepo.save(this.catalogRepo.create(seed));
-      }
+    const existing = await this.catalogRepo.find({ select: { key: true } });
+    const known = new Set(existing.map((c) => c.key));
+    const missing = FEATURE_CATALOG_SEED.filter((seed) => !known.has(seed.key));
+    if (missing.length > 0) {
+      await this.catalogRepo
+        .createQueryBuilder()
+        .insert()
+        .values(missing)
+        .orIgnore() // another process may be seeding at the same time
+        .execute();
     }
     this.logger.info(
-      `Feature catalog seeded (${FEATURE_CATALOG_SEED.length} features)`,
+      `Feature catalog checked (${missing.length} new of ${FEATURE_CATALOG_SEED.length})`,
       FeatureFlagsService.name,
     );
   }
@@ -92,20 +121,23 @@ export class FeatureFlagsService implements OnModuleInit {
   }
 
   /**
-   * Get catalog grouped by module, each feature carrying its enabled status for an org.
+   * Get catalog grouped by module, each feature carrying its entitlement and
+   * enabled status for an org.
    */
   async getCatalogWithOrgStatus(orgId: string): Promise<ModuleFeatureGroup[]> {
     const catalog = await this.getCatalog();
     const flags = await this.flagRepo.find({
       where: { organizationId: orgId },
     });
-    const enabledMap = new Map(flags.map((f) => [f.featureKey, f.isEnabled]));
+    const flagMap = new Map(flags.map((f) => [f.featureKey, f]));
+    const now = new Date();
 
     const groups = new Map<string, ModuleFeatureGroup>();
     for (const item of catalog) {
       if (!groups.has(item.module)) {
         groups.set(item.module, { module: item.module, features: [] });
       }
+      const state = featureState(item, flagMap.get(item.key), now);
       groups.get(item.module)!.features.push({
         key: item.key,
         name: item.name,
@@ -114,7 +146,8 @@ export class FeatureFlagsService implements OnModuleInit {
         specialtyTags: item.specialtyTags,
         enabledByDefault: item.enabledByDefault,
         sortOrder: item.sortOrder,
-        isEnabled: enabledMap.get(item.key) ?? false,
+        isEnabled: state.enabled,
+        ...state,
       });
     }
     return Array.from(groups.values());
@@ -143,7 +176,9 @@ export class FeatureFlagsService implements OnModuleInit {
   // ── Org flags ──────────────────────────────────────────────────────
 
   /**
-   * Create org_feature_flags rows from catalog defaults.
+   * Create org_feature_flags rows from catalog defaults: a new org is
+   * entitled to (and has on) the features that are on by default; the super
+   * admin entitles the rest.
    * Idempotent — only inserts flags that don't already exist for the org.
    */
   async seedFlagsForOrg(orgId: string): Promise<void> {
@@ -160,6 +195,8 @@ export class FeatureFlagsService implements OnModuleInit {
           organizationId: orgId,
           featureKey: item.key,
           isEnabled: item.enabledByDefault,
+          isEntitled: item.enabledByDefault,
+          entitledAt: new Date(),
         }),
       );
 
@@ -224,32 +261,74 @@ export class FeatureFlagsService implements OnModuleInit {
   // ── Lookups (cached) ───────────────────────────────────────────────
 
   /**
-   * Get the set of enabled feature keys for an org (cached in memory).
+   * Active feature keys for an org (cached in memory): active catalog entry
+   * ∧ entitled (trial not expired) ∧ enabled. A feature without an org row
+   * is entitled and falls back to the catalog's `enabledByDefault`.
+   *
+   * With a location, the features the owner switched off there are removed
+   * too (a location can only narrow the org set, never widen it).
    */
-  async getEnabledFeatures(orgId: string): Promise<Set<string>> {
-    const cached = this.cache.get(orgId);
+  async getEnabledFeatures(
+    orgId: string,
+    locationId?: string | null,
+  ): Promise<Set<string>> {
+    const orgKeys = await this.getOrgFeatures(orgId);
+    if (!locationId) return orgKeys;
+
+    const cacheKey = `${orgId}|${locationId}`;
+    const cached = this.fresh(cacheKey);
     if (cached) return cached;
 
-    const flags = await this.flagRepo.find({
-      where: { organizationId: orgId, isEnabled: true },
+    const overrides = await this.overrideRepo.find({
+      where: { organizationId: orgId, locationId, isDisabled: true },
+      select: { featureKey: true },
     });
-    const set = new Set(flags.map((f) => f.featureKey));
-    this.cache.set(orgId, set);
-    return set;
+    const keys = narrowByLocation(
+      orgKeys,
+      overrides.map((o) => o.featureKey),
+    );
+    this.cache.set(cacheKey, { keys, at: Date.now() });
+    return keys;
   }
 
   /**
-   * Check whether a single feature is enabled for an org.
+   * Check whether a single feature is enabled for an org (and location).
    */
-  async isFeatureEnabled(orgId: string, featureKey: string): Promise<boolean> {
-    const enabled = await this.getEnabledFeatures(orgId);
+  async isFeatureEnabled(
+    orgId: string,
+    featureKey: string,
+    locationId?: string | null,
+  ): Promise<boolean> {
+    const enabled = await this.getEnabledFeatures(orgId, locationId);
     return enabled.has(featureKey);
   }
 
   /**
-   * Drop the cached enabled-set for an org (after any mutation).
+   * Drop the cached sets of an org and its locations (after any mutation).
    */
   invalidateCache(orgId: string): void {
     this.cache.delete(orgId);
+    const prefix = `${orgId}|`;
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(prefix)) this.cache.delete(key);
+    }
+  }
+
+  private async getOrgFeatures(orgId: string): Promise<Set<string>> {
+    const cached = this.fresh(orgId);
+    if (cached) return cached;
+
+    const [flags, catalog] = await Promise.all([
+      this.flagRepo.find({ where: { organizationId: orgId } }),
+      this.getCatalog(),
+    ]);
+    const keys = resolveEnabledFeatures(flags, catalog);
+    this.cache.set(orgId, { keys, at: Date.now() });
+    return keys;
+  }
+
+  private fresh(cacheKey: string): Set<string> | null {
+    const hit = this.cache.get(cacheKey);
+    return hit && Date.now() - hit.at < FEATURE_CACHE_TTL_MS ? hit.keys : null;
   }
 }

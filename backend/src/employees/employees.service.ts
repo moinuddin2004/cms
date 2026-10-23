@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not } from 'typeorm';
@@ -20,6 +21,7 @@ import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { ClockService } from 'src/common/clock/clock.service';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { EmploymentRole } from './entities/employment-role.entity';
+import { AccessVersionService } from 'src/access/version/access-version.service';
 import { billingError } from 'src/billing/common/billing-errors';
 import { fromPaisa } from 'src/billing/common/money';
 import {
@@ -46,6 +48,7 @@ export class EmployeesService {
     private readonly roleRepo: Repository<EmploymentRole>,
     private readonly clock: ClockService,
     private readonly flags: FeatureFlagsService,
+    @Optional() private readonly accessVersions?: AccessVersionService,
   ) {}
 
   /** Clinic "today" at the location (ClockService, never server time). */
@@ -575,6 +578,8 @@ export class EmployeesService {
 
     try {
       await this.employeeRepo.delete({ id: employeeId });
+      // Assignments go by DB cascade, which the access subscriber can't see.
+      await this.accessVersions?.bumpQuietly(ctx.organizationId);
     } catch (err) {
       // 23503 = foreign_key_violation
       if ((err as { code?: string }).code === '23503') {

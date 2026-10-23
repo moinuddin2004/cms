@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Can } from '@/features/access/components/Can'
 import type { ColumnDef } from '@tanstack/react-table'
 import { ClipboardList, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -144,10 +145,13 @@ export function PresetsPage() {
     [],
   )
 
+  // Writing the library is `prescriptions.library.manage`; reading is open.
   const newButton = (
-    <Button size="sm" onClick={() => setCreating(true)}>
-      <Plus className="size-3.5" /> New preset
-    </Button>
+    <Can perm="prescriptions.library.manage">
+      <Button size="sm" onClick={() => setCreating(true)}>
+        <Plus className="size-3.5" /> New preset
+      </Button>
+    </Can>
   )
 
   return (

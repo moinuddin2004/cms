@@ -21,17 +21,14 @@ import {
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
+import { Can } from 'src/access/decorators/access.decorators';
 
 @Controller('employees/:employeeId/availability-overrides')
-@Roles(AppRole.CLINIC_ADMIN)
 export class AvailabilityOverrideController {
-  constructor(
-    private readonly overrideService: AvailabilityOverrideService,
-  ) {}
+  constructor(private readonly overrideService: AvailabilityOverrideService) {}
 
   @Post()
+  @Can('employees.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
@@ -52,6 +49,7 @@ export class AvailabilityOverrideController {
   }
 
   @Get()
+  @Can('employees.view')
   async findAll(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Query() filters: OverrideFilterDto,
@@ -65,6 +63,7 @@ export class AvailabilityOverrideController {
   }
 
   @Patch(':id')
+  @Can('employees.manage')
   async update(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -79,6 +78,7 @@ export class AvailabilityOverrideController {
   }
 
   @Delete(':id')
+  @Can('employees.manage')
   async remove(
     @Param('employeeId', ParseUUIDPipe) employeeId: string,
     @Param('id', ParseUUIDPipe) id: string,

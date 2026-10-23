@@ -1,40 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import type { ElementType } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import {
-  BarChart3,
-  Banknote,
-  BookmarkPlus,
-  Building2,
-  CalendarDays,
-  ChevronDown,
-  ChevronLeft,
-  ClipboardList,
-  CreditCard,
-  FileJson,
-  FileText,
-  FlaskConical,
-  GitBranch,
-  HandCoins,
-  History,
-  Layers,
-  LayoutDashboard,
-  Loader2,
-  LogOut,
-  MapPin,
-  Receipt,
-  Settings,
-  Shield,
-  SlidersHorizontal,
-  Stethoscope,
-  Tags,
-  UserCog,
-  Users,
-  Wallet,
-} from 'lucide-react'
+import { ChevronDown, ChevronLeft, Loader2, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
-import { useHasClinicRole } from '@/components/feature/RequireRolePage'
-import type { ClinicRole } from '@/components/feature/RequireRolePage'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -49,264 +16,23 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useFeatures } from '@/context/FeatureFlagsContext'
+import {
+  DEFAULT_NAV_LAYOUT,
+  NAV_ITEMS,
+  isNavGroup as isGroup,
+  resolveNav,
+  useAccess,
+  useNavViewer,
+} from '@/features/access'
+import type { NavGroupView, NavLink } from '@/features/access'
 import apiClient from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
+import { BrandMark } from './BrandMark'
 
-type AuthState = ReturnType<typeof useAuthStore.getState>
-
-interface NavLeaf {
-  label: string
-  icon: ElementType
-  href: string
-  show?: (auth: AuthState) => boolean
-  /** Org feature key — hidden entirely when the feature is disabled. */
-  feature?: string
-  /** Clinic roles allowed to see the item (any of); omitted = everyone. */
-  roles?: ClinicRole[]
-}
-
-/** A collapsible parent with nested links. */
-interface NavGroup {
-  label: string
-  icon: ElementType
-  children: NavLeaf[]
-}
-
-type NavEntry = NavLeaf | NavGroup
-
-interface NavSection {
-  label?: string
-  items: NavEntry[]
-}
-
-const BILLING_ROLES: ClinicRole[] = ['clinic_admin', 'receptionist']
-const ADMIN: ClinicRole[] = ['clinic_admin']
-
-const isGroup = (e: NavEntry): e is NavGroup => 'children' in e
-
-const NAV: NavSection[] = [
-  {
-    items: [{ label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' }],
-  },
-  {
-    label: 'Clinic',
-    items: [
-      {
-        label: 'Patients',
-        icon: Users,
-        href: '/patients',
-        feature: 'patients.core',
-      },
-      {
-        label: 'Appointments',
-        icon: CalendarDays,
-        href: '/appointments',
-        feature: 'appointments.core',
-      },
-      {
-        label: 'My Queue',
-        icon: Stethoscope,
-        href: '/queue/doctor',
-        feature: 'appointments.core',
-      },
-      {
-        label: 'My earnings',
-        icon: Wallet,
-        href: '/my-earnings',
-        feature: 'billing.commissions',
-        roles: ['doctor'],
-      },
-      {
-        label: 'Prescriptions',
-        icon: FileText,
-        href: '/prescriptions',
-        feature: 'patients.prescriptions',
-      },
-      {
-        label: 'Treatment Plans',
-        icon: ClipboardList,
-        href: '/plan-templates',
-        feature: 'patients.treatment_plans',
-      },
-      {
-        label: 'Labs',
-        icon: FlaskConical,
-        href: '/labs',
-        feature: 'dental.lab_orders',
-        roles: ADMIN,
-      },
-      {
-        label: 'Lab portal',
-        icon: FlaskConical,
-        href: '/lab-portal',
-        show: (a) => a.labMemberships.length > 0,
-      },
-      {
-        label: 'Lab orders',
-        icon: FlaskConical,
-        href: '/lab-orders',
-        feature: 'dental.lab_orders',
-      },
-      {
-        label: 'Lab billing',
-        icon: Receipt,
-        href: '/lab-billing',
-        feature: 'dental.lab_orders',
-        roles: ['clinic_admin', 'receptionist'],
-      },
-      {
-        label: 'Lab price list',
-        icon: Tags,
-        href: '/lab-catalog',
-        feature: 'dental.lab_orders',
-        roles: ADMIN,
-      },
-      {
-        label: 'Order templates',
-        icon: BookmarkPlus,
-        href: '/lab-order-templates',
-        feature: 'dental.lab_orders',
-      },
-      {
-        label: 'Lab payables',
-        icon: Wallet,
-        href: '/lab-payables',
-        feature: 'dental.lab_orders',
-        roles: ADMIN,
-      },
-    ],
-  },
-  {
-    label: 'Finance',
-    items: [
-      {
-        label: 'Billing',
-        icon: HandCoins,
-        children: [
-          {
-            label: 'Billing desk',
-            icon: HandCoins,
-            href: '/billing',
-            feature: 'billing.invoices',
-            roles: BILLING_ROLES,
-          },
-          {
-            label: 'Invoices',
-            icon: Receipt,
-            href: '/invoices',
-            feature: 'billing.invoices',
-            roles: BILLING_ROLES,
-          },
-          {
-            label: 'Payments',
-            icon: Banknote,
-            href: '/payments',
-            feature: 'billing.invoices',
-            roles: BILLING_ROLES,
-          },
-          {
-            label: 'Expenses',
-            icon: Wallet,
-            href: '/expenses',
-            feature: 'billing.expenses',
-            roles: BILLING_ROLES,
-          },
-        ],
-      },
-      {
-        label: 'Reports',
-        icon: BarChart3,
-        children: [
-          {
-            label: 'Doctor revenue',
-            icon: BarChart3,
-            href: '/billing/doctor-revenue',
-            feature: 'billing.invoices',
-            roles: ADMIN,
-          },
-          {
-            label: 'Doctor earnings',
-            icon: Wallet,
-            href: '/billing/doctor-earnings',
-            feature: 'billing.commissions',
-            roles: ADMIN,
-          },
-          {
-            label: 'Billing activity',
-            icon: History,
-            href: '/billing/activity',
-            feature: 'billing.invoices',
-            roles: ADMIN,
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Team',
-    items: [
-      { label: 'Employees', icon: UserCog, href: '/employees', roles: ADMIN },
-      {
-        label: 'Payroll',
-        icon: CreditCard,
-        href: '/payroll',
-        feature: 'hr.payroll',
-        roles: ADMIN,
-      },
-    ],
-  },
-  {
-    label: 'Admin',
-    items: [
-      {
-        label: 'Organizations',
-        icon: Building2,
-        href: '/organizations',
-        show: (a) => a.isSuperAdmin,
-      },
-      {
-        label: 'Lab Directory',
-        icon: FlaskConical,
-        href: '/lab-directory',
-        show: (a) => a.isSuperAdmin,
-      },
-      {
-        label: 'Config Studio',
-        icon: SlidersHorizontal,
-        children: [
-          {
-            label: 'Form schemas',
-            icon: FileJson,
-            href: '/studio/forms',
-            show: (a) => a.isSuperAdmin,
-          },
-          {
-            label: 'Workflows',
-            icon: GitBranch,
-            href: '/studio/workflows',
-            show: (a) => a.isSuperAdmin,
-          },
-          {
-            label: 'Stage templates',
-            icon: Layers,
-            href: '/studio/stages',
-            show: (a) => a.isSuperAdmin,
-          },
-        ],
-      },
-      {
-        label: 'Locations',
-        icon: MapPin,
-        href: '/locations',
-        show: (a) => a.isSuperAdmin || a.accessSource === 'owner',
-      },
-      { label: 'User Admin', icon: Shield, href: '/users' },
-    ],
-  },
-]
+type NavLeaf = NavLink
+type NavGroup = NavGroupView
 
 /**
  * Every page renders its own DashboardLayout, so the sidebar remounts on
@@ -314,11 +40,12 @@ const NAV: NavSection[] = [
  */
 let savedNavScroll = 0
 
-const SETTINGS: NavLeaf = {
-  label: 'Settings',
-  icon: Settings,
-  href: '/settings',
-}
+// Read on render, not at import: `@/features/access` → DashboardLayout →
+// Sidebar is an import cycle, so NAV_ITEMS may not exist yet at load time.
+const settingsLeaf = (): NavLeaf => ({
+  key: 'nav.settings',
+  ...NAV_ITEMS['nav.settings'],
+})
 
 const matches = (path: string, href: string) =>
   path === href || path.startsWith(href + '/')
@@ -354,14 +81,9 @@ function CollapsedTip({
 
 export function Sidebar() {
   const { sidebarCollapsed: collapsed, toggleSidebar } = useUIStore()
-  const { features } = useFeatures()
-  const roleAccess: Record<ClinicRole, boolean> = {
-    clinic_admin: useHasClinicRole(['clinic_admin']).allowed,
-    receptionist: useHasClinicRole(['receptionist']).allowed,
-    doctor: useHasClinicRole(['doctor']).allowed,
-  }
-  const authStore = useAuthStore()
-  const { user, clearAuth } = authStore
+  const access = useAccess()
+  const viewer = useNavViewer()
+  const { user, clearAuth } = useAuthStore()
   const currentPath = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
@@ -372,26 +94,16 @@ export function Sidebar() {
     if (navRef.current) navRef.current.scrollTop = savedNavScroll
   }, [])
 
-  const allowed = (leaf: NavLeaf) =>
-    (!leaf.show || leaf.show(authStore)) &&
-    (!leaf.feature || features.has(leaf.feature)) &&
-    (!leaf.roles || leaf.roles.some((r) => roleAccess[r]))
-
-  // Visible tree: hidden leaves dropped, empty groups and sections removed.
-  const sections = NAV.map((s) => ({
-    ...s,
-    items: s.items
-      .map((e) =>
-        isGroup(e) ? { ...e, children: e.children.filter(allowed) } : e,
-      )
-      .filter((e) => (isGroup(e) ? e.children.length > 0 : allowed(e))),
-  })).filter((s) => s.items.length > 0)
+  // Visible tree from the clinic's layout (or the code default): unknown,
+  // hidden and not-permitted items dropped, then empty groups and sections.
+  const sections = resolveNav(access.nav ?? DEFAULT_NAV_LAYOUT, viewer)
 
   // Exactly one active link: the longest href that matches the path, so
   // /billing/activity lights "Billing activity" and not "Billing desk".
   const leaves = sections.flatMap((s) =>
     s.items.flatMap((e) => (isGroup(e) ? e.children : [e])),
   )
+  const SETTINGS = settingsLeaf()
   const activeHref = [...leaves, SETTINGS]
     .filter((l) => matches(currentPath, l.href))
     .sort((a, b) => b.href.length - a.href.length)[0]?.href
@@ -568,21 +280,14 @@ export function Sidebar() {
                 type="button"
                 onClick={toggleSidebar}
                 aria-label="Expand sidebar"
-                className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                className="flex items-center justify-center rounded-lg transition-opacity hover:opacity-90"
               >
-                M
+                <BrandMark collapsed />
               </button>
             </CollapsedTip>
           ) : (
             <>
-              <div className="flex items-center gap-2 overflow-hidden">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-emerald-600">
-                  <span className="text-sm font-bold text-white">M</span>
-                </div>
-                <span className="whitespace-nowrap text-lg font-bold text-foreground">
-                  MedTrackr
-                </span>
-              </div>
+              <BrandMark />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button

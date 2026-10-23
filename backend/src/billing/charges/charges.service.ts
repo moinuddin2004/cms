@@ -28,6 +28,7 @@ import {
   voidCharge,
 } from './charge-math';
 import { ChargeListState, ChargeQueries } from './charges.queries';
+import { assertCanSetPrice } from './price-policy';
 import { ChargeDraftFactory } from './sources/charge-draft.factory';
 import { CommissionService } from '../commissions/commission.service';
 
@@ -112,7 +113,7 @@ export class ChargesService {
       );
       const charge = manager.getRepository(Charge).create(draft);
       if (price && dto.unitPrice != null && dto.unitPrice !== price.unitPrice) {
-        this.assertCanSetPrice(ctx, charge);
+        assertCanSetPrice(ctx.actor, charge);
         charge.unitPrice = dto.unitPrice;
         recalcCharge(charge);
       }
@@ -139,7 +140,7 @@ export class ChargesService {
       BillingAuditAction.UPDATED,
       async (manager, charge) => {
         if (dto.unitPrice !== undefined && dto.unitPrice !== charge.unitPrice) {
-          this.assertCanSetPrice(ctx, charge);
+          assertCanSetPrice(ctx.actor, charge);
           charge.unitPrice = dto.unitPrice;
           charge.needsPricing = false;
         }
@@ -420,18 +421,6 @@ export class ChargesService {
         'This charge is on an invoice — edit the invoice instead',
       );
     }
-  }
-
-  /** D5: reception may price only "Other" charges (or ones needing a price). */
-  private assertCanSetPrice(
-    ctx: BillingContext,
-    charge: Pick<Charge, 'serviceId' | 'needsPricing'>,
-  ): void {
-    if (ctx.actor.isAdmin || !charge.serviceId || charge.needsPricing) return;
-    throw billingError(
-      'BILLING_PRICE_CHANGE_NOT_ALLOWED',
-      'Only an admin can change a catalog price — give a discount instead',
-    );
   }
 
   private async auditCharge(

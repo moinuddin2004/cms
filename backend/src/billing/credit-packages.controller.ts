@@ -1,5 +1,3 @@
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { AppRole } from 'src/common/enums/app-role.enum';
 import {
   Controller,
   Get,
@@ -8,11 +6,12 @@ import {
   Delete,
   Body,
   Param,
-  Req,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import type { AccessContext } from 'src/access/access-context';
+import { Access, Can } from 'src/access/decorators/access.decorators';
 import { CreditPackagesService } from './credit-packages.service';
 import { PatientCreditsService } from './patient-credits.service';
 import {
@@ -26,13 +25,14 @@ import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { RequireFeature } from 'src/common/decorators/require-feature.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
+/** No permission belongs to `billing.credit_packages`, so the feature stays checked. */
 @Controller('credit-packages')
 @RequireFeature('billing.credit_packages')
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class CreditPackagesController {
   constructor(private readonly packagesService: CreditPackagesService) {}
 
   @Post()
+  @Can('admin.settings.manage')
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateCreditPackageDto,
@@ -43,12 +43,14 @@ export class CreditPackagesController {
   }
 
   @Get()
+  @Can('billing.desk.use')
   async findAll(@ActiveTenant() ctx: TenantContext) {
     const data = await this.packagesService.findAll(ctx.organizationId);
     return ResponseWrapper.success(data);
   }
 
   @Patch(':id')
+  @Can('admin.settings.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCreditPackageDto,
@@ -59,6 +61,7 @@ export class CreditPackagesController {
   }
 
   @Delete(':id')
+  @Can('admin.settings.manage')
   async deactivate(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
@@ -70,28 +73,29 @@ export class CreditPackagesController {
 
 @Controller('patients/:patientId/credits')
 @RequireFeature('billing.credit_packages')
-@Roles(AppRole.CLINIC_ADMIN, AppRole.RECEPTIONIST)
 export class PatientCreditsController {
   constructor(private readonly creditsService: PatientCreditsService) {}
 
   @Post()
+  @Can('billing.payment.collect')
   @HttpCode(HttpStatus.CREATED)
   async purchase(
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @Body() dto: PurchaseCreditDto,
     @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
+    @Access() a: AccessContext,
   ) {
     const data = await this.creditsService.purchasePackage(
       patientId,
       dto.creditPackageId,
       ctx.organizationId,
-      req.user?.uuid,
+      a.userId,
     );
     return ResponseWrapper.success(data, 'Package purchased successfully');
   }
 
   @Get()
+  @Can('billing.desk.use')
   async list(
     @Param('patientId', ParseUUIDPipe) patientId: string,
     @ActiveTenant() ctx: TenantContext,
@@ -104,6 +108,7 @@ export class PatientCreditsController {
   }
 
   @Post(':creditId/use')
+  @Can('billing.payment.collect')
   async use(
     @Param('creditId', ParseUUIDPipe) creditId: string,
     @Body() dto: UseCreditDto,

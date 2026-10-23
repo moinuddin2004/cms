@@ -15,7 +15,6 @@ import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
-import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { TenantContextGuard } from 'src/auth/guards/tenant-context.guard';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
@@ -29,6 +28,7 @@ import { Location } from 'src/locations/entities/location.entity';
 import { LocationSettings } from 'src/locations/entities/location-settings.entity';
 import { LocationsController } from 'src/locations/locations.controller';
 import { LocationsService } from 'src/locations/locations.service';
+import { AccessModule } from 'src/access/access.module';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
 import { OrganizationSettings } from 'src/organizations/entities/organization-settings.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
@@ -146,7 +146,8 @@ export class TenancyFixture {
       organizationId: org.id,
       name: 'admin',
       slug: 'admin',
-      permissions: { canManageSettings: true, canCreateAppointments: true },
+      // → clinic_admin + receptionist (legacy @Roles, fail-closed derivation)
+      permissions: { 'admin.settings.manage': true, 'appointments.book': true },
     } as Partial<EmploymentRole>);
     await em.getRepository(EmployeeOrgLocationAssignment).save({
       employeeId: employee.id,
@@ -179,7 +180,7 @@ export class TenancyFixture {
 
 /**
  * Boots the organizations + locations controllers behind the real global
- * guard chain (TenantContextGuard → FeatureFlagGuard → RolesGuard) on an
+ * guard chain (TenantContextGuard → FeatureFlagGuard → AccessGuard) on an
  * isolated schema. Only the JWT check is swapped for a header, as in the
  * billing harness.
  */
@@ -212,6 +213,8 @@ export async function createTenancyFixture(): Promise<TenancyFixture> {
         EmployeeOrgLocationAssignment,
       ]),
       FeatureFlagsModule,
+      // LocationsController checks admin.locations.manage via AccessResolver
+      AccessModule,
     ],
     controllers: [OrganizationsController, LocationsController],
     providers: [
@@ -221,7 +224,6 @@ export async function createTenancyFixture(): Promise<TenancyFixture> {
       { provide: APP_GUARD, useClass: HeaderAuthGuard },
       { provide: APP_GUARD, useClass: TenantContextGuard },
       { provide: APP_GUARD, useClass: FeatureFlagGuard },
-      { provide: APP_GUARD, useClass: RolesGuard },
     ],
   })
     // Controller-level @UseGuards(JwtAuthGuard): identity comes from the header guard.

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,14 +44,16 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
                 printable PDF.
               </p>
             </div>
-            <Button asChild>
-              <Link
-                to={'/prescriptions/new' as any}
-                search={{ patientId: patient.id } as any}
-              >
-                <Plus className="h-4 w-4 mr-1.5" /> New Prescription
-              </Link>
-            </Button>
+            <Can perm="prescriptions.create">
+              <Button asChild>
+                <Link
+                  to={'/prescriptions/new' as any}
+                  search={{ patientId: patient.id } as any}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" /> New Prescription
+                </Link>
+              </Button>
+            </Can>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -151,7 +154,9 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
                 Older prescriptions saved in the simple form. Kept for
                 reference.
               </p>
-              <PrescriptionFormDialog patientId={patient.id} />
+              <Can perm="prescriptions.create">
+                <PrescriptionFormDialog patientId={patient.id} />
+              </Can>
             </div>
             {isLoading ? (
               <div className="flex justify-center p-4">
