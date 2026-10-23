@@ -1,9 +1,10 @@
-import { Link } from '@tanstack/react-router'
 import { OutstandingBadge, useOutstanding } from '@/features/billing'
 import { useAccess } from '@/features/access/hooks/useAccess'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { ArrowLeft, Phone, Mail } from 'lucide-react'
+import { BackButton } from '@/components/shared/BackButton'
+import { usePageTitle } from '@/hooks/useBackNavigation'
+import { Phone, Mail } from 'lucide-react'
 import type { Patient } from '../types'
 
 interface PatientDetailHeaderProps {
@@ -26,14 +27,10 @@ function getInitials(name: string): string {
 }
 
 export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
+  usePageTitle(patient.fullName)
   return (
     <div className="flex items-center gap-3 py-1">
-      <Link
-        to="/patients"
-        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-      >
-        <ArrowLeft size={14} />
-      </Link>
+      <BackButton to="/patients" label="Back to patients" />
 
       <Avatar className="w-9 h-9 shrink-0">
         <AvatarFallback className="bg-brand-100 text-brand-700 font-semibold text-xs">

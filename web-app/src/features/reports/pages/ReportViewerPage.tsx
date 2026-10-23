@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, FileSearch, Info } from 'lucide-react'
 import { BackButton } from '@/components/shared/BackButton'
+import { usePageTitle } from '@/hooks/useBackNavigation'
 import { EmptyState, ErrorState } from '@/components/shared'
 import {
   Select,
@@ -102,6 +103,7 @@ export function ReportViewerPage({ reportKey }: { reportKey: string }) {
   const isPnl = reportKey === 'profit-loss'
   // Wait for the catalog: the filters (dates / basis) depend on the report.
   const report = useReport(reportKey, query, !!item)
+  usePageTitle(item?.title)
   const view = report.data
   const activeFilters = (query.doctorId ? 1 : 0) + (query.category ? 1 : 0)
 

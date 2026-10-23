@@ -4,6 +4,7 @@ import { useUIStore } from '@/store/ui-store'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { BackButton } from '@/components/shared/BackButton'
+import { usePageTitle } from '@/hooks/useBackNavigation'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -24,6 +25,7 @@ export function DashboardLayout({
   backLabel,
 }: DashboardLayoutProps) {
   const { sidebarCollapsed } = useUIStore()
+  usePageTitle(title)
   const hasHeader = !!(title || subtitle || actions)
 
   return (
