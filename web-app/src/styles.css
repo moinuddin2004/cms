@@ -437,27 +437,32 @@
   }
 }
 
-/* ── App loading screen — three balls swapping in a juggle orbit ──── */
-@keyframes loading-juggle {
-  0%,
-  4% {
-    transform: rotate(0deg);
+/* ── App loading screen — heartbeat trace drawn left to right ─────── */
+@keyframes ecg-trace {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 1;
   }
-  29%,
-  37% {
-    transform: rotate(120deg);
+  65% {
+    stroke-dashoffset: 0;
+    opacity: 1;
   }
-  62%,
-  70% {
-    transform: rotate(240deg);
-  }
-  96%,
+  85%,
   100% {
-    transform: rotate(360deg);
+    stroke-dashoffset: 0;
+    opacity: 0;
   }
 }
-.animate-loading-juggle {
-  animation: loading-juggle 1.6s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+.animate-ecg-trace {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ecg-trace 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-ecg-trace {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ── Clinic theme (features/theme) ─────────────────────────────────────

@@ -11,7 +11,11 @@ import {
 
 import { BackButton } from '@/components/shared/BackButton'
 import { useNavHistoryStore } from '@/store/nav-history-store'
-import { usePageTitle, useTrackNavHistory } from './useBackNavigation'
+import {
+  SIDEBAR_NAV_STATE,
+  usePageTitle,
+  useTrackNavHistory,
+} from './useBackNavigation'
 
 function Page({ title }: { title?: string }) {
   usePageTitle(title)
@@ -25,13 +29,17 @@ function buildRouter(initial: string) {
       return <Outlet />
     },
   })
-  const page = (path: string, title?: string, back?: boolean) =>
+  // nested = always a ← (with fallback); top = only when came from a page
+  const page = (path: string, title?: string, back?: 'nested' | 'top') =>
     createRoute({
       getParentRoute: () => root,
       path,
       component: () => (
         <>
-          {back && <BackButton to="/patients" label="Back to patients" />}
+          {back === 'nested' && (
+            <BackButton to="/patients" label="Back to patients" />
+          )}
+          {back === 'top' && <BackButton />}
           <Page title={title} />
         </>
       ),
@@ -40,9 +48,9 @@ function buildRouter(initial: string) {
     page('/login'),
     page('/dashboard'),
     page('/queue', 'Reception queue'),
-    page('/patients', 'Patients'),
+    page('/patients', 'Patients', 'top'),
     page('/patients/new', 'New patient'),
-    page('/patients/$patientId', 'Ali Khan', true),
+    page('/patients/$patientId', 'Ali Khan', 'nested'),
   ])
   return createRouter({
     routeTree,
@@ -61,6 +69,10 @@ async function setup(initial: string) {
 
 async function go(router: TestRouter, to: string, replace = false) {
   await act(() => router.navigate({ to, replace }))
+}
+
+async function goFromSidebar(router: TestRouter, to: string) {
+  await act(() => router.navigate({ to, state: SIDEBAR_NAV_STATE }))
 }
 
 function pathname(router: TestRouter) {
@@ -127,5 +139,39 @@ describe('BackButton / useBackNavigation', () => {
 
     await clickBack('Back to patients')
     await waitFor(() => expect(pathname(router)).toBe('/patients'))
+  })
+
+  describe('top-level page (no fallback)', () => {
+    it('shows ← when reached from inside another page', async () => {
+      const router = await setup('/dashboard')
+      await go(router, '/patients')
+
+      await clickBack('Back to Dashboard')
+      await waitFor(() => expect(pathname(router)).toBe('/dashboard'))
+    })
+
+    it('shows nothing when opened from the sidebar', async () => {
+      const router = await setup('/dashboard')
+      await goFromSidebar(router, '/patients')
+
+      await screen.findByRole('heading', { name: 'Patients' })
+      expect(screen.queryByRole('link')).toBeNull()
+    })
+
+    it('shows nothing when opened directly', async () => {
+      await setup('/patients')
+
+      expect(screen.queryByRole('link')).toBeNull()
+    })
+
+    it('stays hidden when the user comes back to a sidebar-opened page', async () => {
+      const router = await setup('/dashboard')
+      await goFromSidebar(router, '/patients')
+      await go(router, '/patients/p1')
+
+      await clickBack('Back to Patients')
+      await screen.findByRole('heading', { name: 'Patients' })
+      expect(screen.queryByRole('link')).toBeNull()
+    })
   })
 })

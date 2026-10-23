@@ -25,6 +25,7 @@ import {
   useNavViewer,
 } from '@/features/access'
 import type { NavGroupView, NavLink } from '@/features/access'
+import { SIDEBAR_NAV_STATE } from '@/hooks/useBackNavigation'
 import apiClient from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/store/ui-store'
@@ -143,6 +144,7 @@ export function Sidebar() {
       <CollapsedTip key={leaf.href} label={leaf.label} enabled={collapsed}>
         <Link
           to={leaf.href}
+          state={SIDEBAR_NAV_STATE}
           aria-current={active ? 'page' : undefined}
           className={cn(
             'group relative flex items-center gap-3 rounded-[9px] text-sm font-medium transition-colors',
@@ -202,7 +204,7 @@ export function Sidebar() {
                   c.href === activeHref && 'font-semibold text-primary-text',
                 )}
               >
-                <Link to={c.href}>
+                <Link to={c.href} state={SIDEBAR_NAV_STATE}>
                   <c.icon className="mr-2 h-3.5 w-3.5" />
                   {c.label}
                 </Link>
@@ -347,6 +349,7 @@ export function Sidebar() {
             <CollapsedTip label={user?.name || 'Profile'} enabled={collapsed}>
               <Link
                 to="/settings"
+                state={SIDEBAR_NAV_STATE}
                 className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
               >
                 <Avatar className="size-8 shrink-0">

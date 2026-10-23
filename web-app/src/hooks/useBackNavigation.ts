@@ -4,6 +4,16 @@ import { NAV_ITEMS } from '@/features/access'
 import { useNavHistoryStore } from '@/store/nav-history-store'
 import type { NavHistoryEntry } from '@/store/nav-history-store'
 
+declare module '@tanstack/history' {
+  interface HistoryState {
+    /** Opened from the sidebar — a fresh start, so top-level pages show no ←. */
+    fromSidebar?: boolean
+  }
+}
+
+/** `state` for sidebar links: `<Link to={href} state={SIDEBAR_NAV_STATE}>`. */
+export const SIDEBAR_NAV_STATE = { fromSidebar: true }
+
 // Never send the user back to these — auth screens and the `/` redirector.
 const SKIP_PATHS = [
   '/login',
@@ -50,20 +60,26 @@ export function usePageTitle(title: string | undefined) {
 
 function labelFor(entry: NavHistoryEntry) {
   if (entry.title) return entry.title
-  return Object.values(NAV_ITEMS).find((n) => n.href === entry.pathname)
-    ?.label
+  return Object.values(NAV_ITEMS).find((n) => n.href === entry.pathname)?.label
 }
 
 /**
  * Where ← should go: the page the user actually came from (browser history,
  * so scroll and list state come back), skipping same-page entries such as
- * tab/filter changes. Falls back to `fallbackTo` when the page was opened
- * directly (new tab, shared link) or history is unknown.
+ * tab/filter changes.
+ *
+ * Nested pages pass `fallbackTo`, used when the page was opened directly
+ * (new tab, shared link) or history is unknown. Top-level pages pass none:
+ * they get a ← only when reached from inside another page, and `null`
+ * when opened from the sidebar or directly.
  */
-export function useBackNavigation(fallbackTo: string, fallbackLabel?: string) {
+export function useBackNavigation(fallbackTo?: string, fallbackLabel?: string) {
   const router = useRouter()
   const navigate = useNavigate()
   const { index, pathname } = useHistoryPosition()
+  const fromSidebar = useRouterState({
+    select: (s) => s.location.state.fromSidebar === true,
+  })
   const entries = useNavHistoryStore((s) => s.entries)
 
   let steps = 0
@@ -77,15 +93,18 @@ export function useBackNavigation(fallbackTo: string, fallbackLabel?: string) {
     break
   }
 
-  if (target) {
+  if (target && !(fromSidebar && !fallbackTo)) {
     const name = labelFor(target)
     return {
       label: name ? `Back to ${name}` : 'Back',
+      href: target.pathname,
       goBack: () => router.history.go(-steps),
     }
   }
+  if (!fallbackTo) return null
   return {
     label: fallbackLabel ?? 'Back',
+    href: fallbackTo,
     goBack: () => void navigate({ to: fallbackTo }),
   }
 }

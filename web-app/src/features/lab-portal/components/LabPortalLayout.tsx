@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/layout/Topbar'
 import { BackButton } from '@/components/shared/BackButton'
-import { usePageTitle } from '@/hooks/useBackNavigation'
+import { SIDEBAR_NAV_STATE, usePageTitle } from '@/hooks/useBackNavigation'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import apiClient from '@/lib/api'
@@ -128,6 +128,7 @@ export function LabPortalLayout({
               <Link
                 key={item.href}
                 to={item.href}
+                state={SIDEBAR_NAV_STATE}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 rounded-[9px] px-3 py-2 text-sm font-medium transition-colors',
@@ -147,6 +148,7 @@ export function LabPortalLayout({
           {hasClinic && (
             <Link
               to="/dashboard"
+              state={SIDEBAR_NAV_STATE}
               className="flex items-center gap-3 rounded-[9px] px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel hover:text-foreground"
             >
               <ArrowLeftRight size={18} className="shrink-0" />
@@ -194,7 +196,7 @@ export function LabPortalLayout({
           {(title || subtitle || actions) && (
             <div className="mb-3 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
               <div className="flex items-center gap-3">
-                {backTo && <BackButton to={backTo} label={backLabel} />}
+                <BackButton to={backTo} label={backLabel} />
                 <div>
                   {title && (
                     <h1 className="text-lg font-semibold leading-tight text-foreground">

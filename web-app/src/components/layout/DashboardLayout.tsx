@@ -41,10 +41,19 @@ export function DashboardLayout({
       >
         <Topbar />
         <main className="px-6 py-4">
+          {/* Pages that draw their own header get the ← here, only when the
+              user came from inside another page; hidden if the page already
+              has its own back button (patient detail, report viewer). */}
+          {!hasHeader && (
+            <BackButton
+              variant="link"
+              className="mb-1 [main:has([data-page-back])_&]:hidden"
+            />
+          )}
           {hasHeader && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-3">
-                {backTo && <BackButton to={backTo} label={backLabel} />}
+                <BackButton to={backTo} label={backLabel} />
                 <div>
                   {title && (
                     <h1 className="text-lg font-semibold text-foreground leading-tight">

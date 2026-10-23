@@ -4,10 +4,11 @@ import { useAuthStore } from '@/store/useAuthStore'
 import { themeApi } from '../services/theme.api'
 import { themeKeys } from '../hooks/useThemeQueries'
 import { useThemeStore } from '../hooks/useThemeStore'
-import { applyClinicTheme } from '../lib/apply-theme'
+import { applyClinicTheme, buildThemeCss } from '../lib/apply-theme'
 import { isHexColor } from '../lib/color'
 import {
   cacheTheme,
+  cacheThemeCss,
   cachedTheme,
   preAuthOrgId,
   rememberOrgId,
@@ -99,7 +100,10 @@ export function ThemeProvider() {
   }, [withOrg, orgId])
 
   useEffect(() => {
-    if (withOrg && current.data) cacheTheme(normalizeTheme(current.data))
+    if (!withOrg || !current.data) return
+    const fresh = normalizeTheme(current.data)
+    cacheTheme(fresh)
+    cacheThemeCss(buildThemeCss(fresh.brand_color))
   }, [withOrg, current.data])
 
   return null

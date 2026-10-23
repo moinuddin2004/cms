@@ -23,6 +23,12 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
   useRouterState: () => '/lab-portal/production',
 }))
+vi.mock('@/hooks/useBackNavigation', () => ({
+  SIDEBAR_NAV_STATE: { fromSidebar: true },
+  usePageTitle: () => undefined,
+  useBackNavigation: (to?: string, label?: string) =>
+    to ? { label: label ?? 'Back', href: to, goBack: vi.fn() } : null,
+}))
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }))

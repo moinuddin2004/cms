@@ -2,6 +2,8 @@ import type { ClinicTheme } from '../types'
 
 const LAST_ORG_KEY = 'medtrackr.lastOrgId'
 const THEME_CACHE_KEY = 'medtrackr.themeCache'
+/** Read by the root route's pre-paint script, so the loader is on-brand. */
+export const THEME_CSS_CACHE_KEY = 'medtrackr.themeCss'
 
 // Storage can be missing or throw (private mode, blocked site data, SSR).
 function read(key: string): string | null {
@@ -36,6 +38,9 @@ export function cachedTheme(): ClinicTheme | null {
 
 export const cacheTheme = (theme: ClinicTheme) =>
   write(THEME_CACHE_KEY, JSON.stringify(theme))
+
+/** Brand CSS of the cached theme, injected before first paint on the next load. */
+export const cacheThemeCss = (css: string) => write(THEME_CSS_CACHE_KEY, css)
 
 /** Org id for the pre-auth theme: `?org=` first, else the last org used here. */
 export function preAuthOrgId(): string | null {

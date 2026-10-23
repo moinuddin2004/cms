@@ -16,7 +16,8 @@ import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
 import { useTheme } from '@/hooks/useTheme'
 import { useTrackNavHistory } from '@/hooks/useBackNavigation'
-import { ThemeProvider } from '@/features/theme'
+import { ThemeProvider, THEME_CSS_CACHE_KEY } from '@/features/theme'
+import { AppLoadingScreen } from '@/components/shared/AppLoadingScreen'
 import appCss from '../styles.css?url'
 
 const PUBLIC_PATHS = [
@@ -52,6 +53,15 @@ const THEME_INIT_SCRIPT = `
     if (isDark) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    // Last clinic brand colours, so the loading screen is already on-brand.
+    // ThemeProvider later reuses this same <style id="clinic-theme">.
+    var brandCss = localStorage.getItem(${JSON.stringify(THEME_CSS_CACHE_KEY)});
+    if (brandCss) {
+      var style = document.createElement('style');
+      style.id = 'clinic-theme';
+      style.textContent = brandCss;
+      document.head.appendChild(style);
+    }
   } catch(e) {}
 })();
 `
@@ -246,35 +256,8 @@ function RootComponent() {
     labMemberships,
   ])
 
-  // Show nothing while initializing (attempting silent refresh)
- if (isInitializing) {
-    return (
-      <div
-        className="relative min-h-screen overflow-hidden flex items-center justify-center"
-        style={{ background: 'transparent' }}
-      >
-        {/* Frosted glass over the app background token */}
-        <div
-          className="absolute inset-0 bg-background/60"
-          style={{
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-          }}
-        />
-
-        {/* Soft brand glow — subtle, themed (blue) */}
-        <div className="pointer-events-none absolute -top-40 -left-40 h-96 w-96 rounded-full blur-[130px] bg-brand-500/15" />
-        <div className="pointer-events-none absolute -bottom-40 -right-40 h-96 w-96 rounded-full blur-[130px] bg-brand-600/10" />
-
-        {/* Spinner dots — brand ramp */}
-        <div className="animate-loading-juggle relative z-10 h-12 w-12">
-          <span className="absolute left-1/2 top-0 h-3 w-3 -translate-x-1/2 rounded-full bg-brand-400 shadow-[0_0_10px_3px_var(--ring-soft)]" />
-          <span className="absolute bottom-0 left-0 h-3 w-3 rounded-full bg-brand-500 shadow-[0_0_10px_3px_var(--ring-soft)]" />
-          <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-brand-600 shadow-[0_0_10px_3px_var(--ring-soft)]" />
-        </div>
-      </div>
-    )
-  }
+  // Show the loader while initializing (attempting silent refresh)
+  if (isInitializing) return <AppLoadingScreen />
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -194,6 +194,8 @@ export default function PatientsRoute() {
 - **Do NOT use breadcrumbs.** Top-level listing pages (Patients, Employees, Prescriptions…) just show title + subtitle.
 - Every nested / detail page (`/patients/$id`, `/invoices/$id`, `/prescriptions/new`, settings sub-pages, template/library pages…) shows a small ← back button left of the title.
 - Use `DashboardLayout`'s `backTo` + `backLabel` props, or `BackButton` from `@/components/shared/BackButton` in a custom header.
+- ← returns to the page the user actually came from (`useBackNavigation`, browser history); `backTo` is only the fallback when the page was opened directly. Post-save / post-delete redirects use `replace: true`.
+- Top-level pages get a ← automatically (header icon, or a "← Back to …" link from `DashboardLayout` when the page draws its own header) **only** when reached from a link inside another page — not from the sidebar (sidebar links pass `state={SIDEBAR_NAV_STATE}`) and not when opened directly.
 ```tsx
 <DashboardLayout title="Invoice INV-001" backTo="/invoices" backLabel="Back to invoices">
 ```

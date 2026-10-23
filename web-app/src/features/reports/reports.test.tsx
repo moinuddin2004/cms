@@ -47,11 +47,10 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => vi.fn(),
 }))
 vi.mock('@/hooks/useBackNavigation', () => ({
+  SIDEBAR_NAV_STATE: { fromSidebar: true },
   usePageTitle: () => undefined,
-  useBackNavigation: (_to: string, label?: string) => ({
-    label: label ?? 'Back',
-    goBack: vi.fn(),
-  }),
+  useBackNavigation: (to?: string, label?: string) =>
+    to ? { label: label ?? 'Back', href: to, goBack: vi.fn() } : null,
 }))
 vi.mock('@/components/layout/DashboardLayout', () => ({
   // breaks the access barrel → NoAccess → DashboardLayout → Sidebar cycle
