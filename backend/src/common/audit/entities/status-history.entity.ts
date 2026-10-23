@@ -10,6 +10,7 @@ import { ActorSide, TransitionVia } from '../audit.enums';
  */
 @Entity({ name: 'status_history' })
 @Index('idx_status_history_entity', ['entityType', 'entityId', 'createdAt'])
+@Index('idx_status_history_subject', ['subjectId', 'createdAt'])
 export class StatusHistory {
   @UuidV7PrimaryColumn()
   id: string;
@@ -22,6 +23,10 @@ export class StatusHistory {
 
   @Column({ name: 'entity_id', type: 'uuid' })
   entityId: string;
+
+  /** Same as `audit_logs.subject_id`: the record whose history this joins. */
+  @Column({ name: 'subject_id', type: 'uuid', nullable: true })
+  subjectId: string | null;
 
   /** Null for the creating transition. */
   @Column({ name: 'from_state', type: 'varchar', length: 50, nullable: true })

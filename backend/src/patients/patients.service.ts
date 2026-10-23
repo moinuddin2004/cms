@@ -4,12 +4,29 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, Not } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  EntityTarget,
+  Not,
+  ObjectLiteral,
+  Repository,
+} from 'typeorm';
 import { AppLogger } from 'src/common/services/logger.service';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { AuditService, TimelineEntry } from 'src/common/audit/audit.service';
+import type { ActorRef } from 'src/common/audit/audit.enums';
+import { sqlRows } from 'src/common/database/sql';
 import type { AccessContext } from 'src/access/access-context';
 import { patientScope } from './access/patient-scope';
+import {
+  PATIENT_AUDIT_ENTITY,
+  PatientAuditEntity,
+  patientRecordSnapshot,
+  recordPatientChange,
+  redactPatientTimeline,
+} from './patient-audit';
 
 // Entities
 import { Patient } from './entities/patient.entity';
@@ -112,11 +129,46 @@ export class PatientsService {
     private readonly encountersService: EncountersService,
     private readonly treatmentsService: TreatmentsService,
     private readonly logger: AppLogger,
+    private readonly dataSource: DataSource,
+    private readonly audit: AuditService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
   // HELPERS
   // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Saves one patient record and its audit row in one transaction. Pass the
+   * snapshot taken before an edit as `before`; omit it for a new record.
+   */
+  private saveAudited<T extends ObjectLiteral & { id: string }>(
+    actor: ActorRef,
+    target: EntityTarget<T>,
+    row: T,
+    audit: {
+      organizationId: string;
+      patientId: string;
+      entityType: PatientAuditEntity;
+      before?: Record<string, unknown>;
+    },
+  ): Promise<T> {
+    return this.dataSource.transaction(async (m) => {
+      const saved = await m.getRepository(target).save(row);
+      await recordPatientChange(this.audit, m, actor, {
+        organizationId: audit.organizationId,
+        patientId: audit.patientId,
+        entityType: audit.entityType,
+        entityId: saved.id,
+        before: audit.before ?? null,
+        after: patientRecordSnapshot(m, target, saved),
+      });
+      return saved;
+    });
+  }
+
+  private snapshot<T extends ObjectLiteral>(target: EntityTarget<T>, row: T) {
+    return patientRecordSnapshot(this.dataSource.manager, target, row);
+  }
 
   private async generatePatientNumber(organizationId: string): Promise<string> {
     const count = await this.patientRepo.count({
@@ -174,7 +226,7 @@ export class PatientsService {
   async create(
     ctx: TenantContext,
     dto: CreatePatientDto,
-    userId?: string,
+    actor: ActorRef,
   ): Promise<PatientResponseDto> {
     const { organizationId, locationId } = ctx;
     this.logger.info(`Creating patient: ${dto.fullName}`, PatientsService.name);
@@ -190,10 +242,21 @@ export class PatientsService {
       patientNumber,
       primaryLocationId: dto.primaryLocationId || locationId,
       dob: dob ? new Date(dob) : null,
-      createdBy: userId || null,
+      createdBy: actor.userId,
     });
 
-    const saved = await this.patientRepo.save(patient);
+    const saved = await this.dataSource.transaction(async (m) => {
+      const row = await m.getRepository(Patient).save(patient);
+      await recordPatientChange(this.audit, m, actor, {
+        organizationId,
+        patientId: row.id,
+        entityType: PATIENT_AUDIT_ENTITY.PATIENT,
+        entityId: row.id,
+        before: null,
+        after: patientRecordSnapshot(m, Patient, row),
+      });
+      return row;
+    });
     this.logger.info(
       `Patient created: ${saved.patientNumber}`,
       PatientsService.name,
@@ -333,6 +396,7 @@ export class PatientsService {
     id: string,
     organizationId: string,
     dto: UpdatePatientDto,
+    actor: ActorRef,
   ): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
 
@@ -344,8 +408,14 @@ export class PatientsService {
     const updateData: Partial<Patient> = { ...rest };
     if (dob !== undefined) updateData.dob = dob ? new Date(dob) : null;
 
+    const before = this.snapshot(Patient, patient);
     Object.assign(patient, updateData);
-    const saved = await this.patientRepo.save(patient);
+    const saved = await this.saveAudited(actor, Patient, patient, {
+      organizationId,
+      patientId: id,
+      entityType: PATIENT_AUDIT_ENTITY.PATIENT,
+      before,
+    });
     return PatientResponseDto.toDto(saved);
   }
 
@@ -353,10 +423,26 @@ export class PatientsService {
     id: string,
     organizationId: string,
     isActive: boolean,
+    actor: ActorRef,
   ): Promise<PatientResponseDto> {
     const patient = await this.getPatientOrFail(id, organizationId);
+    if (patient.isActive === isActive) return PatientResponseDto.toDto(patient);
+    const state = (active: boolean) => (active ? 'active' : 'inactive');
+    const fromState = state(patient.isActive);
     patient.isActive = isActive;
-    const saved = await this.patientRepo.save(patient);
+    const saved = await this.dataSource.transaction(async (m) => {
+      const row = await m.getRepository(Patient).save(patient);
+      await this.audit.recordStatus(m, actor, {
+        organizationId,
+        entityType: PATIENT_AUDIT_ENTITY.PATIENT,
+        entityId: id,
+        subjectId: id,
+        fromState,
+        toState: state(isActive),
+        actionCode: isActive ? 'activate' : 'deactivate',
+      });
+      return row;
+    });
     return PatientResponseDto.toDto(saved);
   }
 
@@ -364,11 +450,69 @@ export class PatientsService {
    * Permanently deletes the patient. All patient-owned rows (appointments,
    * invoices, payments, prescriptions, clinical records) are removed by the
    * database via ON DELETE CASCADE. Use `setActive(false)` to hide a patient
-   * without losing data.
+   * without losing data. The audit row keeps the patient's last state and how
+   * many linked records went with them.
    */
-  async remove(id: string, organizationId: string): Promise<void> {
-    await this.getPatientOrFail(id, organizationId);
-    await this.patientRepo.delete({ id, organizationId });
+  async remove(
+    id: string,
+    organizationId: string,
+    actor: ActorRef,
+  ): Promise<void> {
+    const patient = await this.getPatientOrFail(id, organizationId);
+    await this.dataSource.transaction(async (m) => {
+      const linkedRecords = await this.cascadeCounts(m, id);
+      await recordPatientChange(this.audit, m, actor, {
+        organizationId,
+        patientId: id,
+        entityType: PATIENT_AUDIT_ENTITY.PATIENT,
+        entityId: id,
+        before: {
+          ...patientRecordSnapshot(m, Patient, patient),
+          linkedRecords,
+        },
+        after: null,
+      });
+      await m.getRepository(Patient).delete({ id, organizationId });
+    });
+  }
+
+  /**
+   * Rows of every table that `ON DELETE CASCADE`s from `patients`, counted
+   * for one patient (non-zero only) — read from the catalog, so new tables
+   * are covered without a list to maintain.
+   */
+  private async cascadeCounts(
+    m: EntityManager,
+    patientId: string,
+  ): Promise<Record<string, number>> {
+    const fks = await sqlRows<{ tbl: string; col: string }>(
+      m,
+      `SELECT c.conrelid::regclass::text AS tbl, a.attname AS col
+         FROM pg_constraint c
+         JOIN pg_attribute a
+           ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+        WHERE c.contype = 'f' AND c.confdeltype = 'c'
+          AND c.confrelid = 'patients'::regclass
+          AND array_length(c.conkey, 1) = 1
+        ORDER BY 1, 2`,
+    );
+    if (!fks.length) return {};
+    // Identifiers come from the catalog: regclass text is already quoted.
+    const union = fks
+      .map(
+        ({ tbl, col }) =>
+          `SELECT '${tbl.replace(/'/g, "''")}' AS tbl, count(*)::int AS n
+             FROM ${tbl} WHERE "${col.replace(/"/g, '""')}" = $1`,
+      )
+      .join(' UNION ALL ');
+    const rows = await sqlRows<{ tbl: string; n: number }>(m, union, [
+      patientId,
+    ]);
+    const counts: Record<string, number> = {};
+    for (const { tbl, n } of rows) {
+      if (n > 0) counts[tbl] = (counts[tbl] ?? 0) + n;
+    }
+    return counts;
   }
 
   async checkPhoneExists(
@@ -397,12 +541,14 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: UpsertDentalInfoDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     let info = await this.dentalInfoRepo.findOne({
       where: { patientId, organizationId: ctx.organizationId },
     });
 
+    const before = info ? this.snapshot(PatientDentalInfo, info) : undefined;
     if (info) {
       Object.assign(info, dto);
     } else {
@@ -412,7 +558,12 @@ export class PatientsService {
         organizationId: ctx.organizationId,
       });
     }
-    return this.dentalInfoRepo.save(info);
+    return this.saveAudited(actor, PatientDentalInfo, info, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.DENTAL_INFO,
+      before,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -431,6 +582,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateTeethChartDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
 
@@ -446,7 +598,11 @@ export class PatientsService {
       organizationId: ctx.organizationId,
       isInitialChart: dto.isInitialChart ?? existingCount === 0,
     });
-    return this.teethChartRepo.save(chart);
+    return this.saveAudited(actor, PatientTeethChart, chart, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.TEETH_CHART,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -465,6 +621,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateVitalsDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
 
@@ -482,7 +639,11 @@ export class PatientsService {
       organizationId: ctx.organizationId,
       bmi,
     });
-    return this.vitalsRepo.save(vitals);
+    return this.saveAudited(actor, PatientVitals, vitals, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.VITALS,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -502,7 +663,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateTreatmentPlanDto,
-    userId?: string,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const planNumber = await this.generatePlanNumber(ctx.organizationId);
@@ -522,9 +683,13 @@ export class PatientsService {
       expectedEndDate: dto.expectedEndDate
         ? new Date(dto.expectedEndDate)
         : null,
-      createdBy: userId || null,
+      createdBy: actor.userId,
     });
-    return this.treatmentPlanRepo.save(plan);
+    return this.saveAudited(actor, PatientTreatmentPlan, plan, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.TREATMENT_PLAN,
+    });
   }
 
   async updateTreatmentPlan(
@@ -532,6 +697,7 @@ export class PatientsService {
     planId: string,
     organizationId: string,
     dto: UpdateTreatmentPlanDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const plan = await this.treatmentPlanRepo.findOne({
@@ -550,8 +716,14 @@ export class PatientsService {
       (dto as any).finalEstimatedCost = estimatedCost - (discountAmount || 0);
     }
 
+    const before = this.snapshot(PatientTreatmentPlan, plan);
     Object.assign(plan, dto);
-    return this.treatmentPlanRepo.save(plan);
+    return this.saveAudited(actor, PatientTreatmentPlan, plan, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.TREATMENT_PLAN,
+      before,
+    });
   }
 
   // ─── Plan Items ─────────────────────────────────────────
@@ -573,6 +745,7 @@ export class PatientsService {
     planId: string,
     ctx: TenantContext,
     dto: CreatePlanItemDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const plan = await this.treatmentPlanRepo.findOne({
@@ -581,7 +754,11 @@ export class PatientsService {
     if (!plan) throw new NotFoundException('Treatment plan not found');
 
     const item = this.planItemRepo.create({ ...dto, planId });
-    return this.planItemRepo.save(item);
+    return this.saveAudited(actor, TreatmentPlanItem, item, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.PLAN_ITEM,
+    });
   }
 
   async updatePlanItem(
@@ -590,6 +767,7 @@ export class PatientsService {
     itemId: string,
     organizationId: string,
     dto: UpdatePlanItemDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const plan = await this.treatmentPlanRepo.findOne({
@@ -602,11 +780,17 @@ export class PatientsService {
     });
     if (!item) throw new NotFoundException('Plan item not found');
 
+    const before = this.snapshot(TreatmentPlanItem, item);
     Object.assign(item, dto);
     // Keep completed sessions within bounds of the estimate.
     const estimate = dto.estimatedSessions ?? item.estimatedSessions;
     if (item.completedSessions > estimate) item.completedSessions = estimate;
-    return this.planItemRepo.save(item);
+    return this.saveAudited(actor, TreatmentPlanItem, item, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.PLAN_ITEM,
+      before,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -625,6 +809,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreatePrescriptionDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const prescriptionNumber = await this.generateRxNumber(ctx.organizationId);
@@ -637,7 +822,11 @@ export class PatientsService {
       prescriptionNumber,
       followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
     });
-    return this.prescriptionRepo.save(rx);
+    return this.saveAudited(actor, PatientPrescription, rx, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.PRESCRIPTION,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -656,6 +845,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateDocumentDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const doc = this.documentRepo.create({
@@ -665,7 +855,11 @@ export class PatientsService {
       organizationId: ctx.organizationId,
       takenDate: dto.takenDate ? new Date(dto.takenDate) : null,
     });
-    return this.documentRepo.save(doc);
+    return this.saveAudited(actor, PatientDocument, doc, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.DOCUMENT,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -684,6 +878,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateConsentDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const consent = this.consentRepo.create({
@@ -692,7 +887,11 @@ export class PatientsService {
       locationId: ctx.locationId,
       organizationId: ctx.organizationId,
     });
-    return this.consentRepo.save(consent);
+    return this.saveAudited(actor, PatientConsent, consent, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.CONSENT,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -711,6 +910,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateCommunicationDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const comm = this.communicationRepo.create({
@@ -719,7 +919,11 @@ export class PatientsService {
       locationId: ctx.locationId,
       organizationId: ctx.organizationId,
     });
-    return this.communicationRepo.save(comm);
+    return this.saveAudited(actor, PatientCommunication, comm, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.COMMUNICATION,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -738,7 +942,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateRecallDto,
-    userId?: string,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const recall = this.recallRepo.create({
@@ -747,9 +951,13 @@ export class PatientsService {
       locationId: ctx.locationId,
       organizationId: ctx.organizationId,
       dueDate: new Date(dto.dueDate),
-      createdBy: userId || null,
+      createdBy: actor.userId,
     });
-    return this.recallRepo.save(recall);
+    return this.saveAudited(actor, PatientRecall, recall, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.RECALL,
+    });
   }
 
   async updateRecall(
@@ -757,14 +965,21 @@ export class PatientsService {
     recallId: string,
     organizationId: string,
     dto: UpdateRecallDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const recall = await this.recallRepo.findOne({
       where: { id: recallId, patientId, organizationId },
     });
     if (!recall) throw new NotFoundException('Recall not found');
+    const before = this.snapshot(PatientRecall, recall);
     Object.assign(recall, dto);
-    return this.recallRepo.save(recall);
+    return this.saveAudited(actor, PatientRecall, recall, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.RECALL,
+      before,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -783,6 +998,7 @@ export class PatientsService {
     patientId: string,
     organizationId: string,
     dto: CreateReferralDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const referral = this.referralRepo.create({
@@ -790,7 +1006,11 @@ export class PatientsService {
       referringPatientId: patientId,
       organizationId,
     });
-    return this.referralRepo.save(referral);
+    return this.saveAudited(actor, PatientReferral, referral, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.REFERRAL,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -809,6 +1029,7 @@ export class PatientsService {
     patientId: string,
     ctx: TenantContext,
     dto: CreateFeedbackDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const feedback = this.feedbackRepo.create({
@@ -817,7 +1038,11 @@ export class PatientsService {
       locationId: ctx.locationId,
       organizationId: ctx.organizationId,
     });
-    return this.feedbackRepo.save(feedback);
+    return this.saveAudited(actor, PatientFeedback, feedback, {
+      organizationId: ctx.organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.FEEDBACK,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -836,6 +1061,7 @@ export class PatientsService {
     patientId: string,
     organizationId: string,
     dto: CreateInsuranceDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const insurance = this.insuranceRepo.create({
@@ -845,7 +1071,11 @@ export class PatientsService {
       validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
       validUntil: dto.validUntil ? new Date(dto.validUntil) : null,
     });
-    return this.insuranceRepo.save(insurance);
+    return this.saveAudited(actor, PatientInsurance, insurance, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.INSURANCE,
+    });
   }
 
   async updateInsurance(
@@ -853,14 +1083,21 @@ export class PatientsService {
     insuranceId: string,
     organizationId: string,
     dto: UpdateInsuranceDto,
+    actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
     const insurance = await this.insuranceRepo.findOne({
       where: { id: insuranceId, patientId, organizationId },
     });
     if (!insurance) throw new NotFoundException('Insurance record not found');
+    const before = this.snapshot(PatientInsurance, insurance);
     Object.assign(insurance, dto);
-    return this.insuranceRepo.save(insurance);
+    return this.saveAudited(actor, PatientInsurance, insurance, {
+      organizationId,
+      patientId,
+      entityType: PATIENT_AUDIT_ENTITY.INSURANCE,
+      before,
+    });
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -873,6 +1110,28 @@ export class PatientsService {
       where: { patientId, organizationId },
       order: { lastVisitDate: 'DESC' },
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // AUDIT TRAIL
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Who changed what on this patient and their records, newest first. Values
+   * of records the reader cannot open are left out (see `redactPatientTimeline`).
+   */
+  async getAuditTrail(
+    patientId: string,
+    organizationId: string,
+    access: AccessContext,
+  ): Promise<TimelineEntry[]> {
+    await this.getPatientOrFail(patientId, organizationId);
+    const entries = await this.audit.subjectTimeline(
+      this.dataSource.manager,
+      patientId,
+      organizationId,
+    );
+    return redactPatientTimeline(entries, access);
   }
 
   // ═══════════════════════════════════════════════════════════

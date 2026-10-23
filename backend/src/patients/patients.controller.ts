@@ -8,7 +8,6 @@ import {
   Body,
   Param,
   Query,
-  Req,
   ParseUUIDPipe,
   HttpCode,
   HttpStatus,
@@ -79,9 +78,9 @@ export class PatientsController {
   async create(
     @Body() dto: CreatePatientDto,
     @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.create(ctx, dto, req.user?.uuid);
+    const data = await this.patientsService.create(ctx, dto, actor);
     return ResponseWrapper.success(data, 'Patient created successfully');
   }
 
@@ -173,8 +172,14 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePatientDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.update(id, ctx.organizationId, dto);
+    const data = await this.patientsService.update(
+      id,
+      ctx.organizationId,
+      dto,
+      actor,
+    );
     return ResponseWrapper.success(data, 'Patient updated successfully');
   }
 
@@ -184,11 +189,13 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdatePatientStatusDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.setActive(
       id,
       ctx.organizationId,
       dto.isActive,
+      actor,
     );
     return ResponseWrapper.success(
       data,
@@ -203,8 +210,9 @@ export class PatientsController {
   async remove(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    await this.patientsService.remove(id, ctx.organizationId);
+    await this.patientsService.remove(id, ctx.organizationId, actor);
     return ResponseWrapper.success(null, 'Patient deleted permanently');
   }
 
@@ -241,6 +249,26 @@ export class PatientsController {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // AUDIT TRAIL
+  // ═══════════════════════════════════════════════════════════
+
+  /** Every change to the patient and their records — who, what, when. */
+  @Get(':id/audit-trail')
+  @Can('admin.audit.view')
+  async getAuditTrail(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
+  ) {
+    const data = await this.patientsService.getAuditTrail(
+      id,
+      ctx.organizationId,
+      access,
+    );
+    return ResponseWrapper.success(data, 'Audit trail retrieved successfully');
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // DENTAL INFO
   // ═══════════════════════════════════════════════════════════
 
@@ -263,8 +291,14 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpsertDentalInfoDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.upsertDentalInfo(id, ctx, dto);
+    const data = await this.patientsService.upsertDentalInfo(
+      id,
+      ctx,
+      dto,
+      actor,
+    );
     return ResponseWrapper.success(data, 'Dental info saved successfully');
   }
 
@@ -293,8 +327,14 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTeethChartDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createTeethChart(id, ctx, dto);
+    const data = await this.patientsService.createTeethChart(
+      id,
+      ctx,
+      dto,
+      actor,
+    );
     return ResponseWrapper.success(data, 'Teeth chart recorded successfully');
   }
 
@@ -319,8 +359,9 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateVitalsDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createVitals(id, ctx, dto);
+    const data = await this.patientsService.createVitals(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Vitals recorded successfully');
   }
 
@@ -349,13 +390,13 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateTreatmentPlanDto,
     @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.createTreatmentPlan(
       id,
       ctx,
       dto,
-      req.user?.uuid,
+      actor,
     );
     return ResponseWrapper.success(data, 'Treatment plan created successfully');
   }
@@ -367,12 +408,14 @@ export class PatientsController {
     @Param('planId', ParseUUIDPipe) planId: string,
     @Body() dto: UpdateTreatmentPlanDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.updateTreatmentPlan(
       id,
       planId,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Treatment plan updated successfully');
   }
@@ -403,12 +446,14 @@ export class PatientsController {
     @Param('planId', ParseUUIDPipe) planId: string,
     @Body() dto: CreatePlanItemDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.createPlanItem(
       id,
       planId,
       ctx,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Plan item added successfully');
   }
@@ -421,6 +466,7 @@ export class PatientsController {
     @Param('itemId', ParseUUIDPipe) itemId: string,
     @Body() dto: UpdatePlanItemDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.updatePlanItem(
       id,
@@ -428,6 +474,7 @@ export class PatientsController {
       itemId,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Plan item updated successfully');
   }
@@ -457,8 +504,14 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreatePrescriptionDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createPrescription(id, ctx, dto);
+    const data = await this.patientsService.createPrescription(
+      id,
+      ctx,
+      dto,
+      actor,
+    );
     return ResponseWrapper.success(data, 'Prescription created successfully');
   }
 
@@ -486,8 +539,9 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateDocumentDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createDocument(id, ctx, dto);
+    const data = await this.patientsService.createDocument(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Document uploaded successfully');
   }
 
@@ -512,8 +566,9 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateConsentDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createConsent(id, ctx, dto);
+    const data = await this.patientsService.createConsent(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Consent recorded successfully');
   }
 
@@ -541,8 +596,14 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateCommunicationDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createCommunication(id, ctx, dto);
+    const data = await this.patientsService.createCommunication(
+      id,
+      ctx,
+      dto,
+      actor,
+    );
     return ResponseWrapper.success(data, 'Communication logged successfully');
   }
 
@@ -567,14 +628,9 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateRecallDto,
     @ActiveTenant() ctx: TenantContext,
-    @Req() req: any,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createRecall(
-      id,
-      ctx,
-      dto,
-      req.user?.uuid,
-    );
+    const data = await this.patientsService.createRecall(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Recall scheduled successfully');
   }
 
@@ -585,12 +641,14 @@ export class PatientsController {
     @Param('recallId', ParseUUIDPipe) recallId: string,
     @Body() dto: UpdateRecallDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.updateRecall(
       id,
       recallId,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Recall updated successfully');
   }
@@ -619,11 +677,13 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateReferralDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.createReferral(
       id,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Referral recorded successfully');
   }
@@ -649,8 +709,9 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateFeedbackDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
-    const data = await this.patientsService.createFeedback(id, ctx, dto);
+    const data = await this.patientsService.createFeedback(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Feedback submitted successfully');
   }
 
@@ -680,11 +741,13 @@ export class PatientsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateInsuranceDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.createInsurance(
       id,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Insurance added successfully');
   }
@@ -697,12 +760,14 @@ export class PatientsController {
     @Param('insuranceId', ParseUUIDPipe) insuranceId: string,
     @Body() dto: UpdateInsuranceDto,
     @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
   ) {
     const data = await this.patientsService.updateInsurance(
       id,
       insuranceId,
       ctx.organizationId,
       dto,
+      actor,
     );
     return ResponseWrapper.success(data, 'Insurance updated successfully');
   }

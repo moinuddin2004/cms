@@ -33,8 +33,9 @@ export const keys = {
     [...keys.all(patientId), 'insurance'] as const,
   documents: (patientId: string) =>
     [...keys.all(patientId), 'documents'] as const,
-  history: (patientId: string) =>
-    [...keys.all(patientId), 'history'] as const,
+  history: (patientId: string) => [...keys.all(patientId), 'history'] as const,
+  auditTrail: (patientId: string) =>
+    [...keys.all(patientId), 'audit-trail'] as const,
   treatments: (patientId: string) =>
     [...keys.all(patientId), 'treatments'] as const,
   encounter: (encounterId: string) => ['encounter', encounterId] as const,
@@ -154,6 +155,16 @@ export function usePatientHistory(patientId: string) {
   })
 }
 
+/** Who changed what on this patient — fetched fresh each time it is opened. */
+export function usePatientAuditTrail(patientId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.auditTrail(patientId),
+    queryFn: () => api.fetchPatientAuditTrail(patientId),
+    enabled: enabled && !!patientId,
+    refetchOnMount: 'always',
+  })
+}
+
 export function usePatientTreatments(patientId: string) {
   return useQuery({
     queryKey: keys.treatments(patientId),
@@ -241,7 +252,8 @@ export function useCreateTreatmentPlan() {
       })
       toast.success('Treatment plan created')
     },
-    onError: (err) => toast.error(errMsg(err, 'Failed to create treatment plan')),
+    onError: (err) =>
+      toast.error(errMsg(err, 'Failed to create treatment plan')),
   })
 }
 
@@ -279,7 +291,8 @@ export function useUpdateTreatmentPlan() {
       })
       toast.success('Treatment plan updated')
     },
-    onError: (err) => toast.error(errMsg(err, 'Failed to update treatment plan')),
+    onError: (err) =>
+      toast.error(errMsg(err, 'Failed to update treatment plan')),
   })
 }
 

@@ -13,6 +13,7 @@ import { ActorSide, AuditAction } from '../audit.enums';
 @Entity({ name: 'audit_logs' })
 @Index('idx_audit_logs_entity', ['entityType', 'entityId', 'createdAt'])
 @Index('idx_audit_logs_org_created', ['organizationId', 'createdAt'])
+@Index('idx_audit_logs_subject', ['subjectId', 'createdAt'])
 export class AuditLog {
   @UuidV7PrimaryColumn()
   id: string;
@@ -25,6 +26,13 @@ export class AuditLog {
 
   @Column({ name: 'entity_id', type: 'uuid' })
   entityId: string;
+
+  /**
+   * The record this row's history belongs to, when that is not the entity
+   * itself (a patient's vitals → the patient). Merged histories read by it.
+   */
+  @Column({ name: 'subject_id', type: 'uuid', nullable: true })
+  subjectId: string | null;
 
   @Column({ name: 'action', type: 'enum', enum: AuditAction })
   action: AuditAction;

@@ -3,9 +3,11 @@ import { randomUUID } from 'crypto';
 import { join } from 'path';
 import {
   CanActivate,
+  DynamicModule,
   ExecutionContext,
   INestApplication,
   Injectable,
+  Type,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -350,8 +352,13 @@ export class BillingFixture {
   }
 }
 
-/** Boots the billing module + real guards on the isolated schema and seeds two clinics. */
-export async function createBillingFixture(): Promise<BillingFixture> {
+/**
+ * Boots the billing module + real guards on the isolated schema and seeds two
+ * clinics. `extraImports` adds the modules a non-billing suite needs.
+ */
+export async function createBillingFixture(
+  extraImports: Array<Type | DynamicModule> = [],
+): Promise<BillingFixture> {
   process.env.JWT_ACCESS_SECRET ??= 'billing-it-secret';
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -383,6 +390,7 @@ export async function createBillingFixture(): Promise<BillingFixture> {
       SettingsRegistryModule,
       BillingModule,
       TreatmentsModule,
+      ...extraImports,
     ],
     providers: [
       AuthorizationService,

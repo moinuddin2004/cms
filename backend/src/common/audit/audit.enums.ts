@@ -10,6 +10,8 @@ export enum AuditAction {
   CREATE = 'create',
   UPDATE = 'update',
   VOID = 'void',
+  /** Hard delete: `changes.before` keeps the last state of the row. */
+  DELETE = 'delete',
   EXPORT = 'export',
   VIEW_SENSITIVE = 'view_sensitive',
 }

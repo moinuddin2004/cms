@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { OutstandingBadge, useOutstanding } from '@/features/billing'
 import { useAccess } from '@/features/access/hooks/useAccess'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { BackButton } from '@/components/shared/BackButton'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { usePageTitle } from '@/hooks/useBackNavigation'
-import { Phone, Mail } from 'lucide-react'
+import { History, Phone, Mail } from 'lucide-react'
+import { PatientAuditSheet } from './PatientAuditSheet'
 import type { Patient } from '../types'
 
 interface PatientDetailHeaderProps {
@@ -84,7 +87,35 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
           )}
         </div>
       </div>
+
+      <PatientAuditButton patient={patient} />
     </div>
+  )
+}
+
+/** Change history of the patient, for whoever may read the audit log. */
+function PatientAuditButton({ patient }: { patient: Patient }) {
+  const canAudit = useAccess().can('admin.audit.view')
+  const [open, setOpen] = useState(false)
+  if (!canAudit) return null
+  return (
+    <>
+      <TooltipButton
+        tooltip="Change history"
+        variant="ghost"
+        size="icon"
+        className="size-8 shrink-0 text-muted-foreground"
+        onClick={() => setOpen(true)}
+      >
+        <History size={15} />
+      </TooltipButton>
+      <PatientAuditSheet
+        patientId={patient.id}
+        patientName={patient.fullName}
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
   )
 }
 

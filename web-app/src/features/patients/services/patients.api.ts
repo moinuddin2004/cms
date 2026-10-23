@@ -1,4 +1,5 @@
 import api from '@/lib/api'
+import type { TimelineEntry } from '@/components/shared/ActivityTimeline'
 import type {
   PaginatedResponse,
   Patient,
@@ -124,6 +125,16 @@ export async function fetchPatientDentalInfo(
   patientId: string,
 ): Promise<PatientDentalInfo | null> {
   const { data } = await api.get(`/patients/${patientId}/dental-info`)
+  return data.data
+}
+
+// ─── Audit trail ────────────────────────────────────────────────────
+
+/** Every change to the patient and their records, newest first. */
+export async function fetchPatientAuditTrail(
+  patientId: string,
+): Promise<TimelineEntry[]> {
+  const { data } = await api.get(`/patients/${patientId}/audit-trail`)
   return data.data
 }
 

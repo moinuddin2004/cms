@@ -31,6 +31,13 @@ import { EncountersService } from 'src/encounters/encounters.service';
 import { ChargeSourcesService } from 'src/billing/charges/charge-sources.service';
 import { Appointment } from 'src/appointments/entities/appointment.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
+import {
+  PATIENT_AUDIT_ENTITY,
+  patientRecordSnapshot,
+  recordPatientChange,
+} from 'src/patients/patient-audit';
+import { AuditService } from 'src/common/audit/audit.service';
+import { ActorSide } from 'src/common/audit/audit.enums';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { AppointmentStatus } from 'src/common/enums/appointment-status.enum';
 import { CancelReason } from 'src/appointments/enums/cancel-reason.enum';
@@ -276,6 +283,7 @@ export class QueueOrchestrator {
     private readonly query: QueueQueryService,
     private readonly encounters: EncountersService,
     private readonly chargeSources: ChargeSourcesService,
+    private readonly audit: AuditService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -1735,6 +1743,19 @@ export class QueueOrchestrator {
         primaryLocationId: tx.ctx.locationId,
         createdBy: tx.actor.userId,
       }),
+    );
+    await recordPatientChange(
+      this.audit,
+      tx.manager,
+      { userId: tx.actor.userId, side: ActorSide.CLINIC },
+      {
+        organizationId: tx.ctx.organizationId,
+        patientId: saved.id,
+        entityType: PATIENT_AUDIT_ENTITY.PATIENT,
+        entityId: saved.id,
+        before: null,
+        after: patientRecordSnapshot(tx.manager, Patient, saved),
+      },
     );
     return saved.id;
   }
