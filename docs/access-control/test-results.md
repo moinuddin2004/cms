@@ -321,3 +321,12 @@ Test tooling added (not product changes): the acceptance specs and harness, `npm
 - `npx jest` (backend): 701 tests pass (698 before + GRD-03, GRD-06, SEC-05). One worker was killed by the OS (SIGTERM, machine overloaded) in the full run; that suite (`price-resolver`, 21 tests) passes when run alone.
 - `npx vitest run` (web): 32 files, 325 tests pass (284 before + 41 acceptance tests).
 - The acceptance API suite is not part of `npx jest`; run it with `npm run test:int:acceptance` (own schema `acceptit`, ~10 min per spec file on a loaded machine). Set `ACCEPT_IT_REUSE_SCHEMA=1` to keep the built schema between runs.
+
+## Update — B1 and B5 fixed afterwards
+
+| Commit | What | Verification |
+| --- | --- | --- |
+| `6699505` | `fix(access)`: the Admin template now holds `queue.doctor.any` (bug B1 / case MOD-18; it implies `queue.doctor.own`). Orgs whose roles were already seeded keep their stored Admin map — seeding is insert-missing — so an existing clinic needs its Admin role re-saved or a one-off update. | Unit test `MOD-18 (unit)`; `src/access`, `src/queue`, `src/employees` suites pass. **MOD-18 was not re-run through the API suite** (the fix is the template; expect pass). |
+| `a42a34c` | `fix(encounters)`: `GET /encounters/:id` and `POST /encounters/:id/treatments` now check the caller's `patients.view` scope and answer 404 for another doctor's patient (bug B5). | Unit test (`encounter-patient-scope.spec.ts`). The DB probes XTRA-01 / XTRA-02 (+ new XTRA-01b: owner and Admin still get 200) were **not re-run**. |
+
+Still open from B5's family: `POST /treatments` and `GET /treatments?patientId=` (patients.clinical.* without a patient-scope check) were not touched.
