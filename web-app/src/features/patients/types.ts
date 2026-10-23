@@ -691,3 +691,77 @@ export const FORM_STEPS = [
   },
   { id: 1, title: 'Clinic Info', description: 'Source & Clinic Notes' },
 ] as const
+
+// ─── Import (Excel / CSV migration) ─────────────────────────────────
+
+/** Patient fields a spreadsheet column can be mapped to (backend IMPORT_FIELDS). */
+export type PatientImportField =
+  | 'fullName'
+  | 'firstName'
+  | 'lastName'
+  | 'phone'
+  | 'whatsappNumber'
+  | 'cnic'
+  | 'gender'
+  | 'dob'
+  | 'age'
+  | 'email'
+  | 'address'
+  | 'city'
+  | 'bloodGroup'
+  | 'maritalStatus'
+  | 'occupation'
+  | 'allergies'
+  | 'medicalHistory'
+  | 'notes'
+  | 'legacyNumber'
+  | 'guardianName'
+  | 'guardianPhone'
+  | 'emergencyContactName'
+  | 'emergencyContactPhone'
+  | 'referredBy'
+
+/** `POST /patients/import/parse` result. */
+export interface ParsedPatientImport {
+  headers: string[]
+  rows: Record<string, string>[]
+  suggestedMapping: Record<string, PatientImportField | null>
+}
+
+export type PatientImportRow = Partial<Record<PatientImportField, string>>
+export type DuplicateStrategy = 'skip' | 'create'
+
+export interface PatientImportRequest {
+  rows: PatientImportRow[]
+  dryRun: boolean
+  duplicateStrategy: DuplicateStrategy
+  /** Index of rows[0] in the whole file. */
+  offset?: number
+}
+
+export type PatientImportRowStatus =
+  | 'created'
+  | 'would_create'
+  | 'duplicate'
+  | 'error'
+
+export interface PatientImportRowResult {
+  /** 0-based position in the file. */
+  index: number
+  status: PatientImportRowStatus
+  patientId?: string
+  patientNumber?: string
+  errors?: string[]
+}
+
+export interface PatientImportResult {
+  dryRun: boolean
+  rows: PatientImportRowResult[]
+  totals: {
+    total: number
+    created: number
+    wouldCreate: number
+    duplicates: number
+    errors: number
+  }
+}

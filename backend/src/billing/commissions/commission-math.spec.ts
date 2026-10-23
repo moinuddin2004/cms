@@ -37,6 +37,51 @@ const net = (netPaisa: number, rateBps: number) => ({
 });
 
 describe('commissionTarget', () => {
+  describe('with sales tax on the charge', () => {
+    // Rs 1,000 net + 17% tax = Rs 1,170 payable; tax is not doctor revenue.
+    const taxed = { ...net(100_000, 4000), taxPaisa: 17_000 };
+
+    it('earns on the pre-tax amount only when fully paid', () => {
+      const t = commissionTarget({ ...taxed, allocatedPaisa: 117_000 });
+      expect(t.collectedPaisa).toBe(100_000);
+      expect(t.targetPaisa).toBe(40_000);
+    });
+
+    it('splits a part payment pro rata between net and tax', () => {
+      // Rs 585 paid = half of 1,170 → Rs 500 pre-tax → Rs 200 at 40%.
+      const t = commissionTarget({ ...taxed, allocatedPaisa: 58_500 });
+      expect(t.collectedPaisa).toBe(50_000);
+      expect(t.targetPaisa).toBe(20_000);
+    });
+
+    it('installments still sum exactly to the full commission', () => {
+      const entries = entriesFor(taxed, [39_000, 78_000, 117_000]);
+      expect(entries.reduce((a, b) => a + b, 0)).toBe(40_000);
+    });
+
+    it('a fixed amount is reached only when net + tax is collected', () => {
+      const fixed = { ...taxed, rateBps: null, fixedPaisa: 30_000 };
+      expect(
+        commissionTarget({ ...fixed, allocatedPaisa: 100_000 }).targetPaisa,
+      ).toBeLessThan(30_000);
+      expect(
+        commissionTarget({ ...fixed, allocatedPaisa: 117_000 }).targetPaisa,
+      ).toBe(30_000);
+    });
+
+    it('tax 0 / omitted behaves exactly as before', () => {
+      expect(
+        commissionTarget({ ...net(100_000, 4000), allocatedPaisa: 50_000 }),
+      ).toEqual(
+        commissionTarget({
+          ...net(100_000, 4000),
+          taxPaisa: 0,
+          allocatedPaisa: 50_000,
+        }),
+      );
+    });
+  });
+
   it('40% NET on a Rs 1,000 charge paid in 3 installments sums exactly to Rs 400', () => {
     const entries = entriesFor(net(100_000, 4000), [33_333, 66_666, 100_000]);
     expect(entries).toEqual([13_333, 13_333, 13_334]);

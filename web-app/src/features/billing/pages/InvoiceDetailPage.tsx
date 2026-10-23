@@ -32,6 +32,7 @@ import { PrintButton } from '../components/print/PrintButton'
 import { RefundSheet } from '../components/refunds/RefundSheet'
 import type { RefundTarget } from '../components/refunds/RefundSheet'
 import { ReasonDialog } from '../components/shared/ReasonDialog'
+import { hasTax, taxLabel } from '../lib/tax'
 import {
   ChargeBadges,
   Money,
@@ -294,6 +295,11 @@ function InvoiceBody({ invoice: inv }: { invoice: Invoice }) {
             <Stat label="Discount">
               <Money value={inv.discountTotal} />
             </Stat>
+            {hasTax(inv.taxRate) && (
+              <Stat label={taxLabel(inv.taxRate)}>
+                <Money value={inv.taxAmount} />
+              </Stat>
+            )}
             <Stat label="Total" strong>
               <Money value={inv.totalAmount} />
             </Stat>

@@ -41,7 +41,7 @@ export function LabContactSheet({
       open={open}
       onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
       title="Edit contact details"
-      description="Clinics see these details on their lab list. The lab's name is managed by MedTrackr support."
+      description="Clinics see these details on their lab list. The lab's name is managed by platform support."
       widthClassName="sm:max-w-md"
       footer={
         <>

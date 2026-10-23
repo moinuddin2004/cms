@@ -20,6 +20,7 @@ import { newIdempotencyKey } from '../services/lab-billing.api'
 import type { PaymentValues, RefundValues } from '../schemas/lab-billing.schema'
 import { METHOD_LABEL } from '../types'
 import type { LabPaymentMethod, PaymentInput, PatientRef } from '../types'
+import { activeCurrency } from '@/lib/currency'
 
 const METHODS = (Object.keys(METHOD_LABEL) as LabPaymentMethod[]).map(
   (value) => ({
@@ -182,7 +183,7 @@ export function CollectPaymentSheet({
             <AmountField
               field={f}
               id="pay-amount"
-              label="Amount (PKR)"
+              label={`Amount (${activeCurrency()})`}
               hint={
                 invoice
                   ? `Balance ${formatPaisa(invoice.balancePaisa)}`
@@ -342,7 +343,7 @@ export function CreditNoteSheet({
         }}
       >
         <form.Field name="amount">
-          {(f) => <AmountField field={f} id="cn-amount" label="Amount (PKR)" />}
+          {(f) => <AmountField field={f} id="cn-amount" label={`Amount (${activeCurrency()})`} />}
         </form.Field>
         <form.Subscribe selector={(s) => s.values.amount}>
           {(amount) => {
@@ -477,7 +478,7 @@ export function RefundSheet({
         >
           <form.Field name="amount">
             {(f) => (
-              <AmountField field={f} id="rf-amount" label="Amount (PKR)" />
+              <AmountField field={f} id="rf-amount" label={`Amount (${activeCurrency()})`} />
             )}
           </form.Field>
           <form.Field name="method">

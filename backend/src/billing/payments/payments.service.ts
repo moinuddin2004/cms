@@ -41,6 +41,8 @@ import { DocumentSequenceService } from '../numbering/document-sequence.service'
 import { PatientBillingQueries } from '../patient-billing/patient-billing.queries';
 import { PaymentAccountsService } from '../payment-accounts/payment-accounts.service';
 import { BillingTotalsService } from '../totals/billing-totals.service';
+import { applyInvoiceTax } from '../tax/invoice-tax';
+import { locationTaxRate } from '../tax/location-tax-rate';
 import {
   AllocationPlan,
   AllocationPlanError,
@@ -88,7 +90,14 @@ export interface PaymentPreview {
     chargeId: string;
     description: string;
     netAmount: number;
+    taxAmount: number;
   }>;
+  /** Sum of the unbilled charges' nets (subtotal after discounts). */
+  willInvoiceNet: number;
+  /** Location's current tax rate (%), which the new invoice will snapshot. */
+  willInvoiceTaxRate: number;
+  willInvoiceTax: number;
+  /** net + tax: the total of the invoice that will be issued. */
   willInvoiceTotal: number;
   lines: Array<{
     chargeId: string;
@@ -202,6 +211,11 @@ export class PaymentsService {
     const advance = dto.applyAdvance
       ? await this.advanceSources(manager, ctx.tenant, dto.patientId)
       : [];
+    // Unbilled charges will be invoiced at the location's rate: give them
+    // their tax share in memory (never saved) so balances match collect.
+    const unbilled = charges.filter((c) => !c.invoiceId);
+    const taxRate = await locationTaxRate(manager, ctx.tenant);
+    const willInvoiceTax = applyInvoiceTax(unbilled, taxRate);
     const plan = this.plan(
       dto.mode,
       charges,
@@ -210,8 +224,10 @@ export class PaymentsService {
       toPaisa(dto.amount),
     );
     const invoices = await this.invoiceNumbers(manager, charges);
-
-    const unbilled = charges.filter((c) => !c.invoiceId);
+    const willInvoiceNet = unbilled.reduce(
+      (a, c) => a + toPaisa(c.netAmount),
+      0,
+    );
     const totalBalance = charges.reduce((a, c) => a + chargeBalancePaisa(c), 0);
     const advanceAvailable = advance.reduce((a, f) => a + f.availablePaisa, 0);
     const byId = new Map(charges.map((c) => [c.id, c]));
@@ -229,10 +245,12 @@ export class PaymentsService {
         chargeId: c.id,
         description: c.description,
         netAmount: c.netAmount,
+        taxAmount: c.taxAmount,
       })),
-      willInvoiceTotal: fromPaisa(
-        unbilled.reduce((a, c) => a + toPaisa(c.netAmount), 0),
-      ),
+      willInvoiceNet: fromPaisa(willInvoiceNet),
+      willInvoiceTaxRate: unbilled.length ? taxRate : 0,
+      willInvoiceTax: fromPaisa(willInvoiceTax),
+      willInvoiceTotal: fromPaisa(willInvoiceNet + willInvoiceTax),
       lines: plan.lines.map((l) => ({
         chargeId: l.chargeId,
         description: byId.get(l.chargeId)?.description ?? '',
@@ -260,6 +278,7 @@ export class PaymentsService {
                 chargeId: l.chargeId,
                 amountPaisa: l.amountPaisa,
               })),
+              new Map(unbilled.map((c) => [c.id, toPaisa(c.taxAmount)])),
             )
           : null,
     };
@@ -385,6 +404,10 @@ export class PaymentsService {
       ? await BillingLocks.advancePayments(manager, ctx.tenant, dto.patientId)
       : [];
     const advance = this.fundsFrom(advancePayments);
+    // Same as preview: unbilled charges carry their future tax share while
+    // planning; the issuer below re-applies the identical split and saves it.
+    const unbilled = charges.filter((c) => !c.invoiceId);
+    applyInvoiceTax(unbilled, await locationTaxRate(manager, ctx.tenant));
     const plan = this.plan(
       dto.mode,
       charges,
@@ -400,7 +423,6 @@ export class PaymentsService {
     }
 
     const time = await this.clock.read(ctx.tenant.locationId);
-    const unbilled = charges.filter((c) => !c.invoiceId);
     const invoice = unbilled.length
       ? await this.issuer.issue(manager, ctx, time, unbilled)
       : null;

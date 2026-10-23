@@ -18,6 +18,7 @@ import { chargesApi } from '../../services/billing-v2.api'
 import type { DiscountInput } from '../../services/billing-v2.api'
 import type { DiscountType } from '../../types/billing.types'
 import { OptionSelect } from '../shared/OptionSelect'
+import { activeCurrency } from '@/lib/currency'
 
 const EMPTY: DiscountValues = {
   discountTypeId: '',
@@ -28,7 +29,7 @@ const EMPTY: DiscountValues = {
 }
 
 const label = (t: DiscountType) =>
-  `${t.name} · ${t.kind === 'PERCENTAGE' ? `${t.value}%` : `Rs ${t.value}`}`
+  `${t.name} · ${t.kind === 'PERCENTAGE' ? `${t.value}%` : `${activeCurrency()} ${t.value}`}`
 
 export function toDiscountInput(
   v: DiscountValues,

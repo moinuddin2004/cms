@@ -15,6 +15,7 @@ import {
   usePatientCharges,
 } from '../../hooks/use-billing-queries'
 import { billingError } from '../../lib/billing-errors'
+import { hasTax, taxLabel } from '../../lib/tax'
 import { DISCOUNT_PERMS } from '../../lib/billing-permissions'
 import { invoicesApi } from '../../services/billing-v2.api'
 import type { Charge, Invoice, InvoiceEditOp } from '../../types/billing.types'
@@ -234,6 +235,14 @@ export function EditInvoiceSheet({
               </p>
             ) : (
               <>
+                {hasTax(preview.data.taxRate) && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      {taxLabel(preview.data.taxRate)}
+                    </span>
+                    <Money value={preview.data.newTaxAmount} />
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">New total</span>
                   <Money

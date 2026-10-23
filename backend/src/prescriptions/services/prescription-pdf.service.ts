@@ -1,24 +1,22 @@
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  PDFDocument,
-  PDFFont,
-  PDFPage,
-  StandardFonts,
-  rgb,
-} from 'pdf-lib';
+import { PDFDocument, PDFPage, radians, rgb } from 'pdf-lib';
 import { Prescription } from '../entities/prescription.entity';
 import { PrescriptionTemplate } from '../entities/prescription-template.entity';
 import { PageSize } from '../enums/page-size.enum';
 import { MealRelation } from '../enums/meal-relation.enum';
 import { PrescriptionTemplateService } from './prescription-template.service';
+import { PdfTextWriter } from '../pdf/pdf-text';
 import {
   STORAGE_PROVIDER,
   StorageProvider,
 } from 'src/common/storage/storage-provider.interface';
 
 const MM_TO_PT = 2.83465;
+
+/** Gap between a medicine's English column and its Urdu column (pt). */
+const URDU_COLUMN_GAP = 8;
 
 const PAGE_SIZES_PT: Record<string, [number, number]> = {
   A4: [595.28, 841.89],
@@ -37,12 +35,11 @@ const MEAL_LABEL: Record<MealRelation, string> = {
 /**
  * Renders a finalized prescription to PDF via pdf-lib.
  *
- * KNOWN LIMITATION: pdf-lib's standard fonts cover only WinAnsi — Urdu / Arabic
- * script doesn't shape correctly without an embedded Nastaliq font and a
- * shaping engine. The HTML live-preview in the frontend renders Urdu
- * correctly using the browser's font stack. For PDF print, Urdu strings are
- * emitted in a fallback font; they will render as boxed glyphs unless a
- * Nastaliq font file is embedded later (see TODO at the bottom of the file).
+ * Latin text is set in the standard Helvetica fonts. Urdu (any Arabic-script
+ * text — the Urdu medicine name / instructions columns, or Urdu typed into
+ * any other field) goes through PdfTextWriter: shaped with fontkit in Noto
+ * Nastaliq Urdu, laid out right-to-left with numbers and Latin words kept
+ * left-to-right, and drawn as vector outlines (see ../pdf/pdf-text.ts).
  *
  * The provider is wired through the existing StorageProvider (Cloudinary), so
  * generated PDFs upload via the same swappable abstraction the rest of the
@@ -78,8 +75,9 @@ export class PrescriptionPdfService {
     }
 
     const pdf = await PDFDocument.create();
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    // Latin text uses Helvetica as before; Urdu runs are shaped and drawn
+    // in Noto Nastaliq Urdu by the writer.
+    const text = await PdfTextWriter.create(pdf);
 
     const [pageW, pageH] = this.pageDimensions(template);
     const page = pdf.addPage([pageW, pageH]);
@@ -100,6 +98,7 @@ export class PrescriptionPdfService {
 
     // ── Header ─────────────────────────────────────────────────────
     const primary = parseHexColor(styling.primaryColor ?? '#0d9488');
+    const primaryColor = rgb(primary.r, primary.g, primary.b);
     const clinicName =
       header.clinicName ?? p.location?.name ?? 'Clinic';
     const doctorLabel = p.doctor?.fullName
@@ -107,36 +106,45 @@ export class PrescriptionPdfService {
       : 'Doctor';
     const qualification = header.doctorQualification ?? '';
 
-    page.drawText(doctorLabel, {
+    text.draw(page, doctorLabel, {
       x: contentLeft,
       y: cursorY,
       size: 16,
-      font: bold,
-      color: rgb(primary.r, primary.g, primary.b),
+      bold: true,
+      color: primaryColor,
     });
-    page.drawText(clinicName, {
-      x: contentRight - widthOf(bold, clinicName, 14),
+    text.drawRight(page, clinicName, {
+      right: contentRight,
       y: cursorY,
       size: 14,
-      font: bold,
-      color: rgb(primary.r, primary.g, primary.b),
+      bold: true,
+      color: primaryColor,
     });
     cursorY -= 18;
+    if (header.clinicNameUrdu) {
+      // Urdu clinic name under the English one, as in the web preview.
+      cursorY -= 4;
+      text.drawRight(page, header.clinicNameUrdu, {
+        right: contentRight,
+        y: cursorY,
+        size: 11,
+        color: primaryColor,
+      });
+      cursorY -= 18;
+    }
     if (qualification) {
-      page.drawText(qualification, {
+      text.draw(page, qualification, {
         x: contentLeft,
         y: cursorY,
         size: 10,
-        font,
         color: rgb(0.3, 0.3, 0.3),
       });
     }
     if (header.doctorPhone) {
-      page.drawText(header.doctorPhone, {
-        x: contentRight - widthOf(font, header.doctorPhone, 10),
+      text.drawRight(page, header.doctorPhone, {
+        right: contentRight,
         y: cursorY,
         size: 10,
-        font,
         color: rgb(0.3, 0.3, 0.3),
       });
     }
@@ -145,7 +153,7 @@ export class PrescriptionPdfService {
       start: { x: contentLeft, y: cursorY },
       end: { x: contentRight, y: cursorY },
       thickness: 1.2,
-      color: rgb(primary.r, primary.g, primary.b),
+      color: primaryColor,
     });
     cursorY -= 14;
 
@@ -173,11 +181,10 @@ export class PrescriptionPdfService {
       height: 16,
       color: rgb(0.96, 0.97, 0.98),
     });
-    page.drawText(patientLine, {
+    text.draw(page, patientLine, {
       x: contentLeft + 4,
       y: cursorY - 10,
       size: 9,
-      font,
       color: rgb(0.15, 0.15, 0.15),
     });
     cursorY -= 24;
@@ -194,11 +201,10 @@ export class PrescriptionPdfService {
         v.height && `Ht: ${v.height}`,
       ].filter(Boolean) as string[];
       if (items.length) {
-        page.drawText(items.join('   '), {
+        text.draw(page, items.join('   '), {
           x: contentLeft,
           y: cursorY,
           size: 9,
-          font,
           color: rgb(0.3, 0.3, 0.3),
         });
         cursorY -= 14;
@@ -209,8 +215,7 @@ export class PrescriptionPdfService {
     if (p.chiefComplaint) {
       cursorY = drawLabeledBlock(
         page,
-        font,
-        bold,
+        text,
         'Chief Complaint',
         p.chiefComplaint,
         contentLeft,
@@ -221,8 +226,7 @@ export class PrescriptionPdfService {
     if (p.diagnosis) {
       cursorY = drawLabeledBlock(
         page,
-        font,
-        bold,
+        text,
         'Diagnosis',
         p.diagnosis,
         contentLeft,
@@ -233,20 +237,19 @@ export class PrescriptionPdfService {
 
     // ── Medicines (Rx symbol + numbered list) ─────────────────────
     cursorY -= 8;
-    page.drawText('Rx', {
+    text.draw(page, 'Rx', {
       x: contentLeft,
       y: cursorY,
       size: 18,
-      font: bold,
-      color: rgb(primary.r, primary.g, primary.b),
+      bold: true,
+      color: primaryColor,
     });
     cursorY -= 14;
     const medicines = (p.medicines ?? []).sort(
       (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
     );
+    const showUrdu = styling.showMedicineUrdu !== false;
     medicines.forEach((m, idx) => {
-      const lineParts: string[] = [];
-      lineParts.push(`${idx + 1}. ${m.medicineName}`);
       const dosageBits: string[] = [];
       if (m.dosage) dosageBits.push(m.dosage);
       if (m.frequency) dosageBits.push(m.frequency);
@@ -255,40 +258,84 @@ export class PrescriptionPdfService {
       if (meal) dosageBits.push(`(${meal})`);
       const second = dosageBits.join('  ');
 
-      page.drawText(lineParts.join(' '), {
+      // Urdu name / instructions sit in a right-hand column (7:5 split,
+      // like the web preview); without them the row is full width.
+      const urduName = showUrdu ? m.medicineNameUrdu?.trim() : '';
+      const urduNote = showUrdu ? m.specialInstructionsUrdu?.trim() : '';
+      const urduColumn = !!(urduName || urduNote);
+      const leftWidth = urduColumn
+        ? (contentWidth * 7) / 12 - URDU_COLUMN_GAP
+        : contentWidth;
+      const rowTop = cursorY;
+
+      let left = text.paragraph(page, `${idx + 1}. ${m.medicineName}`, {
         x: contentLeft,
-        y: cursorY,
+        y: rowTop,
+        width: leftWidth,
         size: 11,
-        font: bold,
+        lineHeight: 13,
+        bold: true,
+        align: 'left',
       });
-      cursorY -= 13;
-      page.drawText(second, {
-        x: contentLeft + 14,
-        y: cursorY,
-        size: 10,
-        font,
-        color: rgb(0.25, 0.25, 0.25),
-      });
-      cursorY -= 14;
+      left = second
+        ? text.paragraph(page, second, {
+            x: contentLeft + 14,
+            y: left,
+            width: leftWidth - 14,
+            size: 10,
+            lineHeight: 14,
+            color: rgb(0.25, 0.25, 0.25),
+            align: 'left',
+          })
+        : left - 14;
       if (m.specialInstructions) {
-        page.drawText(`• ${m.specialInstructions}`, {
+        left = text.paragraph(page, `• ${m.specialInstructions}`, {
           x: contentLeft + 14,
-          y: cursorY,
+          y: left,
+          width: leftWidth - 14,
           size: 9,
-          font,
+          lineHeight: 12,
           color: rgb(0.4, 0.4, 0.4),
+          align: 'left',
         });
-        cursorY -= 12;
       }
+
+      let right = rowTop;
+      if (urduColumn) {
+        const colX = contentLeft + (contentWidth * 7) / 12;
+        const colWidth = contentRight - colX;
+        if (urduName) {
+          right = text.paragraph(page, urduName, {
+            x: colX,
+            y: right,
+            width: colWidth,
+            size: 11,
+            lineHeight: 13,
+            bold: true,
+            align: 'right',
+          });
+        }
+        if (urduNote) {
+          right = text.paragraph(page, urduNote, {
+            x: colX,
+            y: right,
+            width: colWidth,
+            size: 10,
+            lineHeight: 12,
+            color: rgb(0.25, 0.25, 0.25),
+            align: 'right',
+          });
+        }
+      }
+      cursorY = Math.min(left, right);
     });
 
     // ── Instructions / further plan ───────────────────────────────
+    if (p.instructionsEnglish || p.instructionsUrdu) cursorY -= 6;
     if (p.instructionsEnglish) {
-      cursorY -= 6;
       cursorY = drawLabeledBlock(
         page,
-        font,
-        bold,
+        text,
         'Instructions',
         p.instructionsEnglish,
         contentLeft,
@@ -296,11 +343,22 @@ export class PrescriptionPdfService {
         cursorY,
       );
     }
+    if (p.instructionsUrdu) {
+      cursorY = drawLabeledBlock(
+        page,
+        text,
+        'ہدایات',
+        p.instructionsUrdu,
+        contentLeft,
+        contentWidth,
+        cursorY,
+        'right',
+      );
+    }
     if (p.furtherPlan) {
       cursorY = drawLabeledBlock(
         page,
-        font,
-        bold,
+        text,
         'Further Plan',
         p.furtherPlan,
         contentLeft,
@@ -338,11 +396,10 @@ export class PrescriptionPdfService {
       thickness: 0.5,
       color: rgb(0.5, 0.5, 0.5),
     });
-    page.drawText(doctorLabel, {
+    text.draw(page, doctorLabel, {
       x: contentRight - 110,
       y: sigBottom - 16,
       size: 9,
-      font,
     });
 
     // ── Footer ────────────────────────────────────────────────────
@@ -362,33 +419,44 @@ export class PrescriptionPdfService {
       .filter(Boolean)
       .join('  ·  ');
     if (footerLine) {
-      page.drawText(footerLine, {
+      text.draw(page, footerLine, {
         x: contentLeft,
         y: footerY + 6,
         size: 8,
-        font,
         color: rgb(0.4, 0.4, 0.4),
       });
     }
+    let disclaimerWidth = 0;
     if (footer.disclaimerText) {
-      page.drawText(footer.disclaimerText, {
+      disclaimerWidth = text.draw(page, footer.disclaimerText, {
         x: contentLeft,
         y: footerY - 6,
         size: 7,
-        font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    }
+    if (footer.disclaimerTextUrdu) {
+      // Right-aligned beside the English disclaimer, or below it if the two
+      // don't fit on one line.
+      const urduWidth = text.widthOf(footer.disclaimerTextUrdu, 8);
+      const sameLine = disclaimerWidth + 16 + urduWidth <= contentWidth;
+      text.drawRight(page, footer.disclaimerTextUrdu, {
+        right: contentRight,
+        y: sameLine ? footerY - 6 : footerY - 20,
+        size: 8,
         color: rgb(0.5, 0.5, 0.5),
       });
     }
 
     // ── Watermark (e.g. "COPY") ───────────────────────────────────
     if (styling.watermarkText) {
-      page.drawText(styling.watermarkText, {
+      text.draw(page, styling.watermarkText, {
         x: pageW / 2 - 60,
         y: pageH / 2,
         size: 60,
-        font: bold,
+        bold: true,
         color: rgb(0.9, 0.9, 0.9),
-        rotate: { angle: -0.6, type: 'radians' } as any,
+        rotate: radians(-0.6),
         opacity: 0.4,
       });
     }
@@ -453,10 +521,6 @@ function parseHexColor(hex: string): { r: number; g: number; b: number } {
   };
 }
 
-function widthOf(font: PDFFont, text: string, size: number): number {
-  return font.widthOfTextAtSize(text, size);
-}
-
 function ageFromDob(dob: Date | string): number {
   const d = dob instanceof Date ? dob : new Date(dob);
   const now = new Date();
@@ -466,43 +530,40 @@ function ageFromDob(dob: Date | string): number {
   return years;
 }
 
+/**
+ * Small bold label, then the word-wrapped body. Latin text keeps the old
+ * metrics (label, body lines every 12pt, 4pt after); Urdu lines get the extra
+ * room Nastaliq needs. 'auto' right-aligns a body that starts in Urdu.
+ */
 function drawLabeledBlock(
   page: PDFPage,
-  font: PDFFont,
-  bold: PDFFont,
+  text: PdfTextWriter,
   label: string,
   body: string,
   x: number,
   width: number,
   y: number,
+  align: 'left' | 'right' | 'auto' = 'auto',
 ): number {
-  page.drawText(label, { x, y, size: 9, font: bold });
-  let cursor = y - 12;
-  const lines = wrap(body, font, 10, width);
-  for (const line of lines) {
-    page.drawText(line, { x, y: cursor, size: 10, font });
-    cursor -= 12;
-  }
+  const labelAlign = align === 'right' ? 'right' : 'left';
+  let cursor = text.paragraph(page, label, {
+    x,
+    y,
+    width,
+    size: 9,
+    lineHeight: 12,
+    bold: true,
+    align: labelAlign,
+  });
+  cursor = text.paragraph(page, body, {
+    x,
+    y: cursor,
+    width,
+    size: 10,
+    lineHeight: 12,
+    align,
+  });
   return cursor - 4;
-}
-
-function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
-  const lines: string[] = [];
-  for (const para of text.split(/\r?\n/)) {
-    const words = para.split(/\s+/);
-    let line = '';
-    for (const word of words) {
-      const candidate = line ? `${line} ${word}` : word;
-      if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
-        line = candidate;
-      } else {
-        if (line) lines.push(line);
-        line = word;
-      }
-    }
-    if (line) lines.push(line);
-  }
-  return lines;
 }
 
 async function fetchImageBytes(url: string): Promise<Uint8Array | null> {

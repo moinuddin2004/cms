@@ -43,7 +43,7 @@ export const ChargeQueries = {
       qb.andWhere(`c.status = 'ACTIVE' AND c.invoice_id IS NULL`);
     } else if (state === 'open') {
       qb.andWhere(`c.status = 'ACTIVE'`).andWhere(
-        `(c.invoice_id IS NULL OR (inv.status = 'ISSUED' AND c.net_amount > c.allocated_amount))`,
+        `(c.invoice_id IS NULL OR (inv.status = 'ISSUED' AND c.net_amount + c.tax_amount > c.allocated_amount))`,
       );
     }
     return (await qb.getMany()).map(toChargeResponse);

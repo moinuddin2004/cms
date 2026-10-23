@@ -7,8 +7,6 @@ import { UserService } from 'src/user/user.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { UserModule } from 'src/user/user.module';
-import { GithubStrategy } from './strategies/github.strategy';
-import { GoogleStrategy } from './strategies/google.stategy';
 import { CommonModule } from 'src/common/common.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SecurityLogService } from './security-log.service';
@@ -17,6 +15,7 @@ import { OAuthProvider } from './entities/OAuthProvider';
 import { RateLimiterGuard } from './guards/rate-limiter.guard';
 import { Reflector } from '@nestjs/core';
 import { SessionModule } from 'src/session/session.module';
+import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 import { AuthorizationService } from './services/authorization.service';
 
 // Entities needed by AuthorizationService
@@ -40,6 +39,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     UserModule,
     CommonModule,
     SessionModule,
+    SubscriptionsModule,
   ],
   providers: [
     AuthService,
@@ -48,8 +48,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     UserService,
     NestJwtService,
     ConfigService,
-    GoogleStrategy,
-    GithubStrategy,
+    // Google/GitHub sign-in is disabled — see oauth.controller.ts.
     JwtStrategy,
     SecurityLogService,
     RateLimiterGuard,

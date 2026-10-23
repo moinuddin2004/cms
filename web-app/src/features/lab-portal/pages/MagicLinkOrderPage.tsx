@@ -41,7 +41,7 @@ export function MagicLinkOrderPage({ token }: { token: string }) {
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-4xl items-center gap-2 p-4">
           <FlaskConical className="size-5 text-primary" />
-          <span className="text-sm font-semibold">MedTrackr · Lab order</span>
+          <span className="text-sm font-semibold">Lab order</span>
           {data && (
             <span className="ml-auto text-xs text-text-3">
               For {data.link.lab.name} · link valid until{' '}

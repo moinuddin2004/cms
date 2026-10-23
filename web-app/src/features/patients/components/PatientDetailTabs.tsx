@@ -12,7 +12,7 @@ import {
   HandCoins,
 } from 'lucide-react'
 import { PatientBillingTab } from '@/features/billing'
-import { PatientMessagesCard } from '@/features/notifications'
+// import { PatientMessagesCard } from '@/features/notifications' // hidden: in-app only
 import { useAccess } from '@/features/access/hooks/useAccess'
 import type { Patient } from '../types'
 import { visiblePatientTabs } from '../utils/patientTabs'
@@ -81,10 +81,11 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
     overview: (
       <>
         <OverviewTab patient={patient} />
-        {/* Message history is front-desk work (was admin + reception). */}
+        {/* WhatsApp/SMS opt-outs + message history: hidden while
+            notifications are in-app only (no patient channels).
         {access.can('patients.edit') && (
           <PatientMessagesCard patientId={patient.id} />
-        )}
+        )} */}
       </>
     ),
     appointments: <AppointmentsTab patient={patient} />,

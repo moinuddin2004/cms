@@ -48,7 +48,7 @@ describe('SettingsRegistryService', () => {
   describe('cascade', () => {
     it('falls back to the code default', async () => {
       const { svc } = setup();
-      expect(await svc.get('theme.app_name', ctx)).toBe('MedTrackr');
+      expect(await svc.get('theme.app_name', ctx)).toBe('Clinic Portal');
       expect(await svc.get('theme.logo_url', ctx)).toBeNull();
     });
 
@@ -89,7 +89,7 @@ describe('SettingsRegistryService', () => {
       const { svc } = setup();
       await svc.set('theme.app_name', ConfigScope.ORG, ORG, 'Smile', actor);
       await svc.set('theme.app_name', ConfigScope.ORG, ORG, null, actor);
-      expect(await svc.get('theme.app_name', ctx)).toBe('MedTrackr');
+      expect(await svc.get('theme.app_name', ctx)).toBe('Clinic Portal');
     });
 
     it('ignores a stored value at a scope the key does not allow', async () => {
@@ -152,7 +152,7 @@ describe('SettingsRegistryService', () => {
       await expect(
         svc.set('theme.app_name', ConfigScope.LOCATION, LOC, 'Branch', actor),
       ).rejects.toBeInstanceOf(ForbiddenException);
-      expect(await svc.get('theme.app_name', ctx)).toBe('MedTrackr');
+      expect(await svc.get('theme.app_name', ctx)).toBe('Clinic Portal');
     });
 
     it('refuses org writes to a key the platform locked', async () => {
@@ -323,7 +323,7 @@ describe('SettingsRegistryService', () => {
       );
       b.onModuleInit();
 
-      expect(await b.get('theme.app_name', ctx)).toBe('MedTrackr'); // cached in b
+      expect(await b.get('theme.app_name', ctx)).toBe('Clinic Portal'); // cached in b
       await a.set('theme.app_name', ConfigScope.ORG, ORG, 'Fresh', actor);
 
       expect(bus.published).toEqual([
@@ -346,7 +346,7 @@ describe('SettingsRegistryService', () => {
         value: 'Elsewhere',
         isLocked: false,
       });
-      expect(await svc.get('theme.app_name', ctx)).toBe('MedTrackr');
+      expect(await svc.get('theme.app_name', ctx)).toBe('Clinic Portal');
       now.mockReturnValue(1_000 + SettingsRegistryService.CACHE_TTL_MS + 1);
       expect(await svc.get('theme.app_name', ctx)).toBe('Elsewhere');
       now.mockRestore();

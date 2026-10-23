@@ -1,3 +1,5 @@
+import { activeCurrency } from '@/lib/currency'
+
 // Integer-only conversions between what people type and what the API
 // stores (paisa, basis points). Mirrors backend `commission-math.ts`; no
 // floating point anywhere so 12.5% is exactly 1250 bps.
@@ -38,11 +40,11 @@ export function paisaToRupeesText(paisa: number): string {
   return bpsToPercent(paisa)
 }
 
-/** 5000050 → "PKR 50,000.50"; negative amounts keep their sign. */
+/** 5000050 → "PKR 50,000.50" (active clinic currency); negatives keep their sign. */
 export function formatPaisa(paisa: number): string {
   const sign = paisa < 0 ? '-' : ''
   const abs = Math.abs(paisa)
   const whole = Math.trunc(abs / 100).toLocaleString('en-PK')
   const frac = String(abs % 100).padStart(2, '0')
-  return `${sign}PKR ${whole}${frac === '00' ? '' : `.${frac}`}`
+  return `${sign}${activeCurrency()} ${whole}${frac === '00' ? '' : `.${frac}`}`
 }

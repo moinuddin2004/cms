@@ -28,6 +28,8 @@ export function toInvoiceResponse(
     dueDate: inv.dueDate,
     subtotal: inv.subtotal,
     discountTotal: inv.discountTotal,
+    taxRate: inv.taxRate ?? 0,
+    taxAmount: inv.taxAmount ?? 0,
     totalAmount: inv.totalAmount,
     paidAmount: inv.paidAmount,
     balanceDue: inv.balanceDue,

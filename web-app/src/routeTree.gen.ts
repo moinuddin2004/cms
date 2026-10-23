@@ -9,7 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as UsersRouteImport } from './routes/users'
+import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SelectLocationRouteImport } from './routes/select-location'
@@ -52,6 +55,7 @@ import { Route as BillingIndexRouteImport } from './routes/billing.index'
 import { Route as StudioWorkflowsRouteImport } from './routes/studio.workflows'
 import { Route as StudioStagesRouteImport } from './routes/studio.stages'
 import { Route as StudioFormsRouteImport } from './routes/studio.forms'
+import { Route as SettingsSubscriptionRouteImport } from './routes/settings_.subscription'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings_.notifications'
 import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
 import { Route as ReportsReportKeyRouteImport } from './routes/reports.$reportKey'
@@ -97,9 +101,24 @@ import { Route as LabPayablesBillsBillIdRouteImport } from './routes/lab-payable
 import { Route as LabOrdersReceiveTokenRouteImport } from './routes/lab-orders_.receive.$token'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin.roles.$roleId'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SubscriptionsRoute = SubscriptionsRouteImport.update({
+  id: '/subscriptions',
+  path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -310,6 +329,11 @@ const StudioStagesRoute = StudioStagesRouteImport.update({
 const StudioFormsRoute = StudioFormsRouteImport.update({
   id: '/studio/forms',
   path: '/studio/forms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsSubscriptionRoute = SettingsSubscriptionRouteImport.update({
+  id: '/settings_/subscription',
+  path: '/settings/subscription',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
@@ -569,7 +593,10 @@ export interface FileRoutesByFullPath {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/navigation': typeof AdminNavigationRoute
   '/admin/theme': typeof AdminThemeRoute
@@ -601,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings/billing': typeof SettingsBillingRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/subscription': typeof SettingsSubscriptionRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -658,7 +686,10 @@ export interface FileRoutesByTo {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/navigation': typeof AdminNavigationRoute
   '/admin/theme': typeof AdminThemeRoute
@@ -690,6 +721,7 @@ export interface FileRoutesByTo {
   '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings/billing': typeof SettingsBillingRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/subscription': typeof SettingsSubscriptionRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -748,7 +780,10 @@ export interface FileRoutesById {
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
+  '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
   '/admin/navigation': typeof AdminNavigationRoute
   '/admin/theme': typeof AdminThemeRoute
@@ -780,6 +815,7 @@ export interface FileRoutesById {
   '/reports/$reportKey': typeof ReportsReportKeyRoute
   '/settings_/billing': typeof SettingsBillingRoute
   '/settings_/notifications': typeof SettingsNotificationsRoute
+  '/settings_/subscription': typeof SettingsSubscriptionRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -839,7 +875,10 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
+    | '/setup'
+    | '/subscriptions'
     | '/users'
+    | '/verify-email'
     | '/admin/features'
     | '/admin/navigation'
     | '/admin/theme'
@@ -871,6 +910,7 @@ export interface FileRouteTypes {
     | '/reports/$reportKey'
     | '/settings/billing'
     | '/settings/notifications'
+    | '/settings/subscription'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -928,7 +968,10 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
+    | '/setup'
+    | '/subscriptions'
     | '/users'
+    | '/verify-email'
     | '/admin/features'
     | '/admin/navigation'
     | '/admin/theme'
@@ -960,6 +1003,7 @@ export interface FileRouteTypes {
     | '/reports/$reportKey'
     | '/settings/billing'
     | '/settings/notifications'
+    | '/settings/subscription'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -1017,7 +1061,10 @@ export interface FileRouteTypes {
     | '/select-location'
     | '/sessions'
     | '/settings'
+    | '/setup'
+    | '/subscriptions'
     | '/users'
+    | '/verify-email'
     | '/admin/features'
     | '/admin/navigation'
     | '/admin/theme'
@@ -1049,6 +1096,7 @@ export interface FileRouteTypes {
     | '/reports/$reportKey'
     | '/settings_/billing'
     | '/settings_/notifications'
+    | '/settings_/subscription'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -1107,7 +1155,10 @@ export interface RootRouteChildren {
   SelectLocationRoute: typeof SelectLocationRoute
   SessionsRoute: typeof SessionsRoute
   SettingsRoute: typeof SettingsRoute
+  SetupRoute: typeof SetupRoute
+  SubscriptionsRoute: typeof SubscriptionsRoute
   UsersRoute: typeof UsersRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
   AdminNavigationRoute: typeof AdminNavigationRoute
   AdminThemeRoute: typeof AdminThemeRoute
@@ -1139,6 +1190,7 @@ export interface RootRouteChildren {
   ReportsReportKeyRoute: typeof ReportsReportKeyRoute
   SettingsBillingRoute: typeof SettingsBillingRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsSubscriptionRoute: typeof SettingsSubscriptionRoute
   StudioFormsRoute: typeof StudioFormsRoute
   StudioStagesRoute: typeof StudioStagesRoute
   StudioWorkflowsRoute: typeof StudioWorkflowsRoute
@@ -1167,11 +1219,32 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users': {
       id: '/users'
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/subscriptions': {
+      id: '/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/subscriptions'
+      preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -1466,6 +1539,13 @@ declare module '@tanstack/react-router' {
       path: '/studio/forms'
       fullPath: '/studio/forms'
       preLoaderRoute: typeof StudioFormsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings_/subscription': {
+      id: '/settings_/subscription'
+      path: '/settings/subscription'
+      fullPath: '/settings/subscription'
+      preLoaderRoute: typeof SettingsSubscriptionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings_/notifications': {
@@ -1811,7 +1891,10 @@ const rootRouteChildren: RootRouteChildren = {
   SelectLocationRoute: SelectLocationRoute,
   SessionsRoute: SessionsRoute,
   SettingsRoute: SettingsRoute,
+  SetupRoute: SetupRoute,
+  SubscriptionsRoute: SubscriptionsRoute,
   UsersRoute: UsersRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,
   AdminNavigationRoute: AdminNavigationRoute,
   AdminThemeRoute: AdminThemeRoute,
@@ -1843,6 +1926,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsReportKeyRoute: ReportsReportKeyRoute,
   SettingsBillingRoute: SettingsBillingRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsSubscriptionRoute: SettingsSubscriptionRoute,
   StudioFormsRoute: StudioFormsRoute,
   StudioStagesRoute: StudioStagesRoute,
   StudioWorkflowsRoute: StudioWorkflowsRoute,

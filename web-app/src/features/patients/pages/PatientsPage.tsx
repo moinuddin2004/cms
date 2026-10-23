@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Download, Loader2, Plus, Users } from 'lucide-react'
+import { Download, FileUp, Loader2, Plus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -22,6 +22,7 @@ import { PatientCard } from '../components/PatientCard'
 import { PatientTable } from '../components/PatientTable'
 import { CreatePatientModal } from '../components/CreatePatientModal'
 import { EditPatientSheet } from '../components/EditPatientSheet'
+import { ImportPatientsSheet } from '../components/ImportPatientsSheet'
 import type { Patient, PatientListParams } from '../types'
 import { exportPatientsCsv } from '../services/patients.api'
 import { Can } from '@/features/access/components/Can'
@@ -45,6 +46,7 @@ export function PatientsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Patient | null>(null)
   const [editTarget, setEditTarget] = useState<Patient | null>(null)
   const [showCreate, setShowCreate] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
   const [exporting, setExporting] = useState(false)
 
@@ -140,6 +142,16 @@ export function PatientsPage() {
           </Can>
           <Can perm="patients.create">
             <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImport(true)}
+            >
+              <FileUp className="size-3.5" />
+              Import
+            </Button>
+          </Can>
+          <Can perm="patients.create">
+            <Button
               onClick={() => setShowCreate(true)}
               id="new-patient-btn"
               size="sm"
@@ -231,6 +243,10 @@ export function PatientsPage() {
       )}
 
       <CreatePatientModal open={showCreate} onOpenChange={setShowCreate} />
+
+      {can('patients.create') && (
+        <ImportPatientsSheet open={showImport} onOpenChange={setShowImport} />
+      )}
 
       {editTarget && (
         <EditPatientSheet

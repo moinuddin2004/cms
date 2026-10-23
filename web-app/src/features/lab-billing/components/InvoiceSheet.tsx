@@ -19,6 +19,7 @@ import { percentToBp } from '../schemas/lab-billing.schema'
 import type { InvoiceValues } from '../schemas/lab-billing.schema'
 import type { InvoiceInput, LabInvoiceDetail, OrderBilling } from '../types'
 import { MoneyRow } from './billing-bits'
+import { activeCurrency } from '@/lib/currency'
 
 interface Option {
   id: string
@@ -214,7 +215,7 @@ export function InvoiceSheet({
             <form.Field name="discount">
               {(f) => (
                 <FieldWrapper
-                  label="Discount (PKR)"
+                  label={`Discount (${activeCurrency()})`}
                   htmlFor="inv-discount"
                   error={fieldError(f)}
                 >

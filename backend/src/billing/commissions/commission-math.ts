@@ -75,10 +75,16 @@ export function divRoundHalfUp(n: bigint, d: bigint): bigint {
 }
 
 export interface CommissionTargetInput {
-  /** SUM of allocations on the charge (may exceed net only transiently). */
+  /** SUM of allocations on the charge — covers net AND tax. */
   allocatedPaisa: number;
   /** 0 for a VOID charge. */
   netPaisa: number;
+  /**
+   * The charge's share of invoice sales tax (0 / omitted: none). Payments
+   * cover net and tax pro rata, and tax is not doctor revenue, so only the
+   * pre-tax part of what was collected earns commission.
+   */
+  taxPaisa?: number;
   grossPaisa: number;
   basis: CommissionBasis;
   rateBps: number | null;
@@ -92,7 +98,7 @@ export interface CommissionTargetInput {
 }
 
 export interface CommissionTarget {
-  /** Collected on the charge, capped at net. */
+  /** Pre-tax part collected on the charge, capped at net. */
   collectedPaisa: number;
   /** Total commission the charge should have earned so far. */
   targetPaisa: number;
@@ -101,7 +107,8 @@ export interface CommissionTarget {
 /**
  * Cumulative commission target for what has been collected on a charge.
  *
- *   collected = min(allocated, net)
+ *   collected = min(allocated, net)                 (no tax)
+ *             = min(round(allocated × net / (net + tax)), net)  (with tax)
  *   net = 0                → 0
  *   rate, NET basis        → round(collected × rate / 10000)
  *   rate, GROSS basis      → round(collected × gross × rate / (net × 10000))
@@ -115,10 +122,11 @@ export interface CommissionTarget {
  */
 export function commissionTarget(i: CommissionTargetInput): CommissionTarget {
   const net = BigInt(Math.max(0, i.netPaisa));
-  const collected =
-    net === 0n
-      ? 0n
-      : BigInt(Math.min(Math.max(0, i.allocatedPaisa), Number(net)));
+  const tax = BigInt(Math.max(0, i.taxPaisa ?? 0));
+  const allocated = BigInt(Math.max(0, i.allocatedPaisa));
+  const preTax =
+    tax === 0n ? allocated : divRoundHalfUp(allocated * net, net + tax);
+  const collected = net === 0n ? 0n : preTax < net ? preTax : net;
   const result = (target: bigint): CommissionTarget => ({
     collectedPaisa: Number(collected),
     targetPaisa: Number(target),

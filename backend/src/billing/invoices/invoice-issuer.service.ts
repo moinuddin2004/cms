@@ -20,11 +20,14 @@ import { invoiceSnapshot } from '../mappers/invoice.mapper';
 import { DocumentSequenceService } from '../numbering/document-sequence.service';
 import { BillingSettingsService } from '../settings/billing-settings.service';
 import { BillingTotalsService } from '../totals/billing-totals.service';
+import { applyInvoiceTax } from '../tax/invoice-tax';
+import { locationTaxRate } from '../tax/location-tax-rate';
 
 /**
  * Issues one invoice for locked, unbilled charges (D2, D3, 6.6). Shared by
  * the manual "Issue invoice", collect payment and apply advance. Never
- * opens a transaction.
+ * opens a transaction. Snapshots the location's sales-tax rate on the
+ * invoice and spreads the exclusive tax over its charges.
  */
 @Injectable()
 export class InvoiceIssuer {
@@ -45,6 +48,8 @@ export class InvoiceIssuer {
   ): Promise<Invoice> {
     this.assertIssuable(charges);
     const settings = await this.settings.getOrCreate(manager, ctx.tenant);
+    const taxRate = await locationTaxRate(manager, ctx.tenant);
+    applyInvoiceTax(charges, taxRate);
     const invoiceNumber = await this.sequences.next(
       manager,
       ctx.tenant,
@@ -63,6 +68,7 @@ export class InvoiceIssuer {
       issueDate: time.today,
       issuedAt: time.now,
       dueDate: addDays(time.today, settings.dueDays),
+      taxRate,
       notes,
       issuedBy: ctx.actor.userId,
     });
@@ -70,8 +76,11 @@ export class InvoiceIssuer {
     await manager.update(
       Charge,
       { id: In(charges.map((c) => c.id)) },
-      { invoiceId },
+      { invoiceId, taxAmount: 0 },
     );
+    for (const c of charges.filter((x) => x.taxAmount)) {
+      await manager.update(Charge, { id: c.id }, { taxAmount: c.taxAmount });
+    }
     charges.forEach((c) => (c.invoiceId = invoiceId));
     await this.totals.recomputeInvoices(manager, [invoiceId]);
 

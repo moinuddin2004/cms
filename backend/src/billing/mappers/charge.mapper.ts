@@ -1,20 +1,21 @@
 import { toPaisa, fromPaisa } from '../common/money';
 import { Charge } from '../entities/charge.entity';
 import { ChargeStatus } from '../enums/billing.enums';
+import { chargePayablePaisa } from '../tax/invoice-tax';
 import { ChargePaymentState, ChargeResponse } from './billing-response.types';
 
-/** Same rule as invoices, without OVERDUE (6.13). */
+/** Same rule as invoices, without OVERDUE (6.13). Payable = net + tax. */
 export function chargePaymentState(
-  netPaisa: number,
+  payablePaisa: number,
   allocatedPaisa: number,
 ): ChargePaymentState {
-  if (allocatedPaisa >= netPaisa) return 'PAID';
+  if (allocatedPaisa >= payablePaisa) return 'PAID';
   return allocatedPaisa > 0 ? 'PARTIALLY_PAID' : 'UNPAID';
 }
 
 /** Expects `doctor` and `invoice` relations when names are wanted. */
 export function toChargeResponse(c: Charge): ChargeResponse {
-  const net = c.status === ChargeStatus.VOID ? 0 : toPaisa(c.netAmount);
+  const payable = chargePayablePaisa(c);
   const allocated = toPaisa(c.allocatedAmount);
   return {
     id: c.id,
@@ -41,9 +42,11 @@ export function toChargeResponse(c: Charge): ChargeResponse {
           }
         : null,
     netAmount: c.netAmount,
+    taxAmount: c.status === ChargeStatus.VOID ? 0 : (c.taxAmount ?? 0),
+    payableAmount: fromPaisa(payable),
     allocatedAmount: c.allocatedAmount,
-    balance: fromPaisa(Math.max(0, net - allocated)),
-    paymentState: chargePaymentState(net, allocated),
+    balance: fromPaisa(Math.max(0, payable - allocated)),
+    paymentState: chargePaymentState(payable, allocated),
     invoiceId: c.invoiceId,
     invoiceNumber: c.invoice?.invoiceNumber ?? null,
     status: c.status,

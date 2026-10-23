@@ -158,7 +158,7 @@ function ChargeLine({ charge }: { charge: Charge }) {
         <Money value={charge.balance} className="block text-sm font-semibold" />
         {charge.allocatedAmount > 0 && (
           <span className="text-muted-foreground">
-            of <Money value={charge.netAmount} />
+            of <Money value={charge.payableAmount} />
           </span>
         )}
       </div>

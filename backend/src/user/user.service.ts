@@ -6,6 +6,7 @@ import { RequestContextService } from 'src/common/services/request-context.servi
 import { AppLogger } from 'src/common/services/logger.service';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { User } from './entities/user.entity';
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { SessionService } from 'src/session/session.service';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -42,6 +43,7 @@ export class UserService {
     private readonly sessionService: SessionService,
     private readonly context: RequestContextService,
     private readonly logger: AppLogger,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async createLocalUser(command: RegisterRequestDto): Promise<User> {
@@ -232,6 +234,11 @@ export class UserService {
       if (body.type === 'owner' && !manager.isOwner) {
         throw new ForbiddenException('Only an owner can add another owner');
       }
+    }
+
+    // Plan limit on logins — super admins may go over it.
+    if (orgId && !manager.isSuperAdmin && body.type !== 'super_admin') {
+      await this.subscriptions.assertCanAddUser(orgId);
     }
 
     if (body.type === 'employee') return this.createStaffLogin(manager, body);

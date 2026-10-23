@@ -5,7 +5,10 @@ import {
   FeatureFlagsService,
   resolveEnabledFeatures,
 } from './feature-flags.service';
-import { FEATURE_CATALOG_SEED } from './feature-catalog.seed';
+import {
+  FEATURE_CATALOG_SEED,
+  RETIRED_FEATURE_KEYS,
+} from './feature-catalog.seed';
 import {
   FeatureFlagGuard,
   requiredFeaturesOf,
@@ -37,6 +40,7 @@ function makeService(opts: {
     ),
     createQueryBuilder: jest.fn(() => qb),
     save: jest.fn(),
+    update: jest.fn(),
   };
   const flagRepo = { find: jest.fn(() => Promise.resolve(opts.flags ?? [])) };
   const overrideRepo = { find: jest.fn(() => Promise.resolve([])) };
@@ -76,6 +80,17 @@ describe('FeatureFlagsService.seedCatalog (insert missing only)', () => {
     });
     await svc.seedCatalog();
     expect(insert.values).not.toHaveBeenCalled();
+  });
+
+  it('hides retired (unbuilt) features and never seeds them', async () => {
+    const { svc, catalogRepo } = makeService({ existingKeys: [] });
+    await svc.seedCatalog();
+    const seeded = new Set(FEATURE_CATALOG_SEED.map((s) => s.key));
+    expect(RETIRED_FEATURE_KEYS.filter((k) => seeded.has(k))).toEqual([]);
+    expect(catalogRepo.update).toHaveBeenCalledWith(
+      expect.objectContaining({ isActive: true }),
+      { isActive: false },
+    );
   });
 });
 

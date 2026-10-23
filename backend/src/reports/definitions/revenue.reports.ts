@@ -1,5 +1,6 @@
 import { DataSource } from 'typeorm';
 import { sqlRows } from 'src/common/database/sql';
+import { preTaxAllocationSql } from 'src/billing/tax/invoice-tax';
 import { percentOfTotal } from '../core/report-format';
 import type {
   ReportDefinition,
@@ -168,6 +169,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
         { key: 'patient', header: 'Patient', type: 'text', weight: 2.2 },
         { key: 'subtotal', header: 'Gross', type: 'money', total: true },
         { key: 'discount', header: 'Discount', type: 'money', total: true },
+        { key: 'tax', header: 'Tax', type: 'money', total: true },
         { key: 'total', header: 'Total', type: 'money', total: true },
         { key: 'paid', header: 'Paid', type: 'money', total: true },
         { key: 'balance', header: 'Balance', type: 'money', total: true },
@@ -180,7 +182,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
              SELECT i.issue_date::text AS date, i.invoice_number AS invoice, 'Clinic' AS source,
                     pt.full_name AS patient,
                     (i.subtotal * 100)::bigint AS subtotal, (i.discount_total * 100)::bigint AS discount,
-                    (i.total_amount * 100)::bigint AS total, (i.paid_amount * 100)::bigint AS paid,
+                    (i.tax_amount * 100)::bigint AS tax, (i.total_amount * 100)::bigint AS total, (i.paid_amount * 100)::bigint AS paid,
                     (i.balance_due * 100)::bigint AS balance,
                     CASE WHEN i.balance_due <= 0 THEN 'Paid'
                          WHEN i.due_date < $5::date THEN 'Overdue'
@@ -192,7 +194,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 AND i.issue_date BETWEEN $3 AND $4
              UNION ALL
              SELECT li.issued_on::text, li.invoice_no, 'Lab', pt.full_name,
-                    li.subtotal_paisa, li.discount_paisa + li.credited_paisa,
+                    li.subtotal_paisa, li.discount_paisa + li.credited_paisa, li.tax_paisa,
                     li.total_paisa - li.credited_paisa, li.paid_paisa, li.balance_paisa,
                     CASE WHEN li.balance_paisa <= 0 THEN 'Paid'
                          WHEN COALESCE(li.due_on, li.issued_on) < $5::date THEN 'Overdue'
@@ -309,7 +311,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 AND i.status = 'ISSUED' AND i.issue_date BETWEEN $3 AND $4
               GROUP BY 1),
            collected AS (
-             SELECT c.doctor_id, (SUM(pa.amount) * 100)::bigint AS collected
+             SELECT c.doctor_id, (SUM(${preTaxAllocationSql('pa', 'c')}) * 100)::bigint AS collected
                FROM payment_allocations pa JOIN charges c ON c.id = pa.charge_id
               WHERE pa.organization_id = $1 AND pa.location_id = ANY($2)
                 AND pa.created_at >= $5 AND pa.created_at < $6

@@ -150,7 +150,12 @@ export interface Charge {
   grossAmount: number
   discount: ChargeDiscount | null
   netAmount: number
+  /** Share of the invoice's sales tax (0 while unbilled / void). */
+  taxAmount: number
+  /** net + tax (void = 0) */
+  payableAmount: number
   allocatedAmount: number
+  /** net + tax − allocated */
   balance: number
   paymentState: ChargePaymentState
   invoiceId: string | null
@@ -174,6 +179,10 @@ export interface Invoice {
   dueDate: string
   subtotal: number
   discountTotal: number
+  /** Sales-tax rate (%) snapshotted when the invoice was issued; 0 = none. */
+  taxRate: number
+  taxAmount: number
+  /** subtotal − discount + tax */
   totalAmount: number
   paidAmount: number
   balanceDue: number
@@ -249,6 +258,9 @@ export interface EditInvoicePreview {
   oldTotal: number
   newTotal: number
   delta: number
+  /** The invoice's snapshot tax rate (%); 0 = no tax line. */
+  taxRate: number
+  newTaxAmount: number
   newBalanceDue: number
   releasedToAdvance: number
   releases: Array<{ paymentId: string; receiptNumber: string; amount: number }>
@@ -340,7 +352,14 @@ export interface PaymentPreview {
     chargeId: string
     description: string
     netAmount: number
+    taxAmount: number
   }>
+  /** Sum of the nets (subtotal after discounts). */
+  willInvoiceNet: number
+  /** Location's tax rate (%) the new invoice will snapshot; 0 = none. */
+  willInvoiceTaxRate: number
+  willInvoiceTax: number
+  /** net + tax */
   willInvoiceTotal: number
   lines: Array<{
     chargeId: string

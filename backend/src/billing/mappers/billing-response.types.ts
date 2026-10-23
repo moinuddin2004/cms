@@ -36,7 +36,12 @@ export interface ChargeResponse {
   grossAmount: number;
   discount: ChargeDiscountView | null;
   netAmount: number;
+  /** Share of the invoice's sales tax (0 while unbilled / void). */
+  taxAmount: number;
+  /** net + tax (VOID = 0): what the patient owes on the charge. */
+  payableAmount: number;
   allocatedAmount: number;
+  /** net + tax − allocated. */
   balance: number;
   paymentState: ChargePaymentState;
   invoiceId: string | null;
@@ -94,6 +99,10 @@ export interface InvoiceResponse {
   dueDate: string;
   subtotal: number;
   discountTotal: number;
+  /** Sales-tax rate (%) snapshotted at issue; 0 = no tax line. */
+  taxRate: number;
+  taxAmount: number;
+  /** subtotal − discount + tax. */
   totalAmount: number;
   paidAmount: number;
   balanceDue: number;

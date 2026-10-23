@@ -1,3 +1,5 @@
+import { activeCurrency } from '@/lib/currency'
+
 // Integer-only conversions between what people type and what the API
 // stores (paisa). No floating point: "4500.5" is exactly 450050 paisa.
 
@@ -22,8 +24,11 @@ export function paisaToRupeesText(paisa: number): string {
   return frac ? `${whole}.${frac}` : String(whole)
 }
 
-/** 450050 → "PKR 4,500.50". */
-export function formatPaisa(paisa: number, currency = 'PKR'): string {
+/** 450050 → "PKR 4,500.50" (the active clinic's currency by default). */
+export function formatPaisa(
+  paisa: number,
+  currency = activeCurrency(),
+): string {
   const sign = paisa < 0 ? '-' : ''
   const abs = Math.abs(paisa)
   const whole = Math.trunc(abs / 100).toLocaleString('en-PK')

@@ -9,6 +9,8 @@ import { DataSource } from 'typeorm';
 import { CloudinaryModule } from './common/cloudinary';
 import { StorageModule } from './common/storage/storage.module';
 import { APP_GUARD } from '@nestjs/core';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SubscriptionGuard } from './subscriptions/subscription.guard';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { TenantContextGuard } from './auth/guards/tenant-context.guard';
 import { BullModule } from '@nestjs/bull';
@@ -125,6 +127,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
     SettingsRegistryModule,
+    SubscriptionsModule, // plans, trial, manual payments, clinic signup + setup
   ],
   controllers: [AppController],
   providers: [
@@ -144,7 +147,11 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     },
     {
       provide: APP_GUARD,
-      useClass: AccessGuard, // Finally: enforce @Can / @AnyMember, set request.access
+      useClass: AccessGuard, // Then: enforce @Can / @AnyMember, set request.access
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SubscriptionGuard, // Finally: expired subscription = read-only
     },
   ],
 })

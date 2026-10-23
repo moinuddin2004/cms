@@ -9,6 +9,7 @@ import type {
   Refund,
   Statement,
 } from '../../types/billing.types'
+import { hasTax, taxLabel } from '../../lib/tax'
 
 /**
  * Pure print templates (plan §9.3): props in, markup out, no fetching — so
@@ -204,6 +205,9 @@ interface HistoricSnapshot {
 const pickTotals = (h: Record<string, number | string>) => ({
   subtotal: Number(h.subtotal),
   discountTotal: Number(h.discountTotal),
+  // Snapshots taken before sales tax existed carry no tax fields.
+  taxRate: Number(h.taxRate) || 0,
+  taxAmount: Number(h.taxAmount) || 0,
   totalAmount: Number(h.totalAmount),
   paidAmount: Number(h.paidAmount),
   balanceDue: Number(h.balanceDue),
@@ -313,6 +317,9 @@ function InvoiceDoc({
         <MoneyRow label="Subtotal" value={totals.subtotal} />
         {totals.discountTotal > 0 && (
           <MoneyRow label="Discount" value={-totals.discountTotal} />
+        )}
+        {hasTax(totals.taxRate) && (
+          <MoneyRow label={taxLabel(totals.taxRate)} value={totals.taxAmount} />
         )}
         <MoneyRow label="Total" value={totals.totalAmount} bold />
         {inv.status !== 'CANCELLED' && (

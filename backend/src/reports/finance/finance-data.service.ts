@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { sqlRows } from 'src/common/database/sql';
+import { preTaxAllocationSql } from 'src/billing/tax/invoice-tax';
 import { monthStart } from '../core/report-dates';
 import type { ReportScope } from '../core/report.types';
 import { emptyComponents, PnlComponents } from './profit-loss';
@@ -53,6 +54,15 @@ export class FinanceDataService {
         WHERE organization_id = $1 AND location_id = ANY($2) AND refund_date BETWEEN $3 AND $4
         GROUP BY 2
        UNION ALL
+       -- Sales tax on patient invoices is not revenue: take the tax part of
+       -- each allocation (pro rata to net : tax) back out of cash collected.
+       SELECT 'clinicCollected', to_char(pa.created_at AT TIME ZONE $7, 'YYYY-MM'), NULL,
+              -(SUM(pa.amount - ${preTaxAllocationSql('pa', 'c')}) * 100)::bigint
+         FROM payment_allocations pa JOIN charges c ON c.id = pa.charge_id
+        WHERE pa.organization_id = $1 AND pa.location_id = ANY($2)
+          AND pa.created_at >= $5 AND pa.created_at < $6 AND c.tax_amount > 0
+        GROUP BY 2
+       UNION ALL
        SELECT 'labCollected', to_char(received_on, 'YYYY-MM'), NULL, SUM(amount_paisa)
          FROM lab_payments
         WHERE organization_id = $1 AND location_id = ANY($2) AND received_on BETWEEN $3 AND $4
@@ -63,7 +73,7 @@ export class FinanceDataService {
         WHERE organization_id = $1 AND location_id = ANY($2) AND refunded_at >= $5 AND refunded_at < $6
         GROUP BY 2
        UNION ALL
-       SELECT 'clinicBilled', to_char(issue_date, 'YYYY-MM'), NULL, (SUM(total_amount) * 100)::bigint
+       SELECT 'clinicBilled', to_char(issue_date, 'YYYY-MM'), NULL, (SUM(total_amount - tax_amount) * 100)::bigint
          FROM invoices
         WHERE organization_id = $1 AND location_id = ANY($2) AND status = 'ISSUED'
           AND issue_date BETWEEN $3 AND $4

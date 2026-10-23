@@ -6,9 +6,14 @@ import { LocationsService } from './locations.service';
 import { LocationsController } from './locations.controller';
 
 import { AuthModule } from 'src/auth/auth.module';
+import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Location, LocationSettings]), AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Location, LocationSettings]),
+    AuthModule,
+    SubscriptionsModule,
+  ],
   controllers: [LocationsController],
   providers: [LocationsService],
   exports: [LocationsService],

@@ -41,6 +41,28 @@ export class User {
   })
   passwordResetExpires?: Date | null;
 
+  /**
+   * Pending email verification: sha256 of the emailed token. Set only for
+   * self-signups, so existing and admin-created accounts are never asked.
+   */
+  @Column({
+    name: 'email_verification_token',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+  })
+  emailVerificationToken?: string | null;
+
+  @Column({
+    name: 'email_verification_expires',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  emailVerificationExpires?: Date | null;
+
+  @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
+  emailVerifiedAt?: Date | null;
+
   @Column({
     name: 'provider',
     type: 'enum',

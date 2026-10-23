@@ -169,43 +169,13 @@ describe('NotificationSettingsPage', () => {
     api.patch.mockResolvedValue(ok({}))
   })
 
-  it('shows patients OFF by default and saves a rule toggle', async () => {
+  it('hides patient messaging while notifications are in-app only', async () => {
     renderWithClient(<NotificationSettingsPage />)
-    const master = await screen.findByRole('switch', {
-      name: 'Notifications to patients',
-    })
-    expect(master.getAttribute('aria-checked')).toBe('false')
-
-    const whatsapp = screen.getByRole('switch', {
-      name: 'Payment receipt — WhatsApp to patients',
-    })
-    expect(whatsapp.getAttribute('aria-checked')).toBe('false')
-    fireEvent.click(whatsapp)
-    await waitFor(() =>
-      expect(api.put).toHaveBeenCalledWith('/notification-settings/rules', {
-        rules: [
-          {
-            eventCode: 'payment.receipt',
-            audience: 'patient',
-            channel: 'whatsapp',
-            isEnabled: true,
-          },
-        ],
-      }),
-    )
-  })
-
-  it('switching the patient master on calls the audience API', async () => {
-    renderWithClient(<NotificationSettingsPage />)
-    fireEvent.click(
-      await screen.findByRole('switch', { name: 'Notifications to patients' }),
-    )
-    await waitFor(() =>
-      expect(api.patch).toHaveBeenCalledWith(
-        '/notification-settings/audiences/patient',
-        { isEnabled: true },
-      ),
-    )
+    expect(await screen.findByRole('tab', { name: 'Team & labs' })).toBeTruthy()
+    expect(screen.queryByRole('tab', { name: 'Patients' })).toBeNull()
+    expect(
+      screen.queryByRole('switch', { name: 'Notifications to patients' }),
+    ).toBeNull()
   })
 
   it('mandatory in-app rules are locked on the team tab', async () => {

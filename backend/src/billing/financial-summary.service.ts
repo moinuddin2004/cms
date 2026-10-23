@@ -7,6 +7,7 @@ import { Payment } from './entities/payment.entity';
 import { Expense } from './entities/expense.entity';
 import { Charge } from './entities/charge.entity';
 import { Refund } from './entities/refund.entity';
+import { preTaxAllocationSql } from './tax/invoice-tax';
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -125,8 +126,15 @@ export class FinancialSummaryService {
       .andWhere('EXTRACT(MONTH FROM r.refund_date) = :month', { month })
       .andWhere('EXTRACT(YEAR FROM r.refund_date) = :year', { year })
       .getRawOne();
+    const taxCollected = await this.taxCollected(
+      organizationId,
+      locationId,
+      month,
+      year,
+    );
+    // Sales tax collected on patient invoices is not revenue.
     const totalRevenue = round2(
-      num(revenueRow?.sum) - num(refundMonthRow?.sum),
+      num(revenueRow?.sum) - num(refundMonthRow?.sum) - taxCollected,
     );
 
     const expenseRow = await this.expenseRepo
@@ -281,9 +289,10 @@ export class FinancialSummaryService {
         .andWhere('EXTRACT(YEAR FROM r.refund_date) = :y', { y })
         .getRawOne();
 
+      const tax = await this.taxCollected(organizationId, locationId, m, y);
       result.push({
         month: `${MONTH_NAMES[d.getMonth()]} ${y}`,
-        revenue: round2(num(revRow?.sum) - num(refRow?.sum)),
+        revenue: round2(num(revRow?.sum) - num(refRow?.sum) - tax),
         expenses: num(expRow?.sum),
       });
     }
@@ -305,5 +314,28 @@ export class FinancialSummaryService {
         { today },
       )
       .getCount();
+  }
+
+  /**
+   * Tax part of the money allocated to taxed charges from payments dated in
+   * the month (allocations cover net and tax pro rata).
+   */
+  private async taxCollected(
+    organizationId: string,
+    locationId: string,
+    month: number,
+    year: number,
+  ): Promise<number> {
+    const [row]: Array<{ sum: string }> = await this.paymentRepo.query(
+      `SELECT COALESCE(SUM(pa.amount - ${preTaxAllocationSql('pa', 'c')}), 0) AS sum
+         FROM payment_allocations pa
+         JOIN payments p ON p.id = pa.payment_id
+         JOIN charges c ON c.id = pa.charge_id
+        WHERE p.organization_id = $1 AND p.location_id = $2 AND c.tax_amount > 0
+          AND EXTRACT(MONTH FROM p.payment_date) = $3
+          AND EXTRACT(YEAR FROM p.payment_date) = $4`,
+      [organizationId, locationId, month, year],
+    );
+    return num(row?.sum);
   }
 }

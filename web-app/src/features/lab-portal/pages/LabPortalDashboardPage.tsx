@@ -14,7 +14,7 @@ export function LabPortalDashboardPage() {
   return (
     <LabPortalLayout
       title={membership ? `Welcome to ${membership.labName}` : 'Lab portal'}
-      subtitle="Your lab's workspace on MedTrackr."
+      subtitle="Your lab's workspace."
     >
       <div className="space-y-6">
         {isLoading ? (

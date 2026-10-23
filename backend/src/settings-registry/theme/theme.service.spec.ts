@@ -86,7 +86,7 @@ describe('ThemeService', () => {
       '00000000-0000-0000-0000-000000000000',
     );
     expect(result.brand_color).toBe('#2563eb');
-    expect(result.app_name).toBe('MedTrackr');
+    expect(result.app_name).toBe('Clinic Portal');
   });
 
   it('public theme ignores a location of another org', async () => {
@@ -106,7 +106,7 @@ describe('ThemeService', () => {
       actor,
     );
     expect((await theme.resolvePublic(ORG, 'loc-other')).app_name).toBe(
-      'MedTrackr',
+      'Clinic Portal',
     );
     expect((await theme.resolvePublic(ORG, LOC)).app_name).toBe('Mine');
   });
@@ -128,7 +128,7 @@ describe('ThemeService', () => {
       effective: '#111111',
       lockedAbove: true,
     });
-    expect(name).toMatchObject({ effective: 'Smile', inherited: 'MedTrackr' });
+    expect(name).toMatchObject({ effective: 'Smile', inherited: 'Clinic Portal' });
   });
 
   it('location overrides accept name and logos only', async () => {

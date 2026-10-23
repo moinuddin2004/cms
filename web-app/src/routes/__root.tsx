@@ -30,7 +30,7 @@ const PUBLIC_PATHS = [
 
 // Open to everyone, signed in or not, with no redirects (waiting-room TV,
 // lab magic links — the token in the URL is the credential).
-const OPEN_PATHS = ['/display/', '/lab-link/']
+const OPEN_PATHS = ['/display/', '/lab-link/', '/verify-email']
 
 // Work-order QR: signed-in users of either side; the page itself decides
 // between the lab portal and the clinic order, so no workspace redirects.
@@ -41,7 +41,7 @@ const LAB_PORTAL_PATH = '/lab-portal'
 
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
-const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations', '/lab-directory', '/studio']
+const SUPER_ADMIN_SETUP_PATHS = ['/organizations', '/locations', '/lab-directory', '/studio', '/subscriptions']
 
 // Inline script to prevent flash of wrong theme on initial load.
 // Runs synchronously before any React hydration / first paint.
@@ -74,10 +74,10 @@ export const Route = createRootRoute({
         name: 'viewport',
         content: 'width=device-width, initial-scale=1',
       },
-      { title: 'MedTrackr — Dental Clinic Management' },
+      { title: 'Clinic Management' },
       {
         name: 'description',
-        content: 'Production-grade SaaS dental clinic management system',
+        content: 'Clinic management — appointments, patients, billing and staff',
       },
     ],
     links: [

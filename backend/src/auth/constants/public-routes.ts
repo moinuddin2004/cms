@@ -9,6 +9,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'POST', path: '/auth/refresh' },
   { method: 'POST', path: '/auth/forgot-password' },
   { method: 'PATCH', path: '/auth/reset-password' },
+  { method: 'POST', path: '/auth/verify-email' },
   { method: 'POST', path: '/auth/logout' },
   // Login-page theme: theme tokens only (settings-registry ThemeController).
   { method: 'GET', path: '/public/theme/**' },

@@ -6,6 +6,7 @@ import { fieldError } from '@/features/queue'
 import { useServiceOptionForm } from '../hooks/useServiceOptionForm'
 import { OPTION_TYPE_LABEL } from '../types'
 import type { OptionType, ServiceOption } from '../types'
+import { activeCurrency } from '@/lib/currency'
 
 const TYPE_OPTIONS = (Object.keys(OPTION_TYPE_LABEL) as OptionType[]).map(
   (t) => ({ value: t, label: OPTION_TYPE_LABEL[t] }),
@@ -122,7 +123,7 @@ export function ServiceOptionSheet({
         <form.Field name="extraCost">
           {(f) => (
             <FieldWrapper
-              label="Extra cost per unit (PKR)"
+              label={`Extra cost per unit (${activeCurrency()})`}
               htmlFor="opt-cost"
               required
               error={fieldError(f)}

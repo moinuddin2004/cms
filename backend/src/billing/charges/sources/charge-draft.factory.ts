@@ -26,6 +26,7 @@ export type ChargeDraft = Pick<
   | 'grossAmount'
   | 'discountAmount'
   | 'netAmount'
+  | 'taxAmount'
   | 'allocatedAmount'
   | 'chargeDate'
   | 'needsPricing'
@@ -176,6 +177,7 @@ export class ChargeDraftFactory {
       grossAmount: gross,
       discountAmount: 0,
       netAmount: gross,
+      taxAmount: 0,
       allocatedAmount: 0,
       status: ChargeStatus.ACTIVE,
       invoiceId: null,

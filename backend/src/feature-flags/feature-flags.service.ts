@@ -14,7 +14,10 @@ import {
   CreateCatalogItemDto,
   UpdateCatalogItemDto,
 } from './dto/feature-flags.dto';
-import { FEATURE_CATALOG_SEED } from './feature-catalog.seed';
+import {
+  FEATURE_CATALOG_SEED,
+  RETIRED_FEATURE_KEYS,
+} from './feature-catalog.seed';
 import { AppLogger } from 'src/common/services/logger.service';
 import { AccessChangeBus } from 'src/access/version/access-change-bus';
 import {
@@ -104,6 +107,11 @@ export class FeatureFlagsService implements OnModuleInit {
         .orIgnore() // another process may be seeding at the same time
         .execute();
     }
+    // Hide features that aren't built (see RETIRED_FEATURE_KEYS).
+    await this.catalogRepo.update(
+      { key: In(RETIRED_FEATURE_KEYS), isActive: true },
+      { isActive: false },
+    );
     this.logger.info(
       `Feature catalog checked (${missing.length} new of ${FEATURE_CATALOG_SEED.length})`,
       FeatureFlagsService.name,

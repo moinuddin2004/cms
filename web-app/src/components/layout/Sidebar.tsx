@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, ChevronLeft, Loader2, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
@@ -81,7 +81,14 @@ function CollapsedTip({
 }
 
 export function Sidebar() {
-  const { sidebarCollapsed: collapsed, toggleSidebar } = useUIStore()
+  const {
+    sidebarCollapsed,
+    toggleSidebar,
+    mobileSidebarOpen,
+    setMobileSidebarOpen,
+  } = useUIStore()
+  // The phone drawer always shows labels.
+  const collapsed = sidebarCollapsed && !mobileSidebarOpen
   const access = useAccess()
   const viewer = useNavViewer()
   const { user, clearAuth } = useAuthStore()
@@ -89,6 +96,11 @@ export function Sidebar() {
   const navigate = useNavigate()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const navRef = useRef<HTMLElement>(null)
+
+  // Close the phone drawer once a link is followed.
+  useEffect(() => {
+    setMobileSidebarOpen(false)
+  }, [currentPath, setMobileSidebarOpen])
 
   // Restore before paint so the list never flashes back to the top.
   useLayoutEffect(() => {
@@ -261,9 +273,20 @@ export function Sidebar() {
 
   return (
     <TooltipProvider delayDuration={200}>
+      {/* Phone/tablet backdrop behind the open drawer */}
+      {mobileSidebarOpen && (
+        <div
+          aria-hidden
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-200 lg:hidden"
+        />
+      )}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300',
+          'fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:z-40 lg:translate-x-0',
+          mobileSidebarOpen
+            ? 'translate-x-0 shadow-xl'
+            : '-translate-x-full',
           collapsed
             ? 'w-[var(--spacing-sidebar-collapsed)]'
             : 'w-[var(--spacing-sidebar)]',

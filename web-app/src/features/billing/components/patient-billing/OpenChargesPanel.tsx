@@ -113,7 +113,16 @@ export function OpenChargesPanel({
       {
         accessorKey: 'netAmount',
         header: 'Net',
-        cell: ({ row }) => <Money value={row.original.netAmount} />,
+        cell: ({ row }) => (
+          <span className="flex flex-col">
+            <Money value={row.original.netAmount} />
+            {row.original.taxAmount > 0 && (
+              <span className="text-xs text-muted-foreground">
+                + tax <Money value={row.original.taxAmount} />
+              </span>
+            )}
+          </span>
+        ),
       },
       {
         accessorKey: 'allocatedAmount',

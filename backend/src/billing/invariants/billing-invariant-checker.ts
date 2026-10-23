@@ -47,17 +47,17 @@ export class BillingInvariantChecker {
     add(
       'I1',
       await manager.query(
-        `SELECT c.id, c.allocated_amount, c.net_amount, c.status,
+        `SELECT c.id, c.allocated_amount, c.net_amount, c.tax_amount, c.status,
                 COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS actual
            FROM charges c
           WHERE c.organization_id = $1 AND c.location_id = $2 AND c.patient_id = $3
             AND (c.allocated_amount <> COALESCE((SELECT SUM(pa.amount) FROM payment_allocations pa WHERE pa.charge_id = c.id), 0)
               OR c.allocated_amount < 0
-              OR c.allocated_amount > CASE WHEN c.status = 'VOID' THEN 0 ELSE c.net_amount END)`,
+              OR c.allocated_amount > CASE WHEN c.status = 'VOID' THEN 0 ELSE c.net_amount + c.tax_amount END)`,
         args,
       ),
       (r) =>
-        `charge ${r.id}: allocated ${r.allocated_amount} vs SUM ${r.actual}, net ${r.net_amount}, ${r.status}`,
+        `charge ${r.id}: allocated ${r.allocated_amount} vs SUM ${r.actual}, net ${r.net_amount} + tax ${r.tax_amount}, ${r.status}`,
     );
 
     add(
@@ -81,20 +81,23 @@ export class BillingInvariantChecker {
       'I3',
       await manager.query(
         `SELECT i.id, i.total_amount, i.paid_amount, i.balance_due, i.subtotal, i.discount_total,
-                s.gross, s.disc, s.net, s.alloc
+                i.tax_amount, i.tax_rate, s.gross, s.disc, s.net, s.tax, s.alloc
            FROM invoices i
            JOIN LATERAL (
              SELECT COALESCE(SUM(c.gross_amount), 0) AS gross, COALESCE(SUM(c.discount_amount), 0) AS disc,
-                    COALESCE(SUM(c.net_amount), 0) AS net, COALESCE(SUM(c.allocated_amount), 0) AS alloc
+                    COALESCE(SUM(c.net_amount), 0) AS net, COALESCE(SUM(c.tax_amount), 0) AS tax,
+                    COALESCE(SUM(c.allocated_amount), 0) AS alloc
                FROM charges c WHERE c.invoice_id = i.id AND c.status = 'ACTIVE') s ON TRUE
           WHERE i.organization_id = $1 AND i.location_id = $2 AND i.patient_id = $3
             AND i.status = 'ISSUED'
-            AND (i.subtotal <> s.gross OR i.discount_total <> s.disc OR i.total_amount <> s.net
-              OR i.paid_amount <> s.alloc OR i.balance_due <> s.net - s.alloc)`,
+            AND (i.subtotal <> s.gross OR i.discount_total <> s.disc OR i.tax_amount <> s.tax
+              OR i.total_amount <> s.net + s.tax
+              OR i.tax_amount <> ROUND(s.net * i.tax_rate / 100, 2)
+              OR i.paid_amount <> s.alloc OR i.balance_due <> s.net + s.tax - s.alloc)`,
         args,
       ),
       (r) =>
-        `invoice ${r.id}: cached total ${r.total_amount}/paid ${r.paid_amount} vs charges ${r.net}/${r.alloc}`,
+        `invoice ${r.id}: cached total ${r.total_amount} (tax ${r.tax_amount} @ ${r.tax_rate}%)/paid ${r.paid_amount} vs charges ${r.net} + ${r.tax}/${r.alloc}`,
     );
 
     add(
@@ -246,7 +249,8 @@ export class BillingInvariantChecker {
   /**
    * Commission target in SQL numeric (exact decimals, ROUND = half away
    * from zero), deliberately not shared with `commission-math.ts`:
-   * collected = min(allocated, net); NET rate, GROSS rate or fixed share.
+   * collected = pre-tax part of allocated (× net / (net + tax)), capped at
+   * net; NET rate, GROSS rate or fixed share.
    */
   private commissionSql(patientFilter: string): string {
     return `
@@ -256,13 +260,18 @@ export class BillingInvariantChecker {
                p.commission_basis AS basis,
                c.gross_amount * 100 AS gross,
                CASE WHEN c.status = 'VOID' THEN 0 ELSE c.net_amount * 100 END AS net,
-               COALESCE((SELECT SUM(pa.amount) * 100 FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS alloc,
+               CASE WHEN c.status = 'VOID' THEN 0 ELSE c.tax_amount * 100 END AS tax,
+               COALESCE((SELECT SUM(pa.amount) * 100 FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS alloc_all,
                COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS recorded
           FROM charges c
           JOIN compensation_plans p ON p.id = c.commission_plan_id
          WHERE c.organization_id = $1 AND c.location_id = $2 AND ${patientFilter}
            AND c.performing_assignment_id IS NOT NULL
            AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_paisa IS NOT NULL)
+      ), pre AS (
+        SELECT *, CASE WHEN tax = 0 THEN alloc_all
+                       ELSE ROUND(GREATEST(alloc_all, 0) * net / (net + tax)) END AS alloc
+          FROM base
       ), t AS (
         SELECT id, recorded, LEAST(GREATEST(alloc, 0), net) AS collected,
                CASE
@@ -271,7 +280,7 @@ export class BillingInvariantChecker {
                  WHEN basis = 'GROSS' THEN ROUND(LEAST(GREATEST(alloc, 0), net) * gross * rate / (net * 10000))
                  ELSE ROUND(LEAST(GREATEST(alloc, 0), net) * rate / 10000.0)
                END AS target
-          FROM base
+          FROM pre
       )
       SELECT id, recorded, target, collected FROM t WHERE recorded <> target`;
   }

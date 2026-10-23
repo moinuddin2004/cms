@@ -1,4 +1,6 @@
-import { Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun } from 'lucide-react'
+import { TooltipButton } from '@/components/shared/TooltipButton'
+import { useUIStore } from '@/store/ui-store'
 import { LocationSwitcher } from '@/components/layout/LocationSwitcher'
 import { NotificationBell } from '@/features/notifications'
 import { useTheme } from '@/hooks/useTheme'
@@ -28,11 +30,21 @@ export function ThemeToggle() {
 }
 
 export function Topbar() {
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-surface/80 px-6 backdrop-blur-md">
-      {/* Left: workspace identity */}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur-md sm:px-6">
+      {/* Left: menu (phones/tablets) + workspace identity */}
       <div className="flex items-center gap-2.5">
+        <TooltipButton
+          tooltip="Open menu"
+          variant="outline"
+          size="icon"
+          className="size-[38px] lg:hidden"
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          <Menu className="size-[18px]" />
+        </TooltipButton>
         {/* <div className="flex size-9 items-center justify-center rounded-[10px] bg-primary-soft text-primary-text">
           <Building2 className="size-[18px]" />
         </div>
@@ -47,7 +59,7 @@ export function Topbar() {
       </div>
 
       {/* Right: notifications + theme + location */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
         <NotificationBell />
         <ThemeToggle />
         <LocationSwitcher />

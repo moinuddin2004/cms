@@ -32,6 +32,7 @@ import { configApi } from '../../services/billing-v2.api'
 import type { DiscountTypeInput } from '../../services/billing-v2.api'
 import type { DiscountType, ServiceKind } from '../../types/billing.types'
 import { OptionSelect } from '../shared/OptionSelect'
+import { activeCurrency } from '@/lib/currency'
 
 const EMPTY: DiscountTypeValues = {
   name: '',
@@ -72,7 +73,7 @@ function toInput(v: DiscountTypeValues): DiscountTypeInput {
 }
 
 const describe = (t: DiscountType) =>
-  t.kind === 'PERCENTAGE' ? `${t.value}%` : `Rs ${t.value}`
+  t.kind === 'PERCENTAGE' ? `${t.value}%` : `${activeCurrency()} ${t.value}`
 
 /** Owner-defined discount presets (D8). Admin only. */
 const activeSwitch = (
@@ -146,7 +147,7 @@ export function DiscountTypesTab() {
             {row.original.maxAmount ? (
               <span className="text-xs text-muted-foreground">
                 {' '}
-                · max Rs {row.original.maxAmount}
+                · max {activeCurrency()} {row.original.maxAmount}
               </span>
             ) : null}
           </span>
@@ -226,7 +227,7 @@ export function DiscountTypesTab() {
         <EmptyState
           icon={Percent}
           title="No discount types"
-          description="E.g. Staff family 20%, Senior citizen 10%, Rs 500 off."
+          description="E.g. Staff family 20%, Senior citizen 10%, a fixed amount off."
           action={
             <Button size="sm" onClick={() => setEditing('new')}>
               <Plus className="size-3.5" /> Add discount type

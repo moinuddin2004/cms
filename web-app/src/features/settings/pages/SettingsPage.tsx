@@ -12,6 +12,7 @@ import {
   Camera,
   HandCoins,
   BellRing,
+  CreditCard,
 } from 'lucide-react'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
@@ -78,6 +79,7 @@ export function SettingsPage() {
               </button>
             )
           })}
+          <PlanBillingLink />
           <BillingSettingsLink />
           <NotificationSettingsLink />
           <ThemeSettingsLink />
@@ -92,6 +94,21 @@ export function SettingsPage() {
         </div>
       </div>
     </>
+  )
+}
+
+/** The clinic's own subscription (owners only). */
+function PlanBillingLink() {
+  const { isOwner } = useAccess()
+  if (!isOwner) return null
+  return (
+    <Link
+      to="/settings/subscription"
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-text-2 transition-colors hover:bg-panel"
+    >
+      <CreditCard className="size-4" />
+      Plan & billing
+    </Link>
   )
 }
 
@@ -256,7 +273,7 @@ function AppearanceSection() {
   return (
     <SettingsCard
       title="Appearance"
-      description="Choose how MedTrackr looks for you. Select a theme that suits your preference."
+      description="Choose how the app looks for you. Select a theme that suits your preference."
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {themeOptions.map((option) => {

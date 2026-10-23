@@ -23,6 +23,9 @@ import type {
   Treatment,
   TreatmentFormData,
   PatientHistory,
+  ParsedPatientImport,
+  PatientImportRequest,
+  PatientImportResult,
 } from '../types'
 
 // ─── Patients CRUD ──────────────────────────────────────────────────
@@ -59,6 +62,38 @@ export async function exportPatientsCsv(
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
   return { truncated: res.headers['x-export-truncated'] === 'true' }
+}
+
+// ─── Import (Excel / CSV) ───────────────────────────────────────────
+
+/**
+ * Uploads an .xlsx / .csv file to be read (`POST /patients/import/parse`).
+ * Nothing is stored — the server returns headers, rows and a suggested
+ * column mapping.
+ */
+export async function parsePatientImportFile(
+  file: File,
+): Promise<ParsedPatientImport> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post('/patients/import/parse', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120_000,
+  })
+  return data.data
+}
+
+/**
+ * Validates (`dryRun: true`) or creates one batch of mapped patient rows
+ * (`POST /patients/import`). Each row is created like a normal patient.
+ */
+export async function importPatients(
+  body: PatientImportRequest,
+): Promise<PatientImportResult> {
+  const { data } = await api.post('/patients/import', body, {
+    timeout: 600_000,
+  })
+  return data.data
 }
 
 export async function fetchPatientById(id: string): Promise<Patient> {

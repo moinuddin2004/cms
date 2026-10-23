@@ -16,7 +16,7 @@ import { RegisterRequestDto } from './dto/request/register-request.dto';
 import { LoginRequestDto } from './dto/request/login-request.dto';
 import { ForgotPasswordRequestDto } from './dto/request/forgot-password-request.dto';
 import { ResetPasswordRequestDto } from './dto/request/reset-password-request.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { VerifyEmailRequestDto } from './dto/request/verify-email-request.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/publicDecorator';
@@ -82,9 +82,37 @@ export class AuthController {
   @Post('register')
   @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
-  async register(@Body() body: RegisterRequestDto) {
-    const result = await this.authService.register(body);
+  async register(
+    @Body() body: RegisterRequestDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.register(body, req, res);
     return ResponseWrapper.success(result, 'Registration successful');
+  }
+
+  /**
+   * Confirm an email address (token from the verification email).
+   */
+  @Public()
+  @Post('verify-email')
+  @UseGuards(RateLimiterGuard)
+  @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
+  async verifyEmail(@Body() body: VerifyEmailRequestDto) {
+    const result = await this.authService.verifyEmail(body.token);
+    return ResponseWrapper.success(result, 'Email verified');
+  }
+
+  /**
+   * Email a new verification link to the signed-in user.
+   */
+  @ContextFree()
+  @Post('resend-verification')
+  @UseGuards(JwtAuthGuard, RateLimiterGuard)
+  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
+  async resendVerification(@Req() req: any) {
+    const result = await this.authService.resendVerification(req.user.uuid);
+    return ResponseWrapper.success(result, result.message);
   }
 
   /**
@@ -306,71 +334,5 @@ export class AuthController {
       req,
     );
     return ResponseWrapper.success(result, 'Password reset successfully');
-  }
-
-  // ==================== OAUTH PROVIDERS ====================
-
-  @Public()
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {
-    return ResponseWrapper.success(null, 'Redirecting to Google...');
-  }
-
-  @Public()
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req: any, @Res() res: Response) {
-    const { refreshToken, sessionId } = await this.authService.handleOAuthLogin(
-      req.user,
-      req,
-    );
-
-    const cookieValue = `${sessionId}:${refreshToken}`;
-    res.cookie('refresh_token', cookieValue, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    const redirect = (req.query.redirect as string) || '/dashboard';
-    const redirectUrl = (redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/dashboard';
-    return res.redirect(
-      `http://localhost:3000/?oauth=true&redirect=${redirectUrl}`,
-    );
-  }
-
-  @Public()
-  @Get('github')
-  @UseGuards(AuthGuard('github'))
-  async githubAuth() {
-    return ResponseWrapper.success(null, 'Redirecting to GitHub...');
-  }
-
-  @Public()
-  @Get('github/callback')
-  @UseGuards(AuthGuard('github'))
-  async githubCallback(@Req() req: any, @Res() res: Response) {
-    const { refreshToken, sessionId } = await this.authService.handleOAuthLogin(
-      req.user,
-      req,
-    );
-
-    const cookieValue = `${sessionId}:${refreshToken}`;
-    res.cookie('refresh_token', cookieValue, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    const redirect = (req.query.redirect as string) || '/dashboard';
-    const redirectUrl = (redirect.startsWith('/') && !redirect.startsWith('//')) ? redirect : '/dashboard';
-    return res.redirect(
-      `http://localhost:3000/?oauth=true&redirect=${redirectUrl}`,
-    );
   }
 }

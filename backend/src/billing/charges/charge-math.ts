@@ -2,6 +2,7 @@ import { fromPaisa, lineGross, percentOf, toPaisa } from '../common/money';
 import { Charge } from '../entities/charge.entity';
 import { ChargeStatus, DiscountKind } from '../enums/billing.enums';
 import { ResolvedDiscount } from '../discounts/discount-policy';
+import { chargePayablePaisa } from '../tax/invoice-tax';
 
 /**
  * In-memory charge arithmetic shared by charge routes and invoice-edit
@@ -73,13 +74,13 @@ export function voidCharge(
   charge.voidReason = reason;
 }
 
-/** Charge balance in paisa (VOID = 0). */
+/** Charge balance in paisa: net + tax − allocated (VOID = 0). */
 export const chargeBalancePaisa = (
-  c: Pick<Charge, 'status' | 'netAmount' | 'allocatedAmount'>,
+  c: Pick<Charge, 'status' | 'netAmount' | 'taxAmount' | 'allocatedAmount'>,
 ): number =>
   c.status === ChargeStatus.VOID
     ? 0
-    : toPaisa(c.netAmount) - toPaisa(c.allocatedAmount);
+    : chargePayablePaisa(c) - toPaisa(c.allocatedAmount);
 
 /** Plain snapshot for audit rows (no relations, no Date objects lost). */
 export function chargeSnapshot(c: Charge): Record<string, unknown> {

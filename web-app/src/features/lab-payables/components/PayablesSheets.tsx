@@ -18,6 +18,7 @@ import type {
 } from '../schemas/lab-payables.schema'
 import { METHOD_LABEL } from '../types'
 import type { PaymentMethod, VendorBill } from '../types'
+import { activeCurrency } from '@/lib/currency'
 
 const METHODS = (Object.keys(METHOD_LABEL) as PaymentMethod[]).map((value) => ({
   value,
@@ -224,7 +225,7 @@ export function PayLabSheet({
           <form.Field name="amount">
             {(f) => (
               <FormInput
-                label="Amount (PKR)"
+                label={`Amount (${activeCurrency()})`}
                 required
                 inputMode="decimal"
                 value={f.state.value}

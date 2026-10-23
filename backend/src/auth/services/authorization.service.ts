@@ -21,6 +21,8 @@ export interface AccessibleOrganization {
   slug: string;
   accessSource: 'super_admin' | 'owner' | 'employee';
   specialtyTags: string[];
+  /** ISO 4217 code money is shown in (web app `formatCurrency`). */
+  currency: string;
   locations: AccessibleLocation[];
 }
 
@@ -149,6 +151,7 @@ export class AuthorizationService {
           slug: org.slug,
           accessSource: 'super_admin',
           specialtyTags: org.specialtyTags ?? ['general'],
+          currency: org.currency ?? 'PKR',
           locations: locations.map((loc) => ({
             id: loc.id,
             name: loc.name,
@@ -197,6 +200,7 @@ export class AuthorizationService {
         slug: ow.organization.slug,
         accessSource: 'owner',
         specialtyTags: ow.organization.specialtyTags ?? ['general'],
+        currency: ow.organization.currency ?? 'PKR',
         locations: locations.map((loc) => ({
           id: loc.id,
           name: loc.name,
@@ -234,6 +238,7 @@ export class AuthorizationService {
           slug: asgn.organization.slug,
           accessSource: 'employee',
           specialtyTags: asgn.organization.specialtyTags ?? ['general'],
+          currency: asgn.organization.currency ?? 'PKR',
           locations: [],
         });
       }

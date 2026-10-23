@@ -181,8 +181,8 @@ describe('BrandMark', () => {
 
   it('falls back to the initial and name without a logo', () => {
     render(<BrandMark />)
-    expect(screen.getByText('MedTrackr')).toBeTruthy()
-    expect(screen.getByText('M')).toBeTruthy()
+    expect(screen.getByText('Clinic Portal')).toBeTruthy()
+    expect(screen.getByText('C')).toBeTruthy()
     expect(document.querySelector('img')).toBeNull()
   })
 
@@ -208,8 +208,8 @@ describe('BrandMark', () => {
 
   it('collapsed shows only the mark, labelled with the name', () => {
     render(<BrandMark collapsed />)
-    expect(screen.queryByText('MedTrackr')).toBeNull()
-    expect(screen.getByRole('img', { name: 'MedTrackr' })).toBeTruthy()
+    expect(screen.queryByText('Clinic Portal')).toBeNull()
+    expect(screen.getByRole('img', { name: 'Clinic Portal' })).toBeTruthy()
   })
 
   it('renders both logos for the CSS to pick, or the dark one when inverse', () => {

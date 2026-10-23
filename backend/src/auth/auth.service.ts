@@ -31,6 +31,7 @@ import {
   UserPermissions,
 } from './services/authorization.service';
 import { AccessResolver } from 'src/access/access.resolver';
+import { ClinicSetupService } from 'src/subscriptions/clinic-setup.service';
 import {
   findLabMemberships,
   LabMembership,
@@ -38,6 +39,7 @@ import {
 
 const BCRYPT_SALT_ROUNDS = 12;
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
+const EMAIL_VERIFICATION_EXPIRY_HOURS = 48;
 
 /**
  * Cookie options for refresh token.
@@ -88,28 +90,97 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly authorizationService: AuthorizationService,
     private readonly accessResolver: AccessResolver,
+    private readonly clinicSetup: ClinicSetupService,
   ) {}
 
   /**
-   * Register a new user with email/password.
+   * Self-serve signup: creates the owner's login and their clinic (main
+   * location, 14-day trial — see ClinicSetupService), emails a verification
+   * link, then signs them in like `login()`.
    */
-  @Transactional()
   async register(
     dto: RegisterRequestDto,
-    manager?: EntityManager,
-  ): Promise<{ message: string }> {
+    req: Request,
+    res: Response,
+  ): Promise<LoginResponse> {
     this.logger.info(
       `Registering user with email: ${dto.email}`,
       AuthService.name,
     );
 
     const user = await this.userService.createLocalUser(dto);
+    try {
+      await this.clinicSetup.createClinicForOwner(user, {
+        clinicName: dto.clinicName,
+        phone: dto.phone,
+      });
+    } catch (err) {
+      // No clinic means no usable account — don't leave a dangling login.
+      await this.userRepository.delete(user.uuid);
+      throw err;
+    }
+    await this.sendVerificationEmail(user);
 
     this.logger.info(
       `Registration complete for: ${user.email}`,
       AuthService.name,
     );
-    return { message: 'Registration successful' };
+    return this.login({ email: dto.email, password: dto.password }, req, res);
+  }
+
+  /** New verification token for a self-signup; failures to send are logged only. */
+  private async sendVerificationEmail(user: User): Promise<void> {
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    await this.userRepository.update(user.uuid, {
+      emailVerificationToken: crypto
+        .createHash('sha256')
+        .update(rawToken)
+        .digest('hex'),
+      emailVerificationExpires: new Date(
+        Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000,
+      ),
+    });
+    try {
+      await this.mailService.sendEmailVerification(user.email, rawToken);
+    } catch (err) {
+      this.logger.error(
+        `Verification email to ${user.email} failed: ${(err as Error).message}`,
+        AuthService.name,
+      );
+    }
+  }
+
+  /** Confirm an email address from the link in the verification email. */
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.emailVerificationToken = :tokenHash', { tokenHash })
+      .andWhere('user.emailVerificationExpires > :now', { now: new Date() })
+      .getOne();
+    if (!user) {
+      throw new ValidationFailedException(
+        'This verification link is invalid or has expired',
+      );
+    }
+    await this.userRepository.update(user.uuid, {
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
+      emailVerifiedAt: new Date(),
+    });
+    this.logger.info(`Email verified for: ${user.email}`, AuthService.name);
+    return { message: 'Email verified' };
+  }
+
+  /** Send a fresh link to a signed-in user whose email is still unverified. */
+  async resendVerification(userId: string): Promise<{ message: string }> {
+    const user = await this.userRepository.findOneBy({ uuid: userId });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.emailVerificationToken) {
+      return { message: 'Email already verified' };
+    }
+    await this.sendVerificationEmail(user);
+    return { message: 'Verification email sent' };
   }
 
   /**

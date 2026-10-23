@@ -1,6 +1,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { Money } from '../shared/billing-badges'
 import { formatPaisa } from '../../lib/commission-math'
+import { hasTax, taxLabel } from '../../lib/tax'
 import { useCollect } from './collect-context'
 
 /** Server-computed outcome of the payment (plan §8.2.6). */
@@ -47,6 +48,13 @@ export function CollectSummary() {
           An invoice will be issued for {preview.willInvoice.length} charge
           {preview.willInvoice.length > 1 ? 's' : ''} (
           <Money value={preview.willInvoiceTotal} />
+          {hasTax(preview.willInvoiceTaxRate) && (
+            <>
+              {' '}
+              incl. {taxLabel(preview.willInvoiceTaxRate)}{' '}
+              <Money value={preview.willInvoiceTax} />
+            </>
+          )}
           ).
         </p>
       )}

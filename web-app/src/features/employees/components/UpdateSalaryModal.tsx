@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { useUpdateSalary } from '../hooks/useSetSalary'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { activeCurrency } from '@/lib/currency'
 
 interface UpdateSalaryModalProps {
   employeeId: string
@@ -72,10 +73,10 @@ export function UpdateSalaryModal({
           <form.Field name="grossSalary">
             {(field) => (
               <div className="space-y-2">
-                <Label>Gross Salary (PKR)</Label>
+                <Label>Gross Salary ({activeCurrency()})</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                    PKR
+                    {activeCurrency()}
                   </span>
                   <Input
                     type="number"

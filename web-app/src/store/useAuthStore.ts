@@ -6,6 +6,8 @@ interface Organization {
   slug: string
   accessSource: 'super_admin' | 'owner' | 'employee'
   specialtyTags: string[]
+  /** ISO 4217 code money is shown in; older sessions may lack it. */
+  currency?: string
   locations: Location[]
 }
 
@@ -27,13 +29,15 @@ export interface LabMembership {
   role: 'lab_admin' | 'lab_technician'
 }
 
-interface User {
+export interface User {
   uuid: string
   userUuid?: string
   email: string
   name: string
   globalRole: string | null
   avatarUrl?: string
+  /** Self-signup that hasn't clicked the verification link yet. */
+  emailVerificationPending?: boolean
 }
 
 interface AuthState {

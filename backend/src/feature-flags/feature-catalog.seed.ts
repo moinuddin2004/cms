@@ -12,6 +12,28 @@ export interface FeatureSeed {
   sortOrder: number;
 }
 
+/**
+ * Catalog keys that have no code behind them yet (reminders, online booking,
+ * patient portal, SMS/email, insurance claims, …). Their seed entries below
+ * are commented out, and `seedCatalog()` deactivates any existing row with
+ * these keys so a super admin can't switch on a feature that does nothing.
+ * Uncomment the entry and drop the key from here once it is built.
+ */
+export const RETIRED_FEATURE_KEYS: string[] = [
+  'appointments.reminders',
+  'appointments.recurring',
+  'appointments.online_booking',
+  'appointments.waiting_room',
+  'patients.portal',
+  'patients.crm',
+  'billing.pdf_receipts',
+  'billing.insurance_claims',
+  'billing.online_payments',
+  'comms.sms',
+  'comms.email',
+  'dental.before_after',
+];
+
 export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
   // ── appointments ──
   {
@@ -23,42 +45,42 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: true,
     sortOrder: 0,
   },
-  {
-    key: 'appointments.reminders',
-    name: 'Appointment Reminders',
-    module: 'appointments',
-    description: 'Automated reminders before scheduled appointments.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 1,
-  },
-  {
-    key: 'appointments.recurring',
-    name: 'Recurring Appointments',
-    module: 'appointments',
-    description: 'Repeat appointments on a fixed cadence.',
-    specialtyTags: ['dental', 'ortho', 'physio'],
-    enabledByDefault: false,
-    sortOrder: 2,
-  },
-  {
-    key: 'appointments.online_booking',
-    name: 'Online Booking',
-    module: 'appointments',
-    description: 'Allow patients to book appointments online.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 3,
-  },
-  {
-    key: 'appointments.waiting_room',
-    name: 'Waiting Room',
-    module: 'appointments',
-    description: 'Track checked-in patients waiting to be seen.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 4,
-  },
+  // {
+  //   key: 'appointments.reminders',
+  //   name: 'Appointment Reminders',
+  //   module: 'appointments',
+  //   description: 'Automated reminders before scheduled appointments.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 1,
+  // },
+  // {
+  //   key: 'appointments.recurring',
+  //   name: 'Recurring Appointments',
+  //   module: 'appointments',
+  //   description: 'Repeat appointments on a fixed cadence.',
+  //   specialtyTags: ['dental', 'ortho', 'physio'],
+  //   enabledByDefault: false,
+  //   sortOrder: 2,
+  // },
+  // {
+  //   key: 'appointments.online_booking',
+  //   name: 'Online Booking',
+  //   module: 'appointments',
+  //   description: 'Allow patients to book appointments online.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 3,
+  // },
+  // {
+  //   key: 'appointments.waiting_room',
+  //   name: 'Waiting Room',
+  //   module: 'appointments',
+  //   description: 'Track checked-in patients waiting to be seen.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 4,
+  // },
 
   // ── patients ──
   {
@@ -115,24 +137,24 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 5,
   },
-  {
-    key: 'patients.portal',
-    name: 'Patient Portal',
-    module: 'patients',
-    description: 'Patient-facing self-service portal.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 6,
-  },
-  {
-    key: 'patients.crm',
-    name: 'Patient CRM',
-    module: 'patients',
-    description: 'Referrals, feedback, and recall management.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 7,
-  },
+  // {
+  //   key: 'patients.portal',
+  //   name: 'Patient Portal',
+  //   module: 'patients',
+  //   description: 'Patient-facing self-service portal.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 6,
+  // },
+  // {
+  //   key: 'patients.crm',
+  //   name: 'Patient CRM',
+  //   module: 'patients',
+  //   description: 'Referrals, feedback, and recall management.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 7,
+  // },
 
   // ── billing ──
   {
@@ -144,33 +166,33 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 0,
   },
-  {
-    key: 'billing.pdf_receipts',
-    name: 'PDF Receipts',
-    module: 'billing',
-    description: 'Generate printable PDF receipts.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 1,
-  },
-  {
-    key: 'billing.insurance_claims',
-    name: 'Insurance Claims',
-    module: 'billing',
-    description: 'Submit and track insurance claims.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 2,
-  },
-  {
-    key: 'billing.online_payments',
-    name: 'Online Payments',
-    module: 'billing',
-    description: 'Accept online payments from patients.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 3,
-  },
+  // {
+  //   key: 'billing.pdf_receipts',
+  //   name: 'PDF Receipts',
+  //   module: 'billing',
+  //   description: 'Generate printable PDF receipts.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 1,
+  // },
+  // {
+  //   key: 'billing.insurance_claims',
+  //   name: 'Insurance Claims',
+  //   module: 'billing',
+  //   description: 'Submit and track insurance claims.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 2,
+  // },
+  // {
+  //   key: 'billing.online_payments',
+  //   name: 'Online Payments',
+  //   module: 'billing',
+  //   description: 'Accept online payments from patients.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 3,
+  // },
   {
     key: 'billing.discounts',
     name: 'Discounts & Coupons',
@@ -219,15 +241,15 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
   },
 
   // ── communications ──
-  {
-    key: 'comms.sms',
-    name: 'SMS',
-    module: 'communications',
-    description: 'Send SMS messages to patients.',
-    specialtyTags: ['general'],
-    enabledByDefault: false,
-    sortOrder: 0,
-  },
+  // {
+  //   key: 'comms.sms',
+  //   name: 'SMS',
+  //   module: 'communications',
+  //   description: 'Send SMS messages to patients.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: false,
+  //   sortOrder: 0,
+  // },
   {
     key: 'comms.whatsapp',
     name: 'WhatsApp',
@@ -237,15 +259,15 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 1,
   },
-  {
-    key: 'comms.email',
-    name: 'Email',
-    module: 'communications',
-    description: 'Send email messages to patients.',
-    specialtyTags: ['general'],
-    enabledByDefault: true,
-    sortOrder: 2,
-  },
+  // {
+  //   key: 'comms.email',
+  //   name: 'Email',
+  //   module: 'communications',
+  //   description: 'Send email messages to patients.',
+  //   specialtyTags: ['general'],
+  //   enabledByDefault: true,
+  //   sortOrder: 2,
+  // },
   {
     key: 'comms.in_app',
     name: 'In-App Notifications',
@@ -345,13 +367,13 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 0,
   },
-  {
-    key: 'dental.before_after',
-    name: 'Before / After Photos',
-    module: 'dental',
-    description: 'Capture and compare before/after photos.',
-    specialtyTags: ['dental', 'skin', 'ortho'],
-    enabledByDefault: false,
-    sortOrder: 1,
-  },
+  // {
+  //   key: 'dental.before_after',
+  //   name: 'Before / After Photos',
+  //   module: 'dental',
+  //   description: 'Capture and compare before/after photos.',
+  //   specialtyTags: ['dental', 'skin', 'ortho'],
+  //   enabledByDefault: false,
+  //   sortOrder: 1,
+  // },
 ];

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PatientsController } from './patients.controller';
 import { PatientsService } from './patients.service';
+import { PatientImportService } from './import/patient-import.service';
 import { CommonModule } from 'src/common/common.module';
 
 // Entities
@@ -49,7 +50,7 @@ import { TreatmentsModule } from 'src/treatments/treatments.module';
     ]),
   ],
   controllers: [PatientsController],
-  providers: [PatientsService],
+  providers: [PatientsService, PatientImportService],
   exports: [PatientsService],
 })
 export class PatientsModule {}

@@ -7,11 +7,23 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react'
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  Phone,
+  User,
+} from 'lucide-react'
+import { useAuthStore } from '@/store/useAuthStore'
 import { AuthLayout } from './AuthLayout'
 
 const registerSchema = z.object({
+  clinicName: z.string().trim().min(2, 'Enter your clinic name'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
+  phone: z.string().trim().max(20, 'At most 20 characters'),
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
@@ -20,10 +32,13 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [globalError, setGlobalError] = useState('')
   const navigate = useNavigate()
+  const setAuth = useAuthStore((state) => state.setAuth)
 
   const form = useForm({
     defaultValues: {
+      clinicName: '',
       name: '',
+      phone: '',
       email: '',
       password: '',
     },
@@ -31,13 +46,30 @@ export function RegisterForm() {
       setGlobalError('')
       try {
         const parsed = registerSchema.parse(value)
-        const response = await apiClient.post('/auth/register', parsed)
+        const response = await apiClient.post('/auth/register', {
+          ...parsed,
+          phone: parsed.phone || undefined,
+        })
 
         if (response.data?.isSuccess) {
-          toast.success('Account created!', {
-            description: 'Please sign in with your new credentials',
+          // Signup also signs in (same payload as /auth/login).
+          const d = response.data.data
+          setAuth({
+            user: d.user,
+            accessToken: d.accessToken,
+            isSuperAdmin: d.isSuperAdmin,
+            accessSource: d.accessSource,
+            requiresOrgSelection: d.requiresOrgSelection,
+            requiresLocationSelection: d.requiresLocationSelection,
+            accessibleOrganizations: d.accessibleOrganizations,
+            activeOrganizationId: d.activeOrganizationId,
+            activeLocationId: d.activeLocationId,
+            labMemberships: d.labMemberships ?? [],
           })
-          navigate({ to: '/login' })
+          toast.success('Your clinic is ready', {
+            description: 'Your 14-day free trial has started.',
+          })
+          navigate({ to: '/setup' })
         }
       } catch (err: any) {
         if (err instanceof z.ZodError) {
@@ -59,10 +91,10 @@ export function RegisterForm() {
       {/* Header */}
       <div className="mb-7">
         <div className="text-2xl font-extrabold tracking-tight text-foreground">
-          Create an account
+          Start your free trial
         </div>
         <div className="text-sm text-muted-foreground mt-1.5">
-          Enter your details to get started
+          Create your clinic — 14 days free, no card needed
         </div>
       </div>
 
@@ -73,10 +105,34 @@ export function RegisterForm() {
           form.handleSubmit()
         }}
       >
+        {/* Clinic name field */}
+        <div className="mb-4">
+          <Label htmlFor="register-clinic" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
+            Clinic Name
+          </Label>
+          <form.Field name="clinicName">
+            {(field) => (
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                <Input
+                  id="register-clinic"
+                  placeholder="City Care Clinic"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  required
+                  autoComplete="organization"
+                  className="h-11 pl-[38px] rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
+                />
+              </div>
+            )}
+          </form.Field>
+        </div>
+
         {/* Name field */}
         <div className="mb-4">
           <Label htmlFor="register-name" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
-            Full Name
+            Your Name
           </Label>
           <form.Field name="name">
             {(field) => (
@@ -115,6 +171,30 @@ export function RegisterForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="email"
+                  className="h-11 pl-[38px] rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
+                />
+              </div>
+            )}
+          </form.Field>
+        </div>
+
+        {/* Phone field */}
+        <div className="mb-4">
+          <Label htmlFor="register-phone" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
+            Phone <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <form.Field name="phone">
+            {(field) => (
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+                <Input
+                  id="register-phone"
+                  type="tel"
+                  placeholder="0300 1234567"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  autoComplete="tel"
                   className="h-11 pl-[38px] rounded-[10px] bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
                 />
               </div>
@@ -189,10 +269,10 @@ export function RegisterForm() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  Creating your clinic...
                 </>
               ) : (
-                'Create account'
+                'Create clinic'
               )}
             </Button>
           )}

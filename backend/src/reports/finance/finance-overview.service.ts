@@ -5,6 +5,7 @@ import { ClockService } from 'src/common/clock/clock.service';
 import { addDays } from 'src/common/clock/tz.util';
 import { sqlRows } from 'src/common/database/sql';
 import { fromPaisa } from 'src/billing/common/money';
+import { preTaxAllocationSql } from 'src/billing/tax/invoice-tax';
 import {
   addMonths,
   monthLabel,
@@ -272,7 +273,7 @@ export class FinanceOverviewService {
             WHERE c.organization_id = $1 AND c.location_id = ANY($2) AND c.status = 'ACTIVE'
               AND i.status = 'ISSUED' AND i.issue_date BETWEEN $3 AND $4
             GROUP BY 1, 2`
-        : `SELECT c.doctor_id, e.full_name AS name, (SUM(pa.amount) * 100)::bigint AS v
+        : `SELECT c.doctor_id, e.full_name AS name, (SUM(${preTaxAllocationSql('pa', 'c')}) * 100)::bigint AS v
              FROM payment_allocations pa
              JOIN charges c ON c.id = pa.charge_id
              LEFT JOIN employees e ON e.id = c.doctor_id

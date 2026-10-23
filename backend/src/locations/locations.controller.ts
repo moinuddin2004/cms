@@ -1,3 +1,4 @@
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { UpdateLocationSettingsDto } from './dto/update-location-settings.dto';
 import {
   Controller,
@@ -49,6 +50,7 @@ export class LocationsController {
     private readonly locationsService: LocationsService,
     private readonly authorizationService: AuthorizationService,
     private readonly resolver: AccessResolver,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /**
@@ -115,6 +117,10 @@ export class LocationsController {
       dto.organizationId ?? header(req, 'x-organization-id'),
       this.activeLocation(req),
     );
+    // Plan limit — super admins may go over it.
+    if (!(await this.authorizationService.isSuperAdmin(req.user.uuid))) {
+      await this.subscriptions.assertCanAddLocation(organizationId);
+    }
 
     const location = await this.locationsService.create(
       organizationId,

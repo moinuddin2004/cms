@@ -11,9 +11,24 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="flex min-h-screen h-screen">
+    <div className="relative flex min-h-screen h-screen overflow-hidden bg-white dark:bg-slate-950">
+      {/* ──────────────── Brand backdrop ──────────────── */}
+      {/* Clinic brand colour (theme → --primary) on the right, masked so it fades into the
+          page background behind the form instead of meeting it at a hard edge. */}
+      <div className="hidden lg:block absolute inset-y-0 right-0 w-[64%] pointer-events-none bg-primary [mask-image:linear-gradient(to_right,transparent,black_38%)] [-webkit-mask-image:linear-gradient(to_right,transparent,black_38%)]">
+        {/* Depth over the brand colour */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/5 via-black/20 to-black/45" />
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.05)_1px,transparent_1px)] bg-[size:48px_48px]" />
+        {/* Glow orbs */}
+        <div className="absolute w-[520px] h-[520px] rounded-full -top-[180px] -right-[160px] bg-white/10 blur-3xl" />
+        <div className="absolute w-[420px] h-[420px] rounded-full -bottom-[160px] left-[30%] bg-white/10 blur-3xl" />
+      </div>
+      {/* Soft brand glow behind the form ties both sides together */}
+      <div className="absolute w-[520px] h-[520px] rounded-full top-1/2 -translate-y-1/2 -left-[200px] bg-primary/10 dark:bg-primary/15 blur-3xl pointer-events-none" />
+
       {/* ──────────────── Form panel ──────────────── */}
-      <div className="flex-1 min-w-0 bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
+      <div className="relative flex-1 min-w-0 flex flex-col overflow-y-auto">
         {/* Clinic brand (small screens, where the brand panel is hidden) + theme toggle */}
         <div className="flex items-center justify-between px-6 pt-5 lg:justify-end">
           <BrandMark className="lg:hidden" />
@@ -37,26 +52,8 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         </div>
       </div>
 
-      {/* ──────────────── Brand panel ──────────────── */}
-      <div
-        className="hidden lg:flex flex-1 min-w-0 relative overflow-hidden flex-col text-white p-[52px]"
-        style={{ background: 'linear-gradient(150deg, #0f172a 0%, #1e3a5f 55%, #0e4f6b 100%)' }}
-      >
-        {/* Subtle grid overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-        {/* Glow orbs */}
-        <div className="absolute w-[500px] h-[500px] rounded-full -top-[180px] -right-[160px]"
-          style={{ background: 'radial-gradient(circle, rgba(59,130,246,.18) 0%, transparent 70%)' }} />
-        <div className="absolute w-[360px] h-[360px] rounded-full -bottom-[120px] -left-[100px]"
-          style={{ background: 'radial-gradient(circle, rgba(6,182,212,.14) 0%, transparent 70%)' }} />
-
+      {/* ──────────────── Brand content (over the solid part of the backdrop) ──────────────── */}
+      <div className="hidden lg:flex relative w-[40%] min-w-0 flex-col text-white p-[52px]">
         {/* Logo */}
         <div className="relative">
           <BrandMark tone="inverse" />
@@ -64,41 +61,19 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
         {/* Main content */}
         <div className="relative mt-auto">
-      
-
           <h1 className="text-[38px] font-extrabold tracking-tight leading-[1.1] max-w-[420px] text-white">
             One platform.<br />Every workflow.
           </h1>
           <p className="text-[15px] text-white/55 mt-4 max-w-[380px] leading-relaxed">
-            Purpose-built for multi-location clinics — from scheduling and billing to staff management and compliance.
+            Purpose-built for multi-location clinics — from scheduling and billing to staff management and reporting.
           </p>
-
-          {/* Stats row */}
-          <div className="flex gap-8 mt-10">
-            <Stat value="99.9%" label="Uptime SLA" />
-            <Stat value="SOC 2" label="Type II Certified" />
-            <Stat value="HIPAA" label="Compliant" />
-          </div>
         </div>
 
         {/* Footer */}
-        <div className="relative mt-12 flex items-center gap-4 text-xs text-white/30">
-          <span>Privacy Policy</span>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <span>Terms of Service</span>
-          <span className="w-1 h-1 rounded-full bg-white/20" />
-          <span>© 2025 MedTrackr</span>
+        <div className="relative mt-12 text-xs text-white/30">
+          © {new Date().getFullYear()}
         </div>
       </div>
-    </div>
-  )
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div className="text-xl font-bold text-white">{value}</div>
-      <div className="text-xs text-white/45 mt-0.5">{label}</div>
     </div>
   )
 }

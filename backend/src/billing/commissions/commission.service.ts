@@ -58,6 +58,7 @@ interface ChargeCommissionRow {
   status: string;
   gross_paisa: string;
   net_paisa: string;
+  tax_paisa: string;
   allocated_paisa: string;
   already_paisa: string;
 }
@@ -134,7 +135,8 @@ export class CommissionService {
 
   /**
    * The one write path of the ledger. For each charge with a snapshot:
-   * target = commission on min(allocated, net); insert target − SUM(entries)
+   * target = commission on the pre-tax part of allocated, capped at net
+   * (tax is never doctor revenue); insert target − SUM(entries)
    * when it differs. Idempotent (a replay finds nothing to add), drift-free
    * across installments, and it reverses unapply / void / discounts by
    * itself. Settled entries are never touched: a reversal after settlement
@@ -184,6 +186,8 @@ export class CommissionService {
   async previewForAllocations(
     manager: EntityManager,
     lines: Array<{ chargeId: string; amountPaisa: number }>,
+    /** Tax shares not saved yet (unbilled charges about to be invoiced). */
+    taxOverrides: ReadonlyMap<string, number> = new Map(),
   ): Promise<{
     totalPaisa: number;
     byDoctor: Array<{
@@ -201,6 +205,7 @@ export class CommissionService {
     for (const r of rows) {
       const { targetPaisa } = this.targetOf({
         ...r,
+        tax_paisa: String(taxOverrides.get(r.id) ?? r.tax_paisa),
         allocated_paisa: String(
           Number(r.allocated_paisa) + (added.get(r.id) ?? 0),
         ),
@@ -236,6 +241,7 @@ export class CommissionService {
     return commissionTarget({
       allocatedPaisa: Number(r.allocated_paisa),
       netPaisa: r.status === 'VOID' ? 0 : Number(r.net_paisa),
+      taxPaisa: r.status === 'VOID' ? 0 : Number(r.tax_paisa),
       grossPaisa: Number(r.gross_paisa),
       basis: r.basis,
       rateBps: r.rate_bps,
@@ -258,6 +264,7 @@ export class CommissionService {
               p.commission_basis AS basis, c.status,
               (c.gross_amount * 100)::bigint AS gross_paisa,
               (c.net_amount * 100)::bigint AS net_paisa,
+              (c.tax_amount * 100)::bigint AS tax_paisa,
               COALESCE((SELECT (SUM(pa.amount) * 100)::bigint
                           FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS allocated_paisa,
               COALESCE((SELECT SUM(ce.amount_paisa)

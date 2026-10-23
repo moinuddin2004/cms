@@ -77,6 +77,29 @@ export class Invoice {
   @MoneyColumn('discount_total')
   discountTotal: number;
 
+  /**
+   * Sales-tax rate (%) snapshotted from the location's settings when the
+   * invoice was issued. Edits re-apply this rate; later setting changes
+   * never touch it. 0 = no tax (and every pre-tax invoice).
+   */
+  @Column({
+    name: 'tax_rate',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    default: 0,
+    transformer: {
+      to: (value: number | null | undefined) => value,
+      from: (value: string | null) => (value === null ? 0 : Number(value)),
+    },
+  })
+  taxRate: number;
+
+  /** Exclusive tax = SUM(ACTIVE charges.tax_amount) = round(net × rate). */
+  @MoneyColumn('tax_amount')
+  taxAmount: number;
+
+  /** subtotal − discount + tax. */
   @MoneyColumn('total_amount')
   totalAmount: number;
 

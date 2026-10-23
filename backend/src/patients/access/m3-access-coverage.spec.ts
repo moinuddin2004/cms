@@ -105,6 +105,8 @@ describe('M3 access coverage', () => {
     ['GET /patients', 'patients.view'],
     ['GET /patients/:id', 'patients.view'],
     ['POST /patients', 'patients.create'],
+    ['POST /patients/import/parse', 'patients.create'],
+    ['POST /patients/import', 'patients.create'],
     ['PUT /patients/:id', 'patients.edit'],
     ['DELETE /patients/:id', 'patients.delete'],
     ['POST /patients/:id/vitals', 'patients.clinical.edit'],

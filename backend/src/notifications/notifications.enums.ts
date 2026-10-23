@@ -54,29 +54,37 @@ export const PENDING_STATUSES = [
 export const isInternalAudience = (a: NotificationAudience) =>
   a !== NotificationAudience.PATIENT;
 
-/** Channels an audience can be reached on — the toggles the settings screen shows. */
+/**
+ * Channels an audience can be reached on — the toggles the settings screen
+ * shows, and the only channels `channelsFor()` ever queues.
+ *
+ * In-app only for now: WhatsApp, SMS and email have no real provider yet
+ * (only the dev-log stand-in), so they are commented out. Patients have no
+ * in-app inbox, so they get nothing until a provider is wired — uncomment
+ * the channels here when it is.
+ */
 export const CHANNELS_BY_AUDIENCE: Record<
   NotificationAudience,
   NotificationChannel[]
 > = {
   [NotificationAudience.PATIENT]: [
-    NotificationChannel.WHATSAPP,
-    NotificationChannel.SMS,
+    // NotificationChannel.WHATSAPP,
+    // NotificationChannel.SMS,
   ],
   [NotificationAudience.DOCTOR]: [
     NotificationChannel.IN_APP,
-    NotificationChannel.WHATSAPP,
-    NotificationChannel.EMAIL,
+    // NotificationChannel.WHATSAPP,
+    // NotificationChannel.EMAIL,
   ],
   [NotificationAudience.COORDINATOR]: [
     NotificationChannel.IN_APP,
-    NotificationChannel.WHATSAPP,
-    NotificationChannel.EMAIL,
+    // NotificationChannel.WHATSAPP,
+    // NotificationChannel.EMAIL,
   ],
   [NotificationAudience.LAB]: [
     NotificationChannel.IN_APP,
-    NotificationChannel.WHATSAPP,
-    NotificationChannel.EMAIL,
+    // NotificationChannel.WHATSAPP,
+    // NotificationChannel.EMAIL,
   ],
 };
 

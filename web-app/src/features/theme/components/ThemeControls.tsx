@@ -127,7 +127,7 @@ export function ThemeControls({
           id="theme-app_name"
           value={f.value}
           disabled={disabled}
-          placeholder="MedTrackr"
+          placeholder="Your clinic name"
           onChange={(e) => f.set(e.target.value)}
           onBlur={f.blur}
         />

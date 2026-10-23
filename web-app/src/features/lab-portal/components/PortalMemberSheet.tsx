@@ -29,7 +29,7 @@ export function PortalMemberSheet({
       open={open}
       onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
       title="Add team member"
-      description="The person needs their own MedTrackr account — clinic staff accounts can’t join an outside lab."
+      description="The person needs their own account — clinic staff accounts can’t join an outside lab."
       widthClassName="sm:max-w-md"
       footer={
         <>

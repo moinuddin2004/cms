@@ -15,7 +15,7 @@ export interface ClinicTheme {
 export type ThemeKey = keyof ClinicTheme
 
 export const DEFAULT_THEME: ClinicTheme = {
-  app_name: 'MedTrackr',
+  app_name: 'Clinic Portal',
   logo_url: null,
   logo_dark_url: null,
   favicon_url: null,

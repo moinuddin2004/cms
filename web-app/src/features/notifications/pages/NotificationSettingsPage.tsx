@@ -21,7 +21,9 @@ const GROUPS: {
   label: string
   audiences: NotificationAudience[]
 }[] = [
-  { value: 'patient', label: 'Patients', audiences: ['patient'] },
+  // Patient messages (WhatsApp/SMS) are off until a real provider is wired —
+  // the backend gives patients no channels (CHANNELS_BY_AUDIENCE).
+  // { value: 'patient', label: 'Patients', audiences: ['patient'] },
   {
     value: 'team',
     label: 'Team & labs',
@@ -50,7 +52,7 @@ export function NotificationSettingsPage() {
   return (
     <DashboardLayout
       title="Notifications"
-      subtitle="Who is told what, on which channel — and the log of every message."
+      subtitle="In-app notifications for your team — and the log of every message."
       backTo="/settings"
       backLabel="Back to settings"
     >
@@ -59,7 +61,7 @@ export function NotificationSettingsPage() {
       ) : overview.isError || !overview.data ? (
         <ErrorState onRetry={() => void overview.refetch()} />
       ) : (
-        <Tabs defaultValue="patient">
+        <Tabs defaultValue="team">
           <TabsList className="h-auto flex-wrap justify-start gap-1 bg-muted/50 p-1">
             {GROUPS.map((g) => (
               <TabsTrigger key={g.value} value={g.value} className="text-sm">

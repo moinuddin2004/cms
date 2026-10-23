@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
+// import { Switch } from '@/components/ui/switch' // only the (hidden) reminders card uses it
 import { toast } from 'sonner'
 import { QueueSettingsSection } from '@/features/queue'
 import { Can } from '@/features/access'
@@ -226,6 +226,8 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
 
       <QueueSettingsSection locationId={locationId} />
 
+      {/* Appointment reminders: hidden until SMS/WhatsApp delivery exists —
+          notifications are in-app only for now (see CHANNELS_BY_AUDIENCE).
       {orgSettings?.featureReminders !== false && (
         <Card>
           <CardHeader>
@@ -271,6 +273,7 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
           </CardContent>
         </Card>
       )}
+      */}
 
       {orgSettings?.featureFinance !== false && (
         <Card>

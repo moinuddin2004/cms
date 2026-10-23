@@ -42,6 +42,16 @@
       "port": 3100,
       "cwd": "web-app",
       "autoPort": false
+    },
+    {
+      "name": "signup-test-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/levo/AppData/Local/Temp/claude/C--Users-levo-Desktop-code-cms-cms/bfd8bded-f469-4b9c-b39a-fed3daf96338/scratchpad/signup-test-api.cjs"
+      ],
+      "port": 5100,
+      "cwd": "backend",
+      "autoPort": false
     }
   ]
 }

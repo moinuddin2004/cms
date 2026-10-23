@@ -7,6 +7,8 @@ export class UserDto {
   globalRole: string | null;
   avatarUrl?: string;
   phone?: string;
+  /** A self-signup that hasn't clicked the verification link yet. */
+  emailVerificationPending: boolean;
 
   public static toDto(user: User): UserDto {
     return {
@@ -16,6 +18,7 @@ export class UserDto {
       globalRole: user.globalRole || null,
       avatarUrl: user.avatarUrl,
       phone: user.phone,
+      emailVerificationPending: !!user.emailVerificationToken,
     };
   }
 }

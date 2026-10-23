@@ -1,3 +1,4 @@
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { AccessContext } from 'src/access/access-context';
 import type { AccessResolver } from 'src/access/access.resolver';
@@ -63,12 +64,16 @@ function setup(
       accessibleOrganizations: [{ id: ORG_A }, { id: ORG_B }],
     }),
   };
+  const subscriptions = {
+    assertCanAddLocation: jest.fn().mockResolvedValue(undefined),
+  };
   const controller = new LocationsController(
     service as unknown as LocationsService,
     authorization as unknown as AuthorizationService,
     resolver as unknown as AccessResolver,
+    subscriptions as unknown as SubscriptionsService,
   );
-  return { controller, resolver, service };
+  return { controller, resolver, service, subscriptions };
 }
 
 function req(headers: Record<string, string> = {}) {

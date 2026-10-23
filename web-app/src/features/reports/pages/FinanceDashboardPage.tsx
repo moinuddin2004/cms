@@ -20,12 +20,13 @@ import { ReportFilters } from '../components/ReportFilters'
 import { useFinanceOverview, useReportQuery } from '../hooks/use-reports'
 import { compactMoney, periodLabel } from '../lib/report-format'
 import type { FinanceOverview } from '../types/reports.types'
+import { activeCurrency } from '@/lib/currency'
 
 /** Older balances are worse: fresh → green, 90+ days → red. */
 const AGING_TONE: Tone[] = ['emerald', 'primary', 'amber', 'danger', 'danger']
 const ACCOUNT_TONE: Tone[] = ['primary', 'violet', 'emerald', 'neutral']
 
-const pkr = (n: number) => `PKR ${compactMoney(n)}`
+const pkr = (n: number) => `${activeCurrency()} ${compactMoney(n)}`
 
 /**
  * The owner's money screen: is the clinic making a profit, where revenue

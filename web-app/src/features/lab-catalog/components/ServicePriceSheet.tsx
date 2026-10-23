@@ -8,6 +8,7 @@ import { usePriceForm } from '../hooks/usePriceForm'
 import { useLabClinics } from '../hooks/usePlatformCatalog'
 import { catalogToday } from '../lib/money'
 import type { PriceWindow } from '../types'
+import { activeCurrency } from '@/lib/currency'
 
 const LIST = '__list__'
 
@@ -111,7 +112,7 @@ export function ServicePriceSheet({
           <form.Field name="unitPrice">
             {(f) => (
               <FieldWrapper
-                label="Price per unit (PKR)"
+                label={`Price per unit (${activeCurrency()})`}
                 htmlFor="price-unit"
                 required
                 error={fieldError(f)}
@@ -130,7 +131,7 @@ export function ServicePriceSheet({
           <form.Field name="rushSurcharge">
             {(f) => (
               <FieldWrapper
-                label="Rush surcharge (PKR)"
+                label={`Rush surcharge (${activeCurrency()})`}
                 htmlFor="price-rush"
                 error={fieldError(f)}
               >

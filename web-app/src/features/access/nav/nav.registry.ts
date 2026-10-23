@@ -4,6 +4,7 @@ import {
   Banknote,
   BookmarkPlus,
   Building2,
+  ReceiptText,
   CalendarDays,
   ClipboardList,
   CreditCard,
@@ -215,6 +216,12 @@ export const NAV_ITEMS = {
     href: '/organizations',
     superAdminOnly: true,
   },
+  'nav.subscriptions': {
+    label: 'Subscriptions',
+    icon: ReceiptText,
+    href: '/subscriptions',
+    superAdminOnly: true,
+  },
   'nav.lab_directory': {
     label: 'Lab Directory',
     icon: FlaskConical,
@@ -402,6 +409,7 @@ export const DEFAULT_NAV_LAYOUT: NavLayout = {
       label: 'Admin',
       items: [
         { key: 'nav.organizations' },
+        { key: 'nav.subscriptions' },
         { key: 'nav.lab_directory' },
         {
           label: 'Config Studio',

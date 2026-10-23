@@ -325,7 +325,7 @@ export function patientReports(db: DataSource): ReportDefinition[] {
         const rows = await sqlRows<ReportRow>(
           db,
           `WITH b AS (
-             SELECT c.patient_id, SUM(c.net_amount) AS billed, SUM(c.allocated_amount) AS paid
+             SELECT c.patient_id, SUM(c.net_amount + c.tax_amount) AS billed, SUM(c.allocated_amount) AS paid
                FROM charges c JOIN invoices i ON i.id = c.invoice_id
               WHERE c.organization_id = $1 AND c.location_id = ANY($2) AND c.status = 'ACTIVE'
                 AND i.status = 'ISSUED' AND i.issue_date BETWEEN $3 AND $4

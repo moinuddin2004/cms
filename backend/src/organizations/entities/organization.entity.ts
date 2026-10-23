@@ -67,6 +67,22 @@ export class Organization {
   isActive: boolean;
 
   /**
+   * Subscription (see src/subscriptions). Both null = an unmanaged clinic
+   * (created by a super admin before subscriptions existed): no expiry and
+   * no plan limits. Self-signup sets `trialEndsAt`; recording a payment
+   * moves `paidUntil` forward.
+   */
+  @Column({ name: 'trial_ends_at', type: 'timestamptz', nullable: true })
+  trialEndsAt: Date | null;
+
+  @Column({ name: 'paid_until', type: 'timestamptz', nullable: true })
+  paidUntil: Date | null;
+
+  /** Self-signup clinics go through the setup wizard once (`/setup`). */
+  @Column({ name: 'onboarding_pending', type: 'boolean', default: false })
+  onboardingPending: boolean;
+
+  /**
    * +1 on every access change in the org (roles, assignments, feature
    * flags, ownership); access caches key on it. Written only by
    * AccessVersionService (raw SQL) — never by entity saves, which would

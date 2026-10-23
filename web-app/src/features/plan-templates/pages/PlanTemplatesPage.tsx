@@ -44,6 +44,7 @@ import {
 } from '../types'
 import type { PlanTemplate } from '../types'
 import { PlanTemplateForm } from '../components/PlanTemplateForm'
+import { activeCurrency } from '@/lib/currency'
 
 /**
  * The clinic's predefined treatment plans (Root Canal, Implant…). A doctor
@@ -281,7 +282,7 @@ function TemplateCard({
       <p className="mb-3 text-xs text-muted-foreground">
         {t.items.length} procedure{t.items.length === 1 ? '' : 's'} · {sessions}{' '}
         visit{sessions === 1 ? '' : 's'}
-        {total != null && ` · Rs. ${total.toLocaleString()}`}
+        {total != null && ` · ${activeCurrency()} ${total.toLocaleString()}`}
       </p>
       <div className="flex items-center justify-between border-t border-border pt-3">
         <TooltipProvider>

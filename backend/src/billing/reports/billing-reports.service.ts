@@ -6,6 +6,7 @@ import { PatientTreatmentPlan } from 'src/patients/entities/patient-treatment-pl
 import { BillingClock } from '../common/billing-clock.service';
 import { notFound } from '../common/billing-errors';
 import { fromPaisa, roundRupees, toPaisa } from '../common/money';
+import { preTaxAllocationSql } from '../tax/invoice-tax';
 
 export interface DoctorRevenueRow {
   doctorId: string | null;
@@ -52,7 +53,7 @@ export class BillingReportsService {
             AND i.status = 'ISSUED' AND i.issue_date BETWEEN $3 AND $4
           GROUP BY c.doctor_id),
        collected AS (
-         SELECT c.doctor_id, SUM(pa.amount) AS collected
+         SELECT c.doctor_id, SUM(${preTaxAllocationSql('pa', 'c')}) AS collected
            FROM payment_allocations pa JOIN charges c ON c.id = pa.charge_id
           WHERE pa.organization_id = $1 AND pa.location_id = $2
             AND pa.created_at >= $5 AND pa.created_at < $6
@@ -109,6 +110,7 @@ export class BillingReportsService {
     const [row]: Array<Record<string, string>> = await this.dataSource.query(
       `SELECT
          COALESCE(SUM(c.net_amount) FILTER (WHERE i.status = 'ISSUED'), 0) AS billed,
+         COALESCE(SUM(c.tax_amount) FILTER (WHERE i.status = 'ISSUED'), 0) AS tax,
          COALESCE(SUM(c.net_amount) FILTER (WHERE c.invoice_id IS NULL), 0) AS unbilled,
          COALESCE(SUM(c.allocated_amount), 0) AS paid,
          (SELECT COALESCE(SUM(estimated_cost), 0) FROM treatment_plan_items WHERE plan_id = $3) AS items_total
@@ -132,7 +134,8 @@ export class BillingReportsService {
       unbilled: fromPaisa(unbilled),
       notYetCharged: fromPaisa(Math.max(0, estimate - billed - unbilled)),
       paid: fromPaisa(paid),
-      balance: fromPaisa(billed - paid),
+      // Billed is pre-tax (vs the plan estimate); what is owed includes tax.
+      balance: fromPaisa(billed + toPaisa(row.tax) - paid),
     };
   }
 }

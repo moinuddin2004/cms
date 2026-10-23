@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { BackButton } from '@/components/shared/BackButton'
 import { usePageTitle } from '@/hooks/useBackNavigation'
+import { AccountBanner } from '@/features/account/components/AccountBanner'
 
 interface DashboardLayoutProps {
   children: ReactNode
@@ -34,13 +35,15 @@ export function DashboardLayout({
       <div
         className={cn(
           'transition-all duration-300',
+          // No margin on phones/tablets: the sidebar is a drawer there.
           sidebarCollapsed
-            ? 'ml-[var(--spacing-sidebar-collapsed)]'
-            : 'ml-[var(--spacing-sidebar)]',
+            ? 'lg:ml-[var(--spacing-sidebar-collapsed)]'
+            : 'lg:ml-[var(--spacing-sidebar)]',
         )}
       >
         <Topbar />
-        <main className="px-6 py-4">
+        <main className="px-4 py-4 sm:px-6">
+          <AccountBanner />
           {/* Pages that draw their own header get the ← here, only when the
               user came from inside another page; hidden if the page already
               has its own back button (patient detail, report viewer). */}

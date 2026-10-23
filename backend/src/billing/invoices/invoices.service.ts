@@ -39,6 +39,7 @@ import { BillingTotalsService } from '../totals/billing-totals.service';
 import { InvoiceEditHandlers } from './edit-operations/invoice-edit.handlers';
 import { InvoiceEditOperationInput } from './edit-operations/invoice-edit.types';
 import { InvoiceIssuer } from './invoice-issuer.service';
+import { applyInvoiceTax, chargePayablePaisa } from '../tax/invoice-tax';
 import { CommissionService } from '../commissions/commission.service';
 import { CommissionSourceType } from '../commissions/commission.enums';
 import {
@@ -60,6 +61,10 @@ export interface EditPreview {
   oldTotal: number;
   newTotal: number;
   delta: number;
+  /** Snapshot rate of the invoice (%); 0 = no tax line. */
+  taxRate: number;
+  /** Tax on the edited invoice (part of newTotal). */
+  newTaxAmount: number;
   newBalanceDue: number;
   releasedToAdvance: number;
   releases: Array<{ paymentId: string; receiptNumber: string; amount: number }>;
@@ -251,8 +256,14 @@ export class InvoicesService {
       const active = charges
         .filter((c) => c.status === ChargeStatus.ACTIVE)
         .map((c) => c.id);
+      // Back to unbilled: their tax share goes with the cancelled invoice,
+      // which keeps its frozen totals (a re-issue taxes them afresh).
       if (active.length)
-        await manager.update(Charge, { id: In(active) }, { invoiceId: null });
+        await manager.update(
+          Charge,
+          { id: In(active) },
+          { invoiceId: null, taxAmount: 0 },
+        );
       await this.totals.recomputeInvoices(manager, [invoice.id]);
       await this.ledger.post(manager, ctx, {
         patientId: invoice.patientId,
@@ -319,6 +330,9 @@ export class InvoicesService {
     const onInvoice = [...charges.values()].filter(
       (c) => c.invoiceId === invoice.id,
     );
+    // Re-spread the tax at the rate snapshotted at issue — never the
+    // location's current rate (VOID charges drop to 0).
+    applyInvoiceTax(onInvoice, invoice.taxRate);
     await manager.save(onInvoice);
 
     const releases = await this.releaseExcess(manager, ctx, onInvoice, reason);
@@ -385,7 +399,7 @@ export class InvoicesService {
     };
   }
 
-  /** Net below allocated (VOID = 0) → release the excess to advance (6.7 step 4). */
+  /** Net + tax below allocated (VOID = 0) → release the excess to advance (6.7 step 4). */
   private async releaseExcess(
     manager: EntityManager,
     ctx: BillingContext,
@@ -396,7 +410,7 @@ export class InvoicesService {
     for (const c of charges) {
       // Not `-chargeBalancePaisa(c)`: that is 0 for a VOID charge, whose whole
       // allocation must go back to advance (net counts as 0).
-      const cap = c.status === ChargeStatus.VOID ? 0 : toPaisa(c.netAmount);
+      const cap = chargePayablePaisa(c);
       const excess = toPaisa(c.allocatedAmount) - cap;
       if (excess <= 0) continue;
       out.push(
@@ -459,6 +473,8 @@ export class InvoicesService {
       oldTotal: out.oldTotal,
       newTotal: out.newTotal,
       delta: fromPaisa(toPaisa(out.newTotal) - toPaisa(out.oldTotal)),
+      taxRate: out.invoice.taxRate,
+      newTaxAmount: out.invoice.taxAmount,
       newBalanceDue: out.invoice.balanceDue,
       releasedToAdvance: fromPaisa(
         out.releases.reduce((a, r) => a + toPaisa(r.amount), 0),

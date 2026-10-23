@@ -25,7 +25,7 @@ const COPY: Record<
     lockLabel: "Clinics can't change",
     resetTitle: 'Reset platform defaults?',
     resetBody:
-      'Every platform default and lock is cleared, so the built-in MedTrackr look applies to clinics that set nothing.',
+      'Every platform default and lock is cleared, so the built-in look applies to clinics that set nothing.',
     save: 'Save defaults',
   },
 }

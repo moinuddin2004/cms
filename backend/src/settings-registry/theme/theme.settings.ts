@@ -10,7 +10,7 @@ const { ORG, LOCATION } = ConfigScope;
 export const THEME_SETTINGS = {
   appName: defineSetting('theme.app_name', {
     schema: s.string({ min: 1, max: 60 }),
-    default: 'MedTrackr',
+    default: 'Clinic Portal',
     scopes: [ORG, LOCATION],
     lockable: true,
   }),

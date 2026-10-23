@@ -12,8 +12,11 @@ import {
   HttpCode,
   HttpStatus,
   UseInterceptors,
+  UploadedFile,
+  BadRequestException,
   Res,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { DataSource } from 'typeorm';
 import { AuditService } from 'src/common/audit/audit.service';
@@ -28,6 +31,13 @@ import {
   UpdatePatientStatusDto,
 } from './dto/request/update-patient.dto';
 import { PatientQueryDto } from './dto/request/patient-query.dto';
+import { ImportPatientsDto } from './dto/request/import-patients.dto';
+import { PatientImportService } from './import/patient-import.service';
+import {
+  IMPORT_MAX_FILE_BYTES,
+  ImportFileError,
+  parseImportFile,
+} from './import/patient-import';
 import {
   UpsertDentalInfoDto,
   CreateTeethChartDto,
@@ -66,6 +76,7 @@ export class PatientsController {
     private readonly patientsService: PatientsService,
     private readonly audit: AuditService,
     private readonly dataSource: DataSource,
+    private readonly patientImport: PatientImportService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -139,6 +150,55 @@ export class PatientsController {
       'Cache-Control': 'no-store',
     });
     res.end(file.csv);
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // IMPORT (Excel / CSV migration) — same permission as a normal create
+  // ═══════════════════════════════════════════════════════════
+
+  /**
+   * Reads the first sheet of an .xlsx / .csv upload and returns its headers,
+   * rows (trimmed strings, dates as yyyy-mm-dd) and a suggested column →
+   * patient field mapping. Stores nothing.
+   */
+  @Post('import/parse')
+  @HttpCode(HttpStatus.OK)
+  @Can('patients.create')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: IMPORT_MAX_FILE_BYTES, files: 1 },
+    }),
+  )
+  async parseImport(@UploadedFile() file: Express.Multer.File | undefined) {
+    if (!file) throw new BadRequestException('No file provided');
+    try {
+      const data = await parseImportFile(file.buffer, file.originalname);
+      return ResponseWrapper.success(data, 'File read successfully');
+    } catch (err) {
+      if (err instanceof ImportFileError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Validates (`dryRun: true`) or creates mapped patient rows. Each row is
+   * created through the normal patient create, independently of the others.
+   */
+  @Post('import')
+  @HttpCode(HttpStatus.OK)
+  @Can('patients.create')
+  async importPatients(
+    @Body() dto: ImportPatientsDto,
+    @ActiveTenant() ctx: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
+  ) {
+    const data = await this.patientImport.import(ctx, dto, actor);
+    return ResponseWrapper.success(
+      data,
+      dto.dryRun ? 'Import checked' : 'Import finished',
+    );
   }
 
   @Get('check-phone/:phone')

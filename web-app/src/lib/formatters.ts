@@ -1,5 +1,8 @@
+import { activeCurrency } from '@/lib/currency'
+
+/** "PKR 12,500" in the active clinic's currency. */
 export const formatCurrency = (amount: number) =>
-  `PKR ${amount.toLocaleString('en-PK')}`
+  `${activeCurrency()} ${amount.toLocaleString('en-PK')}`
 
 export const formatDate = (date: string | Date | undefined) => {
   if (!date) return '—'

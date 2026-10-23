@@ -113,7 +113,7 @@ export function LabPortalLayout({
               Lab portal
             </p>
             <p className="truncate text-[11px] text-text-3">
-              {membership?.labName ?? 'MedTrackr'}
+              {membership?.labName ?? 'Lab portal'}
             </p>
           </div>
         </div>

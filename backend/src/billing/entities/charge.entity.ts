@@ -27,7 +27,7 @@ import { Invoice } from './invoice.entity';
  * One billable line for a patient — the atomic unit of billing (D1).
  * `invoiceId = null` means unbilled. Price, discount and service kind are
  * snapshots: catalog changes never touch existing charges (D5).
- * Balance is never stored: `netAmount − allocatedAmount`.
+ * Balance is never stored: `netAmount + taxAmount − allocatedAmount`.
  */
 @Entity({ name: 'charges' })
 @Index('idx_charges_patient_open', [
@@ -186,6 +186,14 @@ export class Charge {
 
   @MoneyColumn('net_amount')
   netAmount: number;
+
+  /**
+   * This charge's share of its invoice's sales tax (0 while unbilled).
+   * Payable = net + tax; tax is not revenue and earns no commission.
+   * Written only when the invoice is issued / edited / cancelled.
+   */
+  @MoneyColumn('tax_amount')
+  taxAmount: number;
 
   /** Cached = SUM(allocations.amount); written only by BillingTotalsService. */
   @MoneyColumn('allocated_amount')
