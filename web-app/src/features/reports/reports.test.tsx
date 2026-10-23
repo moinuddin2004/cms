@@ -46,6 +46,13 @@ vi.mock('@tanstack/react-router', () => ({
   ),
   useNavigate: () => vi.fn(),
 }))
+vi.mock('@/hooks/useBackNavigation', () => ({
+  usePageTitle: () => undefined,
+  useBackNavigation: (_to: string, label?: string) => ({
+    label: label ?? 'Back',
+    goBack: vi.fn(),
+  }),
+}))
 vi.mock('@/components/layout/DashboardLayout', () => ({
   // breaks the access barrel → NoAccess → DashboardLayout → Sidebar cycle
   DashboardLayout: ({ children }: { children: ReactNode }) => <>{children}</>,

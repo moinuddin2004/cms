@@ -182,7 +182,7 @@ export function RoleDetailPage({ roleId }: { roleId: string }) {
           remove.mutate(role.id, {
             onSuccess: () => {
               setDeleting(false)
-              void navigate({ to: '/admin/roles' })
+              void navigate({ to: '/admin/roles', replace: true })
             },
             onError: (err) => {
               toastRoleError(err)

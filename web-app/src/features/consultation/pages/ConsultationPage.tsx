@@ -243,7 +243,8 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
         pending={complete.isPending}
         onConfirm={() =>
           complete.mutate(undefined, {
-            onSuccess: () => void navigate({ to: '/queue/doctor' }),
+            onSuccess: () =>
+              void navigate({ to: '/queue/doctor', replace: true }),
           })
         }
       />

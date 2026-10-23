@@ -83,6 +83,7 @@ export function ReceiveShipmentPage({ token }: { token: string }) {
             void navigate({
               to: '/lab-orders/$orderId',
               params: { orderId: orders[0] },
+              replace: true,
             })
           }
         }}

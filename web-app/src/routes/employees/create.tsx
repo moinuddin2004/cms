@@ -23,7 +23,7 @@ function CreateEmployeePage() {
     try {
       const res = await createMutation.mutateAsync(data)
       toast.success('Employee added successfully')
-      navigate({ to: `/employees/${res.id}` })
+      navigate({ to: `/employees/${res.id}`, replace: true })
     } catch (error: any) {
       const msg =
         error?.response?.data?.message ||

@@ -15,6 +15,7 @@ import { Toaster } from 'sonner'
 import { queryClient } from '@/lib/query-client'
 import apiClient from '@/lib/api'
 import { useTheme } from '@/hooks/useTheme'
+import { useTrackNavHistory } from '@/hooks/useBackNavigation'
 import { ThemeProvider } from '@/features/theme'
 import appCss from '../styles.css?url'
 
@@ -125,6 +126,9 @@ function RootComponent() {
 
   // Initialize theme on app load — keeps dark class in sync
   useTheme()
+
+  // Where each page came from — powers the ← back button
+  useTrackNavHistory()
 
   // On mount, attempt silent refresh to restore session from cookie
   useEffect(() => {

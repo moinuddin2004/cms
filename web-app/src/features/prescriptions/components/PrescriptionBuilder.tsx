@@ -396,6 +396,7 @@ export function PrescriptionBuilder({
     navigate({
       to: '/prescriptions/$prescriptionId',
       params: { prescriptionId: pid },
+      replace: true,
     })
   }
 

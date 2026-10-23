@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/layout/Topbar'
 import { BackButton } from '@/components/shared/BackButton'
+import { usePageTitle } from '@/hooks/useBackNavigation'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import apiClient from '@/lib/api'
@@ -70,6 +71,7 @@ export function LabPortalLayout({
   backTo?: string
   backLabel?: string
 }) {
+  usePageTitle(title)
   const { isLabAdmin, membership } = useActiveLab()
   const user = useAuthStore((s) => s.user)
   const hasClinic = useAuthStore((s) => s.accessibleOrganizations.length > 0)

@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
 import {
   Activity,
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   FolderOpen,
   History,
@@ -14,6 +12,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { BackButton } from '@/components/shared/BackButton'
+import { usePageTitle } from '@/hooks/useBackNavigation'
 import { InitialsAvatar } from '@/components/shared'
 import { Can } from '@/features/access'
 import { cn } from '@/lib/utils'
@@ -46,6 +46,7 @@ export function ConsultationHeader({
   onComplete: () => void
   completing: boolean
 }) {
+  usePageTitle(`${patient.fullName}'s consultation`)
   const { encounter, queueEntry, doctor } = workspace
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -62,18 +63,7 @@ export function ConsultationHeader({
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2 px-3 py-2 sm:gap-x-3 lg:px-4">
-        <TooltipButton
-          tooltip="Back to my queue"
-          tooltipSide="bottom"
-          variant="ghost"
-          size="icon"
-          className="size-9 shrink-0"
-          asChild
-        >
-          <Link to="/queue/doctor">
-            <ArrowLeft className="size-5" />
-          </Link>
-        </TooltipButton>
+        <BackButton to="/queue/doctor" label="Back to my queue" size="lg" />
 
         <div className="hidden sm:block">
           <InitialsAvatar name={patient.fullName} size="sm" />
