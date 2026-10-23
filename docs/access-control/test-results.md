@@ -315,3 +315,9 @@ Test tooling added (not product changes): the acceptance specs and harness, `npm
 - All DB work used only schema `acceptit` (dropped at the end of the run); `public` and the shared `labs_it_*` / billing / tenancy schemas were not touched.
 - The API process for the browser run used `search_path=acceptit,public`; it was started on :5100 and the web app on :3100, both stopped afterwards. The developer's :3000 server was not touched.
 - `web-app/node_modules` in this worktree is a real copy (a junction to the main checkout broke Vite's nitro environment).
+
+## Existing suites after the run
+
+- `npx jest` (backend): 701 tests pass (698 before + GRD-03, GRD-06, SEC-05). One worker was killed by the OS (SIGTERM, machine overloaded) in the full run; that suite (`price-resolver`, 21 tests) passes when run alone.
+- `npx vitest run` (web): 32 files, 325 tests pass (284 before + 41 acceptance tests).
+- The acceptance API suite is not part of `npx jest`; run it with `npm run test:int:acceptance` (own schema `acceptit`, ~10 min per spec file on a loaded machine). Set `ACCEPT_IT_REUSE_SCHEMA=1` to keep the built schema between runs.
