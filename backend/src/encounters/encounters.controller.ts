@@ -89,7 +89,9 @@ export class EncountersController {
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
+    await this.encountersService.assertPatientInScope(id, ctx, access);
     const data = await this.encountersService.findOne(id, ctx);
     return ResponseWrapper.success(data, 'Encounter retrieved successfully');
   }
@@ -102,8 +104,14 @@ export class EncountersController {
     @Param('encounterId', ParseUUIDPipe) encounterId: string,
     @Body() dto: CreateEncounterTreatmentDto,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
     @Req() req: any,
   ) {
+    await this.encountersService.assertPatientInScope(
+      encounterId,
+      ctx,
+      access,
+    );
     const data = await this.treatmentsService.createForEncounter(
       ctx,
       encounterId,

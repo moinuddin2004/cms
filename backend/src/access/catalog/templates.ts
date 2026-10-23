@@ -15,12 +15,16 @@ export interface RoleTemplate {
   permissions: PermissionMap;
 }
 
-/** Clinical acts an admin does not do by default (they clone Doctor for that). */
+/**
+ * Clinical acts an admin does not do by default (they clone Doctor for that).
+ * `queue.doctor.any` is NOT here: the admin runs and force-completes any
+ * doctor's queue (it implies `queue.doctor.own`, so the Admin also gets that
+ * at resolution time).
+ */
 const NOT_FOR_ADMIN: readonly Permission[] = [
   'consultation.conduct',
   'prescriptions.create',
   'queue.doctor.own',
-  'queue.doctor.any',
   'earnings.own.view',
 ];
 

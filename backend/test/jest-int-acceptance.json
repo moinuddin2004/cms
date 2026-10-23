@@ -1,0 +1,13 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": "access/acceptance/.*\\.int-spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.int.json" }]
+  },
+  "moduleNameMapper": { "^src/(.*)$": "<rootDir>/../src/$1" },
+  "globalSetup": "<rootDir>/access/acceptance/global-setup.ts",
+  "globalTeardown": "<rootDir>/access/acceptance/global-teardown.ts",
+  "testTimeout": 120000
+}

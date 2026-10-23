@@ -2,7 +2,7 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "testRegex": "access/.*\\.int-spec\\.ts$",
+  "testRegex": "access/(?!acceptance/).*\\.int-spec\\.ts$",
   "transform": {
     "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.int.json" }]
   },
