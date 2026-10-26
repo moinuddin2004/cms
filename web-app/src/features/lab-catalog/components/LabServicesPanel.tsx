@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { MoreHorizontal, Package, Pencil, Plus, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {

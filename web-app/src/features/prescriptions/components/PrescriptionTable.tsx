@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@/components/shared/table-features'
 import { format, formatDistanceToNow } from 'date-fns'
 import { Eye, Stethoscope } from 'lucide-react'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'

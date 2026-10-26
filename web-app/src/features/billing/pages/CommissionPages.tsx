@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { Banknote, CheckCircle2, Clock, HandCoins, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/shared/DataTable'

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { Link } from '@tanstack/react-router'
 import {
   ArrowRight,

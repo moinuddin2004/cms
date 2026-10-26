@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { HandCoins, Undo2, Wallet } from 'lucide-react'
 import {
   Select,

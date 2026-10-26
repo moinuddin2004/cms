@@ -1,13 +1,8 @@
 import { useState, memo } from 'react'
-import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  flexRender,
-  type ColumnDef,
-  type SortingState,
-} from '@tanstack/react-table'
+import { useTable, flexRender } from '@tanstack/react-table'
+import type { RowData, SortingState } from '@tanstack/react-table'
+import { dataTableFeatures } from './table-features'
+import type { ColumnDef } from './table-features'
 import {
   Table,
   TableBody,
@@ -31,7 +26,7 @@ export interface ServerPagination {
   pageSizeOptions?: number[]
 }
 
-interface DataTableProps<TData> {
+interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<TData, unknown>[]
   data: TData[]
   // Loading
@@ -66,7 +61,7 @@ function SortIcon({ isSorted }: { isSorted: false | 'asc' | 'desc' }) {
   )
 }
 
-function DataTableInner<TData>({
+function DataTableInner<TData extends RowData>({
   columns,
   data,
   isLoading = false,
@@ -85,8 +80,12 @@ function DataTableInner<TData>({
   const [sorting, setSorting] = useState<SortingState>([])
 
   const isServerPaginated = !!serverPagination
+  // v9 registers row models statically, so disabling client pagination means
+  // skipping the pagination stage at runtime instead of omitting the row model.
+  const isManuallyPaginated = isServerPaginated || !pagination
 
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     state: {
@@ -99,24 +98,20 @@ function DataTableInner<TData>({
       }),
     },
     initialState: {
-      pagination: { pageSize: defaultPageSize },
+      pagination: { pageIndex: 0, pageSize: defaultPageSize },
     },
-    manualPagination: isServerPaginated,
+    manualPagination: isManuallyPaginated,
     pageCount: isServerPaginated
       ? Math.max(1, Math.ceil(serverPagination.total / serverPagination.pageSize))
       : undefined,
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel:
-      pagination && !isServerPaginated ? getPaginationRowModel() : undefined,
   })
 
   // ─── Pagination props ────────────────────────────────────────────────
   const showPagination = pagination || isServerPaginated
 
-  const clientPageIndex = table.getState().pagination.pageIndex
-  const clientPageSize = table.getState().pagination.pageSize
+  const clientPageIndex = table.state.pagination.pageIndex
+  const clientPageSize = table.state.pagination.pageSize
   const clientTotal = table.getCoreRowModel().rows.length
   const clientTotalPages = table.getPageCount()
 

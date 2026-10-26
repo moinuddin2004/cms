@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { DataTable } from '@/components/shared'
 import type { QueuePermissions } from '../hooks/useQueuePermissions'
 import { ENTRY_STATUS_LABELS } from '../types'

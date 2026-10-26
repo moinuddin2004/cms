@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@/components/shared/table-features'
 import { Edit2, PowerOff, Settings, ToggleRight } from 'lucide-react'
 import { DataTable } from '@/components/shared/DataTable'
 import { TooltipButton } from '@/components/shared/TooltipButton'

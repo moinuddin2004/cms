@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { Eye } from 'lucide-react'
 import { DataTable } from '@/components/shared/DataTable'
 import type { ServerPagination } from '@/components/shared/DataTable'

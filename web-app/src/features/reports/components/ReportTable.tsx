@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { DataTable } from '@/components/shared/DataTable'
 import { cn } from '@/lib/utils'
 import { formatReportValue } from '../lib/report-format'
@@ -42,7 +42,7 @@ export function ReportTable({
             {c.header}
           </span>
         ),
-        sortingFn: numeric(c) ? 'basic' : 'alphanumeric',
+        sortFn: numeric(c) ? 'basic' : 'alphanumeric',
         cell: ({ row }) => {
           const v = row.original[c.key]
           if (c.key === 'status' && typeof v === 'string') {

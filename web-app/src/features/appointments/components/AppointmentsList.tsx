@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Can } from '@/features/access'
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@/components/shared/table-features'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import {

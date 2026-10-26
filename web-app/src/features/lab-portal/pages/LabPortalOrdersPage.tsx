@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { useNavigate } from '@tanstack/react-router'
 import { ClipboardList } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'

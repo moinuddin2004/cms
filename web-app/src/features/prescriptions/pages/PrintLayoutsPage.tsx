@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Can } from '@/features/access/components/Can'
-import type { ColumnDef } from '@tanstack/react-table'
+import type { ColumnDef } from '@/components/shared/table-features'
 import { LayoutTemplate, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

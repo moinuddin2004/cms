@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { formatPaisa } from '@/features/billing/lib/commission-math'
-import { type ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@/components/shared/table-features'
 import type { PayrollRecord, PayrollStatus } from '../types'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { PayrollStatusBadge } from './PayrollStatusBadge'
