@@ -1,0 +1,35 @@
+# Glossary — ch25-labs
+
+- **Lab** — a dental laboratory, external (cross-tenant) or internal (owned by one organization) (`labs`).
+- **Lab link** — a clinic organization's connection to a lab, with status, payment terms and patient data level (`lab_clinic_links`).
+- **Lab member** — a user who works at a lab: lab admin or lab technician (`lab_members`).
+- **Magic link** — a no-login link for a lab to one order; only the token hash is stored (`magic_links`).
+- **Service category (lab)** — a platform-level grouping of lab services within a specialty (`service_categories`).
+- **Lab service** — something a lab makes (`lab_services`).
+- **Lab service option** — a material or variant of a lab service with extra cost (`lab_service_options`).
+- **Lab service price** — a list or clinic-negotiated price window (`lab_service_prices`).
+- **Service mapping** — which lab service fulfils which clinic billing service (`service_mappings`).
+- **Order template** — a doctor's saved starting point for a lab order (`order_templates`).
+- **Lab order** — a lab case: items for one patient, doctor and lab (`lab_orders`).
+- **Lab order item** — one piece of work with frozen price snapshots (`lab_order_items`).
+- **Item tooth** — one tooth of an item (`item_teeth`).
+- **Dental item details** — typed dental columns promoted from form answers (`dental_item_details`).
+- **Item form response** — an item's form answers against its pinned form version (`item_form_responses`).
+- **Attachment** — a file on an order or item (`attachments`).
+- **Order message** — clinic-to-lab conversation entry (`order_messages`).
+- **Order revision** — a full snapshot of what the lab was asked to make, per revision (`order_revisions`).
+- **Charge request** — an extra charge the lab asks for after submit (`order_charge_requests`).
+- **Item stage** — one try-in round of one stage of an item (`order_item_stages`).
+- **Item assignment** — which lab technician works on an item (`item_assignments`).
+- **Shipment** — a parcel between clinic and lab (`shipments`); **shipment item** — one item in it (`shipment_items`).
+- **Remake request** — a request to redo an item (`remake_requests`).
+- **Item warranty** — the warranty that starts at delivery (`item_warranties`).
+- **Patient lab invoice** — a patient invoice for lab work; drafts are estimates (`lab_invoices`); lines in `lab_invoice_lines`.
+- **Lab payment** — money from a patient for lab work (`lab_payments`); allocations in `lab_payment_allocations`.
+- **Lab credit note** — a downward correction of an issued patient lab invoice (`lab_credit_notes`).
+- **Lab refund** — money paid back to a patient for lab work (`lab_refunds`); sources in `lab_refund_sources`.
+- **Lab billing settings** — per-organization lab tax rate and due days (`lab_billing_settings`).
+- **Vendor bill** — what the clinic owes a lab (`vendor_bills`); lines in `vendor_bill_lines`.
+- **Vendor payment** — money the clinic paid a lab (`vendor_payments`); allocations in `vendor_payment_allocations`.
+- **Lab statement** — a lab's monthly statement reconciled against bills (`lab_statements`); lines in `lab_statement_lines`.
+- **UUID version 7** — a time-ordered UUID whose first 48 bits are the creation time in milliseconds (`uuid_generate_v7()`).
