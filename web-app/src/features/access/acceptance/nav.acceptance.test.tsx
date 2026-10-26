@@ -49,10 +49,11 @@ vi.mock('@tanstack/react-router', () => ({
   useRouter: () => ({
     getMatchedRoutes: (path: string) => {
       const matched = router.routes[path]
-      return {
-        foundRoute: matched ? {} : undefined,
-        matchedRoutes: (matched ?? []).map((r) => ({ options: r })),
-      }
+      return [
+        (matched ?? []).map((r) => ({ options: r })),
+        {},
+        matched ? {} : undefined,
+      ]
     },
   }),
 }))

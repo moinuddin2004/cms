@@ -17,7 +17,7 @@ export function useHomeRoute(): string {
 
   const routeRequirements = useCallback<RouteRequirementsFn>(
     (path) => {
-      const { foundRoute, matchedRoutes } = router.getMatchedRoutes(path)
+      const [matchedRoutes, , foundRoute] = router.getMatchedRoutes(path)
       if (!foundRoute) return null
       return matchedRoutes
         .map((r) => r.options.staticData?.can)
