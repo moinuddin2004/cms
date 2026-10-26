@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant Doctor
+    participant Web as Web app
+    participant API
+    participant PS as PrescriptionService
+    participant PDF as PrescriptionPdfService
+    participant Store as File storage
+    participant DB as PostgreSQL
+    Doctor->>Web: Press "Sign & print"
+    Web->>API: Flush autosave, PATCH /prescriptions/id with all medicines
+    Web->>API: GET /doctor-signatures/my
+    Note over Web: No saved signature, so the sign dialog opens and the drawing is saved with POST /doctor-signatures
+    Web->>API: POST /prescriptions/id/finalize with signatureImageUrl
+    API->>PS: finalize
+    PS->>DB: Check status DRAFT or AMENDED and at least one medicine
+    PS->>DB: Set FINALIZED, signed_at, signature, clear pdf_url
+    PS->>PDF: generatePdfUrl, best effort
+    PDF->>Store: Upload PDF to prescriptions folder
+    PS->>DB: Save pdf_url and history row FINALIZED
+    Web->>API: GET /prescriptions/id/pdf
+    API->>PDF: generatePdfBuffer, built fresh every time
+    API-->>Web: application/pdf inline
+    Web-->>Doctor: In-app PDF preview with Print

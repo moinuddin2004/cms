@@ -1,0 +1,7 @@
+stateDiagram-v2
+    direction LR
+    state "not blacklisted" as clear
+    state "blacklisted" as listed
+    [*] --> clear : POST /patients
+    clear --> listed : PUT /patients/id<br/>isBlacklisted true, API only
+    listed --> clear : PUT /patients/id<br/>isBlacklisted false, API only

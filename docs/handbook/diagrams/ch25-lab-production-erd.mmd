@@ -1,0 +1,74 @@
+erDiagram
+  lab_orders ||--o{ lab_order_items : "contains, RESTRICT"
+  lab_order_items ||--o{ order_item_stages : "try-in rounds, RESTRICT"
+  lab_orders ||--o{ order_item_stages : "RESTRICT"
+  stage_template_steps |o--o{ order_item_stages : "copied from, RESTRICT"
+  workflow_template_versions ||--o{ order_item_stages : "pinned, RESTRICT"
+  lab_order_items ||--o{ item_assignments : "worked on, RESTRICT"
+  lab_members ||--o{ item_assignments : "assigned, RESTRICT"
+  shipments ||--o{ shipment_items : "carries, RESTRICT"
+  lab_orders ||--o{ shipment_items : "RESTRICT"
+  lab_order_items ||--o{ shipment_items : "RESTRICT"
+  order_item_stages |o--o{ shipment_items : "RESTRICT"
+  lab_orders ||--o{ remake_requests : "RESTRICT"
+  lab_order_items ||--o{ remake_requests : "original item, RESTRICT"
+  lab_order_items |o--o| remake_requests : "new item, RESTRICT"
+  lab_order_items ||--o| item_warranties : "RESTRICT"
+  item_warranties |o..o{ remake_requests : "warranty_id, no FK"
+  order_item_stages {
+    uuid id PK "uuid v7"
+    uuid item_id FK
+    int seq
+    int round_no
+    varchar status_code
+    bool is_active "one per item"
+    enum outcome
+  }
+  item_assignments {
+    uuid id PK
+    uuid item_id FK
+    uuid lab_member_id FK
+    timestamptz unassigned_at "one open per item"
+  }
+  shipments {
+    uuid id PK
+    varchar shipment_no "unique per org"
+    enum direction
+    enum status
+    varchar qr_token UK
+  }
+  shipment_items {
+    uuid id PK
+    uuid shipment_id FK
+    uuid order_item_id FK
+    enum contents
+    enum qc_result
+  }
+  remake_requests {
+    uuid id PK
+    uuid original_item_id FK
+    uuid new_item_id FK "unique"
+    enum responsible_party
+    enum status
+  }
+  item_warranties {
+    uuid id PK
+    uuid item_id FK "unique"
+    date starts_on
+    date ends_on
+  }
+  lab_orders {
+    uuid id PK
+  }
+  lab_order_items {
+    uuid id PK
+  }
+  lab_members {
+    uuid id PK
+  }
+  stage_template_steps {
+    uuid id PK
+  }
+  workflow_template_versions {
+    uuid id PK
+  }

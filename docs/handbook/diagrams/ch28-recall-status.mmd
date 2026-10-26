@@ -1,0 +1,12 @@
+stateDiagram-v2
+    direction LR
+    [*] --> scheduled : POST /patients/id/recalls
+    scheduled --> reminder_sent : PATCH recalls/recallId
+    scheduled --> contacted : PATCH recalls/recallId
+    scheduled --> booked : PATCH recalls/recallId
+    scheduled --> overdue : PATCH recalls/recallId
+    reminder_sent --> contacted : PATCH
+    contacted --> booked : PATCH
+    booked --> completed : PATCH
+    contacted --> ignored : PATCH
+    overdue --> contacted : PATCH

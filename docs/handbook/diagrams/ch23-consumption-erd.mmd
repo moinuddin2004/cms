@@ -1,0 +1,61 @@
+erDiagram
+  organizations ||--o{ consumption_templates : "CASCADE"
+  consumption_templates ||--o{ consumption_template_items : "CASCADE"
+  inventory_items ||--o{ consumption_template_items : "NO ACTION"
+  patients ||--o{ patient_consumptions : "CASCADE"
+  locations ||--o{ patient_consumptions : "CASCADE"
+  appointments |o--o{ patient_consumptions : "SET NULL"
+  consumption_templates |o--o{ patient_consumptions : "started from, SET NULL"
+  employees ||--o{ patient_consumptions : "performed by, NO ACTION"
+  patient_consumptions ||--o{ patient_consumption_items : "CASCADE"
+  inventory_items ||--o{ patient_consumption_items : "NO ACTION"
+  patient_treatment_plans |o..o{ patient_consumptions : "treatmentPlanId, no FK"
+  consumption_templates {
+    uuid id PK
+    uuid organizationId FK
+    varchar name
+    varchar procedureName
+    varchar appointmentType
+  }
+  consumption_template_items {
+    uuid id PK
+    uuid templateId FK
+    uuid inventoryItemId FK
+    numeric quantity
+  }
+  patient_consumptions {
+    uuid id PK
+    uuid patientId FK
+    uuid appointmentId FK
+    uuid templateId FK
+    uuid performedBy FK
+    numeric totalCost
+  }
+  patient_consumption_items {
+    uuid id PK
+    uuid consumptionId FK
+    uuid inventoryItemId FK
+    numeric quantity
+    numeric unitPrice "snapshot"
+  }
+  inventory_items {
+    uuid id PK
+  }
+  organizations {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+  }
+  patients {
+    uuid id PK
+  }
+  appointments {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }
+  patient_treatment_plans {
+    uuid id PK
+  }

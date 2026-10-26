@@ -1,0 +1,54 @@
+erDiagram
+  services ||--o{ service_prices : "priced per location, RESTRICT"
+  employees |o--o{ service_prices : "doctor price, RESTRICT"
+  services |o..o{ charges : "service_id, no FK"
+  discount_types |o..o{ charges : "discount_type_id, no FK"
+  services }o..o{ discount_types : "service_ids array, no FK"
+  services |o..o{ location_billing_settings : "default consultation, no FK"
+  payment_accounts |o..o{ location_billing_settings : "default account, no FK"
+  services {
+    uuid id PK
+    uuid organization_id "no FK"
+    varchar name "unique per org"
+    enum kind
+    numeric default_price
+    bool is_active
+  }
+  service_prices {
+    uuid id PK
+    uuid service_id FK
+    uuid location_id "no FK"
+    uuid doctor_id FK
+    numeric price
+  }
+  discount_types {
+    uuid id PK
+    uuid organization_id "no FK"
+    varchar name "unique per org"
+    enum kind
+    enum applies_to
+    uuid_array service_ids
+  }
+  payment_accounts {
+    uuid id PK
+    uuid location_id "no FK"
+    varchar name "unique per location"
+    enum method
+    bool counted_in_cash_close
+  }
+  location_billing_settings {
+    uuid location_id PK
+    varchar document_code
+    int due_days
+    uuid default_consultation_service_id
+    uuid default_payment_account_id
+  }
+  charges {
+    uuid id PK
+    uuid service_id
+    uuid discount_type_id
+    enum service_kind
+  }
+  employees {
+    uuid id PK
+  }

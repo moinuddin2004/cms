@@ -1,0 +1,66 @@
+erDiagram
+  locations |o--o{ patients : "primary location"
+  patients ||--o{ patient_visits : "summarised per location"
+  locations ||--o{ patient_visits : "at"
+  patients ||--o{ patient_communications : "contacted"
+  patients ||--o{ patient_recalls : "recalled"
+  patients ||--o{ patient_referrals : "refers"
+  patients |o--o{ patient_referrals : "is referred"
+  patients ||--o{ patient_feedback : "rates"
+  patients ||--o{ patient_insurance : "insured by"
+  appointments |o..o{ patient_communications : "appointment_id, no FK"
+  appointments |o..o{ patient_recalls : "appointment_id, no FK"
+  appointments |o..o{ patient_feedback : "appointment_id, no FK"
+  patients {
+    uuid id PK
+    uuid organization_id FK
+    uuid primary_location_id FK
+    varchar patient_number
+    varchar phone
+    bool is_blacklisted
+  }
+  locations {
+    uuid id PK
+  }
+  patient_visits {
+    uuid id PK
+    uuid patient_id FK
+    uuid location_id FK
+    int visit_count
+    numeric total_spent
+  }
+  patient_communications {
+    uuid id PK
+    uuid patient_id FK
+    enum type
+    enum purpose
+    enum status
+  }
+  patient_recalls {
+    uuid id PK
+    uuid patient_id FK
+    enum recall_type
+    date due_date
+    enum status
+  }
+  patient_referrals {
+    uuid id PK
+    uuid referring_patient_id FK
+    uuid referred_patient_id FK
+    enum status
+  }
+  patient_feedback {
+    uuid id PK
+    uuid patient_id FK
+    int rating
+    bool is_published
+  }
+  patient_insurance {
+    uuid id PK
+    uuid patient_id FK
+    varchar policy_number
+    bool is_active
+  }
+  appointments {
+    uuid id PK
+  }

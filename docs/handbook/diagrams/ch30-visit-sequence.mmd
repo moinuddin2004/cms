@@ -1,0 +1,30 @@
+sequenceDiagram
+    actor Receptionist
+    actor Doctor
+    participant Web as Web app
+    participant API
+    participant Orch as QueueOrchestrator
+    participant DB as PostgreSQL
+    participant Relay as Outbox relay
+    Receptionist->>Web: Check in & get token
+    Web->>API: PATCH /appointments/:id/check-in with Idempotency-Key
+    API->>Orch: checkInAppointment
+    Orch->>DB: lock session, next token, INSERT entry waiting, appointment checked_in, event + outbox
+    Orch-->>Web: token A-007
+    DB-->>Relay: NOTIFY queue_outbox after commit
+    Relay-->>Web: queue.event to board and session rooms, screens refetch
+    Doctor->>Web: Call next
+    Web->>API: POST /queue/sessions/:id/call-next
+    API->>Orch: callNext, SelectionEngine picks
+    Orch->>DB: entry called, event + outbox
+    Orch-->>Web: Calling A-007, TV shows the token
+    Doctor->>Web: Patient is here, start
+    Web->>API: PATCH /queue/entries/:id/start-consultation with If-Match
+    API->>Orch: startConsultation
+    Orch->>DB: entry in_consultation, create patient_encounters row
+    Orch-->>Web: encounterId, web app opens the consultation workspace
+    Doctor->>Web: Complete
+    Web->>API: PATCH /queue/entries/:id/complete with If-Match
+    API->>Orch: complete
+    Orch->>DB: entry completed, appointment completed, charges via ChargeSourcesService
+    Orch-->>Web: Visit completed

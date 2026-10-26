@@ -1,0 +1,66 @@
+erDiagram
+  patients ||--o| patient_dental_info : "has profile"
+  patients ||--o{ patient_teeth_chart : "charted"
+  patients ||--o{ patient_vitals : "measured"
+  patients ||--o{ patient_treatment_plans : "planned"
+  patient_treatment_plans ||--o{ treatment_plan_items : "contains"
+  patients ||--o{ patient_documents : "files"
+  patients ||--o{ patient_consents : "signs"
+  appointments |o..o{ patient_teeth_chart : "appointment_id, no FK"
+  appointments |o..o{ patient_vitals : "appointment_id, no FK"
+  appointments |o..o{ patient_documents : "appointment_id, no FK"
+  appointments |o..o{ patient_consents : "appointment_id, no FK"
+  patients {
+    uuid id PK
+    uuid organization_id FK
+    varchar patient_number
+    varchar full_name
+    bool is_active
+    timestamp deleted_at
+  }
+  patient_dental_info {
+    uuid id PK
+    uuid patient_id FK
+    enum gum_condition
+  }
+  patient_teeth_chart {
+    uuid id PK
+    uuid patient_id FK
+    uuid dentist_id
+    jsonb chart_data
+  }
+  patient_vitals {
+    uuid id PK
+    uuid patient_id FK
+    int bp_systolic
+    timestamptz recorded_at
+  }
+  patient_treatment_plans {
+    uuid id PK
+    uuid patient_id FK
+    uuid dentist_id
+    varchar plan_number
+    enum status
+    timestamp deleted_at
+  }
+  treatment_plan_items {
+    uuid id PK
+    uuid plan_id FK
+    varchar procedure_name
+    enum status
+  }
+  patient_documents {
+    uuid id PK
+    uuid patient_id FK
+    enum document_type
+    timestamp deleted_at
+  }
+  patient_consents {
+    uuid id PK
+    uuid patient_id FK
+    enum consent_type
+    bool is_agreed
+  }
+  appointments {
+    uuid id PK
+  }

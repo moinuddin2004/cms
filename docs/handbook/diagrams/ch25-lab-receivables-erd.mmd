@@ -1,0 +1,82 @@
+erDiagram
+  patients ||--o{ lab_invoices : "billed, RESTRICT"
+  lab_orders |o--o{ lab_invoices : "for order, RESTRICT"
+  lab_invoices ||--o{ lab_invoice_lines : "RESTRICT"
+  lab_order_items |o--o{ lab_invoice_lines : "billed as, RESTRICT"
+  order_charge_requests |o--o{ lab_invoice_lines : "billed as, RESTRICT"
+  patients ||--o{ lab_payments : "pays, RESTRICT"
+  lab_payments |o--o| lab_payments : "reversal of, RESTRICT"
+  lab_payments ||--o{ lab_payment_allocations : "RESTRICT"
+  lab_invoices ||--o{ lab_payment_allocations : "RESTRICT"
+  lab_invoices ||--o{ lab_credit_notes : "corrected by, RESTRICT"
+  patients ||--o{ lab_refunds : "RESTRICT"
+  lab_credit_notes |o--o{ lab_refunds : "paid out as, RESTRICT"
+  lab_refunds ||--o{ lab_refund_sources : "RESTRICT"
+  lab_payments ||--o{ lab_refund_sources : "funds, RESTRICT"
+  patients ||..o{ lab_credit_notes : "patient_id, no FK"
+  lab_invoices {
+    uuid id PK "uuid v7"
+    varchar invoice_no "null while draft"
+    uuid patient_id FK
+    uuid order_id FK
+    enum status
+    bigint total_paisa
+    bigint balance_paisa
+  }
+  lab_invoice_lines {
+    uuid id PK
+    uuid invoice_id FK
+    enum line_kind
+    uuid lab_order_item_id FK
+    bigint line_total_paisa
+    bool is_void
+  }
+  lab_payments {
+    uuid id PK
+    varchar receipt_no "unique per org"
+    bigint amount_paisa "negative on reversal"
+    uuid reversal_of_id FK "unique"
+    enum status
+  }
+  lab_payment_allocations {
+    uuid id PK
+    uuid payment_id FK
+    uuid invoice_id FK
+    bigint amount_paisa
+    timestamptz reversed_at
+  }
+  lab_credit_notes {
+    uuid id PK
+    uuid invoice_id FK
+    bigint amount_paisa
+    bigint released_paisa
+    enum status
+  }
+  lab_refunds {
+    uuid id PK
+    uuid credit_note_id FK
+    bigint amount_paisa
+  }
+  lab_refund_sources {
+    uuid id PK
+    uuid refund_id FK
+    uuid payment_id FK
+    bigint amount_paisa
+  }
+  lab_billing_settings {
+    uuid organization_id PK
+    int tax_rate_bp
+    int due_days
+  }
+  patients {
+    uuid id PK
+  }
+  lab_orders {
+    uuid id PK
+  }
+  lab_order_items {
+    uuid id PK
+  }
+  order_charge_requests {
+    uuid id PK
+  }

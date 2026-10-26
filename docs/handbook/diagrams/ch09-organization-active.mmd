@@ -1,0 +1,5 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Active : POST /organizations<br/>or self-signup
+    Active --> Inactive : DELETE /organizations/id
+    Inactive --> Active : PATCH /organizations/id<br/>isActive true, API only

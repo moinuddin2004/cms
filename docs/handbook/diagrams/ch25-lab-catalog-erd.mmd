@@ -1,0 +1,71 @@
+erDiagram
+  labs ||--o{ lab_services : "makes, RESTRICT"
+  specialties ||--o{ lab_services : "RESTRICT"
+  specialties ||--o{ service_categories : "RESTRICT"
+  service_categories ||--o{ lab_services : "files, RESTRICT"
+  form_schemas |o--o{ lab_services : "order form, RESTRICT"
+  workflow_templates |o--o{ lab_services : "item workflow, RESTRICT"
+  stage_templates |o--o{ lab_services : "try-in stages, RESTRICT"
+  lab_services ||--o{ lab_service_options : "RESTRICT"
+  lab_services ||--o{ lab_service_prices : "RESTRICT"
+  services ||--o{ service_mappings : "clinic treatment, RESTRICT"
+  lab_services ||--o{ service_mappings : "RESTRICT"
+  labs |o--o{ order_templates : "RESTRICT"
+  specialties ||--o{ order_templates : "RESTRICT"
+  lab_services {
+    uuid id PK "uuid v7"
+    uuid lab_id FK
+    uuid category_id FK
+    varchar code "unique per lab"
+    enum unit_type
+    int default_turnaround_days
+  }
+  lab_service_options {
+    uuid id PK "uuid v7"
+    uuid lab_service_id FK
+    enum option_type
+    bigint extra_cost_paisa
+  }
+  lab_service_prices {
+    uuid id PK "uuid v7"
+    uuid lab_service_id FK
+    uuid organization_id FK "null = list price"
+    bigint unit_price_paisa
+    date effective_from
+    date effective_to
+  }
+  service_mappings {
+    uuid id PK "uuid v7"
+    uuid organization_id FK
+    uuid clinic_treatment_id FK
+    uuid lab_service_id FK
+    bool is_default
+  }
+  order_templates {
+    uuid id PK "uuid v7"
+    uuid organization_id FK
+    uuid owner_user_id "no FK"
+    jsonb template_json
+  }
+  service_categories {
+    uuid id PK
+    varchar code
+  }
+  labs {
+    uuid id PK
+  }
+  specialties {
+    uuid id PK
+  }
+  services {
+    uuid id PK
+  }
+  form_schemas {
+    uuid id PK
+  }
+  workflow_templates {
+    uuid id PK
+  }
+  stage_templates {
+    uuid id PK
+  }

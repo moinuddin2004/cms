@@ -1,0 +1,54 @@
+erDiagram
+  organizations ||--o{ expenses : "CASCADE"
+  locations ||--o{ expenses : "CASCADE"
+  employees |o--o{ expenses : "recorded by, SET NULL"
+  labs |o..o{ expenses : "lab_id, no FK"
+  lab_orders |o..o{ expenses : "lab_order_id, no FK"
+  organizations ||--o{ credit_packages : "CASCADE"
+  credit_packages |o--o{ patient_credits : "bought from, SET NULL"
+  patients ||--o{ patient_credits : "CASCADE"
+  organizations ||--o{ patient_credits : "CASCADE"
+  employees |o--o{ patient_credits : "purchased by, SET NULL"
+  expenses {
+    uuid id PK
+    uuid organization_id FK
+    uuid location_id FK
+    enum category
+    numeric amount
+    date expense_date
+    uuid recorded_by FK
+  }
+  credit_packages {
+    uuid id PK
+    uuid organization_id FK
+    varchar name
+    numeric total_credits
+    numeric price
+    int validity_days
+  }
+  patient_credits {
+    uuid id PK
+    uuid patient_id FK
+    uuid credit_package_id FK
+    numeric remaining_amount
+    date expiry_date
+    enum status
+  }
+  organizations {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }
+  patients {
+    uuid id PK
+  }
+  labs {
+    uuid id PK
+  }
+  lab_orders {
+    uuid id PK
+  }

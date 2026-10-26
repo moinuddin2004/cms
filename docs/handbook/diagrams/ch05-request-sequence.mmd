@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor Receptionist
+    participant Web as Web app
+    participant Axios as apiClient
+    participant API as API guards and pipe
+    participant Svc as PatientsService
+    participant DB as PostgreSQL
+    Receptionist->>Web: Fill the New Patient form, click Add Patient
+    Web->>Axios: createPatient, blank fields removed
+    Axios->>API: POST /patients with Bearer token, x-organization-id, x-location-id
+    API->>API: JwtAuthGuard checks the access token
+    API->>DB: TenantContextGuard checks owner or active assignment at the location
+    API->>API: FeatureFlagGuard - no RequireFeature on this route, passes
+    API->>DB: AccessGuard resolves AccessContext, needs patients.create
+    API->>DB: SubscriptionGuard checks read-only mode for this write
+    API->>API: ValidationPipe validates CreatePatientDto
+    API->>Svc: create with tenant context, DTO and actor
+    Svc->>DB: phone already used in this organization?
+    Svc->>DB: count patients to build the patient number
+    Svc->>DB: transaction - INSERT patients, INSERT audit_logs, COMMIT
+    Svc-->>API: PatientResponseDto
+    alt success
+        API-->>Axios: 201 envelope isSuccess true, data, message
+        Axios-->>Web: response
+        Web->>Web: invalidate patients queries, list refetches
+        Web-->>Receptionist: Toast Patient created, offer first appointment
+    else any error, for example 409 phone exists
+        API-->>Axios: GlobalExceptionFilter envelope isSuccess false, message
+        Axios-->>Web: rejected promise
+        Web-->>Receptionist: Toast with the message
+    end

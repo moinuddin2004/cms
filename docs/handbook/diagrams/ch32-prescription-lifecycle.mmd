@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> DRAFT : POST /prescriptions
+    DRAFT --> DRAFT : PATCH /prescriptions/id<br/>or medicine line edits
+    DRAFT --> FINALIZED : POST /prescriptions/id/finalize
+    FINALIZED --> AMENDED : PATCH /prescriptions/id<br/>version plus 1
+    AMENDED --> AMENDED : PATCH or medicine line edits
+    AMENDED --> FINALIZED : POST /prescriptions/id/finalize

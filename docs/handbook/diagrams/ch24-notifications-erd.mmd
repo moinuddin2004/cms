@@ -1,0 +1,77 @@
+erDiagram
+  organizations ||--o{ notification_audience_settings : "CASCADE"
+  organizations ||--o{ notification_rules : "CASCADE"
+  notification_events ||--o{ notification_rules : "RESTRICT"
+  notification_templates |o--o{ notification_rules : "custom wording, SET NULL"
+  organizations |o--o{ notification_templates : "null = platform, CASCADE"
+  notification_events ||--o{ notification_templates : "RESTRICT"
+  organizations ||--o{ notification_outbox : "RESTRICT"
+  notification_events ||--o{ notification_outbox : "RESTRICT"
+  notification_outbox ||--o| user_notifications : "copied to bell, RESTRICT"
+  users ||--o{ user_notifications : "CASCADE"
+  patients ||--o| patient_comm_prefs : "CASCADE"
+  users |o..o{ notification_outbox : "recipient_id when user"
+  patients |o..o{ notification_outbox : "recipient_id when patient"
+  notification_events {
+    text code PK
+    text_array audiences
+    bool is_mandatory_internal
+    text_array variables
+  }
+  notification_rules {
+    uuid id PK "uuid v7"
+    uuid organization_id FK
+    text event_code FK
+    text audience
+    text channel
+    bool is_enabled
+    uuid template_id FK
+  }
+  notification_templates {
+    uuid id PK "uuid v7"
+    uuid organization_id FK "null = platform"
+    text event_code FK
+    text channel
+    text language
+    text body
+  }
+  notification_audience_settings {
+    uuid id PK "uuid v7"
+    uuid organization_id FK
+    text audience "unique per org"
+    bool is_enabled
+    time quiet_start
+    time quiet_end
+  }
+  notification_outbox {
+    uuid id PK "uuid v7"
+    text event_code FK
+    text recipient_type
+    uuid recipient_id
+    text channel
+    text status
+    timestamptz scheduled_for
+  }
+  user_notifications {
+    uuid id PK "uuid v7"
+    uuid user_id FK
+    uuid outbox_id FK "unique"
+    text title
+    timestamptz read_at
+  }
+  patient_comm_prefs {
+    uuid patient_id PK
+    bool whatsapp_opt_out
+    bool sms_opt_out
+    bool email_opt_out
+    text preferred_language
+  }
+  organizations {
+    uuid id PK
+  }
+  users {
+    uuid uuid PK
+  }
+  patients {
+    uuid id PK
+  }

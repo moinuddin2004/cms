@@ -1,0 +1,67 @@
+erDiagram
+    organizations ||--o{ patients : owns
+    locations |o--o{ patients : "primary location"
+    patients ||--o| patient_dental_info : has
+    patients ||--o{ patient_teeth_chart : charted
+    patients ||--o{ patient_vitals : measured
+    patients ||--o{ patient_documents : stores
+    patients ||--o{ patient_consents : signs
+    patients ||--o{ patient_prescriptions : "legacy Rx"
+    patients ||--o{ patient_treatment_plans : planned
+    patient_treatment_plans ||--o{ treatment_plan_items : contains
+    patients {
+        uuid id PK
+        uuid organization_id FK
+        uuid primary_location_id FK
+        varchar patient_number
+        varchar phone
+        boolean is_active
+        boolean is_blacklisted
+    }
+    patient_dental_info {
+        uuid id PK
+        uuid patient_id FK
+        enum gum_condition
+    }
+    patient_teeth_chart {
+        uuid id PK
+        uuid patient_id FK
+        jsonb chart_data
+        boolean is_initial_chart
+    }
+    patient_vitals {
+        uuid id PK
+        uuid patient_id FK
+        int bp_systolic
+        decimal bmi
+    }
+    patient_documents {
+        uuid id PK
+        uuid patient_id FK
+        enum document_type
+        text file_url
+    }
+    patient_consents {
+        uuid id PK
+        uuid patient_id FK
+        enum consent_type
+        text signature_url
+    }
+    patient_prescriptions {
+        uuid id PK
+        uuid patient_id FK
+        varchar prescription_number
+        jsonb medications
+    }
+    patient_treatment_plans {
+        uuid id PK
+        uuid patient_id FK
+        varchar plan_number
+        enum status
+    }
+    treatment_plan_items {
+        uuid id PK
+        uuid plan_id FK
+        varchar procedure_name
+        enum status
+    }

@@ -1,0 +1,13 @@
+flowchart LR
+    Browser["Web app in the browser"] -- "HTTPS REST" --> API["API process, role api<br/>HTTP + Socket.IO gateway<br/>run 2 or more"]
+    Browser <-- "Socket.IO /realtime" --> API
+    API -- "SQL" --> PG[("PostgreSQL")]
+    Worker["Worker process, role worker<br/>outbox relay, notification relay,<br/>scheduled jobs - run exactly one"] -- "SQL" --> PG
+    PG -- "NOTIFY" --> Worker
+    Worker -- "PUBLISH events + heartbeat" --> Redis[("Redis")]
+    Redis -- "SUBSCRIBE" --> API
+    API <-- "access and settings cache invalidation" --> Redis
+    Worker <-- "access cache invalidation" --> Redis
+    API -- "file uploads" --> Cloud["Cloudinary"]
+    API -- "email" --> SMTP["SMTP server"]
+    All["Development: role all<br/>one process does API + worker work,<br/>relay publishes in-process"] -. "same database" .-> PG

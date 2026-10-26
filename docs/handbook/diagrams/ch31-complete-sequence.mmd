@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant Doctor
+    participant Web as Web app
+    participant API
+    participant QO as QueueOrchestrator
+    participant CS as ChargeSourcesService
+    participant DB as PostgreSQL
+    Doctor->>Web: Press "Complete visit", then confirm
+    Web->>API: Flush pending notes and prescription saves
+    Web->>API: PATCH /queue/entries/:id/complete with If-Match version
+    API->>QO: complete
+    QO->>DB: Lock entry, move in_consultation to completed
+    QO->>DB: Mark booked appointment completed
+    QO->>CS: syncForEncounter in the same transaction
+    CS->>DB: Skip if billing.invoices is off, else read encounter and treatments
+    CS->>DB: Insert consultation and treatment charges, ON CONFLICT DO NOTHING
+    CS->>DB: Void unbilled charges whose treatment is gone, write billing audit
+    QO->>DB: Queue event and outbox row, commit
+    API-->>Web: Entry result, no charge data
+    Web-->>Doctor: Toast "Visit completed", back to My Queue

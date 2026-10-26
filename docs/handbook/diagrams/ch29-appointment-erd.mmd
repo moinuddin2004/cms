@@ -1,0 +1,68 @@
+erDiagram
+    organizations ||--o{ appointments : owns
+    locations ||--o{ appointments : hosts
+    patients ||--o{ appointments : books
+    employees ||--o{ appointments : "is doctor of"
+    employees ||--o{ employee_schedules : "works hours"
+    employees ||--o{ employee_org_location_assignments : "is assigned"
+    locations ||--o| location_settings : configures
+    appointments ||--o{ queue_entries : "checked in as"
+    appointments |o--o{ patient_encounters : "source of"
+    appointments {
+        uuid id PK
+        uuid organization_id FK
+        uuid location_id FK
+        uuid patient_id FK
+        uuid doctor_id FK
+        enum status
+        timestamptz start_time
+        timestamptz end_time
+        enum cancel_reason_code
+    }
+    employee_schedules {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        int day_of_week
+        time start_time
+        time end_time
+    }
+    employee_org_location_assignments {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        bool is_active
+        varchar token_prefix
+    }
+    location_settings {
+        uuid id PK
+        uuid location_id FK
+        int appointment_slot_duration
+        int max_appointments_per_day
+    }
+    queue_entries {
+        uuid id PK
+        uuid appointment_id FK
+        uuid queue_session_id FK
+        enum status
+    }
+    patient_encounters {
+        uuid id PK
+        uuid appointment_id FK
+        uuid queue_entry_id FK
+    }
+    patients {
+        uuid id PK
+        varchar full_name
+    }
+    employees {
+        uuid id PK
+        varchar full_name
+    }
+    locations {
+        uuid id PK
+        varchar timezone
+    }
+    organizations {
+        uuid id PK
+    }

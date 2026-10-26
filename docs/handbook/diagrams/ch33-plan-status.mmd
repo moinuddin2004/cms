@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction LR
+    [*] --> draft : POST treatment-plans<br/>default status
+    [*] --> active : POST treatment-plans<br/>status given
+    draft --> active : PATCH planId
+    active --> on_hold : PATCH planId
+    on_hold --> active : PATCH planId
+    active --> completed : PATCH planId
+    draft --> cancelled : PATCH planId
+    active --> cancelled : PATCH planId
+    on_hold --> cancelled : PATCH planId

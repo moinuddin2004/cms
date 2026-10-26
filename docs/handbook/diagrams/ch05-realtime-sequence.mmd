@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Receptionist
+    participant API as API process
+    participant DB as PostgreSQL
+    participant Relay as OutboxRelayService
+    participant Redis
+    participant GW as QueueGateway
+    participant Web as Web app
+    Receptionist->>API: Queue action, for example check-in
+    API->>DB: BEGIN, lock the queue session row, update the entry
+    API->>DB: INSERT queue_events and 3 outbox rows, pg_notify queue_outbox
+    API->>DB: COMMIT
+    API-->>Receptionist: success response
+    DB-->>Relay: NOTIFY queue_outbox, or the 1 second poll
+    Relay->>DB: SELECT unpublished outbox rows FOR UPDATE SKIP LOCKED, max 100
+    Relay->>Redis: PUBLISH each row on the realtime channel
+    Redis-->>Relay: accepted
+    Relay->>DB: UPDATE outbox SET published_at, COMMIT
+    Redis-->>GW: message reaches every API instance
+    GW->>Web: emit queue.event to session and board rooms, display.event to the display room
+    Web->>API: newer seq, so refetch the screen snapshot
+    Note over Relay,GW: Worker heartbeat every 5 s. Without a heartbeat for 15 s an API instance refuses sockets and clients poll.

@@ -1,0 +1,6 @@
+- **Plan item** — one procedure step of a patient's treatment plan, with sessions, cost and status (code `treatment_plan_items`).
+- **Plan number** — per-organization identifier of a treatment plan, `TP-` plus five digits (code `plan_number`).
+- **Final estimated cost** — a plan's estimated cost minus its discount (code `final_estimated_cost`).
+- **Prescription preset** — a reusable set of medicines for the prescription builder; stored in `treatment_plan_templates` but unrelated to plan templates (UI label "Prescription Presets").
+- **Starter templates** — the twelve default plan templates inserted for an organization that has none (code `DEFAULT_PLAN_TEMPLATES`).
+- **Plan billing summary** — estimate, billed, unbilled, not-yet-charged, paid and balance of one plan's charges (code `planSummary`).

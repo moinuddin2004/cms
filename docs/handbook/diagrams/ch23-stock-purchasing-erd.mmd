@@ -1,0 +1,69 @@
+erDiagram
+  organizations ||--o{ inventory_categories : "CASCADE"
+  inventory_categories |o--o{ inventory_items : "groups, SET NULL"
+  locations ||--o{ inventory_items : "stocked at, CASCADE"
+  inventory_items ||--o{ stock_movements : "moved by, CASCADE"
+  employees ||--o{ stock_movements : "performed by, NO ACTION"
+  organizations ||--o{ suppliers : "CASCADE"
+  suppliers ||--o{ purchase_orders : "NO ACTION"
+  locations ||--o{ purchase_orders : "CASCADE"
+  employees ||--o{ purchase_orders : "created by, NO ACTION"
+  purchase_orders ||--o{ purchase_order_items : "CASCADE"
+  inventory_items ||--o{ purchase_order_items : "NO ACTION"
+  locations ||--o{ inventory : "legacy, CASCADE"
+  inventory_items {
+    uuid id PK
+    uuid organizationId FK
+    uuid locationId FK
+    uuid categoryId FK
+    varchar name
+    numeric currentStock
+    int reorderLevel
+  }
+  stock_movements {
+    uuid id PK
+    uuid inventoryItemId FK
+    varchar organizationId "no FK"
+    enum movementType
+    numeric quantity "signed"
+    varchar referenceId "polymorphic"
+  }
+  purchase_orders {
+    uuid id PK
+    varchar poNumber UK "unique platform-wide"
+    uuid supplierId FK
+    enum status
+    numeric totalAmount
+  }
+  purchase_order_items {
+    uuid id PK
+    uuid purchaseOrderId FK
+    uuid inventoryItemId FK
+    numeric orderedQuantity
+    numeric receivedQuantity
+  }
+  inventory_categories {
+    uuid id PK
+    uuid organizationId FK
+    varchar name
+  }
+  suppliers {
+    uuid id PK
+    uuid organizationId FK
+    varchar name
+  }
+  inventory {
+    uuid id PK
+    uuid organization_id FK
+    uuid location_id FK
+    varchar item_name
+  }
+  organizations {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }

@@ -1,0 +1,16 @@
+- **Patient number** — the per-organization identifier of a patient, `P-` plus five digits, shown as the patient's MRN in billing (code `patient_number`).
+- **Primary location** — the location a patient is registered at; defaults to the active location at registration (code `primary_location_id`).
+- **Patient scope** — the reach of `patients.view`: `org` (all patients), `location` (registered, booked or queued at the active location), `own` (has an appointment or queue entry with this doctor) (code `patientScope`).
+- **Blacklisted patient** — a patient flagged as not to be served, with a reason; informational only (code `is_blacklisted`).
+- **Inactive patient** — a patient hidden by the active filter but with all records kept (code `is_active = false`).
+- **Patient import** — bulk creation of patients from an `.xlsx`/`.csv` file via parse → dry run → batched import (code `PatientImportService`).
+- **Dry run** — an import request that validates rows and detects duplicates without saving (code `dryRun: true`).
+- **Duplicate rule** — import choice between "Skip the row" and "Create anyway" for rows matching an existing phone or CNIC (code `duplicateStrategy`: `skip` / `create`).
+- **Error report** — CSV downloaded after an import listing rows not imported and why.
+- **Change history** — the per-patient audit timeline merged from `audit_logs` and `status_history` with the patient as subject (code `audit-trail`, `subjectTimeline`).
+- **Teeth chart snapshot** — one append-only FDI chart of a patient's teeth conditions (code `patient_teeth_chart`).
+- **Initial chart** — the first teeth chart saved for a patient (code `is_initial_chart`).
+- **Dental info** — the single "Dental Health & Habits" sheet per patient (code `patient_dental_info`).
+- **Legacy quick prescription** — the older per-patient prescription stored in `patient_prescriptions`, separate from the Prescriptions module.
+- **Recall** — a planned future check-up with a due date and status (code `patient_recalls`).
+- **Communications log** — manual record of calls and messages with a patient (code `patient_communications`).

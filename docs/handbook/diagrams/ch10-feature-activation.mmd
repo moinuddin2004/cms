@@ -1,0 +1,12 @@
+flowchart LR
+    Cat["Feature in the active catalog"] --> Ent{"Entitled?<br/>is_entitled and trial not ended"}
+    SA["Super admin<br/>entitles, optional trial end"] --> Ent
+    Ent -- "no" --> Locked["Not active<br/>not_entitled or trial_expired"]
+    Ent -- "yes" --> En{"Enabled?<br/>owner switch, else catalog default"}
+    Owner["Owner or super admin<br/>switches on or off"] --> En
+    En -- "no" --> OffOrg["Off for the whole clinic"]
+    En -- "yes" --> Loc{"Switched off at<br/>this location?"}
+    LocOv["Owner location override"] --> Loc
+    Loc -- "yes" --> OffLoc["Off at this location only"]
+    Loc -- "no" --> Active["Active here"]
+    Active --> Use["RequireFeature routes open,<br/>permissions of the feature kept"]

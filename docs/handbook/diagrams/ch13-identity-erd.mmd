@@ -1,0 +1,41 @@
+erDiagram
+  users ||--o{ oauth_providers : "links"
+  users |o--o{ security_logs : "logs"
+  users ||--o{ user_sessions : "opens"
+  user_sessions |o..o{ security_logs : "session_id, no FK"
+  organizations |o..o{ users : "last accessed, no FK"
+  locations |o..o{ users : "last accessed, no FK"
+  users {
+    uuid uuid PK
+    varchar email UK
+    enum global_role
+    enum status
+    uuid last_accessed_organization_id
+    uuid last_accessed_location_id
+  }
+  oauth_providers {
+    uuid uuid PK
+    uuid user_id FK
+    enum provider
+    varchar provider_id
+  }
+  security_logs {
+    uuid uuid PK
+    uuid user_id FK
+    uuid session_id
+    enum event_type
+    bool success
+  }
+  user_sessions {
+    uuid uuid PK
+    uuid user_id FK
+    varchar refresh_token_hash
+    timestamptz expires_at
+    bool is_revoked
+  }
+  organizations {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+  }

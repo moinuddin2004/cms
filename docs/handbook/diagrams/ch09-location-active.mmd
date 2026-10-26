@@ -1,0 +1,5 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Active : POST /locations<br/>or self-signup
+    Active --> Inactive : DELETE /locations/id
+    Inactive --> Active : PATCH /locations/id<br/>isActive true, no plan-limit check

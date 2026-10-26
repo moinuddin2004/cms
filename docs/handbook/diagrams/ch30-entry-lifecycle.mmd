@@ -1,0 +1,21 @@
+stateDiagram-v2
+    direction LR
+    [*] --> waiting : check-in, walk-in, convert-to-walk-in, transfer in
+    waiting --> called : call-next or select
+    called --> waiting : undo-call
+    called --> skipped : skip or call-timeout job
+    skipped --> waiting : rejoin
+    called --> in_consultation : start-consultation
+    in_consultation --> on_hold : send-for-test
+    on_hold --> waiting : return-from-test
+    in_consultation --> completed : complete or force-complete
+    in_consultation --> aborted : abort
+    waiting --> cancelled : cancel or close day
+    skipped --> cancelled : cancel or close day
+    on_hold --> cancelled : cancel or close day
+    waiting --> transferred : transfer or close day
+    in_consultation --> transferred : transfer
+    completed --> [*]
+    aborted --> [*]
+    cancelled --> [*]
+    transferred --> [*]

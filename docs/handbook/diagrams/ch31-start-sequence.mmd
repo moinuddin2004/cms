@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant Doctor
+    participant Web as Web app
+    participant API
+    participant QO as QueueOrchestrator
+    participant ES as EncountersService
+    participant DB as PostgreSQL
+    Doctor->>Web: Press "Patient is here — start"
+    Web->>API: PATCH /queue/entries/:id/start-consultation with Idempotency-Key and If-Match
+    API->>QO: startConsultation
+    QO->>DB: Lock queue session and entry, check transition called to in_consultation
+    QO->>ES: ensureForQueueEntry inside the same transaction
+    ES->>DB: Find encounter by queue_entry_id, insert one if missing
+    QO->>DB: Write queue event and outbox row, commit
+    API-->>Web: Entry result plus encounterId
+    Web->>API: GET /encounters/:id/workspace
+    API-->>Web: Encounter, treatments, queue entry token and version, doctor
+    Web-->>Doctor: Consultation workspace opens
+    Doctor->>Web: Types notes
+    Web->>API: PATCH /encounters/:id after 0.8 s pause
+    API->>DB: Update only the fields sent

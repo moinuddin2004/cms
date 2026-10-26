@@ -1,0 +1,46 @@
+erDiagram
+  organizations ||--o{ medicine_directory : "catalogues"
+  organizations ||--o{ treatment_plan_templates : "keeps"
+  organizations ||--o{ doctor_signatures : "scopes"
+  medicine_directory |o--o{ prescription_medicines : "source of"
+  medicine_directory |o--o{ treatment_plan_template_medicines : "source of"
+  treatment_plan_templates ||--o{ treatment_plan_template_medicines : "lists"
+  users ||..o| doctor_signatures : "employee_id holds user id, no FK"
+  medicine_directory {
+    uuid id PK
+    uuid organization_id FK
+    varchar name
+    enum type
+    bool is_active
+  }
+  prescription_medicines {
+    uuid id PK
+    uuid prescription_id FK
+    uuid medicine_directory_id FK
+    varchar medicine_name
+  }
+  treatment_plan_templates {
+    uuid id PK
+    uuid organization_id FK
+    varchar name
+    enum category
+    bool is_active
+  }
+  treatment_plan_template_medicines {
+    uuid id PK
+    uuid template_id FK
+    uuid medicine_directory_id FK
+    varchar medicine_name
+  }
+  doctor_signatures {
+    uuid id PK
+    uuid employee_id UK
+    uuid organization_id FK
+    bool is_active
+  }
+  organizations {
+    uuid id PK
+  }
+  users {
+    uuid uuid PK
+  }

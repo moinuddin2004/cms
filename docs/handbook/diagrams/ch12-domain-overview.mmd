@@ -1,0 +1,37 @@
+flowchart LR
+  ID["Identity<br/>users, user_sessions"]
+  ORG["Organizations and locations<br/>organizations, locations,<br/>subscription_payments"]
+  ACC["Access and features<br/>employment_roles, nav_layouts,<br/>org_feature_flags"]
+  STAFF["Staff and payroll<br/>employees, assignments,<br/>payroll_records"]
+  PAT["Patients<br/>patients + 14 sub-record tables"]
+  VISIT["Appointments, queue, encounters<br/>appointments, queue_entries,<br/>patient_encounters, treatments"]
+  RX["Prescriptions and plans<br/>prescriptions, medicine_directory,<br/>plan_templates"]
+  BILL["Billing<br/>charges, invoices, payments,<br/>ledgers"]
+  COMP["Compensation<br/>compensation_plans,<br/>commission_entries"]
+  INV["Inventory<br/>inventory_items, stock_movements"]
+  NOTIF["Notifications<br/>notification_rules, user_notifications"]
+  LAB["Labs<br/>labs, lab_orders, lab_invoices,<br/>vendor_bills"]
+  ENG["Workflow engine<br/>workflow_templates, form_schemas,<br/>specialties"]
+  COM["Common<br/>audit_logs, status_history,<br/>number_sequences"]
+
+  ID -->|"ownership"| ORG
+  ID -->|"staff login"| STAFF
+  ORG -->|"tenant root: organization_id<br/>on almost every table"| PAT
+  ORG -->|"roles, flags, layouts"| ACC
+  ACC -->|"role of an assignment"| STAFF
+  STAFF -->|"doctor"| VISIT
+  PAT -->|"patient"| VISIT
+  VISIT -->|"encounter and appointment"| RX
+  RX -->|"plan template used"| VISIT
+  PAT -->|"patient, RESTRICT"| BILL
+  STAFF -->|"plan per assignment"| COMP
+  BILL -->|"charge earns commission"| COMP
+  LAB -->|"lab line earns commission"| COMP
+  PAT -->|"patient"| LAB
+  ENG -->|"workflow and forms"| LAB
+  BILL -->|"clinic service mapping"| LAB
+  PAT -->|"consumption"| INV
+  ID -->|"in-app inbox"| NOTIF
+  ID -->|"lab member"| LAB
+  PAT -.->|"entity_id, no FK"| COM
+  BILL -.->|"service_id, no FK"| VISIT

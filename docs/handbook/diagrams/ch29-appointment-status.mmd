@@ -1,0 +1,15 @@
+stateDiagram-v2
+    direction LR
+    [*] --> scheduled : POST /appointments
+    scheduled --> confirmed : PATCH confirm
+    scheduled --> checked_in : PATCH check-in
+    confirmed --> checked_in : PATCH check-in
+    scheduled --> cancelled : PATCH cancel
+    confirmed --> cancelled : PATCH cancel
+    scheduled --> no_show : PATCH no-show or no-show job or convert-to-walk-in
+    confirmed --> no_show : PATCH no-show or no-show job or convert-to-walk-in
+    checked_in --> completed : queue entry completed or force-completed
+    checked_in --> cancelled : queue entry removed or consultation stopped
+    completed --> [*]
+    cancelled --> [*]
+    no_show --> [*]

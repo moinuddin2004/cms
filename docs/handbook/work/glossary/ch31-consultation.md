@@ -1,0 +1,5 @@
+- **Visit notes** — the doctor's free-text notes for one encounter: complaint, examination, diagnosis, advice and next-visit date (columns of `patient_encounters`).
+- **Record slide-over** — the side panel in the consultation workspace that shows the patient record tabs without leaving the consultation (`RecordDrawer`).
+- **Procedure catalog** — the active billing services of kind PROCEDURE, offered to the doctor by name only (`GET /treatments/catalog`).
+- **Needs pricing** — flag on an automatic charge created at zero because no price could be resolved; reception prices it (`charges.needs_pricing`).
+- **Autosave** — saving shortly after the user stops typing, without a Save button (`useAutosave`).

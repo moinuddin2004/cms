@@ -1,0 +1,39 @@
+erDiagram
+  ledger_journals ||--|{ ledger_journal_lines : "has lines, RESTRICT"
+  ledger_journals |o..o| ledger_journals : "reversal_of_id, no FK"
+  vendor_bills |o..o| ledger_journals : "journal_id, no FK"
+  patients |o..o{ ledger_journal_lines : "patient_id, no FK"
+  labs |o..o{ ledger_journal_lines : "lab_id, no FK"
+  employees |o..o{ ledger_journal_lines : "doctor_id, no FK"
+  lab_orders |o..o{ ledger_journal_lines : "lab_order_id, no FK"
+  ledger_journals {
+    uuid id PK "uuid v7"
+    date entry_on
+    enum source_type
+    uuid source_id "polymorphic"
+    uuid reversal_of_id "unique"
+    bigint total_paisa
+  }
+  ledger_journal_lines {
+    uuid id PK "uuid v7"
+    uuid journal_id FK
+    varchar account_code
+    bigint debit_paisa
+    bigint credit_paisa
+  }
+  vendor_bills {
+    uuid id PK
+    uuid journal_id
+  }
+  patients {
+    uuid id PK
+  }
+  labs {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }
+  lab_orders {
+    uuid id PK
+  }

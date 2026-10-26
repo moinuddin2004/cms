@@ -1,0 +1,6 @@
+- **Prescription preset** — a named, reusable set of medicines with instructions, filed under a category; backend name "treatment plan template" (`treatment_plan_templates`), unrelated to clinical plan templates.
+- **Print layout** — the look of a printed prescription (paper, colours, letterhead, footer, toggles); code name "prescription template" (`prescription_templates`).
+- **Prescription library** — the shared screens for presets, the medicine directory and print layouts (`LibraryShell`).
+- **Amended prescription** — a finalized prescription that was edited and not yet signed again; status `AMENDED`, version increased.
+- **Doctor signature** — one saved signature image per login account, placed on prescriptions at signing (`doctor_signatures`).
+- **Legacy quick prescription** — a prescription in the older simple table `patient_prescriptions`, shown under "Legacy quick-Rx history".

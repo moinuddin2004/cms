@@ -1,0 +1,23 @@
+- **Service day / service date** — the clinic day a queue session belongs to: the location-local date after subtracting the "service day starts at" cutoff (`service_date`, `QueuePoliciesService.serviceDate`).
+- **Token prefix** — the letters before a token number, from the doctor's assignment at the location or the first letter of the doctor's name (`token_prefix`).
+- **Reception board** — the Queue tab of the Appointments page showing every doctor's lane (`QueueBoard`).
+- **Lane** — one doctor's column on the reception board for the service date (`QueueLaneCard`, `lanes`).
+- **Doctor screen** — the "My queue" page where a doctor runs their own session (`DoctorQueuePage`, `/queue/doctor`).
+- **TV display** — the public, login-free waiting-room page showing tokens being served (`DisplayPage`, `/display/$locationId`).
+- **Smart queue** — calling order that weighs emergencies, due appointments, starvation and returns from tests (`smart_queue_enabled = true`); its opposite is **first come, first served** (FIFO).
+- **Selection engine** — the pure function that decides whom Call next picks and why (`selectNext`).
+- **Selection reason code** — why a patient was called: URGENT, STARVATION_GUARD, APPOINTMENT_DUE, RETURNED_FROM_TEST, FIFO, MANUAL_SELECT (UI labels: Emergency, Waited too long, Appointment due, Back from test, Next in line, Chosen by doctor).
+- **Early window** — minutes before a booked time from which a checked-in appointment patient counts as due (`early_window_min`, default 15).
+- **Late grace** — minutes after the booked time within which an arriving patient keeps appointment priority (`late_grace_min`, default 10).
+- **Maximum late** — minutes after the booked time after which check-in is refused and the booking becomes a no-show (`max_late_min`, default 45).
+- **Starvation guard** — the rule that calls the longest-waiting ordinary patient once they have waited the starvation limit, before a due appointment (`walkin_starvation_min`, default 45).
+- **Place in line** — the time an entry is ordered by: arrival, or rejoin time after an "end" rejoin (`sort_anchor_at`).
+- **Rejoin policy** — where a skipped patient goes when rejoined: end, original position, manual (`skipped_rejoin_policy`).
+- **Urgent priority** — an authorised emergency flag with a reason that puts a patient first in either mode (`priority_class = authorized_urgent`).
+- **Standard queue transaction** — the fixed sequence every queue change runs in: idempotency claim, session lock, transition check, update, event and outbox, saved response (`QueueOrchestrator.mutate`).
+- **Idempotency-Key** — request header that makes a retried queue action return the original response (`idempotency_keys`).
+- **If-Match version** — the entry version a screen sends so a stale action is refused (`version`, `VERSION_CONFLICT`).
+- **Outbox** — table of realtime messages written in the same transaction as a queue change and published by the relay (`outbox`, `OutboxRelayService`).
+- **Room** — a Socket.IO channel a screen subscribes to: `session:<id>`, `location:<id>:board`, `location:<id>:display`, `org:<id>`.
+- **Queue history** — the append-only log of queue changes (`queue_events`).
+- **Force complete** — completing a consultation on the doctor's behalf (`force-complete`, event `FORCE_COMPLETED`).

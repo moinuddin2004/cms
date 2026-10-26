@@ -1,0 +1,7 @@
+stateDiagram-v2
+    direction LR
+    [*] --> active : POST /patients<br/>or import row
+    active --> inactive : PATCH /patients/id/status<br/>isActive false
+    inactive --> active : PATCH /patients/id/status<br/>isActive true
+    active --> [*] : DELETE /patients/id<br/>permanent
+    inactive --> [*] : DELETE /patients/id<br/>permanent

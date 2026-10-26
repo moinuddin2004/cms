@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant R as Receptionist
+    participant W as Web app
+    participant A as API
+    participant S as PatientImportService
+    participant P as PatientsService
+    participant DB as PostgreSQL
+    R->>W: Choose .xlsx or .csv file
+    W->>A: POST /patients/import/parse with the file
+    A-->>W: headers, rows, suggested column mapping
+    R->>W: Confirm or change the column mapping
+    W->>A: POST /patients/import with dryRun true, all rows
+    A->>S: validate every row, find duplicates
+    S->>DB: read phone and CNIC of existing patients
+    S-->>W: per row would_create, duplicate or error
+    R->>W: Pick duplicate rule and press Import
+    loop each batch of 500 rows
+        W->>A: POST /patients/import with dryRun false
+        A->>S: lock the organization for this process
+        loop each valid row
+            S->>P: create the patient
+            P->>DB: insert patient and audit row in one transaction
+        end
+        S-->>W: per row created, duplicate or error
+    end
+    W-->>R: Summary and optional error report CSV

@@ -1,0 +1,46 @@
+erDiagram
+  patients ||--o{ patient_prescriptions : "legacy Rx, CASCADE"
+  patients ||--o{ prescriptions : "Rx, CASCADE"
+  patient_encounters |o--o{ prescriptions : "SET NULL"
+  treatment_plan_templates |o--o{ prescriptions : "protocol used, SET NULL"
+  patients ||--o{ patient_treatment_plans : "planned work, CASCADE"
+  patient_treatment_plans ||--o{ treatment_plan_items : "CASCADE"
+  plan_templates |o--o{ treatments : "based on, SET NULL"
+  patients ||--o{ treatments : "work done, CASCADE"
+  patient_prescriptions {
+    uuid id PK
+    varchar prescription_number
+    jsonb medications
+  }
+  prescriptions {
+    uuid id PK
+    uuid encounter_id FK
+    uuid treatment_plan_template_id FK
+    enum status
+  }
+  treatment_plan_templates {
+    uuid id PK
+    varchar name "Rx protocol"
+  }
+  plan_templates {
+    uuid id PK
+    varchar name "planned procedures"
+  }
+  patient_treatment_plans {
+    uuid id PK
+    uuid patient_id FK
+  }
+  treatment_plan_items {
+    uuid id PK
+    uuid plan_id FK
+  }
+  treatments {
+    uuid id PK
+    uuid plan_template_id FK
+  }
+  patients {
+    uuid id PK
+  }
+  patient_encounters {
+    uuid id PK
+  }

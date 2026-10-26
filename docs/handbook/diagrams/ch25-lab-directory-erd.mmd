@@ -1,0 +1,52 @@
+erDiagram
+  organizations |o--o{ labs : "owns internal lab, RESTRICT"
+  labs ||--o{ lab_clinic_links : "RESTRICT"
+  organizations ||--o{ lab_clinic_links : "RESTRICT"
+  labs ||--o{ lab_members : "RESTRICT"
+  users ||--o{ lab_members : "RESTRICT"
+  organizations ||--o{ magic_links : "RESTRICT"
+  labs ||--o{ magic_links : "RESTRICT"
+  lab_orders ||--o{ magic_links : "RESTRICT"
+  shipments |o..o{ magic_links : "shipment_id, no FK"
+  labs {
+    uuid id PK "uuid v7"
+    enum lab_type
+    uuid owner_organization_id FK
+    varchar name
+    enum status
+  }
+  lab_clinic_links {
+    uuid id PK "uuid v7"
+    uuid lab_id FK
+    uuid organization_id FK
+    enum status
+    int payment_terms_days
+    enum patient_data_level
+  }
+  lab_members {
+    uuid id PK "uuid v7"
+    uuid lab_id FK
+    uuid user_id FK
+    enum role
+    bool is_active
+  }
+  magic_links {
+    uuid id PK "uuid v7"
+    char token_hash UK
+    enum purpose
+    uuid order_id FK
+    timestamptz expires_at
+    timestamptz revoked_at
+  }
+  organizations {
+    uuid id PK
+  }
+  users {
+    uuid uuid PK
+  }
+  lab_orders {
+    uuid id PK
+  }
+  shipments {
+    uuid id PK
+  }

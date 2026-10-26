@@ -1,0 +1,46 @@
+erDiagram
+  organizations ||..o{ plan_templates : "organization_id, no FK"
+  plan_templates |o--o{ treatments : "used for"
+  patients ||--o{ treatments : "receives"
+  patients ||--o{ patient_treatment_plans : "planned"
+  patient_treatment_plans ||--o{ treatment_plan_items : "contains"
+  patients ||--o{ patient_prescriptions : "legacy Rx"
+  appointments |o..o{ patient_prescriptions : "appointment_id, no FK"
+  plan_templates {
+    uuid id PK
+    uuid organization_id
+    varchar name
+    enum category
+    jsonb items
+    bool is_active
+  }
+  treatments {
+    uuid id PK
+    uuid plan_template_id FK
+    uuid patient_id FK
+  }
+  patient_treatment_plans {
+    uuid id PK
+    uuid patient_id FK
+    enum status
+  }
+  treatment_plan_items {
+    uuid id PK
+    uuid plan_id FK
+  }
+  patient_prescriptions {
+    uuid id PK
+    uuid patient_id FK
+    varchar prescription_number
+    jsonb medications
+    uuid prescribed_by
+  }
+  patients {
+    uuid id PK
+  }
+  organizations {
+    uuid id PK
+  }
+  appointments {
+    uuid id PK
+  }

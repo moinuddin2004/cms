@@ -1,0 +1,83 @@
+erDiagram
+  lab_orders ||--o{ lab_order_items : "contains, RESTRICT"
+  lab_order_items |o--o{ lab_order_items : "remake of, RESTRICT"
+  lab_services ||--o{ lab_order_items : "RESTRICT"
+  workflow_template_versions ||--o{ lab_orders : "pinned, RESTRICT"
+  workflow_template_versions ||--o{ lab_order_items : "pinned, RESTRICT"
+  form_schema_versions |o--o{ lab_order_items : "pinned, RESTRICT"
+  lab_order_items ||--o{ item_teeth : "RESTRICT"
+  lab_order_items ||--o| dental_item_details : "RESTRICT"
+  lab_order_items ||--o| item_form_responses : "RESTRICT"
+  form_schema_versions |o--o{ item_form_responses : "RESTRICT"
+  lab_orders ||--o{ order_messages : "RESTRICT"
+  lab_order_items |o--o{ order_messages : "RESTRICT"
+  lab_orders ||--o{ order_revisions : "RESTRICT"
+  lab_orders ||--o{ order_charge_requests : "RESTRICT"
+  lab_order_items |o--o{ order_charge_requests : "RESTRICT"
+  lab_orders ||..o{ attachments : "order_id, no FK"
+  lab_orders {
+    uuid id PK "uuid v7"
+    varchar order_no "unique per org"
+    uuid patient_id FK
+    uuid lab_id FK
+    uuid lab_clinic_link_id FK
+    varchar status_code
+  }
+  lab_order_items {
+    uuid id PK "uuid v7"
+    uuid order_id FK
+    int line_no
+    uuid lab_service_id FK
+    bigint lab_line_cost_paisa
+    bigint patient_line_price_paisa
+    varchar status_code
+  }
+  item_teeth {
+    uuid id PK
+    uuid item_id FK
+    varchar tooth_code
+  }
+  dental_item_details {
+    uuid item_id PK
+    varchar shade
+    varchar material_code
+  }
+  item_form_responses {
+    uuid item_id PK
+    uuid form_schema_version_id FK
+    jsonb data
+  }
+  order_messages {
+    uuid id PK
+    uuid order_id FK
+    enum author_side
+    enum kind
+  }
+  order_revisions {
+    uuid id PK
+    uuid order_id FK
+    int revision_no
+    jsonb snapshot
+  }
+  order_charge_requests {
+    uuid id PK
+    uuid order_id FK
+    enum kind
+    bigint amount_paisa
+    enum status
+  }
+  attachments {
+    uuid id PK
+    varchar entity_type
+    uuid entity_id "polymorphic"
+    enum visibility
+  }
+  lab_services {
+    uuid id PK
+  }
+  form_schema_versions {
+    uuid id PK
+  }
+  workflow_template_versions {
+    uuid id PK
+  }

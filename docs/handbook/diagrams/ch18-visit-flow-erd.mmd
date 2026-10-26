@@ -1,0 +1,69 @@
+erDiagram
+  employees ||--o{ appointments : "doctor, RESTRICT"
+  patients ||--o{ appointments : "books"
+  employees ||--o{ queue_sessions : "doctor, RESTRICT"
+  queue_sessions ||--o{ queue_entries : "holds, RESTRICT"
+  patients ||--o{ queue_entries : "waits as"
+  appointments |o--o{ queue_entries : "checked in as"
+  queue_entries ||--o| patient_encounters : "consulted in"
+  appointments |o--o{ patient_encounters : "booked visit"
+  patients ||--o{ patient_encounters : "seen in"
+  patient_encounters |o--o{ treatments : "performed in"
+  patients ||--o{ treatments : "receives"
+  plan_templates |o--o{ treatments : "based on"
+  queue_sessions ||..o{ queue_events : "queue_session_id, no FK"
+  queue_entries |o..o{ queue_events : "queue_entry_id, no FK"
+  appointments {
+    uuid id PK
+    uuid patient_id FK
+    uuid doctor_id FK
+    enum status
+    timestamptz start_time
+    timestamptz end_time
+  }
+  queue_sessions {
+    uuid id PK
+    uuid doctor_id FK
+    uuid location_id
+    date service_date
+    enum status
+    int last_token_number
+  }
+  queue_entries {
+    uuid id PK
+    uuid queue_session_id FK
+    uuid patient_id FK
+    uuid appointment_id FK
+    int token_number
+    enum status
+  }
+  queue_events {
+    bigint id PK
+    uuid queue_session_id
+    uuid queue_entry_id
+    bigint seq
+    text event_type
+  }
+  patient_encounters {
+    uuid id PK
+    uuid queue_entry_id FK
+    uuid appointment_id FK
+    uuid patient_id FK
+    text diagnosis
+  }
+  treatments {
+    uuid id PK
+    uuid patient_id FK
+    uuid encounter_id FK
+    uuid plan_template_id FK
+    uuid service_id
+  }
+  patients {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }
+  plan_templates {
+    uuid id PK
+  }

@@ -1,0 +1,11 @@
+- **Booking** — plain-language synonym for an appointment before arrival: one patient, one doctor, one location, a start time and a duration (`appointments` row).
+- **Live slot check** — the debounced server check the booking dialog runs while the form is open, returning valid or a reason and an optional suggested start (`POST /appointments/validate`).
+- **Suggested start** — the next free start time on the same day that fits the doctor's weekly hours, offered when the chosen slot clashes (`suggestedStartTime`, `suggestNextSlot`).
+- **Weekly working hours** — a doctor's recurring working block for one weekday (`employee_schedules`).
+- **Daily booking limit** — the maximum number of live bookings a location takes on one local day (`location_settings.max_appointments_per_day`, default 50).
+- **Override booking rules** — permission to book outside weekly hours or past the daily limit; never bypasses the double-booking check (`appointments.override_rules`, `overrideRules`).
+- **Double-booking constraint** — the database exclusion constraint that refuses two live bookings of one doctor at overlapping times (`no_doctor_overlap`, error `DOCTOR_DOUBLE_BOOKED`).
+- **No-show marker** — the background job that marks still-scheduled or confirmed bookings as no-shows once start plus maximum late has passed (`QueueJobsService.markNoShows`).
+- **Convert to walk-in** — closing a too-late booking as a no-show and adding the patient to the same doctor's queue as a linked walk-in (`convert-to-walk-in`, `converted_from_appt_id`).
+- **Cancel reason code** — structured reason stored with a cancellation: `patient_left` or `other` (`cancel_reason_code`; `no_show` exists in the enum but is refused on cancel).
+- **KPI strip** — the six-tile summary at the top of the Appointments page: Total, Upcoming, Completed, Walk-ins, No-Show, Avg wait (`StatsCards`, `GET /appointments/stats`).

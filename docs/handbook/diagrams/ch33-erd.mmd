@@ -1,0 +1,43 @@
+erDiagram
+    patients ||--o{ patient_treatment_plans : has
+    locations ||--o{ patient_treatment_plans : "made at"
+    patient_treatment_plans ||--o{ treatment_plan_items : contains
+    treatment_plan_items ||..o| charges : "billed as source_id"
+    organizations ||..o{ plan_templates : owns
+    plan_templates |o--o{ treatments : "tags"
+    patients ||--o{ treatments : receives
+    patient_treatment_plans {
+        uuid id PK
+        uuid patient_id FK
+        uuid location_id FK
+        uuid dentist_id
+        varchar plan_number
+        enum status
+        decimal final_estimated_cost
+    }
+    treatment_plan_items {
+        uuid id PK
+        uuid plan_id FK
+        varchar procedure_name
+        int completed_sessions
+        enum status
+    }
+    charges {
+        uuid id PK
+        varchar source
+        uuid source_id
+        numeric net_amount
+    }
+    plan_templates {
+        uuid id PK
+        uuid organization_id
+        varchar name
+        jsonb items
+        boolean is_active
+    }
+    treatments {
+        uuid id PK
+        uuid patient_id FK
+        uuid plan_template_id FK
+        varchar treatment_name
+    }

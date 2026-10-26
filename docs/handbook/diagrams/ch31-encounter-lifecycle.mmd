@@ -1,0 +1,13 @@
+stateDiagram-v2
+    direction LR
+    [*] --> in_consultation : PATCH start-consultation<br/>creates the encounter
+    in_consultation --> on_hold : PATCH send-for-test
+    on_hold --> waiting : PATCH return-from-test
+    waiting --> called : call next or select
+    called --> in_consultation : start-consultation again<br/>same encounter reused
+    in_consultation --> completed : PATCH complete or force-complete<br/>charges created
+    in_consultation --> aborted : PATCH abort<br/>no charges
+    in_consultation --> transferred : transfer<br/>new entry, new encounter later
+    completed --> [*]
+    aborted --> [*]
+    transferred --> [*]

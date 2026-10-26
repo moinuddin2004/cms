@@ -1,0 +1,15 @@
+flowchart LR
+    Req["Request: user, organization, location"] --> Ver["Read access_version<br/>cached 15 s"]
+    Ver --> Hit{"Cached context for user, org,<br/>location and version, under 5 min?"}
+    Hit -- "yes" --> Ctx
+    Hit -- "no" --> Who{"Super admin<br/>or owner?"}
+    Who -- "yes" --> All["Every permission<br/>at its widest scope"]
+    Who -- "no" --> Asg{"Active assignment here with<br/>portal access and an active role?"}
+    Asg -- "no" --> NoneP["No permissions"]
+    Asg -- "yes" --> Role["Role grants, normalized,<br/>implies expanded"]
+    All --> Feat["Drop permissions whose feature<br/>is not active here"]
+    Role --> Feat
+    NoneP --> Feat
+    Feat --> Ctx["AccessContext<br/>can, scope, applyScope, decide"]
+    Ctx --> BE["Backend: Can on handlers,<br/>applyScope on queries, VisibleIf on fields"]
+    Ctx --> FE["GET /me/access: useAccess.can,<br/>route gate, sidebar, buttons"]

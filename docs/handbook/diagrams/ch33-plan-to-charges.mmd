@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant C as API client
+    participant A as API
+    participant CS as ChargesService
+    participant F as ChargeDraftFactory
+    participant DB as PostgreSQL
+    C->>A: POST /patients/patientId/charges/from-treatment-plan/planId with itemIds
+    A->>CS: fromTreatmentPlan, needs billing.desk.use
+    CS->>DB: begin transaction, load plan of this patient
+    CS->>DB: load the listed items of this plan
+    CS->>F: one charge draft per item, source TREATMENT_PLAN
+    F-->>CS: price = item estimate, else 0 with needs pricing
+    CS->>DB: insert charges, skip items already charged
+    CS->>DB: write billing audit rows for new charges
+    CS-->>C: the charges created

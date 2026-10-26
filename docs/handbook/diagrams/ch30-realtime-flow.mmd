@@ -1,0 +1,12 @@
+flowchart LR
+    O["QueueOrchestrator<br/>transaction"] -->|"INSERT outbox rows<br/>+ pg_notify"| OB[("outbox table")]
+    OB -->|"LISTEN or 1 s poll"| R["Outbox relay<br/>worker process"]
+    R -->|"publish"| RD["Redis channel"]
+    RD -->|"subscribe"| G["Socket.IO gateway<br/>/realtime on each API"]
+    R -.->|"single-process mode:<br/>direct call"| G
+    G --> S1["session:id<br/>doctor screen"]
+    G --> S2["location:id:board<br/>reception board"]
+    G --> S3["location:id:display<br/>TV, no login"]
+    S1 --> F["Screen refetches<br/>snapshot when seq is newer"]
+    S2 --> F
+    S3 --> F

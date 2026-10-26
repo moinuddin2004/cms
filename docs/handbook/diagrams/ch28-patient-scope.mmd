@@ -1,0 +1,6 @@
+flowchart LR
+    Q["Request for a patient<br/>or the patient list"] --> G{"Scope of<br/>patients.view"}
+    G -->|org| ALL["Every patient of<br/>the organization"]
+    G -->|location| LOC["Registered at, booked at<br/>or queued at the<br/>active location"]
+    G -->|own| OWN["Has an appointment or<br/>a queue entry with<br/>this doctor"]
+    G -->|none| NONE["Nothing - list is empty,<br/>single patient is 404"]

@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor Receptionist
+    participant Web as Web app
+    participant API
+    participant Svc as Appointments<br/>Service
+    participant DB as PostgreSQL
+    Receptionist->>Web: Pick patient, doctor, date and time, duration
+    Web->>API: POST /appointments/validate after 500 ms pause
+    API->>Svc: validate
+    Svc->>DB: doctor active and assigned here, weekly hours, overlaps, daily count
+    DB-->>Svc: rows
+    Svc-->>Web: valid, or reason plus suggested start
+    Web-->>Receptionist: Green "Time slot is available" or red reason with Apply
+    Receptionist->>Web: Create Appointment
+    Web->>API: POST /appointments
+    API->>Svc: create, same checks again
+    Svc->>DB: INSERT appointments with status scheduled
+    alt overlapping live booking for this doctor
+        DB-->>Svc: 23P01 from no_doctor_overlap
+        Svc-->>Web: 409 DOCTOR_DOUBLE_BOOKED
+    else saved
+        DB-->>Svc: new row
+        Svc-->>Web: 201 with the appointment
+        Web-->>Receptionist: Toast and calendar jumps to the booked day
+    end

@@ -1,0 +1,56 @@
+erDiagram
+    patients ||--o{ patient_communications : logged
+    patients ||--o{ patient_recalls : "due for"
+    patients ||--o{ patient_referrals : "refers others"
+    patients |o--o{ patient_referrals : "was referred"
+    patients ||--o{ patient_feedback : gives
+    patients ||--o{ patient_insurance : covered
+    patients ||--o{ patient_visits : "per-location stats"
+    patients ||..o{ audit_logs : "subject of"
+    patients {
+        uuid id PK
+        uuid organization_id FK
+        varchar patient_number
+    }
+    patient_communications {
+        uuid id PK
+        uuid patient_id FK
+        enum type
+        enum status
+    }
+    patient_recalls {
+        uuid id PK
+        uuid patient_id FK
+        date due_date
+        enum status
+    }
+    patient_referrals {
+        uuid id PK
+        uuid referring_patient_id FK
+        uuid referred_patient_id FK
+        enum status
+    }
+    patient_feedback {
+        uuid id PK
+        uuid patient_id FK
+        int rating
+        boolean is_published
+    }
+    patient_insurance {
+        uuid id PK
+        uuid patient_id FK
+        varchar provider_name
+        boolean is_active
+    }
+    patient_visits {
+        uuid id PK
+        uuid patient_id FK
+        uuid location_id FK
+        int visit_count
+    }
+    audit_logs {
+        uuid id PK
+        uuid subject_id
+        varchar entity_type
+        varchar action
+    }

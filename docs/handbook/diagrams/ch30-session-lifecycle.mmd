@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> waiting_for_doctor : first check-in, walk-in, or doctor opens My queue
+    waiting_for_doctor --> open : PATCH start
+    open --> paused : PATCH pause with reason
+    paused --> open : PATCH resume
+    waiting_for_doctor --> closed : PATCH close or day-end job
+    open --> closed : PATCH close or day-end job
+    paused --> closed : PATCH close or day-end job
+    closed --> [*]

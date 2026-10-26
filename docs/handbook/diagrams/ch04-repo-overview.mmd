@@ -1,0 +1,12 @@
+flowchart LR
+    Root["Repository root<br/>one monorepo"] --> BE["backend/<br/>NestJS API"]
+    Root --> WEB["web-app/<br/>React web app"]
+    Root --> DOCS["docs/<br/>feature docs, test plans, handbook"]
+    BE --> BSRC["backend/src/<br/>one folder per domain module"]
+    BE --> BTEST["backend/test/<br/>DB integration and acceptance suites"]
+    BE --> BDOCS["backend/docs/<br/>generated entity catalog"]
+    WEB --> ROUTES["src/routes/<br/>thin route files"]
+    WEB --> FEAT["src/features/name/<br/>pages, components, hooks, services"]
+    WEB --> SHARED["src/components, src/lib,<br/>src/store, src/hooks"]
+    ROUTES --> FEAT
+    FEAT --> SHARED

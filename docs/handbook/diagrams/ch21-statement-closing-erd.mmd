@@ -1,0 +1,63 @@
+erDiagram
+  patients ||..o{ ledger_entries : "patient_id, no FK"
+  invoices |o..o{ ledger_entries : "invoice_id, no FK"
+  payments |o..o{ ledger_entries : "payment_id, no FK"
+  refunds |o..o{ ledger_entries : "refund_id, no FK"
+  cash_closes ||--o{ cash_close_lines : "one line per account, RESTRICT"
+  payment_accounts ||..o{ cash_close_lines : "payment_account_id, no FK"
+  invoices |o..o{ billing_audit_logs : "entity_id, polymorphic"
+  ledger_entries {
+    uuid id PK
+    uuid patient_id
+    enum type
+    date entry_date
+    numeric debit
+    numeric credit
+    int invoice_revision
+  }
+  cash_closes {
+    uuid id PK
+    uuid location_id "no FK"
+    timestamptz period_end "unique per location"
+    date business_date
+    numeric total_expected
+    numeric total_variance
+  }
+  cash_close_lines {
+    uuid id PK
+    uuid cash_close_id FK
+    uuid payment_account_id
+    numeric expected
+    numeric counted
+    numeric variance
+  }
+  document_sequences {
+    uuid organization_id PK
+    uuid location_id PK
+    enum doc_type PK
+    int year PK
+    int last_value
+  }
+  billing_audit_logs {
+    uuid id PK
+    enum entity_type
+    uuid entity_id
+    enum action
+    jsonb before
+    jsonb after
+  }
+  patients {
+    uuid id PK
+  }
+  invoices {
+    uuid id PK
+  }
+  payments {
+    uuid id PK
+  }
+  refunds {
+    uuid id PK
+  }
+  payment_accounts {
+    uuid id PK
+  }

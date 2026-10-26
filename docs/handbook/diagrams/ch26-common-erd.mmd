@@ -1,0 +1,51 @@
+erDiagram
+  organizations |o..o{ audit_logs : "organization_id, no FK"
+  users |o..o{ audit_logs : "actor_user_id, no FK"
+  organizations ||..o{ status_history : "organization_id, no FK"
+  users |o..o{ status_history : "actor_user_id, no FK"
+  labs |o..o{ status_history : "on_behalf_of_lab_id, no FK"
+  organizations ||..o{ number_sequences : "organization_id, no FK"
+  locations ||--o{ chairs : "CASCADE"
+  audit_logs {
+    uuid id PK "uuid v7"
+    varchar entity_type
+    uuid entity_id "polymorphic"
+    uuid subject_id "polymorphic"
+    enum action
+    jsonb changes
+    enum actor_side
+  }
+  status_history {
+    uuid id PK "uuid v7"
+    varchar entity_type
+    uuid entity_id "polymorphic"
+    varchar from_state
+    varchar to_state
+    varchar action_code
+    enum via
+  }
+  number_sequences {
+    uuid organization_id PK
+    varchar sequence_key PK
+    varchar prefix
+    bigint next_value
+  }
+  chairs {
+    uuid id PK
+    uuid location_id FK
+    varchar name
+    varchar code
+    bool is_active
+  }
+  organizations {
+    uuid id PK
+  }
+  users {
+    uuid uuid PK
+  }
+  labs {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+  }

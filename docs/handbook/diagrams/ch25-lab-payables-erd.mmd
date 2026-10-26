@@ -1,0 +1,79 @@
+erDiagram
+  labs ||--o{ vendor_bills : "owed, RESTRICT"
+  vendor_bills ||--o{ vendor_bill_lines : "RESTRICT"
+  labs ||--o{ vendor_payments : "paid, RESTRICT"
+  vendor_payments ||--o{ vendor_payment_allocations : "RESTRICT"
+  vendor_bills ||--o{ vendor_payment_allocations : "settled by, RESTRICT"
+  labs ||--o{ lab_statements : "sends, RESTRICT"
+  lab_statements ||--o{ lab_statement_lines : "RESTRICT"
+  lab_statements |o..o{ vendor_bills : "statement_id, no FK"
+  vendor_bills |o..o{ lab_statement_lines : "matched_bill_id, no FK"
+  vendor_bill_lines |o..o{ lab_statement_lines : "matched_bill_line_id, no FK"
+  lab_orders |o..o{ vendor_bills : "lab_order_id, no FK"
+  ledger_journals |o..o| vendor_bills : "journal_id, no FK"
+  lab_order_items |o..o{ vendor_bill_lines : "order_item_id, no FK"
+  order_charge_requests |o..o{ vendor_bill_lines : "charge_request_id, no FK"
+  remake_requests |o..o{ vendor_bill_lines : "remake_request_id, no FK"
+  vendor_bills {
+    uuid id PK "uuid v7"
+    uuid lab_id FK
+    varchar bill_no "unique per org"
+    varchar vendor_invoice_no
+    enum status
+    bigint total_paisa
+    bigint balance_paisa
+  }
+  vendor_bill_lines {
+    uuid id PK
+    uuid vendor_bill_id FK
+    enum line_kind
+    bigint line_total_paisa
+    bool is_manual
+  }
+  vendor_payments {
+    uuid id PK
+    uuid lab_id FK
+    varchar payment_no "unique per org"
+    bigint amount_paisa
+    bigint allocated_paisa
+    enum status
+  }
+  vendor_payment_allocations {
+    uuid id PK
+    uuid vendor_payment_id FK
+    uuid vendor_bill_id FK
+    bigint amount_paisa
+    timestamptz reversed_at
+  }
+  lab_statements {
+    uuid id PK
+    uuid lab_id FK
+    date period_start
+    date period_end
+    bigint total_paisa
+    enum status
+  }
+  lab_statement_lines {
+    uuid id PK
+    uuid statement_id FK
+    bigint amount_paisa
+    enum match_status
+  }
+  labs {
+    uuid id PK
+  }
+  ledger_journals {
+    uuid id PK
+  }
+  lab_orders {
+    uuid id PK
+  }
+  lab_order_items {
+    uuid id PK
+  }
+  order_charge_requests {
+    uuid id PK
+  }
+  remake_requests {
+    uuid id PK
+  }

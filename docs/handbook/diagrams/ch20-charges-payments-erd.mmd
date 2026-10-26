@@ -1,0 +1,78 @@
+erDiagram
+  patients ||--o{ charges : "billed, RESTRICT"
+  invoices |o--o{ charges : "groups, RESTRICT"
+  patients ||--o{ invoices : "owes, RESTRICT"
+  employees |o--o{ charges : "doctor, RESTRICT"
+  employee_org_location_assignments |o--o{ charges : "performer, RESTRICT"
+  compensation_plans |o--o{ charges : "rate snapshot, RESTRICT"
+  patients ||--o{ payments : "pays, RESTRICT"
+  payment_accounts ||--o{ payments : "received into, RESTRICT"
+  payments ||--o{ payment_allocations : "applied as, RESTRICT"
+  charges ||--o{ payment_allocations : "settled by, RESTRICT"
+  invoices |o..o{ payment_allocations : "invoice_id copy, no FK"
+  patients ||--o{ refunds : "refunded, RESTRICT"
+  refunds ||--o{ refund_sources : "funded by, RESTRICT"
+  payments ||--o{ refund_sources : "funds, RESTRICT"
+  invoices |o..o{ refunds : "invoice_id, no FK"
+  payment_accounts |o..o{ refunds : "payment_account_id, no FK"
+  charges {
+    uuid id PK
+    uuid patient_id FK
+    uuid invoice_id FK
+    enum source
+    uuid source_id "polymorphic"
+    numeric net_amount
+    numeric allocated_amount
+    enum status
+  }
+  invoices {
+    uuid id PK
+    uuid patient_id FK
+    varchar invoice_number "unique per org"
+    enum status
+    int revision
+    numeric balance_due
+  }
+  payments {
+    uuid id PK
+    uuid patient_id FK
+    uuid payment_account_id FK
+    varchar receipt_number "unique per org"
+    numeric amount
+    uuid client_request_id "unique per org"
+  }
+  payment_allocations {
+    uuid id PK
+    uuid payment_id FK
+    uuid charge_id FK
+    numeric amount "signed, not zero"
+    enum reason
+  }
+  refunds {
+    uuid id PK
+    uuid patient_id FK
+    varchar refund_number "unique per org"
+    numeric amount
+    uuid invoice_id "no FK"
+  }
+  refund_sources {
+    uuid id PK
+    uuid refund_id FK
+    uuid payment_id FK
+    numeric amount
+  }
+  payment_accounts {
+    uuid id PK
+  }
+  patients {
+    uuid id PK
+  }
+  employees {
+    uuid id PK
+  }
+  employee_org_location_assignments {
+    uuid id PK
+  }
+  compensation_plans {
+    uuid id PK
+  }

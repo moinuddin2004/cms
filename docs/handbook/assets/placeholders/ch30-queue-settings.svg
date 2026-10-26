@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect x="4" y="4" width="1592" height="892" rx="24" fill="#f1f5f9" stroke="#94a3b8" stroke-width="6" stroke-dasharray="28 18"/>
+  <text x="800" y="380" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="44" fill="#64748b">Screenshot pending</text>
+  <text x="800" y="470" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="bold" fill="#334155">Queue settings card</text>
+  <text x="800" y="560" text-anchor="middle" font-family="Consolas, monospace" font-size="40" fill="#64748b">C:/Program Files/Git/locations/$id/settings</text>
+</svg>

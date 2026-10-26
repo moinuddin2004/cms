@@ -1,0 +1,13 @@
+flowchart LR
+    A["Prescription is created"] --> B{"Layout chosen<br/>in the request?"}
+    B -- yes --> C["Store that layout id"]
+    B -- no --> D{"Default layout<br/>for this location?"}
+    D -- yes --> C2["Store location default"]
+    D -- no --> E{"Org-wide default<br/>layout exists?"}
+    E -- yes --> C3["Store org-wide default"]
+    E -- no --> F["Store no layout"]
+    C --> P["PDF uses stored layout"]
+    C2 --> P
+    C3 --> P
+    F --> G["At print time look up<br/>location then org default again"]
+    G --> H["None found: built-in A4,<br/>12 to 15 mm margins, teal accent"]

@@ -1,0 +1,51 @@
+erDiagram
+    patients ||--o{ prescriptions : "receives"
+    patient_encounters |o--o{ prescriptions : "written in"
+    employees |o--o{ prescriptions : "prescribes"
+    prescription_templates |o--o{ prescriptions : "prints with"
+    treatment_plan_templates |o--o{ prescriptions : "seeded from"
+    prescriptions ||--o{ prescription_medicines : "lists"
+    prescriptions ||--o{ prescription_history : "logs"
+    medicine_directory |o--o{ prescription_medicines : "source of"
+    treatment_plan_templates ||--o{ treatment_plan_template_medicines : "contains"
+    medicine_directory |o--o{ treatment_plan_template_medicines : "source of"
+    patients ||--o{ patient_prescriptions : "legacy"
+
+    prescriptions {
+        uuid id PK
+        varchar prescription_number "unique platform-wide"
+        uuid patient_id FK
+        uuid encounter_id FK "nullable"
+        uuid doctor_id FK "nullable"
+        varchar status "DRAFT FINALIZED AMENDED"
+        int version
+    }
+    prescription_medicines {
+        uuid id PK
+        uuid prescription_id FK
+        uuid medicine_directory_id FK "nullable"
+        varchar medicine_name "copied"
+        varchar frequency
+    }
+    prescription_history {
+        uuid id PK
+        uuid prescription_id FK
+        varchar change_type
+        jsonb previous_data
+    }
+    treatment_plan_templates {
+        uuid id PK
+        varchar name "preset name"
+        varchar category
+    }
+    prescription_templates {
+        uuid id PK
+        uuid location_id FK "null means org-wide"
+        boolean is_default
+        varchar page_size
+    }
+    patient_prescriptions {
+        uuid id PK
+        varchar prescription_number "unique per org"
+        jsonb medications
+    }

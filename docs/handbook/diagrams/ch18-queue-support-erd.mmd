@@ -1,0 +1,33 @@
+erDiagram
+  organizations ||..o{ queue_policies : "org default, no FK"
+  locations |o..o{ queue_policies : "location override, no FK"
+  organizations ||..o{ outbox : "organization_id, no FK"
+  organizations ||..o{ idempotency_keys : "organization_id, no FK"
+  queue_policies {
+    uuid id PK
+    uuid organization_id
+    uuid location_id
+    bool smart_queue_enabled
+    enum skipped_rejoin_policy
+    time service_day_cutoff
+  }
+  outbox {
+    bigint id PK
+    uuid organization_id
+    text topic
+    jsonb payload
+    timestamptz published_at
+  }
+  idempotency_keys {
+    uuid organization_id PK
+    text key PK
+    text request_hash
+    jsonb response_body
+  }
+  organizations {
+    uuid id PK
+  }
+  locations {
+    uuid id PK
+    varchar timezone
+  }

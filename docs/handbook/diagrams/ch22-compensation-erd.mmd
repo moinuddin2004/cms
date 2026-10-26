@@ -1,0 +1,62 @@
+erDiagram
+  employee_org_location_assignments ||--o{ compensation_plans : "paid under, CASCADE"
+  compensation_plans ||--o{ commission_rules : "overridden by, CASCADE"
+  services |o--o{ commission_rules : "service rule, CASCADE"
+  employee_org_location_assignments ||--o{ commission_entries : "earns, RESTRICT"
+  charges |o--o{ commission_entries : "on clinic charge, RESTRICT"
+  lab_invoice_lines |o--o{ commission_entries : "on lab line, RESTRICT"
+  commission_settlements |o--o{ commission_entries : "settles, RESTRICT"
+  employee_org_location_assignments ||--o{ commission_settlements : "batched for, RESTRICT"
+  payroll_records |o--o| commission_settlements : "paid through, RESTRICT"
+  compensation_plans |o--o{ charges : "rate snapshot, RESTRICT"
+  compensation_plans |o..o{ lab_invoice_lines : "commission_plan_id, no FK"
+  compensation_plans {
+    uuid id PK
+    uuid assignment_id FK
+    enum type
+    bigint base_salary_paisa
+    int default_rate_bps
+    date effective_from
+    date effective_to
+  }
+  commission_rules {
+    uuid id PK
+    uuid plan_id FK
+    uuid service_id FK
+    enum service_category
+    int rate_bps
+    bigint fixed_amount_paisa
+  }
+  commission_entries {
+    uuid id PK
+    uuid assignment_id FK
+    uuid charge_id FK
+    uuid lab_invoice_line_id FK
+    enum source_type
+    bigint amount_paisa "signed"
+    uuid settlement_id FK
+  }
+  commission_settlements {
+    uuid id PK
+    uuid assignment_id FK
+    uuid payroll_record_id FK "unique"
+    bigint total_paisa
+    enum status
+  }
+  employee_org_location_assignments {
+    uuid id PK
+  }
+  services {
+    uuid id PK
+  }
+  charges {
+    uuid id PK
+    uuid commission_plan_id FK
+  }
+  lab_invoice_lines {
+    uuid id PK
+    uuid commission_plan_id
+  }
+  payroll_records {
+    uuid id PK
+  }

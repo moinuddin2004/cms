@@ -1,0 +1,14 @@
+flowchart LR
+    S["Call next"] --> M{"Smart queue on?"}
+    M -- "No" --> F1{"Anyone urgent?"}
+    F1 -- "Yes" --> U1["Earliest urgent<br/>URGENT"]
+    F1 -- "No" --> FIFO1["Earliest place in line<br/>FIFO"]
+    M -- "Yes" --> U{"Anyone urgent?"}
+    U -- "Yes" --> U2["Earliest urgent<br/>URGENT"]
+    U -- "No" --> G{"Appointment due AND oldest<br/>pool patient waited past<br/>starvation limit AND last call<br/>was not a guard call?"}
+    G -- "Yes" --> GW["Oldest pool patient<br/>STARVATION_GUARD"]
+    G -- "No" --> A{"Appointment due?"}
+    A -- "Yes" --> AD["Earliest scheduled time<br/>APPOINTMENT_DUE"]
+    A -- "No" --> R{"Back from a test?"}
+    R -- "Yes" --> RT["Earliest return<br/>RETURNED_FROM_TEST"]
+    R -- "No" --> FIFO2["Earliest place in line<br/>FIFO"]

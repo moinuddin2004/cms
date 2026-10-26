@@ -1,0 +1,79 @@
+erDiagram
+    employees ||--o{ queue_sessions : "runs"
+    queue_sessions ||--o{ queue_entries : contains
+    patients ||--o{ queue_entries : "waits as"
+    appointments |o--o{ queue_entries : "arrives as"
+    queue_entries ||--o| patient_encounters : "starts"
+    queue_sessions ||..o{ queue_events : "logs"
+    queue_entries |o..o{ queue_events : "about"
+    queue_policies |o..o{ queue_sessions : "settings for"
+    employee_org_location_assignments |o..o{ queue_sessions : "token prefix for"
+    queue_sessions {
+        uuid id PK
+        uuid doctor_id FK
+        uuid location_id
+        date service_date
+        enum status
+        int last_token_number
+        varchar token_prefix
+        bool smart_queue_enabled
+        bigint event_seq
+    }
+    queue_entries {
+        uuid id PK
+        uuid queue_session_id FK
+        uuid patient_id FK
+        uuid appointment_id FK
+        int token_number
+        enum queue_type
+        enum status
+        enum priority_class
+        timestamptz sort_anchor_at
+        int version
+    }
+    queue_events {
+        bigint id PK
+        uuid queue_session_id
+        uuid queue_entry_id
+        bigint seq
+        text event_type
+        text reason_code
+    }
+    queue_policies {
+        uuid id PK
+        uuid organization_id
+        uuid location_id
+        bool smart_queue_enabled
+        int max_late_min
+    }
+    patient_encounters {
+        uuid id PK
+        uuid queue_entry_id FK
+        uuid appointment_id FK
+    }
+    outbox {
+        bigint id PK
+        uuid organization_id
+        text topic
+        timestamptz published_at
+    }
+    idempotency_keys {
+        uuid organization_id PK
+        text key PK
+        text request_hash
+        jsonb response_body
+    }
+    appointments {
+        uuid id PK
+        enum status
+    }
+    patients {
+        uuid id PK
+    }
+    employees {
+        uuid id PK
+    }
+    employee_org_location_assignments {
+        uuid id PK
+        varchar token_prefix
+    }

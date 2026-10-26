@@ -1,0 +1,9 @@
+stateDiagram-v2
+    direction LR
+    [*] --> pending : POST items
+    pending --> in_progress : PATCH itemId
+    in_progress --> completed : PATCH itemId
+    pending --> postponed : PATCH itemId
+    postponed --> in_progress : PATCH itemId
+    pending --> skipped : PATCH itemId
+    in_progress --> postponed : PATCH itemId

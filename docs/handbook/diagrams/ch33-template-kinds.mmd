@@ -1,0 +1,5 @@
+flowchart LR
+    PT["Plan template<br/>table plan_templates<br/>page /plan-templates"] -->|"list of procedures,<br/>sessions and fees"| RT["Record Treatment dialog<br/>pre-fills name and cost"]
+    RT --> TR["treatments row<br/>tagged with plan_template_id"]
+    PP["Prescription preset<br/>table treatment_plan_templates<br/>page /prescription-presets"] -->|"list of medicines<br/>and instructions"| PB["Prescription builder<br/>pre-fills medicines"]
+    PB --> RX["prescriptions row"]
