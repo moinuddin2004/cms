@@ -24,6 +24,7 @@ import { Response, Request } from 'express';
 import { SecurityLogService } from './security-log.service';
 import { AccountStatus } from '../user/enum/AccountStatus';
 import { SessionService } from '../session/session.service';
+import { remainingLifetimeMs } from '../session/session-lifetime';
 import {
   AuthorizationService,
   AccessibleOrganization,
@@ -42,14 +43,15 @@ const PASSWORD_RESET_EXPIRY_MINUTES = 15;
 const EMAIL_VERIFICATION_EXPIRY_HOURS = 48;
 
 /**
- * Cookie options for refresh token.
+ * Cookie options shared by every refresh cookie. `maxAge` is added per
+ * response: 1 day for a normal sign-in, 30 days for "keep me signed in".
+ * On refresh it is the session's remaining lifetime, never a fresh window.
  */
 const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
 
 /**
@@ -125,7 +127,13 @@ export class AuthService {
       `Registration complete for: ${user.email}`,
       AuthService.name,
     );
-    return this.login({ email: dto.email, password: dto.password }, req, res);
+    // Signup signs the new clinic in straight away and keeps them signed in
+    // for 30 days — being bounced back to login during onboarding is hostile.
+    return this.login(
+      { email: dto.email, password: dto.password, rememberMe: true },
+      req,
+      res,
+    );
   }
 
   /** New verification token for a self-signup; failures to send are logged only. */
@@ -205,6 +213,7 @@ export class AuthService {
     const { session, refreshToken } = await this.sessionService.createSession(
       user.uuid,
       req,
+      dto.rememberMe === true,
     );
 
     // Resolve user's accessible organizations and locations
@@ -262,8 +271,14 @@ export class AuthService {
     // Generate access token with globalRole
     const accessToken = await this.generateAccessToken(user, session.uuid);
 
-    // Store session ID and refresh token in httpOnly cookie
-    this.setSessionCookie(res, session.uuid, refreshToken);
+    // Store session ID and refresh token in httpOnly cookie for the session's
+    // full lifetime (1 day, or 30 days when "keep me signed in" was checked)
+    this.setSessionCookie(
+      res,
+      session.uuid,
+      refreshToken,
+      remainingLifetimeMs(session.expiresAt),
+    );
 
     // Log successful login
     await this.securityLogService.logLoginSuccess(user.uuid, session.uuid, req);
@@ -466,8 +481,13 @@ export class AuthService {
     // Generate new access token
     const accessToken = await this.generateAccessToken(user, sessionId);
 
-    // Update cookie with new refresh token
-    this.setSessionCookie(res, sessionId, rotated.refreshToken);
+    // Update the cookie with the new token, keeping the same absolute expiry
+    this.setSessionCookie(
+      res,
+      sessionId,
+      rotated.refreshToken,
+      remainingLifetimeMs(rotated.session.expiresAt),
+    );
 
     // Resolve access info for the refreshed user
     const accessInfo = await this.authorizationService.resolveUserAccess(
@@ -542,10 +562,12 @@ export class AuthService {
     // Check account status
     this.validateAccountStatus(user, req);
 
-    // Create session
+    // Create session. OAuth has no "keep me signed in" checkbox, so treat it
+    // as a remembered sign-in (30 days).
     const { session, refreshToken } = await this.sessionService.createSession(
       user.uuid,
       req,
+      true,
     );
 
     // Generate access token
@@ -814,15 +836,20 @@ export class AuthService {
   }
 
   /**
-   * Set session cookie with session ID and refresh token.
+   * Set session cookie with session ID, refresh token and the time left in
+   * the session.
    */
   private setSessionCookie(
     res: Response,
     sessionId: string,
     refreshToken: string,
+    maxAgeMs: number,
   ): void {
     const cookieValue = `${sessionId}:${refreshToken}`;
-    res.cookie('refresh_token', cookieValue, REFRESH_TOKEN_COOKIE_OPTIONS);
+    res.cookie('refresh_token', cookieValue, {
+      ...REFRESH_TOKEN_COOKIE_OPTIONS,
+      maxAge: maxAgeMs,
+    });
   }
 
   /**

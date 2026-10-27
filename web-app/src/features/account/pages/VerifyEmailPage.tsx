@@ -52,13 +52,17 @@ export function VerifyEmailPage() {
         {status === 'verifying' && (
           <>
             <Loader2 className="mx-auto mb-4 size-10 animate-spin text-primary" />
-            <h2 className="text-xl font-bold">Verifying your email…</h2>
+            <h1 className="text-[22px] font-semibold tracking-[-0.02em]">
+              Verifying your email…
+            </h1>
           </>
         )}
         {status === 'done' && (
           <>
-            <CheckCircle2 className="mx-auto mb-4 size-10 text-emerald-500" />
-            <h2 className="mb-2 text-xl font-bold">Email verified</h2>
+            <CheckCircle2 className="mx-auto mb-4 size-10 text-emerald" />
+            <h1 className="mb-2 text-[22px] font-semibold tracking-[-0.02em]">
+              Email verified
+            </h1>
             <p className="mb-8 text-sm text-muted-foreground">
               Thanks — your email address is confirmed.
             </p>
@@ -66,15 +70,17 @@ export function VerifyEmailPage() {
         )}
         {status === 'failed' && (
           <>
-            <XCircle className="mx-auto mb-4 size-10 text-red-500" />
-            <h2 className="mb-2 text-xl font-bold">Link not valid</h2>
+            <XCircle className="mx-auto mb-4 size-10 text-destructive" />
+            <h1 className="mb-2 text-[22px] font-semibold tracking-[-0.02em]">
+              Link not valid
+            </h1>
             <p className="mb-8 text-sm text-muted-foreground">
               {message} {isAuthenticated && 'Use "Resend link" in the app to get a new one.'}
             </p>
           </>
         )}
         {status !== 'verifying' && (
-          <Button onClick={goOn} className="h-11 w-full font-semibold">
+          <Button onClick={goOn} className="h-11 w-full rounded-xl font-semibold">
             {isAuthenticated ? 'Continue to the app' : 'Go to sign in'}
           </Button>
         )}

@@ -7,8 +7,16 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
-import { Loader2, Mail, MailCheck } from 'lucide-react'
+import { ArrowRight, Loader2, MailCheck } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
+import { AuthError, AuthHeading } from './AuthPrimitives'
+import {
+  authAltClass,
+  authInputClass,
+  authLabelClass,
+  authSubmitClass,
+  authTextLinkClass,
+} from './authStyles'
 
 const forgotSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -47,21 +55,21 @@ export function ForgotPasswordForm() {
     return (
       <AuthLayout>
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-5">
-            <MailCheck className="w-8 h-8 text-primary" />
+          <div className="mx-auto mb-6 flex size-14 items-center justify-center rounded-2xl bg-primary-soft text-primary-text">
+            <MailCheck className="size-7" />
           </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">
+          <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
             Check your email
-          </h2>
-          <p className="text-sm text-muted-foreground mb-8">
-            If an account exists with that email, we&apos;ve sent a password
+          </h1>
+          <p className="mx-auto mt-2 mb-8 max-w-[320px] text-[13.5px] leading-relaxed text-muted-foreground">
+            If an account exists with that email, we&rsquo;ve sent a password
             reset link.
           </p>
           <Button
             onClick={() => navigate({ to: '/login' })}
-            className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] cursor-pointer"
+            className={authSubmitClass}
           >
-            Return to Login
+            Return to sign in
           </Button>
         </div>
       </AuthLayout>
@@ -70,15 +78,10 @@ export function ForgotPasswordForm() {
 
   return (
     <AuthLayout>
-      {/* Header */}
-      <div className="mb-7">
-        <div className="text-2xl font-extrabold tracking-tight text-foreground">
-          Forgot Password
-        </div>
-        <div className="text-sm text-muted-foreground mt-1.5">
-          Enter your email and we&apos;ll send you a reset link
-        </div>
-      </div>
+      <AuthHeading
+        title="Reset your password"
+        subtitle="Enter your email and we'll send you a reset link."
+      />
 
       <form
         onSubmit={(e) => {
@@ -88,69 +91,63 @@ export function ForgotPasswordForm() {
         }}
       >
         {/* Email field */}
-        <div className="mb-5">
-          <Label htmlFor="forgot-email" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
+        <div>
+          <Label htmlFor="forgot-email" className={authLabelClass}>
             Email
           </Label>
           <form.Field name="email">
             {(field) => (
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="doctor@clinic.com"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="email"
-                  className="h-11 pl-[38px] rounded-[10px] bg-panel border-border text-sm"
-                />
-              </div>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="doctor@clinic.com"
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+                required
+                autoComplete="email"
+                className={authInputClass}
+              />
             )}
           </form.Field>
         </div>
 
-        {/* Error */}
-        {globalError && (
-          <div className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 mb-4">
-            {globalError}
-          </div>
-        )}
+        <div className="mt-4">
+          <AuthError message={globalError} />
+        </div>
 
-        {/* Submit */}
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
             <Button
               type="submit"
-              className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] transition-all active:scale-[0.98] cursor-pointer"
+              className={`group ${authSubmitClass}`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 size-4 animate-spin" />
                   Sending...
                 </>
               ) : (
-                'Send reset instructions'
+                <>
+                  Send reset link
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                </>
               )}
             </Button>
           )}
         </form.Subscribe>
 
-        {/* Back to login */}
-        <div className="text-[13px] text-muted-foreground mt-[18px]">
+        <p className={authAltClass}>
           Remember your password?{' '}
-          <Button
+          <button
             type="button"
-            variant="link"
-            className="p-0 h-auto font-semibold text-primary cursor-pointer"
             onClick={() => navigate({ to: '/login' })}
+            className={`cursor-pointer ${authTextLinkClass}`}
           >
-            Back to login
-          </Button>
-        </div>
+            Back to sign in
+          </button>
+        </p>
       </form>
     </AuthLayout>
   )

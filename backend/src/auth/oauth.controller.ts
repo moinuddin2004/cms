@@ -4,6 +4,7 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Public } from 'src/common/decorators/publicDecorator';
+import { REMEMBERED_SESSION_MS } from '../session/session-lifetime';
 
 /**
  * Google / GitHub sign-in — DISABLED.
@@ -59,7 +60,7 @@ export class OAuthController {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: REMEMBERED_SESSION_MS,
     });
 
     const redirect = (req.query.redirect as string) || '/dashboard';

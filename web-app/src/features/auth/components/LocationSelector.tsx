@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AuthLayout } from './AuthLayout'
+import { AuthHeading } from './AuthPrimitives'
 
 type Step = 'org' | 'location'
 
@@ -84,16 +85,14 @@ export function LocationSelector() {
   return (
     <AuthLayout>
       {/* Header */}
-      <div className="mb-7">
-        <div className="text-2xl font-extrabold tracking-tight text-foreground">
-          {step === 'org' ? 'Select Organization' : 'Select Location'}
-        </div>
-        <div className="text-sm text-muted-foreground mt-1.5">
-          {step === 'org'
+      <AuthHeading
+        title={step === 'org' ? 'Choose an organization' : 'Choose a location'}
+        subtitle={
+          step === 'org'
             ? `Welcome, ${user?.name}. Choose an organization to continue.`
-            : `Welcome, ${user?.name}. Choose where you'd like to work today.`}
-        </div>
-      </div>
+            : `Welcome, ${user?.name}. Choose where you'd like to work today.`
+        }
+      />
 
       <div className="space-y-3">
           {/* ── Step 1: Organization Picker ── */}
@@ -116,7 +115,7 @@ export function LocationSelector() {
                     className={cn(
                       'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
                       selectedOrgId === org.id
-                        ? 'bg-primary text-white'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground',
                     )}
                   >
@@ -204,7 +203,7 @@ export function LocationSelector() {
                       className={cn(
                         'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
                         isSelected
-                          ? 'bg-primary text-white'
+                          ? 'bg-primary text-primary-foreground'
                           : 'bg-muted text-muted-foreground',
                       )}
                     >
@@ -216,7 +215,7 @@ export function LocationSelector() {
                           {loc.name}
                         </span>
                         {loc.isMainBranch && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-soft px-2 py-0.5 text-xs font-medium text-amber">
                             <Star className="w-3 h-3" />
                             Main
                           </span>
@@ -240,7 +239,7 @@ export function LocationSelector() {
 
               {/* Submit button */}
               <Button
-                className="w-full h-11 font-semibold mt-4 transition-all active:scale-[0.98]"
+                className="w-full h-11 font-semibold mt-4 rounded-xl transition-all active:scale-[0.99]"
                 disabled={!selectedLocId || isSubmitting}
                 onClick={() => handleSubmit()}
               >

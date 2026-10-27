@@ -8,8 +8,17 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react'
+import { ArrowRight, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
+import { AuthError, AuthHeading } from './AuthPrimitives'
+import {
+  authAltClass,
+  authInputClass,
+  authInputWithActionClass,
+  authLabelClass,
+  authSubmitClass,
+  authTextLinkClass,
+} from './authStyles'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -18,7 +27,7 @@ const loginSchema = z.object({
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMe, setRememberMe] = useState(false)
   const [globalError, setGlobalError] = useState('')
   const setAuth = useAuthStore((state) => state.setAuth)
   const navigate = useNavigate()
@@ -32,7 +41,10 @@ export function LoginForm() {
       setGlobalError('')
       try {
         const parsed = loginSchema.parse(value)
-        const response = await apiClient.post('/auth/login', parsed)
+        const response = await apiClient.post('/auth/login', {
+          ...parsed,
+          rememberMe,
+        })
 
         if (response.data?.isSuccess) {
           const {
@@ -97,15 +109,10 @@ export function LoginForm() {
 
   return (
     <AuthLayout>
-      {/* Header */}
-      <div className="mb-7">
-        <div className="text-2xl font-extrabold tracking-tight text-foreground">
-          Welcome back
-        </div>
-        <div className="text-sm text-muted-foreground mt-1.5">
-          Sign in to your clinic workspace
-        </div>
-      </div>
+      <AuthHeading
+        title="Welcome back"
+        subtitle="Sign in to continue to your clinic workspace."
+      />
 
       <form
         onSubmit={(e) => {
@@ -114,15 +121,14 @@ export function LoginForm() {
           form.handleSubmit()
         }}
       >
-        {/* Email field */}
-        <div className="mb-4">
-          <Label htmlFor="login-email" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
-            Email
-          </Label>
-          <form.Field name="email">
-            {(field) => (
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+        <div className="space-y-4">
+          {/* Email */}
+          <div>
+            <Label htmlFor="login-email" className={authLabelClass}>
+              Email
+            </Label>
+            <form.Field name="email">
+              {(field) => (
                 <Input
                   id="login-email"
                   type="email"
@@ -132,124 +138,126 @@ export function LoginForm() {
                   onBlur={field.handleBlur}
                   required
                   autoComplete="email"
-                  className="h-11 pl-[38px] rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
+                  className={authInputClass}
                 />
-              </div>
-            )}
-          </form.Field>
-        </div>
-
-        {/* Password field */}
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-[7px]">
-            <Label htmlFor="login-password" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
-              Password
-            </Label>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="px-0 h-auto font-semibold text-xs text-primary hover:text-primary-hover cursor-pointer"
-              onClick={() => navigate({ to: '/forgot-password' })}
-            >
-              Forgot password?
-            </Button>
+              )}
+            </form.Field>
           </div>
-          <form.Field name="password">
-            {(field) => (
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                <Input
-                  id="login-password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="current-password"
-                  className="h-11 pl-[38px] pr-10 rounded-[10px] bg-background border-border text-sm focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-colors"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-transparent cursor-pointer"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-[17px] w-[17px]" />
-                  ) : (
-                    <Eye className="h-[17px] w-[17px]" />
-                  )}
-                </Button>
-              </div>
-            )}
-          </form.Field>
+
+          {/* Password */}
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <Label
+                htmlFor="login-password"
+                className={`${authLabelClass} mb-0`}
+              >
+                Password
+              </Label>
+              <button
+                type="button"
+                onClick={() => navigate({ to: '/forgot-password' })}
+                className="cursor-pointer text-[12.5px] font-medium text-primary-text underline-offset-4 outline-none hover:underline focus-visible:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+            <form.Field name="password">
+              {(field) => (
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                    autoComplete="current-password"
+                    className={authInputWithActionClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="size-[17px]" />
+                    ) : (
+                      <Eye className="size-[17px]" />
+                    )}
+                  </button>
+                </div>
+              )}
+            </form.Field>
+          </div>
         </div>
 
         {/* Keep me signed in */}
-        <label className="flex items-center gap-2 text-[13px] text-muted-foreground my-3.5 cursor-pointer select-none">
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={rememberMe}
-            onClick={() => setRememberMe(!rememberMe)}
-            className={`w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors ${
-              rememberMe
-                ? 'bg-primary text-white'
-                : 'bg-transparent border-[1.5px] border-border'
-            }`}
-          >
-            {rememberMe && (
-              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            )}
-          </button>
-          Keep me signed in
-        </label>
+        <div className="mt-4 mb-5">
+          <label className="flex w-fit cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground select-none">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span
+              aria-hidden="true"
+              className="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border border-border bg-surface transition-colors peer-checked:border-primary peer-checked:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background"
+            >
+              {rememberMe && (
+                <Check
+                  className="size-3 text-primary-foreground"
+                  strokeWidth={3}
+                />
+              )}
+            </span>
+            Keep me signed in for 30 days
+          </label>
+          <p className="mt-1.5 pl-[28px] text-[11.5px] text-muted-foreground/80">
+            Otherwise you&rsquo;ll be signed out after 1 day.
+          </p>
+        </div>
 
-        {/* Error */}
-        {globalError && (
-          <div className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 mb-4">
-            {globalError}
+        {globalError ? (
+          <div className="mt-4">
+            <AuthError message={globalError} />
           </div>
-        )}
+        ) : null}
 
-        {/* Submit */}
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
             <Button
               type="submit"
-              className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] transition-all active:scale-[0.98] cursor-pointer"
+              className={`group ${authSubmitClass}`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 size-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
-                'Sign in'
+                <>
+                  Sign in
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                </>
               )}
             </Button>
           )}
         </form.Subscribe>
 
-        {/* Register link */}
-        <div className="text-[13px] text-muted-foreground mt-[18px]">
+        <p className={authAltClass}>
           Don&apos;t have an account?{' '}
-          <Button
+          <button
             type="button"
-            variant="link"
-            className="p-0 h-auto font-semibold text-primary cursor-pointer"
             onClick={() => navigate({ to: '/register' })}
+            className={`cursor-pointer ${authTextLinkClass}`}
           >
             Sign up
-          </Button>
-        </div>
+          </button>
+        </p>
       </form>
     </AuthLayout>
   )

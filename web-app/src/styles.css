@@ -19,6 +19,8 @@
   --font-sans:
     'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Code', monospace;
+  --font-display:
+    'Instrument Serif', 'Iowan Old Style', Georgia, Cambria, serif;
 
   /* Radius scale */
   --radius-sm: calc(var(--radius) - 4px);
@@ -435,6 +437,101 @@
   ::-webkit-scrollbar-thumb:hover {
     background: var(--text-3);
   }
+}
+
+/* ── Auth screens ─────────────────────────────────────────────────────
+   One shared brand surface for all three auth layouts. The brand colour is
+   mixed down with ink so white text stays readable for any clinic brand,
+   then a soft brand glow brings the hue back at the top. */
+.auth-brand-surface {
+  color: #fff;
+  background-color: color-mix(in oklab, var(--primary) 62%, #0a0f1c);
+  background-image:
+    radial-gradient(
+      120% 90% at 10% 0%,
+      color-mix(in oklab, var(--primary) 70%, transparent) 0%,
+      transparent 58%
+    ),
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      transparent 45%,
+      rgba(0, 0, 0, 0.28) 100%
+    );
+}
+
+.auth-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 54px 54px;
+  -webkit-mask-image: radial-gradient(
+    90% 85% at 60% 20%,
+    #000 0%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(90% 85% at 60% 20%, #000 0%, transparent 78%);
+}
+
+.auth-ambient {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    var(--border) 1px,
+    transparent 0
+  );
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(
+    85% 75% at 50% 45%,
+    #000 0%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(85% 75% at 50% 45%, #000 0%, transparent 100%);
+  opacity: 0.7;
+}
+
+@keyframes auth-pulse {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0.2;
+  }
+  40% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  75% {
+    stroke-dashoffset: 0;
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.2;
+  }
+}
+
+.auth-pulse {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: auth-pulse 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-pulse {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Chrome's autofill paints its own near-white background, which breaks the
+   dark auth screens. Keep the field surface and text colours. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--foreground) !important;
+  caret-color: var(--foreground);
+  transition: background-color 999999s ease-in-out 0s;
 }
 
 /* ── App loading screen — heartbeat trace drawn left to right ─────── */

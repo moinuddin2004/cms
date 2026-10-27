@@ -7,8 +7,16 @@ import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 import apiClient from '@/lib/api'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Lock, ShieldCheck } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
 import { AuthLayout } from './AuthLayout'
+import { AuthError, AuthHeading } from './AuthPrimitives'
+import { PasswordStrength } from './PasswordStrength'
+import {
+  authInputClass,
+  authInputWithActionClass,
+  authLabelClass,
+  authSubmitClass,
+} from './authStyles'
 
 const resetSchema = z
   .object({
@@ -60,17 +68,18 @@ export function ResetPasswordForm() {
     return (
       <AuthLayout>
         <div className="text-center">
-          <h2 className="text-xl font-bold text-destructive mb-2">
-            Invalid Reset Link
-          </h2>
-          <p className="text-sm text-muted-foreground mb-8">
-            This password reset link is invalid or missing the token.
+          <h1 className="mb-2 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+            This reset link is invalid
+          </h1>
+          <p className="mx-auto mb-8 max-w-[320px] text-[13.5px] leading-relaxed text-muted-foreground">
+            The link is missing its token or has expired. Request a new one to
+            continue.
           </p>
           <Button
-            onClick={() => navigate({ to: '/login' })}
-            className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] cursor-pointer"
+            onClick={() => navigate({ to: '/forgot-password' })}
+            className={authSubmitClass}
           >
-            Back to Login
+            Request a new link
           </Button>
         </div>
       </AuthLayout>
@@ -81,21 +90,21 @@ export function ResetPasswordForm() {
     return (
       <AuthLayout>
         <div className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-5">
-            <ShieldCheck className="w-8 h-8 text-primary" />
+          <div className="mx-auto mb-6 flex size-14 items-center justify-center rounded-2xl bg-primary-soft text-primary-text">
+            <ShieldCheck className="size-7" />
           </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">
-            Password Reset Successful
-          </h2>
-          <p className="text-sm text-muted-foreground mb-8">
-            Your password has been updated. All sessions have been revoked for
-            security.
+          <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+            Password updated
+          </h1>
+          <p className="mx-auto mt-2 mb-8 max-w-[320px] text-[13.5px] leading-relaxed text-muted-foreground">
+            Your password has been changed. All other sessions have been signed
+            out for security.
           </p>
           <Button
             onClick={() => navigate({ to: '/login' })}
-            className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] cursor-pointer"
+            className={authSubmitClass}
           >
-            Go to Login
+            Go to sign in
           </Button>
         </div>
       </AuthLayout>
@@ -104,15 +113,10 @@ export function ResetPasswordForm() {
 
   return (
     <AuthLayout>
-      {/* Header */}
-      <div className="mb-7">
-        <div className="text-2xl font-extrabold tracking-tight text-foreground">
-          Set new password
-        </div>
-        <div className="text-sm text-muted-foreground mt-1.5">
-          Choose a strong password for your account
-        </div>
-      </div>
+      <AuthHeading
+        title="Choose a new password"
+        subtitle="Your other sessions will be signed out for security."
+      />
 
       <form
         onSubmit={(e) => {
@@ -121,141 +125,101 @@ export function ResetPasswordForm() {
           form.handleSubmit()
         }}
       >
-        {/* New password field */}
-        <div className="mb-4">
-          <Label htmlFor="new-password" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
-            New Password
-          </Label>
-          <form.Field name="newPassword">
-            {(field) => (
-              <>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-                  <Input
-                    id="new-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Min. 6 characters"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                    autoComplete="new-password"
-                    className="h-11 pl-[38px] pr-10 rounded-[10px] bg-panel border-border text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 p-0 text-muted-foreground hover:text-foreground hover:bg-transparent cursor-pointer"
-                    onClick={() => setShowPassword(!showPassword)}
-                    tabIndex={-1}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-[17px] w-[17px]" />
-                    ) : (
-                      <Eye className="h-[17px] w-[17px]" />
-                    )}
-                  </Button>
-                </div>
-                {field.state.value && (
-                  <div className="mt-2">
-                    <PasswordStrength password={field.state.value} />
+        <div className="space-y-4">
+          {/* New password */}
+          <div>
+            <Label htmlFor="new-password" className={authLabelClass}>
+              New password
+            </Label>
+            <form.Field name="newPassword">
+              {(field) => (
+                <>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      required
+                      autoComplete="new-password"
+                      className={authInputWithActionClass}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={
+                        showPassword ? 'Hide password' : 'Show password'
+                      }
+                      className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-[17px]" />
+                      ) : (
+                        <Eye className="size-[17px]" />
+                      )}
+                    </button>
                   </div>
-                )}
-              </>
-            )}
-          </form.Field>
-        </div>
+                  {field.state.value && (
+                    <div className="mt-2.5">
+                      <PasswordStrength password={field.state.value} />
+                    </div>
+                  )}
+                </>
+              )}
+            </form.Field>
+          </div>
 
-        {/* Confirm password field */}
-        <div className="mb-5">
-          <Label htmlFor="confirm-password" className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-[7px] block">
-            Confirm Password
-          </Label>
-          <form.Field name="confirmPassword">
-            {(field) => (
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
+          {/* Confirm password */}
+          <div>
+            <Label htmlFor="confirm-password" className={authLabelClass}>
+              Confirm password
+            </Label>
+            <form.Field name="confirmPassword">
+              {(field) => (
                 <Input
                   id="confirm-password"
                   type="password"
-                  placeholder="Confirm your password"
+                  placeholder="Enter it again"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   required
                   autoComplete="new-password"
-                  className="h-11 pl-[38px] rounded-[10px] bg-panel border-border text-sm"
+                  className={authInputClass}
                 />
-              </div>
-            )}
-          </form.Field>
+              )}
+            </form.Field>
+          </div>
         </div>
 
-        {/* Error */}
-        {globalError && (
-          <div className="text-sm text-destructive font-medium bg-destructive/10 p-3 rounded-lg border border-destructive/20 mb-4">
-            {globalError}
-          </div>
-        )}
+        <div className="mt-4">
+          <AuthError message={globalError} />
+        </div>
 
-        {/* Submit */}
         <form.Subscribe selector={(state) => state.isSubmitting}>
           {(isSubmitting) => (
             <Button
               type="submit"
-              className="w-full h-[46px] font-semibold text-[15px] rounded-[11px] transition-all active:scale-[0.98] cursor-pointer"
+              className={`group ${authSubmitClass}`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 size-4 animate-spin" />
                   Resetting...
                 </>
               ) : (
-                'Reset Password'
+                <>
+                  Reset password
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+                </>
               )}
             </Button>
           )}
         </form.Subscribe>
       </form>
     </AuthLayout>
-  )
-}
-
-function PasswordStrength({ password }: { password: string }) {
-  const getStrength = (pwd: string) => {
-    let score = 0
-    if (pwd.length >= 6) score++
-    if (pwd.length >= 8) score++
-    if (/[A-Z]/.test(pwd)) score++
-    if (/[0-9]/.test(pwd)) score++
-    if (/[^A-Za-z0-9]/.test(pwd)) score++
-
-    if (score <= 1) return { level: 1, text: 'Weak', color: 'bg-red-500' }
-    if (score <= 2) return { level: 2, text: 'Fair', color: 'bg-orange-500' }
-    if (score <= 3) return { level: 3, text: 'Good', color: 'bg-yellow-500' }
-    if (score <= 4) return { level: 4, text: 'Strong', color: 'bg-emerald-500' }
-    return { level: 5, text: 'Very Strong', color: 'bg-green-600' }
-  }
-
-  const strength = getStrength(password)
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div
-            key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
-              i <= strength.level ? strength.color : 'bg-muted'
-            }`}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Strength: <span className="font-medium">{strength.text}</span>
-      </p>
-    </div>
   )
 }

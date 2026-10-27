@@ -24,49 +24,9 @@ import { ContextFree } from 'src/common/decorators/context-free.decorator';
 import { RateLimiterGuard, RateLimit } from './guards/rate-limiter.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { SessionService } from '../session/session.service';
-import {
-  IsNotEmpty,
-  IsString,
-  IsOptional,
-  IsBoolean,
-  MinLength,
-  IsUUID,
-} from 'class-validator';
-
-/**
- * DTOs for password management endpoints
- */
-class ChangePasswordDto {
-  @IsNotEmpty()
-  @IsString()
-  currentPassword: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
-
-  @IsOptional()
-  @IsBoolean()
-  revokeOtherSessions?: boolean;
-}
-
-class AddPasswordDto {
-  @IsNotEmpty()
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
-}
-
-class SelectLocationDto {
-  @IsNotEmpty()
-  @IsUUID()
-  organizationId: string;
-
-  @IsNotEmpty()
-  @IsUUID()
-  locationId: string;
-}
+import { ChangePasswordRequestDto } from './dto/request/change-password-request.dto';
+import { AddPasswordRequestDto } from './dto/request/add-password-request.dto';
+import { SelectLocationRequestDto } from './dto/request/select-location-request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -138,7 +98,7 @@ export class AuthController {
   @ContextFree()
   @Post('select-location')
   @UseGuards(JwtAuthGuard)
-  async selectLocation(@Body() body: SelectLocationDto, @Req() req: any) {
+  async selectLocation(@Body() body: SelectLocationRequestDto, @Req() req: any) {
     const result = await this.authService.selectLocation(
       req.user.uuid,
       body.organizationId,
@@ -153,7 +113,7 @@ export class AuthController {
   @ContextFree()
   @Post('switch-location')
   @UseGuards(JwtAuthGuard)
-  async switchLocation(@Body() body: SelectLocationDto, @Req() req: any) {
+  async switchLocation(@Body() body: SelectLocationRequestDto, @Req() req: any) {
     const result = await this.authService.switchLocation(
       req.user.uuid,
       body.organizationId,
@@ -278,7 +238,7 @@ export class AuthController {
   @ContextFree()
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
-  async changePassword(@Body() body: ChangePasswordDto, @Req() req: any) {
+  async changePassword(@Body() body: ChangePasswordRequestDto, @Req() req: any) {
     const result = await this.authService.changePassword(
       req.user.uuid,
       body.currentPassword,
@@ -295,7 +255,7 @@ export class AuthController {
   @ContextFree()
   @Post('add-password')
   @UseGuards(JwtAuthGuard)
-  async addPassword(@Body() body: AddPasswordDto, @Req() req: any) {
+  async addPassword(@Body() body: AddPasswordRequestDto, @Req() req: any) {
     const result = await this.authService.addPassword(
       req.user.uuid,
       body.newPassword,

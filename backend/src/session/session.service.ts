@@ -6,10 +6,10 @@ import { Request } from 'express';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import * as useragent from 'useragent';
+import { sessionExpiryFrom } from './session-lifetime';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const MAX_SESSIONS_PER_USER = 5;
-const SESSION_EXPIRY_DAYS = 7;
 
 @Injectable()
 export class SessionService {
@@ -27,6 +27,7 @@ export class SessionService {
   async createSession(
     userId: string,
     req: Request,
+    rememberMe = false,
   ): Promise<{ session: UserSession; refreshToken: string }> {
     // Enforce max sessions — delete oldest if at limit
     await this.enforceSessionLimit(userId);
@@ -48,9 +49,8 @@ export class SessionService {
       req.socket.remoteAddress ||
       '';
 
-    // Set expiration
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
+    // Set expiration: 1 day normally, 30 days with "keep me signed in"
+    const expiresAt = sessionExpiryFrom(new Date(), rememberMe);
 
     // Create session entity
     const session = this.sessionRepository.create({
@@ -207,13 +207,10 @@ export class SessionService {
       BCRYPT_SALT_ROUNDS,
     );
 
-    // Extend session expiry
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
-
-    // Save updates
+    // Rotate the token without extending the session. The expiry is fixed at
+    // sign-in (1 day or 30 days), so "remember me" does not slide forward on
+    // every refresh.
     session.refreshTokenHash = newRefreshTokenHash;
-    session.expiresAt = expiresAt;
     session.lastActiveAt = new Date();
 
     await this.sessionRepository.save(session);
