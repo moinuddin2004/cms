@@ -1,0 +1,314 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="appA-glossary"><h1 id="appA-glossary-appendix-a-glossary">Appendix A — Glossary</h1>
+<p>This glossary defines every entity, role, feature, status label and key term used in the handbook, once, in alphabetical order. It is for anyone reading a single chapter on its own, including readers who start in the middle. Where the code uses a different name from the screen, the code name follows in parentheses. Terms that exist only in the database are shown with their table name.</p>
+<h2 id="appA-glossary-a">A</h2>
+<p><strong>Access context</strong> — the resolved permissions of one user at one organization and location, which answers &quot;can&quot;, &quot;scope&quot; and &quot;decide&quot; for a request (<code>AccessContext</code>).</p>
+<p><strong>Access marker</strong> — one of <code>@Can</code>, <code>@AnyMember</code>, <code>@Public</code>, <code>@RequireSuperAdmin</code> or <code>@ContextFree</code>; every endpoint handler must carry one, and a unit test fails when one is missing.</p>
+<p><strong>Access token</strong> — the 15-minute token kept in the browser&#39;s memory and sent with every request.</p>
+<p><strong>Access version</strong> — a counter on the organization (<code>access_version</code>) raised whenever roles, features or navigation change, so every process and screen knows to reload access.</p>
+<p><strong>Active feature</strong> — a feature that is in the active catalog, entitled, enabled and not switched off at the current location.</p>
+<p><strong>Active queue entry</strong> — a queue entry in status waiting, called, in consultation, on hold or skipped.</p>
+<p><strong>Advance</strong> — patient money received and not yet allocated or refunded; it is calculated (amount minus allocated minus refunded) and has no table of its own. A lab advance is the same idea for lab payments.</p>
+<p><strong>Allocation</strong> — a signed record of how much of a payment was applied to a charge or released back (<code>payment_allocations</code>).</p>
+<p><strong>Amended prescription</strong> — a signed prescription that was edited and not signed again (status <code>AMENDED</code>, version increased).</p>
+<p><strong>Append-only</strong> — a table whose rows are never changed or deleted. Only <code>commission_entries</code>, <code>audit_logs</code> and <code>status_history</code> are protected by a database trigger; others are append-only by convention.</p>
+<p><strong>Appointment</strong> — a booking: one patient, one doctor, one location, a start time and a duration (<code>appointments</code>). Also called a booking before arrival.</p>
+<p><strong>Assignment</strong> — an employee&#39;s link to an organization and a location with an employment role, a staff login and portal access (<code>employee_org_location_assignments</code>).</p>
+<p><strong>Attachment</strong> — a file on a lab order or item (<code>attachments</code>).</p>
+<p><strong>Audience</strong> — who a notification is for: patient, doctor, coordinator or lab.</p>
+<p><strong>Audit log</strong> — the generic append-only change history (<code>audit_logs</code>).</p>
+<p><strong>Autosave</strong> — saving shortly after the user stops typing, without a Save button.</p>
+<p><strong>Availability override</strong> — a one-date exception to a doctor&#39;s weekly schedule (<code>doctor_availability_overrides</code>); recorded but never read by booking.</p>
+<h2 id="appA-glossary-b">B</h2>
+<p><strong>Basis points (bps)</strong> — a rate stored as an integer where 10,000 means 100 percent and 4000 means 40 percent.</p>
+<p><strong>Bell</strong> — the header icon that opens a user&#39;s in-app inbox (<code>user_notifications</code>).</p>
+<p><strong>Billing audit log</strong> — billing&#39;s own audit trail with before and after snapshots (<code>billing_audit_logs</code>).</p>
+<p><strong>Billing v2</strong> — the code&#39;s name for the current charge-based billing design.</p>
+<p><strong>Blacklisted patient</strong> — a patient flagged as not to be served; informational only, it blocks nothing.</p>
+<p><strong>Booking</strong> — see Appointment.</p>
+<p><strong>Bundle</strong> — a ready-made per-module level on the roles screen: None, Basic or Full.</p>
+<h2 id="appA-glossary-c">C</h2>
+<p><strong>Cancel reason code</strong> — the structured reason stored when a booking is cancelled (<code>patient_left</code> or <code>other</code>).</p>
+<p><strong>Case profit</strong> — revenue minus lab cost, case expenses and doctor commission for one lab order.</p>
+<p><strong>Cash close</strong> — an immutable end-of-period count of a location&#39;s counter (<code>cash_closes</code>); each payment account has a line with expected, counted and variance.</p>
+<p><strong>Chair</strong> — a treatment chair of a location; the table exists but no module uses it (<code>chairs</code>).</p>
+<p><strong>Change history</strong> — the per-patient audit timeline merged from the audit log and the status history.</p>
+<p><strong>Channel</strong> — how a notification is delivered: in-app, WhatsApp, SMS or email. Only in-app is active.</p>
+<p><strong>Charge</strong> — one billable line for a patient; the atomic unit of billing (<code>charges</code>).</p>
+<p><strong>Charge request</strong> — an extra charge a lab asks for after an order is submitted (<code>order_charge_requests</code>).</p>
+<p><strong>Clinic default layout</strong> — a sidebar layout with no role, applied to every role of a clinic (<code>nav_layouts</code>).</p>
+<p><strong>Clinic overview</strong> — the dashboard of patients, appointments and waiting (<code>/clinic-overview</code>).</p>
+<p><strong>Clinic time</strong> — dates and times computed in the location&#39;s time zone through <code>ClockService</code>.</p>
+<p><strong>Collected basis and billed basis</strong> — whether profit-and-loss revenue is counted from money received or from invoices issued.</p>
+<p><strong>Commission basis</strong> — whether a commission rate applies to the net or gross charge amount.</p>
+<p><strong>Commission entry</strong> — one signed change in commission earned on one charge or lab invoice line; append-only (<code>commission_entries</code>).</p>
+<p><strong>Commission rule</strong> — an override of a compensation plan for one service or service category (<code>commission_rules</code>).</p>
+<p><strong>Communications log</strong> — a manual record of calls and messages with a patient (<code>patient_communications</code>).</p>
+<p><strong>Compensation plan</strong> — one dated version of how an assignment is paid: salary, commission or both (<code>compensation_plans</code>).</p>
+<p><strong>Config Studio</strong> — the super admin area for form schemas, workflows and stage templates (routes under <code>/studio</code>).</p>
+<p><strong>Consent</strong> — a signed patient consent with the signature image stored in the row (<code>patient_consents</code>).</p>
+<p><strong>Consultation workspace</strong> — the doctor&#39;s one-screen visit page where notes, treatments and prescriptions are recorded.</p>
+<p><strong>Consumption template</strong> — a standard kit of materials for a procedure (<code>consumption_templates</code>).</p>
+<p><strong>Convert to walk-in</strong> — closing a too-late booking as a no-show and adding the patient to the same queue as a linked walk-in.</p>
+<p><strong>Credit note (lab)</strong> — a reduction of an issued lab invoice; money already paid above the new total returns to advance (<code>lab_credit_notes</code>).</p>
+<p><strong>Credit package</strong> — a prepaid credit offer of an organization (<code>credit_packages</code>); backend only.</p>
+<p><strong>Custom discount</strong> — a discount not taken from a discount type; it needs a permission and a note.</p>
+<p><strong>Custom role</strong> — a role created by a clinic, in contrast to the five system roles.</p>
+<h2 id="appA-glossary-d">D</h2>
+<p><strong>Daily booking limit</strong> — the most live bookings a location accepts on one local day (default 50).</p>
+<p><strong>Dental info</strong> — the single dental health and habits sheet of a patient.</p>
+<p><strong>Dev-log provider</strong> — the stand-in delivery provider that writes patient-channel messages to the application log instead of sending them.</p>
+<p><strong>Direct costs</strong> — lab bills plus doctor commissions in the profit-and-loss statement.</p>
+<p><strong>Discount type</strong> — an owner-defined discount preset (<code>discount_types</code>).</p>
+<p><strong>Doctor screen</strong> — the My queue page where a doctor runs their own queue.</p>
+<p><strong>Doctor share</strong> — the commission a payment would record, shown to authorised users while collecting payment.</p>
+<p><strong>Doctor signature</strong> — one saved signature image per login, placed on prescriptions (<code>doctor_signatures</code>).</p>
+<p><strong>Document code</strong> — the two- to six-character location code at the start of invoice, receipt and refund numbers.</p>
+<p><strong>Document sequence</strong> — the per-location, per-type, per-year counter behind billing numbers (<code>document_sequences</code>).</p>
+<p><strong>Double-booking constraint</strong> — the database rule that refuses overlapping live bookings of one doctor (<code>no_doctor_overlap</code>).</p>
+<p><strong>Dry run</strong> — an import request that checks rows without saving them.</p>
+<h2 id="appA-glossary-e">E</h2>
+<p><strong>Early window</strong> — minutes before the booked time from which a checked-in patient counts as due (default 15).</p>
+<p><strong>Effect</strong> — a code handler that a workflow transition may run (<code>workflow_effects</code>).</p>
+<p><strong>Employee</strong> — the person record of a staff member, shared across organizations (<code>employees</code>).</p>
+<p><strong>Employee code</strong> — a per-organization code such as EMP-001 on an assignment.</p>
+<p><strong>Employment role</strong> — see Role.</p>
+<p><strong>Encounter</strong> — the clinical record of one consultation (<code>patient_encounters</code>).</p>
+<p><strong>Entitled</strong> — a feature the super admin has granted to an organization, with an optional trial end date.</p>
+<p><strong>Entity catalog</strong> — the generated field-level reference of every table.</p>
+<p><strong>Envelope</strong> — the JSON shape every endpoint returns (<code>ResponseWrapper</code>): data, message, success flag, status code, error and developer message.</p>
+<p><strong>Escalation protection</strong> — the rule that a non-owner cannot grant a permission or scope they do not hold.</p>
+<p><strong>Estimate</strong> — a lab invoice in draft: editable, unnumbered, nothing owed.</p>
+<p><strong>Exclusive tax</strong> — tax added on top of the price at issue, using the location&#39;s rate.</p>
+<p><strong>Expense</strong> — one clinic running cost at a location (<code>expenses</code>).</p>
+<p><strong>External lab</strong> — a lab serving many clinics.</p>
+<h2 id="appA-glossary-f">F</h2>
+<p><strong>Feature</strong> — a feature key such as <code>billing.invoices</code> that an organization may be entitled to and enable.</p>
+<p><strong>Feature impact</strong> — the permissions and roles that stop working when a feature is turned off.</p>
+<p><strong>Finance overview</strong> — the owner&#39;s profit-and-loss dashboard (<code>/finance</code>).</p>
+<p><strong>First come, first served</strong> — the queue mode that calls patients in arrival order; the alternative is the smart queue.</p>
+<p><strong>Force complete</strong> — completing a consultation on the doctor&#39;s behalf.</p>
+<p><strong>Form schema</strong> — the stable identity of an order form (<code>form_schemas</code>); its versions are <code>form_schema_versions</code>.</p>
+<h2 id="appA-glossary-g">G</h2>
+<p><strong>General ledger</strong> — double-entry bookkeeping in paisa, written only for lab money (<code>ledger_journals</code>, <code>ledger_journal_lines</code>).</p>
+<p><strong>Global guard</strong> — a guard run on every request; there are five: JWT, tenant context, feature flag, access and subscription.</p>
+<p><strong>Global role</strong> — a user-level role; its only value is super admin.</p>
+<p><strong>Grace period</strong> — three days after a subscription ends during which the clinic still works, with warnings.</p>
+<h2 id="appA-glossary-h">H</h2>
+<p><strong>Heartbeat</strong> — a Redis message the worker sends every five seconds; API instances refuse sockets after fifteen seconds without one.</p>
+<p><strong>High-risk permission</strong> — one of 13 permissions marked high risk; granting it needs a reason.</p>
+<p><strong>Home page</strong> — the page a role&#39;s members open after sign-in.</p>
+<h2 id="appA-glossary-i">I</h2>
+<p><strong>Idempotency key</strong> — a request header that makes a retried action run once (<code>idempotency_keys</code>).</p>
+<p><strong>If-Match version</strong> — the entry version a screen sends so that a stale action is refused.</p>
+<p><strong>Impact preview</strong> — the dialog that lists what stops working when a feature is turned off.</p>
+<p><strong>Implemented</strong> — status label: built end to end, with a screen or by design a backend job.</p>
+<p><strong>Implies</strong> — permissions granted automatically with another (for example create implies view).</p>
+<p><strong>In-house lab</strong> — a lab owned by one clinic and serving only it.</p>
+<p><strong>Inactive patient</strong> — a patient hidden by the active filter with all records kept.</p>
+<p><strong>Inbox</strong> — a user&#39;s own notification rows shown behind the bell.</p>
+<p><strong>Invoice</strong> — an issued document grouping a patient&#39;s charges; there are no drafts (<code>invoices</code>).</p>
+<p><strong>Item stage</strong> — one try-in round of one stage of a lab item (<code>order_item_stages</code>).</p>
+<h2 id="appA-glossary-j">J</h2>
+<p><strong>Journal</strong> — one balanced double-entry posting; a journal line is one debit or credit side.</p>
+<h2 id="appA-glossary-k">K</h2>
+<p><strong>KPI strip</strong> — the six summary tiles at the top of the Appointments page.</p>
+<h2 id="appA-glossary-l">L</h2>
+<p><strong>Lab</strong> — a dental laboratory, external or in-house (<code>labs</code>).</p>
+<p><strong>Lab admin</strong> — a lab member with full portal rights for one lab.</p>
+<p><strong>Lab billing settings</strong> — per-organization lab tax rate and due days.</p>
+<p><strong>Lab coordinator</strong> — a clinic user holding both permissions needed to act for a lab that does not answer.</p>
+<p><strong>Lab directory</strong> — the platform list of labs kept by the super admin.</p>
+<p><strong>Lab link</strong> — a clinic&#39;s connection to a lab, with status, payment terms and patient data level (<code>lab_clinic_links</code>).</p>
+<p><strong>Lab member</strong> — a user who works at a lab as lab admin or lab technician (<code>lab_members</code>).</p>
+<p><strong>Lab order</strong> — a lab case: items for one patient, doctor and lab (<code>lab_orders</code>).</p>
+<p><strong>Lab order item</strong> — one piece of work with frozen price snapshots (<code>lab_order_items</code>).</p>
+<p><strong>Lab-only user</strong> — a user with lab memberships and no clinic access, kept inside the lab portal.</p>
+<p><strong>Lab payable</strong> — what the clinic owes a lab.</p>
+<p><strong>Lab portal</strong> — the area where lab members work on orders, production, billing and their team.</p>
+<p><strong>Lab service</strong> — one product a lab makes, such as a crown (<code>lab_services</code>).</p>
+<p><strong>Lab statement</strong> — a lab&#39;s monthly statement reconciled against bills (<code>lab_statements</code>).</p>
+<p><strong>Lab technician</strong> — a lab member who works the queue but cannot answer orders or manage the team.</p>
+<p><strong>Lane</strong> — one doctor&#39;s column on the reception board for a date.</p>
+<p><strong>Last accessed context</strong> — the organization and location saved on the user and pre-selected at next sign-in.</p>
+<p><strong>Late grace</strong> — minutes after the booked time within which an arriving patient keeps appointment priority (default 10).</p>
+<p><strong>Legacy baseline</strong> — the first migration, recorded as applied and never executed.</p>
+<p><strong>Legacy organization settings</strong> — the <code>organization_settings</code> table, editable but read by no backend rule.</p>
+<p><strong>Legacy quick prescription</strong> — a prescription in the older <code>patient_prescriptions</code> table.</p>
+<p><strong>Live slot check</strong> — the debounced server check the booking dialog runs while open.</p>
+<p><strong>Location</strong> — a branch of an organization (<code>locations</code>).</p>
+<p><strong>Location override</strong> — a switch that turns an enabled feature off at one location.</p>
+<p><strong>Lock (setting)</strong> — a flag freezing a setting&#39;s value for lower scopes.</p>
+<p><strong>Locked feature</strong> — a feature the owner cannot switch on because it is not entitled or the trial ended.</p>
+<p><strong>Logical reference</strong> — an id column that points to another row without a foreign key.</p>
+<h2 id="appA-glossary-m">M</h2>
+<p><strong>Magic link</strong> — a no-login link for a lab to one order; only a hash of the token is stored (<code>magic_links</code>).</p>
+<p><strong>Main branch</strong> — a location flagged as the clinic&#39;s main one; the flag is not exclusive.</p>
+<p><strong>Mandatory event</strong> — an event whose in-app message to internal audiences cannot be switched off.</p>
+<p><strong>Manual payment</strong> — a subscription payment recorded by a super admin.</p>
+<p><strong>Maximum late</strong> — minutes after the booked time after which check-in is refused and the booking becomes a no-show (default 45).</p>
+<p><strong>Medicine directory</strong> — the clinic&#39;s list of medicines (screen label &quot;Medicines&quot;).</p>
+<p><strong>Modular monolith</strong> — one backend application split into domain modules.</p>
+<p><strong>Money invariants</strong> — ten rules checked every night by the billing job.</p>
+<p><strong>Monorepo</strong> — one repository holding both the backend and the web app.</p>
+<h2 id="appA-glossary-n">N</h2>
+<p><strong>Needs pricing</strong> — a flag on a charge created without a resolvable price; it blocks invoicing until priced.</p>
+<p><strong>Nightly job</strong> — a scheduled task such as the money invariant check.</p>
+<p><strong>No-show marker</strong> — the background job that marks unattended bookings as no-shows.</p>
+<p><strong>Not implemented</strong> — status label: planned, seeded, commented out or only mentioned.</p>
+<p><strong>Notification event</strong> — a platform-defined kind of event that can notify someone (<code>notification_events</code>).</p>
+<p><strong>Notification outbox</strong> — one message to one recipient on one channel, written in the same transaction as its cause (<code>notification_outbox</code>).</p>
+<p><strong>Notification rule</strong> — a clinic&#39;s on/off switch for one event, audience and channel.</p>
+<p><strong>Notification template</strong> — wording of one event on one channel in one language.</p>
+<p><strong>Number sequence</strong> — a per-organization counter for numbers such as LAB-0001.</p>
+<h2 id="appA-glossary-o">O</h2>
+<p><strong>Onboarding pending</strong> — a flag on the organization that is true from signup until the setup wizard is finished.</p>
+<p><strong>Order template</strong> — a saved starting point for a lab order.</p>
+<p><strong>Organization</strong> — one clinic business; the tenant (<code>organizations</code>).</p>
+<p><strong>Outbox (realtime)</strong> — table of realtime messages written in the same transaction as a queue change (<code>outbox</code>).</p>
+<p><strong>Outbox relay</strong> — the worker loop that publishes unpublished outbox rows.</p>
+<p><strong>Override booking rules</strong> — the permission to book outside weekly hours or past the daily limit; it never bypasses the double-booking check.</p>
+<p><strong>Owner</strong> — the user who owns an organization and has all permissions in it.</p>
+<h2 id="appA-glossary-p">P</h2>
+<p><strong>Paisa</strong> — the integer minor unit of the rupee; 100 paisa is one rupee.</p>
+<p><strong>Partial</strong> — status label: some of it exists; the note says what is missing.</p>
+<p><strong>Patient</strong> — the patient record, one per patient per organization (<code>patients</code>).</p>
+<p><strong>Patient data level</strong> — per lab link, whether the lab sees the full name or only the patient code.</p>
+<p><strong>Patient import</strong> — bulk creation of patients from a spreadsheet through parse, dry run and batches.</p>
+<p><strong>Patient lab invoice</strong> — a patient invoice for lab work (<code>lab_invoices</code>).</p>
+<p><strong>Patient ledger</strong> — one-sided statement rows per patient (<code>ledger_entries</code>).</p>
+<p><strong>Patient number</strong> — the per-organization patient identifier, P- plus five digits.</p>
+<p><strong>Patient scope</strong> — the reach of the patient view permission: own, location or org.</p>
+<p><strong>Payment</strong> — money received from a patient; it belongs to the patient, not to an invoice (<code>payments</code>).</p>
+<p><strong>Payment account</strong> — one way a location receives money: cash, bank or wallet.</p>
+<p><strong>Payment status</strong> — the computed invoice status unpaid, partially paid, paid or overdue; never stored.</p>
+<p><strong>Payroll record</strong> — one employee&#39;s pay for one month at one location (<code>payroll_records</code>).</p>
+<p><strong>Permission</strong> — a key such as <code>billing.invoice.void</code> granted to a role.</p>
+<p><strong>Pinned version</strong> — the workflow template version stored on a lab order or item when it is created.</p>
+<p><strong>Plan template</strong> — a predefined treatment plan offered when recording treatment (<code>plan_templates</code>).</p>
+<p><strong>Platform default</strong> — a form, stage or workflow template with no owner organization.</p>
+<p><strong>Polymorphic reference</strong> — a type plus id column pair that can point at different tables.</p>
+<p><strong>Portal access</strong> — the assignment flag that lets a linked staff login sign in at that location.</p>
+<p><strong>Prescription</strong> — the current prescription record (<code>prescriptions</code>).</p>
+<p><strong>Prescription preset</strong> — a reusable set of medicines for the builder; stored in <code>treatment_plan_templates</code> and unrelated to plan templates.</p>
+<p><strong>Price override</strong> — a location or doctor price for a catalog service (<code>service_prices</code>).</p>
+<p><strong>Price policy</strong> — the rule that only a holder of the price override permission may change a catalog charge&#39;s price; others give a discount.</p>
+<p><strong>Print layout</strong> — the look of a printed prescription (<code>prescription_templates</code>).</p>
+<p><strong>Process role</strong> — which half of the backend a process runs: all, api or worker.</p>
+<p><strong>Proxy update</strong> — clinic staff recording a lab&#39;s answer for a lab that does not respond.</p>
+<p><strong>Purchase order</strong> — an order to one supplier for one location (<code>purchase_orders</code>).</p>
+<h2 id="appA-glossary-q">Q</h2>
+<p><strong>QC</strong> — the lab&#39;s own quality check between finishing and ready.</p>
+<p><strong>Queue entry</strong> — a patient&#39;s place in a queue session (<code>queue_entries</code>).</p>
+<p><strong>Queue history</strong> — the append-only log of queue changes (<code>queue_events</code>).</p>
+<p><strong>Queue policy</strong> — queue settings at organization level with location override (<code>queue_policies</code>).</p>
+<p><strong>Queue session</strong> — one doctor&#39;s queue for one clinic day at one location (<code>queue_sessions</code>).</p>
+<p><strong>Quiet hours</strong> — a daily window in which non-in-app messages are held.</p>
+<h2 id="appA-glossary-r">R</h2>
+<p><strong>Read-only mode</strong> — the state of an expired clinic: reads work and writes are refused with a payment-required error.</p>
+<p><strong>Ready to bill</strong> — the desk list of patients with an unbilled charge on a chosen day.</p>
+<p><strong>Recall</strong> — a planned future check-up with a due date (<code>patient_recalls</code>).</p>
+<p><strong>Reception board</strong> — the Queue tab showing every doctor&#39;s lane.</p>
+<p><strong>Refund</strong> — money returned to a patient, always from advance (<code>refunds</code>).</p>
+<p><strong>Refund source</strong> — a previous payment from which a refund draws.</p>
+<p><strong>Rejoin policy</strong> — where a skipped patient goes when rejoined: end, original position or manual.</p>
+<p><strong>Remake request</strong> — a request to make an item again, with a responsible party.</p>
+<p><strong>Report definition</strong> — a registered report with key, columns, filters and one query.</p>
+<p><strong>Resolved price</strong> — the price a service gets: doctor override, then location override, then catalog default.</p>
+<p><strong>Retired feature key</strong> — a catalog key with no code behind it, deactivated at every start.</p>
+<p><strong>Revision</strong> — a numbered change of a submitted lab order, or the counter raised by each invoice edit.</p>
+<p><strong>Role</strong> — an employment role with permissions and a home page (<code>employment_roles</code>); &quot;system role&quot; for the five templates, &quot;custom role&quot; for clinic-made ones.</p>
+<p><strong>Room</strong> — a Socket.IO channel a screen subscribes to.</p>
+<p><strong>Route file</strong> — a thin web file declaring a URL, an optional permission and the page to render.</p>
+<p><strong>Row scope</strong> — the filter that limits rows to own, location or organization.</p>
+<h2 id="appA-glossary-s">S</h2>
+<p><strong>Scope</strong> — how far a permission reaches: <code>own</code>, <code>location</code> or <code>org</code>.</p>
+<p><strong>Selection engine</strong> — the pure function that decides whom Call next picks.</p>
+<p><strong>Service catalog</strong> — the organization&#39;s list of billable services (<code>services</code>).</p>
+<p><strong>Service day</strong> — the clinic day a queue session belongs to, using the location time zone and a cutoff.</p>
+<p><strong>Service mapping</strong> — which lab service fulfils which clinic billing service.</p>
+<p><strong>Session (login)</strong> — one signed-in device with a hashed refresh token (<code>user_sessions</code>).</p>
+<p><strong>Settings registry</strong> — the cascading settings store (<code>config_values</code>).</p>
+<p><strong>Settlement</strong> — a batch of unsettled commission entries paid through one payroll record.</p>
+<p><strong>Setup wizard</strong> — the three-step owner onboarding at <code>/setup</code>.</p>
+<p><strong>Shipment</strong> — a parcel between clinic and lab with a QR token (<code>shipments</code>).</p>
+<p><strong>Smart queue</strong> — the calling order that weighs emergencies, due appointments, starvation and returns from tests.</p>
+<p><strong>Snapshot (commission)</strong> — the doctor, plan and rate stored on a charge when it is created.</p>
+<p><strong>Specialty</strong> — a clinical specialty the engine is configured for.</p>
+<p><strong>Staff login</strong> — a user account linked to an employee through assignments.</p>
+<p><strong>Stage template</strong> — the try-in rounds a kind of lab work goes through.</p>
+<p><strong>Starter templates</strong> — the twelve default plan templates inserted for a clinic with none.</p>
+<p><strong>Starvation guard</strong> — the rule that calls the longest-waiting ordinary patient after a limit.</p>
+<p><strong>Status history</strong> — the append-only log of status changes (<code>status_history</code>).</p>
+<p><strong>Stock movement</strong> — one signed change to an item&#39;s stock (<code>stock_movements</code>).</p>
+<p><strong>Subscription status</strong> — the derived state of a clinic&#39;s plan: trial, active, grace, expired or unmanaged.</p>
+<p><strong>Super admin</strong> — the Platform operator with a global role, exempt from tenant checks.</p>
+<p><strong>Supplier</strong> — a vendor of stock.</p>
+<p><strong>synchronize</strong> — the ORM setting that builds the schema from entities; on in development, off in production.</p>
+<h2 id="appA-glossary-t">T</h2>
+<p><strong>Teeth chart snapshot</strong> — one append-only chart of a patient&#39;s teeth in FDI notation.</p>
+<p><strong>Tenant context</strong> — the active organization and location of a request.</p>
+<p><strong>Tenant headers</strong> — the two request headers that carry the active organization and location.</p>
+<p><strong>The Platform</strong> — the name used in this handbook for the whole multi-tenant clinic management product. Each clinic sets its own display name; the default is &quot;Clinic Portal&quot;.</p>
+<p><strong>Token (queue)</strong> — the number a patient holds in a doctor&#39;s queue, with a letter prefix.</p>
+<p><strong>Transactional outbox</strong> — writing a message in the same transaction as the change and delivering it afterwards.</p>
+<p><strong>Treatment</strong> — work actually performed on a patient (<code>treatments</code>).</p>
+<p><strong>Treatment plan</strong> — planned work for a patient (<code>patient_treatment_plans</code>).</p>
+<p><strong>Trial</strong> — the 14-day Professional plan period given at self-signup.</p>
+<p><strong>TV display</strong> — the public waiting-room page showing tokens being served.</p>
+<h2 id="appA-glossary-u">U</h2>
+<p><strong>Unapply</strong> — releasing a payment&#39;s allocations back to advance; backend only.</p>
+<p><strong>Unbilled charge</strong> — an active charge not yet on an invoice.</p>
+<p><strong>Unmanaged clinic</strong> — an organization with no trial and no paid date: no limits and no expiry.</p>
+<p><strong>Unverified</strong> — status label: could not be confirmed from the code; the note says what.</p>
+<p><strong>Urgent priority</strong> — an authorised emergency flag with a reason that puts a patient first.</p>
+<p><strong>User</strong> — a login account for the whole Platform (<code>users</code>).</p>
+<h2 id="appA-glossary-v">V</h2>
+<p><strong>Variance</strong> — counted minus expected money for a payment account at cash close.</p>
+<p><strong>Vendor bill</strong> — what the clinic owes a lab for an order (<code>vendor_bills</code>).</p>
+<p><strong>Vendor payment</strong> — money the clinic paid a lab.</p>
+<p><strong>Visit notes</strong> — the doctor&#39;s free-text notes for an encounter.</p>
+<h2 id="appA-glossary-w">W</h2>
+<p><strong>Walk-in</strong> — a patient who arrives without a booking and is added directly to a queue.</p>
+<p><strong>Warranty</strong> — a period after delivery, 12 months by default (<code>item_warranties</code>).</p>
+<p><strong>Watchdog</strong> — the API check that refuses sockets when no heartbeat arrives.</p>
+<p><strong>Weekly working hours</strong> — a doctor&#39;s recurring working block for one weekday.</p>
+<p><strong>Work order</strong> — the printable sheet with a QR code and instructions, without prices.</p>
+<p><strong>Worker</strong> — the process running the outbox relay, notification relay and scheduled jobs; exactly one may run.</p>
+<p><strong>Workflow template</strong> — a state machine for orders, items or stages; its versions are draft, published or retired.</p>
+<h2 id="appA-glossary-z">Z</h2>
+<p><strong>Zero-priced charge</strong> — a charge created at zero because no price could be resolved; see Needs pricing.</p>
+</section></body></html>

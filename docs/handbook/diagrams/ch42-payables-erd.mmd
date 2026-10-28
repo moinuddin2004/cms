@@ -1,0 +1,45 @@
+erDiagram
+    labs ||--o{ vendor_bills : "bills"
+    lab_orders |o--o{ vendor_bills : "costed on"
+    vendor_bills ||--|{ vendor_bill_lines : "has"
+    labs ||--o{ vendor_payments : "paid"
+    vendor_payments ||--o{ vendor_payment_allocations : "split into"
+    vendor_bills ||--o{ vendor_payment_allocations : "settled by"
+    labs ||--o{ lab_statements : "sends"
+    lab_statements ||--o{ lab_statement_lines : "has"
+    vendor_bills |o..o{ lab_statement_lines : "matched to"
+    lab_statements |o--o{ vendor_bills : "reconciles"
+    vendor_bills ||..o| ledger_journals : "journal"
+    vendor_bills {
+        uuid id PK
+        uuid lab_id FK
+        uuid lab_order_id FK
+        uuid statement_id FK
+        string bill_no
+        string status
+    }
+    vendor_payments {
+        uuid id PK
+        uuid lab_id FK
+        string payment_no
+        bigint allocated_paisa
+        string status
+    }
+    vendor_payment_allocations {
+        uuid id PK
+        uuid vendor_payment_id FK
+        uuid vendor_bill_id FK
+        bigint amount_paisa
+    }
+    lab_statements {
+        uuid id PK
+        uuid lab_id FK
+        date period_start
+        string status
+    }
+    lab_statement_lines {
+        uuid id PK
+        uuid statement_id FK
+        uuid matched_bill_id
+        string match_status
+    }

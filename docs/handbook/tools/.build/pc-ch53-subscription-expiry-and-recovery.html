@@ -1,0 +1,70 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch53-subscription-expiry-and-recovery"><h1 id="ch53-subscription-expiry-and-recovery-chapter-53-workflow-subscription-expiry-and-recovery">Chapter 53 — Workflow: Subscription Expiry and Recovery</h1>
+<p>This chapter follows Example Clinic when its trial runs out and the clinic is brought back by a manual payment. It is written for the product owner. The Platform never charges anyone: the clinic pays outside the Platform and a super admin records the payment, which extends the period. The subscription status is never stored; it is worked out from two dates every time it is read.</p>
+<h2 id="ch53-subscription-expiry-and-recovery-53-1-who-is-involved">53.1 Who is involved</h2>
+<ul>
+<li><strong>Owner</strong>: sees the banners and pays.</li>
+<li><strong>Other staff</strong>: see warning banners and rejected saves.</li>
+<li><strong>Super admin</strong>: records the payment and may change plan, dates and limits.</li>
+</ul>
+<h2 id="ch53-subscription-expiry-and-recovery-53-2-the-steps">53.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch53-subscription-expiry-sequence.png" alt="Figure 53.1 — Expiry and recovery"></p>
+<p><em>Figure 53.1 — Trial, grace, read-only, payment, back to active.</em></p>
+<p>The diagram has five participants: Owner, Super admin, Web app, API and SubscriptionGuard (drawn as one box), and PostgreSQL, and 17 messages plus two notes. During the trial the Owner opens a page, the Web app calls <code>GET /account</code>, and the API answers status trialing with the banner &quot;Free trial, N days left&quot;. A first note says that after the trial end passes there are 3 grace days in which writes still work and a banner warns everyone; a save in that period is accepted. A second note says that once the trial end plus 3 days has passed, the status is expired. A save then returns 402 <code>SUBSCRIPTION_EXPIRED</code>, while reads still work. The Owner pays outside the Platform and sends the reference to the Super admin, who opens Subscriptions, Manage subscription, Record payment (<code>POST /admin/subscriptions/:orgId/payments</code>). The API locks the organization, writes the payment row, sets <code>paid_until</code> and the plan and writes an audit entry, then clears the read-only cache of its own process. The Owner saves again and the write is accepted; other server processes may take up to 30 seconds to notice.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-1-trial">Step 1 — Trial</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. Self-signup gives 14 days on the Professional plan (3 locations, 15 logins). Owners see &quot;Free trial, N days left&quot; with a <strong>See plans</strong> link. A clinic with no trial date and no paid date is &quot;unmanaged&quot;: no limits, never expires (Chapter 45).</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-2-grace-period">Step 2 — Grace period</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The period end is the later of the trial end and the paid-until date. For 3 days after it (<code>GRACE_DAYS</code>) the clinic works normally; everyone sees a warning that the clinic turns read-only in N days. A plan close to its end shows owners &quot;Your plan renews in N days&quot;.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-3-read-only-mode-402">Step 3 — Read-only mode (402)</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. After the grace days, the last global guard refuses every write with HTTP 402 and code <code>SUBSCRIPTION_EXPIRED</code>. Reads (GET, HEAD, OPTIONS) pass, public routes pass, super admins pass, and paths starting with <code>/auth/</code>, <code>/account</code>, <code>/me/</code> and <code>/admin/subscriptions</code> stay writable. The banner says &quot;Subscription expired. The clinic is read-only&quot; to owners and &quot;read-only until the owner renews the plan&quot; to others. Everything is affected, including the queue and billing. Jobs in the worker are not requests, so they keep running; this is deduced from the guard being an HTTP guard [Unverified].</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-4-pay-outside-the-platform">Step 4 — Pay outside the Platform</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The owner opens <strong>Settings → Plan &amp; billing</strong> and reads the &quot;How to pay&quot; text, which the super admin edits on the Subscriptions page (up to 2,000 characters). Methods recorded are bank transfer, JazzCash, EasyPaisa, cash, cheque and other.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-5-super-admin-records-the-payment">Step 5 — Super admin records the payment</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. On <strong>Subscriptions</strong>, <strong>Manage subscription → Record payment</strong> takes plan, months (1 to 36), amount, method, date, reference and notes. The new period starts where the current trial or paid period ends, or now if that is over, so early payment loses no days. The plan on the clinic becomes the plan paid for, so paying for Starter during a Professional trial lowers the limits at once.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-6-active-again">Step 6 — Active again</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. With <code>paid_until</code> in the future the status is active and writes resume. The decision is cached for 30 seconds per server process, so a renewal can take up to 30 seconds to be seen by a process other than the one that took the payment. A super admin can also set a future trial end or clear both dates to make the clinic unmanaged from the <strong>Plan &amp; limits</strong> tab.</p>
+<h2 id="ch53-subscription-expiry-and-recovery-53-3-what-can-go-wrong">53.3 What can go wrong</h2>
+<ul>
+<li>The owner never sees a renewal reminder email; none is sent.</li>
+<li>The grace period is only 3 days.</li>
+<li>Recording a payment overwrites the plan and can lower the limits.</li>
+<li>Staff cannot read the cause of a rejected save unless the banner is visible; the API message is &quot;Your subscription has expired. The clinic is read-only until it is renewed.&quot;</li>
+<li>The Organizations screen&#39;s plan selector sends values the API rejects, so use the Subscriptions screen for plan changes (Chapter 45).</li>
+<li>Nothing charges the clinic, so a payment the super admin forgets to record keeps the clinic read-only.</li>
+</ul>
+<h2 id="ch53-subscription-expiry-and-recovery-53-4-data-left-behind">53.4 Data left behind</h2>
+<p><code>subscription_payments</code> (plan, months, amount, method, reference, period start and end, <code>recorded_by</code>), <code>organizations</code> (<code>paid_until</code>, <code>subscription_plan</code>, limits), <code>audit_logs</code> (before and after values). The status itself is not stored.</p>
+</section></body></html>

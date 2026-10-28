@@ -1,0 +1,5 @@
+- **Process role** — which half of the backend a process runs: `all`, `api` or `worker` (code name `ProcessRole`).
+- **Worker** — the process running the outbox relay, notification relay and scheduled jobs; exactly one may run.
+- **Schema ownership** — only HTTP processes (`api`, `all`) create extensions, synchronize the schema (outside production) and run migrations.
+- **Legacy baseline** — migration `1776356529788-create-table.ts`, recorded as applied and never executed.
+- **Heartbeat** — a Redis message the worker sends every 5 s; API instances refuse sockets after 15 s without one.

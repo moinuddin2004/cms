@@ -1,0 +1,7 @@
+- **Report definition** — a registered report: key, columns, filters and one query (`ReportDefinition`).
+- **Collected basis / Billed basis** — P&L revenue counted from money received, or from invoices issued (`RevenueBasis`).
+- **Direct costs** — lab bills plus doctor commissions in the P&L.
+- **Snapshot report** — a report with no period, "as of today" (`filters.dates = 'asOf'`).
+- **Report reach** — how far a report runs for a user, decided by the scope of its permission (`ReportScopeService`).
+- **Finance overview** — the owner's P&L dashboard (`/finance`).
+- **Clinic overview** — the patients, appointments and waiting dashboard (`/clinic-overview`).

@@ -1,0 +1,92 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch46-clinic-onboarding"><h1 id="ch46-clinic-onboarding-chapter-46-workflow-onboarding-a-new-clinic">Chapter 46 — Workflow: Onboarding a New Clinic</h1>
+<p>This chapter follows one new clinic from nothing to a clinic that is ready to receive patients. There are two ways in: the owner signs up alone, or a super admin creates the organization by hand. It is written for the product owner, who needs to know which steps are automatic, which need a super admin, and where the two paths differ. Each step names the module, its status and the chapter that explains it in full.</p>
+<h2 id="ch46-clinic-onboarding-46-1-who-is-involved">46.1 Who is involved</h2>
+<ul>
+<li><strong>Owner</strong>: the person who runs the clinic business. On the self-signup path this person creates the clinic. On the other path an owner login is created for them.</li>
+<li><strong>Super admin</strong>: the Platform operator. Creates organizations by hand, entitles features, records payments and can act inside any clinic.</li>
+<li><strong>Example Clinic</strong>: the fictional organization used in this chapter, with a Main location.</li>
+<li><strong>Sample staff</strong>: employees added at the end (Chapter 47 covers staff onboarding).</li>
+</ul>
+<h2 id="ch46-clinic-onboarding-46-2-the-steps">46.2 The steps</h2>
+<p>Figure 46.1 shows both paths and the shared steps that follow them.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch46-onboarding-sequence.png" alt="Figure 46.1 — Clinic onboarding"></p>
+<p><em>Figure 46.1 — Two ways to create a clinic, then the shared set-up steps.</em></p>
+<p>The diagram has six participants from left to right: Owner, Super admin, Web app, API, PostgreSQL and SMTP mail. It has 22 numbered messages. A box labelled &quot;alt&quot; holds the two paths. In Path A (messages 1 to 7) the Owner fills the &quot;Create your clinic&quot; form, the Web app posts to <code>POST /auth/register</code>, and the API writes the user, the organization, the MAIN location, the ownership row, the feature rows, the system roles and a 14-day trial to PostgreSQL. The API sends a verification link through SMTP mail (a failure is only logged) and returns a signed-in 30-day session. The Owner then goes through the three-step setup wizard, and the Web app saves it with two PATCH calls and one POST that completes setup. In Path B (messages 8 to 15) the Super admin creates the organization from the Organizations screen; the API stores the organization, its feature rows and system roles but no owner, no location and no dates. The Super admin then creates a location, selects the organization and location, and creates a user of type Owner in User Admin, which writes the user and an ownership row. After the box, both paths continue: the Super admin entitles features (messages 16 to 18), the Owner switches features on (19 and 20), and the Owner sets up roles, locations, theme, navigation and employees (21 and 22).</p>
+<h3 id="ch46-clinic-onboarding-step-1a-self-signup-path-a">Step 1a — Self-signup (Path A)</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The visitor opens <code>/register</code>, enters clinic name, full name, email, an optional phone and a password. The Platform creates the owner login, the organization, one location with code <code>MAIN</code>, the ownership link, a 14-day trial on the Professional plan, the feature rows and the five system roles, then signs the owner in. Chapter 45 describes this in full: a visitor registers, and a trial starts at once.</p>
+<h3 id="ch46-clinic-onboarding-step-1b-verify-the-email-address">Step 1b — Verify the email address</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Partial]. The owner receives a link that is valid for 48 hours and opens <code>/verify-email</code>. Verification is informational: nothing is blocked while the address is unverified, and a failed email send is only logged. Chapter 45 and the Authentication chapter (Chapter 56) cover it.</p>
+<h3 id="ch46-clinic-onboarding-step-1c-setup-wizard">Step 1c — Setup wizard</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. An owner whose setup is pending is sent to <code>/setup</code> from any other page. Step &quot;Clinic&quot; collects name, clinic types, phone, email, timezone and currency. Step &quot;Location &amp; tax&quot; collects the main location&#39;s details and the sales tax percentage. Step &quot;Your team&quot; only explains that staff are added later; its finish button clears the pending flag without checking that the first two steps were saved. Saving the clinic step copies timezone and currency to every location of the clinic (Chapter 45).</p>
+<h3 id="ch46-clinic-onboarding-step-2-super-admin-creates-the-organization-path-b">Step 2 — Super admin creates the organization (Path B)</h3>
+<p><strong>Module:</strong> Organizations and locations. <strong>Status:</strong> [Partial]. <code>POST /organizations</code> works, and it seeds the feature rows and the five system roles. The Organizations screen&#39;s form offers plan, clinic type, timezone and currency values that the API rejects, so a form filled with those fields fails with HTTP 400 (found by reading both files, not by running the app). The result is an unmanaged clinic: no owner, no location, no trial and no plan limits (Chapter 9 and Chapter 45).</p>
+<h3 id="ch46-clinic-onboarding-step-3-give-the-clinic-a-location-and-an-owner-path-b">Step 3 — Give the clinic a location and an owner (Path B)</h3>
+<p><strong>Module:</strong> Organizations and locations, and User Admin. <strong>Status:</strong> [Partial]. A super admin adds a location from the Locations screen by choosing the organization. There is no field on the organization screen to name an owner. The code creates an owner login through User Admin with the account type &quot;Owner&quot;, which uses the active organization from the request header. A super admin therefore has to select that organization and a location before creating the owner. This sequence is deduced from the code and was not run. Chapter 8 explains ownership; Chapter 56 explains User Admin.</p>
+<h3 id="ch46-clinic-onboarding-step-4-entitle-features">Step 4 — Entitle features</h3>
+<p><strong>Module:</strong> Features. <strong>Status:</strong> [Implemented]. A super admin opens &quot;Manage features&quot; for the clinic. Every feature has an <strong>Entitled</strong> switch, an optional trial end date and an <strong>Enabled</strong> switch; &quot;Entitle module&quot; acts on a whole module. The seeding at clinic creation sets entitled and enabled equal to each feature&#39;s default. Several features that clinics rely on are off by default and need this step: among them <code>billing.invoices</code>, <code>billing.commissions</code>, <code>inventory.core</code>, <code>dental.lab_orders</code>, <code>reports.financial</code> and <code>reports.clinical</code>. Without <code>billing.invoices</code>, completing a consultation creates no charges (Chapter 31). Chapter 10 covers the three switches.</p>
+<h3 id="ch46-clinic-onboarding-step-5-owner-enables-features">Step 5 — Owner enables features</h3>
+<p><strong>Module:</strong> Features. <strong>Status:</strong> [Implemented]. The owner opens <strong>Features</strong> (<code>/admin/features</code>) and switches on the features in the plan. A locked feature, which is not entitled or whose trial ended, cannot be switched on. Turning a feature off shows an impact list of the permissions and roles affected, and a location can switch a feature off for itself only (Chapter 10).</p>
+<h3 id="ch46-clinic-onboarding-step-6-roles">Step 6 — Roles</h3>
+<p><strong>Module:</strong> Roles and permissions. <strong>Status:</strong> [Implemented]. The five system roles (Admin, Doctor, Receptionist, Assistant, Accountant) already exist. The owner may clone one or build a custom role at <strong>Roles &amp; permissions</strong> (<code>/admin/roles</code>) with None, Basic or Full per module. System roles are read-only (Chapter 11).</p>
+<h3 id="ch46-clinic-onboarding-step-7-locations">Step 7 — Locations</h3>
+<p><strong>Module:</strong> Organizations and locations. <strong>Status:</strong> [Implemented]. The owner adds further branches from Locations. The plan&#39;s location limit applies (Professional allows 3) and an expired subscription refuses the write. The edit screen for locations sends fields the API refuses, so changing a location afterwards may fail [Partial] (Chapter 9).</p>
+<h3 id="ch46-clinic-onboarding-step-8-theme-and-navigation">Step 8 — Theme and navigation</h3>
+<p><strong>Module:</strong> Customization. <strong>Status:</strong> [Implemented]. At <code>/admin/theme</code> the owner sets the display name (default &quot;Clinic Portal&quot;), logos, favicon, brand colour (default a blue), sidebar style and default light, dark or system mode. A location may override the name and logos. At <code>/admin/navigation</code> the owner arranges the sidebar for the whole clinic. Both need their own permission (<code>admin.theme.manage</code>, <code>admin.nav.manage</code>). Changing the sidebar layout raises the access version; the theme save does not appear to (Chapter 58 covers customization; Chapter 54 describes how access changes spread).</p>
+<h3 id="ch46-clinic-onboarding-step-9-staff">Step 9 — Staff</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. The owner or an Admin adds employees with roles and logins. Chapter 47 follows that workflow.</p>
+<h2 id="ch46-clinic-onboarding-46-3-what-can-go-wrong">46.3 What can go wrong</h2>
+<ul>
+<li><strong>Duplicate email at sign-up.</strong> User creation rejects it. If clinic creation fails after the user is created, the new user is deleted so no orphan account remains.</li>
+<li><strong>Rate limit.</strong> Registration is limited to 5 per hour, verification to 10 per 15 minutes and resend to 3 per hour.</li>
+<li><strong>Feature set after signup is smaller than expected.</strong> Features that are off by default must be entitled by a super admin. Clinics that have not been entitled for billing see no automatic charges.</li>
+<li><strong>Seeding failure.</strong> After the clinic is committed, seeding the feature rows and roles can fail; the failure is only logged, so a clinic can exist with no roles (Chapter 45).</li>
+<li><strong>Plan limit.</strong> Adding a fourth location on Professional gives <code>PLAN_LIMIT</code>.</li>
+<li><strong>Super admin path cannot be finished in one screen.</strong> Owner creation needs an organization context, which needs a location first.</li>
+<li><strong>Expired trial.</strong> After the trial and 3 grace days the clinic is read-only; setup and account paths stay writable (Chapter 53).</li>
+</ul>
+<h2 id="ch46-clinic-onboarding-46-4-data-left-behind">46.4 Data left behind</h2>
+<ul>
+<li><code>users</code>: the owner login, with the email verification columns.</li>
+<li><code>organizations</code>: plan, <code>trial_ends_at</code>, <code>onboarding_pending</code>, <code>access_version</code>.</li>
+<li><code>organization_ownership</code>: one primary owner on Path A; one non-primary owner on Path B.</li>
+<li><code>locations</code> and <code>location_settings</code>: at least one location with the tax rate.</li>
+<li><code>org_feature_flags</code> (entitled and enabled per feature) and <code>employment_roles</code> (the five system roles).</li>
+<li><code>config_values</code>: theme settings. <code>nav_layouts</code>: the sidebar layout, if the owner saved one.</li>
+<li><code>audit_logs</code>: feature entitlement changes and nav layout changes.</li>
+<li>Employees and assignments after Step 9.</li>
+</ul>
+</section></body></html>

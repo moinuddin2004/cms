@@ -1,0 +1,749 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Billing</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch34-billing">Chapter 34 — Billing</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch34-billing"><h1 id="ch34-billing-chapter-34-billing">Chapter 34 — Billing</h1>
+<p>This chapter describes the Billing module of the Platform: how a clinic turns finished visits and extra work into charges, collects money, issues invoices and receipts, gives refunds and closes the cash counter at the end of a shift. It is written for the product owner, who needs to know exactly what the module does today, which rules protect the money and where the module stops. Billing is the largest module of the Platform (84 endpoints under <code>backend/src/billing</code>, six of which belong to doctor commissions, covered in Chapter 35).</p>
+<h2 id="ch34-billing-34-1-what-this-module-is-for">34.1 What this module is for</h2>
+<p>Billing on the Platform is <strong>charge-based</strong>. A <strong>charge</strong> is one billable line for one patient: a consultation fee, a treatment, or an extra item that reception adds. Charges pile up &quot;unbilled&quot; until the patient pays or reception issues an invoice. An <strong>invoice</strong> groups unbilled charges under one number and fixes the sales tax. A <strong>payment</strong> is money received into a <strong>payment account</strong> (Cash, a bank account, a card machine); it is split over charges as <strong>allocations</strong>. Money that is received but not needed for any charge stays with the patient as <strong>advance</strong>. A <strong>refund</strong> always pays out of advance. At the end of a shift, a <strong>cash close</strong> compares the money the system expects in each account with what was counted.</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Receptionist</strong>: the main user at the desk. Sees the billing desk, adds charges, applies preset discounts, collects payments and prints receipts and invoices. Cannot edit or cancel invoices, refund or close the counter.</li>
+<li><strong>Accountant</strong>: everything a receptionist can do, plus invoice edits and cancellations, refunds, cash close, billing activity, expenses and financial reports. Cannot apply discounts or override prices with the default role.</li>
+<li><strong>Admin</strong> and the <strong>owner</strong>: every billing permission, including custom discounts, price overrides and billing settings.</li>
+<li><strong>Doctor</strong> and <strong>Assistant</strong>: no billing permissions. A doctor&#39;s completed visit creates charges in the background, but the doctor never sees an amount.</li>
+</ul>
+<p>Where it appears in the sidebar (<code>web-app/src/features/access/nav/nav.registry.ts</code>): the <strong>Finance</strong> section has a <strong>Billing</strong> group with <strong>Billing desk</strong> (<code>/billing</code>, needs <code>billing.desk.use</code>), <strong>Invoices</strong> (<code>/invoices</code>, <code>billing.invoice.view</code>), <strong>Payments</strong> (<code>/payments</code>, the sidebar checks <code>billing.payment.collect</code>) and <strong>Expenses</strong> (<code>/expenses</code>, <code>expenses.view</code>). The <strong>Reports</strong> group of the same section holds <strong>Billing activity</strong> (<code>/billing/activity</code>, <code>billing.activity.view</code>), <strong>Doctor revenue</strong> and <strong>Doctor earnings</strong>. Billing settings have no sidebar entry; they open from the Settings page as <strong>Billing</strong> (<code>/settings/billing</code>). The patient record has a <strong>Billing</strong> tab.</p>
+<p>The module sits behind the feature <strong><code>billing.invoices</code></strong> (&quot;Invoices&quot;). Its seed sets <code>enabledByDefault: false</code>, so a clinic has no billing until the feature is entitled and enabled (Chapter 10). Discounts need the extra feature <code>billing.discounts</code>, expenses need <code>billing.expenses</code>, the financial summary needs <code>billing.financial_summary</code> and credit packages need <code>billing.credit_packages</code>.</p>
+<h2 id="ch34-billing-34-2-screens">34.2 Screens</h2>
+<p>All screens in this chapter are shown as placeholders; an older billing screenshot exists but is excluded because it shows realistic personal data.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-billing-desk.svg" alt="Figure 34.1 — Billing desk"></p>
+<p><em>Figure 34.1 — Billing desk (screenshot pending).</em></p>
+<p>The Billing desk (<code>/billing</code>) has the title &quot;Billing desk&quot; and the subtitle &quot;Bill finished visits and follow up on dues&quot;. A date picker in the header (&quot;Today&quot; by default, clearable) chooses the clinic day. If the location has no document code, an amber notice says &quot;This location has no document code, so invoices and receipts cannot be numbered yet.&quot;, with a link &quot;Set it in billing settings&quot; for users who manage settings. The first section, <strong>Ready to bill</strong> (&quot;Patients with charges not invoiced yet&quot;), lists patients with columns Patient (name, then patient number or phone), Charges (a count and a &quot;Needs price&quot; badge when one charge has no price), Amount (the unbilled total) and a <strong>Bill</strong> button. Clicking <strong>Bill</strong> opens the Collect payment sheet for that patient; there is no patient search on the desk. The list pages in the browser, 10 rows at a time; when empty it says &quot;Nobody is waiting to be billed. Completed consultations appear here.&quot; The second section, <strong>Outstanding</strong> (&quot;Overdue and unpaid invoices&quot;), lists issued invoices whose payment status is Overdue or Unpaid (partly paid invoices are not shown), with Patient, Invoice (a link), Due (with a red &quot;Overdue&quot; badge), Balance and a <strong>Collect</strong> button. When empty it says &quot;No dues — every issued invoice is paid.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-collect-payment.svg" alt="Figure 34.2 — Collect payment sheet"></p>
+<p><em>Figure 34.2 — The Collect payment sheet (screenshot pending).</em></p>
+<p>The Collect payment sheet slides in from the right with the title &quot;Collect payment — &quot; and the patient&#39;s name. From top to bottom it shows: four summary figures (&quot;Not invoiced&quot;, &quot;Outstanding&quot;, &quot;Overdue&quot;, &quot;Advance&quot;); the patient&#39;s open charges with a &quot;Select all charges&quot; box, a <strong>Discount</strong> button and an <strong>Add charge</strong> button, grouped as &quot;Not invoiced yet&quot; and then one group per invoice (&quot;Invoice &quot; plus its number); each line has a checkbox, the description, quantity, date, doctor, any discount, the balance and a three-dot menu. After the charges come the payment fields: <strong>Amount received (Rs)</strong> (filled automatically with what clears the selection until the user types), <strong>Allocation</strong> with the choices <strong>Oldest first</strong> and <strong>Manual</strong> (Manual adds a &quot;Pay now for …&quot; amount on each selected line), <strong>Received in</strong> (one chip per active payment account, the default account pre-selected), <strong>Reference number</strong> (only for accounts that require one), a <strong>Use advance</strong> switch when the patient holds advance, and <strong>Notes</strong>. A live summary shows &quot;Selected balance&quot;, &quot;Advance used&quot;, &quot;Paying now&quot; and &quot;Going to advance&quot;, a line such as &quot;An invoice will be issued for 2 charge(s) (incl. Tax (17%) …)&quot;, any blocker (&quot;Set a price for: …&quot;) and, only for users who can see all earnings, an internal &quot;Doctor share&quot; line. The main button reads <strong>Receive Rs …</strong>, or <strong>Apply advance Rs …</strong> when the amount is zero and advance covers the selection. After success the sheet shows &quot;Received …&quot; with the receipt number, &quot;Invoice … issued&quot;, &quot;Still outstanding&quot;, &quot;Advance held&quot;, a <strong>Print receipt</strong> button with a format choice and a <strong>Print invoice</strong> button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-invoices-list.svg" alt="Figure 34.3 — Invoices list"></p>
+<p><em>Figure 34.3 — Invoices list (screenshot pending).</em></p>
+<p>The Invoices page (<code>/invoices</code>) has the subtitle &quot;Search issued invoices — status follows payments and due dates.&quot;, a <strong>List / Cards</strong> view switch and a <strong>Billing desk</strong> button. A strip of six figures shows Invoices (count), Invoiced, Collected, Outstanding, Overdue and Refunded. Status tabs with counts read All, Unpaid, Partial, Overdue, Paid, Refunded and Cancelled. A search box (&quot;Invoice no., patient or phone...&quot;) is followed by date presets (Today, This month, Past 30 days, All), a custom range and a <strong>Reset</strong> button. The table columns are Date (with &quot;Due …&quot; under it), Invoice (with &quot;Rev n&quot; after an edit), Patient, Total, Paid, Balance, Status and a menu with <strong>View details</strong>, <strong>Collect payment</strong> (issued invoices with a balance) and <strong>Print</strong>. Cancelled rows are dimmed. The card view shows the same data per invoice. Paging is on the server with 10, 25, 50 or 100 rows. Without filters and data it says &quot;No invoices yet — they are issued when reception collects a payment.&quot; with an <strong>Open billing desk</strong> button; with filters and no match it says &quot;No invoices match these filters.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-invoice-detail.svg" alt="Figure 34.4 — Invoice detail"></p>
+<p><em>Figure 34.4 — Invoice detail (screenshot pending).</em></p>
+<p>The invoice detail page (<code>/invoices/$invoiceId</code>) has the title &quot;Invoice&quot; plus the number and a back button &quot;Back to invoices&quot;. Its action buttons are <strong>Print</strong> (A4 or Thermal 80 mm), <strong>Edit</strong>, <strong>Refund</strong>, <strong>Cancel</strong> (red) and <strong>Collect payment</strong>, each shown only when the invoice state and the user&#39;s permissions allow it. A cancelled invoice shows a red banner &quot;Cancelled … — &quot; and the reason. The header card shows the patient, a status badge (Paid, Partially paid, Unpaid, Overdue, Cancelled or Refunded, plus &quot;Refunded …&quot; for a partial refund), &quot;Rev n&quot;, the issue date, due date and issuer. A totals box lists Subtotal, Discount, Tax (only when the rate is above zero), Total, Paid and Balance due. The page then has the sections <strong>Charges</strong> (Charge, Qty, Price, Discount, Net, Paid; void charges struck through), <strong>Payments on this invoice</strong>, <strong>Refunds</strong> (&quot;Refunded … · still refundable …&quot;) and, after edits, <strong>Revision history</strong> with a <strong>Print rev n</strong> button per older revision.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-edit-invoice.svg" alt="Figure 34.5 — Edit invoice sheet"></p>
+<p><em>Figure 34.5 — The Edit invoice sheet (screenshot pending).</em></p>
+<p>The Edit sheet is titled &quot;Edit&quot; plus the invoice number, with the line &quot;Revision r → r+1. The invoice number never changes.&quot; Each active charge has a Quantity field, a Unit price field (editable only with the price-override permission or for non-catalog charges), a Discount choice (keep, &quot;Remove discount&quot; or another discount type) and a <strong>Void</strong> box. A section &quot;Add unbilled charges&quot; lists the patient&#39;s unbilled charges with checkboxes. A <strong>Reason</strong> field is required (at least 5 characters). A live preview shows the tax, &quot;New total&quot;, &quot;Change&quot;, &quot;New balance&quot; and, when money is freed, &quot;… will move to the patient&#39;s advance.&quot; If someone else changed the invoice meanwhile, a banner says &quot;This invoice was changed by someone else.&quot; with <strong>Reload</strong>. The buttons are <strong>Cancel</strong>, <strong>Save &amp; refund</strong> (only when money moves to advance; it opens the refund sheet) and <strong>Save changes</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-payments.svg" alt="Figure 34.6 — Payments page"></p>
+<p><em>Figure 34.6 — Payments page (screenshot pending).</em></p>
+<p>The Payments page (<code>/payments</code>) has the subtitle &quot;The day&#39;s collection per payment account, refunds subtracted.&quot; and a <strong>Close counter</strong> button for users who may close the counter. Four figures show Receipts, Collected, Refunded and Net in hand for the chosen day. A toolbar has a day picker, previous and next arrows, <strong>Today</strong> and <strong>Yesterday</strong> buttons and an account filter. The section <strong>By payment account</strong> lists each account with its payments, refunds and net. The section <strong>Receipts</strong> lists the day&#39;s payments (Time with receipt number, Patient, Account with reference, Received by, Amount with &quot;−… refunded&quot;); clicking a row prints the receipt, and the row menu offers <strong>Print receipt</strong> and <strong>Open patient</strong>. The last section, <strong>Counter closes</strong>, is the cash-close history. There is no card view on this page.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-close-counter.svg" alt="Figure 34.7 — Close counter sheet"></p>
+<p><em>Figure 34.7 — The Close counter sheet (screenshot pending).</em></p>
+<p>The Close counter sheet says &quot;Since&quot; and the end of the previous close (or &quot;Since the first payment at this location&quot;). It shows one card per payment account with &quot;Expected&quot; and the counts and totals of payments and refunds. Accounts marked &quot;Count physically at cash close&quot; have a required <strong>Counted (Rs)</strong> field with a live green or red difference. A <strong>Note</strong> is required when any difference exists (&quot;Explain the difference&quot;). The button reads <strong>Close counter (Rs … expected)</strong>. After success it says &quot;Counter closed. Print the slip to hand over the cash.&quot; with <strong>Print slip</strong> and <strong>Done</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-patient-billing-tab.svg" alt="Figure 34.8 — Patient Billing tab"></p>
+<p><em>Figure 34.8 — The Billing tab on the patient record (screenshot pending).</em></p>
+<p>The patient record&#39;s <strong>Billing</strong> tab shows the four figures Not invoiced, Outstanding, Overdue and Advance, a <strong>Refund advance</strong> button when advance exists, and four sub-tabs. <strong>Open charges</strong> lists unbilled and unpaid charges (Charge, Date, Invoice or &quot;Not invoiced&quot;, Net with tax, Paid, Balance, row menu) with <strong>Add charge</strong>, <strong>Issue invoice (n)</strong> for selected unbilled charges and <strong>Collect payment</strong>. <strong>Invoices</strong> and <strong>Payments</strong> list the patient&#39;s documents with print buttons. <strong>Statement</strong> shows a date range, a <strong>Print statement</strong> button and a running ledger (Date, Description, Debit, Credit, Balance) between &quot;Opening balance&quot; and &quot;Closing balance&quot;, with the note &quot;Positive balance = patient owes; negative = clinic holds advance.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-billing-settings.svg" alt="Figure 34.9 — Billing settings"></p>
+<p><em>Figure 34.9 — Billing settings (screenshot pending).</em></p>
+<p>Billing settings (<code>/settings/billing</code>) have the subtitle &quot;Services, prices, discounts, payment accounts and printing&quot;, a back button &quot;Back to settings&quot; and four tabs. <strong>Services and prices</strong> holds the &quot;Service catalog&quot; table (Service, Kind, Default price, an Active switch, Edit) with <strong>Add service</strong>, and &quot;Price overrides for this location&quot; with an inline row (Service, doctor or &quot;All doctors&quot;, Price, <strong>Add override</strong>) and a remove button per override. <strong>Discount types</strong> (only with the discounts feature) lists presets (Name, Value, Applies to, Reception range or &quot;Fixed&quot;, Active, Edit) with <strong>Add discount type</strong>. <strong>Payments and printing</strong> holds the location&#39;s document code, due days, print formats, consultation fee service, default account, variance alert, footer note and three switches. <strong>Payment accounts</strong> lists accounts (Account with a &quot;Default&quot; badge, Kind, Bank, Rules, Active, Edit) with <strong>Add account</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-expenses.svg" alt="Figure 34.10 — Expenses"></p>
+<p><em>Figure 34.10 — Expenses page (screenshot pending).</em></p>
+<p>The Expenses page (<code>/expenses</code>) has the subtitle &quot;Track and categorise clinic spending&quot; and an <strong>Add Expense</strong> button. A &quot;This Month Total&quot; card shows the current month&#39;s total and the three largest categories. Category buttons (All, Rent, Utilities, Supplies, Salary, Equipment, Marketing, Maintenance, Other) filter a table of Date, Category, Description, Method and Amount, with a delete icon per row. The page uses an older style: it shows the latest 30 rows with no paging, no search, no date filter, no card view and no edit action.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-billing-activity.svg" alt="Figure 34.11 — Billing activity"></p>
+<p><em>Figure 34.11 — Billing activity (screenshot pending).</em></p>
+<p>Billing activity (<code>/billing/activity</code>) has the subtitle &quot;Every billing change with who, when and why.&quot; Date presets (Today by default, This month, Past 30 days, custom range) choose the period. A table &quot;Per user per day&quot; shows Date, User, Edits, Cancels, Refunds (count and amount) and Discounts (count and amount). The &quot;Activity feed&quot; lists Time, User, Action (for example Created, Voided, Discount, Price changed, Issued, Edited, Cancelled, Advance applied, Unapplied, Refunded, Counter closed), Document, Amount and Reason, 20 rows per page.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch34-print-layouts.svg" alt="Figure 34.12 — Print layouts"></p>
+<p><em>Figure 34.12 — Printed documents in A4 and 80 mm thermal layout (screenshot pending).</em></p>
+<p>Printing happens in the browser&#39;s print dialog. Every printed document has a header with the location logo (if enabled), clinic and location name, address and phone, and a footer with the footer note and &quot;Computer-generated document&quot; with the time. The invoice (&quot;INVOICE&quot;) lists the lines, totals, the total in words, refunds and &quot;Issued by&quot;, and carries a large &quot;CANCELLED&quot; or &quot;REFUNDED&quot; watermark when applicable. The receipt (&quot;PAYMENT RECEIPT&quot;) shows the amount received, the amount in words, the account, reference, the charges it was applied to, the part kept as advance and what is still outstanding. The refund voucher, the patient statement and the cash-close slip have signature lines where a person hands over money. The A4 layout uses 12 mm margins; the thermal layout prints a 72 mm wide column on 80 mm paper.</p>
+<h2 id="ch34-billing-34-3-features">34.3 Features</h2>
+<h3 id="ch34-billing-34-3-1-keep-a-service-catalog">34.3.1 Keep a service catalog</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Keeps the organization&#39;s list of billable services (consultations, procedures and other items) with a default price each. The catalog is shared by all locations of the organization.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open Settings → <strong>Billing</strong> → <strong>Services and prices</strong>.</li>
+<li>Click <strong>Add service</strong>, fill <strong>Name</strong>, optional <strong>Code</strong>, <strong>Kind</strong> (Consultation, Procedure or Other) and <strong>Default price (Rs)</strong>, then <strong>Save</strong>.</li>
+<li>Click the Edit icon to change a service, or flip the <strong>Active</strong> switch to stop offering it.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A price change never touches charges that already exist: each charge keeps a copy of its price. A service that is switched off can no longer be priced for new charges.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/services</code> (optional <code>activeOnly</code>, <code>kind</code>), <code>POST /billing/services</code>, <code>PATCH /billing/services/:serviceId</code> → <code>CatalogServicesService</code> (class name of the entity: <code>CatalogService</code>, table <code>services</code>). Each write runs in a transaction and writes a <code>billing_audit_logs</code> row (entity <code>SERVICE</code>, action <code>CREATED</code>/<code>UPDATED</code>, organization level with no location). A unique violation becomes 409 <code>BILLING_DUPLICATE</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name 2–120 characters, unique per organization; code up to 30 characters, stored in upper case, unique per organization when given.</li>
+<li>Default price 0 or more, at most 2 decimals.</li>
+<li>Services are never deleted; they are deactivated.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: <code>billing.desk.use</code>. Write: <code>admin.settings.manage</code>. Feature <code>billing.invoices</code>. Default: Admin (write and read); Receptionist and Accountant (read).</p>
+<p><strong>Data read and written.</strong> <code>services</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The consultation workspace&#39;s treatments can point to a service, which decides the automatic charge&#39;s price (Chapter 31).</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_DUPLICATE</code> &quot;A service with this name or code already exists&quot;; 404 &quot;Service not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/catalog/catalog.service.ts</code> · <code>CatalogServicesService</code>, <code>CatalogService</code> · <code>web-app/src/features/billing/components/settings/ServicesTab.tsx</code></p>
+<h3 id="ch34-billing-34-3-2-set-location-and-doctor-price-overrides">34.3.2 Set location and doctor price overrides</h3>
+<p><strong>Status:</strong> [Implemented] — editing an existing override&#39;s price exists in the API but not on screen (remove and add again instead).</p>
+<p><strong>What it does.</strong> Lets a location charge a different price than the catalog default, either for all doctors or for one doctor. The <strong>resolved price</strong> of a service is the first that exists of: the doctor&#39;s price at this location, the location price, the default price.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Services and prices</strong>, under &quot;Price overrides for this location&quot;, choose a Service, a doctor or &quot;All doctors&quot;, and type a <strong>Price (Rs)</strong>.</li>
+<li>Click <strong>Add override</strong>. Remove one with its remove button and confirm &quot;Remove price override?&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> When a charge is created, the Platform looks up the most specific price and copies it onto the charge.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /billing/service-prices</code>, <code>PATCH /billing/service-prices/:id</code> (not used by the web app), <code>DELETE /billing/service-prices/:id</code>, <code>GET /billing/services/:serviceId/resolved-price?doctorId</code> (not used by the web app). <code>ChargePricingService.resolve</code> reads <code>service_prices</code> for (service, location, doctor) and (service, location, no doctor) and falls back to <code>services.default_price</code>; it returns the price level (<code>DOCTOR</code>, <code>LOCATION</code>, <code>DEFAULT</code>). An inactive service throws 422 <code>BILLING_SERVICE_INACTIVE</code>. Writes are audited (<code>SERVICE_PRICE</code>, <code>CREATED</code>/<code>PRICE_CHANGED</code>/<code>DELETED</code>); deleting is a hard delete.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One location-wide override per service and location; one per service, location and doctor (partial unique indexes).</li>
+<li>The doctor must be staff of the active location.</li>
+<li>Price 0 or more, 2 decimals.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>admin.settings.manage</code>, feature <code>billing.invoices</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> <code>service_prices</code>, <code>services</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Automatic charges after a consultation use the doctor&#39;s price.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_DUPLICATE</code> &quot;An override for this service and doctor already exists&quot;; 422 <code>BILLING_SERVICE_INACTIVE</code> &quot;… is no longer offered&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/catalog/charge-pricing.service.ts</code> · <code>ChargePricingService.resolve</code>, <code>ServicePrice</code> · <code>web-app/src/features/billing/components/settings/ServicesTab.tsx</code></p>
+<h3 id="ch34-billing-34-3-3-get-automatic-charges-from-a-completed-consultation">34.3.3 Get automatic charges from a completed consultation</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When a doctor completes a visit, the Platform creates a consultation charge and one charge per treatment recorded in the encounter, without anyone at the desk typing them. The patient then appears in <strong>Ready to bill</strong>.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>The doctor completes the visit in the queue or the consultation workspace (Chapter 30, Chapter 31).</li>
+<li>Reception opens the Billing desk; the patient is listed under <strong>Ready to bill</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Figure 34.13 shows the decision. The consultation fee comes from the location&#39;s &quot;Consultation fee service&quot;. If no price can be found, the charge is created at zero with the flag <strong>Needs price</strong>, so the doctor is never blocked by a missing catalog entry. If the doctor removes a treatment and completes again, its unbilled charge is voided with the reason &quot;Treatment removed by doctor&quot;; if that charge is already on an invoice, the money is kept and the charge is marked for review.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-auto-charges.png" alt="Figure 34.13 — Automatic charges at visit completion"></p>
+<p><em>Figure 34.13 — How completing a visit creates and voids charges.</em></p>
+<p>The flowchart starts at &quot;Doctor or admin completes the queue entry&quot;. A first diamond asks whether the feature <code>billing.invoices</code> is enabled; &quot;no&quot; leads to &quot;No charges&quot;. A second diamond asks whether an encounter exists for the entry; &quot;no&quot; again leads to &quot;No charges&quot;. On &quot;yes&quot; three branches start. The first creates a &quot;Consultation charge if none yet&quot;, the second &quot;One charge per treatment not yet charged&quot;; both go to the pricing box &quot;Price: doctor override, location override, default, else Needs price&quot; and then to &quot;Commission snapshot, INSERT ON CONFLICT DO NOTHING&quot;. The third branch takes &quot;Charges whose treatment was removed&quot; to a diamond &quot;Already on an invoice?&quot;: &quot;no&quot; leads to &quot;VOID with reason Treatment removed by doctor&quot;, &quot;yes&quot; leads to &quot;Keep, set source_removed_at, shows Review&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>QueueOrchestrator.complete</code> (normal and force completion) calls <code>ChargeSourcesService.syncForEncounter</code> inside the queue&#39;s completion transaction, after the queue session lock. It reads the encounter by <code>queue_entry_id</code>, the encounter&#39;s <code>treatments</code> and its existing ACTIVE <code>CONSULTATION</code>/<code>TREATMENT</code> charges. <code>ChargeDraftFactory</code> builds drafts: <code>fromConsultation</code> (source id = encounter id, description from the service or &quot;Consultation&quot;) and <code>fromTreatment</code> (source id = treatment id; price from the treatment&#39;s service, else the treatment&#39;s legacy cost, else zero with <code>needs_pricing</code>). The charge date is the completion instant converted to the location&#39;s date. <code>CommissionService.snapshot</code> adds the commission plan and rate in force on that date (Chapter 35). Rows are inserted with <code>ON CONFLICT DO NOTHING</code> on the partial unique index <code>uq_charges_source</code> (organization, source, source id, ACTIVE only), so repeating the completion never doubles a charge. Created and voided charges are audited with the system role.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Runs only if the feature is enabled for the organization and the visit has an encounter.</li>
+<li>A catalog error (inactive service, missing service) never fails the completion; it yields a Needs price charge.</li>
+<li>Removed treatments: unbilled charge → <code>VOID</code>; billed charge → <code>source_removed_at</code> set, money untouched.</li>
+</ul>
+<p><strong>Who can do it.</strong> No user permission; it runs as part of <code>queue.doctor.own</code> / <code>queue.doctor.any</code> completion. Feature <code>billing.invoices</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_encounters</code>, <code>treatments</code>, <code>charges</code>, <code>location_billing_settings</code>, <code>services</code>, <code>service_prices</code>, compensation tables. Writes <code>charges</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The doctor&#39;s response contains no charge data. Charges carry the encounter and appointment ids, which reports use.</p>
+<p><strong>Error cases.</strong> None shown to the doctor; pricing problems appear as &quot;Needs price&quot; at the desk.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charge-sources.service.ts</code> · <code>ChargeSourcesService.syncForEncounter</code>, <code>ChargeDraftFactory</code> · <code>web-app/src/features/billing/pages/BillingDeskPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-4-add-a-manual-charge">34.3.4 Add a manual charge</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds a charge by hand: a catalog service priced automatically, or an &quot;Other&quot; item with free text and a price.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the Collect payment sheet or the patient&#39;s <strong>Open charges</strong>, click <strong>Add charge</strong>.</li>
+<li>Choose <strong>Catalog service</strong> and pick a <strong>Service</strong>, or choose <strong>Other</strong> and type <strong>Description</strong> and <strong>Price (Rs)</strong>.</li>
+<li>Set <strong>Quantity</strong> (1–999) and click <strong>Add charge</strong>. A toast says &quot;Charge added&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A catalog service gets its resolved price for this location. A receptionist cannot type a different price for a catalog service.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients/:patientId/charges</code> → <code>ChargesService.addManual</code> in one transaction: checks the patient and optional doctor, resolves the price, builds the draft with <code>ChargeDraftFactory.manual</code> (source <code>MANUAL</code>, charge date = location&#39;s today unless given), applies <code>assertCanSetPrice</code> when a different price is sent for a catalog service, saves and audits <code>CHARGE</code>/<code>CREATED</code>. <code>GET /patients/:patientId/charges?state=unbilled|open|all</code> lists charges.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>&quot;Other&quot; needs a description of 2–200 characters and a price.</li>
+<li>Quantity 1–999; price 0 or more with 2 decimals.</li>
+<li>Manual charges carry no commission snapshot.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant. A different catalog price needs <code>billing.price.override</code> (Admin).</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, <code>services</code>, <code>service_prices</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None beyond billing.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_CHARGE_INVALID</code> &quot;Enter a price for this charge&quot;; 403 <code>BILLING_PRICE_CHANGE_NOT_ALLOWED</code>; 422 <code>BILLING_SERVICE_INACTIVE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charges.service.ts</code> · <code>ChargesService.addManual</code> · <code>web-app/src/features/billing/components/charges/AddChargeSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-5-create-charges-from-a-treatment-plan">34.3.5 Create charges from a treatment plan</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen calls the endpoint.</p>
+<p><strong>What it does.</strong> Turns selected items of a patient&#39;s treatment plan into unbilled charges, priced at each item&#39;s estimated cost.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> One charge per plan item; the same item can never be charged twice while its charge is active.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients/:patientId/charges/from-treatment-plan/:planId</code> with <code>itemIds</code> (1–100) → <code>ChargesService.fromTreatmentPlan</code>. Builds drafts with source <code>TREATMENT_PLAN</code> (doctor = item&#39;s assignee or the plan&#39;s dentist; price = estimated cost, else zero with Needs price) and inserts with <code>ON CONFLICT DO NOTHING</code> on <code>uq_charges_source</code>. <code>GET /treatment-plans/:planId/billing-summary</code> reports these charges per plan; its web hook exists but no component uses it.</p>
+<p><strong>Rules and validations.</strong> Items must belong to the plan, the plan to the patient and organization.</p>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code>, feature <code>billing.invoices</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_treatment_plans</code>, <code>treatment_plan_items</code>; writes <code>charges</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Treatment plans (Chapter 33) are unchanged by it.</p>
+<p><strong>Error cases.</strong> 404 &quot;Treatment plan not found&quot;, &quot;Plan item not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charges.controller.ts</code> · <code>ChargesService.fromTreatmentPlan</code> · none in the web app</p>
+<h3 id="ch34-billing-34-3-6-edit-an-unbilled-charge-and-the-price-policy">34.3.6 Edit an unbilled charge (and the price policy)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the quantity or price of a charge that is not yet on an invoice. The <strong>price policy</strong> says: without <code>billing.price.override</code>, only &quot;Other&quot; charges and charges that still need a price can be priced; for a catalog charge, give a discount instead.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the charge&#39;s three-dot menu, choose <strong>Edit quantity / price</strong>.</li>
+<li>Change <strong>Quantity</strong> or <strong>Unit price (Rs)</strong> and click <strong>Save</strong>. If the price field is disabled, the hint says &quot;Catalog price — give a discount instead.&quot;</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Gross, discount and net are recalculated. A percentage discount follows the new amount; a fixed one stays, capped at the gross.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /charges/:chargeId</code> → <code>ChargesService.update</code> via <code>mutateUnbilled</code>: one transaction, locks the charge (and its invoice if any) with <code>BillingLocks.chargesWithInvoices</code>, asserts it is ACTIVE and unbilled, applies changes, runs <code>recalcCharge</code> (integer paisa math), saves, audits <code>UPDATED</code> with before and after snapshots (commission fields stripped). Setting a price clears <code>needs_pricing</code>. Changing the doctor re-takes the commission snapshot.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only ACTIVE, unbilled charges; billed charges change only through an invoice edit.</li>
+<li>Only &quot;Other&quot; charges can be renamed.</li>
+<li>Quantity 1–999.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code> (+ <code>billing.price.override</code> for catalog prices), feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant; price override Admin only.</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_CHARGE_ALREADY_BILLED</code> &quot;This charge is on an invoice — edit the invoice instead&quot;; 409 <code>BILLING_CHARGE_NOT_OPEN</code> &quot;This charge is void&quot;; 403 <code>BILLING_PRICE_CHANGE_NOT_ALLOWED</code> &quot;You are not allowed to change a catalog price — give a discount instead&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/price-policy.ts</code> · <code>assertCanSetPrice</code>, <code>ChargesService.update</code> · <code>web-app/src/features/billing/components/charges/EditChargeSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-7-void-an-unbilled-charge">34.3.7 Void an unbilled charge</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Cancels a charge that should not be billed, keeping it for the record.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the charge&#39;s menu, choose <strong>Void</strong>.</li>
+<li>In &quot;Void this charge?&quot;, type a <strong>Reason</strong> and click <strong>Void charge</strong>. A toast says &quot;Charge voided&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The charge becomes VOID, with who, when and why. It no longer counts anywhere.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /charges/:chargeId/void</code> with <code>reason</code> → <code>ChargesService.void</code> through <code>mutateUnbilled</code>; sets <code>status = VOID</code>, <code>voided_at</code>, <code>voided_by</code>, <code>void_reason</code>; audits <code>VOIDED</code> with the reason.</p>
+<p><strong>Rules and validations.</strong> Reason 5–300 characters (screen and server). Only ACTIVE, unbilled charges. A void cannot be undone.</p>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> A voided treatment charge does not change the clinical record.</p>
+<p><strong>Error cases.</strong> 400 validation for a short reason; 409 <code>BILLING_CHARGE_ALREADY_BILLED</code>; 409 <code>BILLING_CHARGE_NOT_OPEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charge-math.ts</code> · <code>voidCharge</code>, <code>ChargesService.void</code> · <code>web-app/src/features/billing/components/charges/ChargeRowActions.tsx</code></p>
+<h3 id="ch34-billing-34-3-8-manage-discount-types">34.3.8 Manage discount types</h3>
+<p><strong>Status:</strong> [Implemented] — the optional Code field exists in the API but not on screen.</p>
+<p><strong>What it does.</strong> Lets the clinic define preset discounts (&quot;Staff family 20%&quot;, &quot;Senior citizen 10%&quot;, a fixed amount off) that reception may apply. A <strong>discount type</strong> has a kind (percentage or fixed), a value, an optional maximum amount per use, what it applies to (everything, some service kinds, some services), an optional range within which reception may change the value, an optional &quot;note required&quot; rule and optional validity dates.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open Settings → <strong>Billing</strong> → <strong>Discount types</strong>, click <strong>Add discount type</strong>.</li>
+<li>Fill <strong>Name</strong>, <strong>Kind</strong>, <strong>Value</strong>, optionally <strong>Max amount per use (Rs)</strong>, <strong>Applies to</strong>, the switch <strong>Reception may change the value</strong> (then <strong>Min value</strong> and <strong>Max value</strong>), the switch <strong>Note required when applied</strong>, <strong>Valid from</strong> and <strong>Valid to</strong>.</li>
+<li>Save. Use the <strong>Active</strong> switch to retire a type.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Charges keep a copy of the discount they got; changing a type later never changes them.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/discount-types?usableToday</code> (list, <code>billing.discount.apply</code>), <code>POST</code> and <code>PATCH /billing/discount-types/:id</code> → <code>DiscountTypesService</code>, transactional and audited (<code>DISCOUNT_TYPE</code>). <code>assertShape</code> checks the merged row so a PATCH cannot break the rules. &quot;Usable today&quot; means active and the location&#39;s today within the validity dates.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name 2–80 characters, unique per organization; value at least 0.01; a percentage at most 100.</li>
+<li>&quot;Service kinds&quot; needs at least one kind; &quot;Specific services&quot; at least one service.</li>
+<li>Reception range must satisfy min ≤ value ≤ max; valid from ≤ valid to.</li>
+<li>Types are never deleted.</li>
+</ul>
+<p><strong>Who can do it.</strong> Write: <code>admin.settings.manage</code>; read: <code>billing.discount.apply</code>. Features <code>billing.invoices</code> and <code>billing.discounts</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> <code>discount_types</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_DISCOUNT_INVALID</code> (for example &quot;Percentage must be between 0 and 100&quot;, &quot;Reception range must satisfy min ≤ value ≤ max&quot;); 409 <code>BILLING_DUPLICATE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/discounts/discount-types.service.ts</code> · <code>DiscountTypesService.assertShape</code> · <code>web-app/src/features/billing/components/settings/DiscountTypesTab.tsx</code></p>
+<h3 id="ch34-billing-34-3-9-give-a-discount-on-one-charge-many-charges-or-a-custom-discount">34.3.9 Give a discount on one charge, many charges, or a custom discount</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Applies one discount to an unbilled charge (each charge carries at most one; a new one replaces the old), applies one type to several charges at once, removes a discount, or gives a <strong>custom discount</strong> (any percentage or amount, not from a preset).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>One charge: menu → <strong>Discount</strong>. Several: tick unbilled charges and click <strong>Discount</strong> in the Collect payment sheet (&quot;Discount n charges&quot;).</li>
+<li>Choose a <strong>Discount</strong> type. If the type allows it, change the value within &quot;Value (min–max)&quot;.</li>
+<li>Or switch on <strong>Custom discount</strong> (admins) and choose <strong>Kind</strong> and <strong>Value</strong>.</li>
+<li>Add a <strong>Note</strong> if required and click <strong>Apply discount</strong>. Remove with <strong>Remove discount</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The amount is computed, capped by the type&#39;s maximum and by the charge&#39;s gross. For many charges, a percentage applies to each charge and the maximum is shared; a fixed amount is one total spread over the charges in proportion to their size. Charges the type does not apply to are skipped and named in a warning (&quot;Not applied to: …&quot;).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /charges/:chargeId/discount</code>, <code>DELETE /charges/:chargeId/discount</code>, <code>POST /charges/discount/bulk</code> (1–100 charge ids). <code>DiscountApplier.resolve</code> loads the type and calls <code>resolveDiscount</code>, which enforces the permission rules: a preset needs <code>billing.discount.apply</code>; a value different from the type&#39;s own goes through <code>AccessContext.decide(&#39;billing.discount.apply&#39;, { value, min, max })</code>, allowed inside the reception range, otherwise only with the escalation permission <code>billing.discount.custom</code>. <code>discountForCharge</code> / <code>discountsForCharges</code> compute paisa amounts (<code>splitProportionally</code> gives leftover paisa to the largest share). The bulk call locks all charges in id order in one transaction and writes one <code>DISCOUNT_APPLIED</code> audit row per charge with the amount and note.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only ACTIVE, unbilled charges.</li>
+<li>The type must be active and valid on the location&#39;s today, and must apply to the charge (single charge: error; bulk: skipped).</li>
+<li>Value inside the type&#39;s range for reception; percentage 0–100 for anyone.</li>
+<li>Custom discount: needs <code>billing.discount.custom</code> and a note of at least 3 characters; it is named &quot;Custom&quot;.</li>
+<li>Types marked &quot;note required&quot; need a note of at least 3 characters.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.discount.apply</code> (presets), <code>billing.discount.custom</code> (custom or out-of-range values; implies apply). Feature <code>billing.discounts</code>. Default: Admin (both), Receptionist (apply). The Accountant template holds neither.</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, <code>discount_types</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Discounts lower the commission base (Chapter 35) and appear in Doctor revenue.</p>
+<p><strong>Error cases.</strong> 403 <code>BILLING_CUSTOM_DISCOUNT_ADMIN_ONLY</code>; 403 <code>BILLING_DISCOUNT_VALUE_NOT_ALLOWED</code> &quot;Value must be between … and …&quot;; 422 <code>BILLING_DISCOUNT_NOTE_REQUIRED</code>; 422 <code>BILLING_DISCOUNT_INVALID</code> &quot;… does not apply to …&quot;, &quot;… is not available today&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/discounts/discount-policy.ts</code> · <code>resolveDiscount</code>, <code>DiscountApplier</code>, <code>discountsForCharges</code> · <code>web-app/src/features/billing/components/charges/DiscountSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-10-work-the-ready-to-bill-list-and-the-billing-desk">34.3.10 Work the ready-to-bill list and the billing desk</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Gives reception one screen with everyone to bill today and everyone who owes money.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Billing desk</strong>. Optionally pick another day.</li>
+<li>Click <strong>Bill</strong> on a ready-to-bill patient, or <strong>Collect</strong> on an outstanding invoice.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A patient is &quot;ready to bill&quot; on a day when they have at least one unbilled charge dated that day; their total includes older unbilled charges too.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/ready-to-bill?date</code> → <code>ChargesService.readyToBill</code>: one SQL query over ACTIVE, unbilled charges with <code>charge_date ≤ day</code>, grouped by patient, <code>HAVING BOOL_OR(charge_date = day)</code>, newest first; the default day is the location&#39;s today from <code>BillingClock</code>. The Outstanding section calls <code>GET /invoices?paymentStatus=OVERDUE</code> and <code>?paymentStatus=UNPAID</code> (50 each).</p>
+<p><strong>Rules and validations.</strong> Active location only.</p>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>patients</code>, <code>invoices</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charges.service.ts</code> · <code>ChargesService.readyToBill</code> · <code>web-app/src/features/billing/pages/BillingDeskPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-11-collect-a-payment-with-preview-and-allocation">34.3.11 Collect a payment (with preview and allocation)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records money received from a patient, issues an invoice for any unbilled charges in the selection, splits the money over the selected charges, keeps any rest as advance and gives a receipt number.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the Collect payment sheet (Billing desk, patient Billing tab, queue <strong>Bill</strong> button, invoice detail or invoice list menu).</li>
+<li>Tick the charges to pay, check <strong>Amount received (Rs)</strong>, pick <strong>Oldest first</strong> or <strong>Manual</strong>, choose the account under <strong>Received in</strong>, add a <strong>Reference number</strong> if asked.</li>
+<li>Read the live summary, then click <strong>Receive Rs …</strong>.</li>
+<li>Print the receipt and the invoice from the result screen.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Figure 34.14 shows the full exchange. The preview runs the same calculation without saving, so the screen never does money math itself. On save, everything happens in one database transaction: either all of it (invoice, receipt, allocations, totals, ledger, audit) is stored, or nothing is. Sending the same click twice returns the first result instead of charging twice.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-collect-sequence.png" alt="Figure 34.14 — Collecting a payment"></p>
+<p><em>Figure 34.14 — Collect payment: preview, then one transaction that issues the invoice, records the payment and allocates it.</em></p>
+<p>The diagram has six participants: the Receptionist, the Web app, the API, the PaymentsService, the InvoiceIssuer and PostgreSQL. In steps 1 to 4 the receptionist selects charges, types an amount and picks an account; after a 300 ms pause the web app calls <code>POST /payments/preview</code>; the service computes without locks or writes and returns the balance, advance used, paying now, the part going to advance, the invoice that will be issued and any blockers. In steps 5 to 7 the receptionist clicks &quot;Receive Rs amount&quot;, the web app sends <code>POST /payments</code> with a <code>clientRequestId</code>, and the API calls collect. Step 8 checks whether that request id was already used. Step 9 opens the transaction and locks invoices, then charges, then the patient&#39;s advance payments. Step 10 spreads the exclusive tax on the unbilled charges and plans the allocation. Steps 11 and 12 hand the unbilled charges to the InvoiceIssuer, which takes the next INV number, inserts the invoice as ISSUED, links the charges, posts an INVOICE_ISSUED ledger row and an ISSUED audit row. Step 13 takes the next REC number and inserts the payment. Step 14 inserts the allocation rows with reasons PAYMENT and ADVANCE_APPLIED. Step 15 recomputes charge, invoice and payment totals with invariant checks. Step 16 records commission entries, posts the PAYMENT ledger row, writes the CREATED audit row and commits. Steps 17 and 18 return the receipt number, invoice number, allocations and the new summary, and the screen shows the result with Print receipt and Print invoice.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /payments/preview</code> → <code>PaymentsService.preview</code>; <code>POST /payments</code> → <code>PaymentsService.collect</code> → <code>runCollect</code>. Locks follow <code>BillingLocks</code> order invoices → charges → payments (each by id) so two operations cannot deadlock. <code>assertCollectable</code> requires every selected charge to belong to the patient, be ACTIVE, have a balance (or await a price) and not sit on a cancelled invoice. <code>planAllocation</code> (see 34.3.12) draws first from old advance (oldest payment first), then from the new money. <code>InvoiceIssuer.issue</code> runs only when unbilled charges are selected. <code>AllocationWriterService.insert</code> appends rows and asserts each allocated charge is on an invoice. <code>BillingTotalsService</code> recomputes cached columns from source rows with SQL <code>SUM</code> (never increments) and throws <code>BILLING_INVARIANT_VIOLATION</code> (rolling everything back) if a charge is over-allocated, a payment over-used or an invoice balance negative. <code>CommissionService.recordForCharges</code> records commission on collection. Money crosses the API as rupees with two decimals, is stored as <code>numeric(12,2)</code>, and every calculation runs in integer paisa. Idempotency: the unique <code>client_request_id</code> per organization; a losing parallel retry returns the winner&#39;s result.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>New money: amount at least 0.01, an active account of this location, a reference when the account requires one, notes up to 300 characters.</li>
+<li>A charge with Needs price blocks the invoice (&quot;Set a price for: …&quot;).</li>
+<li>Manual mode: every selected charge needs an amount, no amount above its balance, total not above the funds.</li>
+<li>Up to 200 selections.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.payment.collect</code> (preview and collect), feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant. The doctor-share line in the preview needs <code>earnings.all.view</code> and the commissions feature.</p>
+<p><strong>Data read and written.</strong> Writes <code>payments</code>, <code>payment_allocations</code>, <code>invoices</code>, <code>charges</code>, <code>document_sequences</code>, <code>ledger_entries</code>, <code>billing_audit_logs</code>, <code>commission_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> Commission entries (Chapter 35); daily collection, dashboards and reports (Chapter 36).</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_LOCATION_CODE_MISSING</code>; 422 <code>BILLING_REFERENCE_REQUIRED</code>; 422 <code>BILLING_PAYMENT_ACCOUNT_INVALID</code>; 422 <code>BILLING_CHARGE_NEEDS_PRICING</code>; 409 <code>BILLING_CHARGE_NOT_OPEN</code> &quot;… has nothing left to pay&quot;; 409 <code>BILLING_INVOICE_CANCELLED</code>; 422 <code>BILLING_ALLOCATION_EXCEEDS_BALANCE</code> / <code>_EXCEEDS_FUNDS</code>; 500 <code>BILLING_INVARIANT_VIOLATION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/payments.service.ts</code> · <code>PaymentsService.collect</code>, <code>BillingLocks</code>, <code>BillingTotalsService</code> · <code>web-app/src/features/billing/components/collect-payment/CollectPaymentSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-12-choose-an-allocation-strategy">34.3.12 Choose an allocation strategy</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Decides how much of the available money each selected charge receives. <strong>Oldest first</strong> (code <code>AUTO</code>, FIFO) pays the oldest charge first; <strong>Manual</strong> pays exactly what the user typed per charge.</p>
+<p><strong>How the user does it.</strong> In the Collect payment sheet, choose <strong>Oldest first</strong> or <strong>Manual</strong> under <strong>Allocation</strong>.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Oldest first walks the charges from the oldest charge date (then creation time) and gives each the smaller of its balance and the money left. Whatever is not used becomes advance.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>planAllocation</code> (pure function) uses <code>ALLOCATION_STRATEGIES</code>: <code>FifoAllocationStrategy</code> and <code>ManualAllocationStrategy</code>. Each strategy returns a target per charge; the planner then draws each target from the funding sources in order (old advance payments, oldest received first, then <code>NEW</code>). It returns the planned lines, the advance used and the unused part of the new payment.</p>
+<p><strong>Rules and validations.</strong> Manual amounts may not exceed a charge&#39;s balance or the total funds.</p>
+<p><strong>Who can do it.</strong> As for collecting a payment.</p>
+<p><strong>Data read and written.</strong> None by itself; the plan is written by collect.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_ALLOCATION_EXCEEDS_BALANCE</code> &quot;An amount is larger than the charge balance&quot;; 422 <code>BILLING_ALLOCATION_EXCEEDS_FUNDS</code> &quot;The amounts add up to more than the money available&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/allocation/allocation-planner.ts</code> · <code>planAllocation</code>, <code>FifoAllocationStrategy</code>, <code>ManualAllocationStrategy</code> · <code>web-app/src/features/billing/components/collect-payment/CollectPaymentFields.tsx</code></p>
+<h3 id="ch34-billing-34-3-13-hold-advance-and-apply-it-later">34.3.13 Hold advance and apply it later</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Money received beyond what the selected charges need stays as the patient&#39;s <strong>advance</strong>. Advance is used on later charges, automatically when &quot;Use advance&quot; is on, or alone with <strong>Apply advance</strong> when no new money is received.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the Collect payment sheet, leave <strong>Use advance (… available)</strong> on (the default).</li>
+<li>To use only advance, set the amount to 0; the button becomes <strong>Apply advance Rs …</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Advance is not a separate balance: it is the unused part of the patient&#39;s previous payments. Applying it issues an invoice for unbilled charges but no new receipt.</p>
+<p><strong>Behind the scenes — technically.</strong> Advance of a payment = <code>amount − allocated_amount − refunded_amount</code>. <code>POST /patients/:patientId/advance/apply</code> → <code>PaymentsService.applyAdvance</code> runs <code>runCollect</code> with amount 0; it writes <code>ADVANCE_APPLIED</code> allocations, audits <code>ALLOCATED</code>, and posts no PAYMENT ledger row.</p>
+<p><strong>Rules and validations.</strong> Fails when there is no advance to apply.</p>
+<p><strong>Who can do it.</strong> <code>billing.payment.collect</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>payments</code>, <code>payment_allocations</code>, <code>charges</code>, <code>invoices</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Commission is recorded when advance is applied.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_NOTHING_TO_APPLY</code> &quot;There is no advance to apply to these charges&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/payments.service.ts</code> · <code>PaymentsService.applyAdvance</code> · <code>web-app/src/features/billing/components/collect-payment/CollectSummary.tsx</code></p>
+<h3 id="ch34-billing-34-3-14-unapply-a-payment">34.3.14 Unapply a payment</h3>
+<p><strong>Status:</strong> [Partial] — backend only; the web app defines the call but no screen uses it.</p>
+<p><strong>What it does.</strong> Takes back all or part of a payment&#39;s allocations; the money returns to the patient&#39;s advance. It is needed before an invoice with payments can be cancelled.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Negative allocation rows are added; nothing is deleted. The receipt stays.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /payments/:paymentId/unapply</code> with <code>reason</code> (5–300) and optional <code>lines</code> → <code>PaymentsService.unapply</code>: locks charges with invoices, then the payment; <code>AllocationWriterService.releaseFromPayment</code> inserts negative <code>UNAPPLY</code> rows (never more than the current net); totals are recomputed; commission is reversed with a negative entry; audit <code>UNAPPLIED</code>. No ledger entry is posted, because the patient&#39;s net position does not change.</p>
+<p><strong>Rules and validations.</strong> Each line at most the payment&#39;s current net on that charge.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.edit</code>, feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>payment_allocations</code>, <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>commission_entries</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Commission reversal (Chapter 35).</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_UNAPPLY_EXCEEDS_ALLOCATION</code> &quot;Cannot release more than was applied&quot;; 404 &quot;Payment not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/allocation-writer.service.ts</code> · <code>PaymentsService.unapply</code> · none in the web app</p>
+<h3 id="ch34-billing-34-3-15-manage-payment-accounts-and-payment-methods">34.3.15 Manage payment accounts and payment methods</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Defines where the location receives money. Each <strong>payment account</strong> has a kind (the payment method: Cash, Bank transfer, Card, Online wallet, Cheque), optional bank details, and two rules: &quot;Reference number required&quot; and &quot;Count physically at cash close&quot;. Every location gets a default account named <strong>Cash</strong> automatically.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open Settings → <strong>Billing</strong> → <strong>Payment accounts</strong>, click <strong>Add account</strong>.</li>
+<li>Fill <strong>Name</strong>, <strong>Kind</strong> (fixed after creation), optional <strong>Bank name</strong>, <strong>Account title</strong>, <strong>Account number</strong>, and the two switches. For example, &quot;Example Bank current account&quot; with kind Bank transfer.</li>
+<li>Use the <strong>Active</strong> switch to retire an account. Choose the default account in <strong>Payments and printing</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Payments and refunds copy the account&#39;s name and method, so old receipts keep the name they were taken with.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /billing/payment-accounts</code>, <code>PATCH /billing/payment-accounts/:id</code> → <code>PaymentAccountsService</code>. Listing first calls <code>BillingSettingsService.getOrCreate</code>, which inserts the settings row and the <code>Cash</code> account (<code>ON CONFLICT DO NOTHING</code>) and makes it the default. New Cash accounts default to &quot;no reference, counted&quot;; other kinds to &quot;reference, not counted&quot;. <code>resolveForUse</code> checks active, same location and reference.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name 2–60 characters, unique per location.</li>
+<li>The default account cannot be deactivated; the last active account cannot be deactivated.</li>
+<li>Deactivated accounts cannot receive payments or pay refunds.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: <code>billing.desk.use</code>; write: <code>admin.settings.manage</code>. Feature <code>billing.invoices</code>. Default: Admin (write); Receptionist and Accountant (read).</p>
+<p><strong>Data read and written.</strong> <code>payment_accounts</code>, <code>location_billing_settings</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Cash close groups by account.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_PAYMENT_ACCOUNT_IS_DEFAULT</code> &quot;Choose another default account before deactivating this one&quot;; 422 <code>BILLING_PAYMENT_ACCOUNT_INVALID</code> &quot;A location needs at least one active account&quot;; 409 <code>BILLING_DUPLICATE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payment-accounts/payment-accounts.service.ts</code> · <code>PaymentAccountsService.assertCanDeactivate</code> · <code>web-app/src/features/billing/components/settings/PaymentAccountsTab.tsx</code></p>
+<h3 id="ch34-billing-34-3-16-number-invoices-receipts-and-refunds">34.3.16 Number invoices, receipts and refunds</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Gives every invoice, receipt and refund a gapless number of the form <code>CODE-INV-YYYY-NNNNN</code> (receipts <code>REC</code>, refunds <code>RFD</code>), for example <code>KHI01-INV-2026-00001</code>. The counter is per location, per document type and per year (the year of the location&#39;s date).</p>
+<p><strong>How the user does it.</strong> Nothing to do once the <strong>Document code</strong> is set in billing settings.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> If the transaction that took a number fails, the number goes back, so there are no gaps.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>DocumentSequenceService.next</code> runs an <code>INSERT … ON CONFLICT … DO UPDATE SET last_value = last_value + 1 RETURNING</code> on <code>document_sequences</code> (primary key organization, location, type, year). The upsert row-locks the counter until the transaction ends, so parallel collections queue up. The code comes from <code>location_billing_settings.document_code</code>; when the settings row is first created the Platform tries to derive it from the location&#39;s code. Numbers are unique per organization (<code>uq_invoices_org_number</code>, <code>uq_payments_org_receipt</code>, <code>uq_refunds_org_number</code>). Applying advance issues no receipt number.</p>
+<p><strong>Rules and validations.</strong> Without a document code nothing can be numbered.</p>
+<p><strong>Who can do it.</strong> Runs inside collect, issue and refund.</p>
+<p><strong>Data read and written.</strong> <code>document_sequences</code>, <code>location_billing_settings</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_LOCATION_CODE_MISSING</code> &quot;Set a document code for this location in billing settings first&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/numbering/document-sequence.service.ts</code> · <code>DocumentSequenceService.next</code> · <code>web-app/src/features/billing/components/settings/BillingSettingsForm.tsx</code></p>
+<h3 id="ch34-billing-34-3-17-issue-an-invoice-at-payment-or-on-its-own">34.3.17 Issue an invoice (at payment or on its own)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates an invoice for unbilled charges. This happens automatically when payment is collected or advance applied, and by hand with <strong>Issue invoice (n)</strong> when a patient leaves without paying.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Usually nothing: collecting payment issues the invoice.</li>
+<li>For a patient who pays later: patient <strong>Billing</strong> tab → <strong>Open charges</strong>, tick unbilled charges, click <strong>Issue invoice (n)</strong>. A toast says &quot;Invoice … issued&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The invoice takes a number, fixes the tax rate of the location at that moment, gets a due date (issue date plus the location&#39;s due days, 7 by default) and posts a debit on the patient&#39;s statement.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /invoices</code> (<code>patientId</code>, 1–100 <code>chargeIds</code>, optional notes) → <code>InvoicesService.create</code> → <code>InvoiceIssuer.issue</code> inside a transaction: asserts charges are ACTIVE, unbilled, of one patient, priced; reads the tax rate with <code>locationTaxRate</code>; <code>applyInvoiceTax</code>; next INV number; inserts the invoice (<code>status ISSUED</code>, <code>revision 1</code>, <code>issue_date</code>, <code>due_date = today + due_days</code>, <code>tax_rate</code>); links charges and writes their tax shares; recomputes totals; ledger <code>INVOICE_ISSUED</code>; audit <code>ISSUED</code> with a snapshot.</p>
+<p><strong>Rules and validations.</strong> At least one charge; Needs price charges cannot be invoiced.</p>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code> for the manual issue; feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>invoices</code>, <code>charges</code>, <code>document_sequences</code>, <code>location_settings</code> (tax rate), <code>ledger_entries</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The invoice counts in Outstanding until paid.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_CHARGE_NEEDS_PRICING</code> &quot;… needs a price first&quot;; 409 <code>BILLING_CHARGE_NOT_OPEN</code> &quot;… cannot be invoiced&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/invoices/invoice-issuer.service.ts</code> · <code>InvoiceIssuer.issue</code> · <code>web-app/src/features/billing/components/patient-billing/OpenChargesPanel.tsx</code></p>
+<h3 id="ch34-billing-34-3-18-apply-exclusive-sales-tax">34.3.18 Apply exclusive sales tax</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds the location&#39;s sales tax on top of the invoice. Tax is <strong>exclusive</strong>: prices are before tax.</p>
+<p><strong>How the user does it.</strong> Set the rate in the location settings (&quot;Tax Rate (%)&quot; on the location&#39;s settings page, or &quot;Sales tax on invoices (%)&quot; in the setup wizard). Billing settings do not contain the rate.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Tax = rate × (sum of the active charges&#39; nets), rounded once. Because payments go to charges, the tax is shared out over the charges. The rate is frozen on the invoice; later edits use the frozen rate, not the current one.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>locationTaxRate</code> reads <code>location_settings.tax_rate</code> (no row → 0), normalised to basis points. <code>splitInvoiceTax</code> gives each charge the tax on its own net and puts the rounding difference on the largest charge; <code>basisPointsOf</code> uses BigInt half-up rounding. A charge&#39;s payable = net + tax. Tax is not revenue: commission and revenue reports use the pre-tax part (<code>preTaxPaisa</code>).</p>
+<p><strong>Rules and validations.</strong> Rate 0–100 with 2 decimals. A cancelled invoice keeps its frozen totals; its charges return to unbilled with tax 0.</p>
+<p><strong>Who can do it.</strong> Setting the rate: <code>admin.locations.manage</code> (location settings).</p>
+<p><strong>Data read and written.</strong> <code>location_settings</code>, <code>invoices.tax_rate</code>, <code>invoices.tax_amount</code>, <code>charges.tax_amount</code>.</p>
+<p><strong>Effects on other modules.</strong> The finance reports subtract tax collected from revenue (Chapter 36).</p>
+<p><strong>Error cases.</strong> None specific.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/tax/invoice-tax.ts</code> · <code>applyInvoiceTax</code>, <code>locationTaxRate</code> · <code>web-app/src/features/locations/LocationSettingsFeature.tsx</code></p>
+<h3 id="ch34-billing-34-3-19-browse-invoices-and-see-their-payment-status">34.3.19 Browse invoices and see their payment status</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists and shows invoices with a status that follows payments and due dates. The stored status is only <code>ISSUED</code> or <code>CANCELLED</code>; the <strong>payment status</strong> (Unpaid, Partially paid, Paid, Overdue) and the <strong>refund status</strong> are computed each time.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Invoices</strong>; use the status tabs, search, dates, list or cards.</li>
+<li>Click a row to open the detail page.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> An invoice is Paid when nothing is left to pay, Overdue when money is still owed after the due date, Partially paid when some was paid, otherwise Unpaid.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /invoices</code> (paging up to 100, <code>paymentStatus</code>, <code>patientId</code>, <code>from</code>, <code>to</code>, <code>search</code>), <code>GET /invoices/stats</code>, <code>GET /invoices/:invoiceId</code>, <code>GET /invoices/:invoiceId/revisions/:revision</code> (not used by the web app). <code>invoicePaymentStatus</code> and the SQL twin <code>paymentStatusSql</code> use the location&#39;s today. Row scope of <code>billing.invoice.view</code>: <code>location</code> / <code>org</code> show the active location&#39;s invoices; <code>own</code> shows invoices that carry one of the signed-in doctor&#39;s charges.</p>
+<p><strong>Rules and validations.</strong> Always the active location.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code> (scoped), feature <code>billing.invoices</code>. Default: Admin (<code>org</code>), Receptionist and Accountant (<code>location</code>).</p>
+<p><strong>Data read and written.</strong> Reads <code>invoices</code>, <code>charges</code>, <code>patients</code>, <code>payment_allocations</code>, <code>refunds</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Invoice not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/invoices/invoice-status.ts</code> · <code>invoicePaymentStatus</code>, <code>InvoiceQueries</code> · <code>web-app/src/features/billing/pages/InvoicesPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-20-edit-an-issued-invoice-revisions">34.3.20 Edit an issued invoice (revisions)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes an issued invoice: quantities, prices, discounts, void lines, add unbilled charges, add a new manual line. Each save raises the revision number; the invoice number never changes. Money that is no longer needed moves to the patient&#39;s advance.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the invoice detail page click <strong>Edit</strong>.</li>
+<li>Change lines, tick <strong>Void</strong> or add unbilled charges, type a <strong>Reason</strong>.</li>
+<li>Read the preview, then click <strong>Save changes</strong> (or <strong>Save &amp; refund</strong> to pay back freed money). A toast says &quot;Saved — revision n&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The preview really performs the edit in a transaction that is then thrown away, so the preview is exactly what saving will do. If two people edit at once, the second gets &quot;changed by someone else&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /invoices/:invoiceId/edit/preview</code> and <code>POST /invoices/:invoiceId/edit</code> (<code>expectedRevision</code>, 1–50 <code>operations</code>, <code>reason</code> 5–300) → <code>InvoicesService.runEdit</code>: lock the invoice, compare <code>revision</code> (optimistic check), lock its charges plus added ones, apply typed commands through <code>InvoiceEditHandlers</code> (<code>updateQuantity</code>, <code>setUnitPrice</code>, <code>setDiscount</code>, <code>removeDiscount</code>, <code>voidCharge</code>, <code>addCharges</code>, <code>addManualCharge</code>), re-spread tax at the snapshot rate, release any allocation above a charge&#39;s new payable (newest allocation first, reason <code>INVOICE_EDIT_RELEASE</code>), bump <code>revision</code>, recompute totals, adjust commission, post ledger <code>INVOICE_ADJUSTED</code> with the difference, audit <code>EDITED</code> with full before and after snapshots. Older revisions are printed from these audit snapshots.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only ISSUED invoices.</li>
+<li><code>setUnitPrice</code> follows the price policy; <code>voidCharge</code> needs <code>billing.invoice.void</code>; discount operations follow the discount rules.</li>
+<li>Added charges must be unbilled, of the same patient and priced.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.invoice.edit</code> (+ <code>billing.invoice.void</code> to void lines, + <code>billing.price.override</code> for catalog prices), feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>invoices</code>, <code>charges</code>, <code>payment_allocations</code>, <code>payments</code>, <code>ledger_entries</code>, <code>commission_entries</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Commission adjusts to the new amounts.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_INVOICE_REVISION_CONFLICT</code> &quot;This invoice was changed by someone else. Reload and try again.&quot;; 409 <code>BILLING_INVOICE_CANCELLED</code> &quot;This invoice is cancelled and read-only&quot;; 404 &quot;Charge is not on this invoice&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/invoices/invoices.service.ts</code> · <code>InvoicesService.runEdit</code>, <code>InvoiceEditHandlers</code> · <code>web-app/src/features/billing/components/invoices/EditInvoiceSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-21-cancel-an-invoice">34.3.21 Cancel an invoice</h3>
+<p><strong>Status:</strong> [Implemented] — an invoice with payments must first be unapplied, which only the API can do.</p>
+<p><strong>What it does.</strong> Cancels an unpaid invoice. Its charges go back to &quot;not invoiced&quot;; the number stays used.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the invoice detail page click <strong>Cancel</strong> (shown only when nothing is paid).</li>
+<li>In &quot;Cancel … ?&quot; type a <strong>Reason</strong> and click <strong>Cancel invoice</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The invoice keeps its frozen totals for the record and is printed with a CANCELLED watermark. A credit is posted on the patient&#39;s statement.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /invoices/:invoiceId/cancel</code> with <code>reason</code> → <code>InvoicesService.cancel</code>: lock the invoice and its charges, refuse if any allocation or <code>paid_amount</code> exists, set <code>CANCELLED</code> with <code>cancelled_at/by</code> and <code>cancel_reason</code>, set active charges&#39; <code>invoice_id</code> to null and tax to 0, ledger <code>INVOICE_CANCELLED</code> (minus the total), audit <code>CANCELLED</code>.</p>
+<p><strong>Rules and validations.</strong> ISSUED and nothing paid. Final: a cancelled invoice cannot be reopened.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.void</code> (high risk), feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>invoices</code>, <code>charges</code>, <code>ledger_entries</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The charges reappear in Ready to bill.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_INVOICE_HAS_PAYMENTS</code> &quot;Unapply its payments before cancelling this invoice&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/invoices/invoices.service.ts</code> · <code>InvoicesService.cancel</code> · <code>web-app/src/features/billing/pages/InvoiceDetailPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-22-refund-money-from-advance-or-from-an-invoice">34.3.22 Refund money (from advance or from an invoice)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Pays money back to a patient. A refund always comes out of advance. An <strong>advance refund</strong> returns unused money; an <strong>invoice refund</strong> returns money released from an invoice, optionally together with the edit that released it, in one step.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Advance: patient <strong>Billing</strong> tab → <strong>Refund advance</strong>. Invoice: invoice detail → <strong>Refund</strong>, or <strong>Save &amp; refund</strong> in the Edit sheet.</li>
+<li>Fill <strong>Amount (Rs)</strong>, <strong>Paid out from</strong>, <strong>Reference number</strong> if asked, and a <strong>Reason</strong>.</li>
+<li>Click <strong>Refund…</strong>, confirm &quot;Return … via … to …?&quot;. A toast says &quot;Refund … recorded&quot;; print the voucher for the patient to sign.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform decides which previous payments the refund comes from (its <strong>refund sources</strong>): for an invoice refund, first the payments released from that invoice (latest first), then any other advance, newest first.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /refunds</code> (<code>patientId</code>) → <code>RefundsService.createAdvanceRefund</code>; <code>POST /invoices/:invoiceId/refund</code> with optional <code>edit</code> and <code>refund</code> → <code>createInvoiceRefund</code>, which runs <code>InvoicesService.runEdit</code> and the refund in the same transaction. <code>runRefund</code>: account check, invoice refundable check (<code>released_amount − refunded_amount</code>), lock the patient&#39;s advance payments, check available advance, pick sources, take the next RFD number, insert <code>refunds</code> and <code>refund_sources</code>, recompute payment and invoice totals, ledger <code>REFUND</code> (a debit, because the clinic now holds less of the patient&#39;s money), audit <code>REFUNDED</code> on the refund and, for invoice refunds, on the invoice. Idempotent by <code>clientRequestId</code>. <code>GET /refunds</code> and <code>GET /refunds/:refundId</code> exist but the web app does not call them.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Amount at least 0.01, at most the advance; for an invoice refund, at most the invoice&#39;s refundable amount.</li>
+<li>Reason 5–300 characters; reference when the account requires one.</li>
+<li>Refunds cannot be undone.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.refund.issue</code> (high risk), feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>refunds</code>, <code>refund_sources</code>, <code>payments</code>, <code>invoices</code>, <code>document_sequences</code>, <code>ledger_entries</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Payments page and cash close subtract refunds per account.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_REFUND_EXCEEDS_ADVANCE</code> &quot;The patient&#39;s advance is only Rs …&quot;; 422 <code>BILLING_REFUND_EXCEEDS_INVOICE_REFUNDABLE</code> &quot;Only Rs … can be refunded from this invoice&quot;; 422 <code>BILLING_REFERENCE_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/refunds/refunds.service.ts</code> · <code>RefundsService.runRefund</code>, <code>sourceOrder</code> · <code>web-app/src/features/billing/components/refunds/RefundSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-23-see-a-patient-39-s-billing-summary-open-charges-statement">34.3.23 See a patient&#39;s billing: summary, open charges, statement</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows one patient&#39;s money position: not invoiced, outstanding, overdue and advance; the open charges; and a statement (a running ledger of invoices, adjustments, cancellations, payments and refunds).</p>
+<p><strong>How the user does it.</strong> Open the patient → <strong>Billing</strong> tab; switch sub-tabs; on <strong>Statement</strong> choose a range and <strong>Print statement</strong>.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The statement comes from an append-only patient ledger: an invoice adds a debit, a payment a credit. Its balance equals outstanding minus advance.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:patientId/billing/summary</code>, <code>/open-charges</code>, <code>/statement?from&amp;to</code> → <code>PatientBillingService</code>. The summary query sums unbilled nets, issued balances, overdue balances (due date before the location&#39;s today), payment advance and the ledger. The statement reads <code>ledger_entries</code> with an opening balance before <code>from</code>. <code>LedgerService.post</code> only inserts rows (debit for positive, credit for negative, zero skipped).</p>
+<p><strong>Rules and validations.</strong> Active location only.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>ledger_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> The Billing tab appears on the patient record (Chapter 28).</p>
+<p><strong>Error cases.</strong> 404 when the patient is not in the organization.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/patient-billing/patient-billing.queries.ts</code> · <code>PatientBillingQueries.summary</code>, <code>LedgerService.post</code> · <code>web-app/src/features/billing/components/patient-billing/PatientBillingTab.tsx</code></p>
+<h3 id="ch34-billing-34-3-24-show-dues-at-check-in">34.3.24 Show dues at check-in</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows a red &quot;Rs … due&quot; badge (with a dot when overdue) or a green &quot;Advance Rs …&quot; badge on queue rows and on the patient header, so reception can ask for old dues.</p>
+<p><strong>How the user does it.</strong> Keep <strong>Show dues at check-in</strong> on in billing settings (default on). The queue gains a <strong>Billing</strong> column with the badge and a <strong>Bill</strong> button on completed entries.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The screen asks the server for the dues of the patients it shows.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/outstanding?patientIds=</code> (at most 100 ids) → <code>PatientBillingService.outstanding</code>. The setting <code>show_outstanding_at_check_in</code> is checked only by the web app; the endpoint itself answers regardless.</p>
+<p><strong>Rules and validations.</strong> Queue column needs <code>billing.desk.use</code>; patient header badge needs <code>billing.invoice.view</code>.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code>, feature <code>billing.invoices</code>. Default: Admin, Receptionist, Accountant. Doctors never see it.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>ledger_entries</code>, <code>location_billing_settings</code>.</p>
+<p><strong>Effects on other modules.</strong> Queue board (Chapter 30), patient header (Chapter 28).</p>
+<p><strong>Error cases.</strong> 400 for more than 100 ids.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/patient-billing/billing-reports.controller.ts</code> · <code>PatientBillingService.outstanding</code> · <code>web-app/src/features/billing/components/queue/QueueBillingCell.tsx</code></p>
+<h3 id="ch34-billing-34-3-25-see-the-day-39-s-collection">34.3.25 See the day&#39;s collection</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows, for one clinic day, receipts and refunds per payment account and the net in hand, plus the list of receipts.</p>
+<p><strong>How the user does it.</strong> Open <strong>Payments</strong>, choose a day and optionally an account.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Payments by their payment date, refunds by their refund date, both in the location&#39;s calendar.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /payments/daily-collection?date</code> (<code>billing.desk.use</code>) and <code>GET /payments?from&amp;to&amp;paymentAccountId&amp;patientId&amp;method</code> (<code>billing.invoice.view</code>, paged). <code>GET /payments/:paymentId</code> exists but is unused.</p>
+<p><strong>Rules and validations.</strong> The day picker does not allow future days.</p>
+<p><strong>Who can do it.</strong> Daily collection: <code>billing.desk.use</code>; list: <code>billing.invoice.view</code>. Default: Admin, Receptionist, Accountant. The sidebar item checks <code>billing.payment.collect</code>, the route checks <code>billing.invoice.view</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>payments</code>, <code>refunds</code>, <code>payment_accounts</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/payments.queries.ts</code> · <code>PaymentQueries.dailyCollection</code> · <code>web-app/src/features/billing/pages/PaymentsPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-26-close-the-counter-cash-close">34.3.26 Close the counter (cash close)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Ends a cash period at the location: for each payment account it computes the expected money (payments minus refunds since the last close), takes the counted amount for physically counted accounts, records the difference (variance) and keeps an immutable record with a printable slip. Closing never blocks taking payments.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Payments</strong> click <strong>Close counter</strong>.</li>
+<li>Enter <strong>Counted (Rs)</strong> for each counted account; add a <strong>Note</strong> if there is a difference.</li>
+<li>Click <strong>Close counter (Rs … expected)</strong>, then <strong>Print slip</strong>. Past closes appear under <strong>Counter closes</strong>, with a red &quot;Flagged&quot; badge when the difference is above the alert amount.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each close starts where the previous one ended, so no payment is counted twice and none is missed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/cash-close/preview</code>, <code>POST /billing/cash-close</code> (<code>periodEnd</code>, <code>lines</code>, <code>note</code>), <code>GET /billing/cash-close?from&amp;to</code> (latest 200), <code>GET /billing/cash-close/:id</code> (unused by the web app) → <code>CashCloseService</code>. Create takes a PostgreSQL advisory transaction lock per location, rejects a <code>periodEnd</code> in the future or not after the last close, sums payments by <code>received_at</code> and refunds by <code>refunded_at</code> in (start, end] per account (<code>calculateCashClose</code>, paisa math), requires counts and a note, inserts <code>cash_closes</code> and <code>cash_close_lines</code> (account name copied) and audits <code>CLOSED</code> with the variance. The flag compares the absolute variance with <code>cash_variance_alert_amount</code>.</p>
+<p><strong>Rules and validations.</strong> Counted amount required for accounts with &quot;Count physically at cash close&quot;; note required when any variance exists; closes cannot be edited or deleted.</p>
+<p><strong>Who can do it.</strong> <code>billing.cash_close</code>, feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>payments</code>, <code>refunds</code>, <code>payment_accounts</code>, <code>location_billing_settings</code>; writes <code>cash_closes</code>, <code>cash_close_lines</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>BILLING_CASH_CLOSE_COUNT_REQUIRED</code> &quot;Enter the counted amount for …&quot;; 422 <code>BILLING_CASH_CLOSE_NOTE_REQUIRED</code> &quot;Explain the difference in a note&quot;; 422 <code>BILLING_CASH_CLOSE_PERIOD_INVALID</code> &quot;This counter was already closed — open a fresh preview&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/cash-close/cash-close.service.ts</code> · <code>CashCloseService.create</code>, <code>calculateCashClose</code> · <code>web-app/src/features/billing/components/cash-close/CashCloseSheet.tsx</code></p>
+<h3 id="ch34-billing-34-3-27-print-invoices-receipts-refund-vouchers-statements-and-cash-close-slips">34.3.27 Print invoices, receipts, refund vouchers, statements and cash-close slips</h3>
+<p><strong>Status:</strong> [Implemented] — Urdu is supported for typed text only; printed labels and amount in words are English.</p>
+<p><strong>What it does.</strong> Prints the five billing documents in A4 or 80 mm thermal format from the browser.</p>
+<p><strong>How the user does it.</strong> Click <strong>Print</strong> (invoice and receipt offer <strong>A4</strong> or <strong>Thermal 80 mm</strong>), <strong>Print receipt</strong>, <strong>Print voucher</strong>, <strong>Print statement</strong> or <strong>Print slip</strong>; the browser&#39;s print dialog opens. The file name defaults to the document number.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The server sends a frozen set of numbers; the browser only lays them out. A cancelled invoice prints as it was when cancelled, with a CANCELLED watermark; an older revision prints from its saved snapshot.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /print/invoices/:invoiceId?revision</code>, <code>/print/payments/:paymentId</code>, <code>/print/refunds/:refundId</code>, <code>/print/patients/:patientId/statement?from&amp;to</code>, <code>/print/cash-close/:id</code> → <code>PrintDataService</code>. Payloads include the location header, logo (if <code>show_logo</code>), the default format from settings, amount in words (English thousand/million wording, <code>amount-in-words.ts</code>) and, when <code>show_previous_balance</code> is on, the patient&#39;s other dues. The web app renders React templates into a print root with an <code>@page</code> rule (A4 with 12 mm margins, or 80 mm width), calls <code>window.print()</code> and cleans up afterwards. Typed text (names, notes, reasons, footer) is marked <code>dir=&quot;auto&quot;</code> and the font stack includes an Arabic-script font, so Urdu text prints right to left. Refund vouchers and statements always print A4.</p>
+<p><strong>Rules and validations.</strong> No server PDF.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code> (cash-close slip: <code>billing.cash_close</code>), feature <code>billing.invoices</code>.</p>
+<p><strong>Data read and written.</strong> Reads the billing tables and <code>location_billing_settings</code>, <code>billing_audit_logs</code> (revision snapshots).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 for unknown documents.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/print/print-data.service.ts</code> · <code>PrintDataService</code> · <code>web-app/src/features/billing/components/print/templates.tsx</code></p>
+<h3 id="ch34-billing-34-3-28-configure-billing-settings">34.3.28 Configure billing settings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sets, per location: the <strong>Document code</strong> (2–6 capital letters or digits), <strong>Invoice due after (days)</strong> (0–365, default 7), invoice and receipt print formats (A4 default), the <strong>Consultation fee service</strong> used for automatic charges, the <strong>Default payment account</strong>, the cash-variance alert amount, the printed footer note, and the switches <strong>Print logo</strong>, <strong>Print previous balance</strong> and <strong>Show dues at check-in</strong> (all on by default).</p>
+<p><strong>How the user does it.</strong> Settings → <strong>Billing</strong> → <strong>Payments and printing</strong>, change fields, click <strong>Save settings</strong> (&quot;Billing settings saved&quot;).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The document code locks once any invoice, receipt or refund has been numbered at the location.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/settings</code> (<code>billing.desk.use</code>), <code>PATCH /billing/settings</code> (<code>admin.settings.manage</code>) → <code>BillingSettingsService</code>; one row per location in <code>location_billing_settings</code>, created lazily by <code>getOrCreate</code>. The lock checks for any <code>document_sequences</code> row of the location. Updates are audited (<code>SETTINGS</code>).</p>
+<p><strong>Rules and validations.</strong> Consultation fee service must be of kind Consultation; default account must be active; footer up to 300 characters.</p>
+<p><strong>Who can do it.</strong> <code>admin.settings.manage</code>, feature <code>billing.invoices</code>. Default: Admin. The page also requires the feature.</p>
+<p><strong>Data read and written.</strong> <code>location_billing_settings</code>, <code>payment_accounts</code>, <code>services</code>, <code>document_sequences</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Automatic charges, numbering, due dates, printing and queue badges.</p>
+<p><strong>Error cases.</strong> 409 <code>BILLING_LOCATION_CODE_LOCKED</code> &quot;The document code cannot change after the first invoice, receipt or refund&quot;; 422 <code>BILLING_SERVICE_KIND_INVALID</code> &quot;Choose a consultation service&quot;; 422 <code>BILLING_PAYMENT_ACCOUNT_INVALID</code> &quot;The default account must be active&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/settings/billing-settings.service.ts</code> · <code>BillingSettingsService</code> · <code>web-app/src/features/billing/components/settings/BillingSettingsForm.tsx</code></p>
+<h3 id="ch34-billing-34-3-29-record-expenses">34.3.29 Record expenses</h3>
+<p><strong>Status:</strong> [Implemented] — editing exists in the API only; delete has no confirmation dialog.</p>
+<p><strong>What it does.</strong> Records clinic spending (rent, utilities, supplies and so on) per location, with a monthly summary by category. An expense can be linked to a lab order (for example a courier cost).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Expenses</strong>, click <strong>Add Expense</strong>.</li>
+<li>In &quot;Record Expense&quot; fill <strong>Category</strong>, <strong>Amount</strong>, <strong>Description</strong>, <strong>Date</strong>, <strong>Payment Method</strong>, optional <strong>Reference</strong> and <strong>Notes</strong>; click <strong>Save Expense</strong>.</li>
+<li>Filter by category; delete with the trash icon.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Expenses are separate from patient billing; they feed the profit figures of the finance reports.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /expenses</code>, <code>GET /expenses</code> (category, <code>dateFrom</code>, <code>dateTo</code>, paging), <code>GET /expenses/summary?month&amp;year</code>, <code>PATCH /expenses/:id</code> (no screen), <code>DELETE /expenses/:id</code> → <code>ExpensesService</code> (repository calls, no billing audit). Amounts are <code>decimal(10,2)</code>. Delete is a hard delete. Update and delete look up the row by organization, not location.</p>
+<p><strong>Rules and validations.</strong> Description up to 300 characters; amount 0 or more; payment methods Cash, Card, Bank transfer, Online, Insurance, Cheque, Credit package (a separate list from payment accounts).</p>
+<p><strong>Who can do it.</strong> <code>expenses.view</code> (read), <code>expenses.manage</code> (write; implies view). Feature <code>billing.expenses</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> <code>expenses</code>, <code>lab_orders</code> (lookup).</p>
+<p><strong>Effects on other modules.</strong> Finance overview and profit and loss (Chapter 36); lab case costs (Chapter 42).</p>
+<p><strong>Error cases.</strong> 404 &quot;Expense not found&quot;, &quot;Lab order not found&quot;; the screen shows &quot;Failed to record expense&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/expenses.service.ts</code> · <code>ExpensesService</code> · <code>web-app/src/features/billing/pages/ExpensesPage.tsx</code></p>
+<h3 id="ch34-billing-34-3-30-sell-credit-packages-and-track-patient-credits">34.3.30 Sell credit packages and track patient credits</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen uses it (web hooks exist but no component calls them).</p>
+<p><strong>What it does.</strong> Lets a clinic define prepaid packages (name, credits, price, validity days), record a package sold to a patient and draw credit from it. A nightly job marks expired credits.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A sold credit starts ACTIVE, becomes EXHAUSTED when used up, or EXPIRED after its expiry date. Selling a package records no payment, no receipt and no charge, and using credit does not pay a charge.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST/GET/PATCH/DELETE /credit-packages</code> (DELETE deactivates) → <code>CreditPackagesService</code>; <code>POST/GET /patients/:patientId/credits</code> and <code>POST /patients/:patientId/credits/:creditId/use</code> → <code>PatientCreditsService</code>. <code>checkExpiredCredits</code> runs <code>@Cron(&#39;0 1 * * *&#39;)</code>, every day at 01:00 server time, and compares <code>expiry_date</code> with the server&#39;s date (not the location&#39;s). No transactions, no locks, no billing audit.</p>
+<p><strong>Rules and validations.</strong> Use amount above 0 and at most the remaining amount; credit must be ACTIVE and not past expiry.</p>
+<p><strong>Who can do it.</strong> Packages: <code>admin.settings.manage</code> (write), <code>billing.desk.use</code> (read); credits: <code>billing.payment.collect</code> (sell, use), <code>billing.desk.use</code> (read). Feature <code>billing.credit_packages</code>.</p>
+<p><strong>Data read and written.</strong> <code>credit_packages</code>, <code>patient_credits</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;This credit package is not active&quot;, &quot;This credit package has expired&quot;, &quot;Amount exceeds the remaining balance (…)&quot;; 404 &quot;Credit package not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/patient-credits.service.ts</code> · <code>PatientCreditsService.checkExpiredCredits</code> · <code>web-app/src/features/billing/hooks/useCreditPackages.ts</code> (unused)</p>
+<h3 id="ch34-billing-34-3-31-review-billing-activity-the-billing-audit-log">34.3.31 Review billing activity (the billing audit log)</h3>
+<p><strong>Status:</strong> [Implemented] — the API&#39;s filters by user, document type and action are not offered on screen.</p>
+<p><strong>What it does.</strong> Shows every billing change with who, when and why, and per-user daily totals of edits, cancellations, refunds and discounts.</p>
+<p><strong>How the user does it.</strong> Open <strong>Billing activity</strong>, choose the period.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every billing write adds an audit row in the same transaction; if the audit row fails, the change fails too.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>BillingAuditService.log/logMany</code> insert into <code>billing_audit_logs</code> (entity type, entity id, action, before and after as JSON, amount, reason, actor and role). Organization-level entities (services, discount types) have no location. <code>GET /billing/activity?from&amp;to&amp;actorId&amp;entityType&amp;action&amp;page&amp;limit</code> → <code>BillingActivityService.list</code>: the feed for the location (plus organization-level rows) and day totals by the location&#39;s timezone. Commission fields are removed from charge snapshots.</p>
+<p><strong>Rules and validations.</strong> Default period is the location&#39;s today.</p>
+<p><strong>Who can do it.</strong> <code>billing.activity.view</code>, feature <code>billing.invoices</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The general audit log (Chapter 60) is separate.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/audit/billing-audit.service.ts</code> · <code>BillingAuditService</code>, <code>BillingActivityService</code> · <code>web-app/src/features/billing/pages/BillingReportsPages.tsx</code></p>
+<h3 id="ch34-billing-34-3-32-run-the-nightly-money-invariant-check">34.3.32 Run the nightly money-invariant check</h3>
+<p><strong>Status:</strong> [Implemented] — backend job by design; it only logs.</p>
+<p><strong>What it does.</strong> Every night, re-checks the money rules for every patient with charges or payments and writes any violation to the server log. It repairs nothing.</p>
+<p><strong>How the user does it.</strong> Nothing; operations staff read the logs.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It checks that cached totals match the detailed rows and that no money is counted twice.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>BillingInvariantJob.run</code>, <code>@Cron(&#39;30 2 * * *&#39;)</code>, every day at 02:30 server time, in the process that runs scheduled jobs. For each (organization, location, patient) it calls <code>BillingInvariantChecker.checkPatient</code> with raw SQL (deliberately not sharing code with <code>BillingTotalsService</code>). The invariants:</p>
+<ul>
+<li><strong>I1</strong> a charge&#39;s allocated amount equals the sum of its allocations and lies between 0 and net + tax (0 for VOID);</li>
+<li><strong>I2</strong> a payment&#39;s cached allocated and refunded amounts match the rows, and together do not exceed the payment;</li>
+<li><strong>I3</strong> an issued invoice&#39;s subtotal, discount, tax (rate × net), total, paid and balance match its active charges;</li>
+<li><strong>I4</strong> every allocation points to a charge on an ISSUED invoice and to that same invoice, and no net allocation is negative;</li>
+<li><strong>I5</strong> the patient&#39;s ledger balance equals outstanding minus advance;</li>
+<li><strong>I6</strong> invoice, receipt and refund numbers of the location are unique, consecutive from 1 per year, and the counter equals the highest;</li>
+<li><strong>I7</strong> each refund equals the sum of its refund sources;</li>
+<li><strong>I8</strong> allocations, refunds and ledger rows agree with their charge, payment and invoice on organization, location and patient;</li>
+<li><strong>I9</strong> an invoice&#39;s refunded amount is between 0 and its released amount and matches the rows;</li>
+<li><strong>I10</strong> each charge&#39;s commission entries add up to its commission target (Chapter 35).</li>
+</ul>
+<p><strong>Rules and validations.</strong> Read-only; one failing patient does not stop the run.</p>
+<p><strong>Who can do it.</strong> System job.</p>
+<p><strong>Data read and written.</strong> Reads all billing tables; writes logs only.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Log lines &quot;[I3] org … loc … patient …: …&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/invariants/billing-invariant-checker.ts</code> · <code>BillingInvariantJob</code>, <code>BillingInvariantChecker</code> · none</p>
+<h3 id="ch34-billing-34-3-33-doctor-revenue-and-financial-summary">34.3.33 Doctor revenue and financial summary</h3>
+<p><strong>Status:</strong> [Implemented] — the daily financial summary has a hook but no screen; <code>/financial-summary</code> redirects to the dashboard.</p>
+<p><strong>What it does.</strong> <strong>Doctor revenue</strong> lists per doctor what was billed (by invoice date), discounts and what was collected (by payment date, releases subtracted). The <strong>financial summary</strong> endpoints give daily and monthly collection, refunds, tax-free revenue, expenses and a trend; the dashboard uses the monthly and trend ones. Chapter 36 covers dashboards and reports.</p>
+<p><strong>How the user does it.</strong> Open <strong>Doctor revenue</strong> in the Reports group; choose a period.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Revenue excludes sales tax.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/reports/doctor-revenue?from&amp;to</code> → <code>BillingReportsService.doctorRevenue</code>; <code>GET /financial-summary/daily|monthly|trend</code> → <code>FinancialSummaryService</code> (class-level <code>@RequireFeature(&#39;billing.financial_summary&#39;)</code>).</p>
+<p><strong>Rules and validations.</strong> Active location.</p>
+<p><strong>Who can do it.</strong> <code>reports.financial.view</code>, features <code>reports.financial</code> and, for the summary, <code>billing.financial_summary</code>. Default: Admin, Accountant (<code>location</code>).</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>invoices</code>, <code>payment_allocations</code>, <code>payments</code>, <code>refunds</code>, <code>expenses</code>.</p>
+<p><strong>Effects on other modules.</strong> Dashboard (Chapter 36).</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> or feature disabled.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/reports/billing-reports.service.ts</code> · <code>BillingReportsService.doctorRevenue</code>, <code>FinancialSummaryService</code> · <code>web-app/src/features/billing/pages/BillingReportsPages.tsx</code></p>
+<h3 id="ch34-billing-34-3-34-snapshot-the-doctor-39-s-commission-on-a-charge">34.3.34 Snapshot the doctor&#39;s commission on a charge</h3>
+<p><strong>Status:</strong> [Implemented] — cross-reference only; Chapter 35 covers compensation.</p>
+<p><strong>What it does.</strong> When a charge is created from a visit (or its doctor is changed while unbilled), it stores the performing assignment, the compensation plan and the commission rate (basis points) or fixed amount in force on the charge date. Commission is earned when money is allocated. These fields never appear on invoices, prints or audit snapshots.</p>
+<p><strong>How the user does it.</strong> Nothing at the desk.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Later changes to a doctor&#39;s plan do not change old charges.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CommissionService.snapshot</code> in <code>syncForEncounter</code> and <code>ChargesService.update</code>; columns <code>performing_assignment_id</code>, <code>commission_plan_id</code>, <code>commission_rate_bps</code> (0–10 000, checked), <code>commission_fixed_paisa</code> (bigint paisa).</p>
+<p><strong>Rules and validations.</strong> Manual charges have no snapshot.</p>
+<p><strong>Who can do it.</strong> System. Feature <code>billing.commissions</code>.</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, compensation tables.</p>
+<p><strong>Effects on other modules.</strong> Commissions (Chapter 35).</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission.service.ts</code> · <code>CommissionService.snapshot</code> · none</p>
+<h2 id="ch34-billing-34-4-entities-and-data-model">34.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-erd-charges.png" alt="Figure 34.15 — Catalog, charges and invoices"></p>
+<p><em>Figure 34.15 — The pricing, charge and invoice tables.</em></p>
+<p>The diagram shows ten tables. <code>services</code> (id, organization_id, name unique per org, kind, default_price) is &quot;overridden by&quot; <code>service_prices</code> (id, service_id, location_id, doctor_id where empty means all doctors, price); <code>employees</code> links to <code>service_prices</code> as &quot;doctor price&quot;. <code>charges</code> (id, patient_id, invoice_id, source, source_id, net_amount, tax_amount, status) is linked from <code>patients</code> (&quot;is billed&quot;), <code>employees</code> (&quot;doctor of&quot;) and <code>invoices</code> (&quot;groups&quot;). Dotted lines with &quot;no FK&quot; connect <code>services</code> to <code>charges</code> (service_id) and <code>discount_types</code> (id, name, kind, value, reception_editable) to <code>charges</code> (snapshot). <code>patients</code> &quot;owes&quot; <code>invoices</code> (id, patient_id, invoice_number, status, revision, tax_rate, due_date). <code>document_sequences</code> (location_id, doc_type, year as primary key, last_value) is linked to <code>invoices</code> with a dotted &quot;numbers&quot; line. <code>location_billing_settings</code> (location_id, document_code, due_days, default_payment_account_id) has a dotted &quot;default account&quot; line to <code>payment_accounts</code> (id, location_id, method, counted_in_cash_close).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-erd-money.png" alt="Figure 34.16 — Payments, refunds, ledger and cash close"></p>
+<p><em>Figure 34.16 — The money-movement tables.</em></p>
+<p>This diagram shows <code>payments</code> (id, payment_account_id, receipt_number, amount, allocated_amount, refunded_amount) linked from <code>patients</code> (&quot;pays&quot;) and <code>payment_accounts</code> (&quot;received into&quot;). <code>payment_allocations</code> (id, payment_id, charge_id, amount signed and never zero, reason) hangs from <code>payments</code> (&quot;applied as&quot;) and <code>charges</code> (&quot;settled by&quot;), with a dotted &quot;invoice_id, no FK&quot; line to <code>invoices</code>. <code>refunds</code> (id, refund_number, amount, invoice_id, empty for an advance refund) comes from <code>patients</code> and has a dotted line to <code>invoices</code>; <code>refund_sources</code> (id, refund_id, payment_id, amount) links each refund to the payments it drew from. <code>ledger_entries</code> (id, patient_id, type, debit, credit) is linked to <code>patients</code> by a dotted line. <code>cash_closes</code> (id, period_start, period_end, total_variance) owns <code>cash_close_lines</code> (id, cash_close_id, expected, counted), which reference <code>payment_accounts</code> by a dotted, no-FK line.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each service belongs to one organization; a service with price overrides cannot be deleted (<code>service_prices.service_id</code> ON DELETE RESTRICT). Overrides belong to one location and optionally one doctor (employee, RESTRICT).</li>
+<li>Each charge belongs to exactly one patient (RESTRICT), optionally one doctor (RESTRICT) and at most one invoice (RESTRICT). <code>invoice_id</code> empty means unbilled. <code>service_id</code>, <code>discount_type_id</code>, <code>source_id</code>, <code>encounter_id</code> and <code>appointment_id</code> are logical links without foreign keys; the charge keeps copies of description, price, kind and discount. One ACTIVE charge per (organization, source, source id) (<code>uq_charges_source</code>).</li>
+<li>Each invoice belongs to one patient (RESTRICT); its number is unique per organization.</li>
+<li>Each payment belongs to one patient and one payment account (RESTRICT); receipt number and <code>client_request_id</code> are unique per organization. The account name and method are copied onto the payment.</li>
+<li>Each allocation belongs to one payment and one charge (RESTRICT) and copies the charge&#39;s invoice id. Allocations are append-only: corrections are negative rows (<code>amount &lt;&gt; 0</code> check).</li>
+<li>Each refund belongs to one patient; <code>invoice_id</code> (no FK) is set only for invoice refunds. Each refund source belongs to one refund and one payment.</li>
+<li><code>ledger_entries</code> is the append-only patient statement (types INVOICE_ISSUED, INVOICE_ADJUSTED, INVOICE_CANCELLED, PAYMENT, REFUND); it has no foreign keys.</li>
+<li>Each cash close belongs to one location and has one line per payment account, copying the account name.</li>
+<li><code>document_sequences</code> has one row per organization, location, document type and year.</li>
+<li><code>location_billing_settings</code> has one row per location (the location id is the key). <code>billing_audit_logs</code> stores every change; <code>expenses</code>, <code>credit_packages</code> and <code>patient_credits</code> are separate tables.</li>
+</ul>
+<p>Money storage: billing amounts are <code>numeric(12,2)</code> rupee columns, read through a transformer that rounds via paisa; all arithmetic is integer paisa; commission amounts are <code>bigint</code> paisa. Expenses, credit packages and patient credits use <code>decimal(10,2)</code>. The general ledger journals in <code>billing/ledger/journal</code> are used by the lab finance modules, not by patient billing.</p>
+<h2 id="ch34-billing-34-5-status-lifecycles">34.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-charge-status.png" alt="Figure 34.17 — Charge lifecycle"></p>
+<p><em>Figure 34.17 — A charge: stored status ACTIVE or VOID, and whether it is on an invoice.</em></p>
+<p>The diagram has three boxes. A charge enters &quot;ACTIVE, unbilled, invoice_id empty&quot; when a consultation is completed, through <code>POST</code> charges, or from plan items. A self-loop on it says &quot;PATCH charge, discount, needs price set&quot;. An arrow labelled &quot;POST payments, POST advance apply, POST invoices&quot; leads to &quot;ACTIVE, billed on an ISSUED invoice&quot;, which has its own loop &quot;POST invoices edit, payments allocated&quot;. An arrow &quot;POST invoices cancel&quot; goes back to unbilled. &quot;POST charges void, treatment removed by doctor&quot; leads from unbilled to &quot;VOID&quot;, and &quot;invoice edit voidCharge&quot; leads from billed to &quot;VOID&quot;, which ends.</p>
+<p>The stored <code>status</code> has only two values, <code>ACTIVE</code> and <code>VOID</code>. VOID is final. Whether a charge is billed is not a status but the presence of <code>invoice_id</code>. Unbilled charges are changed directly; billed charges only through an invoice edit. A charge is &quot;paid&quot; when its allocated amount reaches net + tax; this too is computed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-invoice-status.png" alt="Figure 34.18 — Invoice stored status"></p>
+<p><em>Figure 34.18 — The stored invoice status.</em></p>
+<p>An invoice is born <code>ISSUED</code> by collecting a payment, applying advance or <code>POST /invoices</code>. &quot;POST edit&quot; keeps it ISSUED and raises the revision by one. &quot;POST cancel, nothing paid&quot; makes it <code>CANCELLED</code>, which is final. There is no draft state.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-payment-status.png" alt="Figure 34.19 — Invoice payment status"></p>
+<p><em>Figure 34.19 — The computed payment status of an issued invoice.</em></p>
+<p>The diagram starts at UNPAID (&quot;issued, nothing paid&quot;). UNPAID goes to PARTIALLY_PAID when part of the balance is paid, to PAID when the balance reaches 0, and to OVERDUE when the due date passes. PARTIALLY_PAID goes to PAID or OVERDUE the same way. OVERDUE goes to PAID when the balance reaches 0. PAID goes back to PARTIALLY_PAID when an edit raises the total or an unapply happens before the due date, and to OVERDUE when that happens after the due date. The status is never stored; it is computed on each read from <code>balance_due</code>, <code>paid_amount</code>, <code>due_date</code> and the location&#39;s today. A cancelled invoice has no payment status. The due date never changes after issue.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-refund-status.png" alt="Figure 34.20 — Invoice refund status"></p>
+<p><em>Figure 34.20 — The computed refund status of an invoice.</em></p>
+<p>An invoice starts at NONE. &quot;POST invoices refund, part of released money&quot; moves it to PARTIALLY_REFUNDED, which loops on &quot;another refund&quot;. It reaches FULLY_REFUNDED when all money released from the invoice has been refunded and nothing is left paid on it. Refunds themselves have no status column; a refund row is final once written.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch34-credit-status.png" alt="Figure 34.21 — Patient credit status"></p>
+<p><em>Figure 34.21 — The lifecycle of a sold patient credit.</em></p>
+<p>A credit starts ACTIVE through <code>POST</code> patient credits. &quot;POST use, balance left&quot; keeps it ACTIVE; &quot;POST use, remaining reaches 0&quot; makes it EXHAUSTED; &quot;nightly job at 01:00, or use after expiry date&quot; makes it EXPIRED. Both end states are final.</p>
+<p>Other objects have no lifecycle: payments, allocations, refunds, ledger entries and cash closes are written once and never change state (allocations are corrected by adding negative rows).</p>
+<h2 id="ch34-billing-34-6-connections-to-other-modules">34.6 Connections to other modules</h2>
+<ul>
+<li><strong>Queue and consultation (Chapters 30, 31).</strong> Completing a visit creates charges in the same transaction. The queue board shows dues badges and a <strong>Bill</strong> button.</li>
+<li><strong>Patients (Chapter 28).</strong> The Billing tab and the dues badge in the patient header. Patients with charges cannot be deleted (RESTRICT).</li>
+<li><strong>Treatment plans (Chapter 33).</strong> Plan-to-charges and the plan billing summary exist in the API only.</li>
+<li><strong>Commissions (Chapter 35).</strong> Charges snapshot the rate; collection, unapply and invoice edits write commission entries.</li>
+<li><strong>Dashboard and reports (Chapter 36).</strong> Finance overview, profit and loss, doctor revenue and the dashboard read billing tables and expenses.</li>
+<li><strong>Locations (Chapter 9).</strong> The location&#39;s timezone sets every clinic date; the location&#39;s tax rate is snapshotted on invoices.</li>
+<li><strong>Features and roles (Chapters 10, 11).</strong> Five billing features; permissions listed per feature in 34.3.</li>
+<li><strong>Lab finance (Chapters 40, 42).</strong> Expenses can point to lab orders; the general ledger journals are shared code.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> In read-only mode every billing write is refused.</li>
+</ul>
+<h2 id="ch34-billing-34-7-limitations-and-known-gaps">34.7 Limitations and known gaps</h2>
+<ul>
+<li><code>billing.invoices</code> is off by default in the feature seed; a new clinic has no billing until it is enabled.</li>
+<li>No screen for: unapply, refund list, payment detail, resolved price, editing a price override, charges from a treatment plan, plan billing summary, credit packages and patient credits, editing an expense, daily financial summary.</li>
+<li>Because unapply has no screen, an invoice that has received any payment cannot be cancelled from the web app; it can only be edited (voiding lines moves the money to advance).</li>
+<li>The Payments sidebar item checks <code>billing.payment.collect</code> but the page checks <code>billing.invoice.view</code>.</li>
+<li>The billing desk&#39;s Outstanding section omits partly paid invoices.</li>
+<li>Expenses: no confirmation before delete, hard delete, no paging beyond 30 rows, no billing audit, update and delete not limited to the active location.</li>
+<li>Credit expiry uses the server&#39;s date, not the location&#39;s; selling or using credit is not linked to payments or charges.</li>
+<li>The &quot;Show dues at check-in&quot; switch is enforced only in the web app.</li>
+<li>Printed labels and amounts in words are English only; there is no server PDF.</li>
+<li>The invariant job only logs; nobody is alerted.</li>
+<li>The Accountant template has no discount permission; the Receptionist template cannot edit invoices or refund.</li>
+</ul>
+<h2 id="ch34-billing-34-8-owner-39-s-faq">34.8 Owner&#39;s FAQ</h2>
+<p><strong>Can a receptionist change the price of a consultation?</strong> No, not for a catalog service. The receptionist can apply a preset discount, within the range the type allows. Only a role with <code>billing.price.override</code> (Admin by default) can change a catalog price. &quot;Other&quot; charges and charges marked Needs price can be priced by anyone at the desk.</p>
+<p><strong>What happens if a doctor completes a visit and the consultation fee service is not set?</strong> The consultation charge is still created, at zero, with a &quot;Needs price&quot; badge. Reception must set a price before an invoice can be issued.</p>
+<p><strong>What if a patient pays more than they owe?</strong> The extra stays as advance. It is used on the next bill when &quot;Use advance&quot; is on, or can be refunded with <strong>Refund advance</strong>.</p>
+<p><strong>Can an invoice be deleted?</strong> No. It can be edited (each edit is a new revision with a reason) or cancelled while nothing is paid. Its number is never reused.</p>
+<p><strong>Why does an invoice say Overdue?</strong> It still has a balance and its due date (issue date plus the location&#39;s due days, 7 by default) is before the location&#39;s today. The status is computed, not stored.</p>
+<p><strong>Where is the tax rate set, and does changing it change old invoices?</strong> In the location&#39;s settings. Each invoice freezes the rate it was issued with; later edits keep using that frozen rate.</p>
+<p><strong>What protects against double charging when the network retries?</strong> Collect payment and refunds carry a client request id; a repeat with the same id returns the first result. Automatic charges use a unique index per source, so completing a visit twice never doubles them.</p>
+<p><strong>Can two receptionists take the next invoice number at the same time?</strong> Yes, safely. The counter row is locked until each transaction ends, so numbers stay unique and gapless.</p>
+<p><strong>Where is the history of who changed what?</strong> In <code>billing_audit_logs</code>, shown on the <strong>Billing activity</strong> page, with before and after snapshots and the reason.</p>
+<p><strong>Does cash close stop the desk from taking payments?</strong> No. A close only records a period; payments after it fall into the next close.</p>
+</section></body></html>

@@ -1,0 +1,276 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch05-request-lifecycle"><h1 id="ch05-request-lifecycle-chapter-5-request-lifecycle-from-a-click-to-the-database-and-back">Chapter 5 — Request lifecycle: from a click to the database and back</h1>
+<p>This chapter follows one real request through the whole Platform: from a button in the web app, through the API&#39;s security checks, into a database transaction, and back to the screen. It is written for the product owner who wants to know exactly which layers every request passes and where an error can stop it. A second part follows a realtime event from a database commit to every open screen.</p>
+<h2 id="ch05-request-lifecycle-5-1-the-example-registering-a-patient">5.1 The example: registering a patient</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The traced request is the one a receptionist makes when registering a new patient. On the Patients page the receptionist clicks <strong>Create</strong>, fills the multi-step <strong>New Patient</strong> form and clicks <strong>Add Patient</strong> on the last step. The web app sends <code>POST /patients</code>, the API stores the patient and an audit record, and the web app shows the toast &quot;Patient created&quot; and offers to book a first appointment.</p>
+<p>This request is a good example because it touches every common layer: the token and tenant headers, all five global guards, DTO validation, a permission check (<code>patients.create</code>), a database transaction with an audit row, the response envelope and the cache refresh in the web app. It does not use realtime events; section 5.8 covers those with a queue action instead.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch05-request-sequence.png" alt="Figure 5.1 — Request path for registering a patient"></p>
+<p><em>Figure 5.1 — Sequence of one write request, <code>POST /patients</code>, from the receptionist&#39;s click to the toast.</em></p>
+<p>The diagram has six participants from left to right: the Receptionist, the Web app, the <code>apiClient</code> axios instance, the API&#39;s guards and validation pipe, <code>PatientsService</code>, and PostgreSQL. (1) The receptionist fills the New Patient form and clicks Add Patient. (2) The web app calls <code>createPatient</code>, which first removes blank optional fields. (3) The axios instance sends <code>POST /patients</code> with the Bearer token and the <code>x-organization-id</code> and <code>x-location-id</code> headers. (4) <code>JwtAuthGuard</code> checks the access token. (5) <code>TenantContextGuard</code> checks in the database that the user owns the organization or has an active assignment at that location. (6) <code>FeatureFlagGuard</code> finds no <code>@RequireFeature</code> on this route and lets it pass. (7) <code>AccessGuard</code> resolves the user&#39;s access context and requires <code>patients.create</code>. (8) <code>SubscriptionGuard</code> checks that the clinic is not in read-only mode, because this is a write. (9) The <code>ValidationPipe</code> validates the body against <code>CreatePatientDto</code>. (10) The controller calls <code>PatientsService.create</code> with the tenant context, the DTO and the actor. (11) The service checks that the phone number is not already used in the organization, (12) counts existing patients to build the next patient number, and (13) inserts the patient and an <code>audit_logs</code> row in one transaction and commits. (14) It returns a <code>PatientResponseDto</code>. An &quot;alt&quot; box then shows two outcomes. On success the API returns a 201 response whose body is the envelope with <code>isSuccess: true</code>, <code>data</code> and <code>message</code>; the web app invalidates its cached patient lists, which refetch, and shows the toast &quot;Patient created&quot; with the option to book a first appointment. On any error, for example 409 because the phone exists, the <code>GlobalExceptionFilter</code> returns the envelope with <code>isSuccess: false</code> and a message; the axios promise rejects and the web app shows the message in a toast.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/patients/components/CreatePatientModal.tsx</code> · <code>useCreatePatient</code> · <code>backend/src/patients/patients.controller.ts</code> · <code>PatientsService.create</code></p>
+<h2 id="ch05-request-lifecycle-5-2-in-the-browser-hook-service-and-the-axios-instance">5.2 In the browser: hook, service and the axios instance</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> The screen never talks to the server directly. It asks a small &quot;mutation hook&quot; to do the work; the hook calls a service function; the service function uses one shared HTTP client that adds the user&#39;s credentials and the clinic and branch the user is working in.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li>The form component calls <code>useCreatePatient().mutateAsync(data)</code>. This is a TanStack Query mutation whose <code>mutationFn</code> is <code>createPatient</code> from <code>features/patients/services/patients.api.ts</code>.</li>
+<li><code>createPatient</code> drops fields that are empty strings (the API would reject an empty <code>dob</code> or <code>email</code>) and calls <code>api.post(&#39;/patients&#39;, body)</code>. It returns <code>data.data</code>, the payload inside the response envelope.</li>
+<li><code>api</code> is the axios instance <code>apiClient</code> in <code>web-app/src/lib/api.ts</code>:<ul>
+<li>Base URL: the <code>VITE_API_BASE_URL</code> build variable, default <code>http://localhost:5000</code>.</li>
+<li>Timeout: 15 seconds. <code>withCredentials: true</code>, so the browser sends the refresh-token cookie.</li>
+</ul>
+</li>
+<li><strong>Request interceptor.</strong> Before every request it reads the Zustand auth store (<code>useAuthStore</code>), which lives in memory only and is never written to browser storage:<ul>
+<li>adds <code>Authorization: Bearer &lt;access token&gt;</code> when a token exists;</li>
+<li>for lab portal URLs (<code>/lab-portal/...</code>) adds only <code>x-lab-id</code> and no clinic headers;</li>
+<li>otherwise adds <code>x-organization-id</code> (the active organization) and <code>x-location-id</code> (the active location).</li>
+</ul>
+</li>
+<li><strong>Response interceptor.</strong> Described with the error path in section 5.7.</li>
+</ul>
+<p>TanStack Query is configured once in <code>web-app/src/lib/query-client.ts</code>: queries are fresh for 5 minutes, are kept for 10 minutes, retry twice and do not refetch when the window regains focus; mutations retry once. Individual hooks may override these values (the access query, for example, uses 30 seconds and refetches on focus).</p>
+<p><strong>Technical references:</strong> <code>web-app/src/lib/api.ts</code> · <code>apiClient</code> · <code>web-app/src/lib/query-client.ts</code> · <code>web-app/src/store/useAuthStore.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-3-arriving-at-the-api-process-start-up-and-express-middleware">5.3 Arriving at the API: process start-up and Express middleware</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>An HTTP process is started by <code>bootstrapHttp(role)</code> in <code>backend/src/bootstrap/http.ts</code> (Chapter 6 explains the roles). It configures, in this order:</p>
+<ol>
+<li>The NestJS application with Nest&#39;s own body parser switched off.</li>
+<li>JSON and URL-encoded body parsers with a <strong>5 MB</strong> limit (consent signatures are sent as inline images).</li>
+<li>The global <code>ValidationPipe</code> (section 5.5).</li>
+<li>The global exception filter <code>GlobalExceptionFilter</code>.</li>
+<li>CORS for one origin, <code>CORS_ORIGIN</code> (default <code>http://localhost:3000</code>), with credentials allowed.</li>
+<li><code>cookie-parser</code>, so the refresh cookie can be read.</li>
+<li>A small middleware that opens a per-request context (<code>RequestContextService</code>, based on Node&#39;s AsyncLocalStorage).</li>
+<li>Listening on <code>PORT</code> (default 5000).</li>
+</ol>
+<p>Two middleware classes exist in <code>common/middleware/</code> (<code>ContextMiddleware</code> and <code>TenantContextMiddleware</code>) but <strong>no module registers them</strong> [Not implemented]. Tenant checks are done by a guard instead.</p>
+<p>For every request NestJS then runs its fixed pipeline: Express middleware → global guards → interceptors (on the way in) → pipes → controller method → interceptors (on the way out) → exception filter if anything threw. The next sections walk this pipeline.</p>
+<p><strong>Technical references:</strong> <code>backend/src/bootstrap/http.ts</code> · <code>bootstrapHttp</code> · <code>backend/src/common/services/request-context.service.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-4-the-five-global-guards">5.4 The five global guards</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Five guards are registered as global guards (<code>APP_GUARD</code>) in <code>backend/src/app.module.ts</code>. NestJS runs them in registration order, and the first one that refuses stops the request.</p>
+<div class="tw"><table><thead><tr>
+<th>#</th>
+<th>Guard</th>
+<th>Question it answers</th>
+<th>Skips when</th>
+<th>Refusal</th>
+</tr>
+</thead><tbody><tr>
+<td>1</td>
+<td><code>JwtAuthGuard</code></td>
+<td>Is there a valid, unexpired access token?</td>
+<td>The method and path match an entry in <code>PUBLIC_ROUTES</code> (login, register, refresh, password reset, email verification, logout, the public theme, the TV display state, lab magic links).</td>
+<td>401 with a message such as &quot;Token has expired. Please refresh your token.&quot;</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>TenantContextGuard</code></td>
+<td>Does this user have access to the organization and location in the headers?</td>
+<td><code>@Public()</code>; <code>@ContextFree()</code>; super admins. <code>@RequireSuperAdmin()</code> routes are checked here instead (non-super-admins get 403 &quot;Super admin access required&quot;).</td>
+<td>400 &quot;Missing tenant context. Please select an organization and location.&quot; or 403 &quot;You do not have access to this organization/location&quot;.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>FeatureFlagGuard</code></td>
+<td>Is every feature named by <code>@RequireFeature</code> active for this organization and location?</td>
+<td>No <code>@RequireFeature</code> on the route; <code>@Public()</code>; super admins.</td>
+<td>403 &#39;The &quot;<key>&quot; feature is not enabled for this location&#39;.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>AccessGuard</code></td>
+<td>Does the user hold every permission in <code>@Can(...)</code>, or is the user a member for <code>@AnyMember()</code>?</td>
+<td><code>@Public()</code>; routes with neither marker pass (but still get the access context attached when an organization is known).</td>
+<td>403 with <code>{ code: &#39;NO_PERMISSION&#39;, missing: [...] }</code>.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>SubscriptionGuard</code></td>
+<td>If this is a write, is the clinic out of read-only mode?</td>
+<td>Reads (<code>GET</code>, <code>HEAD</code>, <code>OPTIONS</code>); <code>@Public()</code>; super admins; paths starting <code>/auth/</code>, <code>/account</code>, <code>/me/</code>, <code>/admin/subscriptions</code>; requests with no organization.</td>
+<td>402 with <code>code: &#39;SUBSCRIPTION_EXPIRED&#39;</code>.</td>
+</tr>
+</tbody></table></div><p>The table lists the guards in the order they run, what each checks, when it steps aside, and what the caller receives when it refuses. In the patient example all five apply: the route is not public, it carries <code>@Can(&#39;patients.create&#39;)</code>, and it is a write.</p>
+<p>Details worth knowing:</p>
+<ul>
+<li><strong>Access check for the tenant.</strong> <code>TenantContextGuard</code> calls <code>AuthorizationService.validateAccess</code>. An owner passes for any active location of the organization. Anyone else needs an active assignment at that exact location with portal access switched on. When it passes, the guard stores <code>request.tenantContext = { organizationId, locationId }</code>.</li>
+<li><strong><code>@Public()</code> and the JWT guard.</strong> <code>JwtAuthGuard</code> only reads the <code>PUBLIC_ROUTES</code> list (<code>auth/constants/public-routes.ts</code>). The <code>@Public()</code> decorator alone does not let an unauthenticated request through; a route without a token must also be listed there.</li>
+<li><strong>No path-prefix skips.</strong> <code>TenantContextGuard</code> deliberately has no list of path prefixes that bypass it; it relies only on the decorators.</li>
+<li><strong>Caching.</strong> The access context is cached per user, organization, location and access version (Chapter 11); the enabled-feature set for 30 seconds (Chapter 10); read-only status for 30 seconds per process.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>JwtAuthGuard</code> · <code>TenantContextGuard</code> · <code>FeatureFlagGuard</code> · <code>AccessGuard</code> · <code>SubscriptionGuard</code> · <code>backend/src/auth/constants/public-routes.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-5-validation-pipe-and-the-controller">5.5 Validation pipe and the controller</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>Validation.</strong> One global <code>ValidationPipe</code> validates every request body, query and parameter that is typed as a DTO class with <code>class-validator</code> rules. Its settings:</p>
+<div class="tw"><table><thead><tr>
+<th>Setting</th>
+<th>Effect</th>
+</tr>
+</thead><tbody><tr>
+<td><code>transform: true</code></td>
+<td>The plain JSON body becomes an instance of the DTO class.</td>
+</tr>
+<tr>
+<td><code>whitelist: true</code></td>
+<td>Properties without a validation decorator are removed.</td>
+</tr>
+<tr>
+<td><code>forbidNonWhitelisted: true</code></td>
+<td>Instead of silently removing unknown properties, the request is refused with 400 (for example &quot;property id should not exist&quot;).</td>
+</tr>
+<tr>
+<td><code>enableImplicitConversion: true</code></td>
+<td>Query strings such as <code>page=2</code> become numbers when the DTO says so.</td>
+</tr>
+</tbody></table></div><p>The table lists the four options and their effect. The strict <code>forbidNonWhitelisted</code> rule matters for owners: a screen that sends a whole database row back (with <code>id</code> or timestamps) is refused, which is why some older edit screens fail (the Organizations and Locations chapter, Chapter 9, lists them).</p>
+<p><strong>Controller.</strong> In the example, <code>PatientsController.create</code> receives:</p>
+<ul>
+<li><code>@Body() dto: CreatePatientDto</code> — the validated body;</li>
+<li><code>@ActiveTenant() ctx</code> — <code>{ organizationId, locationId }</code> from <code>request.tenantContext</code> (or the headers);</li>
+<li><code>@RequestActor(ActorSide.CLINIC) actor</code> — who is acting, for the audit trail.</li>
+</ul>
+<p>Other handlers also take <code>@Access() access</code>, the resolved access context, when they need scope rules (Chapter 11). Controllers contain no business rules; they call a service and wrap the result.</p>
+<p><strong>Technical references:</strong> <code>backend/src/bootstrap/http.ts</code> · <code>backend/src/common/decorators/active-tenant.decorator.ts</code> · <code>backend/src/common/audit/request-actor.decorator.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-6-service-transaction-and-database">5.6 Service, transaction and database</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><code>PatientsService.create</code> shows the usual service pattern:</p>
+<ol>
+<li><strong>Checks that read.</strong> The phone must be unique inside the organization (409 &quot;A patient with this phone number already exists in this organization&quot;). The next patient number is built from a count of the organization&#39;s patients, including deleted ones (<code>P-00001</code>, <code>P-00002</code>, …).</li>
+<li><strong>One transaction for the write.</strong> <code>dataSource.transaction(...)</code> saves the <code>patients</code> row and writes the audit record through <code>recordPatientChange</code> with the same entity manager. Both rows commit together or not at all.</li>
+<li><strong>A response DTO.</strong> The saved entity is mapped to <code>PatientResponseDto</code>.</li>
+</ol>
+<p>Other modules follow the same shape with stronger guarantees where money or queues are involved: row locks (<code>pessimistic_write</code>), optimistic version checks, idempotency keys for queue actions, and outbox rows written in the same transaction (section 5.8). All tenant data is filtered by <code>organization_id</code> in the service; data that has a scoped permission is filtered further with <code>applyScope</code> (Chapter 11).</p>
+<p>The database is PostgreSQL. The API connects with the <code>DATABASE_URL</code> connection string and always requests an SSL connection.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>PatientsService.create</code> · <code>recordPatientChange</code></p>
+<h2 id="ch05-request-lifecycle-5-7-the-response-envelope-and-the-error-path">5.7 The response envelope and the error path</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>Success.</strong> Every controller returns <code>ResponseWrapper.success(data, message)</code>. The JSON body is always the same envelope:</p>
+<div class="tw"><table><thead><tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><code>data</code></td>
+<td>The payload (here the new patient).</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>A human-readable message, for example &quot;Patient created successfully&quot;.</td>
+</tr>
+<tr>
+<td><code>isSuccess</code></td>
+<td><code>true</code>.</td>
+</tr>
+<tr>
+<td><code>httpStatusCode</code></td>
+<td>Always <code>200</code> inside a success envelope, even when the HTTP status is 201.</td>
+</tr>
+<tr>
+<td><code>error</code>, <code>devMessage</code></td>
+<td>Empty on success.</td>
+</tr>
+</tbody></table></div><p>The table describes the five fields of the envelope. The web app reads <code>res.data.data</code> for the payload. On the way out, the global <code>VisibleIfInterceptor</code> removes fields marked <code>@VisibleIf</code> that the caller may not see (for example treatment prices without <code>patients.price.view</code>); patient records have no such fields.</p>
+<p>Back in the browser, the mutation&#39;s <code>onSuccess</code> invalidates every query whose key starts with <code>patients</code>, so open patient lists refetch, and shows the toast &quot;Patient created&quot;. The modal then switches to an optional &quot;Book First Appointment&quot; step.</p>
+<p><strong>Errors.</strong> Any exception, anywhere after the middleware, reaches <code>GlobalExceptionFilter</code>. It logs the error and answers with the HTTP status of the exception (500 for unexpected errors) and an envelope with <code>isSuccess: false</code>, <code>message</code> (the first message when there are several, such as validation errors; &quot;Something went wrong&quot; for unexpected errors), <code>error</code> (the exception body, for example <code>{ code: &#39;NO_PERMISSION&#39;, missing: [...] }</code>) and <code>devMessage</code>.</p>
+<div class="tw"><table><thead><tr>
+<th>Status</th>
+<th>Typical cause</th>
+</tr>
+</thead><tbody><tr>
+<td>400</td>
+<td>Validation failed, or tenant headers missing.</td>
+</tr>
+<tr>
+<td>401</td>
+<td>No token, invalid token or expired token.</td>
+</tr>
+<tr>
+<td>402</td>
+<td><code>SUBSCRIPTION_EXPIRED</code>: the clinic is read-only.</td>
+</tr>
+<tr>
+<td>403</td>
+<td>No access to the organization or location, feature not active, <code>NO_PERMISSION</code>, or super admin required.</td>
+</tr>
+<tr>
+<td>404</td>
+<td>Record not found in this organization.</td>
+</tr>
+<tr>
+<td>409</td>
+<td>Business conflict, such as a duplicate phone number.</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Unexpected error.</td>
+</tr>
+</tbody></table></div><p>The table maps the common status codes to their causes. Screens show <code>err.response.data.message</code> in a toast, or a fallback text such as &quot;Failed to create patient&quot;.</p>
+<p><strong>Automatic token refresh.</strong> The access token lives 15 minutes. When any request gets <strong>401</strong>, the axios response interceptor:</p>
+<ol>
+<li>ignores 401s from <code>/auth/login</code> and <code>/auth/refresh</code> themselves;</li>
+<li>if a refresh is already running, parks the request in a queue;</li>
+<li>otherwise calls <code>POST /auth/refresh</code> (the httpOnly cookie carries the session id and refresh token), stores the new token and context in the auth store, replays the queued requests and retries the original request once;</li>
+<li>if the refresh fails, or the retried request gets 401 again, clears the auth store and sends the browser to <code>/login</code>.</li>
+</ol>
+<p><strong>Technical references:</strong> <code>backend/src/common/dtos/ResponseWrapper.ts</code> · <code>backend/src/common/exceptions/HttpExceptionHandler.ts</code> · <code>GlobalExceptionFilter</code> · <code>VisibleIfInterceptor</code> · <code>web-app/src/lib/api.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-8-the-realtime-path-from-a-commit-to-every-open-screen">5.8 The realtime path: from a commit to every open screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> When something changes in a doctor&#39;s queue, every screen showing that queue (the doctor screen, the reception board, the waiting-room TV) must update within moments, even when the Platform runs several API servers. The Platform does this with a &quot;transactional outbox&quot;: the change and a &quot;please announce this&quot; note are saved together; a separate worker reads the notes and broadcasts them; every API server pushes them to the browsers that are listening.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch05-realtime-sequence.png" alt="Figure 5.2 — Realtime path for a queue event"></p>
+<p><em>Figure 5.2 — Sequence of a queue change travelling from the database transaction, through the outbox relay and Redis, to the web app.</em></p>
+<p>The diagram has seven participants: the Receptionist, the API process, PostgreSQL, the <code>OutboxRelayService</code> (in the worker), Redis, the <code>QueueGateway</code> (the Socket.IO gateway in every API process) and the Web app. (1) The receptionist performs a queue action, for example a check-in. (2) The API begins a transaction, locks the queue session row and updates the queue entry. (3) In the same transaction it inserts a <code>queue_events</code> audit row and three <code>outbox</code> rows, and calls <code>pg_notify(&#39;queue_outbox&#39;)</code>. (4) It commits. (5) The receptionist gets the success response. (6) PostgreSQL delivers the <code>queue_outbox</code> notification to the relay (if the notification is missed, the relay also polls every second). (7) The relay selects up to 100 unpublished outbox rows with <code>FOR UPDATE SKIP LOCKED</code>. (8) It publishes each row to Redis on the realtime channel, and (9) Redis confirms. (10) The relay stamps <code>published_at</code> on those rows and commits. (11) Redis delivers the message to every API instance. (12) Each gateway emits <code>queue.event</code> to the session room and the location board room, and <code>display.event</code> to the location&#39;s display room. (13) The web app sees a newer sequence number and refetches the screen&#39;s snapshot over HTTP. A note across the relay and the gateway says that the worker sends a heartbeat every 5 seconds, and that an API instance that has heard no heartbeat for 15 seconds refuses socket connections, so clients fall back to polling.</p>
+<p>Facts behind the figure:</p>
+<ul>
+<li><strong>Three outbox rows per change</strong>, one per room: <code>session:&lt;sessionId&gt;</code> (one doctor&#39;s queue), <code>location:&lt;locationId&gt;:board</code> (the reception board) and <code>location:&lt;locationId&gt;:display</code> (the TV). Payloads carry ids, statuses, tokens and a sequence number, never patient names.</li>
+<li><strong>At-least-once delivery.</strong> If Redis does not accept the batch, the relay&#39;s transaction rolls back and the rows are retried. Clients drop duplicates by sequence number.</li>
+<li><strong>Rooms and access.</strong> Clients connect to the <code>/realtime</code> Socket.IO namespace with their access token and <code>subscribe</code> to rooms. The gateway checks access per room: display rooms are open without login; session and board rooms need access to that location; <code>org:&lt;organizationId&gt;</code> needs access to the organization.</li>
+<li><strong>Access changes use the same sockets.</strong> When an organization&#39;s access version changes (a role edit, a feature switch), every process hears it over a separate Redis channel and the gateway emits <code>access.changed</code> to the <code>org:&lt;id&gt;</code> room. The web app then refetches <code>GET /me/access</code> (Chapter 11).</li>
+<li><strong>Single-process mode.</strong> In the <code>all</code> role (development), the relay hands rows straight to the local gateway and Redis is not needed for realtime.</li>
+<li><strong>Notifications</strong> use the same pattern with their own outbox table (<code>notification_outbox</code>) and relay loop (Chapter 6).</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.emit</code> · <code>backend/src/queue/realtime/outbox-relay.service.ts</code> · <code>RedisRealtimePublisher</code> · <code>RedisRealtimeSubscriber</code> · <code>QueueGateway</code> · <code>web-app/src/features/access/hooks/useAccessSocket.ts</code></p>
+<h2 id="ch05-request-lifecycle-5-9-requests-that-take-a-different-path">5.9 Requests that take a different path</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong>Public requests</strong> (login, register, refresh, password reset, verify email, logout, the login-page theme, the TV display state, lab magic links) skip the token check because they are listed in <code>PUBLIC_ROUTES</code>, and skip the other guards because they carry <code>@Public()</code>.</li>
+<li><strong>Context-free requests</strong> (<code>@ContextFree()</code>) skip the tenant and access checks and check access themselves in the handler. Examples: <code>/auth/select-location</code>, <code>/auth/switch-location</code>, <code>GET /me/access</code>, <code>GET /feature-flags/my-features</code>, every <code>/locations</code> endpoint.</li>
+<li><strong>Super-admin requests</strong> (<code>@RequireSuperAdmin()</code>) need no tenant headers; the tenant guard checks the super-admin role instead.</li>
+<li><strong>Lab portal requests</strong> (<code>/lab-portal/...</code>) carry <code>x-lab-id</code> instead of clinic headers and are protected by their own lab portal guard.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/common/decorators/</code> · <code>backend/src/auth/auth.controller.ts</code> · <code>backend/src/labs/</code></p>
+</section></body></html>

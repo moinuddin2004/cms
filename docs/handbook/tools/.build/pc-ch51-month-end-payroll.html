@@ -1,0 +1,74 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch51-month-end-payroll"><h1 id="ch51-month-end-payroll-chapter-51-workflow-month-end-payroll">Chapter 51 — Workflow: Month-End Payroll</h1>
+<p>This chapter follows payroll for one month at Example Clinic, from the automatic run on the 1st to the payment record. It is written for the product owner. Payroll combines two things: the base salary from each employee&#39;s compensation plan and the doctor commission earned but not yet paid out. The Platform records the payout; it does not move money.</p>
+<h2 id="ch51-month-end-payroll-51-1-who-is-involved">51.1 Who is involved</h2>
+<ul>
+<li><strong>Scheduler</strong> (the worker process): runs the job.</li>
+<li><strong>Admin</strong>: holds <code>payroll.manage</code> (feature <code>hr.payroll</code>, on by default). No other system role holds it.</li>
+<li><strong>Dr. Example One</strong>: an employee with a salary and commission.</li>
+</ul>
+<h2 id="ch51-month-end-payroll-51-2-the-steps">51.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch51-month-end-payroll-sequence.png" alt="Figure 51.1 — Month-end payroll"></p>
+<p><em>Figure 51.1 — The automatic run, the optional manual run and the payment.</em></p>
+<p>The diagram has six participants: Scheduler, Admin, Web app, API, PayrollService and PostgreSQL, and 16 messages. At 05:00 on the 1st the Scheduler calls the month-end run on PayrollService, which loads the active locations. For each assignment it reads the base salary from the plan in force on the last day of the month, locks the unsettled commission entries up to month end, and inserts a pending payroll record and a pending settlement. The Admin opens Payroll for the month (<code>GET /payroll</code>) and sees records with base, commission and total. If the job missed a location, the Admin presses Generate Payroll (<code>POST /payroll/generate</code>) and existing records are skipped. The Admin presses Mark as Paid with a method and reference (<code>PATCH /payroll/:id/mark-paid</code>); the service sets the record and the settlement to paid. The last message shows the CSV export and payslip PDF endpoints, which no button calls.</p>
+<h3 id="ch51-month-end-payroll-step-1-automatic-generation">Step 1 — Automatic generation</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. The cron expression is <code>0 5 1 * *</code> with no timezone option, so it fires at 05:00 on the 1st in the server&#39;s timezone. A code comment says 00:05; the code wins. The month is taken from the server&#39;s own date (the previous month), not from each location&#39;s timezone. The job covers every active location of every organization, each in its own transaction, so one failing location does not stop the others. It does not check that the organization is active or that <code>hr.payroll</code> is on. It runs without a request, so the subscription read-only guard, which acts on web requests, does not apply to it (deduced from the guard being an HTTP guard) (Chapter 38, Appendix E).</p>
+<h3 id="ch51-month-end-payroll-step-2-base-plus-commission">Step 2 — Base plus commission</h3>
+<p><strong>Module:</strong> Payroll and Commissions. <strong>Status:</strong> [Implemented]. For each active assignment: skip if a record already exists for that employee, location and month; otherwise base salary = the plan version in force on the month&#39;s last day (else the first day); commission = the sum of unsettled commission entries created before the end of the month&#39;s last clinic day. A net-negative sum is not settled and waits for a later month. Total = base + commission. An employee with neither is listed as &quot;no salary&quot; and gets no record (Chapter 38, Chapter 35).</p>
+<h3 id="ch51-month-end-payroll-step-3-settlement-lock">Step 3 — Settlement lock</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented]. The entries are row-locked and tied to a <strong>settlement</strong> so they cannot be paid twice. Entries are never edited; a reversal after settlement lands as a negative entry in a later month&#39;s settlement (Chapter 35).</p>
+<h3 id="ch51-month-end-payroll-step-4-manual-generation">Step 4 — Manual generation</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. <strong>Generate Payroll</strong> on <code>/payroll</code> takes a month and year, refuses future months and generates for the whole active location, even when pressed from an employee tab. It is safe to run after the automatic job.</p>
+<h3 id="ch51-month-end-payroll-step-5-review-and-edit">Step 5 — Review and edit</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. Records start as pending. Edit, delete and create-by-hand exist. A record that paid out commission cannot be deleted. Deleting an unpaid record releases its commission back to the pool. Putting a record on hold has an endpoint but no button; the edit dialog&#39;s status field can set it [Partial].</p>
+<h3 id="ch51-month-end-payroll-step-6-mark-paid">Step 6 — Mark paid</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. <strong>Mark as Paid</strong> needs a method (cash, bank transfer or cheque) and optional reference and notes. The record becomes paid with time and payer, and the settlement becomes paid in the same transaction. No money moves and nothing is posted to the general ledger or expenses. Setting status to paid through the edit dialog does not pay the settlement, which is a trap: a later delete would release the commission.</p>
+<h3 id="ch51-month-end-payroll-step-7-payslip-and-export">Step 7 — Payslip and export</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Partial]. <code>GET /payroll/:id/payslip-pdf</code> returns an A4 PDF (Latin text only) and <code>GET /payroll/export?month&amp;year</code> returns a CSV. Neither has a button in the web app, so they can be called only through the API. Deductions are always 0.00, net equals gross, and the designation column is empty.</p>
+<h2 id="ch51-month-end-payroll-51-3-what-can-go-wrong">51.3 What can go wrong</h2>
+<ul>
+<li>Server timezone differs from the clinic&#39;s, so &quot;the 1st at 05:00&quot; falls at another local time, and the month boundary can shift near midnight.</li>
+<li>No worker process is running: nothing is generated.</li>
+<li>A location error is logged and skipped; no in-app notification tells anyone.</li>
+<li>Future month: 400 &quot;Cannot generate payroll for future months&quot;.</li>
+<li>&quot;Payroll already marked as paid&quot; on a second payment.</li>
+<li>Paying through the edit dialog leaves the commission unpaid.</li>
+<li>No deductions, tax, overtime or unpaid-leave handling exist [Not implemented].</li>
+<li>Payroll changes are not written to the general audit log.</li>
+</ul>
+<h2 id="ch51-month-end-payroll-51-4-data-left-behind">51.4 Data left behind</h2>
+<p><code>payroll_records</code> (pending, then paid with <code>paid_at</code>, method, reference), <code>commission_settlements</code> (period, total, payroll record id, status), <code>commission_entries.settlement_id</code>. Records made by the job have no <code>created_by</code>.</p>
+</section></body></html>

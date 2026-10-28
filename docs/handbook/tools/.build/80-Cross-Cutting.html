@@ -1,0 +1,1391 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Cross-Cutting Concerns (Part 7)</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 7 — Cross-cutting concerns</div><div class="r"><a href="#ch56-authentication">Chapter 56 — Authentication and sessions</a><span class="d"></span><span>4</span></div><div class="r"><a href="#ch57-access-control">Chapter 57 — Access control in depth</a><span class="d"></span><span>18</span></div><div class="r"><a href="#ch58-customization">Chapter 58 — Clinic customization</a><span class="d"></span><span>27</span></div><div class="r"><a href="#ch59-notification-mechanics">Chapter 59 — Notification mechanics</a><span class="d"></span><span>36</span></div><div class="r"><a href="#ch60-audit-logging">Chapter 60 — Audit logging</a><span class="d"></span><span>41</span></div><div class="r"><a href="#ch61-error-handling">Chapter 61 — Error handling</a><span class="d"></span><span>46</span></div><div class="r"><a href="#ch62-time-money-numbering">Chapter 62 — Time, money and document numbers</a><span class="d"></span><span>53</span></div><div class="r"><a href="#ch63-realtime-and-jobs">Chapter 63 — Realtime updates and background jobs</a><span class="d"></span><span>58</span></div></section><section class="chapter" id="ch56-authentication"><h1 id="ch56-authentication-chapter-56-authentication-and-sessions">Chapter 56 — Authentication and sessions</h1>
+<p>This chapter explains how a person proves who they are to the Platform and stays signed in: registering a clinic, signing in, choosing an organization and location, the short-lived access token and the long-lived session cookie, managing sessions, password flows, rate limiting and the staff-login administration screen. It is written for the product owner, who needs to know exactly how long a sign-in lasts, what a user can revoke and which protections exist today. What a signed-in person may then do is a different question, answered by Chapter 11 (roles and permissions) and Chapter 57 (access control in depth).</p>
+<h2 id="ch56-authentication-56-1-the-model-in-one-paragraph">56.1 The model in one paragraph</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A <strong>user</strong> is a login: an email address, a password hash and an account status (<code>active</code>, <code>suspended</code> or <code>deleted</code>). A user is not the same as an <strong>employee</strong>, who is the person record that the Employees module keeps (Chapter 37). A <strong>staff login</strong> links one user to one employee. Signing in creates a <strong>session</strong> row in the database and gives the browser two things. The first is an <strong>access token</strong>, valid for 15 minutes, which the web app keeps in memory only and sends as a Bearer header. The second is a <strong>session cookie</strong> named <code>refresh_token</code>, which is <code>httpOnly</code> (scripts cannot read it) and carries the session id and a long random secret. When the access token expires, the web app calls <code>POST /auth/refresh</code>; the cookie proves the session is still valid and a new access token is issued. Nothing about the login is stored in the browser&#39;s local storage.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.service.ts</code> · <code>AuthService</code> · <code>backend/src/session/session.service.ts</code> · <code>SessionService</code> · <code>backend/src/auth/jwt.service.ts</code> · <code>web-app/src/store/useAuthStore.ts</code></p>
+<h2 id="ch56-authentication-56-2-screens">56.2 Screens</h2>
+<p>The sign-in related screens are public pages (<code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/verify-email</code>), the location selector (<code>/select-location</code>), the signed-in pages for sessions and security (<code>/sessions</code> and the Security and Sessions sections of Settings), and the staff-login administration page (<code>/users</code>).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-login-page.svg" alt="Figure 56.1 — Login page"></p>
+<p><em>Figure 56.1 — Login page (screenshot pending).</em></p>
+<p>The login page shows the clinic&#39;s own name and logo when the browser knows which clinic it last used (Chapter 58 explains the public theme). It has an email field, a password field with a show and hide button, a &quot;Keep me signed in for 30 days&quot; check box, a &quot;Forgot password?&quot; link, a sign-in button and a link to the sign-up page. The sign-up page asks for clinic name, the owner&#39;s name, email, an optional phone number and a password, with a five-segment strength meter (Weak, Fair, Good, Strong, Very strong) that is advice only and does not block the form.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-location-selector.svg" alt="Figure 56.2 — Location selector"></p>
+<p><em>Figure 56.2 — Location selector (screenshot pending).</em></p>
+<p>The selector is a two-step screen. Step one lists the organizations the user can enter; choosing one with a single location selects that location and continues at once. Step two lists the organization&#39;s locations as cards; the user picks one and continues. If an organization has no location, the screen says that a location must be created to continue.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-sessions.svg" alt="Figure 56.3 — Active sessions"></p>
+<p><em>Figure 56.3 — Active sessions (screenshot pending).</em></p>
+<p>The sessions list (page title &quot;Active Sessions&quot;, also available as the Sessions section of Settings) shows one row per active session with browser, operating system, device, IP address, the time it started and the time it was last active. The current session is marked. Every other row has a <strong>Revoke</strong> button, the current row has <strong>Sign out</strong>, and a <strong>Sign out all others</strong> button sits at the top.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-user-admin.svg" alt="Figure 56.4 — User management"></p>
+<p><em>Figure 56.4 — User management (screenshot pending).</em></p>
+<p>The user administration page (<code>/users</code>, title &quot;User Management&quot;, subtitle &quot;Manage system access across roles and organizations&quot;) lists users by type and has a <strong>Create User</strong> button. The create form asks for name, email, password, role type (Super Admin, Owner or Staff), and, for a staff user, which employee the login is for. Each row can be edited (including its status) or deleted.</p>
+<h2 id="ch56-authentication-56-3-features">56.3 Features</h2>
+<h3 id="ch56-authentication-56-3-1-register-a-clinic-self-signup">56.3.1 Register a clinic (self-signup)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets a new clinic owner create the login and the clinic in one step. The Platform creates the user, a new organization with a main location and a 14-day trial (Chapter 45 covers subscriptions and onboarding), sends a verification email and signs the owner straight in.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the sign-up page and enter clinic name, name, email, optional phone and a password.</li>
+<li>Submit. The owner lands in the application, kept signed in for 30 days.</li>
+<li>Later, click the link in the verification email.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/register</code> is public and rate limited. <code>AuthService.register</code> creates the user, calls the clinic set-up service to create the organization, and sends the verification email. If clinic creation fails, the new user row is deleted so no empty login remains. It then runs the normal login flow with &quot;keep me signed in&quot; on.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Email must be a valid address; name and clinic name are required (at most 255 characters); phone at most 20 characters; password at least 6 characters.</li>
+<li>An email that already exists is refused.</li>
+<li>The verification email failing to send is logged but does not stop registration.</li>
+</ul>
+<p><strong>Who can do it.</strong> Anyone; the route is public.</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>organizations</code>, <code>locations</code>, owner link, subscription rows, <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Error cases.</strong> 429 when more than 5 sign-ups come from one address in an hour; 400 for invalid fields or a duplicate email.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.controller.ts</code> · <code>register</code> · <code>backend/src/subscriptions/clinic-setup.service.ts</code> · <code>web-app/src/features/auth/components/RegisterForm.tsx</code></p>
+<h3 id="ch56-authentication-56-3-2-verify-an-email-address">56.3.2 Verify an email address</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Confirms that the owner controls the email address. Verification is informational: an unverified user can still sign in and work. The web app shows a &quot;verify your email&quot; banner until verification is done.</p>
+<p><strong>How the user does it.</strong> Click the link in the email, which opens <code>/verify-email?token=…</code>. The page shows &quot;Verifying your email…&quot; and then a success or failure message. A signed-in user whose address is still unverified can ask for a fresh link.</p>
+<p><strong>Behind the scenes — technically.</strong> The email carries a random 32-byte token; the database stores only its SHA-256 hash, valid for 48 hours. <code>POST /auth/verify-email</code> (public, 10 attempts per 15 minutes) hashes the supplied token, finds an unexpired match and sets <code>email_verified_at</code>. <code>POST /auth/resend-verification</code> (signed in, 3 per hour) issues a new token; if the user has no pending token it answers &quot;Email already verified&quot;. Sending depends on SMTP settings in the server environment (<code>SMTP_USER</code>, <code>SMTP_PASS</code>).</p>
+<p><strong>Rules and validations.</strong> An invalid or expired token gives 400 &quot;This verification link is invalid or has expired&quot;. Users created by an administrator through user administration are not sent a verification email.</p>
+<p><strong>Who can do it.</strong> Anyone holding the token; resend needs a signed-in user.</p>
+<p><strong>Data read and written.</strong> <code>users</code> (<code>email_verification_token</code>, <code>email_verification_expires</code>, <code>email_verified_at</code>).</p>
+<p><strong>Technical references:</strong> <code>AuthService.verifyEmail</code> · <code>AuthService.resendVerification</code> · <code>backend/src/common/services/mail.service.ts</code> · <code>web-app/src/features/account/pages/VerifyEmailPage.tsx</code></p>
+<h3 id="ch56-authentication-56-3-3-sign-in">56.3.3 Sign in</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Checks the email and password, creates a session and returns the information the web app needs to continue: the user, an access token, the organizations and locations the user may enter, and flags saying whether an organization or location still has to be chosen.</p>
+<p><strong>How the user does it.</strong> Enter email and password, optionally tick &quot;Keep me signed in for 30 days&quot;, and click sign in.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The server looks up the user, compares the password against the stored hash, refuses suspended or deleted accounts, records a new session, and works out where the person is allowed to go. The session lasts one day, or 30 days if the box was ticked. Only five sessions can be active at once; a sixth sign-in quietly revokes the oldest.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/login</code> (public; 5 attempts per 15 minutes per address and route). <code>UserService.validateUser</code> compares with bcrypt (12 rounds). <code>SessionService.createSession</code> stores a bcrypt hash of a 64-byte random refresh secret, the user agent, parsed browser, operating system and device, and the client IP. <code>AuthorizationService.resolveUserAccess</code> returns the accessible organizations. The response also lists any lab memberships, so a user who works only for a lab is sent to the lab portal (Chapter 41). The cookie is <code>httpOnly</code>, <code>sameSite=lax</code>, <code>secure</code> in production, with a maximum age equal to the session&#39;s remaining lifetime.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Email valid; password at least 6 characters.</li>
+<li>A wrong email or password gives a plain 401 with no hint about which was wrong.</li>
+<li>A suspended account gets 403 &quot;Your account has been suspended. Please contact support.&quot;; a deleted account gets 403 &quot;This account has been deleted.&quot;</li>
+<li>A session&#39;s expiry is fixed at sign-in and is never extended by refreshing.</li>
+</ul>
+<p><strong>Who can do it.</strong> Anyone with an account.</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>user_sessions</code>, <code>employee_org_location_assignments</code>, owner links, <code>organizations</code>, <code>locations</code>, <code>security_logs</code> (a success row).</p>
+<p><strong>Effects on other modules.</strong> The login result seeds the web app&#39;s auth store, which every later request reads for its tenant headers (Chapter 8).</p>
+<p><strong>Error cases.</strong> 401 wrong credentials; 403 suspended or deleted; 429 too many attempts (message &quot;Too many requests. Please try again later.&quot;, with a <code>retryAfter</code> value in seconds).</p>
+<p><strong>Technical references:</strong> <code>AuthService.login</code> · <code>SessionService.createSession</code> · <code>AuthorizationService.resolveUserAccess</code> · <code>web-app/src/features/auth/components/LoginForm.tsx</code></p>
+<h3 id="ch56-authentication-56-3-4-choose-and-switch-organization-and-location">56.3.4 Choose and switch organization and location</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Decides which clinic and branch a person is working in. Every later request carries that choice in two headers.</p>
+<p><strong>How the user does it.</strong> After sign-in the selector appears when a choice is needed. Later, the location switcher in the page header changes the active location.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A single organization with a single location is chosen automatically. A super admin always picks an organization first. Otherwise the person picks, and the Platform remembers the last choice for next time.</p>
+<p><strong>Behind the scenes — technically.</strong> The login response sets <code>requiresOrgSelection</code> and <code>requiresLocationSelection</code>. <code>POST /auth/select-location</code> and <code>POST /auth/switch-location</code> (both signed in, context free) validate access with <code>AuthorizationService.validateAccess</code> and save <code>last_accessed_organization_id</code> and <code>last_accessed_location_id</code> on the user. Switching also returns the legacy permission flags for the new location (deprecated; the web app reads <code>GET /me/access</code>). Chapter 8 describes the choice flow and what each type of user may enter in full.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch56-login-sequence.png" alt="Figure 56.5 — Sign-in, choice of location and token"></p>
+<p><em>Figure 56.5 — Sequence of a sign-in, the optional location choice and the first access fetch.</em></p>
+<p>The diagram has three participants besides the User: the Web app, the API and PostgreSQL. (1) The user enters email, password and the optional keep-me-signed-in choice. (2) The web app calls <code>POST /auth/login</code>. (3) The API finds the user and compares the password hash. (4) It creates the session row and enforces the limit of five active sessions. (5) It resolves the organizations and locations. (6) It answers with the access token, the session cookie and the selection flags. An &quot;alt&quot; box then shows two paths. If the user has one organization with one location, the web app stores them as active. Otherwise the web app shows the selector, the user chooses, the web app calls <code>POST /auth/select-location</code>, the API validates access and saves the last accessed choice, and returns the two active ids. After the box, the web app calls <code>GET /me/access</code> with the tenant headers and receives permissions, features and the home page, and opens the home page. A note says that a later 401 answer triggers <code>POST /auth/refresh</code> with the cookie.</p>
+<p><strong>Rules and validations.</strong> Both organization id and location id are required UUIDs. A request for a location the user may not enter gets 403 &quot;You do not have access to this location&quot;.</p>
+<p><strong>Who can do it.</strong> Any signed-in user.</p>
+<p><strong>Data read and written.</strong> <code>users.last_accessed_*</code>.</p>
+<p><strong>Error cases.</strong> 403 no access; the web app shows the toast &quot;Failed to select location&quot;.</p>
+<p><strong>Technical references:</strong> <code>AuthService.selectLocation</code> · <code>AuthService.switchLocation</code> · <code>web-app/src/features/auth/components/LocationSelector.tsx</code> · <code>web-app/src/components/layout/LocationSwitcher.tsx</code> · <code>web-app/src/routes/__root.tsx</code></p>
+<h3 id="ch56-authentication-56-3-5-stay-signed-in-access-token-refresh-cookie-and-silent-refresh">56.3.5 Stay signed in: access token, refresh cookie and silent refresh</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Keeps a person signed in across page reloads and across the 15-minute life of the access token, without storing credentials in the browser.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The access token is a short pass kept only in the page&#39;s memory. When the page is reloaded the memory is empty, so the web app quietly asks the server for a new pass using the cookie. When a pass expires in the middle of work, the same quiet request happens and the failed request is repeated.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li>The access token is a JWT signed with the server&#39;s access secret, expiring in 15 minutes, holding the user id, email, global role and session id. There is no JWT refresh token; the refresh secret is a random value whose bcrypt hash lives on the session row.</li>
+<li>On every app start the root route calls <code>POST /auth/refresh</code> once (&quot;silent refresh&quot;). On success the auth store is filled; on failure the user is treated as signed out.</li>
+<li><code>POST /auth/refresh</code> (public) reads the cookie, validates the session (not revoked, not expired, secret matches), re-checks the account status, <strong>rotates</strong> the refresh secret (the old one stops working) and returns a new access token and the full login payload. The cookie&#39;s expiry is the original session expiry, not a fresh window.</li>
+<li>When any API call returns 401, the axios interceptor refreshes and retries once (Chapter 61 shows the sequence).</li>
+<li>The auth store is memory only; it never uses local storage.</li>
+</ul>
+<p><strong>Rules and validations.</strong> A missing, revoked or expired session gives 403 &quot;Invalid or expired session&quot; and the cookie is cleared. A session whose user turned suspended or deleted is revoked on the spot.</p>
+<p><strong>Who can do it.</strong> Any browser holding a valid cookie.</p>
+<p><strong>Data read and written.</strong> <code>user_sessions</code> (<code>refresh_token_hash</code>, <code>last_active_at</code>).</p>
+<p><strong>Technical references:</strong> <code>AuthService.refreshTokens</code> · <code>SessionService.rotateRefreshToken</code> · <code>JwtTokenService</code> · <code>backend/src/session/session-lifetime.ts</code> · <code>web-app/src/lib/api.ts</code></p>
+<h3 id="ch56-authentication-56-3-6-sign-out-list-and-revoke-sessions">56.3.6 Sign out, list and revoke sessions</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch56-session-status.png" alt="Figure 56.6 — Life of a session"></p>
+<p><em>Figure 56.6 — Status lifecycle of a session.</em></p>
+<p>The diagram shows a session starting at a dot and entering <strong>active</strong> when the user logs in or registers. A loop on active is labelled refresh: a refresh rotates the secret but keeps the same session and the same expiry. Active moves to <strong>revoked</strong> in three ways: the user logs out or revokes a session (single, all others or all), the user changes or resets the password, or the user is deleted. Active moves to <strong>expired</strong> when <code>expires_at</code> passes, which is one day or 30 days after sign-in. Revoked and expired are both final states. (A sixth sign-in also revokes the oldest session; the diagram leaves that case out to stay readable.)</p>
+<p><strong>What it does.</strong> Lets a user end the current session, see every active session with device details, and end any of them.</p>
+<p><strong>How the user does it.</strong> Open Settings, Sessions (or <code>/sessions</code>). Click <strong>Revoke</strong> on a row, <strong>Sign out</strong> on the current row, or <strong>Sign out all others</strong>. The toasts are &quot;Session revoked&quot;, &quot;Signed out successfully&quot; and &quot;All other sessions revoked&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead><tbody><tr>
+<td>Sign out this session</td>
+<td><code>POST /auth/logout</code></td>
+<td>Public; reads the cookie, revokes that session, clears the cookie, writes a security log row</td>
+</tr>
+<tr>
+<td>List active sessions</td>
+<td><code>GET /auth/sessions</code></td>
+<td>Newest activity first; marks the current one</td>
+</tr>
+<tr>
+<td>Revoke one session</td>
+<td><code>DELETE /auth/sessions/:id</code></td>
+<td>Only the caller&#39;s own sessions; otherwise 404</td>
+</tr>
+<tr>
+<td>Revoke all others</td>
+<td><code>POST /auth/sessions/revoke-all</code></td>
+<td>Keeps the current session</td>
+</tr>
+<tr>
+<td>Sign out everywhere</td>
+<td><code>POST /auth/logout-all</code></td>
+<td>Revokes all sessions including the current one, clears the cookie</td>
+</tr>
+</tbody></table></div><p>The table lists the five session endpoints. Revoking is a flag (<code>is_revoked</code>) on the row; rows are kept. There is no clean-up job for old session rows.</p>
+<p><strong>Rules and validations.</strong> A revoked session cannot refresh. An access token that was already issued stays valid until it expires, at most 15 minutes, because requests are checked by the token only.</p>
+<p><strong>Who can do it.</strong> Any signed-in user, on their own sessions.</p>
+<p><strong>Data read and written.</strong> <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Error cases.</strong> 404 &quot;Session not found&quot; for an id that is not the caller&#39;s.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.controller.ts</code> · <code>SessionService</code> · <code>web-app/src/features/auth/components/SessionManagement.tsx</code> · <code>web-app/src/routes/sessions.tsx</code></p>
+<h3 id="ch56-authentication-56-3-7-passwords-change-forgot-and-reset">56.3.7 Passwords: change, forgot and reset</h3>
+<p><strong>Status:</strong> [Implemented] for change, forgot and reset. <strong>Add password</strong> is [Partial]: the endpoint exists but no screen calls it, because it is meant for accounts created through the disabled OAuth sign-in.</p>
+<p><strong>What it does.</strong> Lets a user change a known password, or recover from a forgotten one through an emailed link.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li><em>Change:</em> Settings, Security, enter the current and new password. All other sessions are revoked, as the page says.</li>
+<li><em>Forgot:</em> on the login page click &quot;Forgot password?&quot;, enter the email and click &quot;Send reset link&quot;. The page always says to check the inbox.</li>
+<li><em>Reset:</em> open the link in the email, enter a new password.</li>
+</ul>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /auth/change-password</code> (signed in) checks the current password with bcrypt, hashes the new one (12 rounds), and by default revokes every other session, keeping the current one.</li>
+<li><code>POST /auth/forgot-password</code> (public, 3 per hour) always answers &quot;If the email exists, a reset link will be sent&quot;, whether or not the address exists. For a real user it stores the SHA-256 hash of a random token, valid for 15 minutes, and emails the link.</li>
+<li><code>PATCH /auth/reset-password</code> (public) hashes the supplied token, finds an unexpired match, sets the new password, clears the token and revokes <strong>all</strong> sessions of that user.</li>
+<li><code>POST /auth/add-password</code> (signed in) sets a password only when the account has none; otherwise 400 &quot;Account already has a password&quot;.</li>
+<li>All three paths write security log rows (change, reset requested, reset succeeded).</li>
+</ul>
+<p><strong>Rules and validations.</strong> Password rules are in section 56.5. A wrong current password gives 401 &quot;Current password is incorrect&quot;. An invalid or expired reset token gives 400 &quot;Invalid or expired token&quot;. Reset has no rate limit of its own; the token is single use and short lived.</p>
+<p><strong>Who can do it.</strong> Anyone for forgot and reset; signed-in users for change.</p>
+<p><strong>Data read and written.</strong> <code>users</code> (<code>password</code>, <code>password_reset_token</code>, <code>password_reset_expires</code>), <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>AuthService.changePassword</code> · <code>AuthService.forgotPassword</code> · <code>AuthService.resetPassword</code> · <code>AuthService.addPassword</code> · <code>web-app/src/features/auth/components/ForgotPasswordForm.tsx</code> · <code>ResetPasswordForm.tsx</code> · <code>web-app/src/features/settings/pages/SettingsPage.tsx</code></p>
+<h3 id="ch56-authentication-56-3-8-rate-limiting">56.3.8 Rate limiting</h3>
+<p><strong>Status:</strong> [Implemented], with a limit: the counters live in the memory of one API process.</p>
+<p><strong>What it does.</strong> Slows down guessing and abuse on the public and sensitive authentication routes.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>RateLimiterGuard</code> counts requests per client address and route in a fixed window and answers 429 with <code>retryAfter</code> when the count is exceeded. The address comes from the first value of the forwarding header when present, otherwise the connection address.</p>
+<div class="tw"><table><thead><tr>
+<th>Endpoint</th>
+<th>Allowed</th>
+<th>Window</th>
+</tr>
+</thead><tbody><tr>
+<td><code>POST /auth/login</code></td>
+<td>5</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><code>POST /auth/register</code></td>
+<td>5</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><code>POST /auth/verify-email</code></td>
+<td>10</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><code>POST /auth/resend-verification</code></td>
+<td>3</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><code>POST /auth/forgot-password</code></td>
+<td>3</td>
+<td>1 hour</td>
+</tr>
+</tbody></table></div><p>The table lists the five throttled endpoints with their allowed attempts per window. Other routes, including refresh, reset-password and all clinical routes, have no limiter. A separate small throttle (120 requests per minute per address by default) protects the public lab magic-link routes (Chapter 41). Because the counters are in process memory, they reset when the process restarts and are not shared between API processes, so with several API processes the effective limit is higher. The code notes that a shared store such as Redis would fix this.</p>
+<p><strong>Who can do it.</strong> Not applicable; it applies to everyone.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/guards/rate-limiter.guard.ts</code> · <code>RateLimiterGuard</code> · <code>RateLimit</code> · <code>backend/src/lab-access/magic-links/magic-link-throttle.guard.ts</code></p>
+<h3 id="ch56-authentication-56-3-9-security-log">56.3.9 Security log</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Keeps a record of authentication events in the table <code>security_logs</code>: user, event type, IP address, user agent, session, success flag and a small metadata object.</p>
+<p><strong>What is written today.</strong> Successful sign-in, sign-out, sign-out everywhere, password change, password reset requested, password reset succeeded, and a failed sign-in only for suspended or deleted accounts. The event list in the code also names email verification, session, token, OAuth, account and suspicious-activity events, but nothing writes them yet. A wrong password does not produce a row.</p>
+<p><strong>What is missing.</strong> No endpoint or screen reads the security log, and no job deletes old rows, so it is a write-only record that can be queried in the database only.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/security-log.service.ts</code> · <code>SecurityLogService</code> · <code>backend/src/auth/enum/SecurityEventType.ts</code> · <code>backend/src/auth/entities/SecurityLog.ts</code></p>
+<h3 id="ch56-authentication-56-3-10-user-administration-and-staff-logins">56.3.10 User administration and staff logins</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets a super admin, an owner, or a user with the permission <code>admin.users.manage</code> create, edit, suspend and delete logins. The most common case is giving an existing employee a login.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>User Admin</strong> (<code>/users</code>) and click <strong>Create User</strong>.</li>
+<li>Choose the type. For Staff, pick the employee from the list of staff who have no login yet.</li>
+<li>Enter name, email and a password of at least 8 characters, and save.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>Profile of the caller</td>
+<td><code>GET /user/me</code></td>
+</tr>
+<tr>
+<td>List users by type (<code>super_admin</code>, <code>owner</code>, <code>employee</code>), paged</td>
+<td><code>GET /user</code></td>
+</tr>
+<tr>
+<td>Staff without a login</td>
+<td><code>GET /user/staff-candidates</code></td>
+</tr>
+<tr>
+<td>Create a user</td>
+<td><code>POST /user</code></td>
+</tr>
+<tr>
+<td>Edit a user (including status and password)</td>
+<td><code>PATCH /user/:id</code></td>
+</tr>
+<tr>
+<td>Delete a user</td>
+<td><code>DELETE /user/:id</code></td>
+</tr>
+</tbody></table></div><p>The table lists the user endpoints. The controller is context free and checks access itself: a super admin may act with or without an organization; anyone else must send an organization header and hold <code>admin.users.manage</code> at their location.</p>
+<p>A <strong>staff login</strong> (type <code>employee</code>) runs in one transaction that locks the employee&#39;s active assignments in the organization. It refuses an employee who already has a login (409 &quot;This employee already has a login&quot;) and an email already in use. It creates the user, then links the user to all of the employee&#39;s active assignments and switches portal access on for them. The login grants no permission by itself: what the person can do comes from the role of each assignment (Chapter 11). Changing assignments bumps the organization&#39;s access version, so the change reaches open tabs (Chapter 57).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only a super admin can create or edit a super admin. Only an owner can add, edit or delete another owner.</li>
+<li>A non-super-admin manager may touch only users of their own organization, never a super admin, and cannot elevate a user to super admin.</li>
+<li>Creating a user checks the plan&#39;s login limit for the organization (error code <code>PLAN_LIMIT</code>); super admins may exceed it.</li>
+<li>Delete is a soft delete: the status becomes <code>deleted</code>, a deletion time is set and every session of the user is revoked.</li>
+<li>Passwords created here need 8 characters, which is stricter than the 6 required elsewhere.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin, owner, or <code>admin.users.manage</code> (high-risk; the Admin system role holds it).</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>organization_ownership</code>, <code>employee_org_location_assignments</code>.</p>
+<p><strong>Error cases.</strong> 403 for the manager-scope rules in this list; 409 existing login; 400 duplicate email.</p>
+<p><strong>Technical references:</strong> <code>backend/src/user/user.controller.ts</code> · <code>UserService.createUser</code> · <code>createStaffLogin</code> · <code>staffCandidates</code> · <code>web-app/src/features/users/</code> · <code>web-app/src/routes/users.tsx</code></p>
+<h3 id="ch56-authentication-56-3-11-sign-in-with-google-or-github">56.3.11 Sign-in with Google or GitHub</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The code for Google and GitHub sign-in exists but is <strong>disabled</strong>: neither the controller nor the two strategies are registered in the authentication module, so the <code>/auth/google</code> and <code>/auth/github</code> routes do not exist. The user table has a <code>provider</code> field and an <code>oauth_providers</code> table, and the service has an OAuth login method, but none of it can be reached. To switch it on, a developer would register the three classes, read callback addresses from the environment and add the routes to the public route list. The Platform therefore supports email and password only.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/oauth.controller.ts</code> · <code>backend/src/auth/auth.module.ts</code> · <code>AuthService.handleOAuthLogin</code></p>
+<h3 id="ch56-authentication-56-3-12-the-first-super-admin">56.3.12 The first super admin</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p>There is no screen, command or seed that creates a super admin. The usual path is to register an account and then set <code>users.global_role</code> to <code>super_admin</code> directly in the database (Chapter 7, section 7.5, gives the steps). After that, other super admins can be created from User Admin. A super admin signs in, chooses any active organization, and may open the setup pages (Organizations, Locations, Lab Directory, Config Studio, Subscriptions) even before choosing a location.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/enums/global-role.enum.ts</code> · <code>web-app/src/routes/__root.tsx</code> · <code>SUPER_ADMIN_SETUP_PATHS</code></p>
+<h2 id="ch56-authentication-56-4-entities">56.4 Entities</h2>
+<p>The tables involved are <code>users</code>, <code>user_sessions</code>, <code>security_logs</code> and the unused <code>oauth_providers</code>; Chapter 13 describes them column by column. In short: each session belongs to exactly one user and is deleted if the user row is deleted; a security log row points to a user but is kept (the link is set to null) if the user is removed; a user is linked to organizations as an owner through the ownership table and to employees through assignments.</p>
+<h2 id="ch56-authentication-56-5-password-rules">56.5 Password rules</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Where</th>
+<th>Minimum length</th>
+</tr>
+</thead><tbody><tr>
+<td>Register, login, change password, reset password</td>
+<td>6 characters</td>
+</tr>
+<tr>
+<td>Create user in User Admin</td>
+<td>8 characters</td>
+</tr>
+</tbody></table></div><p>The table shows the lengths the API enforces. There is no rule about letters, digits or symbols, no list of banned passwords and no expiry. The sign-up and reset pages show a strength meter, but it only advises. Passwords are stored as bcrypt hashes with 12 rounds and are never returned by the API.</p>
+<h2 id="ch56-authentication-56-6-limitations-and-known-gaps">56.6 Limitations and known gaps</h2>
+<ul>
+<li>Revoking a session does not cancel an access token that was already issued; it works until it expires, at most 15 minutes.</li>
+<li>Rate-limit counters are per process and lost on restart.</li>
+<li>The security log has no reader and no clean-up; failed password attempts are not recorded.</li>
+<li>No two-factor authentication, no password strength enforcement and no lockout of an account after repeated failures.</li>
+<li>Session rows are never deleted, only flagged.</li>
+</ul>
+<h2 id="ch56-authentication-56-7-owner-39-s-faq">56.7 Owner&#39;s FAQ</h2>
+<p><strong>How long does a sign-in last?</strong> One day by default and 30 days when &quot;Keep me signed in for 30 days&quot; is ticked. The length is fixed at sign-in; using the application does not extend it.</p>
+<p><strong>If an employee leaves, how do I cut off access at once?</strong> Set the user&#39;s status to suspended or delete the user in User Admin. Deleting revokes every session; a suspended user is refused at the next refresh. An access token already issued may still work for up to 15 minutes.</p>
+<p><strong>Can one person have several logins on different devices?</strong> Yes, up to five active sessions. A sixth sign-in revokes the oldest.</p>
+<p><strong>What happens if someone forgets their password?</strong> They use &quot;Forgot password?&quot;. The link lasts 15 minutes and a successful reset signs the user out of every device.</p>
+<p><strong>Can staff sign in with Google?</strong> No. That feature is built but disabled.</p>
+<p><strong>Where do I see failed sign-in attempts?</strong> Nowhere in the application today. Only the throttle protects the login route.</p>
+</section><section class="chapter" id="ch57-access-control"><h1 id="ch57-access-control-chapter-57-access-control-in-depth">Chapter 57 — Access control in depth</h1>
+<p>This chapter follows the Platform&#39;s access control from the first guard that sees a request to the last button hidden in the browser. It is written for the product owner, who needs to know where a permission is checked, how quickly a change reaches users and which protections do not exist. Chapter 11 explains the permission catalog, the system roles and the roles screen; this chapter does not repeat them and goes deeper into the mechanics. Customization screens (features, roles, sidebar, theme) are in Chapter 58.</p>
+<h2 id="ch57-access-control-57-1-the-idea-in-one-minute">57.1 The idea in one minute</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Access control answers four separate questions, in this order: Is this a real, signed-in user? Is this user allowed to work in this organization and location? Is the feature switched on for this clinic? Does the user&#39;s role hold the permission this action needs? A fifth check asks whether the clinic&#39;s subscription still allows writing. Each question is a global guard that runs before the controller. After the guards, two more mechanisms narrow what a person sees inside a permitted action: <strong>row scope</strong> (only own, location or organization rows) and <strong>field hiding</strong> (prices removed from a response). The browser repeats the same questions only to decide what to show; the server never trusts the browser.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>backend/src/access/</code> · <code>web-app/src/features/access/</code></p>
+<h2 id="ch57-access-control-57-2-the-five-guards-in-order">57.2 The five guards in order</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Five global guards run on every HTTP request, in a fixed order, and the first refusal stops the request (Chapter 5, section 5.4, lists them with their skip rules).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch57-guard-chain.png" alt="Figure 57.1 — The five global guards"></p>
+<p><em>Figure 57.1 — The five global guards in the order they run, with the refusal each can give.</em></p>
+<p>The flowchart reads from top to bottom. A Request enters guard 1, <code>JwtAuthGuard</code>, which asks whether the token is valid; if not, the answer is 401 and the request is refused. Guard 2, <code>TenantContextGuard</code>, asks whether the organization and location in the headers are allowed for this user; if not, the answer is 400 (headers missing) or 403. Guard 3, <code>FeatureFlagGuard</code>, asks whether the required feature is active; if not, 403. Guard 4, <code>AccessGuard</code>, asks whether the permission is held; if not, 403 with the code <code>NO_PERMISSION</code>. Guard 5, <code>SubscriptionGuard</code>, asks whether a write is allowed; if the subscription has expired the answer is 402. A request that passes all five reaches the handler, where row scope and field hiding apply. Every refusal leads to the same &quot;Refused&quot; box.</p>
+<p>The details that matter to an owner:</p>
+<ul>
+<li><strong>Guard 1 and public routes.</strong> <code>JwtAuthGuard</code> skips only the routes in a fixed public list (sign-in, register, refresh, password routes, email verification, logout, the public theme, the waiting-room display state and the lab magic links). Marking a handler <code>@Public()</code> is not enough on its own; the route must also be in that list.</li>
+<li><strong>Guard 2 and super admins.</strong> A super admin passes without headers. <code>@RequireSuperAdmin()</code> routes are checked here: anyone else gets 403 &quot;Super admin access required&quot;. <code>@ContextFree()</code> routes skip the tenant check, and the handler then checks access itself. The guard has no path-prefix exceptions. A user passes for an organization if they own it, or if they have an active assignment at that exact location with portal access on.</li>
+<li><strong>Guard 3 only runs for tagged routes.</strong> <code>@RequireFeature(&#39;key&#39;)</code> is needed only on routes that use <code>@AnyMember()</code>, because a permission already implies its feature (the access context drops permissions of inactive features).</li>
+<li><strong>Guard 4 attaches the access context.</strong> Whenever the request names an organization, it puts the resolved access context on the request for the handler, even on routes with no permission marker.</li>
+<li><strong>Guard 5 is read-only mode.</strong> It refuses writes with 402 <code>SUBSCRIPTION_EXPIRED</code> for a clinic whose subscription has lapsed. Reads, super admins and the paths for signing in, the account, <code>/me/</code> and subscription administration stay open.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/auth/guards/jwt.guard.ts</code> · <code>backend/src/auth/guards/tenant-context.guard.ts</code> · <code>backend/src/feature-flags/guards/feature-flag.guard.ts</code> · <code>backend/src/access/access.guard.ts</code> · <code>backend/src/subscriptions/subscription.guard.ts</code></p>
+<h2 id="ch57-access-control-57-3-the-decorators">57.3 The decorators</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Decorator</th>
+<th>Where</th>
+<th>What it means</th>
+<th>Enforced by</th>
+</tr>
+</thead><tbody><tr>
+<td><code>@Can(&#39;a&#39;, &#39;b&#39;)</code></td>
+<td>handler or controller</td>
+<td>Every listed permission is required; class-level and handler-level lists are merged</td>
+<td><code>AccessGuard</code></td>
+</tr>
+<tr>
+<td><code>@AnyMember()</code></td>
+<td>handler or controller</td>
+<td>Any active member of the location (owners and super admins too)</td>
+<td><code>AccessGuard</code></td>
+</tr>
+<tr>
+<td><code>@Public()</code></td>
+<td>handler or controller</td>
+<td>No sign-in required (plus the public route list)</td>
+<td>all guards skip</td>
+</tr>
+<tr>
+<td><code>@ContextFree()</code></td>
+<td>handler or controller</td>
+<td>No tenant headers needed; the handler checks access itself</td>
+<td><code>TenantContextGuard</code> skips</td>
+</tr>
+<tr>
+<td><code>@RequireSuperAdmin()</code></td>
+<td>handler or controller</td>
+<td>Platform operator only</td>
+<td><code>TenantContextGuard</code></td>
+</tr>
+<tr>
+<td><code>@RequireFeature(&#39;key&#39;)</code></td>
+<td>handler or controller</td>
+<td>The feature must be active; class and handler lists are merged</td>
+<td><code>FeatureFlagGuard</code></td>
+</tr>
+<tr>
+<td><code>@Access()</code></td>
+<td>handler parameter</td>
+<td>Injects the <code>AccessContext</code> of the request</td>
+<td>decorator</td>
+</tr>
+<tr>
+<td><code>@VisibleIf(&#39;perm&#39;)</code></td>
+<td>property of a response class</td>
+<td>The field is removed from the response unless the caller holds the permission</td>
+<td>global interceptor</td>
+</tr>
+</tbody></table></div><p>The table lists the eight decorators with their placement and meaning. The first five say who may call a handler. <code>@RequireFeature</code> adds a feature condition. <code>@Access()</code> and <code>@VisibleIf</code> are tools for handlers and response classes.</p>
+<p><strong>The coverage test.</strong> The test <code>access-coverage.spec.ts</code> loads every controller and fails if any handler lacks one of the markers <code>@Can</code>, <code>@AnyMember</code>, <code>@Public</code>, <code>@RequireSuperAdmin</code>, <code>@ContextFree</code> or an explicit <code>@UseGuards(...)</code>, or if any handler still uses the removed role decorator. Controllers under the path prefixes for authentication, sessions and health, and the hello endpoint, are exempt. This test is the safety net, because at runtime a handler with no marker passes the access guard.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/decorators/access.decorators.ts</code> · <code>backend/src/common/decorators/</code> · <code>backend/src/access/access-coverage.spec.ts</code></p>
+<h2 id="ch57-access-control-57-4-the-access-context">57.4 The access context</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>For each request that names an organization, <code>AccessResolver</code> builds an <code>AccessContext</code>: user id, organization, location, access version, super-admin flag, owner flag, member flag, employee id, active features, granted permissions (feature-filtered, with implied permissions expanded), the role and its home page. Owners and super admins receive every permission at its widest scope. Staff receive the permissions of the role on their assignment at the active location, and only if portal access is on for that assignment. A role that is inactive or belongs to another organization gives nothing. A missing key means no access.</p>
+<p>The context offers a small set of questions that code uses instead of role names:</p>
+<ul>
+<li><code>can(permission)</code> and <code>canAll([...])</code>: is it granted.</li>
+<li><code>scope(permission)</code>: <code>own</code>, <code>location</code> or <code>org</code>, or nothing. An unscoped grant reads as <code>org</code>.</li>
+<li><code>applyScope(queryBuilder, permission, columns)</code>: adds the row filter to a database query. With <code>own</code> it adds a condition on the caller&#39;s employee id (or a custom condition). With <code>location</code> it adds a condition on the active location. With <code>org</code> it adds nothing, because the organization filter is the caller&#39;s. With no grant, or when the caller has no employee record or no location to match, it adds a condition that matches no rows. If a developer forgets to name the column, it throws an error rather than silently showing nothing.</li>
+<li><code>decide(permission, { value, min, max, approvalFlow })</code>: returns allow, deny or &quot;needs approval&quot;. Inside the range the answer is allow; outside it, allow only when the caller holds the escalation permission (today: preset discounts are escalated by the custom-discount permission), otherwise needs approval when the clinic runs an approval flow, else deny.</li>
+</ul>
+<p><strong>Field hiding.</strong> A response class can mark a property <code>@VisibleIf(&#39;patients.price.view&#39;)</code>. A global interceptor removes that property from every instance in the response when the caller lacks the permission, and removes every guarded field when there is no access context. It works only on class instances, not on plain object literals.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.resolver.ts</code> · <code>backend/src/access/access-context.ts</code> · <code>AccessContext</code> · <code>backend/src/access/visible-if/visible-if.ts</code> · <code>backend/src/patients/access/patient-scope.ts</code></p>
+<h2 id="ch57-access-control-57-5-what-the-web-app-receives-get-me-access">57.5 What the web app receives: <code>GET /me/access</code></h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><code>GET /me/access</code> is a context-free route that checks membership itself. It needs the organization header and, for staff, the location header; without a location, staff roles give no permissions because roles are per location. It answers 400 without an organization, 403 when the caller has no access there. The answer has these parts: the access version; the organization and location ids; the super-admin and owner flags; the list of active feature keys; the granted permissions with their scope (or <code>true</code>); the roles (id, name and template key); the employee id; the home page; and the clinic&#39;s sidebar layout, which is null while the clinic uses the default. <code>GET /access/catalog</code> (needs <code>admin.roles.manage</code>) returns the catalog, bundles and role templates for the roles screen.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.controller.ts</code> · <code>MeAccessController</code> · <code>AccessCatalogController</code></p>
+<h2 id="ch57-access-control-57-6-in-the-browser">57.6 In the browser</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong><code>AccessProvider</code></strong> loads <code>/me/access</code> for the active organization and location. The data is fresh for 30 seconds and refetched when the window regains focus, when the realtime socket announces <code>access.changed</code> and after a reconnect.</li>
+<li><strong><code>useAccess()</code></strong> returns <code>can(permission)</code>, which takes one permission or a list and means any-of; <code>canAll(list)</code> for all-of; <code>scope(permission)</code>; feature checks; the owner and super-admin flags; the home page and the sidebar layout. The <code>&lt;Can perm=&quot;...&quot;&gt;</code> component wraps content the same way. When no payload exists yet for a super admin on a setup page, a fallback allows everything; a loaded payload is always the source of truth.</li>
+<li><strong>Route gate.</strong> Each route file declares <code>staticData: { can: ... }</code>. One component, <code>RouteAccessGate</code>, mounted in the root route (<code>__root.tsx</code>), reads the requirement of every matched route and shows the No access page when any requirement fails. While access is loading it shows a skeleton; if loading fails it shows &quot;Couldn&#39;t load your access&quot; with a retry button. Routes without a requirement pass.</li>
+<li><strong>Sidebar.</strong> The sidebar comes from a developer-owned registry of 39 items. Each item declares its own requirement: a permission (any-of), <code>superAdminOnly</code> (six items: Organizations, Subscriptions, Lab Directory, Form schemas, Workflows, Stage templates), <code>labMember</code> (the Lab portal item) and <code>ownerOrSuperAdmin</code> (the flag exists but no item uses it today). The clinic&#39;s saved layout only arranges, renames and hides these items; items a user may not open are removed before display. Registry items that the layout forgot appear in a trailing &quot;More&quot; section so a new page never disappears silently.</li>
+<li><strong>Home page.</strong> After sign-in, the role&#39;s home page is used, then the clinic&#39;s home page, and the page is opened only if the user passes the same sidebar and route checks; otherwise the Dashboard opens.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/no-access-page.jpg" alt="Figure 57.2 — The No access page"></p>
+<p><em>Figure 57.2 — The No access page shown when a role lacks the permission of the page.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name of the product in the corner; the product is now called the Platform and each clinic sets its own name. A test user in a custom role opened a page their role does not allow. The sidebar is short: Dashboard, and under &quot;Clinic&quot; only Patients and Appointments, with Settings and the user at the bottom. The main area is titled &quot;No access&quot; and shows a shield icon, a Roman-Urdu headline meaning that the user has no permission for this page, an English sentence saying the user does not have permission and should ask the clinic owner to add the page to their role, and a button, &quot;Go to my home page&quot;. The user can click the button to go to the role&#39;s home page, or to the Dashboard if the role has none.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/access/components/AccessProvider.tsx</code> · <code>RouteAccessGate.tsx</code> · <code>NoAccess.tsx</code> · <code>web-app/src/features/access/lib/access.ts</code> · <code>web-app/src/features/access/nav/nav.registry.ts</code> · <code>resolveNav.ts</code> · <code>homeRoute.ts</code> · <code>web-app/src/routes/__root.tsx</code></p>
+<h2 id="ch57-access-control-57-7-how-fast-a-change-reaches-users">57.7 How fast a change reaches users</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Each organization has a counter, <code>organizations.access_version</code>. It is raised by one after any committed change that can alter someone&#39;s access: employment roles (any column), assignments (role, location, organization, active flag, portal access or linked login), organization feature flags, ownership, location feature overrides and sidebar layout changes. An entity subscriber does this automatically for writes made through the data layer, once per transaction after the commit and never on rollback. Code that uses raw SQL or database cascades must bump explicitly; the employee delete path does.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch57-access-change-sequence.png" alt="Figure 57.3 — From a role change to every open tab"></p>
+<p><em>Figure 57.3 — Sequence from an owner&#39;s role change to the refreshed browser tabs.</em></p>
+<p>The diagram has six participants: the Owner, the API process, PostgreSQL, the <code>AccessChangeBus</code>, the <code>QueueGateway</code> and a Staff browser tab. (1) The owner saves a role change. (2) The API commits the role row. (3) The API increments <code>access_version</code> of the organization. (4) The API publishes the organization id and new version to the bus. (5) The bus drops cached access contexts of that organization. (6) It notifies listeners in this process and, through Redis, in the other processes. (7) The gateway emits <code>access.changed</code> to the organization&#39;s room. (8) The browser tab calls <code>GET /me/access</code>. (9) The API answers with new permissions and features. (10) The sidebar and buttons update and the route gate checks again.</p>
+<p>The timing rules are:</p>
+<ul>
+<li><strong>Version cache.</strong> Each process caches the current version of an organization for 15 seconds. The bus updates it at once in every process that hears the change.</li>
+<li><strong>Context cache.</strong> Access contexts are cached in process memory, at most 10,000, for at most 5 minutes, keyed by user, organization, location and version. A new version means a new key, so stale entries are never used.</li>
+<li><strong>Redis.</strong> One Redis channel carries access-change messages between API and worker processes. If Redis is down, only the process that made the change learns at once; the others catch up within 15 seconds, when their cached version expires.</li>
+<li><strong>Feature cache.</strong> The enabled-feature set is cached for a short time and dropped by the same bus.</li>
+<li><strong>Browser.</strong> Open tabs refetch when told, on focus, and in any case after 30 seconds of staleness.</li>
+</ul>
+<p>In practice, an owner&#39;s change reaches other staff within seconds, and within 15 seconds even when Redis is unavailable. A person who is already inside a permitted request is not interrupted.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/version/access-version.service.ts</code> · <code>AccessVersionService</code> · <code>access-version.subscriber.ts</code> · <code>access-change-bus.ts</code> · <code>web-app/src/features/access/hooks/useAccessSocket.ts</code></p>
+<h2 id="ch57-access-control-57-8-the-lab-portal-is-a-separate-door">57.8 The lab portal is a separate door</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Lab staff do not use the clinic guards for their screens. Every lab portal controller uses its own <code>LabPortalGuard</code> after the global guards (which skip these routes as context free). It rejects any request carrying clinic headers (400 <code>LAB_PORTAL_CLINIC_CONTEXT</code>), so lab and clinic scopes cannot mix. It requires an active membership of an active lab; the lab is named by an <code>x-lab-id</code> header, or is the user&#39;s only lab (several labs without a header gives 400 <code>LAB_SELECTION_REQUIRED</code>). Another lab&#39;s id looks exactly like a lab that does not exist (403 <code>LAB_ACCESS_DENIED</code>). A lab role list on the handler (lab admin or technician) is checked against the membership. Super admins hold no lab membership and are refused. Chapter 41 describes the portal itself.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.guard.ts</code> · <code>LabPortalGuard</code> · <code>backend/src/labs/portal/lab-memberships.ts</code></p>
+<h2 id="ch57-access-control-57-9-row-level-security-does-not-exist">57.9 Row-level security does not exist</h2>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The database has no row-level security policies. Tenant isolation is enforced by the application: handlers filter every query by the organization (and often the location) taken from the validated tenant context, and by <code>applyScope</code> for own, location and organization reach. A bug in a query that forgets the organization filter would therefore not be stopped by the database. The safeguards are the coverage test, the single <code>@ActiveTenant()</code> source of the organization, and code review. Chapter 8 describes the tenant model.</p>
+<h2 id="ch57-access-control-57-10-limitations-and-known-gaps">57.10 Limitations and known gaps</h2>
+<ul>
+<li>Tenant isolation is application-level only (section 57.9).</li>
+<li>A handler without a marker passes the access guard at runtime; only the coverage test prevents it.</li>
+<li>Contexts and version numbers are cached in process memory; with Redis down, other processes may lag up to 15 seconds.</li>
+<li>An access token already issued is not re-checked against the session; permissions, however, are checked on every request from the access context, so a role change takes effect without a new token.</li>
+<li>The <code>ownerOrSuperAdmin</code> sidebar flag is unused today.</li>
+</ul>
+<h2 id="ch57-access-control-57-11-owner-39-s-faq">57.11 Owner&#39;s FAQ</h2>
+<p><strong>I removed a permission from a role. When does it stop working?</strong> Within seconds for open screens (the browser is told over the realtime connection) and on the next request on the server. At worst 15 seconds if the message bus is down.</p>
+<p><strong>A user opens a page by typing its address. Can they bypass the sidebar?</strong> No. The route gate shows No access and the API refuses the data calls with 403 <code>NO_PERMISSION</code>. Hiding a sidebar item is cosmetic; the checks are the permission on the route and on the API.</p>
+<p><strong>Does the sidebar layout give anyone access?</strong> Never. The layout only arranges pages the registry knows; every item still needs the viewer&#39;s permission.</p>
+<p><strong>Can the database stop one clinic seeing another&#39;s data?</strong> Not by itself. The application filters every query by organization; there are no database row-level policies.</p>
+<p><strong>Who can see which patients?</strong> The scope of <code>patients.view</code>: a doctor sees own patients, front desk sees the location, an admin sees the organization (Chapter 11).</p>
+<p><strong>What does 402 mean?</strong> The clinic&#39;s subscription expired; the clinic is read-only until a payment is recorded (Chapter 45).</p>
+</section><section class="chapter" id="ch58-customization"><h1 id="ch58-customization-chapter-58-clinic-customization">Chapter 58 — Clinic customization</h1>
+<p>This chapter describes how a clinic shapes the Platform to its own way of working: which features are on, which roles exist and what they may do, how the sidebar is arranged, how the application looks, and where each role starts. It is written for the product owner, who needs to know what an owner can change without a developer and what only the platform team can change. Four setup screens carry this work: Features, Roles and permissions, Sidebar and Branding and theme. The permission model behind them is in Chapters 10 and 11 and the access mechanics are in Chapter 57; this chapter restates what is needed and describes the screens.</p>
+<h2 id="ch58-customization-58-1-the-four-setup-screens">58.1 The four setup screens</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Screen</th>
+<th>Route</th>
+<th>Sidebar label (section &quot;Clinic setup&quot;)</th>
+<th>Permission to open</th>
+</tr>
+</thead><tbody><tr>
+<td>Features</td>
+<td><code>/admin/features</code></td>
+<td>Features</td>
+<td><code>admin.features.manage</code></td>
+</tr>
+<tr>
+<td>Roles</td>
+<td><code>/admin/roles</code></td>
+<td>Roles &amp; permissions</td>
+<td><code>admin.roles.manage</code></td>
+</tr>
+<tr>
+<td>Sidebar builder</td>
+<td><code>/admin/navigation</code></td>
+<td>Sidebar</td>
+<td><code>admin.nav.manage</code></td>
+</tr>
+<tr>
+<td>Branding and theme</td>
+<td><code>/admin/theme</code></td>
+<td>Theme</td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+</tbody></table></div><p>The table lists the four screens, their routes, the labels in the sidebar and the permission each route needs. The owner always has all four permissions. The Admin system role holds them by default. Every save on these screens increases the organization&#39;s access version or invalidates the settings cache, so changes reach other users quickly (Chapter 57, section 57.7).</p>
+<p><strong>Technical references:</strong> <code>web-app/src/routes/admin.features.tsx</code> · <code>admin.roles.index.tsx</code> · <code>admin.navigation.tsx</code> · <code>admin.theme.tsx</code> · <code>web-app/src/features/access/nav/nav.registry.ts</code></p>
+<h2 id="ch58-customization-58-2-features-screen">58.2 Features screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner switch the features in the clinic&#39;s plan on or off for the whole clinic, or switch one off at a single location. A feature is only available if the platform team has <strong>entitled</strong> the clinic to it; the owner then decides whether it is <strong>enabled</strong>; and a <strong>location override</strong> can switch it off at one branch. Chapter 10 describes the three switches and the catalog in full.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-features-page.svg" alt="Figure 58.1 — Features screen"></p>
+<p><em>Figure 58.1 — Features screen (screenshot pending).</em></p>
+<p>The page is titled &quot;Features&quot; with the subtitle &quot;Turn the features in your plan on or off for the clinic, or for one location.&quot; Features are listed in rows, each with a name, a switch and a button that opens the locations sheet. A filter row narrows the list. Features the clinic is not entitled to cannot be switched on. If there are no features the page says &quot;No features yet&quot; and that the platform has not set up any features for the clinic.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Features</strong> in the sidebar.</li>
+<li>Move a switch to turn a feature on or off. Turning a feature off first opens a dialog titled &quot;Turn off <feature>?&quot; that lists the permissions the feature carries and the roles that will lose them. This is the <strong>impact preview</strong>.</li>
+<li>Click <strong>Turn off</strong> to confirm.</li>
+<li>To switch a feature off for one branch only, open the locations sheet and move the switch of that location.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>List features for the clinic</td>
+<td><code>GET /admin/features</code></td>
+</tr>
+<tr>
+<td>Impact of turning one off</td>
+<td><code>GET /admin/features/:key/impact</code></td>
+</tr>
+<tr>
+<td>Switch on or off</td>
+<td><code>PATCH /admin/features/:key</code></td>
+</tr>
+<tr>
+<td>Switch off or on at one location</td>
+<td><code>PUT /admin/features/:key/locations/:locationId</code></td>
+</tr>
+</tbody></table></div><p>The table lists the four endpoints; all need <code>admin.features.manage</code>. The impact call returns the catalog permissions the feature carries and, for each active role of the organization that grants any of them, the permissions it would lose. Turning on a feature the clinic is not entitled to gives 403 <code>NOT_ENTITLED</code>. Every change writes an <code>audit_logs</code> row; a super admin acting inside a clinic is recorded as the platform.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/admin-features.controller.ts</code> · <code>FeatureAdminService.getImpact</code> · <code>web-app/src/features/feature-settings/</code></p>
+<h2 id="ch58-customization-58-3-roles-builder">58.3 Roles builder</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner (or anyone with <code>admin.roles.manage</code>) create custom roles, copy a system role, choose a level for each module, set a home page and see members. Chapter 11, section 11.5, describes the rules in detail: escalation protection, reason for high-risk grants, read-only system roles, unique names and the ban on deleting a role that has members.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/roles-editor.jpg" alt="Figure 58.2 — The role editor"></p>
+<p><em>Figure 58.2 — The role editor for a custom role, showing None, Basic and Full per module.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name of the product in the corner. It shows a custom role open in the editor. The header holds the role name and the actions Delete, Clone, Discard and Save changes. Three tabs sit under it: Permissions, Home page and Members. On the Permissions tab each module has a row with three level buttons, None, Basic and Full, and an Advanced control that opens the module&#39;s full permission list with a check box and, for scoped permissions, a scope selector. A module whose permissions match no level exactly shows Custom. The left sidebar shows the full owner menu.</p>
+<p><strong>What the levels mean.</strong> <strong>None</strong> grants nothing from the module. <strong>Basic</strong> grants an everyday set. <strong>Full</strong> grants every permission of the module at its widest scope. <strong>Advanced</strong> lets the owner tick individual permissions. <strong>Clone</strong> copies any role, including a system role, with the same permissions and home page, and moves nobody to the copy. <strong>Members</strong> lists the employees who hold the role, per location; roles are assigned on each employee&#39;s page.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employment-roles.admin.controller.ts</code> · <code>backend/src/access/catalog/bundles.ts</code> · <code>web-app/src/features/roles/</code></p>
+<h2 id="ch58-customization-58-4-per-role-home-page">58.4 Per-role home page</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sets the page a member of the role lands on after signing in. The five system roles have defaults (Admin: dashboard; Doctor: the doctor&#39;s queue; Receptionist and Assistant: appointments; Accountant: billing).</p>
+<p><strong>How the user does it.</strong> Open a custom role, choose the <strong>Home page</strong> tab, pick a page in the &quot;Page&quot; list and save. The clinic as a whole can also set a <strong>Clinic home page</strong> on the Sidebar screen; it is used when the role sets none.</p>
+<p><strong>Rules and validations.</strong> The value must be an in-app path starting with a single slash, with no address or scheme. At sign-in the web app uses the role&#39;s page, then the clinic&#39;s page, then the Dashboard; the page opens only if the user passes the permission checks for it, otherwise the Dashboard opens. A home page never widens access.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/roles/components/HomePageTab.tsx</code> · <code>web-app/src/features/access/nav/homeRoute.ts</code> · <code>backend/src/access/nav/nav-layout.dto.ts</code></p>
+<h2 id="ch58-customization-58-5-sidebar-builder">58.5 Sidebar builder</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner rename, hide, group and reorder the pages in the sidebar for the whole clinic. Each person still sees only the pages they may open, so the layout can never give access.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-sidebar-builder.svg" alt="Figure 58.3 — Sidebar builder"></p>
+<p><em>Figure 58.3 — Sidebar builder (screenshot pending).</em></p>
+<p>The page is titled &quot;Sidebar&quot; with the subtitle &quot;Rename, hide and reorder the pages in your clinic&#39;s sidebar. Each person still sees only the pages they have access to.&quot; A line at the top says whether the clinic uses the standard sidebar or a custom one, or that there are unsaved changes. The buttons are <strong>Discard changes</strong> (when dirty), <strong>Reset to default</strong> and <strong>Save</strong>. A &quot;Clinic home page&quot; selector (default: Dashboard) comes first. The editor is a drag-and-drop area of sections; each section has a label that can be renamed, can contain pages and collapsible groups, and has a remove button. An <strong>Add section</strong> button adds a section. Pages that are not in any section wait in a tray called &quot;Not placed&quot;. Each page can be renamed inline, hidden with a toggle, or dragged to another place. On the right, a live preview shows the sidebar as the owner would see it, with a note that other roles see only their pages. Leaving with unsaved changes asks &quot;Leave without saving?&quot;.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Sidebar</strong> under Clinic setup.</li>
+<li>Drag pages between sections or the tray, rename sections and pages, hide pages, add groups.</li>
+<li>Choose a clinic home page.</li>
+<li>Click <strong>Save</strong>. To undo everything, click <strong>Reset to default</strong> and confirm; sections, renames, hidden pages and the clinic home page are removed.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong> The layout is stored as one JSON document per organization in <code>nav_layouts</code>; a column for a role exists but only the clinic default is written today. Endpoints (all need <code>admin.nav.manage</code>): <code>GET /admin/navigation</code> (null while the clinic uses the default), <code>PUT /admin/navigation</code> and <code>DELETE /admin/navigation</code>. Saving and resetting bump the access version and write an audit row.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>At most 20 sections; labels at most 40 characters; at most 100 items in a list.</li>
+<li>Item keys must look like <code>nav.something</code>; no key may appear twice anywhere.</li>
+<li>A section entry is either a link (a key) or a group (a label and items, no key).</li>
+<li>The home route must be an in-app path.</li>
+<li>Footer items (Settings) stay pinned and cannot be arranged.</li>
+<li>Pages the layout forgets appear in a &quot;More&quot; section, so nothing disappears by accident.</li>
+</ul>
+<p><strong>Data read and written.</strong> <code>nav_layouts</code>, <code>audit_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/nav/nav-layouts.controller.ts</code> · <code>NavLayoutsService</code> · <code>nav-layout.dto.ts</code> · <code>web-app/src/features/nav-builder/</code> · <code>web-app/src/features/access/nav/resolveNav.ts</code></p>
+<h2 id="ch58-customization-58-6-sidebar-registry-flags">58.6 Sidebar registry flags</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The list of pages that can appear is owned by developers in <code>nav.registry.ts</code>: 39 items. The clinic&#39;s layout only arranges them. Each item has one requirement: a permission or list of permissions (any-of), <code>superAdminOnly</code> (Organizations, Subscriptions, Lab Directory, Form schemas, Workflows and Stage templates), <code>labMember</code> (Lab portal) or <code>ownerOrSuperAdmin</code> (defined but unused). Section 57.6 describes how the sidebar is filtered. Adding a new page needs a code change; the owner cannot create sidebar items.</p>
+<h2 id="ch58-customization-58-7-theme-and-branding">58.7 Theme and branding</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Controls the clinic&#39;s name, logos, brand colour, sidebar style and default light or dark mode, for staff screens, the login page and printouts.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-theme-builder.svg" alt="Figure 58.4 — Branding and theme"></p>
+<p><em>Figure 58.4 — Branding and theme (screenshot pending).</em></p>
+<p>The page is titled &quot;Branding &amp; theme&quot; with the subtitle &quot;Your clinic&#39;s name, logo, colours and look — for staff screens, the login page and printouts.&quot; It has a back link to Settings and a button that opens the per-location sheet. The controls are on the left and a live preview is on the right. The controls are: Clinic name; Logo (light); Logo (dark); Browser tab icon; Brand colour; Sidebar style; Default mode. Each can carry a lock switch labelled &quot;Locations can&#39;t override&quot;. Buttons are <strong>Save theme</strong> (enabled only when the form changed and is valid) and a reset button that asks &quot;Reset to default?&quot;.</p>
+<p><strong>The seven keys.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Key</th>
+<th>Meaning</th>
+<th>Allowed values</th>
+<th>Scopes that may set it</th>
+</tr>
+</thead><tbody><tr>
+<td><code>theme.app_name</code></td>
+<td>Clinic name shown in the application (default &quot;Clinic Portal&quot;)</td>
+<td>1 to 60 characters</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.logo_url</code></td>
+<td>Light-mode logo</td>
+<td>http or https address</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.logo_dark_url</code></td>
+<td>Dark-mode logo</td>
+<td>http or https address</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.favicon_url</code></td>
+<td>Browser tab icon</td>
+<td>http or https address</td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.brand_color</code></td>
+<td>Brand colour (default blue)</td>
+<td><code>#rrggbb</code></td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.sidebar_style</code></td>
+<td>Sidebar look</td>
+<td>light, dark or brand</td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.default_mode</code></td>
+<td>Starting mode</td>
+<td>light, dark or system</td>
+<td>organization</td>
+</tr>
+</tbody></table></div><p>The table lists the seven theme keys with their meaning, allowed values and the levels that may set them. Only the name and the two logos can differ per location. The platform level may set any key. Each key can be locked by the platform for organizations, or by the organization for its locations.</p>
+<p><strong>The cascade.</strong></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch58-theme-cascade.png" alt="Figure 58.5 — How the theme is resolved"></p>
+<p><em>Figure 58.5 — The theme cascade from code default to the effective theme, with locks.</em></p>
+<p>The flowchart reads from top to bottom. The code default (for example the name &quot;Clinic Portal&quot;) feeds the Platform value set by the super admin. That feeds the Organization value set by an owner with <code>admin.theme.manage</code>. That feeds the Location value, which may set only the name and logos. The last box is the effective theme returned by <code>GET /theme</code>. Two dotted arrows from the Platform and Organization boxes straight to the effective theme show that a lock stops the walk: a value locked at a higher level wins over anything set lower down.</p>
+<p><strong>Logos.</strong> A logo is uploaded with <code>POST /uploads</code>, which accepts one file up to 15 MB; the theme screen accepts images up to 2 MB and stores the returned address as the value.</p>
+<p><strong>Brand colour contrast check.</strong> When the owner picks a colour, the screen checks it against accessibility rules. It warns if the button text on the colour has less than 4.5 to 1 contrast, and warns if the colour on a white page has less than 3 to 1 (links and outlines will be hard to see, and a darker shade is used for brand text). When both pass, the screen says &quot;Contrast OK&quot; with the ratio. The warning is advice; it does not block saving.</p>
+<p><strong>Public theme for the login page.</strong> <code>GET /public/theme/:organizationId</code> (optionally with a location) is public and returns theme tokens only, nothing else about the clinic. An unknown organization gets the platform theme. The login page learns which clinic to show from an organization parameter in the address or from the last clinic used in that browser. The browser also keeps a copy of the last theme and its colours so the loading screen is on-brand before the server answers; local storage is used only for this convenience.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-location-branding.svg" alt="Figure 58.6 — Location branding"></p>
+<p><em>Figure 58.6 — Location branding (screenshot pending).</em></p>
+<p>The sheet is titled &quot;Location branding&quot; with the text &quot;A branch can show its own name and logo. Empty fields use the clinic&#39;s.&quot; It opens from the button on the theme page. A &quot;Location&quot; list chooses the branch, then an &quot;Overrides&quot; section holds &quot;Name at this location&quot;, &quot;Logo (light)&quot; and &quot;Logo (dark)&quot;. Saving applies the override; empty fields inherit.</p>
+<p><strong>Endpoints.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Permission</th>
+</tr>
+</thead><tbody><tr>
+<td>Resolved theme for the signed-in clinic</td>
+<td><code>GET /theme</code></td>
+<td>any member</td>
+</tr>
+<tr>
+<td>Organization view and save</td>
+<td><code>GET</code> and <code>PUT /admin/theme</code></td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+<tr>
+<td>Location view and save</td>
+<td><code>GET</code> and <code>PUT /admin/theme/location/:locationId</code></td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+<tr>
+<td>Platform view and save</td>
+<td><code>GET</code> and <code>PUT /platform/theme</code></td>
+<td>super admin</td>
+</tr>
+<tr>
+<td>Public theme</td>
+<td><code>GET /public/theme/:organizationId</code></td>
+<td>none</td>
+</tr>
+</tbody></table></div><p>The table lists the endpoints. A write sends values by short key (a null or empty text clears the value, which inherits) and optional locks (organization and platform only; a location cannot lock). Values are validated by the registry&#39;s schema for each key. A write to a key locked higher up fails with 403 <code>SETTING_LOCKED</code>. The write takes a row lock, increases the row&#39;s version, writes an audit row and invalidates the settings cache in every process through Redis; without Redis the other processes catch up within the 60-second cache time.</p>
+<p><strong>Data read and written.</strong> <code>config_values</code> (one row per scope, scope id and key, with the value, a lock flag, a version and the editor), <code>audit_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/settings-registry/theme/theme.controller.ts</code> · <code>ThemeService</code> · <code>theme.settings.ts</code> · <code>backend/src/settings-registry/settings-registry.service.ts</code> · <code>SettingsRegistryService</code> · <code>web-app/src/features/theme/</code> · <code>web-app/src/features/theme/lib/color.ts</code></p>
+<h2 id="ch58-customization-58-8-settings-registry">58.8 Settings registry</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<p>The settings registry (<code>config_values</code>) is the general store for new settings with the platform, organization and location cascade and locks. Today only the seven theme keys are defined in it. Older settings live in their own typed tables, for example the queue policies and the location billing settings, and keep working unchanged. The code does not move them into the registry.</p>
+<h2 id="ch58-customization-58-9-limitations-and-known-gaps">58.9 Limitations and known gaps</h2>
+<ul>
+<li>The sidebar layout is per clinic only; per-role layouts are not written yet (the column exists).</li>
+<li>The owner cannot add new sidebar pages or permissions; both are fixed in code.</li>
+<li>Only the name and logos can be customized per location.</li>
+<li>The brand colour check is advice, not a rule.</li>
+<li>Fonts, spacing and corner radius cannot be customized.</li>
+</ul>
+<h2 id="ch58-customization-58-10-owner-39-s-faq">58.10 Owner&#39;s FAQ</h2>
+<p><strong>Who can switch a feature on that my plan does not include?</strong> Only the platform team, by entitling it. The owner can only enable features the clinic is entitled to.</p>
+<p><strong>If I hide a page in the sidebar, can people still open it?</strong> Yes, by address, if their role allows it. Hiding is cosmetic; use roles to remove access.</p>
+<p><strong>Can each branch have its own logo?</strong> Yes. Each branch can have its own name and light and dark logos; the colour and mode are clinic wide.</p>
+<p><strong>Why can I not change the colour?</strong> The platform team may have locked that key for clinics. The screen marks such a key as locked at a higher level.</p>
+<p><strong>Where do I set what a role sees first?</strong> On the role&#39;s Home page tab. The clinic-wide fallback is on the Sidebar screen.</p>
+<p><strong>What happens to people when I turn a feature off?</strong> They lose the permissions that belong to the feature at once, and the dialog before you confirm lists the roles affected.</p>
+</section><section class="chapter" id="ch59-notification-mechanics"><h1 id="ch59-notification-mechanics-chapter-59-notification-mechanics">Chapter 59 — Notification mechanics</h1>
+<p>This chapter explains how a notification travels inside the Platform, from the business event that causes it to the bell icon where a staff member reads it. It is written for the product owner who wants to understand the pipeline and its guarantees. The Notifications module chapter (Chapter 44) describes the settings screen, the event catalog and what users see; this chapter covers only the mechanics. Today the Platform delivers notifications <strong>in the application only</strong>: WhatsApp, SMS and email are prepared in the code but have no real sender.</p>
+<h2 id="ch59-notification-mechanics-59-1-the-pipeline">59.1 The pipeline</h2>
+<p><strong>Status:</strong> [Implemented] for in-app delivery. [Not implemented] for WhatsApp, SMS and email.</p>
+<p>A <strong>notification event</strong> is a named thing that happens, such as <code>order.submitted</code> or <code>item.ready</code> (21 are seeded, all about lab orders, shipments, stages, appointments linked to labs and payments). When a workflow step runs the <code>notify</code> effect, the Platform decides who should be told, whether each person wants it, what the message says and when it may be sent. The result is one row per person and channel in a table called <code>notification_outbox</code>. A separate loop in the worker process sends those rows later. This is the <strong>transactional outbox</strong> pattern: the notification row is written in the same database transaction as the business change, so it exists only if the change was committed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch59-pipeline.png" alt="Figure 59.1 — The notification pipeline"></p>
+<p><em>Figure 59.1 — The path of a notification from the business event to the inbox.</em></p>
+<p>The flowchart reads from top to bottom. A &quot;Business event&quot; (for example <code>order.submitted</code>) triggers the &quot;notify effect&quot;, which runs inside the transaction of the change. The effect asks the &quot;Recipient resolver&quot; for the audiences and people to tell. For each person and channel a &quot;Decision&quot; step applies the switches, the patient&#39;s opt-out and quiet hours. A &quot;Template&quot; step renders the message, filling placeholders. The result is stored in the database table <code>notification_outbox</code>, one row per person and channel. The &quot;Relay in the worker&quot;, woken by a database NOTIFY and by a two-second poll, claims due rows. The &quot;In-app provider&quot; writes the user&#39;s copy into <code>user_notifications</code>, which is the bell inbox. A second branch, the &quot;Dev log provider&quot;, handles WhatsApp, SMS and email by writing the message to the server log instead of sending it.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/services/notification.service.ts</code> · <code>NotificationService.enqueue</code> · <code>backend/src/notifications/effects/notify.effect.ts</code> · <code>backend/src/notifications/delivery/</code></p>
+<h2 id="ch59-notification-mechanics-59-2-event-recipients-and-audiences">59.2 Event, recipients and audiences</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The <code>notify</code> effect names an event code (and may narrow the audiences). An unknown code fails the whole transition, so a typo can never silently drop messages. Who receives the message is decided by a <strong>recipient resolver</strong> registered per kind of subject: the module that owns the subject says how to find its doctor, coordinator, lab and patient. Today only the lab order workflow registers one, so lab events are the only ones that produce notifications.</p>
+<p>There are four <strong>audiences</strong>: patient (the only external audience), doctor, coordinator and lab. A recipient is a user (a signed-in person), a patient or a lab contact. The same person listed twice, or under two audiences, gets one row per channel. If an event is not meant for an audience, enqueueing for it fails with <code>NOTIFICATION_AUDIENCE_INVALID</code>. A patient is looked up in the same organization, so a clinic can never message another clinic&#39;s patient.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/effects/notification-recipients.registry.ts</code> · <code>NotificationRecipientsRegistry</code> · <code>backend/src/notifications/notifications.enums.ts</code></p>
+<h2 id="ch59-notification-mechanics-59-3-rules-and-the-decision-order">59.3 Rules and the decision order</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>For every recipient and channel the Platform makes one decision. The first check that matches wins:</p>
+<ol>
+<li>An internal audience with a mandatory event on the in-app channel is queued, ignoring settings.</li>
+<li>If the audience&#39;s master switch is off, the row is stored as <code>skipped_disabled</code>.</li>
+<li>If the rule for this event and channel is off, it is <code>skipped_disabled</code>.</li>
+<li>If the patient opted out of the channel, it is <code>skipped_opt_out</code>.</li>
+<li>If the time is inside the audience&#39;s quiet hours (and the channel is not in-app), it is <code>held_quiet_hours</code> until the window ends.</li>
+<li>Otherwise it is <code>queued</code> for now.</li>
+</ol>
+<p>Skipped rows are still written, so the clinic can see in its message log why nothing was sent. Defaults apply when a clinic has set nothing: the patient audience and every patient rule are off; internal audiences are on, with in-app on and the external channels off. The channels offered per audience in code are in-app only for doctor, coordinator and lab, and none for patients, so patients receive nothing today.</p>
+<p><strong>Quiet hours</strong> are a start and end time per audience. The window can cross midnight (for example 22:00 to 08:00); equal start and end means no window. They use the audience setting&#39;s timezone if it names one, otherwise the timezone of the location the event belongs to (Chapter 62), otherwise UTC. In-app messages are never held, because they are silent.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/decision/notification-decision.ts</code> · <code>decide</code> · <code>quietHoursEnd</code></p>
+<h2 id="ch59-notification-mechanics-59-4-templates">59.4 Templates</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A template has a subject, a body, a channel, a language (English, Urdu or Roman Urdu) and optional provider reference. The body uses placeholders such as <code>{clinic_name}</code> and <code>{recipient_name}</code>, plus the event&#39;s own. An unknown placeholder becomes empty text so no raw braces ever reach a person. The Platform picks the clinic&#39;s own template in the person&#39;s language, then the platform&#39;s template in that language, then the same two in English. A rule can name a specific template. If no template exists, the event&#39;s name and description are used.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/templates/template-render.ts</code> · <code>renderTemplate</code> · <code>pickTemplate</code></p>
+<h2 id="ch59-notification-mechanics-59-5-outbox-relay-and-sending">59.5 Outbox, relay and sending</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch59-outbox-status.png" alt="Figure 59.2 — Status of an outbox row"></p>
+<p><em>Figure 59.2 — Status lifecycle of a row in <code>notification_outbox</code>.</em></p>
+<p>The diagram starts at a dot and shows several entry points. A row is created as <code>queued</code> when the decision allows sending, as <code>held_quiet_hours</code> when it falls inside quiet hours, as <code>skipped_disabled</code> when a switch or rule is off, as <code>skipped_opt_out</code> when the patient opted out, and directly as <code>failed</code> when the channel needs an address and the recipient has none. A held row becomes <code>queued</code> when the relay claims it once the quiet window has ended. A queued row becomes <code>sent</code> when the provider accepts it. A queued row whose send fails stays <code>queued</code> and is tried again after a pause. It becomes <code>failed</code> on a permanent error or at the fifth attempt. <code>sent</code>, <code>failed</code> and both skipped statuses are final. The status <code>delivered</code> exists in the code for providers that report delivery but nothing sets it today.</p>
+<p>The relay (<code>NotificationRelayService</code>) runs only in processes that run jobs, which is the worker. It is woken at once by a database NOTIFY sent inside the enqueue transaction (so it fires only on commit) and also polls every two seconds, which picks up retries and quiet-hours rows that are due. If the NOTIFY connection fails, it logs a warning and relies on polling.</p>
+<p>Sending works like this:</p>
+<ul>
+<li>A row is <strong>claimed</strong> with one short statement that locks it so no other worker takes it, adds one to its attempt count and pushes its due time out by a five-minute lease. If a worker dies mid-send, the row reappears after the lease.</li>
+<li>The provider is called with no transaction open; the result is written back only if this claim is still the latest.</li>
+<li>A failure is retried after 30 seconds, 2 minutes, 10 minutes and one hour; the fifth failure makes the row <code>failed</code>. A provider can mark an error permanent to skip retries.</li>
+<li>Delivery is at least once. The in-app copy is protected by a unique link to the outbox row, so a retry after a crash never shows the same message twice.</li>
+<li>Batches of 50 are processed until nothing is due.</li>
+</ul>
+<p><strong>Providers.</strong> The in-app provider writes <code>user_notifications</code> (user, event, title, body, link, read time). The development provider logs WhatsApp, SMS and email messages and marks them sent, so flows run end to end; it sends nothing to anyone. A real provider can take over a channel through the provider registry.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/delivery/notification-relay.service.ts</code> · <code>notification-dispatcher.service.ts</code> · <code>in-app.provider.ts</code> · <code>dev-log.provider.ts</code> · <code>channel-provider.registry.ts</code></p>
+<h2 id="ch59-notification-mechanics-59-6-the-inbox-and-the-settings-screen">59.6 The inbox and the settings screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The bell shows the signed-in user&#39;s inbox through <code>GET /me/notifications</code> (paged, with an unread-only filter), <code>GET /me/notifications/unread-count</code>, <code>POST /me/notifications/:id/read</code> and <code>POST /me/notifications/read-all</code>. These routes are context free: a user&#39;s inbox spans every clinic they work at, and lab users have no clinic location. Clinic settings are under <code>/notification-settings</code> and need <code>notifications.settings.manage</code>: the overview with master switches and quiet hours, audience updates, the rules matrix, templates (create, change, reset to platform wording) and the message log. A patient&#39;s channel preferences are read with <code>patients.view</code> and changed with <code>patients.edit</code>. Chapter 44 describes these screens.</p>
+<h2 id="ch59-notification-mechanics-59-7-limitations-and-known-gaps">59.7 Limitations and known gaps</h2>
+<ul>
+<li>Only lab-related events exist; no appointment reminders or billing notices are produced.</li>
+<li>WhatsApp, SMS and email have no provider; patients cannot be reached.</li>
+<li>Only the lab workflow registers recipients.</li>
+<li>Inventory alerts are not notifications; they go to the server log only (Chapter 63).</li>
+<li>The status <code>delivered</code> is never set.</li>
+</ul>
+<h2 id="ch59-notification-mechanics-59-8-owner-39-s-faq">59.8 Owner&#39;s FAQ</h2>
+<p><strong>If a lab order is rolled back, is a notification still sent?</strong> No. The notification row is part of the same transaction and disappears with it.</p>
+<p><strong>Why did a staff member not get a message?</strong> Check the log in notification settings: it shows each row with its status and reason, such as an audience switched off or a rule disabled.</p>
+<p><strong>Can I send reminders to patients by WhatsApp?</strong> Not yet. The decision logic and templates exist, but the channel is commented out and no provider is connected.</p>
+<p><strong>What happens if the worker is down?</strong> Rows stay queued in the database and are sent when the worker returns; nothing is lost.</p>
+<p><strong>Can quiet hours delay an in-app message?</strong> No. Quiet hours apply only to external channels.</p>
+</section><section class="chapter" id="ch60-audit-logging"><h1 id="ch60-audit-logging-chapter-60-audit-logging">Chapter 60 — Audit logging</h1>
+<p>This chapter explains how the Platform records who changed what and when: the history tables, the modules that write to them today, who may read them and what is kept for how long. It is written for the product owner, who must be able to answer an auditor&#39;s question honestly. The most important message is that audit coverage is <strong>uneven</strong>: patients and several administration areas are recorded in detail, while appointments, employees, payroll and organizations are not yet recorded in the general audit log.</p>
+<h2 id="ch60-audit-logging-60-1-the-history-tables">60.1 The history tables</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The Platform has several history tables, written by different modules at different times.</p>
+<div class="tw"><table><thead><tr>
+<th>Table</th>
+<th>Written by</th>
+<th>What a row says</th>
+</tr>
+</thead><tbody><tr>
+<td><code>audit_logs</code></td>
+<td>the shared audit service</td>
+<td>One change: entity type and id, action (create, update, void, delete, export, view_sensitive), the <strong>changed fields</strong> before and after, actor, actor side (clinic, lab, platform, system), IP address and request id</td>
+</tr>
+<tr>
+<td><code>status_history</code></td>
+<td>the shared audit service</td>
+<td>One state change: from state, to state, action code, actor, channel (app, portal, magic link, proxy, QR), reason</td>
+</tr>
+<tr>
+<td><code>billing_audit_logs</code></td>
+<td>billing services</td>
+<td>One billing event with before and after, reason, amount, actor and the actor&#39;s role</td>
+</tr>
+<tr>
+<td><code>queue_events</code></td>
+<td>the queue orchestrator</td>
+<td>One queue event with a running sequence number, status before and after</td>
+</tr>
+<tr>
+<td><code>prescription_history</code></td>
+<td>the prescription service</td>
+<td>One prescription event: created, amended (with a full snapshot of the earlier version), finalized, printed, shared</td>
+</tr>
+</tbody></table></div><p>The table lists the five history tables and what each row records. <code>audit_logs</code> and <code>status_history</code> are the general tables. The other three are older, module-specific histories that stay as they are.</p>
+<p><strong>Append only.</strong> <code>audit_logs</code> and <code>status_history</code> are protected by database triggers that reject any update or delete, so a row, once written, cannot be changed through the application or by accident. <code>commission_entries</code> has a similar trigger (Chapter 35). <code>billing_audit_logs</code>, <code>queue_events</code> and <code>prescription_history</code> are append-only by convention: the code only inserts, but no trigger enforces it.</p>
+<p><strong>Written in the same transaction.</strong> The shared service always writes in the caller&#39;s transaction, so the history commits or rolls back together with the change. An update that changed nothing writes no row.</p>
+<p><strong>Subject.</strong> Each general row can carry a <code>subject_id</code>, the record whose history it joins. For example, a patient&#39;s vitals row carries the patient as subject, so one query returns the patient&#39;s whole history.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/audit/audit.service.ts</code> · <code>AuditService</code> · <code>backend/src/common/audit/entities/</code> · <code>backend/src/migrations/1792490000000-lab-management-foundation.ts</code> · <code>backend/src/billing/audit/billing-audit.service.ts</code> · <code>backend/src/queue/entities/queue-event.entity.ts</code> · <code>backend/src/prescriptions/entities/prescription-history.entity.ts</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch60-audit-flow.png" alt="Figure 60.1 — Where history is written and read"></p>
+<p><em>Figure 60.1 — Writers, history tables and readers.</em></p>
+<p>The flowchart reads left to right. A box &quot;Service change&quot; (patients, roles, features, theme, sidebar, subscriptions) leads to &quot;Same database transaction&quot;, which writes two tables: <code>audit_logs</code> (before and after of changed fields) and <code>status_history</code> (state changes). Three other writers stand alone: &quot;Billing services&quot; write <code>billing_audit_logs</code>, the &quot;Queue orchestrator&quot; writes <code>queue_events</code> and the &quot;Prescription service&quot; writes <code>prescription_history</code>. All five tables feed a single box, &quot;Readers&quot;, which names the patient audit trail, the billing activity feed and the queue history.</p>
+<h2 id="ch60-audit-logging-60-2-what-is-recorded-today">60.2 What is recorded today</h2>
+<p><strong>Status:</strong> [Partial] — coverage differs by module. The table states what the code does now.</p>
+<div class="tw"><table><thead><tr>
+<th>Area</th>
+<th>Written to the general audit log?</th>
+<th>Detail</th>
+</tr>
+</thead><tbody><tr>
+<td>Patients</td>
+<td>Yes, [Implemented]</td>
+<td>Create, update and delete of the patient; activate and deactivate (as status history); 13 kinds of patient records (dental info, tooth chart, vitals, treatment plans and plan items, prescriptions as listed on the patient, documents, consents, communications, recalls, referrals, feedback and insurance). Delete rows keep the last snapshot and the counts of linked records. Patient import and queue walk-in patient creation are audited the same way. File addresses and signatures are never stored in the log.</td>
+</tr>
+<tr>
+<td>Patient exports</td>
+<td>Yes</td>
+<td>Every patient CSV export writes an <code>export</code> row with the number of rows and the filters used</td>
+</tr>
+<tr>
+<td>Report exports</td>
+<td>Yes</td>
+<td>Every Excel or PDF report export writes an <code>export</code> row with the report, format and period</td>
+</tr>
+<tr>
+<td>Employment roles</td>
+<td>Yes</td>
+<td>Each create, edit, clone and delete, with before and after values and the reason for high-risk grants</td>
+</tr>
+<tr>
+<td>Organization features and location overrides</td>
+<td>Yes</td>
+<td>Each switch, with the platform recorded as actor when a super admin acts</td>
+</tr>
+<tr>
+<td>Subscriptions and subscription payments</td>
+<td>Yes</td>
+<td>Payments and status changes</td>
+</tr>
+<tr>
+<td>Theme and registry settings</td>
+<td>Yes</td>
+<td>One row per changed key</td>
+</tr>
+<tr>
+<td>Sidebar layout</td>
+<td>Yes</td>
+<td>Save and reset</td>
+</tr>
+<tr>
+<td>Billing</td>
+<td>Own table</td>
+<td><code>billing_audit_logs</code> for charges, invoices, payments, refunds, discounts, cash close and settings</td>
+</tr>
+<tr>
+<td>Lab modules</td>
+<td>Yes</td>
+<td>Lab orders, items, attachments, shipments, production, links, members, catalog, patient lab invoices, credits, vendor bills, statements and payments</td>
+</tr>
+<tr>
+<td>Workflow engine</td>
+<td>Yes</td>
+<td>Transitions write status history; form schemas, workflow and stage templates write audit rows</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>Own table</td>
+<td><code>queue_events</code>, written for every queue change</td>
+</tr>
+<tr>
+<td>Prescriptions</td>
+<td>Own table</td>
+<td><code>prescription_history</code></td>
+</tr>
+<tr>
+<td><strong>Appointments</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>No audit row is written for booking, rescheduling, cancelling or status changes</td>
+</tr>
+<tr>
+<td><strong>Employees (staff records, salary, schedules)</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Only role definitions are audited, not employee data</td>
+</tr>
+<tr>
+<td><strong>Payroll</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>No audit rows for payroll records or payments</td>
+</tr>
+<tr>
+<td><strong>Organizations and locations</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Settings and details of organizations and locations are not audited, apart from features, theme and subscriptions</td>
+</tr>
+<tr>
+<td>Encounters, treatments, inventory</td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Not audited</td>
+</tr>
+<tr>
+<td>Sign-in events</td>
+<td>Separate</td>
+<td><code>security_logs</code> (Chapter 56)</td>
+</tr>
+</tbody></table></div><p>The table lists each area, whether it writes to the general audit log and what is recorded. It was built by searching the code for every writer of the audit service. The audit rollout plan names appointments, staff, payroll and organizations as later phases; their code is not written yet.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patient-audit.ts</code> · <code>recordPatientChange</code> · <code>backend/src/patients/patients.service.ts</code> · <code>backend/src/reports/reports.controller.ts</code> · <code>backend/src/employees/employment-roles.service.ts</code> · <code>backend/src/feature-flags/feature-admin.service.ts</code> · <code>backend/src/settings-registry/settings-registry.service.ts</code> · <code>backend/src/subscriptions/subscriptions.service.ts</code></p>
+<h2 id="ch60-audit-logging-60-3-reading-the-history">60.3 Reading the history</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<div class="tw"><table><thead><tr>
+<th>Reader</th>
+<th>Endpoint</th>
+<th>Permission</th>
+<th>Screen</th>
+</tr>
+</thead><tbody><tr>
+<td>Patient audit trail</td>
+<td><code>GET /patients/:id/audit-trail</code></td>
+<td><code>admin.audit.view</code></td>
+<td>A history sheet on the patient page, shown only to holders of the permission</td>
+</tr>
+<tr>
+<td>Queue history of a session</td>
+<td><code>GET /queue/sessions/:id/events</code></td>
+<td><code>admin.audit.view</code></td>
+<td>Queue history</td>
+</tr>
+<tr>
+<td>Billing activity feed</td>
+<td><code>GET /billing/activity</code></td>
+<td><code>billing.activity.view</code></td>
+<td>Billing activity page</td>
+</tr>
+<tr>
+<td>Entity timelines for labs</td>
+<td>lab endpoints</td>
+<td>lab permissions</td>
+<td>Activity timelines on lab pages</td>
+</tr>
+</tbody></table></div><p>The table lists the readers. The patient audit trail merges <code>audit_logs</code> and <code>status_history</code> for the patient and every record under them, newest first (up to 200 entries), and the values are redacted for readers who lack the clinical or document permissions. The permission <code>admin.audit.view</code> is &quot;View the audit log&quot; in the Admin group; the owner and super admin hold it, and the Admin system role holds the whole Admin group by default (Chapter 11).</p>
+<p>There is <strong>no organization-wide audit page</strong>: no screen or endpoint lists all changes of a clinic, searches by user or date, or exports the log. The general tables can be read only through the entity or subject timelines in the table and, for developers, in the database.</p>
+<h2 id="ch60-audit-logging-60-4-retention">60.4 Retention</h2>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The Platform has no retention or purge policy for audit data. The audit tables are append-only, so nothing deletes them. The only clean-up job in the area removes queue idempotency keys older than 24 hours and published realtime outbox rows older than 7 days (Chapter 63), which are technical records, not history. <code>security_logs</code> and session rows are also never purged. A clinic with a legal retention limit has no built-in way to apply it.</p>
+<h2 id="ch60-audit-logging-60-5-who-is-the-actor">60.5 Who is the actor</h2>
+<p>Each general row stores the user id, the <strong>actor side</strong> and, when available, the IP address and a request id taken from an <code>x-request-id</code> header if the caller sent one. The side is clinic for clinic staff, lab for lab members, platform for a super admin and system for background jobs. A super admin acting inside a clinic is recorded as platform.</p>
+<h2 id="ch60-audit-logging-60-6-limitations-and-known-gaps">60.6 Limitations and known gaps</h2>
+<ul>
+<li>Appointments, staff data, payroll and organization settings have no audit history.</li>
+<li>No organization-wide audit viewer, filter or export.</li>
+<li>No retention policy.</li>
+<li>Three of the five history tables are append-only by convention only.</li>
+<li>Reading sensitive patient data is not logged; the action <code>view_sensitive</code> exists but is not written by any reader.</li>
+<li>Encounter notes in progress are not audited; the plan is one snapshot at completion (not built).</li>
+</ul>
+<h2 id="ch60-audit-logging-60-7-owner-39-s-faq">60.7 Owner&#39;s FAQ</h2>
+<p><strong>Can I see who edited a patient&#39;s phone number?</strong> Yes, if you hold <code>admin.audit.view</code>: open the patient and the audit history. It shows the old and new value, who and when.</p>
+<p><strong>Can I see who cancelled an appointment?</strong> Not from an audit log today. Appointments are not audited. The appointment row itself shows its status and cancellation reason.</p>
+<p><strong>Can someone delete a history row to hide a change?</strong> Not through the application. For <code>audit_logs</code> and <code>status_history</code> the database itself rejects updates and deletes.</p>
+<p><strong>Who is told when patient data is exported?</strong> Nobody is notified, but each export writes a record with who, when, how many rows and the filters.</p>
+<p><strong>How long are audit records kept?</strong> Forever, because nothing deletes them.</p>
+</section><section class="chapter" id="ch61-error-handling"><h1 id="ch61-error-handling-chapter-61-error-handling">Chapter 61 — Error handling</h1>
+<p>This chapter describes how the Platform reports problems: the shape of every API answer, the families of error codes, how validation and database conflicts become messages, how retries stay safe, and what the web app shows the user. It is written for the product owner and for support staff who read an error message and need to know what it means. Chapter 5 traces one request through the system and shows the main status codes; this chapter goes into the error side in more detail.</p>
+<h2 id="ch61-error-handling-61-1-the-envelope">61.1 The envelope</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Every controller answers inside one JSON envelope built by <code>ResponseWrapper</code>. On success the fields are <code>data</code> (the payload), <code>message</code> (for example &quot;Patient created successfully&quot;), <code>isSuccess</code> (true) and <code>httpStatusCode</code> (always 200 in the envelope, even when the HTTP status is 201). On failure the global exception filter <code>GlobalExceptionFilter</code> builds the same envelope with <code>isSuccess</code> false, the real HTTP status in <code>httpStatusCode</code>, a short <code>message</code> for people, a <code>devMessage</code> with a technical text for developers and an <code>error</code> field holding the exception body. The web app reads <code>res.data.data</code> on success and <code>err.response.data.message</code> (or <code>error.code</code>) on failure.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/dtos/ResponseWrapper.ts</code> · <code>backend/src/common/exceptions/HttpExceptionHandler.ts</code></p>
+<h2 id="ch61-error-handling-61-2-what-the-filter-does-with-an-error">61.2 What the filter does with an error</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch61-error-families.png" alt="Figure 61.1 — From exception to screen"></p>
+<p><em>Figure 61.1 — How an exception becomes an envelope and a message on screen.</em></p>
+<p>The flowchart reads from top to bottom. An &quot;Exception anywhere&quot; in the request reaches <code>GlobalExceptionFilter</code>. The filter asks whether it is an HTTP exception. If yes, the request keeps its own status and body, with a code, a message and any extra fields. If no, which means an unexpected failure, the answer is 500 with the message &quot;Something went wrong&quot;. Both branches build the envelope: <code>isSuccess</code> false, <code>message</code>, <code>devMessage</code> and <code>error</code>. The web app then shows a toast, an <code>ErrorState</code> panel or a friendly text chosen by the error code.</p>
+<p>Categories of error:</p>
+<ul>
+<li><strong>Expected HTTP errors.</strong> Business rules and security refusals are thrown as typed exceptions with a status and, in most modules, a machine-readable <code>code</code>. The message is written for the user.</li>
+<li><strong>Validation errors.</strong> The global validation pipe rejects bad input (section 61.3). Several messages are possible; the envelope&#39;s <code>message</code> shows the first one.</li>
+<li><strong>Unexpected errors.</strong> Anything that is not an HTTP exception, such as an unhandled database failure, is logged with its stack on the server and answered as 500 &quot;Something went wrong&quot;. The user-facing text never contains internals.</li>
+<li><strong>Rate limit.</strong> A throttled request is answered 429 with &quot;Too many requests. Please try again later.&quot; and a number of seconds to wait (Chapter 56).</li>
+</ul>
+<p>Every error is logged by the application logger together with the request address.</p>
+<h2 id="ch61-error-handling-61-3-validation">61.3 Validation</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The global validation pipe converts input to the types named in each request class and has <code>whitelist</code> and <code>forbidNonWhitelisted</code> on. A request that contains a field the API does not define is <strong>rejected</strong> with 400, not silently ignored, and a field with a wrong type or format is rejected with a message such as &quot;email must be an email&quot;. Request classes use validation decorators for lengths, formats, enumerations and nested objects. The same rules appear in the web app as form schemas, so most mistakes are caught before the request leaves the browser; the server rule is the one that counts.</p>
+<h2 id="ch61-error-handling-61-4-error-code-families">61.4 Error code families</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Status</th>
+<th>Code or family</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td>400</td>
+<td><code>IDEMPOTENCY_KEY_REQUIRED</code>, <code>REASON_REQUIRED</code>, <code>INVALID_PERMISSIONS</code>, validation messages</td>
+<td>The request is incomplete or malformed</td>
+</tr>
+<tr>
+<td>401</td>
+<td>(message only)</td>
+<td>No token, expired token or bad token; the web app tries to refresh</td>
+</tr>
+<tr>
+<td>402</td>
+<td><code>SUBSCRIPTION_EXPIRED</code></td>
+<td>The clinic is read-only because its subscription lapsed</td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NO_PERMISSION</code> with the missing permissions, <code>NOT_ENTITLED</code>, <code>ESCALATION</code>, <code>SYSTEM_ROLE_READ_ONLY</code>, <code>SETTING_LOCKED</code>, <code>FORBIDDEN</code>, <code>LAB_ACCESS_DENIED</code></td>
+<td>The caller is not allowed</td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code>, <code>BILLING_NOT_FOUND</code>, <code>LAB_NOT_FOUND</code>, and similar</td>
+<td>The record does not exist in this organization</td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>DOCTOR_DOUBLE_BOOKED</code>, <code>VERSION_CONFLICT</code>, <code>STALE_VERSION</code>, <code>ALREADY_CHECKED_IN</code>, <code>ACTIVE_WITH_OTHER_DOCTOR</code>, <code>DOCTOR_BUSY</code>, <code>ROLE_NAME_TAKEN</code>, <code>ROLE_HAS_MEMBERS</code>, <code>REQUEST_IN_FLIGHT</code>, <code>BILLING_DUPLICATE</code>, <code>PLAN_LIMIT</code> and similar</td>
+<td>The request conflicts with the current state or with another request</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>INVALID_TRANSITION</code>, <code>IDEMPOTENCY_KEY_REUSED</code>, <code>NOT_TODAY</code>, <code>LATE_LIMIT_EXCEEDED</code>, <code>SESSION_NOT_OPEN</code>, many <code>BILLING_*</code>, <code>FORM_*</code> and <code>WORKFLOW_*</code> codes</td>
+<td>The request is well formed but the rules refuse it</td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>MAGIC_LINK_RATE_LIMITED</code> and the login throttle</td>
+<td>Too many requests</td>
+</tr>
+<tr>
+<td>500</td>
+<td><code>BILLING_INVARIANT_VIOLATION</code>, <code>WORKFLOW_MISCONFIGURED</code>, anything unexpected</td>
+<td>A bug or a broken money rule</td>
+</tr>
+<tr>
+<td>503</td>
+<td><code>LOCK_TIMEOUT</code></td>
+<td>The queue was busy; retry</td>
+</tr>
+</tbody></table></div><p>The table groups the codes by HTTP status and shows what each family means. It lists examples, not every code. The codes are thrown by several module-specific error builders, each of which passes the code in <code>error.code</code>:</p>
+<ul>
+<li><strong>Billing</strong> (<code>billing-errors.ts</code>): about 40 <code>BILLING_*</code> codes plus <code>COMPENSATION_*</code> and <code>COMMISSION_*</code> for the commission rules. Each maps to a fixed status, for example allocation larger than the balance is 422 and a duplicate is 409.</li>
+<li><strong>Queue</strong> (<code>queue.errors.ts</code>): <code>NOT_FOUND</code>, <code>FORBIDDEN</code>, <code>INVALID_TRANSITION</code>, <code>SESSION_NOT_OPEN</code>, <code>DOCTOR_BUSY</code>, <code>VERSION_CONFLICT</code>, <code>ALREADY_CHECKED_IN</code>, <code>ACTIVE_WITH_OTHER_DOCTOR</code>, <code>LATE_LIMIT_EXCEEDED</code>, <code>NOT_TODAY</code>, <code>LOCK_TIMEOUT</code>, <code>IDEMPOTENCY_KEY_*</code>, <code>REQUEST_IN_FLIGHT</code>, <code>REASON_REQUIRED</code>.</li>
+<li><strong>Workflow engine</strong> (<code>engine-errors.ts</code>): form, workflow and stage template codes, <code>INVALID_TRANSITION</code>, <code>TRANSITION_FORBIDDEN</code>, <code>TRANSITION_INPUT_REQUIRED</code>, <code>TRANSITION_REASON_REQUIRED</code>.</li>
+<li><strong>Labs</strong> (<code>lab-errors.ts</code>, plus lab billing, catalog, orders and payables): <code>LAB_*</code> codes, including <code>LAB_PORTAL_CLINIC_CONTEXT</code> and <code>LAB_SELECTION_REQUIRED</code>.</li>
+<li><strong>Notifications</strong> (<code>notification-errors.ts</code>): <code>NOTIFICATION_*</code> codes and <code>PATIENT_NOT_FOUND</code>.</li>
+<li><strong>Access and features</strong>: <code>NO_PERMISSION</code>, <code>ESCALATION</code>, <code>INVALID_PERMISSIONS</code>, <code>NOT_ENTITLED</code>, <code>SETTING_LOCKED</code>, <code>PLAN_LIMIT</code>.</li>
+</ul>
+<p><code>DOCTOR_DOUBLE_BOOKED</code> is the appointment overlap error (Chapter 29): the database rejects two bookings of one doctor at overlapping times, and the service turns the failure into a 409 with that code.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/common/billing-errors.ts</code> · <code>backend/src/queue/queue.errors.ts</code> · <code>backend/src/engine/common/engine-errors.ts</code> · <code>backend/src/labs/common/lab-errors.ts</code> · <code>backend/src/notifications/notification-errors.ts</code> · <code>backend/src/access/decorators/access.decorators.ts</code></p>
+<h2 id="ch61-error-handling-61-5-safe-retries-idempotency-keys-and-if-match">61.5 Safe retries: idempotency keys and If-Match</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Two mechanisms protect against double clicks, flaky networks and two people editing the same record.</p>
+<p><strong>Idempotency-Key.</strong> A client sends a header <code>Idempotency-Key</code> (1 to 150 characters) on actions that must not run twice. The server stores the key, a hash of the request and, once finished, the response, inside the same transaction as the work. If the same key arrives again with the same request, the stored answer is replayed and nothing runs twice. The same key with a different request gives 422 <code>IDEMPOTENCY_KEY_REUSED</code>. The same key while the first request is still running gives 409 <code>REQUEST_IN_FLIGHT</code>. A missing key where one is required gives 400 <code>IDEMPOTENCY_KEY_REQUIRED</code>. The key is required on every queue change, on patient check-in from an appointment, on money-moving lab billing posts and on the workflow engine transitions; the web app creates a fresh key for each open sheet or action. Queue idempotency keys are deleted after 24 hours by a nightly job.</p>
+<p><strong>If-Match and versions.</strong> Records that two people may edit carry a version number. A client may send <code>If-Match: &lt;version&gt;</code> (queue entries, lab order actions) or the version in the body; the server checks it while holding a row lock and, if the record has moved on, answers 409 with <code>VERSION_CONFLICT</code> or <code>STALE_VERSION</code> and the current state or version. The web app reloads and asks the user to try again, with texts such as &quot;Someone else changed this just now. The latest version is loaded&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/idempotency/idempotency.service.ts</code> · <code>IdempotencyService</code> · <code>backend/src/common/errors/optimistic-lock.ts</code> · <code>assertVersion</code> · <code>backend/src/queue/decorators/queue-request.decorators.ts</code></p>
+<h2 id="ch61-error-handling-61-6-database-constraints-become-messages">61.6 Database constraints become messages</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<p>The database enforces uniqueness and exclusion rules, and several services translate the database error into a clear conflict. The translation is per service; there is no global mapping.</p>
+<ul>
+<li><strong>Exclusion constraint on appointments</strong> (<code>no_doctor_overlap</code>): Postgres error 23P01 becomes 409 <code>DOCTOR_DOUBLE_BOOKED</code>. Compensation plan versions and lab prices use similar exclusion constraints with their own messages.</li>
+<li><strong>Unique violations</strong> (23505) are translated in billing, lab billing, lab orders, lab catalog and lab payables into codes such as <code>BILLING_DUPLICATE</code>.</li>
+<li><strong>Foreign key violations</strong> (23503) are translated when deleting an employee that is still referenced.</li>
+<li><strong>Lock timeouts</strong> in the queue become 503 <code>LOCK_TIMEOUT</code>.</li>
+</ul>
+<p>A database error that no service translates reaches the filter as an unexpected error and is answered as 500 &quot;Something went wrong&quot;. A duplicate patient number or purchase order number, for instance, would currently surface this way (Chapter 62).</p>
+<h2 id="ch61-error-handling-61-7-in-the-web-app">61.7 In the web app</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong>401 and refresh.</strong> The shared axios client refreshes the access token on a 401 and retries once (Chapter 56).</li>
+<li><strong>Toasts.</strong> Mutations report failures with a toast (the library <code>sonner</code>, at the top right, closable, 4 seconds). Many hooks have a helper that reads <code>err.response.data.message</code> and falls back to a text such as &quot;Failed to create item&quot;. About 180 places raise an error toast.</li>
+<li><strong>Friendly code maps.</strong> Billing, labs, lab orders, lab catalog, lab payables, lab billing and the engine studio each have a small map from an error code to a plain sentence, for example the billing code for a missing document code becomes &quot;Set a document code for this location in Billing settings first.&quot; If a code has no entry, the server&#39;s own message is shown, then a generic text.</li>
+<li><strong>Stale screens.</strong> The queue hook shows &quot;Someone else just changed this patient — showing the latest.&quot; as a warning on <code>VERSION_CONFLICT</code> and refreshes the screen.</li>
+<li><strong>Page states.</strong> Every list or detail screen uses <code>LoadingSkeleton</code> while loading (table, cards, stats or detail shape), <code>EmptyState</code> when there is nothing (icon, title, message and an optional action) and <code>ErrorState</code> when a request failed (title &quot;Something went wrong&quot;, a sentence and a <strong>Try again</strong> button). A route-level error boundary, <code>RouteError</code>, shows the error message with a retry button for render failures.</li>
+<li><strong>Access errors.</strong> A missing route permission shows the No access page, not an error (Chapter 57). The access gate shows &quot;Couldn&#39;t load your access&quot; if <code>/me/access</code> fails.</li>
+<li><strong>Query settings.</strong> Queries retry twice and mutations once, with 5 minutes of freshness.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>web-app/src/lib/api.ts</code> · <code>web-app/src/lib/query-client.ts</code> · <code>web-app/src/features/billing/lib/billing-errors.ts</code> · <code>web-app/src/features/engine-studio/lib/studio-errors.ts</code> · <code>web-app/src/features/queue/hooks/useQueueAction.ts</code> · <code>web-app/src/components/feedback/ErrorState.tsx</code> · <code>EmptyState.tsx</code> · <code>LoadingSkeleton.tsx</code> · <code>web-app/src/components/shared/RouteError.tsx</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch61-refresh-sequence.png" alt="Figure 61.2 — The 401 refresh flow"></p>
+<p><em>Figure 61.2 — How an expired access token is replaced without the user noticing.</em></p>
+<p>The diagram has three participants: the Screen, the <code>apiClient</code> axios instance and the API. The screen sends request A. The client sends A with an expired access token. The API answers 401 &quot;Token has expired&quot;. The client marks A as retried and starts a refresh. It sends <code>POST /auth/refresh</code> with the cookie. The API answers with a new access token and a new cookie. The client stores the token and context, sends A again with the new token, gets a 200 envelope and returns the data to the screen. A note says that if the refresh fails, the stored login is cleared and the browser goes to <code>/login</code>. While one refresh is running, other requests that fail with 401 wait in a queue and are retried with the new token.</p>
+<h2 id="ch61-error-handling-61-8-limitations-and-known-gaps">61.8 Limitations and known gaps</h2>
+<ul>
+<li>Error messages are in English. Only the No access headline carries a Roman-Urdu line.</li>
+<li>Code-to-sentence maps exist for some modules only; others show the server&#39;s text.</li>
+<li>There is no central error-tracking service; errors are written to the server log.</li>
+<li>Database errors are translated service by service, so an untranslated one shows as a generic 500.</li>
+<li>The error body includes a developer message field in every failure.</li>
+</ul>
+<h2 id="ch61-error-handling-61-9-owner-39-s-faq">61.9 Owner&#39;s FAQ</h2>
+<p><strong>A user says &quot;Something went wrong&quot;. What now?</strong> It is an unexpected server error. Ask for the time and the page; the server log holds the cause. Other failures give a specific message.</p>
+<p><strong>What does 402 mean?</strong> The subscription expired; the clinic is read-only until a payment is recorded.</p>
+<p><strong>What does &quot;Someone else changed this&quot; mean?</strong> Another person saved the same record first. The latest data is loaded; redo the change.</p>
+<p><strong>What happens if the receptionist double-clicks &quot;Check in&quot;?</strong> The second click carries the same idempotency key, so the first result is returned and only one token is issued.</p>
+<p><strong>Does the API ignore fields it does not know?</strong> No. It rejects them with 400.</p>
+</section><section class="chapter" id="ch62-time-money-numbering"><h1 id="ch62-time-money-numbering-chapter-62-time-money-and-document-numbers">Chapter 62 — Time, money and document numbers</h1>
+<p>This chapter explains three rules that run through every module: how the Platform decides what time it is for a clinic, how it stores and calculates money, and how it numbers invoices, patients, orders and other documents. It is written for the product owner, because mistakes in these three areas, a wrong day, a wrong rupee or a duplicate number, are the ones that clinics notice first. The chapter states the rules, where they are followed strictly, and where the code still departs from them.</p>
+<h2 id="ch62-time-money-numbering-62-1-clinic-time">62.1 Clinic time</h2>
+<p><strong>Status:</strong> [Implemented] for the rule. [Partial] for coverage: some jobs and statistics still use the server clock.</p>
+<p><strong>The rule.</strong> Every clinic date and time follows the <strong>location&#39;s</strong> timezone (the <code>timezone</code> of the location, for example a Pakistan or a Gulf timezone). Working hours, appointment availability, the same-day duplicate check, the queue&#39;s day boundary, token days and quiet hours all use it. A clinic in one timezone and a server in another still agree on what &quot;today&quot; means for the clinic.</p>
+<p><strong>How it works.</strong> <code>ClockService</code> is the single source of &quot;now&quot; and &quot;today&quot; for clinic logic. Its main functions are:</p>
+<ul>
+<li><code>now()</code>: the current instant (tests can replace it).</li>
+<li><code>timezoneFor(locationId)</code>: the location&#39;s timezone name, defaulting to UTC when the stored name is not valid, cached for 60 seconds.</li>
+<li><code>today(timezone)</code>: the location-local date as <code>YYYY-MM-DD</code>.</li>
+<li><code>wallClock(timezone, instant)</code>: the local weekday and <code>HH:MM</code>.</li>
+<li><code>dayRange(timezone, date)</code>: the start and end instants (in UTC) of a local day.</li>
+<li><code>at(timezone, date, time)</code>: the instant when the clinic&#39;s wall clock reads a given date and time.</li>
+</ul>
+<p>The code rule is: never use <code>new Date()</code> together with <code>setHours()</code> for a clinic day or time, because those use the server&#39;s timezone. Appointments, queue and notifications follow it (Chapters 29, 30 and 59).</p>
+<p><strong>Where the server clock is still used.</strong> These places do not use the location&#39;s timezone:</p>
+<ul>
+<li><strong>Scheduled jobs.</strong> Daily and monthly jobs run on the worker&#39;s server timezone, for example the 01:00 credit expiry, the 02:30 billing check, the 08:00 inventory alert and the payroll run at 05:00 on the 1st (Chapter 63 and Appendix E). The queue&#39;s day-end job is an exception: it decides what a past clinic day is from each location&#39;s policy.</li>
+<li><strong>Credit expiry.</strong> The check works out &quot;today&quot; from the server&#39;s local date, so a prepaid credit can expire a few hours early or late for a clinic in another timezone.</li>
+<li><strong>Statistics.</strong> The financial summary takes its default date and its month list from the server date.</li>
+<li><strong>Numbering years.</strong> The year inside purchase order and prescription numbers is the server&#39;s year.</li>
+<li><strong>Leave balance year</strong> uses the server year.</li>
+<li><strong>The lab catalog calendar</strong> fixes its &quot;today&quot; to one specific timezone (Asia/Karachi) regardless of the location.</li>
+<li><strong>Exports</strong> that print a date (patient export file name) use the server date.</li>
+</ul>
+<p>For a clinic whose timezone differs from the server&#39;s by a few hours, the differences matter only near midnight or at month boundaries.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/clock/clock.service.ts</code> · <code>ClockService</code> · <code>backend/src/common/clock/tz.util.ts</code> · <code>backend/src/billing/patient-credits.service.ts</code> · <code>backend/src/billing/financial-summary.service.ts</code> · <code>web-app/src/features/lab-catalog/lib/money.ts</code> · <code>catalogToday</code></p>
+<h2 id="ch62-time-money-numbering-62-2-money">62.2 Money</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What is stored.</strong> Money has two storage styles, depending on the module:</p>
+<div class="tw"><table><thead><tr>
+<th>Style</th>
+<th>Where</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><code>numeric(12,2)</code> rupees</td>
+<td>Patient billing: charges, invoices, payments, refunds, ledger entries</td>
+<td>Exact decimal with two places</td>
+</tr>
+<tr>
+<td><code>bigint</code> paisa</td>
+<td>Commissions (rules, entries, settlements, compensation plans), the lab billing tables (invoice, credits, payments), and a few billing fields</td>
+<td>Whole number of the smallest unit</td>
+</tr>
+<tr>
+<td><code>decimal(10,2)</code></td>
+<td>Inventory prices and quantities, payroll records, employee salary on assignments</td>
+<td>Exact decimal</td>
+</tr>
+</tbody></table></div><p>The table shows the three styles. A <strong>paisa</strong> is one hundredth of a rupee; &quot;PKR&quot; is the default currency and not a limit. Amounts cross the API as numbers with at most two decimals in the billing module, and as integer paisa in the lab and commission modules.</p>
+<p><strong>How it is calculated.</strong> All billing math is done in <strong>integer paisa</strong> so that no floating-point error can creep in. <code>money.ts</code> holds the helpers: <code>toPaisa</code> and <code>fromPaisa</code>, <code>sumPaisa</code>, <code>percentOf</code> and <code>basisPointsOf</code>. A percentage with up to two decimals is turned into basis points (17.5 percent becomes 1750) and applied with exact big-integer arithmetic.</p>
+<ul>
+<li><strong>Rounding is half up</strong> (0.5 paisa rounds to the next whole paisa), the same everywhere, including tax.</li>
+<li><strong>Splitting.</strong> When an amount is shared in proportion (for example tax spread over charges), each share is rounded down and the leftover paisa go to the largest share, so the shares always add up exactly to the total.</li>
+<li><strong>Database columns</strong> are read through transformers: <code>numeric</code> comes back from the database as text and is rounded to two decimals; <code>bigint</code> comes back as text and is converted to a number, which is exact for any clinic amount.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch62-money-path.png" alt="Figure 62.1 — The path of an amount"></p>
+<p><em>Figure 62.1 — How an amount typed by a person travels to the database and back.</em></p>
+<p>The flowchart reads top to bottom. A user types 4500.50. The web app converts the text to 450050 paisa with integer-only code (no floating point). The API receives the amount as rupees or paisa depending on the field. Server code calculates in integer paisa with half-up rounding. The value is stored in the database as <code>numeric</code> or as <code>bigint</code> paisa. When the screen reads it back, the web app formats it with the organization&#39;s currency.</p>
+<p><strong>Tax is exclusive.</strong> Prices are before tax. Tax equals the taxable amount (the sum of active charge net amounts after discounts) times the rate, rounded half up once per invoice. The total is subtotal minus discount plus tax. The rate is copied onto the invoice when it is issued from the location&#39;s billing settings, and later edits use that copy, not the current setting. Tax is spread over the invoice&#39;s charges so that payments can be allocated charge by charge; tax is never revenue and never earns commission. Lab invoices use the same half-up rounding and keep tax in its own paisa column.</p>
+<p><strong>Currency.</strong> Each organization has a <code>currency</code> (default PKR). It is returned with the organization list after sign-in. The web app&#39;s <code>activeCurrency()</code> and <code>useCurrency()</code> read it, and <code>formatPaisa</code> writes amounts as &quot;PKR 4,500.50&quot;. Number grouping uses a Pakistani locale. The currency is a display label: there is no conversion and no multi-currency ledger.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/common/money.ts</code> · <code>money-column.ts</code> · <code>paisa-column.ts</code> · <code>backend/src/billing/tax/invoice-tax.ts</code> · <code>backend/src/organizations/entities/organization.entity.ts</code> · <code>web-app/src/lib/currency.ts</code> · <code>web-app/src/features/lab-catalog/lib/money.ts</code></p>
+<h2 id="ch62-time-money-numbering-62-3-document-numbering">62.3 Document numbering</h2>
+<p><strong>Status:</strong> [Partial]. Billing and lab documents are numbered safely; some older numbers are not.</p>
+<p>There are four numbering families.</p>
+<div class="tw"><table><thead><tr>
+<th>Family</th>
+<th>Documents</th>
+<th>Format</th>
+<th>How it counts</th>
+</tr>
+</thead><tbody><tr>
+<td>Per location, per type, per year</td>
+<td>Patient invoices (<code>INV</code>), receipts (<code>REC</code>), refunds (<code>RFD</code>)</td>
+<td>location code, type, year, five digits, for example <code>MAIN-INV-2026-00001</code></td>
+<td>Table <code>document_sequences</code></td>
+</tr>
+<tr>
+<td>Per organization sequence</td>
+<td>Lab order (<code>LAB</code>), shipment (<code>SHP</code>), lab invoice (<code>LINV</code>), lab receipt (<code>LRC</code>), payment reversal (<code>LRV</code>), credit note (<code>LCN</code>), lab refund (<code>LRF</code>), vendor bill (<code>VB</code>), vendor payment (<code>VP</code>)</td>
+<td>prefix and at least four digits, for example <code>LAB-0001</code></td>
+<td>Table <code>number_sequences</code></td>
+</tr>
+<tr>
+<td>Count plus one in application code</td>
+<td>Patient number, treatment plan number, patient-page prescription number</td>
+<td><code>P-00001</code>, <code>TP-00001</code>, <code>RX-00001</code></td>
+<td>Number of existing rows plus one</td>
+</tr>
+<tr>
+<td>Last number plus one in application code</td>
+<td>Purchase order number, prescription number from the prescriptions module</td>
+<td><code>PO-2026-00001</code>, <code>RX-2026-00001</code></td>
+<td>Reads the latest row and adds one</td>
+</tr>
+</tbody></table></div><p>The table lists the four families with their formats. Invoices, receipts and refunds need the location&#39;s <strong>document code</strong> (2 to 6 letters or digits, set in billing settings and locked after the first invoice); without it the Platform refuses to issue the document.</p>
+<p><strong>The safe families.</strong> The first two families use a database counter row that is locked until the surrounding transaction ends. Concurrent requests wait their turn, no number repeats, and a rollback gives the number back, so numbers have no gaps. The service refuses to run outside a transaction. Invoice sequences restart each year, per location. Lab sequences never restart.</p>
+<p><strong>The risky families.</strong></p>
+<ul>
+<li><strong>Patient, plan and prescription numbers (count plus one).</strong> The next number is the count of rows for the organization plus one. Two registrations at the same moment can compute the same number, and the second save fails on the unique index. Patients are deleted permanently, so after a deletion the count drops and the next number can repeat one that is still in use (the patient count includes soft-deleted rows but not permanently deleted ones). The result in either case is a failed save that the user sees as a generic error, not a wrong document.</li>
+<li><strong>Purchase order and prescription numbers (last plus one).</strong> The next number reads the most recent row of the organization and adds one, with the year taken from the server clock. Two simultaneous requests can read the same row. In addition, the unique index on the purchase order number and on the prescription number covers all organizations together, so two clinics that both reach the same sequence in the same year would collide.</li>
+</ul>
+<p>These are reliability risks, not security ones. A collision stops the save; it does not issue a duplicate.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/numbering/document-sequence.service.ts</code> · <code>DocumentSequenceService</code> · <code>backend/src/common/sequences/number-sequence.service.ts</code> · <code>NumberSequenceService</code> · <code>backend/src/patients/patients.service.ts</code> · <code>generatePatientNumber</code> · <code>backend/src/inventory/services/purchase-order.service.ts</code> · <code>generatePoNumber</code> · <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>generatePrescriptionNumber</code></p>
+<h2 id="ch62-time-money-numbering-62-4-limitations-and-known-gaps">62.4 Limitations and known gaps</h2>
+<ul>
+<li>Several jobs and statistics use the server timezone, not the clinic&#39;s.</li>
+<li>Two storage styles for money (decimal rupees and integer paisa) exist side by side; conversion happens at module boundaries.</li>
+<li>Count-based and last-number-based document numbers can collide under concurrency, and purchase order and prescription numbers are unique across all clinics together.</li>
+<li>No multi-currency support or conversion.</li>
+<li>Tax is exclusive only; there is no tax-inclusive pricing.</li>
+</ul>
+<h2 id="ch62-time-money-numbering-62-5-owner-39-s-faq">62.5 Owner&#39;s FAQ</h2>
+<p><strong>What time does &quot;today&quot; mean for my branch?</strong> The branch&#39;s own timezone, set on the location.</p>
+<p><strong>Why can a daily job run at an odd hour for my clinic?</strong> Jobs follow the server&#39;s timezone. A job set for 01:00 runs at 01:00 server time.</p>
+<p><strong>Can an invoice number repeat?</strong> No. Invoice, receipt and refund numbers come from a locked counter per branch and year.</p>
+<p><strong>Can two patients get the same patient number?</strong> The database refuses a duplicate, so the second save fails and must be tried again.</p>
+<p><strong>Are my prices with or without tax?</strong> Without. Tax is added on top at the rate set for the branch when the invoice is issued.</p>
+<p><strong>Can I invoice in another currency?</strong> You can set the organization&#39;s currency label, but there is no conversion.</p>
+</section><section class="chapter" id="ch63-realtime-and-jobs"><h1 id="ch63-realtime-and-jobs-chapter-63-realtime-updates-and-background-jobs">Chapter 63 — Realtime updates and background jobs</h1>
+<p>This chapter explains the two ways the Platform acts without a user clicking: it pushes live updates to open screens over a socket connection, and it runs timed jobs and background loops in a worker process. It is written for the product owner who must understand which processes to run and what happens when Redis or the worker is down. Appendix E holds the full job table; this chapter restates the essentials and explains how the pieces fit together. The queue module (Chapter 30) and notifications (Chapters 44 and 59) are the main users of these mechanisms.</p>
+<h2 id="ch63-realtime-and-jobs-63-1-process-roles">63.1 Process roles</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The backend is one program that starts in one of three roles, chosen by the start command.</p>
+<div class="tw"><table><thead><tr>
+<th>Role</th>
+<th>Start file</th>
+<th>Serves web requests and sockets</th>
+<th>Runs jobs and relays</th>
+<th>Needs Redis</th>
+</tr>
+</thead><tbody><tr>
+<td><code>api</code></td>
+<td><code>main.api.ts</code></td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes, to receive events</td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td><code>main.worker.ts</code></td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes, to send events</td>
+</tr>
+<tr>
+<td><code>all</code></td>
+<td><code>main.ts</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody></table></div><p>The table shows the three roles. In production, run two or more <code>api</code> processes behind a load balancer and <strong>exactly one</strong> <code>worker</code>. In development, the single <code>all</code> process does everything and needs no Redis, because the relay hands events directly to the local socket gateway. The job scheduler is enabled only in processes whose role is not <code>api</code>, so adding API processes never duplicates a job.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch63-process-roles.png" alt="Figure 63.1 — Processes and the message bus"></p>
+<p><em>Figure 63.1 — The browser, two API processes, one worker, PostgreSQL and Redis.</em></p>
+<p>The flowchart reads left to right. The Browser talks to API process 1 and API process 2 over HTTP and Socket.IO. Both API processes read and write PostgreSQL. The Worker process, marked &quot;run exactly one&quot;, also uses PostgreSQL. The worker publishes events and a heartbeat to Redis. Redis delivers them to both API processes through a subscription. A further arrow shows an API process using Redis for the access change bus, which is how one API process tells the others that access changed (Chapter 57).</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/runtime/process-role.ts</code> · <code>backend/src/main.ts</code> · <code>main.api.ts</code> · <code>main.worker.ts</code> · <code>backend/src/app.module.ts</code> · <code>AppModule.forRole</code></p>
+<h2 id="ch63-realtime-and-jobs-63-2-the-realtime-gateway">63.2 The realtime gateway</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Pushes small &quot;something changed&quot; messages to open browser screens so that the reception board, doctor screen, waiting-room display and permission-aware screens stay live without constant refreshing.</p>
+<p><strong>How it connects.</strong> A Socket.IO gateway listens at the path <code>/realtime</code> of the API. The web app connects with websocket transport and passes its access token in the handshake. The token is verified once, when the socket connects. A browser with no token may connect anonymously, but may join only the public display room. After connecting, the client sends a <code>subscribe</code> message naming a room; the server answers with success or a reason.</p>
+<p><strong>Rooms.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Room</th>
+<th>Who may join</th>
+<th>What it carries</th>
+</tr>
+</thead><tbody><tr>
+<td><code>session:&lt;id&gt;</code></td>
+<td>Users with access to the queue session&#39;s location</td>
+<td>Events for one doctor&#39;s queue (doctor screen, reception)</td>
+</tr>
+<tr>
+<td><code>location:&lt;id&gt;:board</code></td>
+<td>Users with access to the location</td>
+<td>Events of every queue at the location (reception board)</td>
+</tr>
+<tr>
+<td><code>location:&lt;id&gt;:display</code></td>
+<td>Anyone, no sign-in</td>
+<td>Waiting-room TV events; payloads carry token numbers and doctor names, never patient names</td>
+</tr>
+<tr>
+<td><code>org:&lt;id&gt;</code></td>
+<td>Users with access to the organization (super admin, owner, or an active staff assignment)</td>
+<td>The <code>access.changed</code> event with the organization id and the new version</td>
+</tr>
+</tbody></table></div><p>The table lists the four room types. Anything else gets &quot;Unknown room&quot;; a room the user may not enter gets &quot;No access to this room&quot;.</p>
+<p><strong>Events are nudges.</strong> A message carries a sequence number (<code>seq</code>). The browser keeps the sequence of the snapshot it loaded, ignores older or duplicate messages and fetches a fresh snapshot when it sees a newer one. This makes delivery at least once safe, because a duplicate does nothing.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/realtime/queue.gateway.ts</code> · <code>QueueGateway</code> · <code>web-app/src/features/access/hooks/useAccessSocket.ts</code></p>
+<h2 id="ch63-realtime-and-jobs-63-3-from-a-commit-to-a-screen-outbox-relay-redis">63.3 From a commit to a screen: outbox, relay, Redis</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>When a queue action changes state, the same database transaction also writes an event row in the <code>outbox</code> table and sends a database NOTIFY, so an event exists only if the change was committed. The <strong>outbox relay</strong> in the worker takes unpublished rows (up to 100 at a time, locking them so a second relay would skip them), publishes each to one Redis channel, waits until Redis accepted the whole batch and only then marks the rows as published. If Redis is down, the batch is rolled back and tried again every second. It is woken by the NOTIFY and also polls every second as a fallback. Every API process subscribes to the channel and emits each message to its own local sockets, so a browser connected to any API process sees every event. Chapter 5, section 5.8, shows this as a sequence diagram.</p>
+<p><strong>Heartbeat and watchdog.</strong> The worker publishes a heartbeat to the same channel every 5 seconds. Each API process runs a watchdog: it considers the bus healthy only while it is subscribed and has seen a heartbeat within 15 seconds. When the bus is unhealthy (Redis or worker down), the API process <strong>refuses new socket connections and drops existing ones</strong>, using a transport close so that browsers keep trying to reconnect. Screens then fall back to polling about every 10 seconds and reload their data once the socket returns. At start-up the gateway stays closed until the first heartbeat arrives.</p>
+<p><strong>Access changes.</strong> The access change bus is a second, separate path on its own Redis channel. When an organization&#39;s access version is bumped, the bus notifies the local caches and the local gateway, and publishes to Redis so the other processes do the same. Each process then emits <code>access.changed</code> to its sockets in the <code>org:&lt;id&gt;</code> room. This path does not use the outbox or the worker (Chapter 57).</p>
+<p><strong>Single-process mode.</strong> In the <code>all</code> role, the relay publishes straight to the local gateway.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/realtime/outbox-relay.service.ts</code> · <code>OutboxRelayService</code> · <code>redis-realtime.publisher.ts</code> · <code>redis-realtime.subscriber.ts</code> · <code>realtime-bus.ts</code> · <code>in-process-realtime.publisher.ts</code> · <code>backend/src/access/version/access-change-bus.ts</code></p>
+<h2 id="ch63-realtime-and-jobs-63-4-scheduled-jobs">63.4 Scheduled jobs</h2>
+<p><strong>Status:</strong> [Implemented] (the inventory alert job is [Partial])</p>
+<p>All jobs run in the worker (or the <code>all</code> process). The schedules are in <strong>server time</strong>; none sets a timezone.</p>
+<div class="tw"><table><thead><tr>
+<th>Job</th>
+<th>Schedule</th>
+<th>What it does</th>
+</tr>
+</thead><tbody><tr>
+<td>Queue no-show marker</td>
+<td>every 60 seconds</td>
+<td>Marks a booked patient as no-show once they have not checked in by the start time plus the location&#39;s maximum lateness</td>
+</tr>
+<tr>
+<td>Queue call timeout</td>
+<td>every 15 seconds</td>
+<td>Skips a called patient who never came, when the queue policy sets a timeout</td>
+</tr>
+<tr>
+<td>Queue session day-end</td>
+<td>every 5 minutes</td>
+<td>Closes empty queue sessions of a past clinic day; leaves non-empty ones open and logs an alert</td>
+</tr>
+<tr>
+<td>Queue cleanup</td>
+<td>daily at 03:15</td>
+<td>Deletes queue idempotency keys older than 24 hours and published outbox rows older than 7 days</td>
+</tr>
+<tr>
+<td>Patient credit expiry</td>
+<td>daily at 01:00</td>
+<td>Marks prepaid credits past their expiry date as expired</td>
+</tr>
+<tr>
+<td>Billing invariant check</td>
+<td>daily at 02:30</td>
+<td>Recomputes billing totals, checks money rules including the commission ledger and logs any break</td>
+</tr>
+<tr>
+<td>Month-end payroll</td>
+<td>05:00 on the 1st of each month</td>
+<td>Generates payroll records for the month just ended for every active location; locations already generated are skipped</td>
+</tr>
+<tr>
+<td>Inventory alerts</td>
+<td>daily at 08:00</td>
+<td>Counts low-stock and soon-expiring items and writes a warning to the server log only</td>
+</tr>
+</tbody></table></div><p>The table lists the eight timed jobs. The first four keep the live queue consistent; the others handle daily and monthly housekeeping. Appendix E gives the same table with statuses and references. The queue day-end job is the only one that respects each location&#39;s clinic day, taken from its queue policy.</p>
+<p><strong>Background loops.</strong> Three loops run continuously in the worker. The <strong>queue outbox relay</strong> (section 63.3). The <strong>notification relay</strong>, which is woken by a database NOTIFY and polls every two seconds, sends notification rows to the inbox (Chapter 59). The <strong>heartbeat</strong> is published every 5 seconds. Both relays follow the outbox pattern: a change and its message commit together, and a separate loop delivers the message later. If the database NOTIFY connection drops, each relay logs a warning and keeps working by polling.</p>
+<p><strong>Other timers.</strong> The in-memory rate limit tables in the authentication guards and the magic-link throttle are swept every minute or when they grow large; they do not need the worker.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/jobs/queue-jobs.service.ts</code> · <code>backend/src/billing/patient-credits.service.ts</code> · <code>backend/src/billing/invariants/billing-invariant.job.ts</code> · <code>backend/src/payroll/payroll.service.ts</code> · <code>backend/src/inventory/services/inventory-alerts.service.ts</code> · <code>backend/src/notifications/delivery/notification-relay.service.ts</code> · <code>docs/handbook/src/appendix/appE-scheduled-jobs.md</code></p>
+<h2 id="ch63-realtime-and-jobs-63-5-limitations-and-known-gaps">63.5 Limitations and known gaps</h2>
+<ul>
+<li>Exactly one worker must run; nothing in the code stops a second worker, and a second worker would run each timed job a second time (the relays are safe with several workers, the timed jobs are not guaranteed to be).</li>
+<li>Job times follow the server timezone, not the clinics&#39;.</li>
+<li>Inventory alerts reach only the server log, not any user.</li>
+<li>Realtime depends on Redis in production; without it screens poll about every 10 seconds.</li>
+<li>The access token is checked once when a socket connects; the connection continues after the token expires.</li>
+<li>There is no clean-up job for session rows, security logs or the notification outbox.</li>
+</ul>
+<h2 id="ch63-realtime-and-jobs-63-6-owner-39-s-faq">63.6 Owner&#39;s FAQ</h2>
+<p><strong>What happens if Redis is down?</strong> Realtime stops: the API refuses sockets and screens poll every ten seconds, so they update a little later. Access changes still reach the process that made them at once and the others within 15 seconds.</p>
+<p><strong>What happens if the worker is down?</strong> No timed jobs run, no notifications are sent and no queue events are published. Rows wait in the database and are processed when the worker returns. Screens fall back to polling.</p>
+<p><strong>Can I run two workers for safety?</strong> No. Run exactly one. A second worker would repeat the scheduled jobs.</p>
+<p><strong>Do I need Redis on my laptop?</strong> No. The single <code>all</code> process does not need it.</p>
+<p><strong>Can the waiting-room TV show patient names?</strong> No. The public display room carries token numbers and doctor names only.</p>
+</section></body></html>

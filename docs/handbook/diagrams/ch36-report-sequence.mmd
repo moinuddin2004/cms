@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor Owner
+    participant Web as Web app
+    participant API
+    participant Guards as Guards and<br/>ReportsController
+    participant Scope as ReportScopeService
+    participant Engine as ReportsService
+    participant DB as PostgreSQL
+    Owner->>Web: Open a report, pick period, location scope, filters
+    Web->>API: GET /reports/:key with from, to, scope, basis, doctorId
+    API->>Guards: JWT, tenant, feature, access checks
+    Guards->>Guards: report's own permission - financial or clinical
+    Guards->>Scope: resolve reach from the permission's scope
+    Scope->>DB: locations of the organization, location timezone
+    Scope-->>Engine: location ids, own doctor, clinic-local today
+    Engine->>DB: the definition's SQL, paisa, capped at 5,000 rows
+    DB-->>Engine: rows
+    Engine-->>Web: columns, rows and totals in rupees, summary, notes
+    Web-->>Owner: Summary tiles, sortable table, notes
+    Owner->>Web: Download, then Excel or PDF
+    Web->>API: GET /reports/:key/export?format=xlsx or pdf
+    API->>Engine: same run, capped at 50,000 rows
+    Engine->>Engine: ExcelJS workbook or pdfmake A4 document
+    API->>DB: audit row - action EXPORT, report, format, rows
+    API-->>Web: file attachment
+    Web-->>Owner: File saved, toast "Excel file downloaded"

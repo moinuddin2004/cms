@@ -1,0 +1,9 @@
+flowchart LR
+    NEW["Add Item with<br/>initial stock"] --> AM["applyMovement<br/>in one transaction"]
+    ADJ["Adjust Stock dialog<br/>5 manual types"] --> AM
+    PO["Receive purchase order"] --> AM
+    PC["Record patient<br/>consumption"] --> AM
+    AM --> CHK{"New stock<br/>below zero?"}
+    CHK -- "yes" --> ERR["400 Insufficient stock"]
+    CHK -- "no" --> SM["stock_movements row<br/>previous, delta, new"]
+    SM --> IT["inventory_items<br/>currentStock, nearest expiry"]

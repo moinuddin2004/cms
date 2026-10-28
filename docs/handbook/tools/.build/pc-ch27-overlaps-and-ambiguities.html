@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch27-overlaps-and-ambiguities"><h1 id="ch27-overlaps-and-ambiguities-chapter-27-overlaps-and-ambiguities">Chapter 27 — Overlaps and ambiguities</h1>
+<p>This chapter collects the places where the Platform&#39;s data model is confusing, duplicated or weaker than it looks. It is written for the product owner, who will meet these questions when planning features, writing reports or reviewing a migration. Each item says what it is, why it matters, the risk, and a status label. The facts come from the entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>, sections 9 and 10) and were checked against the code; the other data-model chapters (Chapters 12 to 26) describe the tables themselves.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-1-how-to-read-this-chapter">27.1 How to read this chapter</h2>
+<p>Each topic has the same four parts:</p>
+<ul>
+<li><strong>What it is.</strong> The tables or columns involved.</li>
+<li><strong>Why it matters.</strong> What goes wrong for a developer, a report writer or a user.</li>
+<li><strong>Risk.</strong> Low, medium or high, with the reason.</li>
+<li><strong>Status.</strong> One label. [Implemented] means both sides exist and work as designed; [Partial] means one side is incomplete; [Not implemented] means a planned link was never finished; [Unverified] means the code does not say which answer is right.</li>
+</ul>
+<h2 id="ch27-overlaps-and-ambiguities-27-2-two-prescription-tables">27.2 Two prescription tables</h2>
+<p><strong>What it is.</strong> <code>prescriptions</code> (prescriptions module) is the current prescription record: draft and finalized states, medicines in their own table, change history, doctor signatures, templates and print layouts. <code>patient_prescriptions</code> (patients module) is the older, simpler record: one row with the medicines in a JSON array. The class comment of <code>prescriptions</code> says it &quot;coexists with the legacy&quot; table while consumers migrate.</p>
+<p><strong>Why it matters.</strong> The patient&#39;s Clinical tab shows both. The main card lists prescriptions from the new table, and a collapsible &quot;Legacy quick-Rx history&quot; section still reads the old table and still offers a form to add a legacy prescription. A report that counts prescriptions from only one table will be wrong.</p>
+<p><strong>Risk.</strong> Medium. Data is split, and new legacy rows can still be created.</p>
+<p><strong>Status.</strong> [Partial]. Migration to the new table is not finished; the legacy write path is still live.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-3-four-quot-visit-quot-concepts">27.3 Four &quot;visit&quot; concepts</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch27-visit-concepts-erd.png" alt="Figure 27.1 — The four visit concepts"></p>
+<p><em>Figure 27.1 — Appointments, queue entries, encounters and the patient visit summary, with treatments and charges.</em></p>
+<p>The figure shows <code>patients</code> at the top, connected to <code>appointments</code> (&quot;books&quot;), <code>queue_entries</code> (&quot;waits as&quot;), <code>patient_encounters</code> and <code>patient_visits</code> (&quot;summary per location&quot;), all CASCADE. <code>appointments</code> connects optionally to <code>queue_entries</code> (&quot;checked in as, CASCADE&quot;) and to <code>patient_encounters</code> (&quot;booked visit, SET NULL&quot;). <code>queue_entries</code> connects one-to-one to <code>patient_encounters</code> (&quot;consulted in, CASCADE&quot;). <code>patient_encounters</code> connects to <code>treatments</code> (&quot;performed in, SET NULL&quot;) and, by a dotted line with no foreign key, to <code>charges</code> (encounter_id). <code>patient_visits</code> has no link to any of the other visit tables.</p>
+<p><strong>What it is.</strong></p>
+<ul>
+<li><code>appointments</code>: a booking for a future time with a doctor.</li>
+<li><code>queue_entries</code>: a patient&#39;s place in one doctor&#39;s queue on one day. Created only at check-in or for a walk-in, never at booking.</li>
+<li><code>patient_encounters</code>: the clinical record of one consultation, created when the doctor starts it. Exactly one per queue entry; it points at the appointment for booked visits and has none for walk-ins.</li>
+<li><code>patient_visits</code>: a per-location summary for a patient (first and last visit date, total spent, preferred location).</li>
+</ul>
+<p><strong>Why it matters.</strong> &quot;How many visits did we have?&quot; has four possible answers. Appointments include no-shows and cancellations; queue entries include walk-ins and people who left; encounters are consultations that actually started. <code>patient_visits</code> gives no answer at all: in the code, the patients service only reads it (<code>GET /patients/:id/visits</code>), and nothing writes rows into it.</p>
+<p><strong>Risk.</strong> Medium. Reports and dashboards can disagree depending on which table they count. The visit summary will be empty for every patient.</p>
+<p><strong>Status.</strong> [Partial]. Appointments, queue entries and encounters are [Implemented]; <code>patient_visits</code> is read but never written.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-4-treatment-plan-table-families">27.4 Treatment-plan table families</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch27-plans-prescriptions-erd.png" alt="Figure 27.2 — Plan, treatment and prescription families"></p>
+<p><em>Figure 27.2 — The tables whose names suggest &quot;plan&quot; or &quot;prescription&quot;, and what they really hold.</em></p>
+<p>The figure shows <code>patients</code> connected to <code>patient_prescriptions</code> (&quot;legacy Rx&quot;), <code>prescriptions</code> (&quot;Rx&quot;), <code>patient_treatment_plans</code> (&quot;planned work&quot;) and <code>treatments</code> (&quot;work done&quot;), all CASCADE. <code>patient_treatment_plans</code> connects to <code>treatment_plan_items</code> (CASCADE). <code>plan_templates</code> connects to <code>treatments</code> (&quot;based on, SET NULL&quot;). <code>treatment_plan_templates</code> connects to <code>prescriptions</code> (&quot;protocol used, SET NULL&quot;), and <code>patient_encounters</code> connects to <code>prescriptions</code> (SET NULL). Notes on the template boxes say &quot;Rx protocol&quot; for <code>treatment_plan_templates</code> and &quot;planned procedures&quot; for <code>plan_templates</code>.</p>
+<p><strong>What it is.</strong></p>
+<ul>
+<li><code>patient_treatment_plans</code> with <code>treatment_plan_items</code>: planned work for a patient.</li>
+<li><code>treatments</code>: work actually performed, optionally in an encounter.</li>
+<li><code>plan_templates</code>: predefined treatment plans (&quot;Root canal treatment&quot; with its usual steps), copied into a patient&#39;s plan.</li>
+<li><code>treatment_plan_templates</code>: despite the name, prescription protocols (&quot;Root canal aftercare&quot;), used by the prescription builder to pre-fill medicines and instructions.</li>
+</ul>
+<p><strong>Why it matters.</strong> The names invite mistakes. A developer asked to &quot;add a step to the treatment plan template&quot; could easily edit the prescription protocol table. The code comment on <code>plan_templates</code> itself warns against confusing the two.</p>
+<p><strong>Risk.</strong> Low for data, medium for development mistakes.</p>
+<p><strong>Status.</strong> [Implemented]. All four families work; the issue is naming. In prose the handbook uses <strong>plan template</strong> for <code>plan_templates</code> and calls <code>treatment_plan_templates</code> &quot;prescription protocol templates&quot;.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-5-several-audit-tables">27.5 Several audit tables</h2>
+<p><strong>What it is.</strong> Change history lives in five places: <code>audit_logs</code> (generic, changed fields only), <code>status_history</code> (every status change of lab and workflow records), <code>billing_audit_logs</code> (billing&#39;s own log with full before and after snapshots), <code>prescription_history</code> (prescription changes) and <code>queue_events</code> (queue actions). The comment on <code>billing_audit_logs</code> says it exists because &quot;the repo has no general audit module&quot;, which is no longer true.</p>
+<p><strong>Why it matters.</strong> &quot;Who changed this invoice?&quot; is answered by <code>billing_audit_logs</code>; &quot;who changed this patient?&quot; by <code>audit_logs</code>. A single audit screen or export must read all five.</p>
+<p><strong>Risk.</strong> Low. Each log is consistent within its area.</p>
+<p><strong>Status.</strong> [Implemented]. Consolidation is a design choice not yet made.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-6-two-ledgers">27.6 Two ledgers</h2>
+<p><strong>What it is.</strong> <code>ledger_entries</code> is the patient statement: one-sided, in rupees. <code>ledger_journals</code> with <code>ledger_journal_lines</code> is a double-entry general ledger in paisa. Both are described in the Billing ledgers chapter (Chapter 21).</p>
+<p><strong>Why it matters.</strong> The general ledger is not a complete set of books. In the code, only lab money posts journals: patient lab invoices, lab payments, credit notes, lab refunds, commission on lab lines, vendor bills and vendor payments. Ordinary clinic invoices and payments, and expenses, do not post journals, and no report reads the general ledger.</p>
+<p><strong>Risk.</strong> Medium. Anyone who builds accounting reports from the journals will miss most clinic revenue.</p>
+<p><strong>Status.</strong> [Partial]. The patient statement is [Implemented]; the general ledger covers lab money only.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-7-two-outboxes">27.7 Two outboxes</h2>
+<p><strong>What it is.</strong> <code>outbox</code> (queue module) carries realtime queue events to the Socket.IO relay. <code>notification_outbox</code> (notifications module) holds messages for people: in-app today, other channels later.</p>
+<p><strong>Why it matters.</strong> The names are similar but the purposes are separate. A developer adding a notification should never write to <code>outbox</code>, and a realtime screen update should never go through <code>notification_outbox</code>.</p>
+<p><strong>Risk.</strong> Low.</p>
+<p><strong>Status.</strong> [Implemented]. Both work as designed.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-8-two-sequence-mechanisms">27.8 Two sequence mechanisms</h2>
+<p><strong>What it is.</strong> <code>document_sequences</code> (billing) counts clinic invoices, receipts and refunds per organization, location, document type and year, giving numbers like <code>&lt;location code&gt;-INV-&lt;year&gt;-00001</code>. <code>number_sequences</code> (common) counts per organization and key, giving numbers like LAB-0001 and SHP-0001 for the lab module. The inventory module uses neither: it builds purchase-order numbers by reading the organization&#39;s last order.</p>
+<p><strong>Why it matters.</strong> Numbering rules differ by document: clinic documents restart every year at each location, lab documents run on per organization. The inventory approach reads the last number without a lock, so two orders created at the same moment can get the same number; and its purchase-order number is unique across the whole Platform while it is generated per organization, so a second organization&#39;s first purchase order collides with the first organization&#39;s (the Inventory chapter, Chapter 23, explains it).</p>
+<p><strong>Risk.</strong> Low for the two sequence tables; high for inventory purchase-order numbering.</p>
+<p><strong>Status.</strong> [Implemented] for the two sequence tables. The purchase-order numbering defect is recorded for the owner.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-9-services-versus-lab-services">27.9 <code>services</code> versus <code>lab_services</code></h2>
+<p><strong>What it is.</strong> <code>services</code> (code class <code>CatalogService</code>) is the clinic&#39;s billable catalog: what the patient is charged for. <code>lab_services</code> is a lab&#39;s catalog: what the lab makes and charges the clinic for. <code>service_mappings</code> connects them. Lab tables call a <code>services</code> id <code>clinic_treatment_id</code>.</p>
+<p><strong>Why it matters.</strong> The class name, table name and column name all differ, which makes code search and SQL harder. The clinic price and the lab cost of the same crown live in different tables.</p>
+<p><strong>Risk.</strong> Low.</p>
+<p><strong>Status.</strong> [Implemented].</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-10-logical-references-with-uncertain-targets">27.10 Logical references with uncertain targets</h2>
+<p>These columns hold an id but nothing in the code says for certain which table it belongs to:</p>
+<ul>
+<li><code>dentist_id</code> on <code>patient_teeth_chart</code>, <code>patient_treatment_plans</code>, <code>patient_recalls</code> and <code>patient_feedback</code>: an employee id or a user id. Only the request formats mention it, as a plain string.</li>
+<li><code>doctor_signatures.employee_id</code>: its code comment says it currently stores the signed-in <strong>user&#39;s</strong> id, despite the column name.</li>
+<li><code>locations.manager_id</code>: an employee or a user.</li>
+<li><code>patient_consumptions.treatmentPlanId</code> (inventory): probably a patient treatment plan.</li>
+<li><code>notification_outbox.recipient_id</code> (by <code>recipient_type</code>) and <code>config_values.scope_id</code> (by <code>scope</code>): polymorphic by design.</li>
+<li><code>stock_movements.referenceId</code>: polymorphic and stored as text, not as a UUID.</li>
+</ul>
+<p><strong>Why it matters.</strong> A join to the wrong table returns nothing or, worse, the wrong person. The employee-versus-user confusion is the most dangerous, because both tables use UUIDs and the mistake is silent.</p>
+<p><strong>Risk.</strong> Medium.</p>
+<p><strong>Status.</strong> [Unverified] for the <code>dentist_id</code>, <code>manager_id</code> and <code>treatmentPlanId</code> targets; the <code>doctor_signatures</code> case is confirmed by the code comment.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-11-foreign-keys-that-look-missing">27.11 Foreign keys that look missing</h2>
+<p><strong>What it is.</strong></p>
+<ul>
+<li><code>magic_links.shipment_id</code> has no foreign key. Its comment says &quot;no FK until that table exists here&quot;, but <code>shipments</code> now exists. No code creates shipment magic links.</li>
+<li><code>lab_order_items.clinic_treatment_id</code> has no foreign key, while <code>service_mappings.clinic_treatment_id</code>, pointing at the same <code>services</code> table, has one.</li>
+<li>Almost every billing v2 table, and most lab tables, store <code>organization_id</code> and <code>location_id</code> without foreign keys, while older modules constrain them. No comment explains the choice.</li>
+</ul>
+<p><strong>Why it matters.</strong> Without a foreign key the database accepts ids that do not exist, and deletes are not blocked. Tenant isolation in these tables rests entirely on the application.</p>
+<p><strong>Risk.</strong> Medium. Low today because the application always fills these columns, but a bug or a manual SQL fix can create orphan rows.</p>
+<p><strong>Status.</strong> [Not implemented] for the shipment link; the others are as designed but undocumented.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-12-quot-append-only-quot-that-the-database-does-not-enforce">27.12 &quot;Append-only&quot; that the database does not enforce</h2>
+<p><strong>What it is.</strong> Class comments call <code>ledger_entries</code>, <code>ledger_journals</code>, <code>ledger_journal_lines</code>, <code>payment_allocations</code>, <code>billing_audit_logs</code> and <code>notification_outbox</code> append-only. Only three tables have a trigger that rejects changes: <code>commission_entries</code> (deletes and amount changes refused), <code>audit_logs</code> and <code>status_history</code> (all updates and deletes refused). A comment on <code>form_schema_versions</code> also claims a trigger, but none exists; the service enforces it.</p>
+<p><strong>Why it matters.</strong> For the unprotected tables, append-only is a promise of the application code only. A manual SQL statement or a future bug can change history without any error.</p>
+<p><strong>Risk.</strong> Medium for the financial tables.</p>
+<p><strong>Status.</strong> [Partial]. Enforced in the database for three tables, by the application for the rest.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-13-naming-inconsistency">27.13 Naming inconsistency</h2>
+<p><strong>What it is.</strong> The ten registered inventory tables use camelCase column names (<code>organizationId</code>, <code>currentStock</code>, <code>treatmentPlanId</code>). Every other module, including the legacy <code>inventory</code> table, uses snake_case.</p>
+<p><strong>Why it matters.</strong> In SQL, camelCase names must be quoted (&quot;organizationId&quot;); unquoted names fail. Report writers who move between modules trip over it. In <code>stock_movements</code> the tenant columns are also text instead of UUID.</p>
+<p><strong>Risk.</strong> Low.</p>
+<p><strong>Status.</strong> [Implemented] as is; renaming would need a migration.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-14-employee-phone-and-cnic-are-unique-across-the-whole-platform">27.14 Employee phone and CNIC are unique across the whole Platform</h2>
+<p><strong>What it is.</strong> <code>employees</code> is a person record shared by every clinic the person works for; the link to a clinic is the assignment. Its <code>phone</code> and <code>cnic</code> columns are unique across the entire Platform, not per organization.</p>
+<p><strong>Why it matters.</strong> If two clinics enter the same doctor separately, the second insert fails. The design intends the second clinic to reuse the existing person record, but the clinic may not know that record exists, and its contact details are shared with the other clinic.</p>
+<p><strong>Risk.</strong> Medium. Expect support questions when a doctor works at two unrelated clinics.</p>
+<p><strong>Status.</strong> [Implemented] by design.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-15-primary-keys-with-no-default">27.15 Primary keys with no default</h2>
+<p><strong>What it is.</strong> These tables have keys that the application must supply: <code>document_sequences</code>, <code>number_sequences</code>, <code>organization_specialties</code>, <code>transition_effects</code> (composite keys); <code>location_billing_settings</code> (location id), <code>lab_billing_settings</code> (organization id), <code>dental_item_details</code> and <code>item_form_responses</code> (item id), <code>patient_comm_prefs</code> (patient id); <code>workflow_effects</code> and <code>notification_events</code> (a code); and <code>idempotency_keys</code>.</p>
+<p><strong>Why it matters.</strong> Most of these are &quot;one row per parent&quot; tables, where using the parent&#39;s id as the key is the point: it makes a second row impossible. An insert that forgets the key fails at once, which is safe.</p>
+<p><strong>Risk.</strong> Low.</p>
+<p><strong>Status.</strong> [Implemented] by design.</p>
+<h2 id="ch27-overlaps-and-ambiguities-27-16-entities-the-running-application-does-not-create">27.16 Entities the running application does not create</h2>
+<p><strong>What it is.</strong> <code>chairs</code> and the legacy <code>inventory</code> table have entity files, but no module registers them. The development database, built by the running application, does not contain them; a production database built by the command-line schema tool, which loads every entity file, may contain them.</p>
+<p><strong>Why it matters.</strong> Development and production schemas can differ by these two tables, which confuses schema comparisons.</p>
+<p><strong>Risk.</strong> Low.</p>
+<p><strong>Status.</strong> [Not implemented] for both tables.</p>
+</section></body></html>

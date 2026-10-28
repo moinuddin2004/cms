@@ -1,0 +1,7 @@
+- **Global guard** — a NestJS guard registered as `APP_GUARD` that runs on every request; there are five (JWT, TenantContext, FeatureFlag, Access, Subscription).
+- **Response envelope** — the JSON shape every endpoint returns: `data`, `message`, `isSuccess`, `httpStatusCode`, `error`, `devMessage` (code name `ResponseWrapper`).
+- **Tenant headers** — `x-organization-id` and `x-location-id`, added by the web app to every request.
+- **Transactional outbox** — realtime messages written as `outbox` rows in the same transaction as the change, then delivered by a relay.
+- **Outbox relay** — the worker-side loop that reads unpublished outbox rows and publishes them (code name `OutboxRelayService`).
+- **Room** — a Socket.IO channel a client subscribes to: `session:<id>`, `location:<id>:board`, `location:<id>:display`, `org:<id>`.
+- **Silent refresh** — the web app's automatic `POST /auth/refresh` on page load or after a 401.

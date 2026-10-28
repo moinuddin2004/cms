@@ -1,0 +1,4728 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Current Status and Gaps (Part 8)</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 8 — Current status</div><div class="r"><a href="#ch64-feature-status-matrix">Chapter 64 — Feature Status Matrix</a><span class="d"></span><span>4</span></div><div class="r"><a href="#ch65-known-gaps">Chapter 65 — Known Gaps</a><span class="d"></span><span>30</span></div><div class="r"><a href="#ch66-risks">Chapter 66 — Risks</a><span class="d"></span><span>38</span></div><div class="r"><a href="#ch67-open-questions">Chapter 67 — Open Questions</a><span class="d"></span><span>42</span></div><div class="r"><a href="#ch68-documentation-conflicts">Chapter 68 — Documentation Conflicts</a><span class="d"></span><span>45</span></div></section><section class="chapter" id="ch64-feature-status-matrix"><h1 id="ch64-feature-status-matrix-chapter-64-feature-status-matrix">Chapter 64 — Feature Status Matrix</h1>
+<p>This chapter lists every feature described in the module chapters (28 to 45), the workflow chapters (46 to 55) and the cross-cutting chapters (56 to 63), one row each, with its status label. It is for the owner who needs to know what is really built before promising anything to a clinic. The status of each row was merged from the notes of the chapters and checked against the chapter text; where a chapter and its notes differed, the chapter wins.</p>
+<h2 id="ch64-feature-status-matrix-64-1-how-to-read-the-matrix">64.1 How to read the matrix</h2>
+<p>Each row has four columns: the chapter number, the feature as a user would name it, the status label and a one-line note. The four labels mean the following.</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end. The backend and logic exist and a web screen uses them, or it is a backend-only job by design.</li>
+<li><strong>[Partial]</strong>: some of it exists. The note says what is missing, for example &quot;backend only, no screen calls it&quot;.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, commented out or only mentioned. It must not be described as working.</li>
+<li><strong>[Unverified]</strong>: the code could not confirm it. The note says what could not be confirmed.</li>
+</ul>
+<p>The workflow chapters (46 to 55) follow one business process across several modules, so many of their rows restate a feature that already has a row in a module chapter. They are listed separately so that each workflow can be judged on its own, and the totals in Section 64.5 report modules, workflows and cross-cutting chapters separately to avoid counting the same feature twice. No application was run while the handbook was written, so every label comes from reading the code.</p>
+<h2 id="ch64-feature-status-matrix-64-2-module-chapters">64.2 Module chapters</h2>
+<h3 id="ch64-feature-status-matrix-64-2-1-chapter-28-patients">64.2.1 Chapter 28 — Patients</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>28</td>
+<td>Register a patient</td>
+<td>[Implemented]</td>
+<td>Two-step dialog, phone unique per org, P-number, optional first appointment</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Check a phone number before saving</td>
+<td>[Partial]</td>
+<td>Endpoint and hook exist; no component calls them</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Browse, search and filter the patient list</td>
+<td>[Implemented]</td>
+<td>Card + table; UI offers only search, gender, status</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Open the patient detail page</td>
+<td>[Implemented]</td>
+<td>Tabs gated by permission and feature; out-of-scope = 404</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Edit patient details</td>
+<td>[Implemented]</td>
+<td>Audited diff</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Activate or deactivate a patient</td>
+<td>[Implemented]</td>
+<td>status_history row; does not block booking</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Blacklist a patient</td>
+<td>[Partial]</td>
+<td>API only (PUT); displayed on Overview; blocks nothing</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Delete a patient permanently</td>
+<td>[Partial]</td>
+<td>Fails (500) when billing/lab rows exist (ON DELETE RESTRICT)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Import patients from a spreadsheet</td>
+<td>[Implemented]</td>
+<td>parse → dry run → batches of 500; error report CSV</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Export the patient list</td>
+<td>[Implemented]</td>
+<td>10,000-row cap, X-Export-Truncated, audit row</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Appointments tab</td>
+<td>[Implemented]</td>
+<td>Appointments + walk-in queue visits</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Visits and clinical history</td>
+<td>[Implemented]</td>
+<td>GET history; prices stripped without patients.price.view</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Per-location visit statistics</td>
+<td>[Not implemented]</td>
+<td>patient_visits never written; endpoint always empty</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Patient change history</td>
+<td>[Implemented]</td>
+<td>admin.audit.view; values redacted per permission</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Dental info</td>
+<td>[Implemented]</td>
+<td>One row per patient, upsert</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Vitals</td>
+<td>[Implemented]</td>
+<td>Append-only, BMI computed</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Teeth chart (FDI)</td>
+<td>[Implemented]</td>
+<td>Append-only snapshots; feature off by default</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Record a treatment from the patient page</td>
+<td>[Implemented]</td>
+<td>Needs clinical.edit + price.view to see button</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Patient treatment plans</td>
+<td>[Partial]</td>
+<td>Backend only (see ch33)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Prescriptions tab and legacy quick-Rx</td>
+<td>[Implemented]</td>
+<td>Legacy patient_prescriptions table still writable</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Signed consents</td>
+<td>[Implemented]</td>
+<td>Signature pad, PNG data URL stored in record</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Documents (Files tab)</td>
+<td>[Implemented]</td>
+<td>Upload via storage provider, then record</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Communications log</td>
+<td>[Partial]</td>
+<td>CrmTab component exists but not mounted</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Recalls</td>
+<td>[Partial]</td>
+<td>Backend only; no reminder job</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Referrals</td>
+<td>[Partial]</td>
+<td>Backend create/list only; CrmTab unmounted</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Feedback</td>
+<td>[Partial]</td>
+<td>Backend create/list only; CrmTab unmounted</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Insurance</td>
+<td>[Partial]</td>
+<td>Backend only; feature off by default</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Billing tab</td>
+<td>[Implemented]</td>
+<td>Embedded billing module (ch34)</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Patient portal / CRM feature keys</td>
+<td>[Not implemented]</td>
+<td>Retired feature keys</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Patient scope (own/location/org)</td>
+<td>[Implemented]</td>
+<td>patientScope + PatientScopeGuard</td>
+</tr>
+</tbody></table></div><p>30 rows: 19 Implemented, 9 Partial, 2 Not implemented, 0 Unverified. Patients is the largest module. The core record is built end to end: registration, list, detail tabs, edit, import, export, audit history, dental info, vitals, teeth chart, signed consents and documents. The Partial rows share one pattern: the backend exists but no screen reaches it (phone pre-check, blacklist, recalls, referrals, feedback, insurance, communications log, patient treatment plans). Permanent delete is Partial because it fails with a generic error once billing or lab rows exist. The two Not implemented rows are the per-location visit statistics, which nothing ever writes, and the retired patient portal and CRM feature keys.</p>
+<h3 id="ch64-feature-status-matrix-64-2-2-chapter-29-appointments">64.2.2 Chapter 29 — Appointments</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>29</td>
+<td>See bookings and walk-ins in one list</td>
+<td>[Implemented]</td>
+<td>UNION of appointments and walk-in queue entries, server paging, scoped by appointments.view</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Browse the calendar by doctor</td>
+<td>[Implemented]</td>
+<td>FullCalendar premium resource views; drag/resize only scheduled/confirmed; weekly hours shaded</td>
+</tr>
+<tr>
+<td>29</td>
+<td>See the KPI strip</td>
+<td>[Implemented]</td>
+<td>Month of selected date; walk-ins and avg wait come from the queue</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Book an appointment</td>
+<td>[Implemented]</td>
+<td>Ordered checks plus DB exclusion constraint no_doctor_overlap → DOCTOR_DOUBLE_BOOKED; daily limit default 50</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Check a time slot live and get a suggested time</td>
+<td>[Implemented]</td>
+<td>POST /appointments/validate, 500 ms debounce, same-day suggestion, up to 50 tries</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Override booking rules</td>
+<td>[Partial]</td>
+<td>API flag and appointments.override_rules exist; no screen sends it</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Reschedule or edit a booking</td>
+<td>[Implemented]</td>
+<td>Only scheduled/confirmed (APPOINTMENT_LOCKED); emergency switch change on edit is not saved</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Confirm a booking</td>
+<td>[Implemented]</td>
+<td>scheduled → confirmed</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Cancel a booking (with reason codes)</td>
+<td>[Partial]</td>
+<td>API stores patient_left/other and text; UI sends neither and has no confirm dialog</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Mark a no-show (by hand or automatically)</td>
+<td>[Implemented]</td>
+<td>Manual action plus 60 s job using max_late_min</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Check a patient in (hand-over to the queue)</td>
+<td>[Implemented]</td>
+<td>QueueOrchestrator.checkInAppointment; detailed in Chapter 30</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Convert a late booking to a walk-in</td>
+<td>[Implemented]</td>
+<td>Works; UI rarely reaches it because the no-show job removes the Check in action</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Respect availability overrides and leave when booking</td>
+<td>[Not implemented]</td>
+<td>Tables exist in Employees; booking, validation and calendar ignore them</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Reminders, recurring bookings and online booking</td>
+<td>[Not implemented]</td>
+<td>Feature keys commented out; notifications are in-app only</td>
+</tr>
+</tbody></table></div><p>14 rows: 10 Implemented, 2 Partial, 2 Not implemented, 0 Unverified. Booking is solid: the list, calendar, live slot check, double-booking constraint and no-show job all work. The gaps are rules the booking engine does not consult (availability overrides and leave), the override-booking flag that no screen sends, and cancel reasons that the API supports but the screen never sends. Reminders, recurring and online booking are not built.</p>
+<h3 id="ch64-feature-status-matrix-64-2-3-chapter-30-queue">64.2.3 Chapter 30 — Queue</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>30</td>
+<td>Open a doctor&#39;s queue for the day</td>
+<td>[Implemented]</td>
+<td>Automatic on arrival or on opening My queue; POST /queue/sessions has no web caller</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Start, pause and resume the queue</td>
+<td>[Implemented]</td>
+<td>Pause needs a reason</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Close the day</td>
+<td>[Implemented]</td>
+<td>Every remaining patient needs a cancel/transfer decision</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Switch between smart queue and first come, first served for today</td>
+<td>[Implemented]</td>
+<td>queue.entry.reprioritize; Admin only by default</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Doctor-wise tokens</td>
+<td>[Implemented]</td>
+<td>Counter on the session row, gap-free; prefix from assignment or name</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Check in a booked patient</td>
+<td>[Implemented]</td>
+<td>NOT_TODAY, LATE_LIMIT_EXCEEDED, ALREADY_CHECKED_IN guards</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Register a walk-in</td>
+<td>[Implemented]</td>
+<td>Quick-creates patient P-xxxxx; ACTIVE_WITH_OTHER_DOCTOR needs force</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Call the next patient (smart and first-come rules)</td>
+<td>[Implemented]</td>
+<td>Pure selection engine; 14-scenario spec in both modes</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Select a specific patient</td>
+<td>[Implemented]</td>
+<td>Engine suggestion recorded; optional required reason</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Call again (recall)</td>
+<td>[Implemented]</td>
+<td>Event only, no state change</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Undo a call</td>
+<td>[Implemented]</td>
+<td>Back to waiting, same place in line</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Skip a patient who did not come</td>
+<td>[Implemented]</td>
+<td>Reception or the session&#39;s doctor; also the call-timeout job</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Rejoin a skipped patient</td>
+<td>[Implemented]</td>
+<td>end / original_position / manual policy</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Send for a test and return from the test</td>
+<td>[Implemented]</td>
+<td>on_hold keeps the token; returns ahead of walk-ins in smart mode</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Transfer a patient to another doctor</td>
+<td>[Implemented]</td>
+<td>New token, keeps arrival place; from waiting or in consultation</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Give urgent priority</td>
+<td>[Implemented]</td>
+<td>Reason required; no way to remove it</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Start the consultation</td>
+<td>[Implemented]</td>
+<td>Creates the patient_encounters row and opens the workspace</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Complete the visit (and bill it automatically)</td>
+<td>[Implemented]</td>
+<td>ChargeSourcesService.syncForEncounter in the same transaction (needs billing.invoices)</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Stop a consultation (abort)</td>
+<td>[Implemented]</td>
+<td>Appointment cancelled with code other</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Remove a patient from the queue (cancel)</td>
+<td>[Implemented]</td>
+<td>Appointment cancelled with code patient_left</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Force-complete a visit for the doctor</td>
+<td>[Implemented]</td>
+<td>queue.doctor.any; FORCE_COMPLETED event</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Print a token ticket</td>
+<td>[Implemented]</td>
+<td>Pop-up print with a people-ahead estimate</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Reception board, doctor screen and TV display (reads)</td>
+<td>[Implemented]</td>
+<td>TV public, no patient names; GET /queue/me unused by the web app</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Live updates on every screen</td>
+<td>[Implemented]</td>
+<td>Outbox, relay, Redis, Socket.IO rooms; 10 s polling fallback</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Safe retries and stale screens (Idempotency-Key and If-Match)</td>
+<td>[Implemented]</td>
+<td>Keys kept 24 h; VERSION_CONFLICT on a stale version</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Background jobs</td>
+<td>[Implemented]</td>
+<td>No-show 60 s, call timeout 15 s, day-end 5 min, clean-up 03:15 server time</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Queue settings (organization default and location override)</td>
+<td>[Implemented]</td>
+<td>Only smart mode is fixed per session; other values apply within about 60 s</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Patient visit history</td>
+<td>[Implemented]</td>
+<td>Organization-wide, up to 200 rows, patients.view without scope</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Next-patient preview</td>
+<td>[Partial]</td>
+<td>Backend only, no screen</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Queue history (events log)</td>
+<td>[Partial]</td>
+<td>Backend only (admin.audit.view), no screen</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Manage the TV display</td>
+<td>[Not implemented]</td>
+<td>queue.display.manage defined but never checked</td>
+</tr>
+</tbody></table></div><p>31 rows: 28 Implemented, 2 Partial, 1 Not implemented, 0 Unverified. The queue is the most complete module in the Platform: 28 of 31 rows are Implemented. Check-in, walk-ins, smart or first-come calling, tests, transfers, urgent priority, completion with automatic billing, live updates, safe retries and the background jobs all work. The Partial rows are two backend reads with no screen (next-patient preview and queue history). The one Not implemented row is managing the TV display, whose permission is defined but never checked.</p>
+<h3 id="ch64-feature-status-matrix-64-2-4-chapter-31-consultation">64.2.4 Chapter 31 — Consultation</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>31</td>
+<td>Start a consultation (encounter created)</td>
+<td>[Implemented]</td>
+<td>ensureForQueueEntry inside the start-consultation transaction; idempotent per queue entry</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Re-open a running consultation</td>
+<td>[Implemented]</td>
+<td>GET /encounters/by-queue-entry/:id; conduct scope own = session doctor</td>
+</tr>
+<tr>
+<td>31</td>
+<td>See the patient at a glance</td>
+<td>[Implemented]</td>
+<td>Vitals, 4 previous visits, 3 signed prescriptions with reuse</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Allergy and medical alerts</td>
+<td>[Partial]</td>
+<td>Client-side chips from free-text allergies/medical history and latest vitals flags; no structured allergy list or drug check</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Write the visit notes (auto-saved)</td>
+<td>[Implemented]</td>
+<td>PATCH /encounters/:id, 800 ms debounce, 4000-char fields; not locked after completion</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Record the treatments done today</td>
+<td>[Implemented]</td>
+<td>POST /encounters/:id/treatments; catalog procedure or typed name; no edit/delete</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Patient record slide-over</td>
+<td>[Implemented]</td>
+<td>Reuses patient tabs; amounts hidden</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Prescription inside the consultation</td>
+<td>[Implemented]</td>
+<td>Draft on first complete line, autosave 1 s, Sign &amp; print; panel not gated by permission/feature</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Order lab work from the consultation</td>
+<td>[Not implemented]</td>
+<td>No lab entry point; lab orders have no encounter link</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Complete the visit</td>
+<td>[Implemented]</td>
+<td>Flush saves, PATCH complete; appointment completed; charges in same transaction</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Automatic charges on completion</td>
+<td>[Implemented]</td>
+<td>ChargeSourcesService.syncForEncounter; only when billing.invoices enabled; needsPricing fallback</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Void charge of a removed treatment</td>
+<td>[Partial]</td>
+<td>handleRemoved exists but unreachable: no treatment delete, sync runs once at completion</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Keep prices away from doctors</td>
+<td>[Implemented]</td>
+<td>HideTreatmentPricesInterceptor plus VisibleIf on patients.price.view</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Encounter and treatment records outside the consultation</td>
+<td>[Implemented]</td>
+<td>GET /encounters/:id, GET/POST /treatments with patient scope</td>
+</tr>
+<tr>
+<td>31</td>
+<td>SOAP notes and note templates</td>
+<td>[Not implemented]</td>
+<td>Only encounter text fields; phrase chips fixed in code</td>
+</tr>
+</tbody></table></div><p>15 rows: 11 Implemented, 2 Partial, 2 Not implemented, 0 Unverified. The consultation workspace covers notes with autosave, treatments, the patient slide-over, prescribing, completion and automatic charges. Allergy alerts are Partial because they are only text chips with no structured list or drug check. Voiding the charge of a removed treatment is Partial because no screen can remove a treatment. Ordering lab work from the consultation and structured SOAP notes are not built.</p>
+<h3 id="ch64-feature-status-matrix-64-2-5-chapter-32-prescriptions">64.2.5 Chapter 32 — Prescriptions</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>32</td>
+<td>Browse and filter prescriptions</td>
+<td>[Implemented]</td>
+<td>GET /prescriptions and /stats, location + patient scope; &quot;this month&quot; uses server clock</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Write a prescription and save as draft</td>
+<td>[Implemented]</td>
+<td>POST /prescriptions; RX-{year}-{5 digits} per org, unique platform-wide</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Fill from a preset</td>
+<td>[Implemented]</td>
+<td>Builder replaces list; workspace appends and offers advice</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Sign (finalize) a prescription</td>
+<td>[Implemented]</td>
+<td>DRAFT/AMENDED only, needs a medicine; best-effort PDF upload</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Amend a signed prescription</td>
+<td>[Implemented]</td>
+<td>PATCH on FINALIZED gives AMENDED, version+1, snapshot in history</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Add/edit/remove one medicine line</td>
+<td>[Partial]</td>
+<td>Backend only; screens send the full list</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Duplicate a prescription</td>
+<td>[Partial]</td>
+<td>Backend only; stores user id as doctor_id (FK to employees), unverified</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Change history</td>
+<td>[Partial]</td>
+<td>Rows written; no viewer; read requests undeclared relation changedByEmployee</td>
+</tr>
+<tr>
+<td>32</td>
+<td>PDF with Urdu (Nastaliq)</td>
+<td>[Implemented]</td>
+<td>pdf-lib + fontkit-shaped Noto Nastaliq outlines; single page; drafts printable</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Print layouts (prescription templates)</td>
+<td>[Implemented]</td>
+<td>Default per location/org; UI creates org-wide only; orientation/logo/reg no. not printed</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Doctor signatures</td>
+<td>[Implemented]</td>
+<td>Keyed by user id; delete and by-doctor read have no screen</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Medicine directory incl. search and seed</td>
+<td>[Implemented]</td>
+<td>Soft deactivate; seed adds 10 medicines only when empty</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Prescription presets (treatment-plan-templates)</td>
+<td>[Implemented]</td>
+<td>About 40 PresetCategory values; not clinical plan templates</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Prescriptions by patient / visit / appointment</td>
+<td>[Partial]</td>
+<td>By-appointment lookup has no screen</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Legacy quick prescriptions (patient_prescriptions)</td>
+<td>[Implemented]</td>
+<td>Still readable/writable from patient tab; separate numbering, no link to new table</td>
+</tr>
+</tbody></table></div><p>15 rows: 11 Implemented, 4 Partial, 0 Not implemented, 0 Unverified. Prescriptions are largely built, including the Urdu PDF, presets, print layouts, signatures and the medicine directory. The Partial rows are backend-only operations (single-line edits, duplicate, change history, lookup by appointment). Two of them have likely defects that were read from code but not run: the history read and the duplicate action.</p>
+<h3 id="ch64-feature-status-matrix-64-2-6-chapter-33-treatment-plans">64.2.6 Chapter 33 — Treatment plans</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>33</td>
+<td>Browse and filter plan templates</td>
+<td>[Implemented]</td>
+<td>Card grid, search + category; fees stripped without price.view</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Create a plan template</td>
+<td>[Implemented]</td>
+<td>Up to 50 procedures in jsonb; not audited</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Edit a plan template</td>
+<td>[Implemented]</td>
+<td>Replaces procedure list</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Hide or show a plan template</td>
+<td>[Implemented]</td>
+<td>is_active switch</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Delete a plan template</td>
+<td>[Implemented]</td>
+<td>Hard delete; treatments.plan_template_id SET NULL</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Starter templates for a new clinic</td>
+<td>[Implemented]</td>
+<td>12 defaults seeded when org has zero templates (re-seeds if all deleted)</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Use a template when recording a treatment</td>
+<td>[Implemented]</td>
+<td>Prefills name/cost, tags treatment; button needs price.view</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Create a patient treatment plan</td>
+<td>[Partial]</td>
+<td>Backend only; web hooks unused</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Update a plan (status, acceptance, costs)</td>
+<td>[Partial]</td>
+<td>Backend only; free status changes</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Add items to a plan</td>
+<td>[Partial]</td>
+<td>Backend only</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Track progress of plan items</td>
+<td>[Partial]</td>
+<td>Backend only; nothing automatic</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Start a patient plan from a template</td>
+<td>[Not implemented]</td>
+<td>Only UI text/comment claim it</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Turn plan items into charges</td>
+<td>[Partial]</td>
+<td>Backend only; no web caller</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Plan billing summary</td>
+<td>[Partial]</td>
+<td>Endpoint + API fn + hook; no component renders it</td>
+</tr>
+</tbody></table></div><p>14 rows: 7 Implemented, 6 Partial, 1 Not implemented, 0 Unverified. Plan templates are fully built. Patient treatment plans are the weak half: creating, updating and tracking a patient plan, turning its items into charges and the plan billing summary all exist only in the backend. Starting a patient plan from a template is not built, although some screen text says it is.</p>
+<h3 id="ch64-feature-status-matrix-64-2-7-chapter-34-billing">64.2.7 Chapter 34 — Billing</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>34</td>
+<td>Keep a service catalog</td>
+<td>[Implemented]</td>
+<td>Org-level services, audited, never deleted</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Set location and doctor price overrides</td>
+<td>[Implemented]</td>
+<td>PATCH override and resolved-price endpoints unused by UI</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Automatic charges from a completed consultation</td>
+<td>[Implemented]</td>
+<td>syncForEncounter in queue completion tx; removed treatment → VOID or Review</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Add a manual charge</td>
+<td>[Implemented]</td>
+<td>Catalog or Other; price policy enforced</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Create charges from a treatment plan</td>
+<td>[Partial]</td>
+<td>Backend only, no web call</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Edit an unbilled charge (price policy)</td>
+<td>[Implemented]</td>
+<td>Catalog price needs billing.price.override</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Void an unbilled charge</td>
+<td>[Implemented]</td>
+<td>Reason 5–300 chars</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Manage discount types</td>
+<td>[Implemented]</td>
+<td>Code field not on screen</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Discount one / many / custom</td>
+<td>[Implemented]</td>
+<td>Range via AccessContext.decide; custom needs note</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Ready-to-bill list and billing desk</td>
+<td>[Implemented]</td>
+<td>Outstanding omits partly paid invoices</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Collect a payment</td>
+<td>[Implemented]</td>
+<td>One tx, lock order, idempotent clientRequestId</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Choose an allocation strategy</td>
+<td>[Implemented]</td>
+<td>Oldest first (FIFO) and Manual</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Hold and apply advance</td>
+<td>[Implemented]</td>
+<td>Advance = amount − allocated − refunded</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Unapply a payment</td>
+<td>[Partial]</td>
+<td>Backend only</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Payment accounts and methods</td>
+<td>[Implemented]</td>
+<td>Auto Cash default; default/last account cannot be deactivated</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Number invoices, receipts and refunds</td>
+<td>[Implemented]</td>
+<td>CODE-INV/REC/RFD-YYYY-NNNNN, gapless</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Issue an invoice</td>
+<td>[Implemented]</td>
+<td>At collection/advance apply or manual; due days default 7</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Exclusive sales tax</td>
+<td>[Implemented]</td>
+<td>Snapshot of location_settings.tax_rate</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Browse invoices and payment status</td>
+<td>[Implemented]</td>
+<td>Stored ISSUED/CANCELLED; computed payment status</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Edit an issued invoice</td>
+<td>[Implemented]</td>
+<td>Preview in rolled-back tx; revision conflict check</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Cancel an invoice</td>
+<td>[Implemented]</td>
+<td>Only when nothing paid; unapply has no UI</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Refunds</td>
+<td>[Implemented]</td>
+<td>Always from advance; invoice refund may carry an edit</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Patient billing summary and statement</td>
+<td>[Implemented]</td>
+<td>Ledger-based statement</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Show dues at check-in</td>
+<td>[Implemented]</td>
+<td>Setting enforced only in web app</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Daily collection</td>
+<td>[Implemented]</td>
+<td>Payments page</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Cash close</td>
+<td>[Implemented]</td>
+<td>Advisory lock; immutable; variance flag</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Printing</td>
+<td>[Implemented]</td>
+<td>Browser print A4/80 mm; English labels, Urdu typed text</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Billing settings</td>
+<td>[Implemented]</td>
+<td>Document code locks after first number</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Expenses</td>
+<td>[Implemented]</td>
+<td>Edit API-only; no delete confirm; hard delete</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Credit packages and patient credits</td>
+<td>[Partial]</td>
+<td>Backend only; expiry cron 01:00 server date</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Billing activity / audit log</td>
+<td>[Implemented]</td>
+<td>User/action filters not on screen</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Nightly invariant check</td>
+<td>[Implemented]</td>
+<td>02:30 server time, I1–I10, log only</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Doctor revenue and financial summary</td>
+<td>[Implemented]</td>
+<td>Daily summary unused; details in Ch 36</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Commission snapshot on charges</td>
+<td>[Implemented]</td>
+<td>Cross-reference to Ch 35</td>
+</tr>
+</tbody></table></div><p>34 rows: 31 Implemented, 3 Partial, 0 Not implemented, 0 Unverified. Billing is the deepest module and is almost entirely Implemented: catalog, automatic and manual charges, discounts, collection, advance, invoices, tax, edits, cancellation, refunds, cash close, printing, expenses and the nightly checks. Three Partial rows are backend-only: unapplying a payment, credit packages and plan-based charges. Because unapply has no screen, an invoice that has any payment cannot be cancelled from the web app.</p>
+<h3 id="ch64-feature-status-matrix-64-2-8-chapter-35-commissions">64.2.8 Chapter 35 — Commissions</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>35</td>
+<td>Set up or change a compensation plan</td>
+<td>[Implemented]</td>
+<td>Versioned per assignment, GiST no-overlap, compensation.manage</td>
+</tr>
+<tr>
+<td>35</td>
+<td>See the current plan and version history</td>
+<td>[Implemented]</td>
+<td>Compensation tab in employee detail</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Edit service-wise overrides (commission rules)</td>
+<td>[Implemented]</td>
+<td>Replace rules of current version; service &gt; category &gt; default</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Snapshot the rate on each visit charge</td>
+<td>[Implemented]</td>
+<td>CONSULTATION and TREATMENT charges only; backend by design</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Earn commission when patient money is applied</td>
+<td>[Implemented]</td>
+<td>Cumulative target, NET/GROSS, tax pro-rating, fixed amount; backend by design</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Earn commission on lab work</td>
+<td>[Implemented]</td>
+<td>Lab-line commissions, net of lab cost; backend by design</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Preview the doctor share while collecting payment</td>
+<td>[Implemented]</td>
+<td>doctorShare gated by earnings.all.view and billing.commissions</td>
+</tr>
+<tr>
+<td>35</td>
+<td>See every doctor&#39;s earnings</td>
+<td>[Implemented]</td>
+<td>/billing/doctor-earnings; GET /commissions has no screen</td>
+</tr>
+<tr>
+<td>35</td>
+<td>See my own earnings</td>
+<td>[Implemented]</td>
+<td>/my-earnings, filtered by signed-in user</td>
+</tr>
+<tr>
+<td>35</td>
+<td>See doctor revenue</td>
+<td>[Implemented]</td>
+<td>/billing/doctor-revenue, reports.financial.view, not commission</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Settle commission through payroll</td>
+<td>[Implemented]</td>
+<td>lockUnsettled, create, markPaid, release</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Protect the ledger (append-only trigger, I10)</td>
+<td>[Implemented]</td>
+<td>Trigger in migration; nightly I10 covers charges only</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Choose a commission plan when adding an employee</td>
+<td>[Implemented]</td>
+<td>compensation object on POST /employees</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Manual commission adjustments</td>
+<td>[Not implemented]</td>
+<td>MANUAL source type reserved, never written</td>
+</tr>
+</tbody></table></div><p>14 rows: 13 Implemented, 0 Partial, 1 Not implemented, 0 Unverified. Commissions work end to end in the backend, which is by design: rates are snapshotted on charges, commission is earned as patient money is applied, lab lines are included and the ledger is protected by a trigger. Screens exist for plans, earnings and the doctor-share preview. Manual commission adjustments are the only gap: the source type is reserved and never written.</p>
+<h3 id="ch64-feature-status-matrix-64-2-9-chapter-36-dashboard-and-reports">64.2.9 Chapter 36 — Dashboard and reports</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>36</td>
+<td>See the home dashboard</td>
+<td>[Partial]</td>
+<td>Real data; money tiles also need billing.financial_summary; mock dashboard.api.ts and ~10 widgets unused</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Read the finance overview</td>
+<td>[Implemented]</td>
+<td>/reports/finance/overview, gated finance.overview.view, 12-month trend, warnings</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Read the profit and loss statement</td>
+<td>[Implemented]</td>
+<td>Collected vs billed basis; costs by own period; payroll base salary only</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Read the clinic overview</td>
+<td>[Partial]</td>
+<td>Default Doctor role (own scope) sees sidebar item but API refuses</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Browse the report library</td>
+<td>[Implemented]</td>
+<td>37 reports, filtered by permission and own-scope doctor filter</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Run a report on screen</td>
+<td>[Implemented]</td>
+<td>5,000 row cap, scope resolution, rupees</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Download a report as Excel or PDF</td>
+<td>[Implemented]</td>
+<td>50,000 rows, PDF max 5,000, audit EXPORT row</td>
+</tr>
+<tr>
+<td>36</td>
+<td>The 37 reports</td>
+<td>[Implemented]</td>
+<td>15 financial, 22 clinical; 9 categories</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Daily financial summary</td>
+<td>[Partial]</td>
+<td>Backend only; /financial-summary redirects to /dashboard</td>
+</tr>
+</tbody></table></div><p>9 rows: 6 Implemented, 3 Partial, 0 Not implemented, 0 Unverified. The finance overview, profit and loss, the 37-report library and Excel and PDF export are Implemented. The home dashboard is Partial because roughly ten unused widgets still read mock data and the money tiles need an extra feature. The clinic overview is Partial because the default Doctor role sees it in the sidebar but the API refuses that scope. The daily financial summary has no screen.</p>
+<h3 id="ch64-feature-status-matrix-64-2-10-chapter-37-employees">64.2.10 Chapter 37 — Employees</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>37</td>
+<td>Browse and filter the employee list</td>
+<td>[Implemented]</td>
+<td>Assignments at active location, server paging</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Add an employee</td>
+<td>[Implemented]</td>
+<td>Platform-unique phone checked; CNIC only by DB index</td>
+</tr>
+<tr>
+<td>37</td>
+<td>View an employee</td>
+<td>[Implemented]</td>
+<td>Scoped to active location</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Edit an employee</td>
+<td>[Implemented]</td>
+<td>Duplicate phone/CNIC on edit gives generic 500</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Activate or deactivate an employee</td>
+<td>[Implemented]</td>
+<td>Assignment is_active; employees.is_active never written</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Delete an employee permanently</td>
+<td>[Implemented]</td>
+<td>Refused if other locations or referenced rows</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Give an employee a staff login</td>
+<td>[Implemented]</td>
+<td>Employee form and User Admin; PATCH portal-access has no screen</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Set or update the salary</td>
+<td>[Implemented]</td>
+<td>Adds compensation plan version from today</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Set the weekly schedule</td>
+<td>[Implemented]</td>
+<td>7 days, slot 15/30/45/60; cross-location check never called</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Record availability overrides</td>
+<td>[Partial]</td>
+<td>CRUD works; booking ignores them</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Manage leave requests</td>
+<td>[Partial]</td>
+<td>Manager-only; approved leave ignored by booking and payroll</td>
+</tr>
+<tr>
+<td>37</td>
+<td>See the leave summary</td>
+<td>[Partial]</td>
+<td>Usage tally, no entitlements</td>
+</tr>
+<tr>
+<td>37</td>
+<td>List employment roles</td>
+<td>[Implemented]</td>
+<td>GET /employment-roles, employees.view</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Assign an existing employee to another location</td>
+<td>[Not implemented]</td>
+<td>DTOs exist, no endpoint</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Attendance</td>
+<td>[Not implemented]</td>
+<td>Only in hr.leave description</td>
+</tr>
+</tbody></table></div><p>15 rows: 10 Implemented, 3 Partial, 2 Not implemented, 0 Unverified. Employee records, schedules, salary, staff logins and deletion are built. Availability overrides, leave requests and the leave summary are Partial because they can be recorded but are never read by booking or payroll. Assigning an existing employee to another location and attendance tracking are not built.</p>
+<h3 id="ch64-feature-status-matrix-64-2-11-chapter-38-payroll">64.2.11 Chapter 38 — Payroll</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>38</td>
+<td>Generate payroll for a month</td>
+<td>[Implemented]</td>
+<td>Base + commission, settlement lock, future months refused</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Month-end automatic generation</td>
+<td>[Implemented]</td>
+<td>Cron 0 5 1 * * server time; comment says 00:05</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Create a payroll record by hand</td>
+<td>[Implemented]</td>
+<td>No assignment or future-month check; commission 0</td>
+</tr>
+<tr>
+<td>38</td>
+<td>View payroll for a month or employee</td>
+<td>[Implemented]</td>
+<td>month/year validation 400</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Mark a record as paid</td>
+<td>[Implemented]</td>
+<td>Also pays settlement; records payout only</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Put a record on hold</td>
+<td>[Partial]</td>
+<td>Endpoint exists; no button, edit dialog status works</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Edit a payroll record</td>
+<td>[Implemented]</td>
+<td>Amount is total; floor at commission</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Delete a payroll record</td>
+<td>[Implemented]</td>
+<td>Releases pending settlement; refused if commission paid</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Export a month as CSV</td>
+<td>[Partial]</td>
+<td>Endpoint only, no button</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Payslip PDF</td>
+<td>[Partial]</td>
+<td>Endpoint only, no button</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Deductions, tax and bank files</td>
+<td>[Not implemented]</td>
+<td>Deductions fixed at 0</td>
+</tr>
+</tbody></table></div><p>11 rows: 7 Implemented, 3 Partial, 1 Not implemented, 0 Unverified. Payroll generation, month-end automation, editing, deleting and marking paid all work. Putting a record on hold, the CSV export and the payslip PDF are Partial: the endpoints exist but no button calls them. Deductions, tax and bank files are not built, so net pay always equals gross pay.</p>
+<h3 id="ch64-feature-status-matrix-64-2-12-chapter-39-inventory">64.2.12 Chapter 39 — Inventory</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>39</td>
+<td>Browse stock and see stock health</td>
+<td>[Partial]</td>
+<td>Works; no sidebar entry</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Add, edit and deactivate an item</td>
+<td>[Partial]</td>
+<td>Initial stock uses movement path (FK risk)</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Manage categories</td>
+<td>[Partial]</td>
+<td>API only; no screen creates; seedDefaults never called</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Adjust stock and keep the movement history</td>
+<td>[Unverified]</td>
+<td>performedBy gets user id but FK is to employees</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Manage suppliers</td>
+<td>[Partial]</td>
+<td>Works; no sidebar entry</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Raise and track a purchase order</td>
+<td>[Unverified]</td>
+<td>createdBy FK risk; poNumber global unique vs per-org sequence</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Receive goods into stock</td>
+<td>[Unverified]</td>
+<td>Same FK risk via applyMovement</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Define consumption templates</td>
+<td>[Partial]</td>
+<td>CRUD works; nothing uses templates</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Record materials used on a patient</td>
+<td>[Not implemented]</td>
+<td>ConsumptionRecorder not placed on any screen</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Daily low-stock and expiry alerts</td>
+<td>[Partial]</td>
+<td>08:00 server-time cron only logs</td>
+</tr>
+</tbody></table></div><p>10 rows: 0 Implemented, 6 Partial, 1 Not implemented, 3 Unverified. Inventory has no Implemented row. Stock, suppliers, purchase orders and receiving work through the API and have screens, but the module has no sidebar entry. Three rows are Unverified because the code passes a login id into columns that are foreign keys to employees, and this was never run to see whether the writes fail. Recording materials used on a patient has no screen, and the daily alert job only writes to the log.</p>
+<h3 id="ch64-feature-status-matrix-64-2-13-chapter-40-dental-lab-clinic-side">64.2.13 Chapter 40 — Dental lab (clinic side)</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>40</td>
+<td>Keep the platform lab directory</td>
+<td>[Implemented]</td>
+<td>Super admin; external and in-house labs; in-house lab auto-creates its active link</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Manage the staff of a lab</td>
+<td>[Implemented]</td>
+<td>Super admin adds lab members by account email; deactivate, never delete</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Manage a lab&#39;s services, options and prices</td>
+<td>[Implemented]</td>
+<td>Super admin only; price windows, void, history; lab cannot edit its own catalog</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Service categories</td>
+<td>[Partial]</td>
+<td>Create/update endpoints exist, no screen; six dental categories seeded</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Add a lab to the clinic&#39;s lab list</td>
+<td>[Implemented]</td>
+<td>Invited link; directory shows active external and own in-house labs</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Set payment terms and patient data level</td>
+<td>[Implemented]</td>
+<td>full_name or code_only per link; 0-365 days</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Activate, suspend and reactivate a lab link</td>
+<td>[Implemented]</td>
+<td>Reason to suspend; only suspending side reactivates</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Read the lab price list</td>
+<td>[Implemented]</td>
+<td>Negotiated else list price; margin; AnyMember reads</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Get a price quote</td>
+<td>[Implemented]</td>
+<td>LabPriceResolver; quote default day is Asia/Karachi</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Map a lab service to a clinic treatment</td>
+<td>[Implemented]</td>
+<td>One default per treatment; needs lab.catalog.manage</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Save and reuse order templates</td>
+<td>[Implemented]</td>
+<td>Private or shared; /use endpoint not called by web</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Create a lab order draft</td>
+<td>[Implemented]</td>
+<td>Optional idempotency key; pins form and workflow versions</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Start from a template or repeat a past order</td>
+<td>[Implemented]</td>
+<td>from-template and repeat endpoints</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Submit an order to the lab</td>
+<td>[Implemented]</td>
+<td>One transaction; Idempotency-Key required; price snapshot; revision 1; magic link</td>
+</tr>
+<tr>
+<td>40</td>
+<td>List and search lab orders</td>
+<td>[Implemented]</td>
+<td>Scoped by lab.orders.view own/location/org</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Open an order and print the work order</td>
+<td>[Implemented]</td>
+<td>QR /o/:orderId; no prices on work order</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Cancel, hold, resume or reopen an order</td>
+<td>[Implemented]</td>
+<td>Workflow driven; cancel from draft/submitted/accepted only</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Revise a submitted order</td>
+<td>[Implemented]</td>
+<td>New revision, re-priced on original day</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Talk to the lab: messages and clarifications</td>
+<td>[Implemented]</td>
+<td>Clinic replies; only lab asks</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Decide the lab&#39;s extra charge requests</td>
+<td>[Implemented]</td>
+<td>Approved item charge adds to lab cost</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Attach and download files</td>
+<td>[Implemented]</td>
+<td>50 MB; 10-minute signed URL; patient_shared not surfaced</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Send, copy and revoke magic links</td>
+<td>[Implemented]</td>
+<td>Hash only in DB; 24 h default TTL</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Update on behalf of a lab that does not answer</td>
+<td>[Implemented]</td>
+<td>Needs lab.orders.create and lab.links.manage; via proxy</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Follow production and try-in rounds</td>
+<td>[Implemented]</td>
+<td>Stages from template; rounds; record try-in; decide</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Approve, reject or deliver finished work</td>
+<td>[Implemented]</td>
+<td>Delivery starts 12-month warranty</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Cancel one item</td>
+<td>[Partial]</td>
+<td>Endpoint only, no screen</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Ask for a remake and decide who pays</td>
+<td>[Implemented]</td>
+<td>Warranty claim auto; charges by responsible party</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Receive a shipment and report a lost one</td>
+<td>[Implemented]</td>
+<td>QR token; only lab.orders.view needed</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Send impressions and models to the lab</td>
+<td>[Partial]</td>
+<td>Endpoint and unused web API function</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Notifications about lab work</td>
+<td>[Partial]</td>
+<td>4 seeded events never emitted; patient/lab-contact channels dev-log only</td>
+</tr>
+</tbody></table></div><p>30 rows: 26 Implemented, 4 Partial, 0 Not implemented, 0 Unverified. The clinic side of lab work is broad and mostly Implemented: directory, links, price lists, orders, revisions, messages, files, magic links, production rounds, delivery, warranties, remakes and shipments. The Partial rows are cancel-one-item, sending impressions to the lab, service categories and lab notifications (four seeded events are never emitted).</p>
+<h3 id="ch64-feature-status-matrix-64-2-14-chapter-41-lab-portal">64.2.14 Chapter 41 — Lab portal</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>41</td>
+<td>Sign in as a lab member</td>
+<td>[Implemented]</td>
+<td>labMemberships in login response; lab-only users land on /lab-portal</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Work in one lab or switch between labs</td>
+<td>[Implemented]</td>
+<td>x-lab-id header; LabPortalGuard</td>
+</tr>
+<tr>
+<td>41</td>
+<td>See the lab dashboard</td>
+<td>[Implemented]</td>
+<td>Three counters</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Read the order inbox</td>
+<td>[Implemented]</td>
+<td>Drafts hidden; patient ref by data level</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Open an order</td>
+<td>[Implemented]</td>
+<td>Lab mapper: no patient price</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Accept an order with an expected date</td>
+<td>[Implemented]</td>
+<td>Lab admin; creates stages and vendor bill draft</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Reject an order</td>
+<td>[Implemented]</td>
+<td>Order-level reject with reason</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Ask the clinic a question</td>
+<td>[Implemented]</td>
+<td>Moves order to clarification_needed</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Change the expected date</td>
+<td>[Implemented]</td>
+<td>Lab admin; reason; accepted/in progress/partially ready/on hold</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Write a note to the clinic</td>
+<td>[Implemented]</td>
+<td>Notes only; no status change</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Acknowledge a revision</td>
+<td>[Implemented]</td>
+<td>Idempotent</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Ask for an extra charge</td>
+<td>[Partial]</td>
+<td>Backend only; no portal form</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Upload files to an order</td>
+<td>[Partial]</td>
+<td>Backend only; no portal control</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Download files the clinic shared</td>
+<td>[Implemented]</td>
+<td>lab_shared only; 10-minute URL</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Run the work queue: start, QC pass, QC fail</td>
+<td>[Implemented]</td>
+<td>Lab admin and technician</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Assign a technician</td>
+<td>[Implemented]</td>
+<td>Lab admin; unassign endpoint has no button</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Ship a try-in or finished work to the clinic</td>
+<td>[Implemented]</td>
+<td>SHP number, QR slip</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Receive what the clinic sent</td>
+<td>[Implemented]</td>
+<td>Portal always records full qty, condition ok</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Report a shipment lost</td>
+<td>[Implemented]</td>
+<td>Open lines become missing</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Dispute a remake request</td>
+<td>[Implemented]</td>
+<td>Lab admin; only requested status</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Accept, suspend or reactivate a clinic</td>
+<td>[Implemented]</td>
+<td>Lab admin; shared transition code</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Manage the lab&#39;s team</td>
+<td>[Implemented]</td>
+<td>Lab admin; no self change</td>
+</tr>
+<tr>
+<td>41</td>
+<td>View and edit the lab profile</td>
+<td>[Implemented]</td>
+<td>Contact fields only</td>
+</tr>
+<tr>
+<td>41</td>
+<td>See bills, payments and statements</td>
+<td>[Implemented]</td>
+<td>Read only; drafts hidden</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Answer an order from a magic link, without logging in</td>
+<td>[Implemented]</td>
+<td>Accept, reject, ask; public routes; throttled</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Open an order from the printed QR code</td>
+<td>[Implemented]</td>
+<td>/o/:orderId resolves lab or clinic</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Be told about new work</td>
+<td>[Partial]</td>
+<td>In-app rows exist; no inbox in portal layout found</td>
+</tr>
+</tbody></table></div><p>27 rows: 24 Implemented, 3 Partial, 0 Not implemented, 0 Unverified. The lab portal covers sign-in, order inbox, accept, reject, clarify, production queue, shipping, team and profile, and no-login magic-link answers. Partial rows are charge requests and file upload (backend only) and the new-work notification (rows exist but the portal has no inbox).</p>
+<h3 id="ch64-feature-status-matrix-64-2-15-chapter-42-lab-finance">64.2.15 Chapter 42 — Lab finance</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>42</td>
+<td>Estimate and invoice lab work</td>
+<td>[Implemented]</td>
+<td>draft to issued, LINV numbers, frozen patient prices</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Browse lab invoices and see one</td>
+<td>[Implemented]</td>
+<td>overdue computed in location timezone</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Void estimate or unpaid invoice</td>
+<td>[Implemented]</td>
+<td>needs billing.invoice.void too</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Collect lab payment</td>
+<td>[Implemented]</td>
+<td>Idempotency-Key required, FIFO auto-allocation</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Use patient advance</td>
+<td>[Implemented]</td>
+<td>also automatic at issue</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Reverse lab payment</td>
+<td>[Implemented]</td>
+<td>needs billing.refund.issue; refused after refund</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Credit note</td>
+<td>[Implemented]</td>
+<td>releases newest allocations to advance</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Refund advance</td>
+<td>[Implemented]</td>
+<td>needs billing.refund.issue</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Payment reminder</td>
+<td>[Partial]</td>
+<td>queued to outbox, patient audience off by default, nothing delivered</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Order and patient billing summaries</td>
+<td>[Implemented]</td>
+<td>read panels</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Lab billing settings</td>
+<td>[Implemented]</td>
+<td>tax bp and due days; needs admin.settings.manage</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Doctor commission on lab work</td>
+<td>[Implemented]</td>
+<td>collected basis net of lab cost; skipped when billing.commissions off</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Receivables journals (GL)</td>
+<td>[Partial]</td>
+<td>written for all lab money, no screen or report reads them</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Vendor bill drafts at lab accept</td>
+<td>[Implemented]</td>
+<td>effect create_vendor_bill_draft plus item listener</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Review, approve, void vendor bill</td>
+<td>[Partial]</td>
+<td>PATCH bill and add line exist in API only</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Pay a lab</td>
+<td>[Implemented]</td>
+<td>allocations over approved bills, journals</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Use lab advance on bills</td>
+<td>[Partial]</td>
+<td>endpoint and api client exist, no UI button</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Reverse a payment to a lab</td>
+<td>[Implemented]</td>
+<td>mirrors journals</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Lab statements and reconciliation</td>
+<td>[Implemented]</td>
+<td>manual line entry, no upload</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Payables reports</td>
+<td>[Implemented]</td>
+<td>aging, monthly cost, case profit</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Lab portal payables (read)</td>
+<td>[Implemented]</td>
+<td>drafts excluded</td>
+</tr>
+</tbody></table></div><p>21 rows: 17 Implemented, 4 Partial, 0 Not implemented, 0 Unverified. Lab finance has full estimate-to-invoice, collection, advance, credit note, refund, vendor bill, payment and statement flows. Partial rows are backend-only vendor bill editing and lab advance use, payment reminders that are queued but never delivered, and journals that are written but never read by any screen.</p>
+<h3 id="ch64-feature-status-matrix-64-2-16-chapter-43-workflow-engine-config-studio">64.2.16 Chapter 43 — Workflow engine (Config Studio)</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>43</td>
+<td>Manage form schemas</td>
+<td>[Implemented]</td>
+<td>super admin only</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Edit form version and preview</td>
+<td>[Implemented]</td>
+<td>issues do not block saving</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Publish and retire form version</td>
+<td>[Implemented]</td>
+<td>service-enforced immutability</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Clinics read current forms</td>
+<td>[Implemented]</td>
+<td>AnyMember endpoints</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Manage workflow templates</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>43</td>
+<td>Edit workflow draft and test run</td>
+<td>[Implemented]</td>
+<td>60 states, 300 transitions</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Publish and retire workflow version</td>
+<td>[Implemented]</td>
+<td>rows materialised at publish</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Manage stage templates</td>
+<td>[Implemented]</td>
+<td>not versioned, no delete</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Order state machine from pinned version</td>
+<td>[Implemented]</td>
+<td>pinWorkflowVersion, transition referee</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Compare versions and activity</td>
+<td>[Implemented]</td>
+<td>activity tab on forms only</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Specialties and organization enablement</td>
+<td>[Partial]</td>
+<td>endpoints exist, Studio only lists</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Dental seed</td>
+<td>[Implemented]</td>
+<td>insert-if-missing at boot</td>
+</tr>
+</tbody></table></div><p>12 rows: 11 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Config Studio is a super admin tool for form schemas, workflows and stage templates. Everything is Implemented except specialties and organization enablement, where endpoints exist but the Studio only lists.</p>
+<h3 id="ch64-feature-status-matrix-64-2-17-chapter-44-notifications">64.2.17 Chapter 44 — Notifications</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>44</td>
+<td>See notifications in the header bell</td>
+<td>[Implemented]</td>
+<td>30 s polled badge, 20 newest items, own inbox only</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Mark notifications as read</td>
+<td>[Implemented]</td>
+<td>one or all; no mark-unread or delete</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Raise a notification event</td>
+<td>[Implemented]</td>
+<td>enqueue in caller transaction; 6-step decision order</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Deliver messages in the background</td>
+<td>[Implemented]</td>
+<td>LISTEN + 2 s poll, skip-locked claim, 5 attempts; in-app only</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Choose who is notified (switches and rules)</td>
+<td>[Implemented]</td>
+<td>audited; mandatory rules locked</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Set quiet hours</td>
+<td>[Partial]</td>
+<td>saved but never holds in-app messages</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Edit message wording in several languages</td>
+<td>[Implemented]</td>
+<td>en / ur / roman_ur; placeholder validation</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Review the message log</td>
+<td>[Implemented]</td>
+<td>filters by status, channel, text</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Patient messaging opt-outs and language</td>
+<td>[Partial]</td>
+<td>backend works; UI card commented out</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Notify through a workflow transition</td>
+<td>[Partial]</td>
+<td>notify effect exists; no shipped transition found using it</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Send to patients by WhatsApp, SMS or email</td>
+<td>[Not implemented]</td>
+<td>no patient channel; dev-log stand-in only</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Appointment reminders</td>
+<td>[Not implemented]</td>
+<td>no event, no job</td>
+</tr>
+</tbody></table></div><p>12 rows: 7 Implemented, 3 Partial, 2 Not implemented, 0 Unverified. The in-app bell, message rules, templates and the delivery pipeline work. Quiet hours, patient opt-outs and workflow-driven notification are Partial. Sending to patients by WhatsApp, SMS or email and appointment reminders are not built.</p>
+<h3 id="ch64-feature-status-matrix-64-2-18-chapter-45-subscriptions-and-onboarding">64.2.18 Chapter 45 — Subscriptions and onboarding</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>45</td>
+<td>Sign up and create a clinic</td>
+<td>[Implemented]</td>
+<td>one transaction; 14-day Professional trial</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Verify email and resend link</td>
+<td>[Partial]</td>
+<td>works, but nothing is gated by verification</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Complete the setup wizard</td>
+<td>[Implemented]</td>
+<td>3 steps; owner only; finish does not check the other steps</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Trial, plans and plan limits</td>
+<td>[Implemented]</td>
+<td>plans in code; PLAN_LIMIT on locations and logins</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Read-only mode after expiry</td>
+<td>[Implemented]</td>
+<td>402 SUBSCRIPTION_EXPIRED; 30 s cache</td>
+</tr>
+<tr>
+<td>45</td>
+<td>See subscription status and warnings</td>
+<td>[Implemented]</td>
+<td>derived status; AccountBanner</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Record a manual payment</td>
+<td>[Implemented]</td>
+<td>super admin; sets plan to paid plan</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Change plan, dates or limits</td>
+<td>[Implemented]</td>
+<td>super admin; audited</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Edit the payment instructions</td>
+<td>[Implemented]</td>
+<td>platform setting, 2000 chars</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Create a clinic from the Organizations screen</td>
+<td>[Partial]</td>
+<td>plan selector sends values the DTO rejects</td>
+</tr>
+</tbody></table></div><p>10 rows: 8 Implemented, 2 Partial, 0 Not implemented, 0 Unverified. Self-signup with a 14-day trial, plan limits, read-only mode after expiry, warnings and manual payments work. Email verification is Partial because nothing is gated by it. Creating a clinic from the Organizations screen is Partial because the plan selector sends values the API rejects.</p>
+<h2 id="ch64-feature-status-matrix-64-3-workflow-chapters">64.3 Workflow chapters</h2>
+<h3 id="ch64-feature-status-matrix-64-3-1-chapter-46-clinic-onboarding">64.3.1 Chapter 46 — Clinic onboarding</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>46</td>
+<td>Self-signup and clinic creation</td>
+<td>[Implemented]</td>
+<td>POST /auth/register creates user, clinic, MAIN location, trial</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Email verification</td>
+<td>[Partial]</td>
+<td>Informational; nothing gated by email_verified_at</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Setup wizard</td>
+<td>[Implemented]</td>
+<td>finish does not check the other steps</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Super admin creates organization</td>
+<td>[Partial]</td>
+<td>Endpoint works; screen form sends values the API rejects; no owner/location created</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Create owner login for a super-admin-created clinic</td>
+<td>[Partial]</td>
+<td>Only through User Admin after selecting the org; sequence deduced, not run</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Entitle features</td>
+<td>[Implemented]</td>
+<td>Several key features are off by default</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Owner enables features</td>
+<td>[Implemented]</td>
+<td>Locked when not entitled</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Roles</td>
+<td>[Implemented]</td>
+<td>Five system roles seeded</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Locations</td>
+<td>[Implemented]</td>
+<td>Edit screen sends fields the API refuses</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Theme and navigation</td>
+<td>[Implemented]</td>
+<td>Nav save bumps access_version; theme save does not</td>
+</tr>
+</tbody></table></div><p>10 rows: 7 Implemented, 3 Partial, 0 Not implemented, 0 Unverified. The two ways to start a clinic are both traced. The self-signup path is built. The super admin path is Partial because the form sends rejected values and no owner login or location is created with the organization.</p>
+<h3 id="ch64-feature-status-matrix-64-3-2-chapter-47-staff-onboarding">64.3.2 Chapter 47 — Staff onboarding</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>47</td>
+<td>Employee record, assignment and role</td>
+<td>[Implemented]</td>
+<td>POST /employees, phone unique platform-wide</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Staff login (employee form route)</td>
+<td>[Implemented]</td>
+<td>Does not check plan login limit</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Staff login (User Admin route)</td>
+<td>[Implemented]</td>
+<td>Checks login limit; links all active assignments</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Weekly schedule</td>
+<td>[Implemented]</td>
+<td>Overlap helper across locations never called</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Compensation plan</td>
+<td>[Implemented]</td>
+<td>Commission needs billing.commissions and consulting role</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Assign an existing employee to a second location</td>
+<td>[Not implemented]</td>
+<td>No endpoint; Add Employee fails on duplicate phone</td>
+</tr>
+<tr>
+<td>47</td>
+<td>First sign-in and access</td>
+<td>[Implemented]</td>
+<td>Home page from role</td>
+</tr>
+</tbody></table></div><p>7 rows: 6 Implemented, 0 Partial, 1 Not implemented, 0 Unverified. Adding staff works, with one gap: an existing employee cannot be assigned to a second location, because the only creation path refuses an existing phone number. The employee-form login route does not check the plan login limit, unlike User Admin.</p>
+<h3 id="ch64-feature-status-matrix-64-3-3-chapter-48-patient-journey">64.3.3 Chapter 48 — Patient journey</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>48</td>
+<td>Patient registration</td>
+<td>[Implemented]</td>
+<td>Phone unique per organization</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Appointment booking</td>
+<td>[Implemented]</td>
+<td>Validate then insert; DB blocks overlap</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Check-in and token</td>
+<td>[Implemented]</td>
+<td>Same-day, within max lateness</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Queue and call next</td>
+<td>[Implemented]</td>
+<td>Smart or first-come</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Consultation and encounter</td>
+<td>[Implemented]</td>
+<td>Encounter at start-consultation</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Treatments in the workspace</td>
+<td>[Implemented]</td>
+<td>Doctor sees no prices</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Prescription in the workspace</td>
+<td>[Implemented]</td>
+<td>Optional</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Lab order from the consultation workspace</td>
+<td>[Not implemented]</td>
+<td>Created from Lab orders page instead</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Automatic charges on completion</td>
+<td>[Implemented]</td>
+<td>Only with billing.invoices enabled (default off)</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Payment and invoice issue</td>
+<td>[Implemented]</td>
+<td>Invoice issued at collection</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Receipt printing</td>
+<td>[Implemented]</td>
+<td>Browser print layouts; no server PDF</td>
+</tr>
+</tbody></table></div><p>11 rows: 10 Implemented, 0 Partial, 1 Not implemented, 0 Unverified. The patient journey from registration to receipt is built. The only break is that no lab order can be started from the consultation workspace. Automatic charges depend on the billing.invoices feature, which is off by default.</p>
+<h3 id="ch64-feature-status-matrix-64-3-4-chapter-49-dental-lab-case">64.3.4 Chapter 49 — Dental lab case</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>49</td>
+<td>Create and submit lab order</td>
+<td>[Implemented]</td>
+<td>Prices frozen at submit</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Send magic link by message</td>
+<td>[Partial]</td>
+<td>Provider for contact channels is a logger</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Copy magic link</td>
+<td>[Implemented]</td>
+<td>Link shown once</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Lab accepts via link or portal</td>
+<td>[Implemented]</td>
+<td>Creates stages and vendor bill draft</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Production stages (lab side)</td>
+<td>[Implemented]</td>
+<td>Portal login required</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Try-in rounds</td>
+<td>[Implemented]</td>
+<td>No appointment automation</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Shipment receive and lost</td>
+<td>[Implemented]</td>
+<td>QR token</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Approve and deliver</td>
+<td>[Implemented]</td>
+<td>12-month warranty</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Patient lab invoice</td>
+<td>[Implemented]</td>
+<td>Separate tables and LINV numbers</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Vendor bill review and pay</td>
+<td>[Partial]</td>
+<td>Header edit and manual lines API only</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Lab-line commission</td>
+<td>[Implemented]</td>
+<td>Backend only; lab cost netted</td>
+</tr>
+</tbody></table></div><p>11 rows: 9 Implemented, 2 Partial, 0 Not implemented, 0 Unverified. The lab case workflow is built from order to vendor payment. Sending the magic link by message is Partial because the contact channel is a log stand-in, and vendor bill header edits are backend only.</p>
+<h3 id="ch64-feature-status-matrix-64-3-5-chapter-50-daily-clinic-closing">64.3.5 Chapter 50 — Daily clinic closing</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>50</td>
+<td>Queue close day</td>
+<td>[Implemented]</td>
+<td>Decisions required for remaining patients</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Automatic day-end close</td>
+<td>[Implemented]</td>
+<td>Only empty sessions; others alert only</td>
+</tr>
+<tr>
+<td>50</td>
+<td>No-show marking</td>
+<td>[Implemented]</td>
+<td>Manual or 60 s job; job writes no event</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Daily collection</td>
+<td>[Implemented]</td>
+<td>Per payment account</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Cash close</td>
+<td>[Implemented]</td>
+<td>Immutable record</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Credit expiry job 01:00</td>
+<td>[Implemented]</td>
+<td>Server date</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Invariant check 02:30</td>
+<td>[Implemented]</td>
+<td>Log only</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Queue cleanup 03:15</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>50</td>
+<td>Inventory alerts 08:00</td>
+<td>[Partial]</td>
+<td>Log only</td>
+</tr>
+</tbody></table></div><p>9 rows: 8 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Closing the day is built: queue close, automatic day-end close, no-show marking, daily collection, cash close and the nightly jobs. The inventory alert job is Partial because it only logs.</p>
+<h3 id="ch64-feature-status-matrix-64-3-6-chapter-51-month-end-payroll">64.3.6 Chapter 51 — Month-end payroll</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>51</td>
+<td>Month-end automatic generation</td>
+<td>[Implemented]</td>
+<td>05:00 on the 1st, server time</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Base plus commission</td>
+<td>[Implemented]</td>
+<td>Negative commission carried forward</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Settlement lock</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>51</td>
+<td>Manual generation</td>
+<td>[Implemented]</td>
+<td>Whole location</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Edit and delete records</td>
+<td>[Implemented]</td>
+<td>Paid-out commission blocks delete</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Put on hold</td>
+<td>[Partial]</td>
+<td>No button</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Mark paid</td>
+<td>[Implemented]</td>
+<td>No money moves</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Payslip PDF and CSV export</td>
+<td>[Partial]</td>
+<td>No buttons</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Deductions and tax</td>
+<td>[Not implemented]</td>
+<td></td>
+</tr>
+</tbody></table></div><p>9 rows: 6 Implemented, 2 Partial, 1 Not implemented, 0 Unverified. Month-end payroll is built from automatic generation to mark-paid. On hold, payslip PDF and CSV export have no buttons, and deductions and tax are not built.</p>
+<h3 id="ch64-feature-status-matrix-64-3-7-chapter-52-invoice-correction-and-refund">64.3.7 Chapter 52 — Invoice correction and refund</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>52</td>
+<td>Edit preview</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>52</td>
+<td>Edit and revision</td>
+<td>[Implemented]</td>
+<td>Optimistic revision check</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Commission adjustment on edit</td>
+<td>[Implemented]</td>
+<td>Backend only by design</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Cancel unpaid invoice</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>52</td>
+<td>Unapply payment</td>
+<td>[Partial]</td>
+<td>Backend only; needed to cancel a paid invoice</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Refund from advance or invoice</td>
+<td>[Implemented]</td>
+<td>Cannot be undone</td>
+</tr>
+</tbody></table></div><p>6 rows: 5 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Invoice correction and refund work. Unapplying a payment is Partial because it has no screen.</p>
+<h3 id="ch64-feature-status-matrix-64-3-8-chapter-53-subscription-expiry-and-recovery">64.3.8 Chapter 53 — Subscription expiry and recovery</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>53</td>
+<td>Trial and banners</td>
+<td>[Implemented]</td>
+<td>14 days</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Grace period</td>
+<td>[Implemented]</td>
+<td>3 days</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Read-only mode 402</td>
+<td>[Implemented]</td>
+<td>Cached 30 s per process</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Super admin records payment</td>
+<td>[Implemented]</td>
+<td>Overwrites plan</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Return to active</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>53</td>
+<td>Renewal reminder email</td>
+<td>[Not implemented]</td>
+<td>None sent</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Worker jobs while read-only</td>
+<td>[Unverified]</td>
+<td>Deduced: guard is HTTP only</td>
+</tr>
+</tbody></table></div><p>7 rows: 5 Implemented, 0 Partial, 1 Not implemented, 1 Unverified. The subscription lifecycle (trial, grace, read-only, recovery) is built. Renewal reminder emails are not sent. Whether background jobs keep running while a clinic is read-only is Unverified, deduced from the guard being HTTP only.</p>
+<h3 id="ch64-feature-status-matrix-64-3-9-chapter-54-access-change-propagation">64.3.9 Chapter 54 — Access change propagation</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>54</td>
+<td>Owner edit of role, feature or nav</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>54</td>
+<td>access_version bump</td>
+<td>[Implemented]</td>
+<td>Subscriber plus explicit bumps</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Redis bus to all processes</td>
+<td>[Implemented]</td>
+<td>15 s fallback</td>
+</tr>
+<tr>
+<td>54</td>
+<td>access.changed realtime event</td>
+<td>[Implemented]</td>
+<td>Room org:id</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Web app refetch</td>
+<td>[Implemented]</td>
+<td>Focus fallback, 30 s stale</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Theme save triggers propagation</td>
+<td>[Not implemented]</td>
+<td>No bump found</td>
+</tr>
+</tbody></table></div><p>6 rows: 5 Implemented, 0 Partial, 1 Not implemented, 0 Unverified. Access changes propagate through the version counter, the Redis bus, the realtime event and the web refetch. Saving a theme does not trigger propagation.</p>
+<h3 id="ch64-feature-status-matrix-64-3-10-chapter-55-purchase-to-consumption">64.3.10 Chapter 55 — Purchase to consumption</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>55</td>
+<td>Reach the inventory page</td>
+<td>[Partial]</td>
+<td>No sidebar entry</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Create purchase order</td>
+<td>[Unverified]</td>
+<td>createdBy FK to employees receives a user id</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Receive goods</td>
+<td>[Unverified]</td>
+<td>performedBy FK to employees receives a user id</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Stock movement and adjustment</td>
+<td>[Unverified]</td>
+<td>Same FK risk</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Patient consumption</td>
+<td>[Not implemented]</td>
+<td>API only, no screen</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Low-stock alert</td>
+<td>[Partial]</td>
+<td>Server log only</td>
+</tr>
+</tbody></table></div><p>6 rows: 0 Implemented, 2 Partial, 1 Not implemented, 3 Unverified. The purchase-to-consumption chain is the weakest workflow: the page has no sidebar entry, three steps are Unverified because of the login-id versus employee-id foreign keys, consumption has no screen and the alert only logs.</p>
+<h2 id="ch64-feature-status-matrix-64-4-cross-cutting-chapters">64.4 Cross-cutting chapters</h2>
+<h3 id="ch64-feature-status-matrix-64-4-1-chapter-56-authentication">64.4.1 Chapter 56 — Authentication</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>56</td>
+<td>Register a clinic (self-signup)</td>
+<td>[Implemented]</td>
+<td>Creates user, organization, main location and 14-day trial</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Verify an email address</td>
+<td>[Implemented]</td>
+<td>Informational only; nothing is gated by it (Chapter 45 labels the same feature Partial)</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Sign in</td>
+<td>[Implemented]</td>
+<td>Session of 1 or 30 days; at most 5 sessions per user</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Choose and switch organization and location</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>56</td>
+<td>Access token, refresh cookie and silent refresh</td>
+<td>[Implemented]</td>
+<td>Refresh secret rotates on every use; expiry fixed</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Sign out, list and revoke sessions</td>
+<td>[Implemented]</td>
+<td>A revoked session&#39;s access token lives until it expires</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Change, forgot and reset password</td>
+<td>[Implemented]</td>
+<td>Six-character minimum on these paths</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Add a password to an account without one</td>
+<td>[Partial]</td>
+<td>Endpoint only; no screen calls it</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Rate limiting</td>
+<td>[Implemented]</td>
+<td>In memory of one API process; five endpoints</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Security log</td>
+<td>[Partial]</td>
+<td>Write-only; some event types never written; no reader</td>
+</tr>
+<tr>
+<td>56</td>
+<td>User administration and staff logins</td>
+<td>[Implemented]</td>
+<td>Eight-character minimum on this path</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Sign-in with Google or GitHub</td>
+<td>[Not implemented]</td>
+<td>Disabled; strategies not registered</td>
+</tr>
+<tr>
+<td>56</td>
+<td>The first super admin</td>
+<td>[Partial]</td>
+<td>Created by a manual database step</td>
+</tr>
+</tbody></table></div><p>13 rows: 9 Implemented, 3 Partial, 1 Not implemented, 0 Unverified. Sign-in, sessions, refresh and rate limiting work. The gaps are the add-password screen, a write-only security log, a manual first super admin and disabled Google and GitHub sign-in.</p>
+<h3 id="ch64-feature-status-matrix-64-4-2-chapter-57-access-control">64.4.2 Chapter 57 — Access control</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>57</td>
+<td>Five global guards</td>
+<td>[Implemented]</td>
+<td>JWT, TenantContext, FeatureFlag, Access, Subscription</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Decorators and the coverage test</td>
+<td>[Implemented]</td>
+<td>Only a unit test enforces that every handler carries a marker</td>
+</tr>
+<tr>
+<td>57</td>
+<td>AccessContext, applyScope, decide and VisibleIf</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>57</td>
+<td>GET /me/access</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>57</td>
+<td>Frontend can(), route gate, sidebar filter and No access page</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>57</td>
+<td>access_version, caches and the access.changed event</td>
+<td>[Implemented]</td>
+<td>5 min context cache, 15 s version cache</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Lab portal guard</td>
+<td>[Implemented]</td>
+<td>Separate guard for lab members</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Row-level security in the database</td>
+<td>[Not implemented]</td>
+<td>Isolation is application-level only</td>
+</tr>
+</tbody></table></div><p>8 rows: 7 Implemented, 0 Partial, 1 Not implemented, 0 Unverified. The guard chain, decorators, scopes, the frontend gate and propagation are built. Row-level security in the database is not built.</p>
+<h3 id="ch64-feature-status-matrix-64-4-3-chapter-58-customization">64.4.3 Chapter 58 — Customization</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>58</td>
+<td>Features screen and impact preview</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>58</td>
+<td>Roles builder</td>
+<td>[Implemented]</td>
+<td>Detail in Chapter 11</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Per-role and clinic home page</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>58</td>
+<td>Sidebar builder</td>
+<td>[Implemented]</td>
+<td>Clinic default layout only; per-role layouts are never written</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Registry flags for sidebar items</td>
+<td>[Implemented]</td>
+<td>The ownerOrSuperAdmin flag is unused</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Theme and branding (7 keys, per location)</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>58</td>
+<td>Public login theme</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>58</td>
+<td>Settings registry beyond theme</td>
+<td>[Partial]</td>
+<td>Only theme keys are defined</td>
+</tr>
+</tbody></table></div><p>8 rows: 7 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Features, roles, home pages, sidebar and theme customization are built. The settings registry only holds theme keys.</p>
+<h3 id="ch64-feature-status-matrix-64-4-4-chapter-59-notification-mechanics">64.4.4 Chapter 59 — Notification mechanics</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>59</td>
+<td>Pipeline from event to in-app inbox</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>59</td>
+<td>Delivery by WhatsApp, SMS and email</td>
+<td>[Not implemented]</td>
+<td>Dev-log stand-in provider only</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Recipient resolvers</td>
+<td>[Partial]</td>
+<td>Only the lab order workflow registers one</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Decision order and quiet hours</td>
+<td>[Implemented]</td>
+<td>Quiet hours never hold in-app messages</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Message templates</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>59</td>
+<td>Outbox, relay and retries</td>
+<td>[Implemented]</td>
+<td>Status delivered is never set</td>
+</tr>
+</tbody></table></div><p>6 rows: 4 Implemented, 1 Partial, 1 Not implemented, 0 Unverified. The in-app pipeline is built; external channels are not. Only the lab workflow registers a recipient resolver.</p>
+<h3 id="ch64-feature-status-matrix-64-4-5-chapter-60-audit-logging">64.4.5 Chapter 60 — Audit logging</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>60</td>
+<td>History tables (audit_logs, status_history)</td>
+<td>[Implemented]</td>
+<td>Trigger-protected against update and delete</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Patients audit</td>
+<td>[Implemented]</td>
+<td>13 record kinds plus export and import</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Appointments audit</td>
+<td>[Not implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>60</td>
+<td>Employees audit</td>
+<td>[Not implemented]</td>
+<td>Only role definitions are audited</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Payroll audit</td>
+<td>[Not implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>60</td>
+<td>Organizations and locations audit</td>
+<td>[Not implemented]</td>
+<td>Features, theme and subscriptions are audited</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Patient audit trail reader</td>
+<td>[Implemented]</td>
+<td>Needs admin.audit.view</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Organization-wide audit viewer</td>
+<td>[Not implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>60</td>
+<td>Retention policy</td>
+<td>[Not implemented]</td>
+<td>No purge or archive anywhere</td>
+</tr>
+</tbody></table></div><p>9 rows: 3 Implemented, 0 Partial, 6 Not implemented, 0 Unverified. Audit coverage is the clearest cross-cutting gap. Patients are audited and a reader exists. Appointments, employees, payroll and organizations and locations are not audited, there is no organization-wide viewer and no retention policy.</p>
+<h3 id="ch64-feature-status-matrix-64-4-6-chapter-61-error-handling">64.4.6 Chapter 61 — Error handling</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>61</td>
+<td>Response envelope and global exception filter</td>
+<td>[Implemented]</td>
+<td>Developer message carries raw text for unexpected errors</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Validation (whitelist, forbid non-whitelisted)</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>61</td>
+<td>Error code families</td>
+<td>[Implemented]</td>
+<td>Two parallel version-conflict codes</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Idempotency keys and If-Match</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>61</td>
+<td>Database constraint mapping</td>
+<td>[Partial]</td>
+<td>Per service; no global mapping, so some errors are generic</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Frontend toasts, states and code maps</td>
+<td>[Implemented]</td>
+<td>Code maps exist only for some modules</td>
+</tr>
+</tbody></table></div><p>6 rows: 5 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. The envelope, validation, error codes, idempotency and frontend states are built. Database constraint errors are mapped per service, so some surface as generic errors.</p>
+<h3 id="ch64-feature-status-matrix-64-4-7-chapter-62-time-money-and-numbering">64.4.7 Chapter 62 — Time, money and numbering</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>62</td>
+<td>ClockService and location timezone</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>62</td>
+<td>Server-clock leftovers</td>
+<td>[Partial]</td>
+<td>Jobs, credit expiry, daily summary, purchase order and prescription year, leave year, lab catalog day</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Money storage and half-up rounding</td>
+<td>[Implemented]</td>
+<td>Paisa integers or numeric columns</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Exclusive tax</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>62</td>
+<td>Currency label</td>
+<td>[Implemented]</td>
+<td>Label only; no conversion</td>
+</tr>
+<tr>
+<td>62</td>
+<td>document_sequences and number_sequences</td>
+<td>[Implemented]</td>
+<td>Safe for billing and lab documents</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Count-plus-one and last-plus-one numbers</td>
+<td>[Partial]</td>
+<td>Collision risk; purchase order and prescription numbers unique across organizations</td>
+</tr>
+</tbody></table></div><p>7 rows: 5 Implemented, 2 Partial, 0 Not implemented, 0 Unverified. The location clock, money rules and the two safe sequence mechanisms are built. Some jobs and older numbering still use the server clock or count-plus-one.</p>
+<h3 id="ch64-feature-status-matrix-64-4-8-chapter-63-real-time-and-jobs">64.4.8 Chapter 63 — Real time and jobs</h3>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Feature</th>
+<th>Status</th>
+<th>One-line note</th>
+</tr>
+</thead><tbody><tr>
+<td>63</td>
+<td>Process roles api, worker and all</td>
+<td>[Implemented]</td>
+<td>Exactly one worker</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Socket.IO gateway and rooms</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>63</td>
+<td>Outbox relay, Redis bus, heartbeat and watchdog</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>63</td>
+<td>Scheduled jobs (seven of eight)</td>
+<td>[Implemented]</td>
+<td></td>
+</tr>
+<tr>
+<td>63</td>
+<td>Inventory alert job</td>
+<td>[Partial]</td>
+<td>Logs only; sends nothing</td>
+</tr>
+</tbody></table></div><p>5 rows: 4 Implemented, 1 Partial, 0 Not implemented, 0 Unverified. Process roles, sockets, the relay and seven of the eight jobs are Implemented. The inventory alert job is the eighth.</p>
+<h2 id="ch64-feature-status-matrix-64-5-totals">64.5 Totals</h2>
+<p>The counts in this table were computed by counting the rows of the tables in this chapter with a script, not estimated.</p>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Subject</th>
+<th>Implemented</th>
+<th>Partial</th>
+<th>Not implemented</th>
+<th>Unverified</th>
+<th>Total</th>
+</tr>
+</thead><tbody><tr>
+<td>28</td>
+<td>Patients</td>
+<td>19</td>
+<td>9</td>
+<td>2</td>
+<td>0</td>
+<td>30</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Appointments</td>
+<td>10</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>14</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Queue</td>
+<td>28</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+<td>31</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Consultation</td>
+<td>11</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>15</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Prescriptions</td>
+<td>11</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>15</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Treatment plans</td>
+<td>7</td>
+<td>6</td>
+<td>1</td>
+<td>0</td>
+<td>14</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Billing</td>
+<td>31</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>34</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Commissions</td>
+<td>13</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>14</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Dashboard and reports</td>
+<td>6</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>9</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Employees</td>
+<td>10</td>
+<td>3</td>
+<td>2</td>
+<td>0</td>
+<td>15</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Payroll</td>
+<td>7</td>
+<td>3</td>
+<td>1</td>
+<td>0</td>
+<td>11</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Inventory</td>
+<td>0</td>
+<td>6</td>
+<td>1</td>
+<td>3</td>
+<td>10</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Dental lab (clinic side)</td>
+<td>26</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>30</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Lab portal</td>
+<td>24</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>27</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Lab finance</td>
+<td>17</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>21</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Workflow engine (Config Studio)</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Notifications</td>
+<td>7</td>
+<td>3</td>
+<td>2</td>
+<td>0</td>
+<td>12</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Subscriptions and onboarding</td>
+<td>8</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td><strong>Modules (28 to 45)</strong></td>
+<td></td>
+<td><strong>246</strong></td>
+<td><strong>60</strong></td>
+<td><strong>15</strong></td>
+<td><strong>3</strong></td>
+<td><strong>324</strong></td>
+</tr>
+<tr>
+<td>46</td>
+<td>Clinic onboarding</td>
+<td>7</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Staff onboarding</td>
+<td>6</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>7</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Patient journey</td>
+<td>10</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>11</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Dental lab case</td>
+<td>9</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>11</td>
+</tr>
+<tr>
+<td>50</td>
+<td>Daily clinic closing</td>
+<td>8</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>9</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Month-end payroll</td>
+<td>6</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+<td>9</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Invoice correction and refund</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Subscription expiry and recovery</td>
+<td>5</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>7</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Access change propagation</td>
+<td>5</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Purchase to consumption</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>3</td>
+<td>6</td>
+</tr>
+<tr>
+<td><strong>Workflows (46 to 55)</strong></td>
+<td></td>
+<td><strong>61</strong></td>
+<td><strong>11</strong></td>
+<td><strong>6</strong></td>
+<td><strong>4</strong></td>
+<td><strong>82</strong></td>
+</tr>
+<tr>
+<td>56</td>
+<td>Authentication</td>
+<td>9</td>
+<td>3</td>
+<td>1</td>
+<td>0</td>
+<td>13</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Access control</td>
+<td>7</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>8</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Customization</td>
+<td>7</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Notification mechanics</td>
+<td>4</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Audit logging</td>
+<td>3</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>9</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Error handling</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Time, money and numbering</td>
+<td>5</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>7</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Real time and jobs</td>
+<td>4</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Cross-cutting (56 to 63)</strong></td>
+<td></td>
+<td><strong>44</strong></td>
+<td><strong>9</strong></td>
+<td><strong>9</strong></td>
+<td><strong>0</strong></td>
+<td><strong>62</strong></td>
+</tr>
+<tr>
+<td><strong>All rows</strong></td>
+<td></td>
+<td><strong>351</strong></td>
+<td><strong>80</strong></td>
+<td><strong>30</strong></td>
+<td><strong>7</strong></td>
+<td><strong>468</strong></td>
+</tr>
+</tbody></table></div><p>The module chapters hold 324 rows: 246 Implemented (76 percent), 60 Partial, 15 Not implemented and 3 Unverified. The workflow chapters hold 82 rows and the cross-cutting chapters 62. Adding modules and cross-cutting rows, which do not overlap, gives 386 distinct rows with 290 Implemented, 69 Partial, 24 Not implemented and 3 Unverified. The grand total of 468 includes the workflow rows, which repeat module features.</p>
+<p>The pattern behind the numbers is consistent. The Partial label is almost always &quot;the backend exists but no screen reaches it&quot; or &quot;the data is recorded but no rule reads it&quot;, so a Partial row is usually a small piece of web work or a decision, not a missing engine. The Not implemented rows are mostly features a clinic would expect from a mature product (patient messaging, reminders, attendance, deductions, audit coverage). The Unverified rows are concentrated in inventory, where a foreign-key mismatch could make writes fail at run time, and in one job-behaviour question during read-only mode. Chapter 65 lists each gap with its severity, and Chapter 67 lists the questions that decide what to build next.</p>
+</section><section class="chapter" id="ch65-known-gaps"><h1 id="ch65-known-gaps-chapter-65-known-gaps">Chapter 65 — Known Gaps</h1>
+<p>This chapter collects every gap found while the handbook was written: features that do not exist, features that exist in the backend but cannot be reached from the web app, settings that do nothing, data-integrity oddities and places where older documents describe something the code no longer does. It is for the owner who has to decide what to fix, build or promise before more clinics go live. Each gap states what it is, why it matters to an owner, which chapter holds the evidence, a severity and a suggested next step.</p>
+<h2 id="ch65-known-gaps-65-1-how-severity-is-judged">65.1 How severity is judged</h2>
+<p>Severity is judged by the effect on a live clinic, not by the effort to fix it.</p>
+<ul>
+<li><strong>High</strong>: the problem can stop daily work (registering a patient, writing a prescription) or put the business at risk, and it can happen in normal use.</li>
+<li><strong>Medium</strong>: a clinic would notice and need a workaround, or an expectation set by the product screens is not met, but daily work continues.</li>
+<li><strong>Low</strong>: a convenience, a cleanup or a feature most clinics can live without.</li>
+</ul>
+<p>No application was run while the handbook was written, so every gap was found by reading the code. Where a gap depends on behaviour that was deduced but not observed, the text says so.</p>
+<h2 id="ch65-known-gaps-65-2-features-that-are-not-built">65.2 Features that are not built</h2>
+<p>These features are absent. Some have a seeded feature key or a database table that suggests they exist; none of them works.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>No messages to patients by SMS, WhatsApp or email, and no appointment reminders</td>
+<td>Clinics cannot remind patients of visits, so no-shows are handled by phone calls only. The notification pipeline already exists, but the only active channel is the in-app inbox for staff and lab members.</td>
+<td>Chapters 44, 59</td>
+<td>Medium</td>
+<td>Decide on a provider (Question 3 in Chapter 67), then switch on the patient audience and add a reminder event and job.</td>
+</tr>
+<tr>
+<td>No renewal or trial-ending messages to clinic owners</td>
+<td>An owner learns of an expiring trial only from the banner inside the app. Expiry puts the clinic in read-only mode.</td>
+<td>Chapters 45, 53</td>
+<td>Medium</td>
+<td>Send an email to the owner at fixed days before expiry.</td>
+</tr>
+<tr>
+<td>No patient portal</td>
+<td>Patients cannot see their own records or invoices online. The feature key was retired.</td>
+<td>Chapters 1, 28</td>
+<td>Low</td>
+<td>Treat as a roadmap item; no work needed for current clinics.</td>
+</tr>
+<tr>
+<td>No online booking and no recurring appointments</td>
+<td>Every booking is made by staff, and a course of visits must be booked one by one.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Roadmap items.</td>
+</tr>
+<tr>
+<td>No insurance claims and no online payment gateway</td>
+<td>Insurance details can be stored (backend only) but no claim is created. Payments are recorded by staff, never collected online.</td>
+<td>Chapters 28, 34</td>
+<td>Low</td>
+<td>Roadmap items; confirm whether target clinics need them.</td>
+</tr>
+<tr>
+<td>No server-generated PDF receipts or invoices</td>
+<td>Receipts and invoices are printed from the browser (A4 and 80 mm). They cannot be emailed or stored as files.</td>
+<td>Chapters 34, 48</td>
+<td>Low</td>
+<td>Add a PDF generator only if sending receipts to patients becomes a requirement.</td>
+</tr>
+<tr>
+<td>No attendance tracking</td>
+<td>Payroll uses salary and commission only; there is no record of who came to work. Leave exists but is not read by payroll.</td>
+<td>Chapter 37</td>
+<td>Medium</td>
+<td>Decide whether attendance is wanted at all; if so, design it with payroll deductions.</td>
+</tr>
+<tr>
+<td>No payroll deductions, tax or bank files</td>
+<td>Net pay always equals gross pay, so deductions and withholding must be done outside the Platform.</td>
+<td>Chapters 38, 51</td>
+<td>Medium</td>
+<td>Define the deduction rules the target market needs, then add them to payroll generation.</td>
+</tr>
+<tr>
+<td>No deploy or continuous-integration configuration</td>
+<td>The repository holds no Dockerfile, pipeline or hosting configuration. How the Platform is deployed lives in people&#39;s heads.</td>
+<td>Chapter 6</td>
+<td>High</td>
+<td>Write down and automate the build, migration and process-role steps before more clinics depend on it.</td>
+</tr>
+<tr>
+<td>Chairs exist as a table only</td>
+<td>The <code>chairs</code> entity has no module, no endpoint and no screen.</td>
+<td>Chapters 12, 26</td>
+<td>Low</td>
+<td>Remove the entity or build the module; the rest of the Platform does not need it.</td>
+</tr>
+<tr>
+<td>No lab order can be started from the consultation workspace</td>
+<td>Doctors must leave the consultation and use the Lab orders page. Lab orders carry no link to the encounter.</td>
+<td>Chapters 31, 48</td>
+<td>Low</td>
+<td>Add a button that opens a lab order with the patient and doctor prefilled.</td>
+</tr>
+<tr>
+<td>No structured allergy list and no drug-interaction check</td>
+<td>Allergy alerts are text chips built from free-text fields. A doctor can prescribe a drug the patient is allergic to without any warning.</td>
+<td>Chapter 31</td>
+<td>Medium</td>
+<td>Add a structured allergy list first; a drug check can follow.</td>
+</tr>
+<tr>
+<td>No way to assign an existing employee to a second location</td>
+<td>The only way to create an assignment is to create a new employee, and a phone number that already exists is refused. A doctor who works at two locations cannot be set up.</td>
+<td>Chapters 37, 47</td>
+<td>Medium</td>
+<td>Add an endpoint and screen that create an assignment for an existing employee.</td>
+</tr>
+<tr>
+<td>No SOAP note entity or note templates</td>
+<td>Visit notes are four fixed text fields. Clinics that need structured notes cannot have them.</td>
+<td>Chapter 31</td>
+<td>Low</td>
+<td>Defer until a clinic asks.</td>
+</tr>
+<tr>
+<td>No manual commission adjustment</td>
+<td>The source type exists in the ledger but nothing writes it, so a one-off correction to a doctor&#39;s commission needs a database change.</td>
+<td>Chapter 35</td>
+<td>Low</td>
+<td>Add an adjustment screen with a reason and an audit row.</td>
+</tr>
+<tr>
+<td>No per-location patient visit statistics</td>
+<td>The <code>patient_visits</code> table is never written, so the endpoint always returns an empty list.</td>
+<td>Chapters 17, 27, 28</td>
+<td>Low</td>
+<td>Drop the table and endpoint, or fill it from encounters.</td>
+</tr>
+<tr>
+<td>No organization-wide audit viewer and no audit for appointments, employees, payroll, organizations or locations</td>
+<td>The owner cannot answer &quot;who changed this?&quot; for bookings, staff records or payroll. Only patient records have a history screen.</td>
+<td>Chapter 60</td>
+<td>Medium</td>
+<td>Extend the audit calls to the missing modules and add one viewer screen.</td>
+</tr>
+</tbody></table></div><p>The most important rows are the missing deploy configuration, which is an operational risk, and the missing second-location assignment, which blocks a normal multi-branch clinic. Everything else is either a feature a clinic would ask for later or a gap that staff can work around manually.</p>
+<h2 id="ch65-known-gaps-65-3-built-but-unreachable-from-the-web-app">65.3 Built but unreachable from the web app</h2>
+<p>In these cases the backend is finished, or nearly so, but no screen calls it, so the feature cannot be used by a clinic. Each one is usually a small piece of web work.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>The inventory page has no sidebar entry and nothing links to it</td>
+<td>Stock, suppliers and purchase orders work, but a user can only reach them by typing the address. Most staff will never find them.</td>
+<td>Chapters 39, 55</td>
+<td>Medium</td>
+<td>Add a sidebar entry; resolve the foreign-key question in Section 65.6 first.</td>
+</tr>
+<tr>
+<td>Unapply a payment has no screen</td>
+<td>An invoice that has any payment on it cannot be cancelled from the web app, because cancelling needs the payments released first. The workaround is a refund.</td>
+<td>Chapters 34, 52</td>
+<td>Medium</td>
+<td>Add an Unapply action to the payment detail.</td>
+</tr>
+<tr>
+<td>Patient treatment plans have no screen</td>
+<td>Creating, updating and tracking plans, turning plan items into charges and the plan billing summary exist only in the backend. Doctors cannot plan a course of treatment in the Platform.</td>
+<td>Chapters 28, 33</td>
+<td>Medium</td>
+<td>Build the plan screens, or remove the backend if plans are not wanted.</td>
+</tr>
+<tr>
+<td>Payroll: put on hold, CSV export and payslip PDF have no buttons</td>
+<td>An owner cannot give staff a payslip or export a month for an accountant from the Platform.</td>
+<td>Chapters 38, 51</td>
+<td>Medium</td>
+<td>Add the three buttons; the endpoints exist.</td>
+</tr>
+<tr>
+<td>Lab portal: charge requests and file upload have no portal control</td>
+<td>A lab cannot ask for an extra charge or attach a file from the portal, so these happen by message or phone.</td>
+<td>Chapters 40, 41</td>
+<td>Medium</td>
+<td>Add the two forms to the portal order page.</td>
+</tr>
+<tr>
+<td>Lab portal: no notification inbox</td>
+<td>Lab members receive in-app notifications that link into the portal, but the portal layout has no bell to show them.</td>
+<td>Chapters 40, 41</td>
+<td>Medium</td>
+<td>Add the bell to the portal header.</td>
+</tr>
+<tr>
+<td>Cancel one lab item has no screen</td>
+<td>Stopping one item of an order in progress is not possible from the web app.</td>
+<td>Chapter 40</td>
+<td>Low</td>
+<td>Add a Cancel item action on the order detail.</td>
+</tr>
+<tr>
+<td>Recalls, referrals, feedback, insurance and the communications log</td>
+<td>The component that shows them is never mounted, and recalls have no component at all. The data model is ready.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Mount the tab or drop the claim; update the older documents that call it implemented.</td>
+</tr>
+<tr>
+<td>Blacklist a patient</td>
+<td>The flag can only be set through the API, and it blocks nothing when set.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Decide what blacklisting should do (see Section 65.4), then add the control.</td>
+</tr>
+<tr>
+<td>Override booking rules</td>
+<td>The API flag and permission exist, but no booking screen sends it, so no one can book outside working hours or past the daily limit.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Add an override option for users who hold the permission.</td>
+</tr>
+<tr>
+<td>Cancel reasons</td>
+<td>The API stores a reason code and note; the screen sends neither and shows no confirmation.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Add the reason dialog.</td>
+</tr>
+<tr>
+<td>Phone pre-check at registration</td>
+<td>The endpoint and hook exist but no component calls them. The server rejects duplicates at save with a conflict message.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Call the hook on the phone field.</td>
+</tr>
+<tr>
+<td>Credit packages and patient credits</td>
+<td>Backend only, and credits are not a payment method.</td>
+<td>Chapter 34</td>
+<td>Low</td>
+<td>Decide whether prepaid packages are wanted.</td>
+</tr>
+<tr>
+<td>Plan billing summary, daily financial summary and several billing helpers</td>
+<td>Endpoints and client functions exist but no component renders them. <code>/financial-summary</code> redirects to the dashboard.</td>
+<td>Chapters 33, 34, 36</td>
+<td>Low</td>
+<td>Remove unused code or build the screens.</td>
+</tr>
+<tr>
+<td>About ten dashboard widgets that still use mock data</td>
+<td>They are not on the live dashboard but remain in the code and could be mistaken for real features.</td>
+<td>Chapter 36</td>
+<td>Low</td>
+<td>Delete the mock module.</td>
+</tr>
+<tr>
+<td>Queue: next-patient preview, queue history, the doctor&#39;s own session read and session creation</td>
+<td>Backend only. The queue works without them.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Add a history screen for supervisors if audit of the queue is needed.</td>
+</tr>
+<tr>
+<td>Prescriptions: edit one medicine line, duplicate, change history viewer, lookup by appointment</td>
+<td>Backend only. The history read and the duplicate action are also likely to fail (see Section 65.6).</td>
+<td>Chapter 32</td>
+<td>Low</td>
+<td>Fix the two defects, then add the screens.</td>
+</tr>
+<tr>
+<td>Employee portal-access switch and some schedule calls</td>
+<td>The endpoint exists, but the switch is set through the employee form instead. <code>/employees/create</code> exists but nothing links to it.</td>
+<td>Chapter 37</td>
+<td>Low</td>
+<td>Clean up.</td>
+</tr>
+<tr>
+<td>Lab: vendor bill header edit, manual bill lines, using lab advance on bills, impressions to the lab, service categories, specialty enablement</td>
+<td>Endpoints exist; no buttons call them.</td>
+<td>Chapters 40, 42, 43</td>
+<td>Low</td>
+<td>Build when the workflow is needed.</td>
+</tr>
+</tbody></table></div><p>The Medium rows share one theme: a flow is half-finished at the boundary between backend and web. Finishing the inventory entry, the unapply action and the payroll buttons would remove most of the daily friction an owner would see.</p>
+<h2 id="ch65-known-gaps-65-4-seeded-but-inert">65.4 Seeded but inert</h2>
+<p>These things look real in the catalog, a table or a setting, but nothing reads them or acts on them.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>Legacy organization settings (booking defaults, advance booking days, cancellation notice, late fee percentage and old feature switches)</td>
+<td>An owner can save these values and nothing changes. Only a location settings screen reads the old feature switches to hide sections.</td>
+<td>Chapters 9, 14</td>
+<td>Medium</td>
+<td>Remove the screen or wire the rules (Chapter 67, Question 5).</td>
+</tr>
+<tr>
+<td>Blacklisted and inactive patient flags</td>
+<td>A blacklisted or inactive patient can still be booked, queued and billed. Staff may assume the flag protects them.</td>
+<td>Chapter 28</td>
+<td>Medium</td>
+<td>Decide the intended rule and enforce it at booking and check-in.</td>
+</tr>
+<tr>
+<td>Availability overrides and approved leave</td>
+<td>They can be recorded and edited, but booking, validation, the calendar, the queue and payroll never read them. A doctor on approved leave can still be booked.</td>
+<td>Chapters 29, 37</td>
+<td>Medium</td>
+<td>Make booking and the calendar read them.</td>
+</tr>
+<tr>
+<td>Feature keys that gate nothing (<code>comms.in_app</code>, <code>comms.whatsapp</code>, <code>hr.commissions</code>)</td>
+<td>Switching these on or off has no effect. Twelve more keys for unbuilt features are deactivated at every start and are hidden.</td>
+<td>Chapters 10, 35, 44</td>
+<td>Low</td>
+<td>Retire the three keys or attach checks.</td>
+</tr>
+<tr>
+<td>Notification events that are never emitted (<code>order.overdue</code>, <code>shipment.dispatched</code>, <code>tryin.appointment_due</code>, <code>appointment.rescheduled_lab_delay</code>)</td>
+<td>Clinics can edit the wording of messages that will never be sent. There is no overdue job.</td>
+<td>Chapters 40, 44</td>
+<td>Low</td>
+<td>Add emitters or remove the events.</td>
+</tr>
+<tr>
+<td>Quiet hours, patient opt-outs and the delivered status</td>
+<td>Quiet hours are saved but never hold in-app messages. The outbox status <code>delivered</code> is never set. The opt-out screen is commented out.</td>
+<td>Chapters 44, 59</td>
+<td>Low</td>
+<td>Fix or remove.</td>
+</tr>
+<tr>
+<td>The <code>queue.display.manage</code> permission</td>
+<td>It is in the catalog and in the Receptionist template but nothing checks it.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Attach it to display management or drop it.</td>
+</tr>
+<tr>
+<td>Email verification</td>
+<td>The verification state is stored but nothing is gated by it.</td>
+<td>Chapters 45, 56</td>
+<td>Low</td>
+<td>Decide whether unverified owners should be limited.</td>
+</tr>
+<tr>
+<td>Dead schema and code (the table for linked external sign-ins, the deprecated refresh-token column, unused queue and database packages, per-role sidebar layouts that are never written, unused audit and history values, unused magic-link limits)</td>
+<td>They add noise for the next developer and imply features that are not there.</td>
+<td>Chapters 4, 13, 15, 32, 40, 58, 60</td>
+<td>Low</td>
+<td>Clean up in one pass.</td>
+</tr>
+<tr>
+<td>Settings registry beyond theme</td>
+<td>The generic cascading settings store holds only theme keys.</td>
+<td>Chapter 58</td>
+<td>Low</td>
+<td>Move new settings onto it or leave as is.</td>
+</tr>
+</tbody></table></div><p>The Medium rows are the ones that mislead: a screen or flag that implies protection or behaviour the Platform does not provide. Cleaning them up costs little and removes false assurance.</p>
+<h2 id="ch65-known-gaps-65-5-data-integrity-oddities">65.5 Data-integrity oddities</h2>
+<p>These are places where the data model can produce a wrong or failing result in normal use. Several were deduced from code and constraints and not reproduced.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>Patient numbers are &quot;count plus one&quot;, but patients can be permanently deleted</td>
+<td>After any patient is deleted, the next registration computes a number that already exists and fails on the unique index. Because the count does not change, every later registration fails the same way. This was confirmed by reading the code.</td>
+<td>Chapters 28, 62</td>
+<td>High</td>
+<td>Use the safe sequence mechanism that billing uses, and stop hard-deleting patients that have history.</td>
+</tr>
+<tr>
+<td>Prescription numbers are unique across the whole Platform, but are numbered per organization</td>
+<td>The first prescription of a second clinic in the same year is numbered like the first clinic&#39;s first one and violates the unique key. This was confirmed by reading the code, but not run.</td>
+<td>Chapters 19, 32, 62</td>
+<td>High</td>
+<td>Make the number unique per organization, or use a Platform-wide sequence.</td>
+</tr>
+<tr>
+<td>Purchase order numbers have the same flaw</td>
+<td>Same cause, in inventory. A second clinic&#39;s first purchase order collides.</td>
+<td>Chapters 23, 39, 62</td>
+<td>Medium</td>
+<td>Same fix.</td>
+</tr>
+<tr>
+<td>Other count-plus-one numbers (treatment plan, legacy prescription, employee code) and unlocked &quot;last plus one&quot; numbering</td>
+<td>They can repeat after a delete or when two people save at the same moment.</td>
+<td>Chapters 28, 33, 37, 62</td>
+<td>Medium</td>
+<td>Move to the sequence mechanism.</td>
+</tr>
+<tr>
+<td>Login id stored where an employee id is expected</td>
+<td>Several writes (inventory movements and purchase orders, prescription duplication, saved doctor signatures) put a login id into columns defined as links to employees. In some tables there is no foreign key, so the value is silently wrong; where there is one, the write may fail. Not run.</td>
+<td>Chapters 28, 32, 39, 55</td>
+<td>Medium</td>
+<td>Decide which id each column should hold and make the code consistent.</td>
+</tr>
+<tr>
+<td>Deleting a patient or an employee is blocked by <code>ON DELETE RESTRICT</code> rows and fails with a generic server error</td>
+<td>The user sees &quot;Something went wrong&quot; instead of a reason. A code comment claims the rows cascade, but they do not.</td>
+<td>Chapters 16, 17, 28, 37</td>
+<td>Medium</td>
+<td>Catch the foreign-key error and give a clear message, or soft-delete.</td>
+</tr>
+<tr>
+<td>Duplicate CNIC or phone number on employee edit</td>
+<td>Reaches the database unique index and returns a generic error.</td>
+<td>Chapter 37</td>
+<td>Low</td>
+<td>Check before saving.</td>
+</tr>
+<tr>
+<td>Employee phone and CNIC are unique across the whole Platform</td>
+<td>By design one person record can serve several clinics, but the only creation path refuses an existing phone (see Section 65.2). A second clinic cannot hire someone another clinic already registered.</td>
+<td>Chapters 8, 37</td>
+<td>Medium</td>
+<td>Add the assign-existing-employee flow.</td>
+</tr>
+<tr>
+<td>Tenant columns without foreign keys on most billing, queue and lab tables, and logical references to unknown targets (<code>dentist_id</code>, <code>manager_id</code>)</td>
+<td>The database does not stop a row pointing at a missing or wrong organization. Nothing in the code explains the choice.</td>
+<td>Chapters 12, 27</td>
+<td>Low</td>
+<td>Document the decision or add the keys.</td>
+</tr>
+<tr>
+<td>&quot;Append-only&quot; tables enforced by convention only</td>
+<td>Only three tables are protected by triggers. The billing audit log, the queue log and the ledgers can be changed by anyone with database access.</td>
+<td>Chapters 26, 27</td>
+<td>Low</td>
+<td>Add triggers to the money tables.</td>
+</tr>
+<tr>
+<td>Jobs and statistics that use the server clock</td>
+<td>The month-end payroll month, credit expiry, daily summary, &quot;this month&quot; prescription counts, the lab catalog price day (fixed to one time zone) and the leave year follow the server, not the location. Wrong around midnight for locations in other zones.</td>
+<td>Chapters 38, 62</td>
+<td>Medium</td>
+<td>Move jobs to the location clock or document the server zone.</td>
+</tr>
+<tr>
+<td>The web app computes some appointment ranges in the browser time zone</td>
+<td>The server uses the location time zone, so a user in another zone sees shifted times.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Use the location zone in the web app.</td>
+</tr>
+<tr>
+<td>Location defaults of UTC and USD while organizations default to Asia/Karachi and PKR</td>
+<td>A new branch created without explicit values gets different defaults from its clinic.</td>
+<td>Chapters 1, 9, 14</td>
+<td>Low</td>
+<td>Make new locations inherit the clinic&#39;s values.</td>
+</tr>
+<tr>
+<td>Concurrent patient imports are blocked only inside one process</td>
+<td>With several API instances two imports can run at once.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Use a database lock.</td>
+</tr>
+<tr>
+<td>Registration compares phone numbers exactly, import compares normalised numbers</td>
+<td>The same number typed two ways can create two patients.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Normalise in both.</td>
+</tr>
+<tr>
+<td>Queue policy values apply within about a minute, and per process</td>
+<td>The screen says changes apply tomorrow. Only the smart-queue switch is fixed per day. Another instance can use old values for up to a minute.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Correct the screen text.</td>
+</tr>
+<tr>
+<td>Check-in lookup and no-show job: write through GET and silent SQL</td>
+<td>One read endpoint creates a session. The no-show job writes no queue event.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Log the event.</td>
+</tr>
+</tbody></table></div><p>The two High rows deserve attention first because they stop core work. The patient-number problem appears after the first deletion in any clinic. The prescription-number problem appears as soon as a second clinic writes a prescription in the same year.</p>
+<h2 id="ch65-known-gaps-65-6-unverified-behaviour">65.6 Unverified behaviour</h2>
+<p>These items could not be confirmed from code reading, and a real run is needed.</p>
+<ul>
+<li>Whether the foreign-key mismatches in inventory (Section 65.5) make stock movements, purchase orders and goods receipts fail at run time. Chapter 39 labels three features Unverified for this reason.</li>
+<li>Whether the prescription change-history read fails because it asks for a relation that is not declared, and whether duplicating a prescription fails on the doctor foreign key. Chapter 32.</li>
+<li>Whether background jobs keep running while a clinic is read-only. The read-only rule is an HTTP guard, so the answer is probably yes. Chapter 53.</li>
+<li>Whether a local PostgreSQL without SSL works with the connection settings. Chapter 7.</li>
+<li>Which account type to create in User Admin for a person who works only for a lab, and the exact sequence a super admin must follow to create an owner login for a clinic created from the Organizations screen. Chapters 41 and 46.</li>
+<li>Whether storage settings make uploaded patient documents and prescription PDFs publicly readable by address. Chapters 28 and 32.</li>
+</ul>
+<h2 id="ch65-known-gaps-65-7-documentation-drift">65.7 Documentation drift</h2>
+<p>Several older documents describe a Platform that no longer exists. The outdated ones should not be used. Chapter 68 lists each conflict with evidence. The gaps that matter for planning are these.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>The root project instructions describe a frontend layout, a four-guard chain, &quot;stub&quot; modules and path-prefix skips that the code does not have</td>
+<td>A new developer or an AI assistant that follows them will look in the wrong places.</td>
+<td>Chapters 4, 5, 8</td>
+<td>Medium</td>
+<td>Update the instructions file to match the code.</td>
+</tr>
+<tr>
+<td>Five historical documents (hand-off note, project overview, audit, plan and the old billing context pack) are outdated</td>
+<td>They list fixed problems as open and built features as missing.</td>
+<td>Chapter 68</td>
+<td>Medium</td>
+<td>Archive them or mark them superseded by this handbook.</td>
+</tr>
+<tr>
+<td>The first inventory of the documents marked recall, feedback and referral as implemented through a CRM tab</td>
+<td>The tab is never mounted. This handbook corrects that to Partial.</td>
+<td>Chapters 28, 68</td>
+<td>Low</td>
+<td>Use the handbook as the source of truth.</td>
+</tr>
+<tr>
+<td>Some screen texts claim behaviour that does not exist (starting a patient plan from a template, queue settings applying &quot;from tomorrow&quot;, a lab access panel saying a link expires after a day)</td>
+<td>Staff are told something false.</td>
+<td>Chapters 30, 33, 40</td>
+<td>Low</td>
+<td>Correct the texts.</td>
+</tr>
+<tr>
+<td>The generated data-model catalog has two known defects (shifted notes for ten inventory tables, a false trigger claim on form schema versions)</td>
+<td>Anyone reading the catalog directly can be misled.</td>
+<td>Chapters 23, 26</td>
+<td>Low</td>
+<td>Fix the generator.</td>
+</tr>
+</tbody></table></div><p>Documentation drift is Medium at worst, but it compounds: every wrong document is a future wrong decision.</p>
+<h2 id="ch65-known-gaps-65-8-what-to-do-first">65.8 What to do first</h2>
+<p>The gaps fall into a clear order. First fix the two High data-integrity gaps (patient numbers after deletion and per-organization prescription numbers), because they break core work and will appear in normal use. Second, write down the deploy procedure, because it is the only High gap that is not a code defect. Third, finish the half-built flows that cost clinics time: the inventory sidebar entry, the unapply action, the payroll buttons and the lab portal forms. Fourth, remove or wire the settings that imply protection, such as the legacy organization settings and the blacklist flag. Everything else is roadmap work that depends on the answers in Chapter 67.</p>
+</section><section class="chapter" id="ch66-risks"><h1 id="ch66-risks-chapter-66-risks">Chapter 66 — Risks</h1>
+<p>This chapter lists the risks an owner carries by running the Platform as it is today: risks in the data model, risks in how it is operated, observations that a regulator or a careful customer might ask about, and security risks described at category level only. It is for the product owner, who decides what to fix before more clinics rely on the Platform. Nothing in this chapter was tested by running the application; every item comes from reading the code and the generated data-model catalog.</p>
+<h2 id="ch66-risks-66-1-how-to-read-the-risks">66.1 How to read the risks</h2>
+<p>Each risk has a likelihood in normal use (Likely, Possible, Unlikely) and an impact on a live clinic (High, Medium, Low). Security items are grouped by category and deliberately contain no file paths, endpoint paths, secret values or exploit detail, because this text is shared outside the engineering team. The engineering team holds the detailed findings separately.</p>
+<h2 id="ch66-risks-66-2-data-model-risks">66.2 Data-model risks</h2>
+<div class="tw"><table><thead><tr>
+<th>Risk</th>
+<th>What can happen</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Count-plus-one and last-plus-one numbering</td>
+<td>After a permanent delete, or when two people save at the same moment, a patient, plan, employee or purchase order number can repeat and the save fails.</td>
+<td>Likely for patients after any delete</td>
+<td>High</td>
+<td>Chapters 28, 62</td>
+</tr>
+<tr>
+<td>Platform-wide unique keys with per-organization numbering</td>
+<td>Prescription and purchase order numbers restart for each organization but are unique across all of them, so a second clinic collides with the first.</td>
+<td>Likely in a multi-clinic deployment</td>
+<td>High</td>
+<td>Chapters 19, 32, 39, 62</td>
+</tr>
+<tr>
+<td>Login id stored in employee-id columns</td>
+<td>Some writes put a user id where an employee id is expected. Without a foreign key the value is silently wrong; with one the write may fail.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 28, 32, 39</td>
+</tr>
+<tr>
+<td>Tenant columns without foreign keys</td>
+<td>Most billing, queue and lab tables keep organization and location ids with no foreign key, so the database cannot reject a wrong tenant id.</td>
+<td>Unlikely</td>
+<td>Medium</td>
+<td>Chapters 12, 27</td>
+</tr>
+<tr>
+<td>&quot;Append-only&quot; promised by comments only</td>
+<td>Only the commission ledger, the audit log and the status history are protected by triggers. The billing audit log, the queue log, the ledgers and the allocation table rely on application code.</td>
+<td>Unlikely</td>
+<td>Medium</td>
+<td>Chapters 26, 27</td>
+</tr>
+<tr>
+<td>Duplicate concepts</td>
+<td>Two prescription tables, two audit mechanisms, two number-sequence mechanisms, two outbox tables and two feature-switch mechanisms coexist. A change to one can miss the other.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Deletes blocked by RESTRICT keys</td>
+<td>Deleting a patient or employee with history fails with a generic error.</td>
+<td>Likely</td>
+<td>Low</td>
+<td>Chapters 16, 17</td>
+</tr>
+<tr>
+<td>Schema drift between development and production</td>
+<td>Development builds the schema from the entities; production applies a reviewed diff. Two migrations were written before later entity changes, so production needs the diff applied.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 6, 12</td>
+</tr>
+<tr>
+<td>Mixed timestamp types</td>
+<td>Older tables use timestamps without a time zone, newer ones with.</td>
+<td>Unlikely</td>
+<td>Low</td>
+<td>Chapter 12</td>
+</tr>
+</tbody></table></div><p>The two numbering rows are the most urgent because they fail in ordinary use. The rest are latent: they cost nothing until a clinic hits a particular edge.</p>
+<h2 id="ch66-risks-66-3-operational-risks">66.3 Operational risks</h2>
+<div class="tw"><table><thead><tr>
+<th>Risk</th>
+<th>What can happen</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Exactly one worker process</td>
+<td>The worker runs the outbox relay, the notification relay and all eight scheduled jobs. Two workers would duplicate jobs; none would stop live queue updates, notifications and nightly checks. There is no supervision described.</td>
+<td>Possible</td>
+<td>High</td>
+<td>Chapters 6, 63</td>
+</tr>
+<tr>
+<td>In-memory rate limiting</td>
+<td>Login and other limits are counted in one API process. With several instances the limit multiplies, and a restart clears it.</td>
+<td>Likely when scaled out</td>
+<td>Medium</td>
+<td>Chapters 6, 56</td>
+</tr>
+<tr>
+<td>Server time zone for jobs</td>
+<td>No schedule sets a time zone, so jobs follow the server clock, not each location.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapters 6, 62, 63</td>
+</tr>
+<tr>
+<td>No deploy or CI configuration</td>
+<td>There is no pipeline, container file or hosting description in the repository. Builds and releases depend on individual knowledge. The built output path also differs from the one in the start script.</td>
+<td>Likely</td>
+<td>High</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Dependence on Redis</td>
+<td>Realtime updates, access-change propagation and settings caches use Redis. Without it clinics see stale screens for up to the fallback interval.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 54, 63</td>
+</tr>
+<tr>
+<td>Per-process caches</td>
+<td>The subscription decision (30 seconds), access context (5 minutes), version (15 seconds) and queue policy (60 seconds) are cached per process.</td>
+<td>Likely</td>
+<td>Low</td>
+<td>Chapters 30, 45, 57</td>
+</tr>
+<tr>
+<td>Nightly jobs only log</td>
+<td>The money invariant check and the inventory alert job write to the log. Nobody is told unless someone reads it.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapters 34, 39</td>
+</tr>
+<tr>
+<td>Calendar licence</td>
+<td>The appointment calendar uses premium resource views from a third-party library, and the licence key in use is a non-commercial one.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapter 29</td>
+</tr>
+<tr>
+<td>Seeded data re-created at boot</td>
+<td>Seeds run in the worker as well as the API and recreate a deleted system role, and re-seed starter plan templates when a clinic has none.</td>
+<td>Possible</td>
+<td>Low</td>
+<td>Chapters 11, 33</td>
+</tr>
+<tr>
+<td>Unrun test coverage of behaviour</td>
+<td>The handbook was written by reading code. The access and billing suites exist, but the findings here were not reproduced.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapter 64</td>
+</tr>
+</tbody></table></div><p>Of these, the single worker and the missing deploy configuration matter most, because a failure there is silent and affects every clinic at once.</p>
+<h2 id="ch66-risks-66-4-compliance-sounding-observations">66.4 Compliance-sounding observations</h2>
+<p>These are observations, not legal conclusions. A clinic or a regulator may ask about them; the Platform makes no compliance claim, and earlier screenshots that showed such claims were excluded from the handbook.</p>
+<ul>
+<li><strong>No retention policy.</strong> Nothing purges or archives old sessions, security logs, audit rows, notification messages or consent signatures. Network addresses and browser strings are kept indefinitely.</li>
+<li><strong>Audit coverage is partial.</strong> Patient records, billing, prescriptions and queue events keep history. Appointments, employees, payroll, organizations and locations do not, and there is no organization-wide viewer.</li>
+<li><strong>No row-level security.</strong> Tenant isolation is application-level only. The queue sets database session values for tenant and location, but no database policy uses them.</li>
+<li><strong>Patient documents on external storage.</strong> Documents, insurance images and prescription PDFs are stored with an external provider and referenced by address. Access to those addresses is not decided by the Platform&#39;s permissions.</li>
+<li><strong>Consent signatures inside the database.</strong> Signature images are stored inline in the consent row, and immutability of consents is a convention, not a database rule.</li>
+<li><strong>Message text in logs.</strong> The stand-in delivery provider writes message bodies and recipient addresses to the application log, which would be unsuitable once real patient channels are switched on. Outbox rows also keep rendered text.</li>
+<li><strong>No second factor or lockout.</strong> Accounts rely on a password with a short minimum.</li>
+</ul>
+<h2 id="ch66-risks-66-5-security-risks-by-category">66.5 Security risks by category</h2>
+<p>These categories summarise findings from all chapters. They contain no locations, paths or exploit detail by design.</p>
+<div class="tw"><table><thead><tr>
+<th>Category</th>
+<th>Summary</th>
+<th>Impact</th>
+<th>Chapters</th>
+</tr>
+</thead><tbody><tr>
+<td>Tenant isolation checks missing on some endpoints</td>
+<td>A few reads or writes do not filter by organization or location, or do not verify that referenced records belong to the caller&#39;s organization or patient scope. A few reads apply organization scope where the permission has a narrower scope.</td>
+<td>High</td>
+<td>19, 30, 32, 33, 34, 42</td>
+</tr>
+<tr>
+<td>Application-level isolation only</td>
+<td>No database row-level policies back up the application checks, so one missed check is a data leak.</td>
+<td>Medium</td>
+<td>8, 30, 57</td>
+</tr>
+<tr>
+<td>Committed credentials in test scripts</td>
+<td>Test scripts and a fixture in the repository hold a database connection and test passwords. They need rotation and removal from history.</td>
+<td>High</td>
+<td>Inventory of documents</td>
+</tr>
+<tr>
+<td>Token handling and logging</td>
+<td>A legacy realtime gateway logs token-related data and accepts any origin. Real-time connections check the token once and outlive its expiry. A revoked session&#39;s access token stays valid until it expires.</td>
+<td>High</td>
+<td>56, 57, 63</td>
+</tr>
+<tr>
+<td>Input from clients trusted</td>
+<td>The server fetches a signature image address supplied by the client. An upload route is open to any organization member. Upload size and type are only partly restricted. Some edit screens send whole rows.</td>
+<td>Medium</td>
+<td>28, 32, 58</td>
+</tr>
+<tr>
+<td>Information exposure in errors</td>
+<td>The error envelope carries raw internal messages for unexpected errors.</td>
+<td>Medium</td>
+<td>5, 61</td>
+</tr>
+<tr>
+<td>Public routes by design</td>
+<td>The waiting-room display and lab magic links need no login by design, using an identifier or a bearer token as the credential. They rely on expiry, revocation and throttling, and the throttle is in memory.</td>
+<td>Medium</td>
+<td>30, 40, 41</td>
+</tr>
+<tr>
+<td>Secret reuse</td>
+<td>The signing secret for magic links falls back to the access-token secret when its own is missing.</td>
+<td>Medium</td>
+<td>40, 41</td>
+</tr>
+<tr>
+<td>Authentication hardening</td>
+<td>Short minimum password, two different minimums on two paths, no lockout, no second factor, no logging of wrong passwords, no rate limit on two sensitive endpoints.</td>
+<td>Medium</td>
+<td>56, 45, 47</td>
+</tr>
+<tr>
+<td>Authorization granularity</td>
+<td>Some actions need only a broad read permission, and one payroll permission guards all payroll data.</td>
+<td>Medium</td>
+<td>37, 38, 40</td>
+</tr>
+<tr>
+<td>Audit and retention</td>
+<td>Missing audit for personnel and payroll data; no retention.</td>
+<td>Medium</td>
+<td>13, 60</td>
+</tr>
+<tr>
+<td>Money-moving replay protection</td>
+<td>Idempotency keys are required for most money actions but optional for one vendor payment path.</td>
+<td>Low</td>
+<td>42</td>
+</tr>
+<tr>
+<td>Third-party licence</td>
+<td>See the calendar licence in Section 66.3.</td>
+<td>Medium</td>
+<td>29</td>
+</tr>
+</tbody></table></div><p>The high-impact rows are tenant-isolation gaps, committed credentials and token handling. The others are hardening work that lowers the chance and the blast radius of a mistake.</p>
+<h2 id="ch66-risks-66-6-what-to-fix-first">66.6 What to fix first</h2>
+<p>Fix the committed credentials first: rotate them and remove the files from history, because the exposure already exists. Then close the tenant-isolation gaps and the token logging, since a single missing filter lets one clinic read another&#39;s data. Third, fix the two numbering collisions, which break daily work. Fourth, document and automate deployment and decide how the single worker is supervised. After these, add audit coverage for staff and payroll and a retention policy, then harden authentication and the realtime token check. The rest can follow the roadmap.</p>
+</section><section class="chapter" id="ch67-open-questions"><h1 id="ch67-open-questions-chapter-67-open-questions">Chapter 67 — Open Questions</h1>
+<p>This chapter lists the decisions and facts that only the product owner can supply. They come from the notes of every handbook chapter, from the questions in the generated organizations and locations chapter, from the ambiguities in the generated entity catalog and from items the code could not settle. Each question has the context and the reason the answer matters, so the answers can steer what is built, fixed or removed next.</p>
+<h2 id="ch67-open-questions-67-1-product-direction">67.1 Product direction</h2>
+<ol>
+<li><strong>Which patient channels will the Platform use, and who pays for them?</strong> Context: the message pipeline is built, but only the in-app channel for staff and lab members is active. WhatsApp, SMS and email to patients are commented out, and a log stand-in takes their place. Why it matters: reminders, receipts and lab-delay messages all wait on this choice, and it also decides the privacy and logging work needed (Chapter 66).</li>
+<li><strong>Should owners get trial-ending and expiry messages, and how many days ahead?</strong> Context: only an in-app banner warns today; no renewal email is sent. Why it matters: expiry puts a clinic in read-only mode, so a missed warning is a lost day of work and a support call.</li>
+<li><strong>Should the Platform have a patient portal, online booking and recurring appointments?</strong> Context: all three were planned and their feature keys were retired. Why it matters: it decides whether the retired keys are deleted or the work is scheduled.</li>
+<li><strong>Are insurance claims and an online payment gateway required for target clinics?</strong> Context: insurance details can be stored (backend only) and no claim or gateway exists. Why it matters: these are large features, and the answer avoids building them early or promising them.</li>
+<li><strong>Is attendance wanted, and should payroll have deductions, tax and bank files?</strong> Context: payroll is salary plus commission; deductions are always zero; leave is recorded but not read. Why it matters: payroll is the most legally sensitive money flow, and clinics will ask.</li>
+<li><strong>What should a blacklisted or inactive patient be prevented from doing?</strong> Context: both flags are informational and block nothing. Why it matters: staff may rely on them, and the answer defines the rule to enforce at booking, check-in and billing.</li>
+<li><strong>Should the product name be fixed?</strong> Context: the handbook calls it &quot;the Platform&quot; and each clinic sets its display name; the default is &quot;Clinic Portal&quot;. Older documents and some stored keys carry a former working name. Why it matters: it decides what is cleaned out of the code and which documents can be reused.</li>
+</ol>
+<h2 id="ch67-open-questions-67-2-clinics-locations-and-subscriptions">67.2 Clinics, locations and subscriptions</h2>
+<p>These come from the generated organizations and locations chapter.</p>
+<ol start="8">
+<li><strong>Should a clinic created by a super admin start on a trial, or stay unmanaged?</strong> Context: unmanaged clinics have no expiry and no plan limits. Why it matters: it decides whether all clinics are subject to billing.</li>
+<li><strong>When a clinic pays for a lower plan during a higher-plan trial, should the payment downgrade it at once?</strong> Context: recording a payment overwrites the plan with the paid plan. Why it matters: it can silently remove features during a trial.</li>
+<li><strong>Should deactivating a clinic also make it read-only and end sessions?</strong> Context: today deactivation only hides the clinic at login. Why it matters: owners may still hold working sessions, and the subscription guard is not involved.</li>
+<li><strong>Can a clinic have more than one main branch, and which becomes main when one is deactivated?</strong> Context: the main-branch flag is not exclusive. Why it matters: reports and defaults may pick the wrong branch.</li>
+<li><strong>Should new branches inherit the clinic&#39;s time zone and currency, and should changing the clinic&#39;s time zone update existing branches?</strong> Context: locations default to UTC and USD while organizations default to Asia/Karachi and PKR; the setup wizard updates branches but later changes do not. Why it matters: it controls every date and amount a branch shows.</li>
+<li><strong>Should the legacy organization settings be removed or wired?</strong> Context: booking defaults, advance booking days, cancellation notice, late fee percentage and old feature switches are saved but read by no backend rule. Why it matters: owners may think these rules are in force.</li>
+<li><strong>Who is the location manager meant to be, an employee or a login, and what powers should a manager have?</strong> Context: the column&#39;s target is not stated anywhere. Why it matters: a branch-manager role needs a definite owner.</li>
+<li><strong>Should staff without the locations permission read booking-related location settings?</strong> Context: slot length and daily cap sit on a screen that needs the manage permission. Why it matters: receptionists may need to see the limits.</li>
+<li><strong>Which account type should be created for a person who works only for a lab, and what is the exact sequence to create an owner login for a clinic made by a super admin?</strong> Context: both were deduced, not run. Why it matters: onboarding instructions must be correct.</li>
+</ol>
+<h2 id="ch67-open-questions-67-3-data-model-and-numbering">67.3 Data model and numbering</h2>
+<ol start="17">
+<li><strong>Which id should the <code>dentist_id</code> columns hold (employee or login)?</strong> Context: the teeth chart, plans, recalls and feedback store a value with no foreign key and no stated target. Why it matters: reports that join to the person need a defined meaning.</li>
+<li><strong>Which id should doctor signatures, inventory movements and purchase orders store?</strong> Context: code passes a login id into columns that are, or look like, employee links. Why it matters: the inventory writes may fail, and signatures are keyed per login across clinics.</li>
+<li><strong>Should prescriptions and purchase orders be numbered per organization or across the Platform?</strong> Context: the numbers restart per organization but are unique everywhere. Why it matters: it decides which side of the conflict to change.</li>
+<li><strong>Should patients ever be permanently deleted?</strong> Context: deletion breaks numbering and fails when billing exists. Why it matters: it decides between soft delete and a clear refusal.</li>
+<li><strong>Is the missing foreign key on tenant columns deliberate?</strong> Context: most billing, queue and lab tables omit it without comment. Why it matters: it decides whether to add keys or document the choice.</li>
+<li><strong>Which duplicate concepts should be merged?</strong> Context: legacy and new prescriptions, two audit mechanisms, two sequence mechanisms, per-visit tables with unclear roles. Why it matters: each duplicate doubles the work for every change.</li>
+<li><strong>Should the append-only money tables get triggers like the commission ledger?</strong> Context: three tables are protected; others are promised by comments. Why it matters: it is the cheapest strong guard for financial records.</li>
+<li><strong>Should the unused tables and columns be dropped (linked sign-ins, per-visit summary, deprecated refresh token, chairs, legacy inventory table)?</strong> Why it matters: they mislead readers and the generated catalog.</li>
+</ol>
+<h2 id="ch67-open-questions-67-4-operations-and-security">67.4 Operations and security</h2>
+<ol start="25">
+<li><strong>Where and how is the Platform deployed, and who supervises the single worker?</strong> Context: no deploy configuration exists. Why it matters: exactly one worker must run, and nothing here shows how that is ensured.</li>
+<li><strong>Should the scheduled jobs use each location&#39;s time zone?</strong> Context: jobs follow the server clock. Why it matters: payroll month, credit expiry and day-end alerts depend on it.</li>
+<li><strong>What is the data retention policy for sessions, security logs, audit rows, messages and consent signatures?</strong> Why it matters: it is the first question a regulator or clinic will ask.</li>
+<li><strong>Is the calendar library licence suitable for a commercial product?</strong> Why it matters: it is a legal exposure that can be solved by buying the licence or changing the component.</li>
+<li><strong>Should audit extend to appointments, employees, payroll, organizations and locations, with one viewer?</strong> Why it matters: owners cannot otherwise answer who changed a record.</li>
+<li><strong>What should be done about the committed test credentials?</strong> Why it matters: rotating them and cleaning history should be scheduled, not assumed.</li>
+<li><strong>Should public lab links and the TV display remain unauthenticated by design?</strong> Why it matters: it defines the acceptable exposure and the expiry rules.</li>
+</ol>
+<h2 id="ch67-open-questions-67-5-behaviour-to-confirm-by-running">67.5 Behaviour to confirm by running</h2>
+<ol start="32">
+<li><strong>Do inventory writes fail because of the id mismatch?</strong> Why it matters: it decides whether inventory can be opened to clinics at all.</li>
+<li><strong>Do the prescription change history and duplicate actions fail?</strong> Why it matters: they are small fixes if confirmed.</li>
+<li><strong>Do background jobs continue while a clinic is read-only?</strong> Why it matters: payroll and invariants could be skipped or not.</li>
+<li><strong>Are uploaded patient documents and PDFs publicly readable by address?</strong> Why it matters: it depends on the storage settings, not on the code.</li>
+<li><strong>Which currency column do billing screens read, the location&#39;s or the organization&#39;s?</strong> Why it matters: a mismatch shows the wrong currency label.</li>
+<li><strong>Does the lab ever receive a magic-link message in practice?</strong> Why it matters: today the contact channel is a stand-in, so links must be copied by hand.</li>
+<li><strong>Should lab orders link to the appointment and treatment?</strong> Context: the API accepts both, the web app never sends them. Why it matters: try-in scheduling and case reporting depend on it.</li>
+<li><strong>Is a printable lab invoice or receipt needed?</strong> Context: none was found. Why it matters: lab patient invoices cannot be handed to patients otherwise.</li>
+</ol>
+<h2 id="ch67-open-questions-67-6-how-the-answers-are-used">67.6 How the answers are used</h2>
+<p>The product questions (Section 67.1) set the roadmap. The clinic and numbering questions (Sections 67.2 and 67.3) decide small fixes that remove the High and Medium gaps in Chapter 65. The operations and security questions (Section 67.4) decide the order in Chapter 66. The questions in Section 67.5 need someone to run the application and watch, and they should be answered before the related work is planned.</p>
+</section><section class="chapter" id="ch68-documentation-conflicts"><h1 id="ch68-documentation-conflicts-chapter-68-documentation-conflicts">Chapter 68 — Documentation Conflicts</h1>
+<p>This chapter records where existing documents, code comments and screen texts disagree with the code. In every case the handbook follows the code. It is for the owner and for new developers, who need to know which documents can be trusted and which should not be used. The table merges the document inventory made before the handbook was written with the conflicts that each chapter found.</p>
+<h2 id="ch68-documentation-conflicts-68-1-conflicts-table">68.1 Conflicts table</h2>
+<div class="tw"><table><thead><tr>
+<th>Document</th>
+<th>Claim</th>
+<th>Code reality</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Root project instructions</td>
+<td>The frontend uses <code>app</code>, <code>shared</code> and feature <code>api</code> folders</td>
+<td>The code uses <code>routes</code>, <code>components</code>, <code>lib</code>, <code>store</code> and feature <code>services</code></td>
+<td>Chapter 4</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>There are four global guards</td>
+<td>There are five; the subscription guard comes last</td>
+<td>Chapters 5, 11</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>The tenant guard skips path prefixes, and the JWT guard skips public markers</td>
+<td>There are no prefixes; the guard uses decorators only, and the JWT guard checks a list of public routes</td>
+<td>Chapters 5, 8</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Tokens carry organization context</td>
+<td>Tokens carry user id, email, global role and session id only</td>
+<td>Chapter 8</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Inventory, invoices, reports and notifications are stubs</td>
+<td>They are implemented; only chairs is entity-only</td>
+<td>Chapters 4, 12, 20, 23</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Soft deletes by an active flag in most modules</td>
+<td>Patient delete is a hard delete</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Some dashboard widgets use mock data</td>
+<td>The live dashboard uses real data; the mock widgets are not imported</td>
+<td>Chapter 36</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Organizations own employee role definitions</td>
+<td>The role entity lives in employees, with logic in access</td>
+<td>Chapter 15</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td>Bull queue and Google and GitHub sign-in are part of the stack</td>
+<td>The queue has no producer or consumer, and OAuth is not registered</td>
+<td>Chapter 4</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td>The architecture diagram shows four guards</td>
+<td>Five guards</td>
+<td>Chapter 5</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td><code>/register</code> creates your account</td>
+<td>It also creates a trial clinic, main location and ownership</td>
+<td>Chapter 7</td>
+</tr>
+<tr>
+<td>Root readme and backend readme</td>
+<td>The start script runs <code>dist/main</code></td>
+<td>The build emits the entry file one folder deeper</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Environment example</td>
+<td>Refresh, email and reset secrets are required</td>
+<td>No code reads them; several variables the code reads are missing</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Access-control guide</td>
+<td><code>GET /me/catalog</code></td>
+<td>The endpoint is <code>GET /access/catalog</code></td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>Access-control guide</td>
+<td>Assistant template summary</td>
+<td>The Assistant also holds the lab orders view permission at location scope</td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>Access-control test cases</td>
+<td>FEAT-08 expects &quot;refused&quot;</td>
+<td>The code returns a successful no-op</td>
+<td>Chapter 10</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>No migration files; production must still switch from synchronize</td>
+<td>There are three migrations, and production already runs with synchronize off plus a reviewed schema sync</td>
+<td>Chapters 6, 12, 29, 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>The worker runs one or more instances</td>
+<td>Exactly one worker may run</td>
+<td>Chapters 6, 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>Realtime fan-out uses the Socket.IO Redis adapter</td>
+<td>It uses its own Redis publish and subscribe with a worker heartbeat</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>Validate runs the same rules as create; overlap gives a coded conflict</td>
+<td>Validate skips the past-time check and the override flag; the read-time overlap has no code, only the database path does</td>
+<td>Chapter 29</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>API list is complete</td>
+<td>It omits the session creation endpoint</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>Target is the smaller of allocations and net</td>
+<td>The pre-tax part is pro-rated and capped, and a lab-cost basis reduces the base</td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>One method writes commission entries</td>
+<td>A lab commission service also writes entries for lab lines</td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>Access by role</td>
+<td>Access by the permissions <code>compensation.manage</code>, <code>earnings.all.view</code>, <code>earnings.own.view</code></td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Billing test cases</td>
+<td>Truncate a coupons table; amounts assume no tax; role-based error texts</td>
+<td>Coupons do not exist; exclusive tax applies; permission-based messages</td>
+<td>Chapter 34</td>
+</tr>
+<tr>
+<td>Old billing context pack</td>
+<td>Describes pre-version-two billing</td>
+<td>Outdated throughout</td>
+<td>Chapter 34</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>billing.discounts</code> &quot;Discounts &amp; Coupons&quot;; <code>reports.exports</code> as CSV and PDF</td>
+<td>Coupons were removed; exports are Excel and PDF</td>
+<td>Chapters 10, 36</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>comms.in_app</code>, <code>comms.whatsapp</code>, <code>hr.commissions</code> are active features</td>
+<td>Nothing checks them</td>
+<td>Chapter 10</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>inventory.alerts</code> gives low-stock and expiry alerts</td>
+<td>The job only writes a log line</td>
+<td>Chapters 10, 39</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Notes for ten inventory tables</td>
+<td>Shifted one row down</td>
+<td>Chapter 23</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>A trigger protects published form versions</td>
+<td>No such trigger; the service enforces it</td>
+<td>Chapter 26</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td><code>charges.source_id</code> is discriminated by <code>source_type</code></td>
+<td>The column is named <code>source</code></td>
+<td>Chapter 20</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Only the queue writes the idempotency table</td>
+<td>Workflow, lab billing, lab orders and vendor payments also write it, and the queue clean-up deletes all rows older than a day</td>
+<td>Chapter 18</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td><code>patient_visits</code> is a per-location summary</td>
+<td>Nothing writes it</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Append-only list is complete</td>
+<td>The allocation and journal-line tables are also called append-only without triggers</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Migration creates the audit tables completely</td>
+<td>It lacks the subject column and index present in the entity</td>
+<td>Chapter 26</td>
+</tr>
+<tr>
+<td>Migration for compensation</td>
+<td><code>charge_id</code> is not null</td>
+<td>The entity allows null and adds a lab-line column and a check</td>
+<td>Chapter 22</td>
+</tr>
+<tr>
+<td>Code comment on patient delete</td>
+<td>Related rows cascade</td>
+<td>Billing and lab rows block the delete with RESTRICT keys</td>
+<td>Chapter 17</td>
+</tr>
+<tr>
+<td>Code comment on employee delete</td>
+<td>Related rows keep the row with the doctor set to null</td>
+<td>They are RESTRICT, and the message names inventory even when an appointment blocks it</td>
+<td>Chapter 16</td>
+</tr>
+<tr>
+<td>Code comment on prescription numbers</td>
+<td>Sequential per organization</td>
+<td>Unique across the Platform</td>
+<td>Chapter 19</td>
+</tr>
+<tr>
+<td>Code comment on plan templates and screen text</td>
+<td>Procedures are copied into a patient&#39;s plan</td>
+<td>Nothing creates a patient plan from a template</td>
+<td>Chapter 33</td>
+</tr>
+<tr>
+<td>Code comment in billing audit entity</td>
+<td>The repo has no general audit module</td>
+<td>A general audit table exists</td>
+<td>Chapter 21</td>
+</tr>
+<tr>
+<td>Code comment on journal source</td>
+<td>Expenses post journals</td>
+<td>Only lab finance posts journals</td>
+<td>Chapter 21</td>
+</tr>
+<tr>
+<td>Code comment in payroll</td>
+<td>Runs at 00:05 on the first</td>
+<td>The schedule is 05:00 server time</td>
+<td>Chapter 38</td>
+</tr>
+<tr>
+<td>Code comments in lab modules</td>
+<td>The portal will manage the lab catalog; the clinic activates labs until the portal ships</td>
+<td>The portal ships and lets a lab admin act on links, but only a super admin manages the catalog</td>
+<td>Chapter 40</td>
+</tr>
+<tr>
+<td>Queue settings screen text</td>
+<td>Changes apply from tomorrow</td>
+<td>Only the smart-queue switch is fixed per day</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Access guard comment</td>
+<td>A missing marker becomes a boot error</td>
+<td>Only a unit test enforces markers</td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Recall, feedback and referral are implemented through a CRM tab</td>
+<td>The tab is never mounted; recalls have no component</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Leave and availability overrides are implemented</td>
+<td>They can be recorded but are never read by booking or payroll</td>
+<td>Chapter 37</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Inventory is implemented</td>
+<td>The module works through the API but has no sidebar entry and some writes are unverified</td>
+<td>Chapter 39</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Digital consent signing is unverified</td>
+<td>It is implemented with a signature pad</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>Outline</td>
+<td>The booking form is a sheet; lab order comes before automatic charges</td>
+<td>It is a dialog; lab work never creates clinic charges</td>
+<td>Chapters 29, 48</td>
+</tr>
+<tr>
+<td>Patients visit tab text</td>
+<td>A visit is recorded at check-in</td>
+<td>The encounter is created at start of consultation</td>
+<td>Chapter 28</td>
+</tr>
+</tbody></table></div><p>The table shows that most drift is in descriptions of structure (folders, guards, stubs) and in comments written before a redesign. The numbers and behaviours in the code are more stable than the words around them.</p>
+<h2 id="ch68-documentation-conflicts-68-2-documents-and-how-far-they-can-be-trusted">68.2 Documents and how far they can be trusted</h2>
+<p>The following documents are current or mostly current and may be used, with the corrections in the table: the generated entity catalog and the organizations and locations chapter, the access-control guide, the database migrations guide, the root readme (for the process split and counts) and the appointments and queue guide.</p>
+<p>The following are outdated and should not be used for decisions: the hand-off note (it mentions an appointment token that no longer exists and fixed problems), the project overview (it predates access control, billing version two and the lab modules), the audit file (seven of its ten most serious findings are fixed), the plan file (its checklist is stale) and the old billing context pack (it describes replaced code). The two stock starter readmes carry no project information. The design mock-up file in the repository root uses a former name and does not describe the current screens. The root project instructions are partly outdated and need an update before they are given to a new developer or an assistant.</p>
+<h2 id="ch68-documentation-conflicts-68-3-the-crm-tab-correction">68.3 The CRM tab correction</h2>
+<p>The first document inventory marked recall, feedback and referral as implemented through a CRM tab on the patient page. The code shows that backend endpoints exist but the tab component is never mounted in the patient detail page, so those features cannot be reached by a user, and recalls have no component at all. The handbook therefore labels them Partial. Any plan or sales material that repeated the earlier claim should be corrected.</p>
+<h2 id="ch68-documentation-conflicts-68-4-using-this-chapter">68.4 Using this chapter</h2>
+<p>Treat the handbook as the source of truth and the code as the final authority. When a document in the table is edited, update the row, so it does not return as a source of confusion. Chapter 65 lists the same drift among the known gaps, and Chapter 67 asks which documents the owner wants archived.</p>
+</section></body></html>

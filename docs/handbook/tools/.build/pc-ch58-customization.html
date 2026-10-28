@@ -1,0 +1,267 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch58-customization"><h1 id="ch58-customization-chapter-58-clinic-customization">Chapter 58 — Clinic customization</h1>
+<p>This chapter describes how a clinic shapes the Platform to its own way of working: which features are on, which roles exist and what they may do, how the sidebar is arranged, how the application looks, and where each role starts. It is written for the product owner, who needs to know what an owner can change without a developer and what only the platform team can change. Four setup screens carry this work: Features, Roles and permissions, Sidebar and Branding and theme. The permission model behind them is in Chapters 10 and 11 and the access mechanics are in Chapter 57; this chapter restates what is needed and describes the screens.</p>
+<h2 id="ch58-customization-58-1-the-four-setup-screens">58.1 The four setup screens</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Screen</th>
+<th>Route</th>
+<th>Sidebar label (section &quot;Clinic setup&quot;)</th>
+<th>Permission to open</th>
+</tr>
+</thead><tbody><tr>
+<td>Features</td>
+<td><code>/admin/features</code></td>
+<td>Features</td>
+<td><code>admin.features.manage</code></td>
+</tr>
+<tr>
+<td>Roles</td>
+<td><code>/admin/roles</code></td>
+<td>Roles &amp; permissions</td>
+<td><code>admin.roles.manage</code></td>
+</tr>
+<tr>
+<td>Sidebar builder</td>
+<td><code>/admin/navigation</code></td>
+<td>Sidebar</td>
+<td><code>admin.nav.manage</code></td>
+</tr>
+<tr>
+<td>Branding and theme</td>
+<td><code>/admin/theme</code></td>
+<td>Theme</td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+</tbody></table></div><p>The table lists the four screens, their routes, the labels in the sidebar and the permission each route needs. The owner always has all four permissions. The Admin system role holds them by default. Every save on these screens increases the organization&#39;s access version or invalidates the settings cache, so changes reach other users quickly (Chapter 57, section 57.7).</p>
+<p><strong>Technical references:</strong> <code>web-app/src/routes/admin.features.tsx</code> · <code>admin.roles.index.tsx</code> · <code>admin.navigation.tsx</code> · <code>admin.theme.tsx</code> · <code>web-app/src/features/access/nav/nav.registry.ts</code></p>
+<h2 id="ch58-customization-58-2-features-screen">58.2 Features screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner switch the features in the clinic&#39;s plan on or off for the whole clinic, or switch one off at a single location. A feature is only available if the platform team has <strong>entitled</strong> the clinic to it; the owner then decides whether it is <strong>enabled</strong>; and a <strong>location override</strong> can switch it off at one branch. Chapter 10 describes the three switches and the catalog in full.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-features-page.svg" alt="Figure 58.1 — Features screen"></p>
+<p><em>Figure 58.1 — Features screen (screenshot pending).</em></p>
+<p>The page is titled &quot;Features&quot; with the subtitle &quot;Turn the features in your plan on or off for the clinic, or for one location.&quot; Features are listed in rows, each with a name, a switch and a button that opens the locations sheet. A filter row narrows the list. Features the clinic is not entitled to cannot be switched on. If there are no features the page says &quot;No features yet&quot; and that the platform has not set up any features for the clinic.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Features</strong> in the sidebar.</li>
+<li>Move a switch to turn a feature on or off. Turning a feature off first opens a dialog titled &quot;Turn off <feature>?&quot; that lists the permissions the feature carries and the roles that will lose them. This is the <strong>impact preview</strong>.</li>
+<li>Click <strong>Turn off</strong> to confirm.</li>
+<li>To switch a feature off for one branch only, open the locations sheet and move the switch of that location.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>List features for the clinic</td>
+<td><code>GET /admin/features</code></td>
+</tr>
+<tr>
+<td>Impact of turning one off</td>
+<td><code>GET /admin/features/:key/impact</code></td>
+</tr>
+<tr>
+<td>Switch on or off</td>
+<td><code>PATCH /admin/features/:key</code></td>
+</tr>
+<tr>
+<td>Switch off or on at one location</td>
+<td><code>PUT /admin/features/:key/locations/:locationId</code></td>
+</tr>
+</tbody></table></div><p>The table lists the four endpoints; all need <code>admin.features.manage</code>. The impact call returns the catalog permissions the feature carries and, for each active role of the organization that grants any of them, the permissions it would lose. Turning on a feature the clinic is not entitled to gives 403 <code>NOT_ENTITLED</code>. Every change writes an <code>audit_logs</code> row; a super admin acting inside a clinic is recorded as the platform.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/admin-features.controller.ts</code> · <code>FeatureAdminService.getImpact</code> · <code>web-app/src/features/feature-settings/</code></p>
+<h2 id="ch58-customization-58-3-roles-builder">58.3 Roles builder</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner (or anyone with <code>admin.roles.manage</code>) create custom roles, copy a system role, choose a level for each module, set a home page and see members. Chapter 11, section 11.5, describes the rules in detail: escalation protection, reason for high-risk grants, read-only system roles, unique names and the ban on deleting a role that has members.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/roles-editor.jpg" alt="Figure 58.2 — The role editor"></p>
+<p><em>Figure 58.2 — The role editor for a custom role, showing None, Basic and Full per module.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name of the product in the corner. It shows a custom role open in the editor. The header holds the role name and the actions Delete, Clone, Discard and Save changes. Three tabs sit under it: Permissions, Home page and Members. On the Permissions tab each module has a row with three level buttons, None, Basic and Full, and an Advanced control that opens the module&#39;s full permission list with a check box and, for scoped permissions, a scope selector. A module whose permissions match no level exactly shows Custom. The left sidebar shows the full owner menu.</p>
+<p><strong>What the levels mean.</strong> <strong>None</strong> grants nothing from the module. <strong>Basic</strong> grants an everyday set. <strong>Full</strong> grants every permission of the module at its widest scope. <strong>Advanced</strong> lets the owner tick individual permissions. <strong>Clone</strong> copies any role, including a system role, with the same permissions and home page, and moves nobody to the copy. <strong>Members</strong> lists the employees who hold the role, per location; roles are assigned on each employee&#39;s page.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employment-roles.admin.controller.ts</code> · <code>backend/src/access/catalog/bundles.ts</code> · <code>web-app/src/features/roles/</code></p>
+<h2 id="ch58-customization-58-4-per-role-home-page">58.4 Per-role home page</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sets the page a member of the role lands on after signing in. The five system roles have defaults (Admin: dashboard; Doctor: the doctor&#39;s queue; Receptionist and Assistant: appointments; Accountant: billing).</p>
+<p><strong>How the user does it.</strong> Open a custom role, choose the <strong>Home page</strong> tab, pick a page in the &quot;Page&quot; list and save. The clinic as a whole can also set a <strong>Clinic home page</strong> on the Sidebar screen; it is used when the role sets none.</p>
+<p><strong>Rules and validations.</strong> The value must be an in-app path starting with a single slash, with no address or scheme. At sign-in the web app uses the role&#39;s page, then the clinic&#39;s page, then the Dashboard; the page opens only if the user passes the permission checks for it, otherwise the Dashboard opens. A home page never widens access.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/roles/components/HomePageTab.tsx</code> · <code>web-app/src/features/access/nav/homeRoute.ts</code> · <code>backend/src/access/nav/nav-layout.dto.ts</code></p>
+<h2 id="ch58-customization-58-5-sidebar-builder">58.5 Sidebar builder</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the owner rename, hide, group and reorder the pages in the sidebar for the whole clinic. Each person still sees only the pages they may open, so the layout can never give access.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-sidebar-builder.svg" alt="Figure 58.3 — Sidebar builder"></p>
+<p><em>Figure 58.3 — Sidebar builder (screenshot pending).</em></p>
+<p>The page is titled &quot;Sidebar&quot; with the subtitle &quot;Rename, hide and reorder the pages in your clinic&#39;s sidebar. Each person still sees only the pages they have access to.&quot; A line at the top says whether the clinic uses the standard sidebar or a custom one, or that there are unsaved changes. The buttons are <strong>Discard changes</strong> (when dirty), <strong>Reset to default</strong> and <strong>Save</strong>. A &quot;Clinic home page&quot; selector (default: Dashboard) comes first. The editor is a drag-and-drop area of sections; each section has a label that can be renamed, can contain pages and collapsible groups, and has a remove button. An <strong>Add section</strong> button adds a section. Pages that are not in any section wait in a tray called &quot;Not placed&quot;. Each page can be renamed inline, hidden with a toggle, or dragged to another place. On the right, a live preview shows the sidebar as the owner would see it, with a note that other roles see only their pages. Leaving with unsaved changes asks &quot;Leave without saving?&quot;.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Sidebar</strong> under Clinic setup.</li>
+<li>Drag pages between sections or the tray, rename sections and pages, hide pages, add groups.</li>
+<li>Choose a clinic home page.</li>
+<li>Click <strong>Save</strong>. To undo everything, click <strong>Reset to default</strong> and confirm; sections, renames, hidden pages and the clinic home page are removed.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong> The layout is stored as one JSON document per organization in <code>nav_layouts</code>; a column for a role exists but only the clinic default is written today. Endpoints (all need <code>admin.nav.manage</code>): <code>GET /admin/navigation</code> (null while the clinic uses the default), <code>PUT /admin/navigation</code> and <code>DELETE /admin/navigation</code>. Saving and resetting bump the access version and write an audit row.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>At most 20 sections; labels at most 40 characters; at most 100 items in a list.</li>
+<li>Item keys must look like <code>nav.something</code>; no key may appear twice anywhere.</li>
+<li>A section entry is either a link (a key) or a group (a label and items, no key).</li>
+<li>The home route must be an in-app path.</li>
+<li>Footer items (Settings) stay pinned and cannot be arranged.</li>
+<li>Pages the layout forgets appear in a &quot;More&quot; section, so nothing disappears by accident.</li>
+</ul>
+<p><strong>Data read and written.</strong> <code>nav_layouts</code>, <code>audit_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/nav/nav-layouts.controller.ts</code> · <code>NavLayoutsService</code> · <code>nav-layout.dto.ts</code> · <code>web-app/src/features/nav-builder/</code> · <code>web-app/src/features/access/nav/resolveNav.ts</code></p>
+<h2 id="ch58-customization-58-6-sidebar-registry-flags">58.6 Sidebar registry flags</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The list of pages that can appear is owned by developers in <code>nav.registry.ts</code>: 39 items. The clinic&#39;s layout only arranges them. Each item has one requirement: a permission or list of permissions (any-of), <code>superAdminOnly</code> (Organizations, Subscriptions, Lab Directory, Form schemas, Workflows and Stage templates), <code>labMember</code> (Lab portal) or <code>ownerOrSuperAdmin</code> (defined but unused). Section 57.6 describes how the sidebar is filtered. Adding a new page needs a code change; the owner cannot create sidebar items.</p>
+<h2 id="ch58-customization-58-7-theme-and-branding">58.7 Theme and branding</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Controls the clinic&#39;s name, logos, brand colour, sidebar style and default light or dark mode, for staff screens, the login page and printouts.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-theme-builder.svg" alt="Figure 58.4 — Branding and theme"></p>
+<p><em>Figure 58.4 — Branding and theme (screenshot pending).</em></p>
+<p>The page is titled &quot;Branding &amp; theme&quot; with the subtitle &quot;Your clinic&#39;s name, logo, colours and look — for staff screens, the login page and printouts.&quot; It has a back link to Settings and a button that opens the per-location sheet. The controls are on the left and a live preview is on the right. The controls are: Clinic name; Logo (light); Logo (dark); Browser tab icon; Brand colour; Sidebar style; Default mode. Each can carry a lock switch labelled &quot;Locations can&#39;t override&quot;. Buttons are <strong>Save theme</strong> (enabled only when the form changed and is valid) and a reset button that asks &quot;Reset to default?&quot;.</p>
+<p><strong>The seven keys.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Key</th>
+<th>Meaning</th>
+<th>Allowed values</th>
+<th>Scopes that may set it</th>
+</tr>
+</thead><tbody><tr>
+<td><code>theme.app_name</code></td>
+<td>Clinic name shown in the application (default &quot;Clinic Portal&quot;)</td>
+<td>1 to 60 characters</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.logo_url</code></td>
+<td>Light-mode logo</td>
+<td>http or https address</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.logo_dark_url</code></td>
+<td>Dark-mode logo</td>
+<td>http or https address</td>
+<td>organization, location</td>
+</tr>
+<tr>
+<td><code>theme.favicon_url</code></td>
+<td>Browser tab icon</td>
+<td>http or https address</td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.brand_color</code></td>
+<td>Brand colour (default blue)</td>
+<td><code>#rrggbb</code></td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.sidebar_style</code></td>
+<td>Sidebar look</td>
+<td>light, dark or brand</td>
+<td>organization</td>
+</tr>
+<tr>
+<td><code>theme.default_mode</code></td>
+<td>Starting mode</td>
+<td>light, dark or system</td>
+<td>organization</td>
+</tr>
+</tbody></table></div><p>The table lists the seven theme keys with their meaning, allowed values and the levels that may set them. Only the name and the two logos can differ per location. The platform level may set any key. Each key can be locked by the platform for organizations, or by the organization for its locations.</p>
+<p><strong>The cascade.</strong></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch58-theme-cascade.png" alt="Figure 58.5 — How the theme is resolved"></p>
+<p><em>Figure 58.5 — The theme cascade from code default to the effective theme, with locks.</em></p>
+<p>The flowchart reads from top to bottom. The code default (for example the name &quot;Clinic Portal&quot;) feeds the Platform value set by the super admin. That feeds the Organization value set by an owner with <code>admin.theme.manage</code>. That feeds the Location value, which may set only the name and logos. The last box is the effective theme returned by <code>GET /theme</code>. Two dotted arrows from the Platform and Organization boxes straight to the effective theme show that a lock stops the walk: a value locked at a higher level wins over anything set lower down.</p>
+<p><strong>Logos.</strong> A logo is uploaded with <code>POST /uploads</code>, which accepts one file up to 15 MB; the theme screen accepts images up to 2 MB and stores the returned address as the value.</p>
+<p><strong>Brand colour contrast check.</strong> When the owner picks a colour, the screen checks it against accessibility rules. It warns if the button text on the colour has less than 4.5 to 1 contrast, and warns if the colour on a white page has less than 3 to 1 (links and outlines will be hard to see, and a darker shade is used for brand text). When both pass, the screen says &quot;Contrast OK&quot; with the ratio. The warning is advice; it does not block saving.</p>
+<p><strong>Public theme for the login page.</strong> <code>GET /public/theme/:organizationId</code> (optionally with a location) is public and returns theme tokens only, nothing else about the clinic. An unknown organization gets the platform theme. The login page learns which clinic to show from an organization parameter in the address or from the last clinic used in that browser. The browser also keeps a copy of the last theme and its colours so the loading screen is on-brand before the server answers; local storage is used only for this convenience.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch58-location-branding.svg" alt="Figure 58.6 — Location branding"></p>
+<p><em>Figure 58.6 — Location branding (screenshot pending).</em></p>
+<p>The sheet is titled &quot;Location branding&quot; with the text &quot;A branch can show its own name and logo. Empty fields use the clinic&#39;s.&quot; It opens from the button on the theme page. A &quot;Location&quot; list chooses the branch, then an &quot;Overrides&quot; section holds &quot;Name at this location&quot;, &quot;Logo (light)&quot; and &quot;Logo (dark)&quot;. Saving applies the override; empty fields inherit.</p>
+<p><strong>Endpoints.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Permission</th>
+</tr>
+</thead><tbody><tr>
+<td>Resolved theme for the signed-in clinic</td>
+<td><code>GET /theme</code></td>
+<td>any member</td>
+</tr>
+<tr>
+<td>Organization view and save</td>
+<td><code>GET</code> and <code>PUT /admin/theme</code></td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+<tr>
+<td>Location view and save</td>
+<td><code>GET</code> and <code>PUT /admin/theme/location/:locationId</code></td>
+<td><code>admin.theme.manage</code></td>
+</tr>
+<tr>
+<td>Platform view and save</td>
+<td><code>GET</code> and <code>PUT /platform/theme</code></td>
+<td>super admin</td>
+</tr>
+<tr>
+<td>Public theme</td>
+<td><code>GET /public/theme/:organizationId</code></td>
+<td>none</td>
+</tr>
+</tbody></table></div><p>The table lists the endpoints. A write sends values by short key (a null or empty text clears the value, which inherits) and optional locks (organization and platform only; a location cannot lock). Values are validated by the registry&#39;s schema for each key. A write to a key locked higher up fails with 403 <code>SETTING_LOCKED</code>. The write takes a row lock, increases the row&#39;s version, writes an audit row and invalidates the settings cache in every process through Redis; without Redis the other processes catch up within the 60-second cache time.</p>
+<p><strong>Data read and written.</strong> <code>config_values</code> (one row per scope, scope id and key, with the value, a lock flag, a version and the editor), <code>audit_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/settings-registry/theme/theme.controller.ts</code> · <code>ThemeService</code> · <code>theme.settings.ts</code> · <code>backend/src/settings-registry/settings-registry.service.ts</code> · <code>SettingsRegistryService</code> · <code>web-app/src/features/theme/</code> · <code>web-app/src/features/theme/lib/color.ts</code></p>
+<h2 id="ch58-customization-58-8-settings-registry">58.8 Settings registry</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<p>The settings registry (<code>config_values</code>) is the general store for new settings with the platform, organization and location cascade and locks. Today only the seven theme keys are defined in it. Older settings live in their own typed tables, for example the queue policies and the location billing settings, and keep working unchanged. The code does not move them into the registry.</p>
+<h2 id="ch58-customization-58-9-limitations-and-known-gaps">58.9 Limitations and known gaps</h2>
+<ul>
+<li>The sidebar layout is per clinic only; per-role layouts are not written yet (the column exists).</li>
+<li>The owner cannot add new sidebar pages or permissions; both are fixed in code.</li>
+<li>Only the name and logos can be customized per location.</li>
+<li>The brand colour check is advice, not a rule.</li>
+<li>Fonts, spacing and corner radius cannot be customized.</li>
+</ul>
+<h2 id="ch58-customization-58-10-owner-39-s-faq">58.10 Owner&#39;s FAQ</h2>
+<p><strong>Who can switch a feature on that my plan does not include?</strong> Only the platform team, by entitling it. The owner can only enable features the clinic is entitled to.</p>
+<p><strong>If I hide a page in the sidebar, can people still open it?</strong> Yes, by address, if their role allows it. Hiding is cosmetic; use roles to remove access.</p>
+<p><strong>Can each branch have its own logo?</strong> Yes. Each branch can have its own name and light and dark logos; the colour and mode are clinic wide.</p>
+<p><strong>Why can I not change the colour?</strong> The platform team may have locked that key for clinics. The screen marks such a key as locked at a higher level.</p>
+<p><strong>Where do I set what a role sees first?</strong> On the role&#39;s Home page tab. The clinic-wide fallback is on the Sidebar screen.</p>
+<p><strong>What happens to people when I turn a feature off?</strong> They lose the permissions that belong to the feature at once, and the dialog before you confirm lists the roles affected.</p>
+</section></body></html>

@@ -1,0 +1,7 @@
+- **Audience** — who an event is for: patient, doctor, coordinator or lab (`NotificationAudience`).
+- **Outbox** — `notification_outbox`: one row per recipient and channel recording every send decision.
+- **Inbox** — `user_notifications`: the user's own copy shown behind the bell.
+- **Mandatory event** — an event whose in-app message to internal audiences cannot be switched off (`is_mandatory_internal`).
+- **Quiet hours** — a daily window in which non-in-app messages are held.
+- **Notification relay** — the worker loop (LISTEN plus 2 s poll) that sends outbox rows (`NotificationRelayService`).
+- **Master switch** — per-audience on/off (`notification_audience_settings.is_enabled`).

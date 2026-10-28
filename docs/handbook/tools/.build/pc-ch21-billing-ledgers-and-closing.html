@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch21-billing-ledgers-and-closing"><h1 id="ch21-billing-ledgers-and-closing-chapter-21-billing-ledgers-and-closing">Chapter 21 — Billing ledgers and closing</h1>
+<p>This chapter describes the record-keeping tables that sit around the core billing tables: the patient statement, the double-entry general ledger, the end-of-day cash close, document numbering, the billing audit log, clinic expenses and prepaid credit packages. It is for the product owner who needs to know which tables are the books of the clinic, which are history, and which features are only partly built. The core billing tables (charges, invoices, payments, allocations, refunds) are covered in the Billing core chapter (Chapter 20). The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference.</p>
+<h2 id="ch21-billing-ledgers-and-closing-21-1-two-different-quot-ledgers-quot">21.1 Two different &quot;ledgers&quot;</h2>
+<p>The Platform has two tables with &quot;ledger&quot; in their names, and they are not the same thing:</p>
+<ul>
+<li><strong><code>ledger_entries</code> is the patient statement.</strong> It is one-sided, in rupees (<code>numeric(12,2)</code>), and has one line per invoice, adjustment, cancellation, payment or refund for a patient. It answers &quot;what does this patient owe us?&quot;.</li>
+<li><strong><code>ledger_journals</code> with <code>ledger_journal_lines</code> is the general ledger.</strong> It is true double-entry bookkeeping in paisa (<code>bigint</code>), with debits and credits on named accounts. It answers &quot;what are the clinic&#39;s balances by account?&quot;.</li>
+</ul>
+<p>Both are described in this chapter. The Overlaps chapter (Chapter 27) explains why both exist.</p>
+<h2 id="ch21-billing-ledgers-and-closing-21-2-patient-statement-cash-close-numbering-and-audit">21.2 Patient statement, cash close, numbering and audit</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch21-statement-closing-erd.png" alt="Figure 21.1 — Patient statement, cash close, numbering and audit tables"></p>
+<p><em>Figure 21.1 — The patient statement, the cash close with its lines, the document counter and the billing audit log.</em></p>
+<p>The figure shows <code>ledger_entries</code> connected by dotted lines (no foreign key) to <code>patients</code> (patient_id), <code>invoices</code> (invoice_id), <code>payments</code> (payment_id) and <code>refunds</code> (refund_id). <code>cash_closes</code> connects with a solid line to <code>cash_close_lines</code>, labelled &quot;one line per account, RESTRICT&quot;, and <code>payment_accounts</code> connects to <code>cash_close_lines</code> with a dotted line (payment_account_id, no FK). <code>billing_audit_logs</code> receives a dotted line from <code>invoices</code> labelled &quot;entity_id, polymorphic&quot;, which stands for all the record types the log can point at. <code>document_sequences</code> stands alone: its four-part primary key (organization, location, document type, year) and a <code>last_value</code> counter are shown, and it has no links.</p>
+<h3 id="ch21-billing-ledgers-and-closing-ledger-entries-the-patient-statement"><code>ledger_entries</code> — the patient statement</h3>
+<p><strong>Status:</strong> [Implemented]. Written by the billing ledger service; read by the patient statement endpoints and the printed statement.</p>
+<p>One row is one line on a patient&#39;s statement at one location. <code>type</code> is INVOICE_ISSUED, INVOICE_ADJUSTED, INVOICE_CANCELLED, PAYMENT or REFUND. Exactly one of <code>debit</code> and <code>credit</code> is above zero. A positive running balance means the patient owes money; a negative one means the clinic holds the patient&#39;s advance. <code>invoice_revision</code> records which invoice revision an adjustment line belongs to. The table is designed as append-only, but no database trigger enforces it; the application never updates or deletes rows.</p>
+<h3 id="ch21-billing-ledgers-and-closing-cash-closes-and-cash-close-lines-end-of-day-count"><code>cash_closes</code> and <code>cash_close_lines</code> — end-of-day count</h3>
+<p><strong>Status:</strong> [Implemented]. Written from the cash close sheet on the payments page.</p>
+<p>A cash close is an immutable count of a location&#39;s counter since the previous close. <code>cash_closes</code> holds the period (<code>period_start</code>, <code>period_end</code>), the clinic <code>business_date</code>, the totals <code>total_expected</code>, <code>total_counted</code> and <code>total_variance</code>, an optional <code>note</code> and who closed it. <code>cash_close_lines</code> holds one line per payment account in that close, with that account&#39;s payment and refund totals and counts, <code>expected</code>, <code>counted</code> and <code>variance</code>. The account&#39;s name is copied onto the line, so renaming an account later does not change old closes.</p>
+<p>Constraint that matters: <code>uq_cash_closes_loc_end</code> makes <code>period_end</code> unique per organization and location, so two closes cannot end at the same moment.</p>
+<h3 id="ch21-billing-ledgers-and-closing-document-sequences-invoice-receipt-and-refund-numbers"><code>document_sequences</code> — invoice, receipt and refund numbers</h3>
+<p><strong>Status:</strong> [Implemented].</p>
+<p>One row is a counter for one organization, location, document type (INVOICE, RECEIPT or REFUND) and year. The primary key is those four columns, and there is no generated id: the application supplies all four values. The numbering service increments <code>last_value</code> with a single atomic statement inside the caller&#39;s transaction, so two cashiers can never get the same number. The resulting number has the form <code>&lt;location code&gt;-&lt;INV|REC|RFD&gt;-&lt;year&gt;-&lt;five-digit counter&gt;</code>, where the location code is <code>document_code</code> from <code>location_billing_settings</code> and the year is the clinic&#39;s year in the location&#39;s timezone. Because the counter is per location and per year, numbering restarts at 1 each year at each location. If a location has no document code yet, numbering refuses with the error <code>BILLING_LOCATION_CODE_MISSING</code> (&quot;Set a document code for this location in billing settings first&quot;).</p>
+<h3 id="ch21-billing-ledgers-and-closing-billing-audit-logs-billing-39-s-own-audit-trail"><code>billing_audit_logs</code> — billing&#39;s own audit trail</h3>
+<p><strong>Status:</strong> [Implemented]. Read by the billing activity screen.</p>
+<p>One row records one billing state change. <code>entity_type</code> names what changed (CHARGE, INVOICE, PAYMENT, REFUND, DISCOUNT_TYPE, SERVICE, SERVICE_PRICE, SETTINGS, PAYMENT_ACCOUNT or CASH_CLOSE), <code>entity_id</code> points at that record, and <code>action</code> names the change (for example CREATED, VOIDED, DISCOUNT_APPLIED, ISSUED, EDITED, CANCELLED, ALLOCATED, REFUNDED, CLOSED). <code>before</code> and <code>after</code> hold JSON snapshots; for an edited invoice they hold the full snapshot used for invoice revisions. <code>amount</code> records the money moved, for activity totals, and <code>actor_role</code> records the role of the person who did it. <code>location_id</code> is null only for organization-level records such as services and discount types.</p>
+<p>The table is described as append-only, but no database trigger protects it. The Platform also has a generic <code>audit_logs</code> table (the Workflow engine and common tables chapter, Chapter 26), which billing does not use for these events.</p>
+<h2 id="ch21-billing-ledgers-and-closing-21-3-the-general-ledger">21.3 The general ledger</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch21-general-ledger-erd.png" alt="Figure 21.2 — General ledger tables"></p>
+<p><em>Figure 21.2 — Journals, journal lines and their logical links.</em></p>
+<p>The figure shows <code>ledger_journals</code> connected to <code>ledger_journal_lines</code> by a solid line labelled &quot;has lines, RESTRICT&quot;; the crow&#39;s foot shows that a journal has one or more lines. A dotted loop from <code>ledger_journals</code> back to itself is labelled &quot;reversal_of_id, no FK&quot;, meaning a journal can be the reversal of one earlier journal. <code>vendor_bills</code> points to <code>ledger_journals</code> with a dotted line (journal_id, no FK). Four dotted lines run into <code>ledger_journal_lines</code> from <code>patients</code>, <code>labs</code>, <code>employees</code> and <code>lab_orders</code>; these are optional tags on a line. Both ledger boxes note that their keys are UUID version 7.</p>
+<h3 id="ch21-billing-ledgers-and-closing-ledger-journals-and-ledger-journal-lines"><code>ledger_journals</code> and <code>ledger_journal_lines</code></h3>
+<p><strong>Status:</strong> [Partial]. The tables and the posting service exist, but in the code only lab money posts journals: lab patient invoices, lab payments, lab credit notes, lab refunds, commission on lab invoice lines, vendor bills and vendor payments. Clinic (non-lab) invoices and payments from Chapter 20 do not post journals, the <code>expense</code> source type is never posted, and no screen or report reads the general ledger.</p>
+<p>A journal is one balanced double-entry posting. <code>entry_on</code> is the accounting date, <code>source_type</code> and <code>source_id</code> name the business record that caused it (vendor_bill, vendor_payment, expense, invoice, payment, credit_note, refund or commission), <code>memo</code> describes it, and <code>total_paisa</code> equals the sum of debits, which equals the sum of credits. A mistake is never edited: the application writes a mirror journal whose <code>reversal_of_id</code> points at the original.</p>
+<p>A journal line is one side of a journal. <code>account_code</code> is a code from a fixed chart of accounts kept in the code, not in a table: CASH, BANK, LAB_COST, LAB_PAYABLE, LAB_ADVANCES, PATIENT_RECEIVABLE, PATIENT_ADVANCES, LAB_REVENUE, TAX_PAYABLE, COMMISSION_EXPENSE and COMMISSION_PAYABLE. Each line also carries optional tags: <code>patient_id</code>, <code>lab_id</code>, <code>doctor_id</code> and <code>lab_order_id</code>.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>chk_ledger_journal_lines_side</code>: each line is either a debit or a credit, never both and never zero.</li>
+<li><code>uq_ledger_journals_reversal</code> (partial unique index): a journal can be reversed at most once.</li>
+<li>The rule &quot;debits equal credits&quot; is checked by the posting service, not by the database.</li>
+<li>No trigger stops updates or deletes; append-only is an application rule.</li>
+</ul>
+<h2 id="ch21-billing-ledgers-and-closing-21-4-expenses-and-credit-packages">21.4 Expenses and credit packages</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch21-expenses-credits-erd.png" alt="Figure 21.3 — Expenses and credit packages"></p>
+<p><em>Figure 21.3 — Clinic expenses, credit packages and the credits patients buy.</em></p>
+<p>The figure shows <code>expenses</code> with solid lines from <code>organizations</code> and <code>locations</code> (both CASCADE) and from <code>employees</code> (&quot;recorded by, SET NULL&quot;). Dotted lines from <code>labs</code> and <code>lab_orders</code> reach <code>expenses</code> (lab_id and lab_order_id, no FK). On the right, <code>organizations</code> connects to <code>credit_packages</code> (CASCADE). <code>credit_packages</code> connects to <code>patient_credits</code> with &quot;bought from, SET NULL&quot;. <code>patients</code> and <code>organizations</code> both connect to <code>patient_credits</code> with CASCADE, and <code>employees</code> connects with &quot;purchased by, SET NULL&quot;.</p>
+<h3 id="ch21-billing-ledgers-and-closing-expenses-clinic-running-costs"><code>expenses</code> — clinic running costs</h3>
+<p><strong>Status:</strong> [Implemented]. Shown on the expenses page and used by finance reports.</p>
+<p>One row is one clinic expense at one location: rent, utilities, supplies, salary, equipment, marketing, maintenance or other (<code>category</code>). Key columns: <code>description</code>, <code>amount</code> (<code>numeric(10,2)</code>), <code>expense_date</code>, <code>payment_method</code>, <code>reference_number</code>, <code>receipt_url</code> and <code>recorded_by</code>. The optional <code>lab_id</code> and <code>lab_order_id</code> mark an expense as the cost of a lab case. Timestamps in this table are stored without time zone, unlike the rest of billing.</p>
+<h3 id="ch21-billing-ledgers-and-closing-credit-packages-and-patient-credits-prepaid-credit"><code>credit_packages</code> and <code>patient_credits</code> — prepaid credit</h3>
+<p><strong>Status:</strong> [Partial]. The backend has endpoints to manage packages and to record a patient&#39;s purchase (feature <code>billing.credit_packages</code>), but no web page uses them, and credits are not a payment method at the billing desk.</p>
+<p><code>credit_packages</code> is an organization&#39;s offer: <code>name</code>, <code>total_credits</code>, <code>price</code> and <code>validity_days</code>, with <code>is_active</code> as a soft delete. <code>patient_credits</code> is one purchase by one patient: <code>total_amount</code>, <code>used_amount</code>, <code>remaining_amount</code>, <code>purchase_date</code>, <code>expiry_date</code> and <code>status</code> (ACTIVE, EXPIRED or EXHAUSTED). Money columns are <code>numeric(10,2)</code> and timestamps have no time zone.</p>
+<h2 id="ch21-billing-ledgers-and-closing-21-5-relationships-explained">21.5 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong>Cash close → cash close lines.</strong> Each line belongs to exactly one cash close; a close has one line per counted account. A close with lines cannot be deleted (RESTRICT).</li>
+<li><strong>Journal → journal lines.</strong> Each line belongs to exactly one journal; a journal has two or more lines. A journal with lines cannot be deleted (RESTRICT).</li>
+<li><strong>Organization → expenses</strong> and <strong>location → expenses.</strong> Each expense belongs to one organization and one location. Deleting the organization or the location deletes its expenses (CASCADE).</li>
+<li><strong>Employee → expenses.</strong> An expense may name the employee who recorded it; deleting that employee keeps the expense and clears the link (SET NULL).</li>
+<li><strong>Organization → credit packages.</strong> Deleting the organization deletes its packages (CASCADE).</li>
+<li><strong>Credit package → patient credits.</strong> A patient credit may come from one package; deleting the package keeps the credit and clears the link (SET NULL).</li>
+<li><strong>Patient → patient credits</strong> and <strong>organization → patient credits.</strong> Deleting the patient or the organization deletes the credits (CASCADE).</li>
+<li><strong>Employee → patient credits.</strong> The employee who sold the credit; deleting that employee clears the link (SET NULL).</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><code>ledger_entries.patient_id</code>, <code>invoice_id</code>, <code>payment_id</code> and <code>refund_id</code> point at the patient and at the billing record behind each line.</li>
+<li><code>cash_close_lines.payment_account_id</code> → <code>payment_accounts</code>.</li>
+<li><code>billing_audit_logs.entity_id</code> is polymorphic, discriminated by <code>entity_type</code>.</li>
+<li><code>ledger_journals.source_id</code> is polymorphic, discriminated by <code>source_type</code>; <code>reversal_of_id</code> points at another journal.</li>
+<li><code>ledger_journal_lines.patient_id</code>, <code>lab_id</code>, <code>doctor_id</code> (an employee) and <code>lab_order_id</code> are optional tags.</li>
+<li><code>vendor_bills.journal_id</code> → <code>ledger_journals</code> (the Labs chapter, Chapter 25, covers vendor bills).</li>
+<li><code>expenses.lab_id</code> → <code>labs</code> and <code>expenses.lab_order_id</code> → <code>lab_orders</code>.</li>
+<li>Actor columns (<code>created_by</code>, <code>closed_by</code>, <code>actor_id</code>) hold a user id with no foreign key.</li>
+</ul>
+<h2 id="ch21-billing-ledgers-and-closing-21-6-tenant-scope">21.6 Tenant scope</h2>
+<ul>
+<li><strong>Organization and location:</strong> <code>ledger_entries</code>, <code>cash_closes</code>, <code>document_sequences</code>, <code>billing_audit_logs</code>, <code>ledger_journals</code>, <code>ledger_journal_lines</code> (location is optional on the journal tables) and <code>expenses</code>.</li>
+<li><strong>Organization only:</strong> <code>credit_packages</code>, <code>patient_credits</code>.</li>
+<li><strong>No tenant column:</strong> <code>cash_close_lines</code>, which is scoped only through its cash close. Any query on it must join <code>cash_closes</code> to enforce isolation.</li>
+<li>Only <code>expenses</code>, <code>credit_packages</code> and <code>patient_credits</code> have foreign keys on their tenant columns; every other table here stores the organization and location ids without a constraint.</li>
+</ul>
+</section></body></html>

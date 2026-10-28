@@ -1,0 +1,409 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch37-employees"><h1 id="ch37-employees-chapter-37-employees">Chapter 37 — Employees</h1>
+<p>This chapter describes the Employees module of the Platform: the staff directory of a clinic, where each person&#39;s details, workplace, role, login, salary, weekly hours, day exceptions and leave are kept. It is written for the product owner, who needs to know what the module really does today and where it stops. Other modules lean on it: appointments and the queue need doctors with an assignment and a schedule, access control reads the role on the assignment, and payroll and commissions pay the assignment (Chapters 38 and 35).</p>
+<h2 id="ch37-employees-37-1-what-this-module-is-for">37.1 What this module is for</h2>
+<p>The module separates the <strong>person</strong> from the <strong>job</strong>. An <strong>employee</strong> is the person record, kept once for the whole Platform: name, phone, CNIC, gender, date of birth and photo. Phone and CNIC are unique across the whole Platform, not just within one clinic. An <strong>assignment</strong> links the employee to one organization and one location, with a <strong>role</strong> (employment role), a designation, an employment type, an employee code, a joining date, an active flag and portal access. The <strong>staff login</strong> (a user account) is attached to the assignment.</p>
+<p>From the assignment hang the weekly schedule, date-specific availability overrides, leave requests, the compensation plan (Chapter 35) and payroll records (Chapter 38).</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Admin</strong> and the <strong>owner</strong>: everything — add, edit, deactivate and delete employees, set salary, schedules and overrides, approve leave, give logins.</li>
+<li><strong>Doctor</strong>, <strong>Receptionist</strong>, <strong>Assistant</strong>, <strong>Accountant</strong>: no access by default. None of these system roles holds <code>employees.view</code>.</li>
+</ul>
+<p>Where it appears: the sidebar item <strong>Employees</strong> (key <code>nav.employees</code>, route <code>/employees</code>, needs <code>employees.view</code>) in the <strong>Team</strong> section, next to <strong>Payroll</strong>. Staff logins are also managed from <strong>User Admin</strong> (<code>nav.users</code>, route <code>/users</code>, needs <code>admin.users.manage</code>) in the Admin section.</p>
+<p>The core employee permissions (<code>employees.view</code>, <code>employees.manage</code>) belong to the always-on <code>core</code> feature. Leave belongs to the feature <strong><code>hr.leave</code></strong> (&quot;Leave Management&quot;, off by default), through the permission <code>leave.approve</code>. Attendance is mentioned only in that feature&#39;s description and is not built.</p>
+<h2 id="ch37-employees-37-2-screens">37.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-employee-list.svg" alt="Figure 37.1 — Employee list"></p>
+<p><em>Figure 37.1 — The Employees page (screenshot pending).</em></p>
+<p>The page title is &quot;Employees&quot; with the subtitle &quot;N employees total&quot;. Top right are a card/table view toggle and an <strong>Add Employee</strong> button. A filter bar holds a search box (name, phone or employee code), a role filter (&quot;All Roles&quot;, filled from the clinic&#39;s roles), an employment-type filter (&quot;All Types&quot;: full time, part time, visiting, contract), a status filter (&quot;All Status&quot;: active or inactive) and a reset action. The table view has the columns Employee (avatar, name, designation), Code, Phone, Type, Salary, Status (Active / Inactive badge) and an actions column with icon buttons with tooltips: &quot;View employee&quot;, &quot;Edit employee&quot;, an Activate/Deactivate switch and &quot;Delete employee permanently&quot;. Rows are paged on the server (page sizes 10, 20, 50, 100). The card view shows the same people as a grid of cards with the same actions. With no rows the page shows &quot;No employees found&quot; and a hint to add the first employee; a failed load shows &quot;Failed to load employees. Please try again.&quot; Without an active location the page asks &quot;Select a location first&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-add-employee.svg" alt="Figure 37.2 — Add Employee dialog"></p>
+<p><em>Figure 37.2 — The Add Employee dialog (screenshot pending).</em></p>
+<p><strong>Add Employee</strong> opens a wide dialog, &quot;Add Employee — Fill in the details to add a new employee to this location.&quot; The form has: Full Name *, Phone *, CNIC, Designation *, Role * (the clinic&#39;s roles), Employment Type *, Joining Date * (date picker), Gender, Date of Birth (date picker) and Gross Salary (optional). Users who can manage compensation also see a &quot;Compensation&quot; section (&quot;Salaried by default…&quot;) with Salaried / Commission / Both, a commission percentage and &quot;Commission on&quot;. A &quot;Portal Access&quot; switch (&quot;Allow this employee to log in to the system&quot;) reveals login email and password fields (password at least 6 characters). Errors appear under each field and as a red banner; the buttons are Cancel and a submit button. The same form also exists as a full page at <code>/employees/create</code>, which no button links to.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-employee-detail.svg" alt="Figure 37.3 — Employee detail, Details tab"></p>
+<p><em>Figure 37.3 — Employee detail page, Details tab (screenshot pending).</em></p>
+<p>The detail page title is the employee&#39;s name with the designation as subtitle, a ← back button (&quot;Back to employees&quot;), an Active/Inactive badge and an <strong>Edit</strong> button for users with <code>employees.manage</code>. Tabs: <strong>Details</strong>, <strong>Compensation</strong> (with <code>compensation.manage</code>, Chapter 35), <strong>Schedule</strong>, <strong>Leave</strong> (with <code>leave.approve</code>) and <strong>Payroll</strong> (with <code>payroll.manage</code>, Chapter 38). The Details tab has a &quot;Personal Information&quot; card (Phone, CNIC, Date of Birth, Gender, Employment Type, Joining Date, Location, Employee Code, Portal Access as &quot;Has Login Access&quot; or &quot;No Portal Access&quot;) and a &quot;Current Salary&quot; card with the monthly amount, &quot;Effective since&quot; and an <strong>Update</strong> (or <strong>Set Salary</strong>) button, or &quot;No salary configured yet.&quot; <strong>Edit</strong> opens a slide-over sheet with the same form as Add Employee, without the compensation section.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-schedule-tab.svg" alt="Figure 37.4 — Employee detail, Schedule tab"></p>
+<p><em>Figure 37.4 — Weekly schedule and availability overrides (screenshot pending).</em></p>
+<p>The Schedule tab has two cards. &quot;Weekly Schedule&quot; lists the seven days, each with a switch (working or off) and, for working days, start and end times; the card header has a &quot;Slot:&quot; selector (15, 30, 45 or 60 minutes) and a <strong>Save</strong> button. Switching a day on fills 09:00–17:00. &quot;Availability Overrides&quot; has an <strong>Add Override</strong> button and a table with Date, Status (&quot;Available&quot; or &quot;Unavailable&quot;), Hours, Reason and edit and delete icon buttons; empty, it says &quot;No overrides set — Add an override for a day off or special working hours&quot;. The override dialog has Date, &quot;Available this day&quot;, &quot;Working Hours&quot; (one or more time slots) and &quot;Reason (optional)&quot; (&quot;e.g. Conference, public holiday...&quot;).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-leave-tab.svg" alt="Figure 37.5 — Employee detail, Leave tab"></p>
+<p><em>Figure 37.5 — Leave requests and the leave summary (screenshot pending).</em></p>
+<p>Four small cards show &quot;Approved Days (2026)&quot;, &quot;Pending Requests&quot;, &quot;Annual&quot; and &quot;Sick&quot;. Under them a &quot;Leave Requests&quot; card has a <strong>New Request</strong> button and a table with Type, From, To, Days, Status (badge), Reason and a three-dot menu: <strong>Approve</strong>, <strong>Reject</strong> and <strong>Edit</strong> for pending requests and <strong>Cancel Request</strong> for pending or approved ones. The request dialog has Leave Type, Leave dates (a range picker) and Reason (optional).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch37-staff-login.svg" alt="Figure 37.6 — Staff login dialog in User Admin"></p>
+<p><em>Figure 37.6 — Giving an existing employee a login from User Admin (screenshot pending).</em></p>
+<p>On <strong>User Admin</strong>, the user dialog&#39;s role list offers &quot;Staff (existing employee)&quot; with the explanation &quot;Gives an employee a login. What they can do comes from their role in the Employee directory.&quot; An &quot;Employee&quot; list shows employees of the organization without a login, as &quot;name · location, location&quot;; if none remain it says &quot;Every employee already has a login. Add new staff from the Employee directory first.&quot; The rest of the dialog asks for name, email, optional phone and password.</p>
+<h2 id="ch37-employees-37-3-features">37.3 Features</h2>
+<h3 id="ch37-employees-37-3-1-browse-and-filter-the-employee-list">37.3.1 Browse and filter the employee list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists the employees assigned to the active location, with search, filters, paging and card or table view.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Employees</strong> in the sidebar.</li>
+<li>Type in the search box or pick a role, type or status filter; switch between card and table view.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The list is really a list of assignments at this location. Each row shows the person&#39;s details plus the job details at this location and the salary from the current compensation plan.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /employees?search&amp;role&amp;employmentType&amp;isActive&amp;page&amp;limit</code> → <code>EmployeesService.findAll</code>: query on <code>employee_org_location_assignments</code> for the active organization and location, joined to <code>employees</code>, <code>employment_roles</code> and <code>locations</code>; search uses <code>ILIKE</code> on name, phone and employee code; the role filter compares the role&#39;s slug. Ordered by assignment creation, newest first. The salary and <code>compensationType</code> come from <code>CompensationPlanVersions.activeForMany</code> on the location&#39;s clinic date, falling back to the deprecated <code>gross_salary</code> column.</p>
+<p><strong>Rules and validations.</strong> Default page size 20 on the server (the web app starts at 10); <code>isActive</code> accepts <code>true</code>/<code>false</code>.</p>
+<p><strong>Who can do it.</strong> <code>employees.view</code>, feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>, <code>employment_roles</code>, <code>locations</code>, <code>compensation_plans</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.findAll</code> · <code>web-app/src/features/employees/pages/EmployeesPage.tsx</code></p>
+<h3 id="ch37-employees-37-3-2-add-an-employee">37.3.2 Add an employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates the person record, an assignment at the active location with a role and an employee code, a first compensation plan version and, optionally, a staff login.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Employees</strong>, click <strong>Add Employee</strong>.</li>
+<li>Fill in the required fields (Full Name, Phone, Designation, Role, Employment Type, Joining Date) and any optional ones.</li>
+<li>Optionally turn on <strong>Portal Access</strong> and enter the login email and password.</li>
+<li>Submit. A toast &quot;Employee created successfully&quot; appears.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server first checks that no employee anywhere on the Platform already has this phone number. It validates the pay terms, saves the person, generates the next employee code for the clinic, creates the login if asked, and saves the assignment together with the first pay version.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /employees</code> → <code>EmployeesService.create</code>:</p>
+<ol>
+<li>Refuse when an <code>employees</code> row already has the phone (409).</li>
+<li>Load the role (organization-scoped) and build the first plan with <code>initialPlan</code>: the optional <code>compensation</code> object, else a <code>SALARY</code> plan with the entered salary in paisa (0 when empty), effective from the joining date (or the location&#39;s clinic date).</li>
+<li>Insert <code>employees</code>.</li>
+<li>Generate <code>employee_code</code> as <code>EMP-</code> plus (number of assignments in the organization + 1), zero-padded to three digits.</li>
+<li>If portal access is on and no <code>userId</code> was given, create a <code>users</code> row (email unique, password hashed with bcrypt, local provider).</li>
+<li>In one transaction, insert the assignment (<code>is_primary</code> true by default, <code>gross_salary</code> left empty) and add the compensation version.</li>
+</ol>
+<p>The access-version subscriber bumps the organization&#39;s access version when an assignment is saved, so sessions refresh their permissions.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Phone is unique across the Platform (checked first, and a unique database index). CNIC is optional and also unique across the Platform (database index only).</li>
+<li>Full name 2–255 characters; designation required; role must be a UUID (the form requires it; the API allows it to be empty).</li>
+<li>Portal access needs an email and a password of at least 6 characters; the email must not belong to an existing user.</li>
+<li>Commission plans need <code>billing.commissions</code> and a role that can consult (Chapter 35).</li>
+<li>The person is saved before the login and the assignment, outside the final transaction.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>employees.manage</code>, feature <code>core</code>. Default: Admin. The compensation section is shown only with <code>compensation.manage</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>employees</code>, <code>employment_roles</code>, <code>users</code>. Writes <code>employees</code>, <code>users</code> (optional), <code>employee_org_location_assignments</code>, <code>compensation_plans</code>, <code>commission_rules</code>, <code>organizations.access_version</code>.</p>
+<p><strong>Effects on other modules.</strong> An active assignment makes the person appear in the appointments doctor list and queue lanes (Chapters 29 and 30); a login with portal access lets them sign in with the role&#39;s permissions.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>409 &quot;An employee with this phone number already exists&quot;.</li>
+<li>409 &quot;A user with email … already exists&quot;.</li>
+<li>400 &quot;portalEmail and portalPassword are required when hasPortalAccess is true&quot;.</li>
+<li>400 &quot;Salary must be a positive amount with at most 2 decimals&quot;.</li>
+<li>403 <code>COMMISSIONS_DISABLED</code>; 422 <code>COMPENSATION_PLAN_INVALID</code>, <code>COMMISSION_ROLE_CANNOT_CONSULT</code>.</li>
+<li>A duplicate CNIC reaches the database unique index and is returned as a generic 500 &quot;Something went wrong&quot;.</li>
+<li>402 <code>SUBSCRIPTION_EXPIRED</code> in read-only mode.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.create</code>, <code>initialPlan</code> · <code>web-app/src/features/employees/components/CreateEmployeeModal.tsx</code></p>
+<h3 id="ch37-employees-37-3-3-view-an-employee">37.3.3 View an employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows one employee&#39;s details at the active location, with the tabs the viewer&#39;s permissions allow.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click &quot;View employee&quot; (eye icon) on a row or card.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server finds the person&#39;s assignment at this location; a person who works only at another location is &quot;not found&quot; here.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /employees/:id</code> → <code>EmployeesService.findOne</code>: the assignment for (employee, active organization, active location) with employee, role, location and user; the current plan gives <code>grossSalary</code>, <code>compensationType</code> and <code>currentSalary.effectiveFrom</code>.</p>
+<p><strong>Rules and validations.</strong> Scoped to the active location.</p>
+<p><strong>Who can do it.</strong> <code>employees.view</code>, feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>, <code>employment_roles</code>, <code>locations</code>, <code>users</code>, <code>compensation_plans</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Employee not found at this location&quot; (the page shows &quot;Employee Not Found&quot; with <strong>Back to List</strong>).</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.controller.ts</code> · <code>EmployeesService.findOne</code> · <code>web-app/src/routes/employees/$employeeId.index.tsx</code></p>
+<h3 id="ch37-employees-37-3-4-edit-an-employee">37.3.4 Edit an employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the person&#39;s details and the assignment&#39;s details at this location, and can turn portal access on (creating a login) or off.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Edit</strong> on the detail page, or &quot;Edit employee&quot; on the list.</li>
+<li>Change fields in the &quot;Edit Employee&quot; sheet and save. A toast &quot;Employee updated successfully&quot; appears.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Personal fields go to the person record, which every clinic the person works for sees. Job fields go to this location&#39;s assignment only.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PUT /employees/:id</code> → <code>EmployeesService.update</code>: sets name, phone, CNIC, gender, date of birth and photo on <code>employees</code>; designation, role, employment type, joining date and primary flag on the assignment. Turning portal access on without a linked user creates a login (same rules as create); turning it off only clears the flag. A <code>grossSalary</code> value adds a new salary version from today (37.3.8).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Same field rules as create; all fields optional.</li>
+<li>The phone uniqueness check of create is not repeated; a duplicate phone or CNIC is caught only by the database index (generic 500).</li>
+<li>Changing the role changes the person&#39;s permissions at this location; the access version is bumped.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>employees.manage</code>, feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>employees</code>, <code>employee_org_location_assignments</code>, <code>users</code> (optional), <code>compensation_plans</code> (optional).</p>
+<p><strong>Effects on other modules.</strong> Role and portal changes take effect on the person&#39;s next access refresh (Chapter 57).</p>
+<p><strong>Error cases.</strong> 404 &quot;Employee not found at this location&quot;; 400 &quot;portalEmail and portalPassword are required when enabling portal access&quot;; 409 duplicate login email.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.update</code> · <code>web-app/src/features/employees/components/EditEmployeeSheet.tsx</code></p>
+<h3 id="ch37-employees-37-3-5-activate-or-deactivate-an-employee">37.3.5 Activate or deactivate an employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Switches the employee&#39;s assignment at this location on or off without deleting anything.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the list, use the switch with the tooltip &quot;Deactivate employee&quot; / &quot;Activate employee&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> An inactive assignment keeps all history. The person cannot sign in to this location, does not appear as a doctor for booking, gets no payroll, and their schedule and leave cannot be edited until reactivated.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /employees/:id/status</code> with <code>{ isActive }</code> → <code>EmployeesService.setActive</code> sets <code>employee_org_location_assignments.is_active</code>. The <code>employees.is_active</code> column is not changed by any endpoint. Login (<code>AuthorizationService</code>) and access resolution require an active assignment with portal access.</p>
+<p><strong>Rules and validations.</strong> Affects only the active location&#39;s assignment.</p>
+<p><strong>Who can do it.</strong> <code>employees.manage</code>, feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>employee_org_location_assignments</code>, <code>organizations.access_version</code>.</p>
+<p><strong>Effects on other modules.</strong> Appointments doctor list, queue lanes, payroll generation, staff-login candidates and sign-in all ignore inactive assignments.</p>
+<p><strong>Error cases.</strong> 404 &quot;Employee not found at this location&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.setActive</code> · <code>web-app/src/features/employees/components/EmployeeTable.tsx</code></p>
+<h3 id="ch37-employees-37-3-6-delete-an-employee-permanently">37.3.6 Delete an employee permanently</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Deletes the person record and, by database cascade, their assignments, schedules, leave, overrides, payroll records and compensation plans.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click &quot;Delete employee permanently&quot; (bin icon).</li>
+<li>Confirm in the dialog &quot;Delete employee permanently?&quot; with <strong>Delete permanently</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Deletion is refused when the person also works at another location, or when other records still need them. The dialog advises deactivating instead.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>DELETE /employees/:id</code> → <code>EmployeesService.remove</code>: confirms the assignment at this location, refuses if the employee has an assignment at any other location, then deletes the <code>employees</code> row and bumps the access version. A PostgreSQL foreign-key error (23503) is turned into 409 with an inventory message. Appointments refuse deletion of a doctor who still has appointments (ON DELETE RESTRICT, Chapter 29), and commission entries and settlements refuse deletion of their assignment (RESTRICT, Chapter 35); both surface as the same 409.</p>
+<p><strong>Rules and validations.</strong> Only when this is the person&#39;s only assignment.</p>
+<p><strong>Who can do it.</strong> <code>employees.manage</code>, feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Deletes <code>employees</code> and cascaded rows.</p>
+<p><strong>Effects on other modules.</strong> Payroll history and plans of the person are gone.</p>
+<p><strong>Error cases.</strong> 409 &quot;This employee is also assigned to other locations and cannot be deleted. Deactivate them here instead.&quot;; 409 &quot;This employee has linked inventory records and cannot be deleted. Deactivate them instead.&quot; (shown for any blocking reference).</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.remove</code> · <code>web-app/src/features/employees/pages/EmployeesPage.tsx</code></p>
+<h3 id="ch37-employees-37-3-7-give-an-employee-a-staff-login-portal-access">37.3.7 Give an employee a staff login (portal access)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets an employee sign in. There are two ways: the Portal Access switch on the employee form, and the &quot;Staff (existing employee)&quot; option on <strong>User Admin</strong>.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Either turn on <strong>Portal Access</strong> on Add or Edit Employee and enter email and password,</li>
+<li>or open <strong>User Admin</strong>, add a user, choose &quot;Staff (existing employee)&quot;, pick the employee and enter name, email and password.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A login alone grants nothing. What the person may do comes from the role on each assignment. The User Admin path links one login to all the person&#39;s active assignments in the organization at once.</p>
+<p><strong>Behind the scenes — technically.</strong> Employee form: <code>createPortalUser</code> inside <code>EmployeesService.create</code>/<code>update</code>, linking only the active location&#39;s assignment. User Admin: <code>GET /user/staff-candidates</code> lists employees with an active assignment and no linked login in the organization; <code>POST /user</code> with <code>type: &#39;employee&#39;</code> and <code>employeeId</code> → <code>UserService.createStaffLogin</code>: after the subscription user-limit check (<code>assertCanAddUser</code>), in one transaction it locks the active assignments, refuses if any is already linked, creates the user and sets <code>user_id</code> and <code>has_portal_access = true</code> on every active assignment. The endpoint <code>PATCH /employees/:id/portal-access</code> (<code>togglePortalAccess</code>) flips the flag only; no screen calls it. Sign-in and location access require <code>has_portal_access = true</code> and an active assignment.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>User Admin: password at least 8 characters, valid email, email unique. Employee form: password at least 6 characters.</li>
+<li>The employee-form path does not check the subscription&#39;s user limit; the User Admin path does.</li>
+</ul>
+<p><strong>Who can do it.</strong> Employee form: <code>employees.manage</code>. User Admin: <code>admin.users.manage</code> (or super admin). Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>users</code>, <code>employee_org_location_assignments</code>.</p>
+<p><strong>Effects on other modules.</strong> Authentication and access control (Chapters 56 and 57).</p>
+<p><strong>Error cases.</strong> 409 &quot;This employee already has a login&quot;; 404 &quot;Employee not found in this organization&quot;; 400 &quot;User with email already exists&quot;; 400 &quot;employeeId is required for staff users&quot;; the user-limit error from Subscriptions (Chapter 45).</p>
+<p><strong>Technical references:</strong> <code>backend/src/user/user.service.ts</code> · <code>UserService.createStaffLogin</code>, <code>staffCandidates</code>, <code>EmployeesService.togglePortalAccess</code> · <code>web-app/src/features/users/components/UserFormDialog.tsx</code></p>
+<h3 id="ch37-employees-37-3-8-set-or-update-the-salary">37.3.8 Set or update the salary</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the monthly salary of the assignment from today.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the Details tab, click <strong>Update</strong> (or <strong>Set Salary</strong>) on the &quot;Current Salary&quot; card.</li>
+<li>Enter the amount and save. A toast &quot;Salary updated&quot; appears.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Salary lives in the compensation plan. A change adds a new plan version from today; a commission rate and overrides in force are carried over, and a commission-only plan becomes &quot;Both&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /employees/:id/salary</code> with <code>{ grossSalary }</code> → <code>EmployeesService.updateSalary</code> → <code>addSalaryVersion</code>: converts rupees to paisa, reads the version in force on the location&#39;s clinic date, does nothing if the salary is unchanged, otherwise calls <code>CompensationPlanVersions.add</code> with <code>effectiveFrom</code> = today. The deprecated <code>gross_salary</code> column is no longer written.</p>
+<p><strong>Rules and validations.</strong> Salary at least 1, at most 2 decimals. A second change on the same day replaces the first only if no charge used it (else 409 <code>COMPENSATION_PLAN_IN_USE</code>, Chapter 35).</p>
+<p><strong>Who can do it.</strong> <code>employees.manage</code>, feature <code>core</code>. Default: Admin. Works with <code>billing.commissions</code> off.</p>
+<p><strong>Data read and written.</strong> Reads and writes <code>compensation_plans</code>, <code>commission_rules</code>.</p>
+<p><strong>Effects on other modules.</strong> Payroll uses the version in force on the month&#39;s last day (Chapter 38).</p>
+<p><strong>Error cases.</strong> 400 &quot;Salary must be a positive amount with at most 2 decimals&quot;; 409 <code>COMPENSATION_PLAN_IN_USE</code>; toast &quot;Failed to update salary&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.addSalaryVersion</code> · <code>web-app/src/features/employees/components/UpdateSalaryModal.tsx</code></p>
+<h3 id="ch37-employees-37-3-9-set-the-weekly-schedule">37.3.9 Set the weekly schedule</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Stores, per weekday, whether the person works at this location and from when to when, plus a slot length.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the <strong>Schedule</strong> tab.</li>
+<li>Switch days on or off, set times, pick &quot;Slot:&quot;, and click <strong>Save</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The week is saved as seven rows for this location. Booking reads these hours to decide whether a doctor works at a given time (Chapter 29).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /employees/:employeeId/schedule</code> returns seven days (missing days filled as not working, slot 30). <code>POST /employees/:employeeId/schedule</code> → <code>ScheduleService.setSchedule</code> validates and upserts each day; <code>PATCH /employees/:employeeId/schedule/:dayOfWeek</code> updates one day (no screen calls it). Days are 0–6; times are &quot;HH:MM&quot; strings with no timezone (clinic local time).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Exactly seven unique days 0–6; slot 15, 30, 45 or 60 minutes.</li>
+<li>A working day needs start and end; end after start.</li>
+<li>The person must have an active assignment at the location.</li>
+<li>One row per employee, location and weekday (unique index).</li>
+<li>A helper that checks overlap with the same person&#39;s hours at other locations exists but is never called; overlapping weekly hours at two locations are accepted.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: <code>employees.view</code>; save: <code>employees.manage</code>; feature <code>core</code>. Default: Admin. The Save button is visible without <code>employees.manage</code>, but the server refuses.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>. Writes <code>employee_schedules</code>.</p>
+<p><strong>Effects on other modules.</strong> Appointment validation, slot suggestions and the calendar&#39;s working-hours shading (Chapter 29).</p>
+<p><strong>Error cases.</strong> 400 &quot;Employee is not assigned to this location&quot;; 400 &quot;Schedule must contain exactly 7 unique days (0-6)&quot;; 400 &quot;Day 1: End time must be after start time&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/schedule.service.ts</code> · <code>ScheduleService.setSchedule</code> · <code>web-app/src/features/employees/components/ScheduleTab.tsx</code></p>
+<h3 id="ch37-employees-37-3-10-record-availability-overrides">37.3.10 Record availability overrides</h3>
+<p><strong>Status:</strong> [Partial] — recorded and edited, but booking, slot suggestions and the calendar ignore them.</p>
+<p><strong>What it does.</strong> Records a one-day exception to the weekly schedule: unavailable that day, or available with special hours.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the <strong>Schedule</strong> tab, click <strong>Add Override</strong>.</li>
+<li>Pick the date, set &quot;Available this day&quot; and, if available, the working hours; add a reason.</li>
+<li>Save. Edit or delete with the icons in the table.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The exception is stored for this person, location and date. Nothing else in the Platform reads it today.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST</code>, <code>GET ?from&amp;to</code>, <code>PATCH /:id</code>, <code>DELETE /:id</code> on <code>/employees/:employeeId/availability-overrides</code> → <code>AvailabilityOverrideService</code>. Hours are stored as JSON slots (<code>override_hours</code>); when unavailable they are cleared.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One override per employee, location and date (checked, and a unique index).</li>
+<li>Each slot &quot;HH:MM&quot;, end after start, slots must not overlap.</li>
+<li>Active assignment at the location required for create and list.</li>
+<li>Delete has no confirmation dialog and the icon buttons have no tooltips.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: <code>employees.view</code>; write: <code>employees.manage</code>; feature <code>core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>doctor_availability_overrides</code>.</p>
+<p><strong>Effects on other modules.</strong> None today. Booking a doctor on an &quot;Unavailable&quot; date is still possible (Chapter 29, 29.3.13).</p>
+<p><strong>Error cases.</strong> 409 &quot;An override for this employee on this date already exists&quot;; 400 &quot;Override hour slots must not overlap&quot;; 404 &quot;Availability override not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/availability-override.service.ts</code> · <code>AvailabilityOverrideService</code> · <code>web-app/src/features/employees/components/AvailabilityOverrideTab.tsx</code></p>
+<h3 id="ch37-employees-37-3-11-manage-leave-requests">37.3.11 Manage leave requests</h3>
+<p><strong>Status:</strong> [Partial] — the full request and approval cycle works for managers, but employees cannot request their own leave, and approved leave does not block bookings.</p>
+<p><strong>What it does.</strong> Records leave for an employee, then approves, rejects, edits or cancels it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the <strong>Leave</strong> tab (visible with <code>leave.approve</code>) and click <strong>New Request</strong>.</li>
+<li>Pick Leave Type, the date range and an optional reason; submit.</li>
+<li>Use the three-dot menu: <strong>Approve</strong>, <strong>Reject</strong>, <strong>Edit</strong> (pending only) or <strong>Cancel Request</strong> (pending or approved).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A request starts pending. It counts the calendar days from start to end. Two pending or approved requests of the same person may not overlap.</p>
+<p><strong>Behind the scenes — technically.</strong> All routes are on <code>LeaveController</code> (<code>/leaves</code>), which requires <code>leave.approve</code> for every endpoint: <code>POST /leaves</code>, <code>GET /leaves?employeeId&amp;status&amp;leaveType</code>, <code>GET /leaves/:id</code>, <code>PATCH /leaves/:id</code>, <code>PATCH /leaves/:id/approve</code>, <code>PATCH /leaves/:id/reject</code> (both take an optional <code>reviewNote</code>), <code>PATCH /leaves/:id/cancel</code>. <code>LeaveService.review</code> sets <code>status</code>, <code>review_note</code>, <code>approved_by</code> (also for rejections) and <code>reviewed_at</code>. Types: annual, sick, unpaid, maternity, paternity, other.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>End date on or after start date; <code>total_days</code> = calendar days inclusive (weekends and holidays count).</li>
+<li>No overlap with the person&#39;s other pending or approved leave (any location).</li>
+<li>Only pending requests can be edited, approved or rejected; pending or approved can be cancelled.</li>
+<li>The person must have an active assignment at the location to file.</li>
+<li>The web app sends no review note.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>leave.approve</code>, feature <code>hr.leave</code> (off by default). Default: Admin (when the feature is on).</p>
+<p><strong>Data read and written.</strong> Writes <code>employee_leaves</code>.</p>
+<p><strong>Effects on other modules.</strong> None. Appointments and the queue do not read leave, and payroll does not deduct unpaid leave.</p>
+<p><strong>Error cases.</strong> 400 &quot;Employee already has a pending or approved leave overlapping these dates&quot;; 400 &quot;Only pending leave requests can be reviewed&quot;; 400 &quot;Only pending or approved leave requests can be cancelled&quot;; 400 &quot;End date must be on or after start date&quot;; 404 &quot;Leave request not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/leave.service.ts</code> · <code>LeaveService.create</code>, <code>review</code>, <code>cancel</code> · <code>web-app/src/features/employees/components/LeaveTable.tsx</code></p>
+<h3 id="ch37-employees-37-3-12-see-the-leave-summary-quot-balance-quot">37.3.12 See the leave summary (&quot;balance&quot;)</h3>
+<p><strong>Status:</strong> [Partial] — a usage tally, not a balance: there are no leave entitlements to subtract from.</p>
+<p><strong>What it does.</strong> Shows the approved leave days this calendar year, the number of pending requests and approved days per type.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the <strong>Leave</strong> tab; the four cards appear at the top.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server adds up the person&#39;s approved leave that touches the current year and counts pending requests.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /leaves/balance/:employeeId</code> → <code>LeaveService.getBalance</code>. The year is the server&#39;s calendar year; a leave that crosses New Year counts all its days in both years.</p>
+<p><strong>Rules and validations.</strong> Counts leave in the whole organization, not only this location.</p>
+<p><strong>Who can do it.</strong> <code>leave.approve</code>, feature <code>hr.leave</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_leaves</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;Employee is not assigned to this location&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/leave.service.ts</code> · <code>LeaveService.getBalance</code> · <code>web-app/src/features/employees/components/LeaveTable.tsx</code></p>
+<h3 id="ch37-employees-37-3-13-list-employment-roles">37.3.13 List employment roles</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Supplies the role list for the employee form and the role filter.</p>
+<p><strong>How the user does it.</strong> Open the Role field or filter; the clinic&#39;s roles appear.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The roles are the clinic&#39;s system and custom roles. Creating and editing roles happens in the role editor (Chapter 11).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /employment-roles</code> and <code>GET /employment-roles/:id</code> need <code>employees.view</code>. The same controller also has <code>POST</code>, <code>PUT</code> and <code>DELETE</code> guarded by <code>admin.roles.manage</code>; the role editor uses <code>/admin/roles</code>.</p>
+<p><strong>Rules and validations.</strong> Organization-scoped.</p>
+<p><strong>Who can do it.</strong> <code>employees.view</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employment_roles</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employment-roles.controller.ts</code> · <code>EmploymentRolesService</code> · <code>web-app/src/features/employees/components/EmployeeForm.tsx</code></p>
+<h3 id="ch37-employees-37-3-14-assign-an-existing-employee-to-another-location">37.3.14 Assign an existing employee to another location</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing today. The data model allows one person to have assignments at several locations and organizations, and a <code>CreateAssignmentDto</code> exists, but no endpoint uses it. Adding the same person at a second location through <strong>Add Employee</strong> fails, because the phone number is already taken.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every assignment is created together with a new person record.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>EmployeesService.create</code> is the only code that inserts assignments; <code>create-assignment.dto.ts</code> and <code>update-assignment.dto.ts</code> are unused; <code>getAssignmentsByEmployee</code> is not exposed.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> Multi-location doctors (Chapters 29, 35, 38) can exist only in data created another way.</p>
+<p><strong>Error cases.</strong> 409 &quot;An employee with this phone number already exists&quot; when trying via Add Employee.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/dto/create-assignment.dto.ts</code> · <code>CreateAssignmentDto</code> · none</p>
+<h3 id="ch37-employees-37-3-15-attendance">37.3.15 Attendance</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing. Attendance appears only in the description of the <code>hr.leave</code> feature (&quot;Track employee leave and attendance.&quot;). There is no table, endpoint or screen.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Not built.</p>
+<p><strong>Behind the scenes — technically.</strong> No attendance entity or controller exists.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-catalog.seed.ts</code> · <code>hr.leave</code> · none</p>
+<h2 id="ch37-employees-37-4-entities-and-data-model">37.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch37-employee-erd.png" alt="Figure 37.7 — Employee data model"></p>
+<p><em>Figure 37.7 — The person, the assignment and the tables that hang from them.</em></p>
+<p>The diagram has <code>employees</code> at the top right with <code>id</code>, <code>full_name</code>, and <code>phone</code> and <code>cnic</code> marked UK (unique). A &quot;works as&quot; line goes from <code>employees</code> to <code>employee_org_location_assignments</code>, which shows <code>id</code>, <code>employee_id</code>, <code>organization_id</code>, <code>location_id</code>, <code>employment_role_id</code>, <code>user_id</code>, <code>employee_code</code>, <code>has_portal_access</code> and <code>is_active</code>. Over the assignment, four boxes link to it: <code>organizations</code> (&quot;employs&quot;), <code>locations</code> (&quot;is staffed by&quot;), and, as optional links, <code>employment_roles</code> (&quot;role of&quot;) and <code>users</code> (&quot;staff login&quot;). Under the assignment, <code>compensation_plans</code> hangs off it (&quot;is paid by&quot;). From <code>employees</code> three more lines go to <code>employee_schedules</code> (&quot;weekly hours&quot;: <code>employee_id</code>, <code>location_id</code>, <code>day_of_week</code>, <code>is_working</code>), <code>doctor_availability_overrides</code> (&quot;day exceptions&quot;: <code>date</code>, <code>is_available</code>) and <code>employee_leaves</code> (&quot;takes&quot;: <code>leave_type</code>, <code>status</code>, <code>total_days</code>).</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each employee can have several assignments; each assignment belongs to exactly one employee, organization and location. Deleting any of these deletes the assignment (CASCADE). One person has at most one assignment per location (unique <code>employee_id</code>, <code>location_id</code>); the employee code is unique within an organization.</li>
+<li>An assignment may have one role; deleting the role leaves the assignment without one (SET NULL), which means no permissions. An assignment may have one login; deleting the user clears the link (SET NULL).</li>
+<li>Schedules, overrides and leave belong to one employee and name one organization and location; deleting the employee or the location deletes them (CASCADE). Schedules are unique per employee, location and weekday; overrides per employee, location and date.</li>
+<li>Compensation plans belong to the assignment (CASCADE); payroll records belong to the employee and location (Chapter 38).</li>
+<li><code>employees.is_active</code> exists but nothing writes it; the active flag that matters is on the assignment. <code>gross_salary</code> on the assignment is deprecated; salary lives in <code>compensation_plans</code>.</li>
+</ul>
+<p>The Data model chapter (Chapter 16) lists every column.</p>
+<h2 id="ch37-employees-37-5-status-lifecycles">37.5 Status lifecycles</h2>
+<h3 id="ch37-employees-37-5-1-leave-request">37.5.1 Leave request</h3>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch37-leave-status.png" alt="Figure 37.8 — Leave request status"></p>
+<p><em>Figure 37.8 — The states of a leave request.</em></p>
+<p>The diagram has four states. A request enters at <strong>pending</strong> through <code>POST /leaves</code>. A loop on pending shows <code>PATCH /leaves/:id</code> (edit). From pending, <code>PATCH …/approve</code> leads to <strong>approved</strong>, <code>PATCH …/reject</code> to <strong>rejected</strong> and <code>PATCH …/cancel</code> to <strong>cancelled</strong>. From approved, <code>PATCH …/cancel</code> leads to cancelled. Approved, rejected and cancelled all lead to the end marker.</p>
+<ul>
+<li><strong>pending</strong> — filed, can be edited, approved, rejected or cancelled; blocks overlapping requests.</li>
+<li><strong>approved</strong> — counts in the summary and blocks overlapping requests; can still be cancelled.</li>
+<li><strong>rejected</strong> — final; does not block.</li>
+<li><strong>cancelled</strong> — final; does not block.</li>
+</ul>
+<p>Any other change is refused with 400.</p>
+<h3 id="ch37-employees-37-5-2-employee-assignment-status">37.5.2 Employee (assignment) status</h3>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch37-assignment-status.png" alt="Figure 37.9 — Employee status"></p>
+<p><em>Figure 37.9 — Active, inactive and deleted.</em></p>
+<p>The diagram shows an employee entering <strong>Active</strong> through <code>POST /employees</code>. <code>PATCH /employees/:id/status</code> with <code>isActive false</code> moves Active to <strong>Inactive</strong>; with <code>isActive true</code> it moves back. From either state, <code>DELETE /employees/:id</code> leads to <strong>Deleted</strong> and the end marker.</p>
+<p>The status is the assignment&#39;s <code>is_active</code> flag at one location; the same person can be active at one location and inactive at another. Deleted is not a stored state: the rows are gone.</p>
+<h2 id="ch37-employees-37-6-connections-to-other-modules">37.6 Connections to other modules</h2>
+<ul>
+<li><strong>Appointments and queue (Chapters 29 and 30).</strong> Doctors are active assignments at the location; weekly schedules drive booking. Overrides and leave are not read.</li>
+<li><strong>Access control (Chapters 11 and 57).</strong> The role and portal flag on the assignment decide what a staff login may do; changes bump the access version.</li>
+<li><strong>Authentication (Chapter 56).</strong> Sign-in lists organizations and locations from active assignments with portal access.</li>
+<li><strong>Commissions (Chapter 35).</strong> Compensation plans per assignment; salary updates create plan versions.</li>
+<li><strong>Payroll (Chapter 38).</strong> Generated for active assignments; reads the plan.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> The User Admin path counts logins against the plan&#39;s limit; writes are refused in read-only mode.</li>
+</ul>
+<h2 id="ch37-employees-37-7-limitations-and-known-gaps">37.7 Limitations and known gaps</h2>
+<ul>
+<li>No way to add an existing person at a second location or organization; the phone check blocks it.</li>
+<li>Employee creation is not one transaction: if the login email is already taken, the person record is already saved, and a retry fails on the phone number.</li>
+<li>A duplicate CNIC (and a duplicate phone on edit) returns a generic 500 instead of a clear message.</li>
+<li>The employee code is &quot;number of assignments + 1&quot;; after deletions it can repeat an existing code and the save fails.</li>
+<li>Availability overrides and approved leave do not affect booking.</li>
+<li>Leave can only be filed by managers (<code>leave.approve</code>); there is no self-service, no entitlement and no attendance.</li>
+<li>Payslips and CSV show the designation as empty, because it is read from the person record instead of the assignment (Chapter 38).</li>
+<li>Overlapping weekly hours of one person at two locations are not checked.</li>
+<li>Employee changes are not written to the general audit log.</li>
+</ul>
+<h2 id="ch37-employees-37-8-owner-39-s-faq">37.8 Owner&#39;s FAQ</h2>
+<p><strong>Can the same doctor work at two of our branches?</strong> The data model supports it (one assignment per location), but there is no screen or endpoint to add the second assignment today.</p>
+<p><strong>Why does &quot;Add Employee&quot; say the phone number already exists when the person is new to my clinic?</strong> Phone numbers are unique across the whole Platform. The person may already be registered by another clinic.</p>
+<p><strong>What is the difference between deactivating and deleting?</strong> Deactivating keeps everything and blocks login, booking and payroll at this location. Deleting removes the person and their schedules, leave, overrides, plans and payroll records, and is refused if they work elsewhere or are still referenced.</p>
+<p><strong>Can a receptionist see staff salaries?</strong> Not with the default role; only the Admin holds <code>employees.view</code>.</p>
+<p><strong>If I mark a doctor on leave, will reception be stopped from booking them?</strong> No. Leave and availability overrides are recorded but not checked by booking.</p>
+<p><strong>How does a staff member get a login?</strong> Turn on Portal Access when adding or editing them, or use User Admin → &quot;Staff (existing employee)&quot;. Their permissions come from their role.</p>
+<p><strong>Where is a salary stored?</strong> In <code>compensation_plans</code>, as a dated version per assignment, in paisa.</p>
+</section></body></html>

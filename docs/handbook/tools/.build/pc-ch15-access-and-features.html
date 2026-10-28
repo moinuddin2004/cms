@@ -1,0 +1,113 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch15-access-and-features"><h1 id="ch15-access-and-features-chapter-15-access-and-features">Chapter 15 — Access and features</h1>
+<p>This chapter describes the tables behind two questions the Platform asks on every request: &quot;is this feature switched on for this clinic and this location?&quot; and &quot;what may this person do here?&quot;. It is for the product owner who configures roles and features for clinics, or who needs to explain why a screen is hidden. The behaviour built on these tables — the guards, the permission catalog, the role editor — is explained in Chapters 10 and 11; this chapter covers the stored data.</p>
+<h2 id="ch15-access-and-features-15-1-context">15.1 Context</h2>
+<p>Five tables belong to this domain. <code>feature_catalog</code>, <code>org_feature_flags</code> and <code>location_feature_overrides</code> are owned by the <code>feature-flags</code> module. <code>nav_layouts</code> is owned by the <code>access</code> module. <code>employment_roles</code> is defined in the <code>employees</code> module folder, although the permission model that reads it lives in the <code>access</code> module; three modules register it (<code>employees</code>, <code>access</code> and <code>feature-flags</code>). Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch15-access-and-features-15-2-the-tables">15.2 The tables</h2>
+<h3 id="ch15-access-and-features-15-2-1-feature-catalog-feature-catalog-entry">15.2.1 <code>feature_catalog</code> — feature catalog entry</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The master list of every feature the Platform offers, one row per feature. It is global: the same list for all clinics. Key columns:</p>
+<ul>
+<li><code>key</code> — the feature key, unique, for example <code>billing.invoices</code>.</li>
+<li><code>name</code> and <code>description</code> — the human label.</li>
+<li><code>module</code> — a grouping such as <code>billing</code>, <code>appointments</code> or <code>patients</code>.</li>
+<li><code>specialty_tags</code> — the clinic types the feature is relevant to (for example <code>[&quot;general&quot;]</code>, <code>[&quot;dental&quot;]</code>).</li>
+<li><code>enabled_by_default</code> — whether a clinic gets it switched on when its flags are created.</li>
+<li><code>sort_order</code> and <code>is_active</code> — display order, and whether the feature is still offered at all.</li>
+</ul>
+<p>The catalog is seeded from code (<code>backend/src/feature-flags/feature-catalog.seed.ts</code>); seeding inserts missing keys and does not overwrite existing rows.</p>
+<h3 id="ch15-access-and-features-15-2-2-org-feature-flags-organization-feature-state">15.2.2 <code>org_feature_flags</code> — organization feature state</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per organization per feature, unique on (<code>organization_id</code>, <code>feature_key</code>). It holds two independent switches:</p>
+<ul>
+<li><strong>Entitled</strong> — <code>is_entitled</code>, set by the super admin: the organization may use the feature. It defaults to true so that organizations created before entitlements existed kept every feature they had. <code>entitled_until</code> turns an entitlement into a trial: from that moment the feature is no longer entitled. <code>entitled_by</code> and <code>entitled_at</code> record who and when.</li>
+<li><strong>Enabled</strong> — <code>is_enabled</code>, set by the owner within what is entitled. <code>enabled_by</code> records who last switched it.</li>
+</ul>
+<p>A feature is <strong>active</strong> for an organization only when its catalog entry is active, it is entitled (and the trial has not expired) and it is enabled. <code>feature_key</code> is a copy of <code>feature_catalog.key</code>, not a foreign key. An index on (<code>organization_id</code>, <code>is_enabled</code>) supports &quot;all enabled features of this clinic&quot;.</p>
+<h3 id="ch15-access-and-features-15-2-3-location-feature-overrides-location-override">15.2.3 <code>location_feature_overrides</code> — location override</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The owner&#39;s way to switch an organization-active feature off at one location. One row per location per feature, unique on (<code>location_id</code>, <code>feature_key</code>). <code>is_disabled = true</code> turns the feature off at that location. There is no way to turn a feature on at a location if it is off for the organization; the table can only narrow. <code>organization_id</code> is copied from the location for tenant-scoped reads and has no foreign key; <code>feature_key</code> is a copy of the catalog key; <code>updated_by</code> is the user who last changed it.</p>
+<h3 id="ch15-access-and-features-15-2-4-employment-roles-role">15.2.4 <code>employment_roles</code> — role</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per role in an organization: the five system roles seeded from templates (Admin, Doctor, Receptionist, Assistant, Accountant) and any custom roles the clinic creates. Key columns:</p>
+<ul>
+<li><code>name</code> and <code>slug</code> — the slug is unique within the organization (<code>organization_id</code> + <code>slug</code>).</li>
+<li><code>permissions</code> — a JSON object of granted permissions only, <code>{ permission: &#39;own&#39; | &#39;location&#39; | &#39;org&#39; | true }</code>. A missing key means no access. The value is the scope at which the permission applies.</li>
+<li><code>template_key</code> — the system template the role was seeded from, such as <code>doctor</code> or <code>receptionist</code>; empty for custom roles.</li>
+<li><code>is_system_role</code> — true for seeded roles (the column default is true).</li>
+<li><code>home_route</code> — where members of the role land after login, for example <code>/queue/doctor</code>.</li>
+<li><code>description</code> and <code>is_active</code>.</li>
+</ul>
+<p>An index on (<code>organization_id</code>, <code>is_active</code>) lists a clinic&#39;s live roles. The role a person has is not stored on the person: it is the <code>employment_role_id</code> of each of their assignments (Chapter 16), so one person can hold different roles at different locations.</p>
+<h3 id="ch15-access-and-features-15-2-5-nav-layouts-sidebar-layout">15.2.5 <code>nav_layouts</code> — sidebar layout</h3>
+<p><strong>Status:</strong> [Implemented] for the clinic default layout; [Not implemented] for per-role layouts</p>
+<p>A clinic&#39;s arrangement of the sidebar: which navigation keys go into which section, renamed labels and hidden keys, stored as JSON in <code>layout</code>. It only arranges keys that the web app&#39;s navigation registry defines; it never grants access. <code>version</code> increases on every save and <code>updated_by</code> records the user.</p>
+<p><code>role_id</code> null means the clinic default layout, which is the only kind the current version writes. A row with a <code>role_id</code> would be a layout for one role. Two unique indexes keep at most one default per organization (a partial unique index on <code>organization_id</code> where <code>role_id</code> is null) and at most one layout per role (<code>organization_id</code> + <code>role_id</code>).</p>
+<h2 id="ch15-access-and-features-15-3-entity-relationship-diagram">15.3 Entity-relationship diagram</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch15-access-features-erd.png" alt="Figure 15.1 — Access and feature tables"></p>
+<p><em>Figure 15.1 — Access and feature tables.</em></p>
+<p>The diagram puts <code>organizations</code> (with <code>id</code> and <code>access_version</code>) at the top. Solid lines run from it to <code>locations</code> (&quot;has&quot;), <code>org_feature_flags</code> (&quot;holds&quot;), <code>nav_layouts</code> (&quot;arranges&quot;) and <code>employment_roles</code> (&quot;defines&quot;). <code>employment_roles</code> (<code>id</code>, <code>organization_id</code>, <code>slug</code>, <code>permissions</code>, <code>template_key</code>, <code>is_system_role</code>) has two solid lines going down: to <code>nav_layouts</code> labelled &quot;role layout&quot; and to a context box <code>employee_org_location_assignments</code> (only <code>id</code> and <code>employment_role_id</code>) labelled &quot;assigned in&quot;; both are optional on the role side. <code>locations</code> has a solid line to <code>location_feature_overrides</code> labelled &quot;narrows&quot;. In the middle, <code>feature_catalog</code> (<code>id</code>, unique <code>key</code>, <code>module</code>, <code>enabled_by_default</code>) has two dashed lines labelled &quot;feature_key, no FK&quot;, one to <code>org_feature_flags</code> and one to <code>location_feature_overrides</code>. A dashed line labelled &quot;organization_id, no FK&quot; also runs from <code>organizations</code> to <code>location_feature_overrides</code>. Dashed lines are logical links without a foreign key.</p>
+<h2 id="ch15-access-and-features-15-4-relationships-explained">15.4 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong><code>employment_roles.organization_id</code> → <code>organizations</code>.</strong> Each role belongs to exactly one organization; an organization has zero or more roles. Deleting the organization deletes its roles (CASCADE).</li>
+<li><strong><code>nav_layouts.organization_id</code> → <code>organizations</code>.</strong> Each layout belongs to exactly one organization. Deleting the organization deletes its layouts (CASCADE).</li>
+<li><strong><code>nav_layouts.role_id</code> → <code>employment_roles</code>.</strong> Optional: a layout belongs to zero or one role (zero means the clinic default). Deleting a role deletes its own layout (CASCADE); the default layout is unaffected.</li>
+<li><strong><code>employee_org_location_assignments.employment_role_id</code> → <code>employment_roles</code>.</strong> Optional: an assignment has zero or one role; a role is held by zero or more assignments. Deleting a role keeps the assignments and sets their role to null (SET NULL), leaving those people with no role permissions at that location.</li>
+<li><strong><code>org_feature_flags.organization_id</code> → <code>organizations</code>.</strong> Each flag belongs to exactly one organization. Deleting the organization deletes its flags (CASCADE).</li>
+<li><strong><code>location_feature_overrides.location_id</code> → <code>locations</code>.</strong> Each override belongs to exactly one location. Deleting the location deletes its overrides (CASCADE).</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><strong><code>org_feature_flags.feature_key</code> → <code>feature_catalog.key</code></strong> and <strong><code>location_feature_overrides.feature_key</code> → <code>feature_catalog.key</code>.</strong> The flag and the override refer to a catalog entry by its key text. The database does not stop a flag for a key that is not in the catalog, and removing a catalog row would not remove its flags.</li>
+<li><strong><code>location_feature_overrides.organization_id</code> → <code>organizations</code>.</strong> A copy of the location&#39;s organization, for filtering.</li>
+<li><strong>Actor columns</strong> — <code>org_feature_flags.enabled_by</code> and <code>entitled_by</code>, <code>location_feature_overrides.updated_by</code>, <code>nav_layouts.updated_by</code> — hold a user id without a foreign key.</li>
+</ul>
+<h2 id="ch15-access-and-features-15-5-tenant-scope">15.5 Tenant scope</h2>
+<ul>
+<li><code>feature_catalog</code> is global (one list for the whole Platform).</li>
+<li><code>org_feature_flags</code>, <code>employment_roles</code> and <code>nav_layouts</code> are organization-scoped.</li>
+<li><code>location_feature_overrides</code> is organization + location scoped.</li>
+</ul>
+<p>Every change to roles, assignments, feature flags or ownership increases <code>organizations.access_version</code> (Chapter 14). The resolver that turns these tables into a user&#39;s permissions caches its result per user, organization, location and access version, so a change takes effect as soon as the version moves.</p>
+<h2 id="ch15-access-and-features-15-6-ownership-and-ambiguities">15.6 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Where <code>employment_roles</code> lives.</strong> The entity file is in <code>employees/</code>, the permission logic that reads <code>permissions</code> is in <code>access/</code>, and the project&#39;s own overview once described &quot;employee role definitions&quot; as part of <code>organizations/</code>. Treat <code>access</code> as the functional owner and <code>employees</code> as the place the file sits.</li>
+<li><strong>Feature keys are text, not foreign keys.</strong> A typo in a key would not be caught by the database.</li>
+<li><strong>Older feature switches.</strong> <code>organization_settings</code> has six <code>feature_*</code> columns that the guards do not read (Chapter 14).</li>
+<li><strong>Per-role sidebar layouts</strong> are supported by the schema (<code>role_id</code>, its foreign key and its unique index) but the current version only writes the clinic default.</li>
+</ul>
+</section></body></html>

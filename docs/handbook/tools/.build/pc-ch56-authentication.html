@@ -1,0 +1,333 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch56-authentication"><h1 id="ch56-authentication-chapter-56-authentication-and-sessions">Chapter 56 — Authentication and sessions</h1>
+<p>This chapter explains how a person proves who they are to the Platform and stays signed in: registering a clinic, signing in, choosing an organization and location, the short-lived access token and the long-lived session cookie, managing sessions, password flows, rate limiting and the staff-login administration screen. It is written for the product owner, who needs to know exactly how long a sign-in lasts, what a user can revoke and which protections exist today. What a signed-in person may then do is a different question, answered by Chapter 11 (roles and permissions) and Chapter 57 (access control in depth).</p>
+<h2 id="ch56-authentication-56-1-the-model-in-one-paragraph">56.1 The model in one paragraph</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A <strong>user</strong> is a login: an email address, a password hash and an account status (<code>active</code>, <code>suspended</code> or <code>deleted</code>). A user is not the same as an <strong>employee</strong>, who is the person record that the Employees module keeps (Chapter 37). A <strong>staff login</strong> links one user to one employee. Signing in creates a <strong>session</strong> row in the database and gives the browser two things. The first is an <strong>access token</strong>, valid for 15 minutes, which the web app keeps in memory only and sends as a Bearer header. The second is a <strong>session cookie</strong> named <code>refresh_token</code>, which is <code>httpOnly</code> (scripts cannot read it) and carries the session id and a long random secret. When the access token expires, the web app calls <code>POST /auth/refresh</code>; the cookie proves the session is still valid and a new access token is issued. Nothing about the login is stored in the browser&#39;s local storage.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.service.ts</code> · <code>AuthService</code> · <code>backend/src/session/session.service.ts</code> · <code>SessionService</code> · <code>backend/src/auth/jwt.service.ts</code> · <code>web-app/src/store/useAuthStore.ts</code></p>
+<h2 id="ch56-authentication-56-2-screens">56.2 Screens</h2>
+<p>The sign-in related screens are public pages (<code>/login</code>, <code>/register</code>, <code>/forgot-password</code>, <code>/reset-password</code>, <code>/verify-email</code>), the location selector (<code>/select-location</code>), the signed-in pages for sessions and security (<code>/sessions</code> and the Security and Sessions sections of Settings), and the staff-login administration page (<code>/users</code>).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-login-page.svg" alt="Figure 56.1 — Login page"></p>
+<p><em>Figure 56.1 — Login page (screenshot pending).</em></p>
+<p>The login page shows the clinic&#39;s own name and logo when the browser knows which clinic it last used (Chapter 58 explains the public theme). It has an email field, a password field with a show and hide button, a &quot;Keep me signed in for 30 days&quot; check box, a &quot;Forgot password?&quot; link, a sign-in button and a link to the sign-up page. The sign-up page asks for clinic name, the owner&#39;s name, email, an optional phone number and a password, with a five-segment strength meter (Weak, Fair, Good, Strong, Very strong) that is advice only and does not block the form.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-location-selector.svg" alt="Figure 56.2 — Location selector"></p>
+<p><em>Figure 56.2 — Location selector (screenshot pending).</em></p>
+<p>The selector is a two-step screen. Step one lists the organizations the user can enter; choosing one with a single location selects that location and continues at once. Step two lists the organization&#39;s locations as cards; the user picks one and continues. If an organization has no location, the screen says that a location must be created to continue.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-sessions.svg" alt="Figure 56.3 — Active sessions"></p>
+<p><em>Figure 56.3 — Active sessions (screenshot pending).</em></p>
+<p>The sessions list (page title &quot;Active Sessions&quot;, also available as the Sessions section of Settings) shows one row per active session with browser, operating system, device, IP address, the time it started and the time it was last active. The current session is marked. Every other row has a <strong>Revoke</strong> button, the current row has <strong>Sign out</strong>, and a <strong>Sign out all others</strong> button sits at the top.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch56-user-admin.svg" alt="Figure 56.4 — User management"></p>
+<p><em>Figure 56.4 — User management (screenshot pending).</em></p>
+<p>The user administration page (<code>/users</code>, title &quot;User Management&quot;, subtitle &quot;Manage system access across roles and organizations&quot;) lists users by type and has a <strong>Create User</strong> button. The create form asks for name, email, password, role type (Super Admin, Owner or Staff), and, for a staff user, which employee the login is for. Each row can be edited (including its status) or deleted.</p>
+<h2 id="ch56-authentication-56-3-features">56.3 Features</h2>
+<h3 id="ch56-authentication-56-3-1-register-a-clinic-self-signup">56.3.1 Register a clinic (self-signup)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets a new clinic owner create the login and the clinic in one step. The Platform creates the user, a new organization with a main location and a 14-day trial (Chapter 45 covers subscriptions and onboarding), sends a verification email and signs the owner straight in.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the sign-up page and enter clinic name, name, email, optional phone and a password.</li>
+<li>Submit. The owner lands in the application, kept signed in for 30 days.</li>
+<li>Later, click the link in the verification email.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/register</code> is public and rate limited. <code>AuthService.register</code> creates the user, calls the clinic set-up service to create the organization, and sends the verification email. If clinic creation fails, the new user row is deleted so no empty login remains. It then runs the normal login flow with &quot;keep me signed in&quot; on.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Email must be a valid address; name and clinic name are required (at most 255 characters); phone at most 20 characters; password at least 6 characters.</li>
+<li>An email that already exists is refused.</li>
+<li>The verification email failing to send is logged but does not stop registration.</li>
+</ul>
+<p><strong>Who can do it.</strong> Anyone; the route is public.</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>organizations</code>, <code>locations</code>, owner link, subscription rows, <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Error cases.</strong> 429 when more than 5 sign-ups come from one address in an hour; 400 for invalid fields or a duplicate email.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.controller.ts</code> · <code>register</code> · <code>backend/src/subscriptions/clinic-setup.service.ts</code> · <code>web-app/src/features/auth/components/RegisterForm.tsx</code></p>
+<h3 id="ch56-authentication-56-3-2-verify-an-email-address">56.3.2 Verify an email address</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Confirms that the owner controls the email address. Verification is informational: an unverified user can still sign in and work. The web app shows a &quot;verify your email&quot; banner until verification is done.</p>
+<p><strong>How the user does it.</strong> Click the link in the email, which opens <code>/verify-email?token=…</code>. The page shows &quot;Verifying your email…&quot; and then a success or failure message. A signed-in user whose address is still unverified can ask for a fresh link.</p>
+<p><strong>Behind the scenes — technically.</strong> The email carries a random 32-byte token; the database stores only its SHA-256 hash, valid for 48 hours. <code>POST /auth/verify-email</code> (public, 10 attempts per 15 minutes) hashes the supplied token, finds an unexpired match and sets <code>email_verified_at</code>. <code>POST /auth/resend-verification</code> (signed in, 3 per hour) issues a new token; if the user has no pending token it answers &quot;Email already verified&quot;. Sending depends on SMTP settings in the server environment (<code>SMTP_USER</code>, <code>SMTP_PASS</code>).</p>
+<p><strong>Rules and validations.</strong> An invalid or expired token gives 400 &quot;This verification link is invalid or has expired&quot;. Users created by an administrator through user administration are not sent a verification email.</p>
+<p><strong>Who can do it.</strong> Anyone holding the token; resend needs a signed-in user.</p>
+<p><strong>Data read and written.</strong> <code>users</code> (<code>email_verification_token</code>, <code>email_verification_expires</code>, <code>email_verified_at</code>).</p>
+<p><strong>Technical references:</strong> <code>AuthService.verifyEmail</code> · <code>AuthService.resendVerification</code> · <code>backend/src/common/services/mail.service.ts</code> · <code>web-app/src/features/account/pages/VerifyEmailPage.tsx</code></p>
+<h3 id="ch56-authentication-56-3-3-sign-in">56.3.3 Sign in</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Checks the email and password, creates a session and returns the information the web app needs to continue: the user, an access token, the organizations and locations the user may enter, and flags saying whether an organization or location still has to be chosen.</p>
+<p><strong>How the user does it.</strong> Enter email and password, optionally tick &quot;Keep me signed in for 30 days&quot;, and click sign in.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The server looks up the user, compares the password against the stored hash, refuses suspended or deleted accounts, records a new session, and works out where the person is allowed to go. The session lasts one day, or 30 days if the box was ticked. Only five sessions can be active at once; a sixth sign-in quietly revokes the oldest.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/login</code> (public; 5 attempts per 15 minutes per address and route). <code>UserService.validateUser</code> compares with bcrypt (12 rounds). <code>SessionService.createSession</code> stores a bcrypt hash of a 64-byte random refresh secret, the user agent, parsed browser, operating system and device, and the client IP. <code>AuthorizationService.resolveUserAccess</code> returns the accessible organizations. The response also lists any lab memberships, so a user who works only for a lab is sent to the lab portal (Chapter 41). The cookie is <code>httpOnly</code>, <code>sameSite=lax</code>, <code>secure</code> in production, with a maximum age equal to the session&#39;s remaining lifetime.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Email valid; password at least 6 characters.</li>
+<li>A wrong email or password gives a plain 401 with no hint about which was wrong.</li>
+<li>A suspended account gets 403 &quot;Your account has been suspended. Please contact support.&quot;; a deleted account gets 403 &quot;This account has been deleted.&quot;</li>
+<li>A session&#39;s expiry is fixed at sign-in and is never extended by refreshing.</li>
+</ul>
+<p><strong>Who can do it.</strong> Anyone with an account.</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>user_sessions</code>, <code>employee_org_location_assignments</code>, owner links, <code>organizations</code>, <code>locations</code>, <code>security_logs</code> (a success row).</p>
+<p><strong>Effects on other modules.</strong> The login result seeds the web app&#39;s auth store, which every later request reads for its tenant headers (Chapter 8).</p>
+<p><strong>Error cases.</strong> 401 wrong credentials; 403 suspended or deleted; 429 too many attempts (message &quot;Too many requests. Please try again later.&quot;, with a <code>retryAfter</code> value in seconds).</p>
+<p><strong>Technical references:</strong> <code>AuthService.login</code> · <code>SessionService.createSession</code> · <code>AuthorizationService.resolveUserAccess</code> · <code>web-app/src/features/auth/components/LoginForm.tsx</code></p>
+<h3 id="ch56-authentication-56-3-4-choose-and-switch-organization-and-location">56.3.4 Choose and switch organization and location</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Decides which clinic and branch a person is working in. Every later request carries that choice in two headers.</p>
+<p><strong>How the user does it.</strong> After sign-in the selector appears when a choice is needed. Later, the location switcher in the page header changes the active location.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A single organization with a single location is chosen automatically. A super admin always picks an organization first. Otherwise the person picks, and the Platform remembers the last choice for next time.</p>
+<p><strong>Behind the scenes — technically.</strong> The login response sets <code>requiresOrgSelection</code> and <code>requiresLocationSelection</code>. <code>POST /auth/select-location</code> and <code>POST /auth/switch-location</code> (both signed in, context free) validate access with <code>AuthorizationService.validateAccess</code> and save <code>last_accessed_organization_id</code> and <code>last_accessed_location_id</code> on the user. Switching also returns the legacy permission flags for the new location (deprecated; the web app reads <code>GET /me/access</code>). Chapter 8 describes the choice flow and what each type of user may enter in full.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch56-login-sequence.png" alt="Figure 56.5 — Sign-in, choice of location and token"></p>
+<p><em>Figure 56.5 — Sequence of a sign-in, the optional location choice and the first access fetch.</em></p>
+<p>The diagram has three participants besides the User: the Web app, the API and PostgreSQL. (1) The user enters email, password and the optional keep-me-signed-in choice. (2) The web app calls <code>POST /auth/login</code>. (3) The API finds the user and compares the password hash. (4) It creates the session row and enforces the limit of five active sessions. (5) It resolves the organizations and locations. (6) It answers with the access token, the session cookie and the selection flags. An &quot;alt&quot; box then shows two paths. If the user has one organization with one location, the web app stores them as active. Otherwise the web app shows the selector, the user chooses, the web app calls <code>POST /auth/select-location</code>, the API validates access and saves the last accessed choice, and returns the two active ids. After the box, the web app calls <code>GET /me/access</code> with the tenant headers and receives permissions, features and the home page, and opens the home page. A note says that a later 401 answer triggers <code>POST /auth/refresh</code> with the cookie.</p>
+<p><strong>Rules and validations.</strong> Both organization id and location id are required UUIDs. A request for a location the user may not enter gets 403 &quot;You do not have access to this location&quot;.</p>
+<p><strong>Who can do it.</strong> Any signed-in user.</p>
+<p><strong>Data read and written.</strong> <code>users.last_accessed_*</code>.</p>
+<p><strong>Error cases.</strong> 403 no access; the web app shows the toast &quot;Failed to select location&quot;.</p>
+<p><strong>Technical references:</strong> <code>AuthService.selectLocation</code> · <code>AuthService.switchLocation</code> · <code>web-app/src/features/auth/components/LocationSelector.tsx</code> · <code>web-app/src/components/layout/LocationSwitcher.tsx</code> · <code>web-app/src/routes/__root.tsx</code></p>
+<h3 id="ch56-authentication-56-3-5-stay-signed-in-access-token-refresh-cookie-and-silent-refresh">56.3.5 Stay signed in: access token, refresh cookie and silent refresh</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Keeps a person signed in across page reloads and across the 15-minute life of the access token, without storing credentials in the browser.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The access token is a short pass kept only in the page&#39;s memory. When the page is reloaded the memory is empty, so the web app quietly asks the server for a new pass using the cookie. When a pass expires in the middle of work, the same quiet request happens and the failed request is repeated.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li>The access token is a JWT signed with the server&#39;s access secret, expiring in 15 minutes, holding the user id, email, global role and session id. There is no JWT refresh token; the refresh secret is a random value whose bcrypt hash lives on the session row.</li>
+<li>On every app start the root route calls <code>POST /auth/refresh</code> once (&quot;silent refresh&quot;). On success the auth store is filled; on failure the user is treated as signed out.</li>
+<li><code>POST /auth/refresh</code> (public) reads the cookie, validates the session (not revoked, not expired, secret matches), re-checks the account status, <strong>rotates</strong> the refresh secret (the old one stops working) and returns a new access token and the full login payload. The cookie&#39;s expiry is the original session expiry, not a fresh window.</li>
+<li>When any API call returns 401, the axios interceptor refreshes and retries once (Chapter 61 shows the sequence).</li>
+<li>The auth store is memory only; it never uses local storage.</li>
+</ul>
+<p><strong>Rules and validations.</strong> A missing, revoked or expired session gives 403 &quot;Invalid or expired session&quot; and the cookie is cleared. A session whose user turned suspended or deleted is revoked on the spot.</p>
+<p><strong>Who can do it.</strong> Any browser holding a valid cookie.</p>
+<p><strong>Data read and written.</strong> <code>user_sessions</code> (<code>refresh_token_hash</code>, <code>last_active_at</code>).</p>
+<p><strong>Technical references:</strong> <code>AuthService.refreshTokens</code> · <code>SessionService.rotateRefreshToken</code> · <code>JwtTokenService</code> · <code>backend/src/session/session-lifetime.ts</code> · <code>web-app/src/lib/api.ts</code></p>
+<h3 id="ch56-authentication-56-3-6-sign-out-list-and-revoke-sessions">56.3.6 Sign out, list and revoke sessions</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch56-session-status.png" alt="Figure 56.6 — Life of a session"></p>
+<p><em>Figure 56.6 — Status lifecycle of a session.</em></p>
+<p>The diagram shows a session starting at a dot and entering <strong>active</strong> when the user logs in or registers. A loop on active is labelled refresh: a refresh rotates the secret but keeps the same session and the same expiry. Active moves to <strong>revoked</strong> in three ways: the user logs out or revokes a session (single, all others or all), the user changes or resets the password, or the user is deleted. Active moves to <strong>expired</strong> when <code>expires_at</code> passes, which is one day or 30 days after sign-in. Revoked and expired are both final states. (A sixth sign-in also revokes the oldest session; the diagram leaves that case out to stay readable.)</p>
+<p><strong>What it does.</strong> Lets a user end the current session, see every active session with device details, and end any of them.</p>
+<p><strong>How the user does it.</strong> Open Settings, Sessions (or <code>/sessions</code>). Click <strong>Revoke</strong> on a row, <strong>Sign out</strong> on the current row, or <strong>Sign out all others</strong>. The toasts are &quot;Session revoked&quot;, &quot;Signed out successfully&quot; and &quot;All other sessions revoked&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Notes</th>
+</tr>
+</thead><tbody><tr>
+<td>Sign out this session</td>
+<td><code>POST /auth/logout</code></td>
+<td>Public; reads the cookie, revokes that session, clears the cookie, writes a security log row</td>
+</tr>
+<tr>
+<td>List active sessions</td>
+<td><code>GET /auth/sessions</code></td>
+<td>Newest activity first; marks the current one</td>
+</tr>
+<tr>
+<td>Revoke one session</td>
+<td><code>DELETE /auth/sessions/:id</code></td>
+<td>Only the caller&#39;s own sessions; otherwise 404</td>
+</tr>
+<tr>
+<td>Revoke all others</td>
+<td><code>POST /auth/sessions/revoke-all</code></td>
+<td>Keeps the current session</td>
+</tr>
+<tr>
+<td>Sign out everywhere</td>
+<td><code>POST /auth/logout-all</code></td>
+<td>Revokes all sessions including the current one, clears the cookie</td>
+</tr>
+</tbody></table></div><p>The table lists the five session endpoints. Revoking is a flag (<code>is_revoked</code>) on the row; rows are kept. There is no clean-up job for old session rows.</p>
+<p><strong>Rules and validations.</strong> A revoked session cannot refresh. An access token that was already issued stays valid until it expires, at most 15 minutes, because requests are checked by the token only.</p>
+<p><strong>Who can do it.</strong> Any signed-in user, on their own sessions.</p>
+<p><strong>Data read and written.</strong> <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Error cases.</strong> 404 &quot;Session not found&quot; for an id that is not the caller&#39;s.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.controller.ts</code> · <code>SessionService</code> · <code>web-app/src/features/auth/components/SessionManagement.tsx</code> · <code>web-app/src/routes/sessions.tsx</code></p>
+<h3 id="ch56-authentication-56-3-7-passwords-change-forgot-and-reset">56.3.7 Passwords: change, forgot and reset</h3>
+<p><strong>Status:</strong> [Implemented] for change, forgot and reset. <strong>Add password</strong> is [Partial]: the endpoint exists but no screen calls it, because it is meant for accounts created through the disabled OAuth sign-in.</p>
+<p><strong>What it does.</strong> Lets a user change a known password, or recover from a forgotten one through an emailed link.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li><em>Change:</em> Settings, Security, enter the current and new password. All other sessions are revoked, as the page says.</li>
+<li><em>Forgot:</em> on the login page click &quot;Forgot password?&quot;, enter the email and click &quot;Send reset link&quot;. The page always says to check the inbox.</li>
+<li><em>Reset:</em> open the link in the email, enter a new password.</li>
+</ul>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /auth/change-password</code> (signed in) checks the current password with bcrypt, hashes the new one (12 rounds), and by default revokes every other session, keeping the current one.</li>
+<li><code>POST /auth/forgot-password</code> (public, 3 per hour) always answers &quot;If the email exists, a reset link will be sent&quot;, whether or not the address exists. For a real user it stores the SHA-256 hash of a random token, valid for 15 minutes, and emails the link.</li>
+<li><code>PATCH /auth/reset-password</code> (public) hashes the supplied token, finds an unexpired match, sets the new password, clears the token and revokes <strong>all</strong> sessions of that user.</li>
+<li><code>POST /auth/add-password</code> (signed in) sets a password only when the account has none; otherwise 400 &quot;Account already has a password&quot;.</li>
+<li>All three paths write security log rows (change, reset requested, reset succeeded).</li>
+</ul>
+<p><strong>Rules and validations.</strong> Password rules are in section 56.5. A wrong current password gives 401 &quot;Current password is incorrect&quot;. An invalid or expired reset token gives 400 &quot;Invalid or expired token&quot;. Reset has no rate limit of its own; the token is single use and short lived.</p>
+<p><strong>Who can do it.</strong> Anyone for forgot and reset; signed-in users for change.</p>
+<p><strong>Data read and written.</strong> <code>users</code> (<code>password</code>, <code>password_reset_token</code>, <code>password_reset_expires</code>), <code>user_sessions</code>, <code>security_logs</code>.</p>
+<p><strong>Technical references:</strong> <code>AuthService.changePassword</code> · <code>AuthService.forgotPassword</code> · <code>AuthService.resetPassword</code> · <code>AuthService.addPassword</code> · <code>web-app/src/features/auth/components/ForgotPasswordForm.tsx</code> · <code>ResetPasswordForm.tsx</code> · <code>web-app/src/features/settings/pages/SettingsPage.tsx</code></p>
+<h3 id="ch56-authentication-56-3-8-rate-limiting">56.3.8 Rate limiting</h3>
+<p><strong>Status:</strong> [Implemented], with a limit: the counters live in the memory of one API process.</p>
+<p><strong>What it does.</strong> Slows down guessing and abuse on the public and sensitive authentication routes.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>RateLimiterGuard</code> counts requests per client address and route in a fixed window and answers 429 with <code>retryAfter</code> when the count is exceeded. The address comes from the first value of the forwarding header when present, otherwise the connection address.</p>
+<div class="tw"><table><thead><tr>
+<th>Endpoint</th>
+<th>Allowed</th>
+<th>Window</th>
+</tr>
+</thead><tbody><tr>
+<td><code>POST /auth/login</code></td>
+<td>5</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><code>POST /auth/register</code></td>
+<td>5</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><code>POST /auth/verify-email</code></td>
+<td>10</td>
+<td>15 minutes</td>
+</tr>
+<tr>
+<td><code>POST /auth/resend-verification</code></td>
+<td>3</td>
+<td>1 hour</td>
+</tr>
+<tr>
+<td><code>POST /auth/forgot-password</code></td>
+<td>3</td>
+<td>1 hour</td>
+</tr>
+</tbody></table></div><p>The table lists the five throttled endpoints with their allowed attempts per window. Other routes, including refresh, reset-password and all clinical routes, have no limiter. A separate small throttle (120 requests per minute per address by default) protects the public lab magic-link routes (Chapter 41). Because the counters are in process memory, they reset when the process restarts and are not shared between API processes, so with several API processes the effective limit is higher. The code notes that a shared store such as Redis would fix this.</p>
+<p><strong>Who can do it.</strong> Not applicable; it applies to everyone.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/guards/rate-limiter.guard.ts</code> · <code>RateLimiterGuard</code> · <code>RateLimit</code> · <code>backend/src/lab-access/magic-links/magic-link-throttle.guard.ts</code></p>
+<h3 id="ch56-authentication-56-3-9-security-log">56.3.9 Security log</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Keeps a record of authentication events in the table <code>security_logs</code>: user, event type, IP address, user agent, session, success flag and a small metadata object.</p>
+<p><strong>What is written today.</strong> Successful sign-in, sign-out, sign-out everywhere, password change, password reset requested, password reset succeeded, and a failed sign-in only for suspended or deleted accounts. The event list in the code also names email verification, session, token, OAuth, account and suspicious-activity events, but nothing writes them yet. A wrong password does not produce a row.</p>
+<p><strong>What is missing.</strong> No endpoint or screen reads the security log, and no job deletes old rows, so it is a write-only record that can be queried in the database only.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/security-log.service.ts</code> · <code>SecurityLogService</code> · <code>backend/src/auth/enum/SecurityEventType.ts</code> · <code>backend/src/auth/entities/SecurityLog.ts</code></p>
+<h3 id="ch56-authentication-56-3-10-user-administration-and-staff-logins">56.3.10 User administration and staff logins</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets a super admin, an owner, or a user with the permission <code>admin.users.manage</code> create, edit, suspend and delete logins. The most common case is giving an existing employee a login.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>User Admin</strong> (<code>/users</code>) and click <strong>Create User</strong>.</li>
+<li>Choose the type. For Staff, pick the employee from the list of staff who have no login yet.</li>
+<li>Enter name, email and a password of at least 8 characters, and save.</li>
+</ol>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>Profile of the caller</td>
+<td><code>GET /user/me</code></td>
+</tr>
+<tr>
+<td>List users by type (<code>super_admin</code>, <code>owner</code>, <code>employee</code>), paged</td>
+<td><code>GET /user</code></td>
+</tr>
+<tr>
+<td>Staff without a login</td>
+<td><code>GET /user/staff-candidates</code></td>
+</tr>
+<tr>
+<td>Create a user</td>
+<td><code>POST /user</code></td>
+</tr>
+<tr>
+<td>Edit a user (including status and password)</td>
+<td><code>PATCH /user/:id</code></td>
+</tr>
+<tr>
+<td>Delete a user</td>
+<td><code>DELETE /user/:id</code></td>
+</tr>
+</tbody></table></div><p>The table lists the user endpoints. The controller is context free and checks access itself: a super admin may act with or without an organization; anyone else must send an organization header and hold <code>admin.users.manage</code> at their location.</p>
+<p>A <strong>staff login</strong> (type <code>employee</code>) runs in one transaction that locks the employee&#39;s active assignments in the organization. It refuses an employee who already has a login (409 &quot;This employee already has a login&quot;) and an email already in use. It creates the user, then links the user to all of the employee&#39;s active assignments and switches portal access on for them. The login grants no permission by itself: what the person can do comes from the role of each assignment (Chapter 11). Changing assignments bumps the organization&#39;s access version, so the change reaches open tabs (Chapter 57).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only a super admin can create or edit a super admin. Only an owner can add, edit or delete another owner.</li>
+<li>A non-super-admin manager may touch only users of their own organization, never a super admin, and cannot elevate a user to super admin.</li>
+<li>Creating a user checks the plan&#39;s login limit for the organization (error code <code>PLAN_LIMIT</code>); super admins may exceed it.</li>
+<li>Delete is a soft delete: the status becomes <code>deleted</code>, a deletion time is set and every session of the user is revoked.</li>
+<li>Passwords created here need 8 characters, which is stricter than the 6 required elsewhere.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin, owner, or <code>admin.users.manage</code> (high-risk; the Admin system role holds it).</p>
+<p><strong>Data read and written.</strong> <code>users</code>, <code>organization_ownership</code>, <code>employee_org_location_assignments</code>.</p>
+<p><strong>Error cases.</strong> 403 for the manager-scope rules in this list; 409 existing login; 400 duplicate email.</p>
+<p><strong>Technical references:</strong> <code>backend/src/user/user.controller.ts</code> · <code>UserService.createUser</code> · <code>createStaffLogin</code> · <code>staffCandidates</code> · <code>web-app/src/features/users/</code> · <code>web-app/src/routes/users.tsx</code></p>
+<h3 id="ch56-authentication-56-3-11-sign-in-with-google-or-github">56.3.11 Sign-in with Google or GitHub</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The code for Google and GitHub sign-in exists but is <strong>disabled</strong>: neither the controller nor the two strategies are registered in the authentication module, so the <code>/auth/google</code> and <code>/auth/github</code> routes do not exist. The user table has a <code>provider</code> field and an <code>oauth_providers</code> table, and the service has an OAuth login method, but none of it can be reached. To switch it on, a developer would register the three classes, read callback addresses from the environment and add the routes to the public route list. The Platform therefore supports email and password only.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/oauth.controller.ts</code> · <code>backend/src/auth/auth.module.ts</code> · <code>AuthService.handleOAuthLogin</code></p>
+<h3 id="ch56-authentication-56-3-12-the-first-super-admin">56.3.12 The first super admin</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p>There is no screen, command or seed that creates a super admin. The usual path is to register an account and then set <code>users.global_role</code> to <code>super_admin</code> directly in the database (Chapter 7, section 7.5, gives the steps). After that, other super admins can be created from User Admin. A super admin signs in, chooses any active organization, and may open the setup pages (Organizations, Locations, Lab Directory, Config Studio, Subscriptions) even before choosing a location.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/enums/global-role.enum.ts</code> · <code>web-app/src/routes/__root.tsx</code> · <code>SUPER_ADMIN_SETUP_PATHS</code></p>
+<h2 id="ch56-authentication-56-4-entities">56.4 Entities</h2>
+<p>The tables involved are <code>users</code>, <code>user_sessions</code>, <code>security_logs</code> and the unused <code>oauth_providers</code>; Chapter 13 describes them column by column. In short: each session belongs to exactly one user and is deleted if the user row is deleted; a security log row points to a user but is kept (the link is set to null) if the user is removed; a user is linked to organizations as an owner through the ownership table and to employees through assignments.</p>
+<h2 id="ch56-authentication-56-5-password-rules">56.5 Password rules</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Where</th>
+<th>Minimum length</th>
+</tr>
+</thead><tbody><tr>
+<td>Register, login, change password, reset password</td>
+<td>6 characters</td>
+</tr>
+<tr>
+<td>Create user in User Admin</td>
+<td>8 characters</td>
+</tr>
+</tbody></table></div><p>The table shows the lengths the API enforces. There is no rule about letters, digits or symbols, no list of banned passwords and no expiry. The sign-up and reset pages show a strength meter, but it only advises. Passwords are stored as bcrypt hashes with 12 rounds and are never returned by the API.</p>
+<h2 id="ch56-authentication-56-6-limitations-and-known-gaps">56.6 Limitations and known gaps</h2>
+<ul>
+<li>Revoking a session does not cancel an access token that was already issued; it works until it expires, at most 15 minutes.</li>
+<li>Rate-limit counters are per process and lost on restart.</li>
+<li>The security log has no reader and no clean-up; failed password attempts are not recorded.</li>
+<li>No two-factor authentication, no password strength enforcement and no lockout of an account after repeated failures.</li>
+<li>Session rows are never deleted, only flagged.</li>
+</ul>
+<h2 id="ch56-authentication-56-7-owner-39-s-faq">56.7 Owner&#39;s FAQ</h2>
+<p><strong>How long does a sign-in last?</strong> One day by default and 30 days when &quot;Keep me signed in for 30 days&quot; is ticked. The length is fixed at sign-in; using the application does not extend it.</p>
+<p><strong>If an employee leaves, how do I cut off access at once?</strong> Set the user&#39;s status to suspended or delete the user in User Admin. Deleting revokes every session; a suspended user is refused at the next refresh. An access token already issued may still work for up to 15 minutes.</p>
+<p><strong>Can one person have several logins on different devices?</strong> Yes, up to five active sessions. A sixth sign-in revokes the oldest.</p>
+<p><strong>What happens if someone forgets their password?</strong> They use &quot;Forgot password?&quot;. The link lasts 15 minutes and a successful reset signs the user out of every device.</p>
+<p><strong>Can staff sign in with Google?</strong> No. That feature is built but disabled.</p>
+<p><strong>Where do I see failed sign-in attempts?</strong> Nowhere in the application today. Only the throttle protects the login route.</p>
+</section></body></html>

@@ -1,0 +1,4 @@
+- **Stock movement** — one recorded change of an item's quantity, with before and after (`stock_movements`).
+- **Consumption template** — a kit of items used for a procedure (`consumption_templates`).
+- **Patient consumption** — a record of materials used on a patient (`patient_consumptions`).
+- **Reorder level** — stock at or below which an item counts as low (`reorderLevel`).

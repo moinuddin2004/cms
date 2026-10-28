@@ -1,0 +1,2 @@
+- **Envelope** — `ResponseWrapper` JSON shape.
+- **Idempotency key** — `Idempotency-Key` header making a retried action run once.

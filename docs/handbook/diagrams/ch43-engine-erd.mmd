@@ -1,0 +1,40 @@
+erDiagram
+    specialties ||--o{ form_schemas : "groups"
+    specialties ||--o{ workflow_templates : "groups"
+    specialties ||--o{ stage_templates : "groups"
+    form_schemas ||--o{ form_schema_versions : "versions"
+    workflow_templates ||--o{ workflow_template_versions : "versions"
+    workflow_template_versions ||--o{ workflow_states : "states"
+    workflow_template_versions ||--o{ workflow_transitions : "transitions"
+    workflow_transitions ||--o{ transition_effects : "runs"
+    workflow_effects ||--o{ transition_effects : "handler"
+    workflow_template_versions ||..o{ lab_orders : "pinned by"
+    form_schemas {
+        uuid id PK
+        uuid specialty_id FK
+        uuid organization_id
+        string code
+    }
+    form_schema_versions {
+        uuid id PK
+        uuid form_schema_id FK
+        int version_no
+        string status
+    }
+    workflow_templates {
+        uuid id PK
+        uuid specialty_id FK
+        uuid organization_id
+        string entity_type
+    }
+    workflow_template_versions {
+        uuid id PK
+        uuid workflow_template_id FK
+        int version_no
+        string status
+    }
+    lab_orders {
+        uuid id PK
+        uuid workflow_template_version_id
+        string status_code
+    }

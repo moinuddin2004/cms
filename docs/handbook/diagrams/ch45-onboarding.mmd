@@ -1,0 +1,5 @@
+stateDiagram-v2
+  direction LR
+  [*] --> pending: POST /auth/register
+  [*] --> done: POST /organizations, default false
+  pending --> done: POST /account/setup/complete

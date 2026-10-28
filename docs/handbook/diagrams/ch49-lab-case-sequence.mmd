@@ -1,0 +1,31 @@
+sequenceDiagram
+  participant Dr as Dr. Example One
+  participant Lab as Example Dental Lab
+  participant FD as Receptionist R1
+  participant Acc as Accountant
+  participant Web as Web app
+  participant API
+  participant PG as PostgreSQL
+  Dr->>Web: New lab order, Submit to lab
+  Web->>API: POST /lab-orders, then POST /lab-orders/:id/submit
+  API->>PG: prices frozen, LAB number, revision 1, magic link row
+  Dr->>Lab: Copy link and paste it into a chat
+  Lab->>API: POST /lab-link/:token/accept, or POST /lab-portal/orders/:id/accept
+  API->>PG: items accepted, stages created, vendor bill draft VB
+  Lab->>API: POST /lab-portal/production/items/:itemId/start, finish, qc - portal login needed
+  Lab->>API: POST /lab-portal/production/shipments
+  API->>PG: shipment SHP, stage sent_to_clinic
+  FD->>Web: Receive shipment, scan QR
+  Web->>API: POST /lab-shipments/:id/receive
+  Dr->>Web: Record try-in, then Approve or Needs correction
+  Web->>API: POST /lab-orders/:id/stages/:stageId/tryin and /decision
+  Lab->>API: final shipment, received by the front desk the same way
+  Dr->>Web: Approve work, then Fitted mark delivered
+  Web->>API: POST /lab-orders/:id/items/:itemId/approve and /deliver
+  API->>PG: item delivered, 12-month warranty, order completed
+  Acc->>Web: Bill lab work to the patient
+  Web->>API: POST /lab-billing/invoices, POST /lab-billing/invoices/:id/issue
+  API->>PG: invoice LINV, commission snapshot
+  Acc->>Web: Approve vendor bill, Pay lab
+  Web->>API: POST /lab-payables/bills/:id/approve, POST /lab-payables/payments
+  API->>PG: journals, payable settled

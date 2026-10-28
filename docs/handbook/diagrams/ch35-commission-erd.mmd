@@ -1,0 +1,60 @@
+erDiagram
+    employee_org_location_assignments ||--o{ compensation_plans : "is paid by"
+    compensation_plans ||--o{ commission_rules : overrides
+    services |o--o{ commission_rules : targets
+    compensation_plans |o--o{ charges : "snapshotted on"
+    employee_org_location_assignments |o--o{ charges : performs
+    employee_org_location_assignments ||--o{ commission_entries : earns
+    charges |o--o{ commission_entries : "earns on"
+    lab_invoice_lines |o--o{ commission_entries : "earns on"
+    commission_settlements |o--o{ commission_entries : settles
+    employee_org_location_assignments ||--o{ commission_settlements : "is settled"
+    payroll_records |o--o| commission_settlements : "pays out"
+    compensation_plans {
+        uuid id PK
+        uuid assignment_id FK
+        enum type
+        bigint base_salary_paisa
+        int default_rate_bps
+        enum commission_basis
+        date effective_from
+        date effective_to
+    }
+    commission_rules {
+        uuid id PK
+        uuid plan_id FK
+        uuid service_id FK
+        enum service_category
+        int rate_bps
+        bigint fixed_amount_paisa
+    }
+    charges {
+        uuid id PK
+        uuid performing_assignment_id FK
+        uuid commission_plan_id FK
+        int commission_rate_bps
+        bigint commission_fixed_paisa
+    }
+    commission_entries {
+        uuid id PK
+        uuid assignment_id FK
+        uuid charge_id FK
+        uuid lab_invoice_line_id FK
+        uuid settlement_id FK
+        enum source_type
+        bigint amount_paisa
+    }
+    commission_settlements {
+        uuid id PK
+        uuid assignment_id FK
+        uuid payroll_record_id FK
+        date period_end
+        bigint total_paisa
+        enum status
+    }
+    payroll_records {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        bigint commission_paisa
+    }

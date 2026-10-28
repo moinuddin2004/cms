@@ -1,0 +1,11 @@
+flowchart TB
+    A["Super admin publishes<br/>workflow version"] --> B["States, transitions,<br/>effects written as rows"]
+    B --> C["Doctor creates<br/>lab order draft"]
+    C --> D["pinWorkflowVersion:<br/>newest published,<br/>organization beats platform"]
+    D --> E["Order and items store<br/>workflow_template_version_id"]
+    E --> F["User action,<br/>for example accept"]
+    F --> G["WorkflowEngineService<br/>transition"]
+    G --> H{"State and action<br/>allowed in the<br/>pinned version?"}
+    H -- no --> I["INVALID_TRANSITION or<br/>TRANSITION_FORBIDDEN"]
+    H -- yes --> J["Write state, status history,<br/>run effects, audit"]
+    J --> K["Order status derived<br/>from its items"]

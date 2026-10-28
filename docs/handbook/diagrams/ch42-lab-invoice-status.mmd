@@ -1,0 +1,13 @@
+stateDiagram-v2
+    direction LR
+    [*] --> draft: POST /lab-billing/invoices
+    draft --> draft: PATCH invoices/id
+    draft --> issued: POST invoices/id/issue
+    draft --> void: POST invoices/id/void
+    issued --> partially_paid: payment or advance allocated
+    issued --> paid: allocation or credit note clears balance
+    partially_paid --> paid: allocation covers balance
+    paid --> partially_paid: reversal or credit note releases money
+    partially_paid --> issued: all allocations released
+    issued --> void: POST invoices/id/void, nothing paid or credited
+    void --> [*]

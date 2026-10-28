@@ -1,0 +1,63 @@
+erDiagram
+    labs ||--o{ lab_clinic_links : "linked by"
+    organizations ||--o{ lab_clinic_links : "works with"
+    lab_clinic_links ||--o{ lab_orders : "carries"
+    patients ||--o{ lab_orders : "ordered for"
+    lab_orders ||--|{ lab_order_items : contains
+    lab_order_items |o--o{ lab_order_items : "remake of"
+    lab_order_items ||--o| item_form_responses : answers
+    lab_order_items ||--o{ item_teeth : teeth
+    lab_orders ||--o{ order_revisions : "revised as"
+    lab_orders ||--o{ order_messages : discusses
+    lab_orders ||--o{ order_charge_requests : "extra charges"
+    lab_orders ||--o{ magic_links : "opened by"
+    lab_orders ||..o{ attachments : "order_id, no FK"
+    lab_orders {
+        uuid id PK
+        uuid organization_id FK
+        uuid location_id FK
+        uuid patient_id FK
+        uuid lab_clinic_link_id FK
+        uuid workflow_template_version_id FK
+        varchar order_no
+        varchar status_code
+        int current_revision_no
+    }
+    lab_order_items {
+        uuid id PK
+        uuid order_id FK
+        uuid lab_service_id FK
+        uuid remake_of_item_id FK
+        varchar status_code
+        bigint lab_line_cost_paisa
+        bigint patient_line_price_paisa
+    }
+    lab_clinic_links {
+        uuid id PK
+        uuid lab_id FK
+        uuid organization_id FK
+        enum status
+        enum patient_data_level
+    }
+    order_revisions {
+        uuid id PK
+        uuid order_id FK
+        int revision_no
+        jsonb snapshot
+        timestamptz lab_acknowledged_at
+    }
+    order_charge_requests {
+        uuid id PK
+        uuid order_id FK
+        uuid item_id FK
+        bigint amount_paisa
+        enum status
+    }
+    magic_links {
+        uuid id PK
+        uuid order_id FK
+        uuid lab_id FK
+        varchar token_hash
+        timestamptz expires_at
+        timestamptz revoked_at
+    }

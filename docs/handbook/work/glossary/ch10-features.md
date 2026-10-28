@@ -1,0 +1,4 @@
+- **Active feature** — a feature that is in the active catalog, entitled (trial not ended) and enabled; "active here" also requires no location override.
+- **Locked feature** — a feature the owner cannot switch on, with reason `not_entitled` or `trial_expired`.
+- **Retired feature key** — one of 12 catalog keys with no code behind them, deactivated at every start (`RETIRED_FEATURE_KEYS`).
+- **Feature impact** — the permissions and roles that stop working when a feature is turned off (`GET /admin/features/:key/impact`).

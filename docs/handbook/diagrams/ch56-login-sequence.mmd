@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor User
+    participant Web as Web app
+    participant API as API
+    participant DB as PostgreSQL
+    User->>Web: email, password, optional keep me signed in
+    Web->>API: POST /auth/login
+    API->>DB: find user, compare password hash
+    API->>DB: create session row, limit 5 active sessions
+    API->>DB: resolve organizations and locations
+    API-->>Web: access token, session cookie, selection flags
+    alt one organization with one location
+        Web->>Web: store active organization and location
+    else several organizations or locations
+        Web->>User: show the location selector
+        User->>Web: choose organization and location
+        Web->>API: POST /auth/select-location
+        API->>DB: validate access, save last accessed
+        API-->>Web: active organization id, active location id
+    end
+    Web->>API: GET /me/access with tenant headers
+    API-->>Web: permissions, features, home page
+    Web->>User: open the home page
+    Note over Web,API: Later 401 answer triggers POST /auth/refresh using the cookie

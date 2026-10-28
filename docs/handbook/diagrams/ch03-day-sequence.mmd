@@ -1,0 +1,34 @@
+sequenceDiagram
+    actor R1 as Receptionist R1
+    actor Doc as Dr. Example One
+    actor Acc as Accountant
+    participant Web as Web app
+    participant API
+    participant Lab as Example Dental Lab
+    participant Jobs as Worker jobs
+    Doc->>Web: Open My Queue, Start my queue
+    Web->>API: start queue session
+    R1->>Web: Book Sample Patient A
+    Web->>API: POST /appointments
+    R1->>Web: Check in and get token
+    Web->>API: PATCH /appointments/:id/check-in
+    API-->>R1: Token and printable ticket
+    Doc->>Web: Call next
+    Web->>API: POST /queue/sessions/:id/call-next
+    Doc->>Web: Patient is here, start
+    Web->>API: PATCH /queue/entries/:id/start-consultation
+    API-->>Doc: Encounter created, workspace opens
+    Doc->>Web: Notes, treatments, prescription
+    Doc->>Web: Sign and print prescription
+    Doc->>Web: Complete visit
+    Web->>API: PATCH /queue/entries/:id/complete
+    API-->>R1: Charges ready to bill
+    Doc->>Web: Create and submit lab order
+    Web->>API: POST /lab-orders and submit
+    Lab->>API: Accept order in lab portal
+    R1->>Web: Billing desk, Bill, Receive
+    Web->>API: POST /payments
+    API-->>R1: Receipt and invoice issued
+    Acc->>Web: Close counter
+    Doc->>Web: Close day
+    Jobs->>API: Overnight checks and cleanup

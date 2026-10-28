@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant S as Scheduler
+  participant Admin
+  participant Web as Web app
+  participant API
+  participant PS as PayrollService
+  participant PG as PostgreSQL
+  S->>PS: 05:00 on the 1st, runMonthEndPayroll
+  PS->>PG: load active locations
+  PS->>PG: per assignment, base salary from the plan in force on the last day
+  PS->>PG: lock unsettled commission entries up to month end
+  PS->>PG: insert PENDING payroll record and PENDING settlement
+  Admin->>Web: Payroll, pick the month
+  Web->>API: GET /payroll
+  API-->>Web: records with base, commission, total
+  Admin->>Web: Generate Payroll, only if the job missed a location
+  Web->>API: POST /payroll/generate
+  API->>PS: generate, existing records are skipped
+  Admin->>Web: Mark as Paid, method and reference
+  Web->>API: PATCH /payroll/:id/mark-paid
+  API->>PS: markPaid
+  PS->>PG: record paid, settlement paid
+  Admin->>API: GET /payroll/export and GET /payroll/:id/payslip-pdf - no button calls them

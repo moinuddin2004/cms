@@ -1,0 +1,726 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="appD-permission-catalog"><h1 id="appD-permission-catalog-appendix-d-permission-catalog">Appendix D — Permission Catalog</h1>
+<p>This appendix lists every permission the Platform knows. There are 70 in total, and the code defines them in one file. A permission is the smallest unit of access a role can be given, for example &quot;void an invoice&quot;. An owner never invents new permissions. Instead, the owner combines these 70 into roles, using None / Basic / Full bundles per module or the Advanced mode for single permissions.</p>
+<p>Five rules decide how a permission behaves:</p>
+<ul>
+<li><strong>Feature.</strong> Each permission belongs to one feature. When that feature is not active for the organization, or is switched off at a location, the permission is dropped while access is worked out. It is not deleted from the role, so switching the feature back on restores access exactly as it was.</li>
+<li><strong>Scope.</strong> Some permissions carry a scope: <code>own</code> (only records linked to the user, such as a doctor&#39;s own patients or queue), <code>location</code> (the active location) or <code>org</code> (every location of the organization). A wider scope includes the narrower ones.</li>
+<li><strong>Also grants.</strong> Some permissions automatically include others. For example, editing patients includes viewing them.</li>
+<li><strong>Risk.</strong> Permissions marked &quot;high&quot; ask for a confirmation and a reason when an owner grants them in the roles screen.</li>
+<li><strong>Who holds what.</strong> Owners and the super admin hold every permission. Staff hold only what their role at the active location grants. A missing permission means no access: the system is fail-closed.</li>
+</ul>
+<p>The tables below are grouped by the module the roles screen lists them under. Each row gives the permission key exactly as the code spells it, the label the roles screen shows, the feature it depends on, the scopes it accepts (&quot;—&quot; means it has no scope), the permissions it also grants, and whether it is high-risk.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/catalog/permissions.ts</code> · <code>PERMISSIONS</code> · <code>backend/src/access/catalog/bundles.ts</code> · <code>backend/src/access/catalog/templates.ts</code> · generated copy <code>web-app/src/features/access/generated/catalog.ts</code></p>
+<h3 id="appD-permission-catalog-patients">Patients</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>patients.view</code></td>
+<td>View patients</td>
+<td><code>patients.core</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.create</code></td>
+<td>Register patients</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td><code>patients.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.edit</code></td>
+<td>Edit patient details</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td><code>patients.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.delete</code></td>
+<td>Delete patients</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td><code>patients.view</code></td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>patients.export</code></td>
+<td>Export patient data</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td><code>patients.view</code></td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>patients.price.view</code></td>
+<td>See treatment prices</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.clinical.view</code></td>
+<td>View clinical records</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.clinical.edit</code></td>
+<td>Edit clinical records</td>
+<td><code>patients.core</code></td>
+<td>—</td>
+<td><code>patients.clinical.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.documents.manage</code></td>
+<td>Manage patient documents</td>
+<td><code>patients.documents</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>patients.chart.edit</code></td>
+<td>Edit dental chart</td>
+<td><code>patients.teeth_chart</code></td>
+<td>—</td>
+<td><code>patients.clinical.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>plans.manage</code></td>
+<td>Manage treatment plans</td>
+<td><code>patients.treatment_plans</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>plans.templates.manage</code></td>
+<td>Manage treatment plan templates</td>
+<td><code>patients.treatment_plans</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-appointments">Appointments</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>appointments.view</code></td>
+<td>View appointments</td>
+<td><code>appointments.core</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>appointments.book</code></td>
+<td>Book appointments</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>appointments.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>appointments.reschedule</code></td>
+<td>Reschedule appointments</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>appointments.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>appointments.cancel</code></td>
+<td>Cancel appointments</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>appointments.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>appointments.override_rules</code></td>
+<td>Override booking rules</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>appointments.book</code></td>
+<td>high</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-queue">Queue</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>queue.board.view</code></td>
+<td>View reception queue board</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.checkin</code></td>
+<td>Check patients in</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>queue.board.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.entry.manage</code></td>
+<td>Skip, rejoin or remove queue entries</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>queue.board.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.entry.reprioritize</code></td>
+<td>Reprioritize the queue</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>queue.board.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.doctor.own</code></td>
+<td>Run own doctor queue</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.doctor.any</code></td>
+<td></td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td><code>queue.doctor.own</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>queue.display.manage</code></td>
+<td>Manage TV display</td>
+<td><code>appointments.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-consultation">Consultation</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>consultation.conduct</code></td>
+<td>Conduct consultations</td>
+<td><code>patients.core</code></td>
+<td>own, location, org</td>
+<td><code>patients.clinical.edit</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>prescriptions.create</code></td>
+<td>Write prescriptions</td>
+<td><code>patients.prescriptions</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>prescriptions.library.manage</code></td>
+<td>Manage prescription library</td>
+<td><code>patients.prescriptions</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-billing">Billing</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>billing.desk.use</code></td>
+<td>Use the billing desk</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.invoice.view</code></td>
+<td>View invoices</td>
+<td><code>billing.invoices</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.invoice.edit</code></td>
+<td>Edit invoices</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td><code>billing.invoice.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.invoice.void</code></td>
+<td>Void invoices</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td><code>billing.invoice.view</code></td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>billing.payment.collect</code></td>
+<td>Collect payments</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td><code>billing.invoice.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.refund.issue</code></td>
+<td>Issue refunds</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td><code>billing.invoice.view</code></td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>billing.price.override</code></td>
+<td>Override prices</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>billing.cash_close</code></td>
+<td>Close the cash drawer</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.activity.view</code></td>
+<td>View billing activity</td>
+<td><code>billing.invoices</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-discounts">Discounts</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>billing.discount.apply</code></td>
+<td>Apply preset discounts</td>
+<td><code>billing.discounts</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>billing.discount.custom</code></td>
+<td>Give custom discounts</td>
+<td><code>billing.discounts</code></td>
+<td>—</td>
+<td><code>billing.discount.apply</code></td>
+<td>high</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-expenses">Expenses</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>expenses.view</code></td>
+<td>View expenses</td>
+<td><code>billing.expenses</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>expenses.manage</code></td>
+<td>Record and edit expenses</td>
+<td><code>billing.expenses</code></td>
+<td>—</td>
+<td><code>expenses.view</code></td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-commissions">Commissions</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>earnings.own.view</code></td>
+<td>See own earnings</td>
+<td><code>billing.commissions</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>earnings.all.view</code></td>
+<td></td>
+<td><code>billing.commissions</code></td>
+<td>—</td>
+<td><code>earnings.own.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>compensation.manage</code></td>
+<td>Manage salaries and commissions</td>
+<td><code>billing.commissions</code></td>
+<td>—</td>
+<td><code>earnings.all.view</code></td>
+<td>high</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-lab">Lab</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>lab.orders.view</code></td>
+<td>View lab orders</td>
+<td><code>dental.lab_orders</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.orders.create</code></td>
+<td>Create lab orders</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td><code>lab.orders.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.billing.manage</code></td>
+<td>Manage lab billing</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.catalog.manage</code></td>
+<td>Manage lab catalog</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.payables.manage</code></td>
+<td>Manage lab payables</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.links.manage</code></td>
+<td>Manage lab links</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>lab.templates.share</code></td>
+<td>Share lab order templates</td>
+<td><code>dental.lab_orders</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-inventory">Inventory</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>inventory.view</code></td>
+<td>View inventory</td>
+<td><code>inventory.core</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>inventory.stock.adjust</code></td>
+<td>Adjust stock</td>
+<td><code>inventory.core</code></td>
+<td>—</td>
+<td><code>inventory.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>inventory.po.manage</code></td>
+<td>Manage purchase orders</td>
+<td><code>inventory.core</code></td>
+<td>—</td>
+<td><code>inventory.view</code></td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-team">Team</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>employees.view</code></td>
+<td>View staff</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>employees.manage</code></td>
+<td>Manage staff</td>
+<td>``</td>
+<td>—</td>
+<td><code>employees.view</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>payroll.manage</code></td>
+<td>Manage payroll</td>
+<td><code>hr.payroll</code></td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>leave.approve</code></td>
+<td>Approve leave</td>
+<td><code>hr.leave</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-reports">Reports</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>reports.clinical.view</code></td>
+<td>View clinical reports</td>
+<td><code>reports.clinical</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>reports.financial.view</code></td>
+<td>View financial reports</td>
+<td><code>reports.financial</code></td>
+<td>own, location, org</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>reports.export</code></td>
+<td>Export reports</td>
+<td><code>reports.exports</code></td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>finance.overview.view</code></td>
+<td>View finance overview</td>
+<td><code>reports.financial</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h3 id="appD-permission-catalog-admin">Admin</h3>
+<div class="tw"><table><thead><tr>
+<th>Permission</th>
+<th>Label</th>
+<th>Feature</th>
+<th>Scopes</th>
+<th>Also grants</th>
+<th>Risk</th>
+</tr>
+</thead><tbody><tr>
+<td><code>admin.features.manage</code></td>
+<td>Turn clinic features on/off</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>admin.roles.manage</code></td>
+<td>Manage roles and permissions</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>admin.users.manage</code></td>
+<td>Manage users and their access</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>admin.nav.manage</code></td>
+<td>Customize the sidebar</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>admin.settings.manage</code></td>
+<td>Manage clinic settings</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>admin.locations.manage</code></td>
+<td>Manage locations</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>admin.audit.view</code></td>
+<td>View the audit log</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>admin.theme.manage</code></td>
+<td>Manage clinic theme and branding</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>notifications.settings.manage</code></td>
+<td>Manage notification settings</td>
+<td>``</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody></table></div><h2 id="appD-permission-catalog-how-to-read-these-tables">How to read these tables</h2>
+<p>These tables show the full set of building blocks for roles. A permission whose feature is <code>core</code> is always available, because no feature switch controls it. A permission with scopes listed must be granted with exactly one of those scopes. The roles screen offers the scope as a choice in Advanced mode, and the bundles pick a sensible default. For which permissions each of the five system roles (Admin, Doctor, Receptionist, Assistant, Accountant) receives, see Chapter 11, &quot;Roles and permissions&quot;, which explains the templates in prose.</p>
+</section></body></html>

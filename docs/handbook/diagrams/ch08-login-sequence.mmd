@@ -7,7 +7,7 @@ sequenceDiagram
     Web->>API: POST /auth/login
     API->>DB: check password and account status, create session
     API->>DB: resolveUserAccess - ownerships, active portal assignments, active orgs and locations
-    API-->>Web: access token 15 min, refresh cookie 7 days, organizations, selection flags
+    API-->>Web: access token 15 min, refresh cookie 1 day or 30 days, organizations, selection flags
     alt exactly one organization with one location
         Web->>Web: store active organization and location
     else several organizations or locations, or a super admin

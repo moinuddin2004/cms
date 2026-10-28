@@ -1,0 +1,2 @@
+- **Integration schema** — a dedicated PostgreSQL schema (for example `billingit`, `acceptit`) that a DB test suite creates and drops, never touching `public`.
+- **Access coverage test** — `access-coverage.spec.ts`, which fails when a handler lacks an access marker.

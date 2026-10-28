@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant LabAdmin as Lab admin
+    participant Accountant
+    participant Web as Web app
+    participant API
+    participant Engine as WorkflowEngineService
+    participant Fin as LabFinanceListeners
+    participant DB as PostgreSQL
+    LabAdmin->>Web: Accept item in the lab portal
+    Web->>API: item transition "accept"
+    API->>Engine: transition on the item's pinned version
+    Engine->>DB: item state becomes accepted
+    Engine->>Engine: item listener runs BillDraftsService.sync
+    Engine->>DB: create or update draft vendor bill VB-n at frozen lab cost
+    Note over Engine,DB: one transaction, all or nothing
+    Accountant->>Web: Bill lab work, Issue now
+    Web->>API: POST /lab-billing/invoices with issue true
+    API->>DB: draft invoice, lines at frozen patient price
+    API->>DB: number LINV-n, due date, status issued
+    API->>Fin: invoiceIssued event
+    Fin->>DB: commission snapshot on lines, receivable journal
+    API->>DB: apply patient advance if any
+    Accountant->>Web: Collect payment
+    Web->>API: POST /lab-billing/payments with Idempotency-Key
+    API->>DB: receipt LRC-n, payment, allocations, totals
+    API->>Fin: paymentCollected event
+    Fin->>DB: cash journal, commission entries, commission journal
+    API->>DB: payment.receipt outbox row for the patient
+    API-->>Web: 201 Payment received

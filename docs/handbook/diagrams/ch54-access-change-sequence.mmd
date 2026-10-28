@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant Owner
+  participant Web as Web app
+  participant API
+  participant PG as PostgreSQL
+  participant Redis
+  participant GW as Realtime gateway
+  participant Tab as Staff browser tab
+  Owner->>Web: Roles and permissions, Save changes
+  Web->>API: PATCH /admin/roles/:id
+  API->>PG: update employment_roles, commit
+  API->>PG: access_version plus 1 after commit
+  API->>Redis: publish access changed with organization and version
+  Redis-->>API: every API and worker process drops its cached contexts
+  API->>GW: emit access.changed to room org:id
+  GW-->>Tab: access.changed with the new version
+  Tab->>API: GET /me/access
+  API->>PG: read access_version, resolve a fresh context
+  API-->>Tab: new permissions, features, navigation, home page
+  Tab->>Tab: sidebar and buttons re-render
+  Note over Tab,API: Socket down - refetch on window focus after 30 s<br/>Backend enforces the new version within 15 s

@@ -1,0 +1,3 @@
+- **Availability override** — a one-date exception to the weekly schedule (`doctor_availability_overrides`).
+- **Portal access** — the per-assignment flag that lets the linked staff login sign in (`has_portal_access`).
+- **Employee code** — per-organization code such as EMP-001 on an assignment (`employee_code`).

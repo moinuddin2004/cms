@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> ACTIVE : POST patients credits
+    ACTIVE --> ACTIVE : POST use, balance left
+    ACTIVE --> EXHAUSTED : POST use, remaining reaches 0
+    ACTIVE --> EXPIRED : nightly job at 01:00, or use after expiry date
+    EXHAUSTED --> [*]
+    EXPIRED --> [*]

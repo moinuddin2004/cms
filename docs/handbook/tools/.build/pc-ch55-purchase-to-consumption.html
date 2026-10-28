@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch55-purchase-to-consumption"><h1 id="ch55-purchase-to-consumption-chapter-55-workflow-from-purchase-order-to-consumption">Chapter 55 — Workflow: From Purchase Order to Consumption</h1>
+<p>This chapter follows a box of gloves from a purchase order to stock, then to use on a patient and to a low-stock alert. It is written for the product owner. The honest summary is that the chain is only partly connected: the pieces exist in the backend, several have no screen, two steps carry a database risk that could not be tested, and the final alert reaches nobody. Each link in the chain carries its own label.</p>
+<h2 id="ch55-purchase-to-consumption-55-1-who-is-involved">55.1 Who is involved</h2>
+<ul>
+<li><strong>Admin</strong>: the only system role with inventory write permissions (<code>inventory.po.manage</code>, <code>inventory.stock.adjust</code>). The Assistant role can only view.</li>
+<li><strong>Worker process</strong>: runs the alert job.</li>
+<li>Features: <code>inventory.core</code> and <code>inventory.alerts</code>, both off by default.</li>
+</ul>
+<h2 id="ch55-purchase-to-consumption-55-2-the-steps">55.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch55-purchase-consumption-sequence.png" alt="Figure 55.1 — Purchase to consumption"></p>
+<p><em>Figure 55.1 — The inventory chain and where it breaks.</em></p>
+<p>The diagram has eight participants: Admin, Web app, API, PurchaseOrderService, applyMovement, PostgreSQL, Alert job and Server log, and 16 messages. The Admin opens <code>/inventory</code> by typing the address and creates a purchase order (<code>POST /purchase-orders</code>); the service stores the order number, lines, totals and status draft, with the Unverified note that the creator column points to employees. The Admin marks it ordered (<code>PATCH /purchase-orders/:id/status</code>), then receives items with batch and expiry (<code>POST /purchase-orders/:id/receive</code>). The service calls applyMovement with PURCHASE_IN per line, which writes a stock movement row and updates the item&#39;s stock, nearest expiry and cost price, again marked Unverified. A call to <code>POST /patient-consumptions</code> has no screen; it lowers stock per line and saves the consumption. At 08:00 the alert job counts low and expiring items and writes only a warning line to the server log.</p>
+<h3 id="ch55-purchase-to-consumption-link-1-reach-the-page">Link 1 — Reach the page</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Partial]. The page <code>/inventory</code> works and needs <code>inventory.view</code>, but there is no sidebar entry and no screen links to it. Users must type the address. The feature <code>inventory.core</code> must be entitled and enabled first (Chapter 39).</p>
+<h3 id="ch55-purchase-to-consumption-link-2-purchase-order">Link 2 — Purchase order</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. Screens and logic exist: <strong>Create PO</strong> with supplier, lines, quantity, unit price and tax; the server numbers it like <code>PO-2026-00001</code> and computes totals; status goes Draft then Ordered (<strong>Mark as Ordered</strong>), and only a draft can be cancelled. The risk: creation stores the signed-in user&#39;s id in <code>purchase_orders.createdBy</code>, which has a foreign key to <code>employees</code>. A user id and an employee id are different records, so the insert is expected to fail. Reading the entity and the controller confirms that the user id is passed to that column; it was not run. PO numbers are also unique across the whole database but counted per organization, so a second organization&#39;s first order of a year can collide (deduced from code). Purchase orders are not linked to expenses or lab payables (Chapter 39).</p>
+<h3 id="ch55-purchase-to-consumption-link-3-receive-goods">Link 3 — Receive goods</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. <strong>Receive Items</strong> on an Ordered or Partially received PO takes quantities, batch and expiry per line; over-receiving is refused; the status becomes Partially received or Received. Each line adds a &quot;purchase in&quot; stock movement through the single <code>applyMovement</code> path, sets the item&#39;s cost price to the line price and moves the item&#39;s expiry date earlier if the batch expires sooner. It carries the same kind of foreign-key risk as the purchase order, through <code>stock_movements.performedBy</code>.</p>
+<h3 id="ch55-purchase-to-consumption-link-4-stock-movement-and-manual-adjustment">Link 4 — Stock movement and manual adjustment</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. Every quantity change is a row in <code>stock_movements</code> with previous and new stock; stock cannot go below zero. The Adjust stock dialog offers manual adjustment, wastage, return to supplier and transfers (notes required for wastage and manual). A transfer is recorded at one location only; nothing is added at the other. The item row is read without a row lock, so two simultaneous adjustments could start from the same number.</p>
+<h3 id="ch55-purchase-to-consumption-link-5-patient-consumption">Link 5 — Patient consumption</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Not implemented] in the web app. <code>POST /patient-consumptions</code> exists and prices each line at the item&#39;s current cost, then lowers stock in one transaction, but the component that would call it (<code>ConsumptionRecorder</code>) is placed on no screen, including the consultation workspace. Consumption templates (kits) can be created but nothing uses them. Consumed materials are not billed and do not show on the encounter (Chapter 39, Chapter 31).</p>
+<h3 id="ch55-purchase-to-consumption-link-6-low-stock-alert">Link 6 — Low-stock alert</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Partial]. At 08:00 server time, for every location where both features are on, the job counts low-stock items and items expiring within 30 days and writes one warning line to the server log. No user is notified, no inbox entry is created and nothing appears on a screen; a code comment says notifications are planned (Chapter 44, Appendix E).</p>
+<h2 id="ch55-purchase-to-consumption-55-3-what-can-go-wrong">55.3 What can go wrong</h2>
+<ul>
+<li>The first purchase order, receive or adjustment may fail with a database foreign-key error, which would stop the whole chain [Unverified].</li>
+<li>The page is not discoverable without a sidebar entry.</li>
+<li>&quot;Insufficient stock&quot; when an outgoing movement would go below zero.</li>
+<li>&quot;Cannot receive more than ordered&quot;.</li>
+<li>Alerts are visible only to whoever reads server logs.</li>
+<li>Stock movement history is the only audit trail; no separate log exists.</li>
+<li>With <code>inventory.core</code> off, nothing in the module is permitted.</li>
+</ul>
+<h2 id="ch55-purchase-to-consumption-55-4-data-left-behind">55.4 Data left behind</h2>
+<p><code>purchase_orders</code>, <code>purchase_order_items</code>, <code>stock_movements</code>, <code>inventory_items</code> (stock, expiry, cost), <code>patient_consumptions</code> and <code>patient_consumption_items</code> (API only), and server log lines from the alert job. No billing, ledger or notification rows are written by any step.</p>
+</section></body></html>

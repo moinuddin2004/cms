@@ -1,0 +1,12 @@
+flowchart TB
+    R["Request"] --> G1["1 JwtAuthGuard<br/>valid token?"]
+    G1 -->|"no: 401"| X1["Refused"]
+    G1 --> G2["2 TenantContextGuard<br/>organization and location allowed?"]
+    G2 -->|"no: 400 or 403"| X1
+    G2 --> G3["3 FeatureFlagGuard<br/>feature active?"]
+    G3 -->|"no: 403"| X1
+    G3 --> G4["4 AccessGuard<br/>permission held?"]
+    G4 -->|"no: 403 NO_PERMISSION"| X1
+    G4 --> G5["5 SubscriptionGuard<br/>write allowed?"]
+    G5 -->|"expired: 402"| X1
+    G5 --> H["Handler<br/>applyScope and VisibleIf"]

@@ -1,0 +1,573 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch41-lab-portal"><h1 id="ch41-lab-portal-chapter-41-lab-portal">Chapter 41 — Lab Portal</h1>
+<p>This chapter describes the lab side of dental-lab work on the Platform: the lab portal where lab staff sign in to receive clinic orders, accept and produce them, ship them and see what they are owed, and the no-login magic link page that lets a lab contact answer one order from a phone. It is written for the product owner, who needs to know what a lab can and cannot do today. The clinic side of the same cases (ordering, try-ins, approvals) is in Chapter 40, and the money the lab sees read-only is covered by Chapter 42.</p>
+<h2 id="ch41-lab-portal-41-1-what-this-module-is-for">41.1 What this module is for</h2>
+<p>A <strong>lab</strong> is a dental laboratory that makes crowns, bridges and dentures for clinics. It is not a tenant of the Platform and has no organization of its own. Its people are <strong>lab members</strong>: user accounts with the role <strong>lab admin</strong> or <strong>lab technician</strong> on one or more labs. They have no clinic membership, so a clinic can never see their data and they can never see a clinic&#39;s.</p>
+<p>The lab portal gives them a workspace that is separate from the clinic workspace:</p>
+<ul>
+<li><strong>Orders.</strong> An inbox of the work that clinics sent, where a lab admin accepts an order with a ready date, rejects it, asks a question or moves the date.</li>
+<li><strong>Production.</strong> A work queue per item: start work, send to quality check (QC), pass or fail QC, assign a technician, ship try-in rounds and finished work to the clinic, receive parcels the clinic sent, report a lost parcel and dispute a remake request.</li>
+<li><strong>Clinics.</strong> The clinics that linked this lab, where a lab admin accepts an invitation or suspends and reactivates a clinic.</li>
+<li><strong>Team</strong> and <strong>Lab profile.</strong> The lab&#39;s members and its contact details.</li>
+<li><strong>Billing.</strong> A read-only view of the bills clinics approved for the lab, the payments, and the statements.</li>
+<li><strong>Magic link page.</strong> One order, no login, for a lab contact who received a link.</li>
+</ul>
+<p>Who uses it, by canonical role:</p>
+<ul>
+<li><strong>Lab admin.</strong> Everything in the portal: answers orders, assigns work, manages the team, accepts or suspends clinics, edits contact details.</li>
+<li><strong>Lab technician.</strong> Reads orders, starts work, sends to QC, passes or fails QC, ships and receives parcels. Cannot accept or reject orders, assign technicians, manage the team or change a clinic&#39;s link.</li>
+<li><strong>Lab contact acting through a magic link.</strong> Not a user. Sees one order and can accept, reject or ask a question on it.</li>
+<li><strong>Clinic staff</strong> act on the same orders from the clinic side (Chapter 40) and, with the right permissions, can record answers for a lab that does not respond.</li>
+</ul>
+<p>Where it appears: there is no clinic sidebar for lab-only users. They land in their own layout with the entries <strong>Dashboard</strong>, <strong>Orders</strong>, <strong>Lab profile</strong>, <strong>Team</strong> (lab admins only), <strong>Clinics</strong>, <strong>Production</strong> and <strong>Billing</strong>. A user who is both a lab member and clinic staff also sees a <strong>Lab portal</strong> entry in the clinic sidebar (<code>nav.lab_portal</code>, route <code>/lab-portal</code>, shown to anyone with at least one lab membership), and the portal offers a <strong>Clinic workspace</strong> link back.</p>
+<p>The lab portal does not depend on a feature switch. Access is decided only by an active lab membership of an active lab. The clinic&#39;s feature <code>dental.lab_orders</code> gates the clinic side (Chapter 40), not the portal.</p>
+<h3 id="ch41-lab-portal-patient-data-level">Patient data level</h3>
+<p>Each clinic decides per lab link how much of the patient&#39;s identity the lab sees: <strong>Full patient name</strong> or <strong>Patient code only</strong>. In the portal, with &quot;code only&quot; the order list, the order page, the magic link page, the printed work order and notification texts show the clinic&#39;s patient number instead of the name. The patient number is always sent in a separate field as well. Prices are never shown: lab-facing responses carry the lab&#39;s own cost, never the patient price, the clinic&#39;s treatment or internal files, and the clinic list shows a clinic only by name and city, status and payment terms.</p>
+<h2 id="ch41-lab-portal-41-2-screens">41.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-home.svg" alt="Figure 41.1 — Lab portal home"></p>
+<p><em>Figure 41.1 — The lab portal Dashboard (screenshot pending).</em></p>
+<p>The portal has a left navigation (Dashboard, Orders, Lab profile, Team, Clinics, Production, Billing), a lab switcher at the top (a selector &quot;Switch lab&quot; with the placeholder &quot;Choose a lab&quot;, for users who work for several labs), a user block with a <strong>Sign out</strong> icon and, for users who also work for a clinic, a <strong>Clinic workspace</strong> link. The Dashboard is titled &quot;Welcome to&quot; followed by the lab&#39;s name, with the subtitle &quot;Your lab&#39;s workspace.&quot; It shows three cards: &quot;Orders waiting for you&quot; (the number of orders in status Submitted, a link to the order list), &quot;Active clinics&quot; (a link to the clinic list) and &quot;Team members&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-orders.svg" alt="Figure 41.2 — Lab portal orders"></p>
+<p><em>Figure 41.2 — The lab&#39;s order inbox (screenshot pending).</em></p>
+<p>The <strong>Orders</strong> page is titled &quot;Orders&quot; with the subtitle &quot;Work sent to your lab. Accept new orders with the date they’ll be ready.&quot; It has a search box (&quot;Search order no. or clinic…&quot;) and a status filter. The table has the columns Order (with an &quot;Urgent&quot; badge), Clinic, Patient (a name or a code, by the link&#39;s setting), Doctor, Status, Due, Received. With no orders the page says &quot;No orders yet. When a clinic sends your lab an order, it shows up here — and on WhatsApp if the clinic sends you a link.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-order.svg" alt="Figure 41.3 — Lab portal order detail"></p>
+<p><em>Figure 41.3 — One order as the lab sees it (screenshot pending).</em></p>
+<p>The order page is titled &quot;Order&quot; and the order number, with the clinic and the patient reference as subtitle, a back button to the list, the status badge, an &quot;Urgent&quot; badge and the dates &quot;Wanted by&quot; and &quot;Ready on&quot;. The buttons at the top right are the actions the lab may take now: <strong>Accept</strong>, <strong>Ask a question</strong>, <strong>Reject</strong>, <strong>Change date</strong>. The body has a <strong>Work</strong> section (each item with its service, quantity, rush, options, teeth, and the form answers such as shade and material), a <strong>Revisions</strong> section (each revision with &quot;Read&quot; and a time, or a button to acknowledge it, or &quot;New&quot;), <strong>Messages</strong> with a box &quot;Write to the clinic…&quot; and <strong>Files</strong> (only files the clinic shared with the lab, with a download button).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-production.svg" alt="Figure 41.4 — Lab portal production"></p>
+<p><em>Figure 41.4 — The Production desk (screenshot pending).</em></p>
+<p>The <strong>Production</strong> page is titled &quot;Production&quot; with the subtitle &quot;Work in progress, try-in rounds, QC and shipments to clinics.&quot; It has three tabs: <strong>Work queue</strong>, <strong>Shipments</strong> and <strong>Remakes</strong>. The work queue table has the columns Order, Work, Stage, Status, Due, Technician and an action column. The action on each row changes with the item&#39;s step: <strong>Start work</strong>, <strong>Ship for try-in</strong>, <strong>Send to QC</strong>, <strong>QC pass</strong> with a cross button (&quot;QC fail — back to production&quot;), or <strong>Ship</strong>; a button &quot;Assign technician&quot; appears for lab admins. The Shipments tab lists shipment number, contents, status and dispatch time with buttons to print the slip with its QR code, to mark a shipment lost, and <strong>Receive</strong> for parcels the clinic sent. The Remakes tab lists order, reason, status and a dispute button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-clinics.svg" alt="Figure 41.5 — Lab portal clinics"></p>
+<p><em>Figure 41.5 — The clinics that work with the lab (screenshot pending).</em></p>
+<p>The <strong>Clinics</strong> page is titled &quot;Clinics&quot; with the subtitle &quot;Clinics that send work to your lab. Accept new invitations here.&quot; The table has the columns Clinic, City, Status, Payment terms and an actions column; the filters are a search box (&quot;Search by clinic name…&quot;) and a status filter. For a lab admin each row shows an accept button (tooltip &quot;Accept&quot; followed by the clinic name), a reactivate button or a suspend action that asks for a reason (&quot;e.g. Outstanding balance&quot;). With no clinics the page says &quot;No clinics yet&quot; and explains that an invitation appears here when a clinic adds the lab to its list.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-team.svg" alt="Figure 41.6 — Lab portal team"></p>
+<p><em>Figure 41.6 — The lab&#39;s team (screenshot pending).</em></p>
+<p>The <strong>Team</strong> page is titled &quot;Team&quot; with the subtitle &quot;People who work at your lab.&quot; For a technician it shows &quot;Lab admins only — Ask your lab admin to add or change team members.&quot; For lab admins the table has the columns Member, Status and &quot;Role &amp; access&quot; (a role selector and an active switch per row) and the filters search (&quot;Search by name or email…&quot;) and role. The add sheet is &quot;Add team member&quot;: &quot;The person needs their own account — clinic staff accounts can’t join an outside lab.&quot; It asks for &quot;Account email&quot; and &quot;Role&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-profile.svg" alt="Figure 41.7 — Lab portal profile"></p>
+<p><em>Figure 41.7 — The lab profile (screenshot pending).</em></p>
+<p>The <strong>Lab profile</strong> page is titled &quot;Lab profile&quot; with the subtitle &quot;How clinics and couriers reach your lab.&quot; It lists phone, WhatsApp, email, city and address. A lab admin can press an edit button that opens &quot;Edit contact details&quot;: &quot;Clinics see these details on their lab list. The lab&#39;s name is managed by platform support.&quot; The form has Phone, WhatsApp, Email, City and &quot;Pickup / delivery address&quot;, with an &quot;unsaved changes&quot; hint.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-portal-billing.svg" alt="Figure 41.8 — Lab portal billing"></p>
+<p><em>Figure 41.8 — The lab&#39;s read-only Billing page (screenshot pending).</em></p>
+<p>The <strong>Billing</strong> page is titled &quot;Billing&quot; with the subtitle &quot;Bills clinics approved for your work, and what they paid.&quot; It has three tabs. <strong>Bills</strong> has the columns Bill, Clinic, Status, Due, Total and Balance, and opens a bill with its lines and the totals Total, Paid, Balance. <strong>Payments</strong> has Payment, Clinic, &quot;Paid on&quot;, Method, Amount and Status. <strong>Statements</strong> has Period, Clinic, &quot;Ref.&quot;, Total and Status. Nothing can be edited here; an empty tab says &quot;Nothing here yet&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch41-magic-link.svg" alt="Figure 41.9 — The magic link order page"></p>
+<p><em>Figure 41.9 — The no-login order page opened from a magic link (screenshot pending).</em></p>
+<p>The magic link page (<code>/lab-link/$token</code>) is a single page with a small header &quot;Lab order&quot; and, on the right, &quot;For&quot; the lab&#39;s name and &quot;link valid until&quot; a date and time. The body shows &quot;Order&quot; with its number, the clinic, the patient reference and the doctor, the status badge, an &quot;Urgent&quot; badge, &quot;Wanted by&quot; and &quot;Ready on&quot; dates, the same action buttons as the portal (but only <strong>Accept</strong>, <strong>Reject</strong> and <strong>Ask a question</strong>) and the same Work, Revisions, Messages and Files sections. A dead link shows &quot;This link is not valid&quot; or &quot;This link no longer works&quot; with &quot;Ask the clinic to send a new link, or sign in to the lab portal.&quot;</p>
+<h2 id="ch41-lab-portal-41-3-features">41.3 Features</h2>
+<h3 id="ch41-lab-portal-how-one-case-flows-between-the-two-sides">How one case flows between the two sides</h3>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch41-case-sequence.png" alt="Figure 41.10 — A lab case from submit to receipt"></p>
+<p><em>Figure 41.10 — Submit, magic link, accept, production, shipment and receipt.</em></p>
+<p>The diagram has seven participants: Doctor, Web app, API, PostgreSQL, Notification outbox, Lab member or contact and Receptionist. The Doctor presses &quot;Submit to lab&quot;; the Web app calls <code>POST /lab-orders/:id/submit</code> with an Idempotency-Key. The API does one database transaction (status, order number, price snapshot, revision 1, magic link) and puts <code>order.submitted</code> and <code>order.magic_link</code> rows in the outbox. The lab members get an in-app alert and the lab contact gets the link message. The Lab opens the link or the portal order and posts &quot;accept&quot; with an expected date; the API marks the items accepted, derives the order to accepted, creates the vendor bill draft and the stages, and queues <code>order.accepted</code> to the doctor. The Lab then posts start, finish and QC pass on the portal production routes, which queues <code>item.ready</code> to the doctor. The Lab creates a shipment; the API stores a shipment with a QR token, marks the item dispatched and queues <code>stage.sent_to_clinic</code>. The Receptionist scans the slip, the Web app calls <code>POST /lab-shipments/:id/receive</code>, the API records the lines, marks the item received, re-derives the order and queues <code>shipment.received</code> to the lab. Finally the Doctor approves the work and delivers it, which starts the warranty and completes the order once every item is done.</p>
+<h3 id="ch41-lab-portal-41-3-1-sign-in-as-a-lab-member">41.3.1 Sign in as a lab member</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A lab member signs in on the same login page as everybody else. The Platform recognises active lab memberships, and a user with no clinic access goes straight to the lab portal.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>A super admin creates the lab member&#39;s account under <strong>User Admin</strong> and adds it to the lab (Chapter 40, feature &quot;Manage the staff of a lab&quot;), or a lab admin adds an existing account from <strong>Team</strong>.</li>
+<li>The lab member opens the login page, enters email and password and signs in.</li>
+<li>A user with only lab memberships lands on <code>/lab-portal</code>. A user who also works at a clinic goes through the usual clinic flow and opens the portal from the <strong>Lab portal</strong> sidebar entry.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The login answer carries the list of labs the user may open. The app stores it, and from then on a lab-only user is kept inside the portal: any other address redirects back to it. Signing in again after a page reload restores the same list.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/login</code>, the silent refresh and the other session responses include <code>labMemberships</code>, computed by <code>findLabMemberships</code> (active <code>lab_members</code> rows joined to active labs). In the web app <code>LoginForm</code> calls <code>isLabOnlyUser</code> (not super admin, no accessible organization, at least one membership) and navigates to <code>/lab-portal</code>; <code>__root.tsx</code> keeps lab-only users inside <code>/lab-portal</code>, sends users without a membership away from it, and lists <code>/lab-link/</code> among the paths open to everybody. <code>GET /lab-portal/me</code> (any membership, no selected lab) returns the labs for the switcher.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A lab member&#39;s account cannot be a clinic staff or owner account of another clinic, and a super admin cannot be a lab member.</li>
+<li>A deactivated member or a suspended lab drops out of the list and is refused (<code>LAB_ACCESS_DENIED</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> Any user with an active membership. No permission key or feature key applies.</p>
+<p><strong>Data read and written.</strong> Reads <code>users</code>, <code>lab_members</code>, <code>labs</code>.</p>
+<p><strong>Effects on other modules.</strong> Authentication (Chapter 56) issues the session.</p>
+<p><strong>Error cases.</strong> 403 <code>LAB_ACCESS_DENIED</code> (&quot;You are not a member of any lab&quot;).</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-memberships.ts</code> · <code>findLabMemberships</code> · <code>web-app/src/features/auth/components/LoginForm.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-2-work-in-one-lab-or-switch-between-labs">41.3.2 Work in one lab or switch between labs</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Every portal call is tied to one lab. A member of several labs chooses the active lab with the lab switcher; a member of one lab needs no choice.</p>
+<p><strong>How the user does it.</strong> Use the &quot;Switch lab&quot; selector at the top of the portal.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The portal sends the chosen lab with every request. The server checks that the caller really is an active member of that lab and treats any other lab&#39;s id exactly like a lab that does not exist.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>LabPortalGuard</code> (applied to every <code>@LabPortalController</code> route, which is <code>@ContextFree</code> so the clinic tenant guard skips it): rejects requests that carry clinic headers (400 <code>LAB_PORTAL_CLINIC_CONTEXT</code>), loads memberships, takes the lab from the <code>x-lab-id</code> header (or the only lab; 400 <code>LAB_SELECTION_REQUIRED</code> when there are several and none is given), checks <code>@LabRoles</code> against the membership&#39;s role (403 <code>FORBIDDEN</code>) and sets <code>request.labActor</code>. The web client adds <code>x-lab-id</code> only on <code>/lab-portal</code> calls and never sends the clinic headers there. Lab-owned reads start from <code>LabScopedService.scoped()</code>, already filtered by <code>lab_id</code>, so another lab&#39;s ids answer 404.</p>
+<p><strong>Rules and validations.</strong> Super admins hold no membership and are refused like anyone else. A malformed lab id is refused as access denied.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_members</code>, <code>labs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 <code>LAB_SELECTION_REQUIRED</code>, <code>LAB_PORTAL_CLINIC_CONTEXT</code>; 403 <code>LAB_ACCESS_DENIED</code>, <code>FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.guard.ts</code> · <code>LabPortalGuard</code>, <code>LabScopedService</code> · <code>web-app/src/features/lab-portal/components/LabSwitcher.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-3-see-the-lab-dashboard">41.3.3 See the lab dashboard</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows how many orders wait for an answer, how many clinics are active and how many people are on the team.</p>
+<p><strong>How the user does it.</strong> Open <strong>Dashboard</strong>. Click a card to go to the order list or the clinic list.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> &quot;Orders waiting for you&quot; counts orders in the status Submitted.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/lab</code> returns the lab profile with <code>memberCount</code> and <code>activeLinkCount</code>; <code>GET /lab-portal/orders?status=submitted&amp;limit=1</code> supplies the waiting count.</p>
+<p><strong>Rules and validations.</strong> Counts are for the active lab only.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> Reads <code>labs</code>, <code>lab_members</code>, <code>lab_clinic_links</code>, <code>lab_orders</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Shows an error state with retry.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.controller.ts</code> · <code>PortalLabController</code>, <code>LabPortalService.profile</code> · <code>web-app/src/features/lab-portal/pages/LabPortalDashboardPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-4-read-the-order-inbox">41.3.4 Read the order inbox</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists every non-draft order sent to the lab, newest first, with clinic, patient reference, doctor, status, expected date and revision number.</p>
+<p><strong>How the user does it.</strong> Open <strong>Orders</strong>, search by order number or clinic name, filter by status and click a row.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Drafts never show: the lab sees an order only once the clinic submitted it.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/orders</code> → <code>LabOrdersPortalService.list</code>, which starts from the lab-scoped query and adds <code>status_code &lt;&gt; &#39;draft&#39;</code>, joins the patient, the link (for the patient data level), the organization and the doctor, and maps the patient through <code>patientForLab</code>. Paged on the server.</p>
+<p><strong>Rules and validations.</strong> Search matches order number or clinic name.</p>
+<p><strong>Who can do it.</strong> Any lab member (lab admin and technician).</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>patients</code>, <code>lab_clinic_links</code>, <code>organizations</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>LAB_ACCESS_DENIED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/portal/lab-orders-portal.service.ts</code> · <code>LabOrdersPortalService.list</code> · <code>web-app/src/features/lab-portal/pages/LabPortalOrdersPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-5-open-an-order">41.3.5 Open an order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows one order the way the lab needs it: items, teeth, form answers, revisions, messages and shared files, plus the actions the lab may take.</p>
+<p><strong>How the user does it.</strong> Click an order in the list. The back button returns to where the user came from.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The lab sees the lab cost, never the patient price. Internal files of the clinic and files marked only for the patient are hidden.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/orders/:id</code> → <code>toLabOrder</code> (the lab mapper) over the loaded order bundle; <code>GET /lab-portal/orders/:id/actions</code> lists the actions the lab may take now (accept, reject, request clarification, change expected date) computed from the pinned workflow and the member&#39;s role.</p>
+<p><strong>Rules and validations.</strong> An order of another lab, or a draft, answers 404 <code>LAB_ORDER_NOT_FOUND</code>.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> Reads the order tables, <code>attachments</code>, <code>order_revisions</code>, <code>order_messages</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/mappers/order-response.ts</code> · <code>toLabOrder</code> · <code>web-app/src/features/lab-portal/pages/LabPortalOrderDetailPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-6-accept-an-order-with-an-expected-date">41.3.6 Accept an order with an expected date</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The lab accepts a submitted order and promises a ready date. The clinic&#39;s doctor is told. The case now enters production.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the order and press <strong>Accept</strong>.</li>
+<li>Enter &quot;Ready on&quot; and optionally &quot;Note for the clinic&quot;, then confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Every item waiting for the lab is accepted in one step. The Platform creates the try-in stages of each item from its stage template, builds the draft bill the clinic will later approve (from the items&#39; frozen lab costs), and re-derives the order to Accepted.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/accept</code> (body <code>labExpectedOn</code>, optional <code>note</code>, optional <code>version</code>) → <code>LabOrderActionsService.accept</code>, one transaction: row-lock the order and check the version; the order must be submitted (<code>LAB_ACTION_NOT_ALLOWED</code> otherwise); the date must not be past in the location&#39;s clinic day (<code>ClockService</code>); <code>UPDATE lab_orders SET lab_expected_on</code>; for each item in <code>pending_acceptance</code>, engine <code>transitionIn</code> with action <code>accept</code>, required input <code>lab_expected_on</code>, actor side lab, <code>via = portal</code>; item listeners create <code>order_item_stages</code> (<code>initStages</code>) and the vendor bill draft (<code>create_vendor_bill_draft</code> logic in the payables module), and the order is re-derived; an <code>audit_logs</code> row; outbox <code>order.accepted</code> to the doctor. Roles come from the pinned workflow (seeded: lab admin only).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Date format YYYY-MM-DD, not in the past (<code>LAB_EXPECTED_DATE_INVALID</code>).</li>
+<li>Only a lab admin may accept in the seeded workflow; a technician does not see the button.</li>
+<li>&quot;No line is waiting for acceptance&quot; if nothing is pending.</li>
+</ul>
+<p><strong>Who can do it.</strong> Lab admin (seeded workflow role). No permission key.</p>
+<p><strong>Data read and written.</strong> <code>lab_orders</code>, <code>lab_order_items</code>, <code>order_item_stages</code>, <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic sees the order as Accepted with the date; a vendor bill draft appears in the clinic&#39;s lab payables (Chapter 42).</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ACTION_NOT_ALLOWED</code>, <code>LAB_EXPECTED_DATE_INVALID</code>, <code>TRANSITION_INPUT_REQUIRED</code>; 403 <code>TRANSITION_FORBIDDEN</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/actions/lab-order-actions.service.ts</code> · <code>LabOrderActionsService.accept</code> · <code>web-app/src/features/lab-portal/components/LabOrderActions.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-7-reject-an-order">41.3.7 Reject an order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The lab refuses the whole order with a reason. The order becomes &quot;Rejected by lab&quot; and the doctor is told; the clinic may reopen it as a draft.</p>
+<p><strong>How the user does it.</strong> Press <strong>Reject</strong>, type the &quot;Reason&quot; and confirm.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Only the order changes status. Its items stay as they are.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/reject</code> → <code>LabOrderActionsService.reject</code>: engine transition <code>reject</code> on the order (reason required), then outbox <code>order.rejected</code>. Closing the order revokes its magic links.</p>
+<p><strong>Rules and validations.</strong> Reason required, at most 1,000 characters; the order must be submitted.</p>
+<p><strong>Who can do it.</strong> Lab admin (seeded workflow role).</p>
+<p><strong>Data read and written.</strong> <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>magic_links</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic can reopen the order (Chapter 40).</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>, <code>TRANSITION_REASON_REQUIRED</code>; 403 <code>TRANSITION_FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/actions/lab-order-actions.service.ts</code> · <code>LabOrderActionsService.reject</code> · <code>web-app/src/features/lab-portal/components/LabOrderActions.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-8-ask-the-clinic-a-question">41.3.8 Ask the clinic a question</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The lab asks for clarification. The order moves to &quot;Clarification needed&quot; until the clinic replies or revises it.</p>
+<p><strong>How the user does it.</strong> Press <strong>Ask a question</strong>, type the &quot;Question&quot; (optionally about one item) and send.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The question is stored as a message in the order&#39;s thread and the doctor gets a notice with the first part of the text.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/clarification</code> → <code>LabOrderActionsService.clarify</code>: the status transition <code>request_clarification</code> first (so a wrong state writes no message), then <code>order_messages</code> (kind clarification request, author side lab), audit, and outbox <code>order.clarification_requested</code> with the question shortened to 300 characters. A message with kind <code>clarification_request</code> through <code>POST /lab-portal/orders/:id/messages</code> also moves the status.</p>
+<p><strong>Rules and validations.</strong> Body at most 4,000 characters; the order must be submitted; the item, if given, must belong to the order.</p>
+<p><strong>Who can do it.</strong> Lab admin (seeded workflow role).</p>
+<p><strong>Data read and written.</strong> <code>order_messages</code>, <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_ITEM_NOT_FOUND</code>; 422 <code>INVALID_TRANSITION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/actions/lab-order-actions.service.ts</code> · <code>LabOrderActionsService.clarify</code> · <code>web-app/src/features/lab-portal/components/LabOrderActions.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-9-change-the-expected-date">41.3.9 Change the expected date</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the work will be late, the lab moves the expected date and says why. The doctor is told the old date, the new date and the reason.</p>
+<p><strong>How the user does it.</strong> Press <strong>Change date</strong>, choose the new date, type the reason and confirm.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Only orders that are already accepted and not yet finished can change date.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/expected-date</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabOrderActionsService.changeExpectedDate</code>: order lock and version check, allowed statuses accepted, in progress, partially ready, on hold; refuses the same date; refuses a past date; updates <code>lab_expected_on</code>; audit; outbox <code>order.expected_date_changed</code>.</p>
+<p><strong>Rules and validations.</strong> Reason required (at most 1,000 characters). Date in <code>YYYY-MM-DD</code>, not in the past. Not allowed in other statuses (<code>LAB_ACTION_NOT_ALLOWED</code>).</p>
+<p><strong>Who can do it.</strong> Lab admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_orders</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic may see a warning when the date falls after the patient&#39;s next appointment.</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ACTION_NOT_ALLOWED</code>, <code>LAB_EXPECTED_DATE_INVALID</code>; 403 <code>FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/controllers/lab-portal-order-actions.controller.ts</code> · <code>LabOrderActionsService.changeExpectedDate</code> · <code>web-app/src/features/lab-portal/components/LabOrderActions.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-10-write-a-note-to-the-clinic">41.3.10 Write a note to the clinic</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds a plain note to the order thread that the clinic can read.</p>
+<p><strong>How the user does it.</strong> In <strong>Messages</strong> type in &quot;Write to the clinic…&quot; and send.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A note does not change the order&#39;s status; a question does.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/messages</code> (kind <code>note</code>) → <code>LabOrdersService.labMessage</code>: lock, closed orders refused, optional item check, insert into <code>order_messages</code> (author side lab), audit.</p>
+<p><strong>Rules and validations.</strong> Replies come only from the clinic (<code>LAB_ORDER_MESSAGE_INVALID</code>). Closed orders take no messages.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> <code>order_messages</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The doctor sees it in the order&#39;s Messages section.</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ORDER_MESSAGE_INVALID</code>, <code>LAB_ORDER_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.labMessage</code> · <code>web-app/src/features/lab-portal/pages/LabPortalOrderDetailPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-11-acknowledge-a-revision">41.3.11 Acknowledge a revision</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the clinic revises a sent order, the lab confirms that it read the new version. The clinic sees &quot;Read by lab&quot; or &quot;Not read by lab yet&quot;.</p>
+<p><strong>How the user does it.</strong> In <strong>Revisions</strong> press the acknowledge button next to a revision marked &quot;New&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Pressing it twice changes nothing the second time.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/revisions/:revisionNo/acknowledge</code> → <code>LabOrdersService.acknowledgeRevision</code>: row-lock the revision, set <code>lab_acknowledged_at</code> and <code>lab_acknowledged_by</code> once, audit.</p>
+<p><strong>Rules and validations.</strong> Revision must exist (<code>LAB_ORDER_REVISION_NOT_FOUND</code>).</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> <code>order_revisions</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Shown on the clinic order page.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_REVISION_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.acknowledgeRevision</code> · <code>web-app/src/features/lab-portal/components/LabOrderView.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-12-ask-for-an-extra-charge">41.3.12 Ask for an extra charge</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> The lab asks the clinic to approve an extra charge (rush, material, shipping or other) with an amount and a reason. The portal&#39;s order page has no form for it.</p>
+<p><strong>How the user does it.</strong> Not available in the web app. The clinic can already decide such requests (Chapter 40), but the lab has no button to create one.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The API accepts the request; nothing in the portal calls it.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/charge-requests</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabOrdersService.requestCharge</code>: lock, closed orders refused, optional item check, insert into <code>order_charge_requests</code> with status pending, audit. No portal component or API function uses it.</p>
+<p><strong>Rules and validations.</strong> Amount greater than zero (paisa), reason required, kind one of rush, material, shipping, other.</p>
+<p><strong>Who can do it.</strong> Lab admin.</p>
+<p><strong>Data read and written.</strong> <code>order_charge_requests</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> An approved item charge raises the item&#39;s lab cost and so the vendor bill.</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ORDER_INVALID</code>; 404 <code>LAB_ORDER_ITEM_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/controllers/lab-orders-portal.controller.ts</code> · <code>LabOrdersService.requestCharge</code> · none in <code>web-app/src/features/lab-portal/</code></p>
+<h3 id="ch41-lab-portal-41-3-13-upload-files-to-an-order">41.3.13 Upload files to an order</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Lets the lab attach a file (for example a photo of a problem) that the clinic can see. There is no upload control in the portal.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Anything a lab uploads is shared with the clinic automatically.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/orders/:id/attachments</code> (multipart) → <code>AttachmentsService.upload</code> with visibility <code>lab_shared</code>, side lab; at most 50 MB.</p>
+<p><strong>Rules and validations.</strong> <code>ATTACHMENT_INVALID</code> for no file or a file over 50 MB.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> <code>attachments</code>, private file storage, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic sees the file in the order&#39;s Files section.</p>
+<p><strong>Error cases.</strong> 422 <code>ATTACHMENT_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/controllers/lab-orders-portal.controller.ts</code> · <code>AttachmentsService.upload</code> · none in the portal web code</p>
+<h3 id="ch41-lab-portal-41-3-14-download-files-the-clinic-shared">41.3.14 Download files the clinic shared</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Opens a scan, photo or document that the clinic marked &quot;shared with the lab&quot;.</p>
+<p><strong>How the user does it.</strong> In <strong>Files</strong>, press the download button (tooltip &quot;Download&quot; and the file name).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The download link works for ten minutes. A file that is internal to the clinic does not exist for the lab.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/orders/:id/attachments/:attachmentId/url</code> and <code>GET /lab-link/:token/attachments/:attachmentId/url</code> → <code>AttachmentsService.signedUrl(order, id, labOnly = true)</code>, which answers <code>ATTACHMENT_NOT_FOUND</code> for anything not <code>lab_shared</code>.</p>
+<p><strong>Rules and validations.</strong> Lab-shared files only.</p>
+<p><strong>Who can do it.</strong> Any lab member, or the holder of a valid magic link.</p>
+<p><strong>Data read and written.</strong> Reads <code>attachments</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>ATTACHMENT_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/attachments/attachments.service.ts</code> · <code>AttachmentsService.signedUrl</code> · <code>web-app/src/features/lab-portal/components/LabOrderView.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-15-run-the-work-queue-start-qc-pass-qc-fail">41.3.15 Run the work queue: start, QC pass, QC fail</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The lab moves each accepted item through its bench steps. <strong>Start work</strong> begins production; <strong>Send to QC</strong> finishes the work for inspection; <strong>QC pass</strong> marks it ready and tells the doctor (and the patient, if a patient channel exists); <strong>QC fail</strong> sends it back to production with notes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Production</strong>, tab <strong>Work queue</strong>. Search by order number, clinic or work; filter by status.</li>
+<li>On a row press the next step: <strong>Start work</strong>, then (for items with try-in stages) <strong>Ship for try-in</strong>, and later <strong>Send to QC</strong>, <strong>QC pass</strong> or the cross button &quot;QC fail — back to production&quot; (then describe what needs fixing in &quot;QC failed&quot;).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If an item has try-in stages, the lab must ship each try-in and the clinic must approve it before the final stage is at the lab; only then can the item go to QC. The portal shows only the step that is allowed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/production/items</code>, <code>POST …/items/:itemId/start</code>, <code>…/finish</code>, <code>…/qc</code> (body <code>result</code> pass or fail, notes) in <code>LabProductionController</code> over <code>LabWorkService</code>, each in a transaction through the engine (actor side lab, <code>via = portal</code>, optional <code>version</code>). <code>finish</code> is refused unless the final stage is at the lab (<code>PRODUCTION_NOT_ALLOWED</code>: &quot;Send … for try-in first&quot;). <code>qc</code> runs <code>qc_pass</code> (then notification <code>item.ready</code> to the doctor and the patient) or <code>qc_fail</code> (reason). Starting moves the item to in production; the item listener starts the first stage round.</p>
+<p><strong>Rules and validations.</strong> Roles from the pinned item workflow (seeded: lab admin and lab technician). The next-step button follows <code>nextLabStep</code> in the web app. Optimistic version checks (409).</p>
+<p><strong>Who can do it.</strong> Lab admin and lab technician.</p>
+<p><strong>Data read and written.</strong> <code>lab_order_items</code>, <code>order_item_stages</code>, <code>lab_orders</code> (re-derived), <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic sees the order&#39;s progress change; the order status is re-derived on every item change.</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>, <code>STALE_VERSION</code>; 422 <code>INVALID_TRANSITION</code>; 404 <code>PRODUCTION_ITEM_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/lab-work.service.ts</code> · <code>LabWorkService.start</code>, <code>finish</code>, <code>qc</code> · <code>web-app/src/features/lab-portal/production/LabProductionPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-16-assign-a-technician">41.3.16 Assign a technician</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A lab admin assigns an item to a technician of the lab. Reassigning closes the old assignment and opens a new one, so the history is kept. A call to remove the assignment exists in the API, but the portal has no button for it.</p>
+<p><strong>How the user does it.</strong> On a work row press the button &quot;Assign technician&quot; and choose a member.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The list of choices is the active members of this lab only.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/production/technicians</code>, <code>POST …/items/:itemId/assign</code> and <code>…/unassign</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabWorkService.assign</code>, <code>unassign</code>: item row lock, closed items refused, member must be active in this lab, previous open <code>item_assignments</code> row closed (<code>unassigned_at</code>), new row inserted, audit. A partial unique index allows one open assignment per item.</p>
+<p><strong>Rules and validations.</strong> &quot;Technician not found in this lab&quot; for a member of another lab; closed items (delivered, cancelled, rejected, remake required) cannot be assigned.</p>
+<p><strong>Who can do it.</strong> Lab admin.</p>
+<p><strong>Data read and written.</strong> <code>item_assignments</code>, <code>lab_members</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>PRODUCTION_MEMBER_NOT_FOUND</code>; 409 <code>PRODUCTION_NOT_ALLOWED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/lab-work.service.ts</code> · <code>LabWorkService.assign</code> · <code>web-app/src/features/lab-portal/production/LabProductionPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-17-ship-a-try-in-or-finished-work-to-the-clinic">41.3.17 Ship a try-in or finished work to the clinic</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a shipment to the clinic for one or several items of one clinic, prints a slip with a QR code, and moves the work to the clinic&#39;s side.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On a work row press <strong>Ship for try-in</strong> or <strong>Ship</strong>.</li>
+<li>In the dialog add the courier, the tracking number and notes and confirm. A shipment number (for example SHP-0001) is created.</li>
+<li>In the <strong>Shipments</strong> tab press the print button (tooltip &quot;Print slip with QR&quot;) to print the slip.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A try-in round is shipped while the item is in production; finished work can only be shipped after it passed QC. The clinic is told &quot;stage sent to clinic&quot; for every line.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/production/shipments</code>, <code>GET …/shipments</code>, <code>GET …/shipments/:id</code> → <code>ShipmentsService.dispatchToClinic</code>, one transaction: items must belong to this lab and one clinic and not repeat; per line <code>planToClinic</code> decides the stage and item actions (stage at lab, final stage requires item ready; item <code>send_tryin</code> or <code>dispatch</code>, stage <code>dispatch</code>); a shipment row with number from the <code>SHP</code> sequence, courier and tracking, a random 16-byte hex QR token (unique platform-wide), and <code>shipment_items</code>; audit row; outbox <code>stage.sent_to_clinic</code> per line to the doctor. Up to 100 lines, quantity 1 to 64.</p>
+<p><strong>Rules and validations.</strong> &quot;finished work must pass QC before it ships&quot;; &quot;no stage is in progress&quot;; re-shipping work whose first shipment was lost or reported missing needs no status change.</p>
+<p><strong>Who can do it.</strong> Lab admin and lab technician (the status changes are made by the system on the lab&#39;s behalf).</p>
+<p><strong>Data read and written.</strong> <code>shipments</code>, <code>shipment_items</code>, <code>order_item_stages</code>, <code>lab_order_items</code>, <code>status_history</code>, <code>audit_logs</code>, <code>number_sequences</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic receives the parcel (Chapter 40).</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>; 422 <code>PRODUCTION_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/shipments.service.ts</code> · <code>ShipmentsService.dispatchToClinic</code> · <code>web-app/src/features/lab-portal/production/print-shipment-slip.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-18-receive-what-the-clinic-sent">41.3.18 Receive what the clinic sent</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Confirms that an impression, model or returned work sent by the clinic arrived.</p>
+<p><strong>How the user does it.</strong> In <strong>Shipments</strong>, on a shipment from a clinic that is dispatched or partially received, press <strong>Receive</strong>. The toast says &quot;Received from the clinic&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The portal records every line as received in full and in good condition. A finer per-line receive (damage, partial quantities) exists in the API but not in the portal screen.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/production/shipments/:id/receive</code> → <code>ShipmentsService.receive</code> with a lab caller (direction must be to the lab). The portal sends each line with its full quantity and condition OK. No item or stage status changes for shipments to the lab.</p>
+<p><strong>Rules and validations.</strong> Only the receiving side can receive; lines already received cannot change.</p>
+<p><strong>Who can do it.</strong> Lab admin and lab technician.</p>
+<p><strong>Data read and written.</strong> <code>shipments</code>, <code>shipment_items</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic&#39;s record shows the shipment as received.</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>; 404 <code>PRODUCTION_SHIPMENT_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/shipments.service.ts</code> · <code>ShipmentsService.receive</code> · <code>web-app/src/features/lab-portal/production/LabProductionPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-19-report-a-shipment-lost">41.3.19 Report a shipment lost</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Marks an open shipment lost with a reason. Open lines become missing, the work stays owed so the lab can ship it again, and the doctor is told.</p>
+<p><strong>How the user does it.</strong> In <strong>Shipments</strong> press the lost button (tooltip &quot;Mark lost&quot;), type the reason and confirm &quot;Mark … lost&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Either side may report a loss. A new shipment can then carry the same item.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-portal/production/shipments/:id/lost</code> → <code>ShipmentsService.markLost</code>: lock, open status only, open lines set to missing with quantity 0, status lost with time and reason, audit, outbox <code>shipment.lost</code> for the lab and for the doctor of each order.</p>
+<p><strong>Rules and validations.</strong> Reason required (at most 2,000 characters); only dispatched or partially received shipments.</p>
+<p><strong>Who can do it.</strong> Lab admin and lab technician.</p>
+<p><strong>Data read and written.</strong> <code>shipments</code>, <code>shipment_items</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> None beyond notifications.</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>; 404 <code>PRODUCTION_SHIPMENT_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/shipments.service.ts</code> · <code>ShipmentsService.markLost</code> · <code>web-app/src/features/lab-portal/production/LabProductionPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-20-dispute-a-remake-request">41.3.20 Dispute a remake request</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the clinic asks for a remake and the lab disagrees, the lab states why. The clinic then decides who is responsible and who pays (Chapter 40).</p>
+<p><strong>How the user does it.</strong> In <strong>Remakes</strong> press the dispute button, write the reason in &quot;Dispute remake request&quot; (&quot;Tell the clinic why the lab isn’t responsible. They decide who pays.&quot;) and confirm.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A dispute does not block the clinic: it only records the lab&#39;s note and changes the request&#39;s status to disputed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/production/remake-requests</code>, <code>POST …/remake-requests/:id/dispute</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabWorkService.dispute</code>: lock, version check, only a request in status requested, set disputed and <code>dispute_note</code>, audit.</p>
+<p><strong>Rules and validations.</strong> Only requested requests can be disputed (<code>PRODUCTION_NOT_ALLOWED</code>).</p>
+<p><strong>Who can do it.</strong> Lab admin.</p>
+<p><strong>Data read and written.</strong> <code>remake_requests</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The clinic sees the request as disputed.</p>
+<p><strong>Error cases.</strong> 404 <code>PRODUCTION_REMAKE_NOT_FOUND</code>; 409 <code>PRODUCTION_NOT_ALLOWED</code>, <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/lab-work.service.ts</code> · <code>LabWorkService.dispute</code> · <code>web-app/src/features/lab-portal/production/LabProductionPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-21-accept-suspend-or-reactivate-a-clinic">41.3.21 Accept, suspend or reactivate a clinic</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The <strong>Clinics</strong> page lists the clinics that linked the lab. A lab admin can accept an invitation, suspend a clinic with a reason, or reactivate a clinic the lab itself suspended.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Clinics</strong>, filter by status or search by name.</li>
+<li>Press the accept button for a clinic that is &quot;Awaiting confirmation&quot;.</li>
+<li>To stop working with a clinic, choose suspend, type the reason and confirm. To resume, press reactivate.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If the clinic suspended the link, the lab cannot undo it, and the reverse. A lab never sees the clinic&#39;s other data.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/clinics</code>, <code>POST /lab-portal/clinics/:linkId/transitions</code> (<code>@LabRoles(lab_admin)</code>; actions activate, suspend, reactivate) → <code>LabPortalService.transitionClinic</code>: locks the link in the lab&#39;s scope and calls the shared <code>LabLinksService.applyTransition</code> with <code>via = portal</code>. The clinic list query returns only the link&#39;s id, status, payment terms and version plus the clinic&#39;s name and the city of its main active location.</p>
+<p><strong>Rules and validations.</strong> Same transition table as Chapter 40 (reason required to suspend; only the suspending side reactivates).</p>
+<p><strong>Who can do it.</strong> Read: any lab member. Change: lab admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_clinic_links</code>, <code>status_history</code>, <code>audit_logs</code>; reads <code>organizations</code>, <code>locations</code>.</p>
+<p><strong>Effects on other modules.</strong> An active link is required for the clinic to order from the lab.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_LINK_NOT_FOUND</code>; 403 <code>LAB_LINK_SUSPENDED_BY_OTHER_SIDE</code>; 422 <code>INVALID_TRANSITION</code>, <code>LAB_LINK_REASON_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.service.ts</code> · <code>LabPortalService.transitionClinic</code> · <code>web-app/src/features/lab-portal/pages/LabClinicsPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-22-manage-the-lab-39-s-team">41.3.22 Manage the lab&#39;s team</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A lab admin adds members by account email, changes a member&#39;s role and switches members on or off.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Team</strong> (visible to lab admins; technicians see &quot;Lab admins only&quot;).</li>
+<li>Press the add button. In &quot;Add team member&quot; enter &quot;Account email&quot; and &quot;Role&quot; (Lab admin or Technician).</li>
+<li>Change a role in the selector or flip the active switch.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A lab admin cannot change their own membership, so the lab cannot lock itself out by demoting or deactivating itself. The account must already exist; clinic staff accounts cannot join an outside lab.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /lab-portal/members</code>, <code>PATCH /lab-portal/members/:memberId</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabPortalService</code> over the same <code>LabMembersService</code> that the super admin uses. <code>updateMember</code> refuses the caller&#39;s own row (<code>LAB_MEMBER_SELF_CHANGE</code>). Add checks the user and the &quot;may join&quot; rules; update locks the member row and checks the version.</p>
+<p><strong>Rules and validations.</strong> As Chapter 40 (feature &quot;Manage the staff of a lab&quot;): no super admins, no clinic staff or owners for external labs, one membership per lab and user. The last lab admin could still be demoted by another admin; no rule keeps one admin.</p>
+<p><strong>Who can do it.</strong> Lab admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_members</code>, <code>audit_logs</code>; reads <code>users</code>.</p>
+<p><strong>Effects on other modules.</strong> The member list decides who receives the lab&#39;s in-app notifications.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_MEMBER_USER_NOT_FOUND</code>, <code>LAB_MEMBER_NOT_FOUND</code>; 409 <code>LAB_MEMBER_EXISTS</code>, <code>LAB_MEMBER_NOT_ALLOWED</code>, <code>LAB_MEMBER_SELF_CHANGE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.controller.ts</code> · <code>LabPortalService.addMember</code>, <code>updateMember</code> · <code>web-app/src/features/lab-portal/pages/LabTeamPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-23-view-and-edit-the-lab-profile">41.3.23 View and edit the lab profile</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the lab&#39;s contact details and lets a lab admin change them. The lab&#39;s name and type are managed by the platform.</p>
+<p><strong>How the user does it.</strong> Open <strong>Lab profile</strong>. A lab admin presses the edit button, changes Phone, WhatsApp, Email, City or &quot;Pickup / delivery address&quot; and saves.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Clinics see these details on their lab list, and the WhatsApp number, phone and email decide whether a magic link can be sent automatically at submit.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/lab</code>, <code>PATCH /lab-portal/lab</code> (<code>@LabRoles(lab_admin)</code>) → <code>LabPortalService.updateContact</code> → <code>LabsDirectoryService.update</code> with a lab-side audit actor (lock, version check, audit diff).</p>
+<p><strong>Rules and validations.</strong> Only contact fields are accepted; stale versions give 409.</p>
+<p><strong>Who can do it.</strong> Read: any lab member. Edit: lab admin.</p>
+<p><strong>Data read and written.</strong> <code>labs</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The contact fields are what clinics and the magic link sender use.</p>
+<p><strong>Error cases.</strong> 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.service.ts</code> · <code>LabPortalService.updateContact</code> · <code>web-app/src/features/lab-portal/components/LabContactSheet.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-24-see-bills-payments-and-statements">41.3.24 See bills, payments and statements</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A read-only view of the money the clinics owe or paid the lab: approved vendor bills, vendor payments, and statements. Draft bills are hidden, because a draft is the clinic&#39;s working copy.</p>
+<p><strong>How the user does it.</strong> Open <strong>Billing</strong> and switch between <strong>Bills</strong>, <strong>Payments</strong> and <strong>Statements</strong>; open a bill to see its lines and the totals Total, Paid and Balance.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The lab sees only its own bills. It cannot approve, pay, dispute or upload anything here; those actions belong to the clinic (Chapter 42).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-portal/payables/bills</code>, <code>…/bills/:id</code>, <code>…/payments</code>, <code>…/statements</code>, <code>…/statements/:id</code> in <code>LabPortalPayablesController</code> over <code>LabPortalPayablesService</code>, all scoped to the lab; bills with status draft are excluded in the query.</p>
+<p><strong>Rules and validations.</strong> Read-only; status filters supported.</p>
+<p><strong>Who can do it.</strong> Any lab member.</p>
+<p><strong>Data read and written.</strong> Reads <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>vendor_payments</code>, <code>vendor_payment_allocations</code>, <code>lab_statements</code>, <code>lab_statement_lines</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 for another lab&#39;s record.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/controllers/lab-portal-payables.controller.ts</code> · <code>LabPortalPayablesService</code> · <code>web-app/src/features/lab-portal/payables/LabBillingPage.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-25-answer-an-order-from-a-magic-link-without-logging-in">41.3.25 Answer an order from a magic link, without logging in</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A lab contact who received a link opens one order on any phone or computer and can view it, accept it with a ready date, reject it with a reason or ask a question. It needs no account.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the link from the message. The page shows the order and the actions the link allows.</li>
+<li>Press <strong>Accept</strong> (enter &quot;Ready on&quot;), <strong>Reject</strong> (enter a reason) or <strong>Ask a question</strong>. Download a shared file with its button.</li>
+<li>If the link is dead, the page explains &quot;This link no longer works&quot; and suggests asking the clinic for a new one or signing in to the portal.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The long, random address is the only key. It opens exactly one order of one lab, shows what the lab may see and lets the lab do three things. It does not offer the date-change action. The server records every action as made through a magic link, with no user, and counts each use. A link stops by itself after 24 hours (default), when the clinic revokes it, when the order closes or when the lab is suspended.</p>
+<p><strong>Behind the scenes — technically.</strong> Public routes (<code>@Public()</code> and listed in <code>PUBLIC_ROUTES</code>) under <code>/lab-link</code>: <code>GET /lab-link/:token</code>, <code>POST …/accept</code>, <code>…/reject</code>, <code>…/clarification</code>, <code>GET …/attachments/:attachmentId/url</code> in <code>MagicLinkController</code>, behind <code>MagicLinkThrottleGuard</code> (a fixed one-minute window per client IP, limit from the environment variable <code>LAB_LINK_RATE_LIMIT</code>, default 120, kept in process memory; over the limit gives 429 <code>MAGIC_LINK_RATE_LIMITED</code>). <code>MagicLinksService.resolve</code> checks the token shape (43 base64url characters), finds the row by <code>token_hash</code> (SHA-256 of the token; the token itself is an HMAC of a random nonce under the secret from <code>MAGIC_LINK_SECRET</code>), rejects revoked, expired or used-up links, a closed order or an inactive lab. The view marks <code>last_viewed_at</code> and returns the lab mapper&#39;s order and the actions from <code>LabOrderActionsService.available</code>, limited to accept, reject and request clarification and only for a <code>lab_update_order</code> link. Each action runs in one transaction that locks the link, runs the action as a lab admin without a user (<code>via = magic_link</code>, <code>magic_link_id</code> stored with the status change) and increments <code>used_count</code> and <code>last_used_at</code>. Default lifetime is 24 hours, or the value of <code>LAB_MAGIC_LINK_TTL_HOURS</code> (1 to 168).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Unknown or badly shaped token: 404 <code>MAGIC_LINK_INVALID</code>. Expired or used up: 410 <code>MAGIC_LINK_EXPIRED</code>. Revoked, order closed or lab inactive: 410 <code>MAGIC_LINK_REVOKED</code>.</li>
+<li>A view-only link (<code>lab_view_order</code>) cannot act: 403 <code>MAGIC_LINK_FORBIDDEN</code>.</li>
+<li>The same business rules as in the portal apply (accept needs a submitted order and a date that is not in the past; reject needs a reason).</li>
+<li><code>max_uses</code> is never set by the code, so links are not limited by count.</li>
+</ul>
+<p><strong>Who can do it.</strong> Anyone holding a valid link. No permission or feature key applies.</p>
+<p><strong>Data read and written.</strong> <code>magic_links</code>, <code>lab_orders</code>, <code>lab_order_items</code>, <code>order_messages</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> Same effects as the portal: the doctor is notified, stages and the vendor bill draft are created on accept.</p>
+<p><strong>Error cases.</strong> 404 <code>MAGIC_LINK_INVALID</code>; 410 <code>MAGIC_LINK_EXPIRED</code>, <code>MAGIC_LINK_REVOKED</code>; 403 <code>MAGIC_LINK_FORBIDDEN</code>; 429 <code>MAGIC_LINK_RATE_LIMITED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/magic-links/magic-link.controller.ts</code> · <code>MagicLinkController</code>, <code>MagicLinksService.resolve</code> · <code>web-app/src/features/lab-portal/pages/MagicLinkOrderPage.tsx</code> · route <code>web-app/src/routes/lab-link.$token.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-26-open-an-order-from-the-printed-qr-code">41.3.26 Open an order from the printed QR code</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The QR code on the printed work order opens the right page for whoever scans it while signed in: a lab member lands on the portal order (and the active lab is switched to the order&#39;s lab), clinic staff land on the clinic order (and the organization and location are switched if needed). Anyone else sees &quot;Order not found&quot;.</p>
+<p><strong>How the user does it.</strong> Scan the QR code with a phone that is signed in, or type the address.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The answer for an outsider is exactly the same as for an order that does not exist, so the code leaks nothing.</p>
+<p><strong>Behind the scenes — technically.</strong> Route <code>/o/$orderId</code> renders <code>OrderQrPage</code>, which calls <code>GET /order-links/:orderId</code> (<code>@ContextFree</code>, signed-in users). The controller answers <code>target: lab</code> (for a lab member of the order&#39;s lab when the order is not a draft) or <code>target: clinic</code> (owner, or active assignment at the order&#39;s organization), else 404 <code>ORDER_LINK_NOT_FOUND</code>. The page then calls <code>setActiveLab</code> or <code>POST /auth/switch-location</code> and navigates.</p>
+<p><strong>Rules and validations.</strong> Needs a signed-in user (the route is not among the open paths, so the app asks for login first).</p>
+<p><strong>Who can do it.</strong> Any signed-in lab member of the order&#39;s lab, or clinic staff of the ordering clinic.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>lab_members</code>, <code>organization_ownership</code>, <code>employee_org_location_assignments</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>ORDER_LINK_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/controllers/order-link.controller.ts</code> · <code>OrderLinkController.resolve</code> · <code>web-app/src/features/lab-portal/pages/OrderQrPage.tsx</code> · route <code>web-app/src/routes/o.$orderId.tsx</code></p>
+<h3 id="ch41-lab-portal-41-3-27-be-told-about-new-work">41.3.27 Be told about new work</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Lab members get in-app notifications for <code>order.submitted</code>, <code>shipment.received</code>, <code>shipment.lost</code>, <code>stage.approved</code>, <code>stage.correction</code>, <code>remake.requested</code> and <code>remake.agreed</code>. The lab contact gets the magic link message (<code>order.magic_link</code>).</p>
+<p><strong>How the user does it.</strong> Nothing to do. This review found no notification inbox inside the portal layout (a user who is also clinic staff sees the inbox in the clinic header).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The notification exists in the database for the lab member&#39;s user account, with a link into the portal order, but the portal itself does not show a bell or a list. The message to a lab contact has the channels WhatsApp, SMS or email, and the Platform has no real provider for them yet, so those are written to a development log.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>orderRecipients</code> finds the lab&#39;s active members and the ordering doctor and builds the link <code>/lab-portal/orders/:id</code>; messages are queued with <code>NotificationService.enqueue</code> in the business transaction. The in-app provider writes <code>user_notifications</code>; the provider registered for WhatsApp, SMS and email is <code>DevLogChannelProvider</code>. The full list of events and emitters is in Chapter 40 (feature &quot;Notifications about lab work&quot;).</p>
+<p><strong>Rules and validations.</strong> A message with no recipient is skipped.</p>
+<p><strong>Who can do it.</strong> Automatic.</p>
+<p><strong>Data read and written.</strong> <code>notification_outbox</code>, <code>user_notifications</code>.</p>
+<p><strong>Effects on other modules.</strong> Chapter 44.</p>
+<p><strong>Error cases.</strong> None shown.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/workflow/order-recipients.ts</code> · <code>orderRecipients</code> · <code>web-app/src/features/lab-portal/components/LabPortalLayout.tsx</code> (no inbox)</p>
+<h2 id="ch41-lab-portal-41-4-entities-and-data-model">41.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch25-lab-directory-erd.png" alt="Figure 41.11 — Lab directory, links, members and magic links"></p>
+<p><em>Figure 41.11 — The tables that identify the lab side: labs, the clinic link, lab members and magic links.</em></p>
+<p>The diagram shows <code>labs</code> with solid lines to <code>lab_clinic_links</code>, <code>lab_members</code> and <code>magic_links</code>, all ON DELETE RESTRICT. <code>organizations</code> connects to <code>labs</code> (&quot;owns internal lab&quot;), to <code>lab_clinic_links</code> and to <code>magic_links</code>. <code>users</code> connects to <code>lab_members</code>, and <code>lab_orders</code> connects to <code>magic_links</code>. A dotted line from <code>shipments</code> to <code>magic_links</code> is labelled &quot;shipment_id, no FK&quot;. All four main boxes use UUID version 7 keys, and <code>token_hash</code> on <code>magic_links</code> is unique.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>A lab is not a tenant and has no organization column. An in-house lab records its owner organization; an external lab has none.</li>
+<li>Each lab link belongs to exactly one lab and one organization, one link per pair. It carries <code>status</code> (invited, active, suspended), <code>payment_terms_days</code> and <code>patient_data_level</code> (full name or code only).</li>
+<li>Each lab member belongs to exactly one lab and one user, one membership per pair, with <code>role</code> lab admin or lab technician and <code>is_active</code> as a soft delete.</li>
+<li>Each magic link belongs to one organization, one lab and one lab order and stores <code>token_hash</code> (never the token), a random <code>nonce</code>, <code>purpose</code>, <code>delivery</code>, <code>expires_at</code>, <code>max_uses</code>, <code>used_count</code> and the revocation columns.</li>
+<li>Lab-side data is read through columns that copy the lab id (<code>lab_orders.lab_id</code>, <code>order_item_stages.lab_id</code>, <code>shipments.lab_id</code>, <code>remake_requests.lab_id</code>, <code>item_assignments.lab_id</code>) so the portal can filter every query by the caller&#39;s lab.</li>
+<li>The shipment link on magic links is unused: clinics receive by the shipment&#39;s QR token, so the <code>receive_shipment</code> purpose has no creator.</li>
+</ul>
+<p>The order, item, stage, shipment and remake tables are shown in Chapter 40 and the vendor bill tables in Chapter 42. Every one of them uses ON DELETE RESTRICT, and no migration file exists for these tables (development schema sync, reviewed schema sync in production).</p>
+<h2 id="ch41-lab-portal-41-5-status-lifecycles">41.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch41-magic-link-status.png" alt="Figure 41.12 — Magic link states"></p>
+<p><em>Figure 41.12 — The states of a magic link, which are computed from its columns and not stored.</em></p>
+<p>The diagram has four states. A link enters <code>active</code> when it is issued, either at order submit or on demand by the clinic. From <code>active</code> it goes to <code>expired</code> when <code>expires_at</code> passes (24 hours by default), to <code>revoked</code> when the clinic revokes it, to <code>revoked</code> as well when the order is closed or rejected, and to <code>used_up</code> when <code>used_count</code> reaches <code>max_uses</code>. <code>expired</code>, <code>revoked</code> and <code>used_up</code> are final. No code sets <code>max_uses</code>, so <code>used_up</code> never happens today.</p>
+<p>Walking through the states: <strong>active</strong> — opens the order and allows the actions of its purpose; <strong>expired</strong> — the time ran out, the request answers 410 &quot;This link has expired&quot;; <strong>revoked</strong> — withdrawn by the clinic or closed by the order&#39;s closing, 410 &quot;This link was withdrawn&quot;; <strong>used up</strong> — reserved for a use limit. The state is computed when the link is read (<code>linkState</code>), except revocation, which is stored in <code>revoked_at</code> and <code>revoked_reason</code>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-link-status.png" alt="Figure 41.13 — Lab link status"></p>
+<p><em>Figure 41.13 — The lab link status values (the same diagram as in Chapter 40).</em></p>
+<p>The diagram shows a link entering at <code>invited</code> (a clinic adds a lab) or directly at <code>active</code> (an in-house lab). <code>invited</code> goes to <code>active</code> on &quot;activate&quot; or to <code>suspended</code> on &quot;suspend&quot; with a reason. <code>active</code> goes to <code>suspended</code> on &quot;suspend&quot;. <code>suspended</code> returns to <code>active</code> on &quot;reactivate&quot;, only by the side that suspended it. In the portal a lab admin uses the accept, suspend and reactivate buttons of the <strong>Clinics</strong> page for the lab&#39;s side of these changes.</p>
+<p>The lab sees the same item, stage, shipment and remake lifecycles as the clinic, from the other side. The table lists what the lab can do in each seeded item state; the clinic&#39;s view of the same states is in Chapter 40.</p>
+<div class="tw"><table><thead><tr>
+<th>Item state (label)</th>
+<th>What the lab can do</th>
+<th>Who moves it next</th>
+</tr>
+</thead><tbody><tr>
+<td>pending_acceptance (&quot;Waiting for lab&quot;)</td>
+<td>Accept with a date, reject the order, ask a question</td>
+<td>Lab admin</td>
+</tr>
+<tr>
+<td>accepted</td>
+<td>Start work</td>
+<td>Lab admin or technician</td>
+</tr>
+<tr>
+<td>in_production</td>
+<td>Ship a try-in round, or Send to QC</td>
+<td>Lab, then the clinic&#39;s approval</td>
+</tr>
+<tr>
+<td>at_clinic_tryin</td>
+<td>Wait; the round is with the clinic</td>
+<td>Clinic (try-in decision)</td>
+</tr>
+<tr>
+<td>qc</td>
+<td>QC pass or QC fail</td>
+<td>Lab admin or technician</td>
+</tr>
+<tr>
+<td>ready</td>
+<td>Ship finished work</td>
+<td>Lab admin or technician</td>
+</tr>
+<tr>
+<td>dispatched</td>
+<td>Wait for receipt</td>
+<td>Clinic front desk</td>
+</tr>
+<tr>
+<td>received, approved, delivered</td>
+<td>Nothing; clinic decisions</td>
+<td>Clinic doctor</td>
+</tr>
+<tr>
+<td>remake_required</td>
+<td>Dispute the remake request</td>
+<td>Lab admin, then the clinic</td>
+</tr>
+</tbody></table></div><p>The table shows, for each seeded item state, the lab&#39;s available action and who moves the item next. The states are workflow data and a custom published workflow may differ.</p>
+<h2 id="ch41-lab-portal-41-6-connections-to-other-modules">41.6 Connections to other modules</h2>
+<ul>
+<li><strong>Dental lab, clinic side (Chapter 40).</strong> Every portal action changes a clinic order; every clinic action changes what the portal offers.</li>
+<li><strong>Lab finance (Chapter 42).</strong> Accepting an order creates the vendor bill draft; the lab later sees approved bills, payments and statements read-only.</li>
+<li><strong>Workflow engine (Chapter 43).</strong> All status changes go through the engine; the lab roles (lab admin, lab technician) are matched against the workflow transitions&#39; allowed roles, and a magic link acts as lab admin.</li>
+<li><strong>Notifications (Chapter 44).</strong> In-app alerts to lab members and link messages to the lab contact.</li>
+<li><strong>Authentication (Chapter 56).</strong> Lab members use the normal login and session; the session response carries their lab memberships.</li>
+<li><strong>Access control (Chapter 57).</strong> Lab roles are separate from clinic permissions. The portal uses <code>@LabRoles</code> on routes, never <code>@Can</code>.</li>
+<li><strong>Audit (Chapter 60).</strong> Lab-side writes are audited with the actor side &quot;lab&quot; and the route (<code>portal</code>, <code>magic_link</code>, <code>proxy</code>, <code>qr</code>) in the status history.</li>
+</ul>
+<h2 id="ch41-lab-portal-41-7-limitations-and-known-gaps">41.7 Limitations and known gaps</h2>
+<ul>
+<li>The lab cannot edit its own catalog or prices; platform staff do that.</li>
+<li>No form for extra charges and no upload control in the portal, although the API supports both.</li>
+<li>The portal&#39;s receive button always records a full, good-condition receipt; per-line condition and partial quantities are API-only.</li>
+<li>No remove-assignment button, although the API has one.</li>
+<li>No notification inbox inside the portal layout.</li>
+<li>Messages to the lab contact and the patient go to a development logger until a real provider is added.</li>
+<li>A technician cannot accept, reject or ask; those transitions are lab admin only in the seeded workflow.</li>
+<li>A magic link has no use limit and cannot change the expected date.</li>
+<li>The magic link rate limit is per server process.</li>
+<li>The first lab account must be created in User Admin by someone with the right to do so; the portal cannot invite a person who has no account.</li>
+<li>A lab admin can demote or deactivate another admin; nothing keeps at least one admin.</li>
+<li>A lab that serves several clinics sees each clinic&#39;s orders in one list; there is no per-clinic filter other than search.</li>
+</ul>
+<h2 id="ch41-lab-portal-41-8-owner-39-s-faq">41.8 Owner&#39;s FAQ</h2>
+<p><strong>How does a lab person log in?</strong> With the same login page as everybody else, with an account that a super admin or a lab admin added to the lab. A user with only lab memberships goes straight to the lab portal.</p>
+<p><strong>Can a lab see our patients&#39; names?</strong> Only if the lab link&#39;s &quot;Patient details shared&quot; is &quot;Full patient name&quot;. With &quot;Patient code only&quot; the lab sees the patient number. The setting is per clinic and lab.</p>
+<p><strong>Can a lab see what we charge patients?</strong> No. Lab responses carry the lab cost only and omit the patient price, the clinic&#39;s treatment and internal files.</p>
+<p><strong>Is a magic link safe to forward?</strong> Anyone holding the link can view and answer that one order until it expires, is revoked, or the order closes. The default life is 24 hours, and the clinic can revoke it. The secret part is never stored in the database.</p>
+<p><strong>What if the lab does not answer a submitted order?</strong> A clinic coordinator can record the lab&#39;s answer on its behalf (Chapter 40). Otherwise the order stays Submitted.</p>
+<p><strong>Can a technician accept an order?</strong> No. In the seeded workflow only a lab admin accepts, rejects or asks. A technician starts work, sends it to QC, passes or fails QC and ships.</p>
+<p><strong>Can a lab work for several clinics?</strong> Yes. A lab is shared by clinics; each clinic has its own lab link and its own prices. A person can also be a member of several labs and switch with the lab switcher.</p>
+<p><strong>What happens when a lab is suspended on the platform?</strong> Its members lose portal access, its magic links stop working, new links and activations are blocked, and orders already sent are not changed.</p>
+<p><strong>Where is lab activity recorded?</strong> Every status change goes to <code>status_history</code> with the actor side and route, and every edit to <code>audit_logs</code>.</p>
+</section></body></html>

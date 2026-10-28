@@ -1,0 +1,100 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch59-notification-mechanics"><h1 id="ch59-notification-mechanics-chapter-59-notification-mechanics">Chapter 59 — Notification mechanics</h1>
+<p>This chapter explains how a notification travels inside the Platform, from the business event that causes it to the bell icon where a staff member reads it. It is written for the product owner who wants to understand the pipeline and its guarantees. The Notifications module chapter (Chapter 44) describes the settings screen, the event catalog and what users see; this chapter covers only the mechanics. Today the Platform delivers notifications <strong>in the application only</strong>: WhatsApp, SMS and email are prepared in the code but have no real sender.</p>
+<h2 id="ch59-notification-mechanics-59-1-the-pipeline">59.1 The pipeline</h2>
+<p><strong>Status:</strong> [Implemented] for in-app delivery. [Not implemented] for WhatsApp, SMS and email.</p>
+<p>A <strong>notification event</strong> is a named thing that happens, such as <code>order.submitted</code> or <code>item.ready</code> (21 are seeded, all about lab orders, shipments, stages, appointments linked to labs and payments). When a workflow step runs the <code>notify</code> effect, the Platform decides who should be told, whether each person wants it, what the message says and when it may be sent. The result is one row per person and channel in a table called <code>notification_outbox</code>. A separate loop in the worker process sends those rows later. This is the <strong>transactional outbox</strong> pattern: the notification row is written in the same database transaction as the business change, so it exists only if the change was committed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch59-pipeline.png" alt="Figure 59.1 — The notification pipeline"></p>
+<p><em>Figure 59.1 — The path of a notification from the business event to the inbox.</em></p>
+<p>The flowchart reads from top to bottom. A &quot;Business event&quot; (for example <code>order.submitted</code>) triggers the &quot;notify effect&quot;, which runs inside the transaction of the change. The effect asks the &quot;Recipient resolver&quot; for the audiences and people to tell. For each person and channel a &quot;Decision&quot; step applies the switches, the patient&#39;s opt-out and quiet hours. A &quot;Template&quot; step renders the message, filling placeholders. The result is stored in the database table <code>notification_outbox</code>, one row per person and channel. The &quot;Relay in the worker&quot;, woken by a database NOTIFY and by a two-second poll, claims due rows. The &quot;In-app provider&quot; writes the user&#39;s copy into <code>user_notifications</code>, which is the bell inbox. A second branch, the &quot;Dev log provider&quot;, handles WhatsApp, SMS and email by writing the message to the server log instead of sending it.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/services/notification.service.ts</code> · <code>NotificationService.enqueue</code> · <code>backend/src/notifications/effects/notify.effect.ts</code> · <code>backend/src/notifications/delivery/</code></p>
+<h2 id="ch59-notification-mechanics-59-2-event-recipients-and-audiences">59.2 Event, recipients and audiences</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The <code>notify</code> effect names an event code (and may narrow the audiences). An unknown code fails the whole transition, so a typo can never silently drop messages. Who receives the message is decided by a <strong>recipient resolver</strong> registered per kind of subject: the module that owns the subject says how to find its doctor, coordinator, lab and patient. Today only the lab order workflow registers one, so lab events are the only ones that produce notifications.</p>
+<p>There are four <strong>audiences</strong>: patient (the only external audience), doctor, coordinator and lab. A recipient is a user (a signed-in person), a patient or a lab contact. The same person listed twice, or under two audiences, gets one row per channel. If an event is not meant for an audience, enqueueing for it fails with <code>NOTIFICATION_AUDIENCE_INVALID</code>. A patient is looked up in the same organization, so a clinic can never message another clinic&#39;s patient.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/effects/notification-recipients.registry.ts</code> · <code>NotificationRecipientsRegistry</code> · <code>backend/src/notifications/notifications.enums.ts</code></p>
+<h2 id="ch59-notification-mechanics-59-3-rules-and-the-decision-order">59.3 Rules and the decision order</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>For every recipient and channel the Platform makes one decision. The first check that matches wins:</p>
+<ol>
+<li>An internal audience with a mandatory event on the in-app channel is queued, ignoring settings.</li>
+<li>If the audience&#39;s master switch is off, the row is stored as <code>skipped_disabled</code>.</li>
+<li>If the rule for this event and channel is off, it is <code>skipped_disabled</code>.</li>
+<li>If the patient opted out of the channel, it is <code>skipped_opt_out</code>.</li>
+<li>If the time is inside the audience&#39;s quiet hours (and the channel is not in-app), it is <code>held_quiet_hours</code> until the window ends.</li>
+<li>Otherwise it is <code>queued</code> for now.</li>
+</ol>
+<p>Skipped rows are still written, so the clinic can see in its message log why nothing was sent. Defaults apply when a clinic has set nothing: the patient audience and every patient rule are off; internal audiences are on, with in-app on and the external channels off. The channels offered per audience in code are in-app only for doctor, coordinator and lab, and none for patients, so patients receive nothing today.</p>
+<p><strong>Quiet hours</strong> are a start and end time per audience. The window can cross midnight (for example 22:00 to 08:00); equal start and end means no window. They use the audience setting&#39;s timezone if it names one, otherwise the timezone of the location the event belongs to (Chapter 62), otherwise UTC. In-app messages are never held, because they are silent.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/decision/notification-decision.ts</code> · <code>decide</code> · <code>quietHoursEnd</code></p>
+<h2 id="ch59-notification-mechanics-59-4-templates">59.4 Templates</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A template has a subject, a body, a channel, a language (English, Urdu or Roman Urdu) and optional provider reference. The body uses placeholders such as <code>{clinic_name}</code> and <code>{recipient_name}</code>, plus the event&#39;s own. An unknown placeholder becomes empty text so no raw braces ever reach a person. The Platform picks the clinic&#39;s own template in the person&#39;s language, then the platform&#39;s template in that language, then the same two in English. A rule can name a specific template. If no template exists, the event&#39;s name and description are used.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/templates/template-render.ts</code> · <code>renderTemplate</code> · <code>pickTemplate</code></p>
+<h2 id="ch59-notification-mechanics-59-5-outbox-relay-and-sending">59.5 Outbox, relay and sending</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch59-outbox-status.png" alt="Figure 59.2 — Status of an outbox row"></p>
+<p><em>Figure 59.2 — Status lifecycle of a row in <code>notification_outbox</code>.</em></p>
+<p>The diagram starts at a dot and shows several entry points. A row is created as <code>queued</code> when the decision allows sending, as <code>held_quiet_hours</code> when it falls inside quiet hours, as <code>skipped_disabled</code> when a switch or rule is off, as <code>skipped_opt_out</code> when the patient opted out, and directly as <code>failed</code> when the channel needs an address and the recipient has none. A held row becomes <code>queued</code> when the relay claims it once the quiet window has ended. A queued row becomes <code>sent</code> when the provider accepts it. A queued row whose send fails stays <code>queued</code> and is tried again after a pause. It becomes <code>failed</code> on a permanent error or at the fifth attempt. <code>sent</code>, <code>failed</code> and both skipped statuses are final. The status <code>delivered</code> exists in the code for providers that report delivery but nothing sets it today.</p>
+<p>The relay (<code>NotificationRelayService</code>) runs only in processes that run jobs, which is the worker. It is woken at once by a database NOTIFY sent inside the enqueue transaction (so it fires only on commit) and also polls every two seconds, which picks up retries and quiet-hours rows that are due. If the NOTIFY connection fails, it logs a warning and relies on polling.</p>
+<p>Sending works like this:</p>
+<ul>
+<li>A row is <strong>claimed</strong> with one short statement that locks it so no other worker takes it, adds one to its attempt count and pushes its due time out by a five-minute lease. If a worker dies mid-send, the row reappears after the lease.</li>
+<li>The provider is called with no transaction open; the result is written back only if this claim is still the latest.</li>
+<li>A failure is retried after 30 seconds, 2 minutes, 10 minutes and one hour; the fifth failure makes the row <code>failed</code>. A provider can mark an error permanent to skip retries.</li>
+<li>Delivery is at least once. The in-app copy is protected by a unique link to the outbox row, so a retry after a crash never shows the same message twice.</li>
+<li>Batches of 50 are processed until nothing is due.</li>
+</ul>
+<p><strong>Providers.</strong> The in-app provider writes <code>user_notifications</code> (user, event, title, body, link, read time). The development provider logs WhatsApp, SMS and email messages and marks them sent, so flows run end to end; it sends nothing to anyone. A real provider can take over a channel through the provider registry.</p>
+<p><strong>Technical references:</strong> <code>backend/src/notifications/delivery/notification-relay.service.ts</code> · <code>notification-dispatcher.service.ts</code> · <code>in-app.provider.ts</code> · <code>dev-log.provider.ts</code> · <code>channel-provider.registry.ts</code></p>
+<h2 id="ch59-notification-mechanics-59-6-the-inbox-and-the-settings-screen">59.6 The inbox and the settings screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The bell shows the signed-in user&#39;s inbox through <code>GET /me/notifications</code> (paged, with an unread-only filter), <code>GET /me/notifications/unread-count</code>, <code>POST /me/notifications/:id/read</code> and <code>POST /me/notifications/read-all</code>. These routes are context free: a user&#39;s inbox spans every clinic they work at, and lab users have no clinic location. Clinic settings are under <code>/notification-settings</code> and need <code>notifications.settings.manage</code>: the overview with master switches and quiet hours, audience updates, the rules matrix, templates (create, change, reset to platform wording) and the message log. A patient&#39;s channel preferences are read with <code>patients.view</code> and changed with <code>patients.edit</code>. Chapter 44 describes these screens.</p>
+<h2 id="ch59-notification-mechanics-59-7-limitations-and-known-gaps">59.7 Limitations and known gaps</h2>
+<ul>
+<li>Only lab-related events exist; no appointment reminders or billing notices are produced.</li>
+<li>WhatsApp, SMS and email have no provider; patients cannot be reached.</li>
+<li>Only the lab workflow registers recipients.</li>
+<li>Inventory alerts are not notifications; they go to the server log only (Chapter 63).</li>
+<li>The status <code>delivered</code> is never set.</li>
+</ul>
+<h2 id="ch59-notification-mechanics-59-8-owner-39-s-faq">59.8 Owner&#39;s FAQ</h2>
+<p><strong>If a lab order is rolled back, is a notification still sent?</strong> No. The notification row is part of the same transaction and disappears with it.</p>
+<p><strong>Why did a staff member not get a message?</strong> Check the log in notification settings: it shows each row with its status and reason, such as an audience switched off or a rule disabled.</p>
+<p><strong>Can I send reminders to patients by WhatsApp?</strong> Not yet. The decision logic and templates exist, but the channel is commented out and no provider is connected.</p>
+<p><strong>What happens if the worker is down?</strong> Rows stay queued in the database and are sent when the worker returns; nothing is lost.</p>
+<p><strong>Can quiet hours delay an in-app message?</strong> No. Quiet hours apply only to external channels.</p>
+</section></body></html>

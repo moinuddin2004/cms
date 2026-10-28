@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant Cron as Scheduler
+    participant PS as PayrollService
+    participant ES as EmployeesService
+    participant CPV as CompensationPlanVersions
+    participant CS as CommissionSettlements
+    participant DB as PostgreSQL
+    Cron->>PS: runMonthEndPayroll at 05:00 server time on the 1st
+    PS->>DB: Load every active location
+    loop Each active location, in its own transaction
+        PS->>ES: getActiveAssignmentsByLocation
+        ES-->>PS: Active assignments with their employee
+        loop Each assignment
+            PS->>DB: Record for this employee, location and month exists?
+            alt Record exists
+                PS->>PS: Count as skipped
+            else No record yet
+                PS->>CPV: activeOn last day of month, else first day
+                CPV-->>PS: Plan with base_salary_paisa
+                PS->>CS: lockUnsettled - entries before period end, FOR UPDATE
+                CS-->>PS: Entry ids and their total
+                alt Base and commission both zero
+                    PS->>PS: Add name to noSalary list
+                else Something to pay
+                    PS->>DB: Insert PENDING payroll record, total = base + commission
+                    opt Entries found and total not negative
+                        PS->>CS: create PENDING settlement, set settlement_id on entries
+                    end
+                end
+            end
+        end
+        PS->>DB: Commit, or roll back only this location
+    end

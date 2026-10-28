@@ -1,0 +1,7 @@
+stateDiagram-v2
+    direction LR
+    [*] --> NONE : invoice issued
+    NONE --> PARTIALLY_REFUNDED : POST invoices refund, part of released money
+    PARTIALLY_REFUNDED --> PARTIALLY_REFUNDED : another refund
+    NONE --> FULLY_REFUNDED : refund all released money and nothing left paid
+    PARTIALLY_REFUNDED --> FULLY_REFUNDED : refund the rest and nothing left paid

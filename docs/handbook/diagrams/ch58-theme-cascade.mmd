@@ -1,0 +1,7 @@
+flowchart TB
+    D["Code default<br/>for example Clinic Portal"] --> P["Platform value<br/>super admin"]
+    P --> O["Organization value<br/>owner with admin.theme.manage"]
+    O --> L["Location value<br/>name and logos only"]
+    L --> E["Effective theme<br/>GET /theme"]
+    P -.->|"lock stops the walk"| E
+    O -.->|"lock stops the walk"| E

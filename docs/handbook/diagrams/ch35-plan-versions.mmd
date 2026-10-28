@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Future : POST compensation-plans with a later start date
+    [*] --> Current : POST compensation-plans from today, employee create or salary update
+    Future --> Current : clinic date reaches effective_from
+    Current --> Closed : newer version added - effective_to set to the day before
+    Future --> Replaced : new version with the same start day, no charge used it
+    Current --> Replaced : new version with the same start day, no charge used it
+    Replaced --> [*] : row deleted
+    Closed --> [*]

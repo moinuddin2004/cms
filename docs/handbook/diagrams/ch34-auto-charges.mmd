@@ -1,0 +1,14 @@
+flowchart LR
+    A["Doctor or admin completes<br/>the queue entry"] --> B{"Feature billing.invoices<br/>enabled?"}
+    B -- no --> Z["No charges"]
+    B -- yes --> C{"Encounter exists<br/>for the entry?"}
+    C -- no --> Z
+    C -- yes --> D["Consultation charge<br/>if none yet"]
+    C -- yes --> E["One charge per treatment<br/>not yet charged"]
+    C -- yes --> F["Charges whose treatment<br/>was removed"]
+    D --> G["Price: doctor override, location<br/>override, default, else Needs price"]
+    E --> G
+    G --> H["Commission snapshot,<br/>INSERT ON CONFLICT DO NOTHING"]
+    F --> I{"Already on<br/>an invoice?"}
+    I -- no --> J["VOID with reason<br/>Treatment removed by doctor"]
+    I -- yes --> K["Keep, set source_removed_at,<br/>shows Review"]

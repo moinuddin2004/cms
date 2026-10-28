@@ -1,0 +1,24 @@
+sequenceDiagram
+  participant Owner
+  participant Web as Web app
+  participant API
+  participant CS as ClinicSetupService
+  participant PG as PostgreSQL
+  participant Mail as SMTP mail
+  Owner->>Web: Fill Create your clinic form
+  Web->>API: POST /auth/register
+  API->>PG: create user
+  API->>CS: createClinicForOwner
+  CS->>PG: one transaction - organization, MAIN location, settings, ownership
+  CS->>PG: after commit - seed feature flags and system roles
+  API->>Mail: send verification link, failure only logged
+  API-->>Web: signed in, 30-day session
+  Web->>Owner: navigate to /setup
+  Owner->>Web: Clinic step, then Location and tax step
+  Web->>API: PATCH /account/setup/clinic and /account/setup/location
+  Owner->>Web: Finish on Your team step
+  Web->>API: POST /account/setup/complete
+  API->>PG: onboarding_pending = false
+  Owner->>Web: Open link from email
+  Web->>API: POST /auth/verify-email
+  API->>PG: set email_verified_at, clear token

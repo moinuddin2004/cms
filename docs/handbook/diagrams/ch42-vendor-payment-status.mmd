@@ -1,0 +1,6 @@
+stateDiagram-v2
+    direction LR
+    [*] --> posted: POST /lab-payables/payments
+    posted --> posted: POST payments/id/allocations
+    posted --> reversed: POST payments/id/reverse
+    reversed --> [*]

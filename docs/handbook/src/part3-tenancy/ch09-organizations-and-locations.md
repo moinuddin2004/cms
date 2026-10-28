@@ -159,7 +159,7 @@ All location endpoints are in `LocationsController`. The controller is `@Context
 
 **Status:** [Implemented]
 
-The trash action asks "Deactivate location?" and calls `DELETE /locations/:id` (`is_active = false`). Nothing stops deactivating the last location or the main one. Staff assignments, appointments and queue sessions at that location are left as they are; the location simply stops being offered at sign-in and in the switcher. The list hides inactive locations, so the screen cannot reactivate one.
+The trash action asks "Deactivate location?" and calls `DELETE /locations/:id` (`is_active = false`). Nothing stops deactivating the last location or the main one. Staff assignments, appointments and queue sessions at that location are left as they are; the location stops being offered at sign-in and in the switcher. The list hides inactive locations, so the screen cannot reactivate one.
 
 **Technical references:** `LocationsController.deactivate` · `LocationsService.deactivate`
 

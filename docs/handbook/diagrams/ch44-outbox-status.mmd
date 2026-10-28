@@ -1,0 +1,15 @@
+stateDiagram-v2
+  direction LR
+  [*] --> queued: enqueue, decision allows sending
+  [*] --> held_quiet_hours: enqueue inside quiet hours
+  [*] --> skipped_disabled: enqueue, audience or rule off
+  [*] --> skipped_opt_out: enqueue, patient opted out
+  [*] --> failed: enqueue, no phone or email
+  held_quiet_hours --> queued: worker claims row when quiet hours end
+  queued --> queued: send error, retry later
+  queued --> sent: provider accepted
+  queued --> failed: permanent error or 5th attempt
+  sent --> [*]
+  failed --> [*]
+  skipped_disabled --> [*]
+  skipped_opt_out --> [*]

@@ -1,0 +1,4 @@
+- **Pinned version** — the workflow template version id stored on a lab order or item when it is created (`workflow_template_version_id`).
+- **Effect** — a code handler a transition may run; configuration chooses among registered ones (`workflow_effects`).
+- **Test run** — server-computed shortest path from the initial state to each terminal state (`simulateWorkflow`).
+- **Platform default** — a form, workflow or stage template with no owner organization.

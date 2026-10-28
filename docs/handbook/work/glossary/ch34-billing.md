@@ -1,0 +1,20 @@
+- **Unbilled charge** — an ACTIVE charge not yet on an invoice (`charges.invoice_id IS NULL`).
+- **Needs price** — flag on a charge created without a resolvable price; blocks invoicing until priced (`needs_pricing`).
+- **Resolved price** — the price a service gets: doctor override at the location, else location override, else catalog default (`ChargePricingService.resolve`).
+- **Price override** — a location (or location + doctor) price for a catalog service (`service_prices`).
+- **Price policy** — rule that only `billing.price.override` may change a catalog charge's price; others give a discount instead (`assertCanSetPrice`).
+- **Custom discount** — a discount not taken from a discount type, named "Custom"; needs `billing.discount.custom` and a note.
+- **Reception range** — min–max range within which reception may change a discount type's value (`reception_editable`, `min_value`, `max_value`).
+- **Ready to bill** — desk list of patients with an unbilled charge dated the chosen day (`GET /billing/ready-to-bill`).
+- **Oldest first** — UI label of the FIFO allocation strategy (`AllocationMode.AUTO`).
+- **Payment status** — computed invoice status UNPAID / PARTIALLY_PAID / PAID / OVERDUE (`invoicePaymentStatus`), never stored.
+- **Refund status** — computed NONE / PARTIALLY_REFUNDED / FULLY_REFUNDED (`invoiceRefundStatus`).
+- **Revision** — counter raised by each invoice edit; older revisions are kept as audit snapshots.
+- **Released amount** — money moved from an invoice back to advance by edits (`invoices.released_amount`); the most that can be refunded from that invoice.
+- **Refund source** — a previous payment a refund draws its money from (`refund_sources`).
+- **Unapply** — releasing a payment's allocations back to advance with negative allocation rows.
+- **Document code** — 2–6 letter/digit location code at the start of every billing number (`location_billing_settings.document_code`).
+- **Patient ledger** — append-only statement rows per patient (`ledger_entries`).
+- **Variance** — counted minus expected money for a payment account at cash close.
+- **Money invariants I1–I10** — rules the nightly job checks (`BillingInvariantChecker`).
+- **Patient credit** — prepaid credit sold from a credit package (`patient_credits`; ACTIVE / EXHAUSTED / EXPIRED).

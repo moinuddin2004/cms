@@ -1,0 +1,15 @@
+stateDiagram-v2
+  direction LR
+  [*] --> unmanaged: POST /organizations by super admin
+  [*] --> trialing: self-signup, 14 days
+  trialing --> active: record payment
+  trialing --> grace: trial end passes
+  active --> grace: paid_until passes
+  grace --> expired: 3 grace days pass
+  grace --> active: record payment
+  expired --> active: record payment
+  unmanaged --> active: record payment
+  unmanaged --> trialing: PATCH future trial end
+  active --> unmanaged: PATCH both dates to null
+  expired --> unmanaged: PATCH both dates to null
+  expired --> trialing: PATCH future trial end

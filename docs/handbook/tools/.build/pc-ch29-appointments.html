@@ -1,0 +1,419 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch29-appointments"><h1 id="ch29-appointments-chapter-29-appointments">Chapter 29 — Appointments</h1>
+<p>This chapter describes the Appointments module of the Platform: how a clinic books a patient with a doctor for a future time, and how that booking is managed until the patient arrives. It is written for the product owner, who needs to know exactly what the module does today, what rules it enforces and where it stops. The module ends at the moment of arrival: check-in hands the patient over to the doctor-wise queue, which the Queue chapter (Chapter 30) covers in full.</p>
+<h2 id="ch29-appointments-29-1-what-this-module-is-for">29.1 What this module is for</h2>
+<p>An <strong>appointment</strong> is a booking: one patient, one doctor, one location, a start time and a duration. The Appointments module lets front-desk staff create, confirm, reschedule and cancel bookings, mark patients who never came as no-shows, and check arriving patients in. It does not track what happens after arrival. Once a patient is checked in, the <strong>queue entry</strong> (a place in one doctor&#39;s queue for the day) drives everything else, and the appointment only records the final outcome (completed or cancelled).</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Receptionist</strong>: the main user. Books, reschedules, confirms, cancels, marks no-shows and checks patients in.</li>
+<li><strong>Assistant</strong>: can view bookings at the location, book new ones and check patients in, but cannot reschedule or cancel.</li>
+<li><strong>Doctor</strong>: sees only their own bookings (scope <code>own</code>), in the list and calendar. A doctor cannot book or change bookings with the default role.</li>
+<li><strong>Admin</strong> and the <strong>owner</strong>: everything, including overriding booking rules.</li>
+</ul>
+<p>Where it appears: the sidebar item <strong>Appointments</strong> (key <code>nav.appointments</code>, route <code>/appointments</code>, shown to users with <code>appointments.view</code>). The same page also hosts the reception queue board as its <strong>Queue</strong> tab, which is why the route opens for users who hold either <code>appointments.view</code> or <code>queue.board.view</code>. A custom role that holds only <code>queue.board.view</code> can open the page, but the sidebar item is hidden for it, because the sidebar entry checks <code>appointments.view</code> only.</p>
+<p>The whole module sits behind the feature <strong><code>appointments.core</code></strong> (&quot;Appointments&quot;, enabled by default). Turning that feature off also removes every queue permission, because the queue permissions belong to the same feature.</p>
+<h2 id="ch29-appointments-29-2-screens">29.2 Screens</h2>
+<p>The Appointments page (<code>/appointments</code>) has a title &quot;Appointments&quot;, the subtitle &quot;Search, schedule, and update patient appointments.&quot;, a view switch with up to three tabs (<strong>Queue</strong>, <strong>List</strong>, <strong>Calendar</strong>) and a <strong>Create</strong> button for users with <code>appointments.book</code>. Users with <code>queue.board.view</code> land on the Queue tab; others land on the List tab. On top of the selected view sits a KPI strip, shown to users with <code>appointments.view</code>. The Queue tab is the reception board and is described in Chapter 30.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch29-appointments-list.svg" alt="Figure 29.1 — Appointments, List view"></p>
+<p><em>Figure 29.1 — Appointments, List view (screenshot pending).</em></p>
+<p>The List view starts with the KPI strip: six small tiles labelled Total, Upcoming, Completed, Walk-ins, No-Show and Avg wait (in minutes), computed for the calendar month of the selected date. Under it is a toolbar card. Its first row has a &quot;Jump to&quot; date picker, a <strong>Today</strong> button when another day is selected, and a doctor filter. Its second row is a scrollable strip of 14 days; clicking a day narrows the list to that single day. Its third row holds the filters: a search box (&quot;Search appointments...&quot;, matching patient name, phone or patient number), a status filter, a type filter that also offers &quot;Walk-in&quot;, date presets (<strong>Today</strong>, <strong>Upcoming</strong>, <strong>Past 30 days</strong>, <strong>All</strong>), a &quot;Custom range&quot; picker, a <strong>Reset</strong> link and a count such as &quot;12 visits&quot;. The table has the columns Token, Date &amp; Time, Patient (name, phone and an &quot;Emergency&quot; badge), Doctor, Type, Status and an actions column. Walk-ins appear in the same table, with &quot;Arrived&quot; before their time and a &quot;Walk-in&quot; type badge. Rows are paged on the server, with page sizes 10, 25, 50 and 100. Clicking a booking opens the appointment detail dialog; clicking a walk-in opens the patient record. Cancelled rows are dimmed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch29-appointments-calendar.svg" alt="Figure 29.2 — Appointments, Calendar view"></p>
+<p><em>Figure 29.2 — Appointments, Calendar view (screenshot pending).</em></p>
+<p>The Calendar view uses FullCalendar and its premium resource views (the resource time-grid and resource day-grid plugins), so each doctor at the location gets a column with initials, name and designation. A switch offers <strong>Month</strong>, <strong>Week</strong> and <strong>Day</strong>; Day by doctor is the default. The same toolbar (date picker, day strip, doctor filter) and the same filters as the List view appear over the grid. The time grid covers the full 24 hours in 30-minute rows and scrolls to 08:00 on opening. Each doctor&#39;s working hours for the visible days are drawn as a light green background. Bookings are coloured by status, with cancelled and emergency bookings styled differently. The user can select an empty time range to start a booking with that doctor and time pre-filled, click a booking to open its details, drag a booking to another time or another doctor&#39;s column, and drag its bottom edge to change its length. Only scheduled and confirmed bookings can be dragged or resized.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch29-booking-dialog.svg" alt="Figure 29.3 — The New Appointment dialog"></p>
+<p><em>Figure 29.3 — The New Appointment dialog (screenshot pending).</em></p>
+<p>The booking form opens as a centred dialog titled &quot;New Appointment&quot; (or &quot;Edit Appointment&quot; when rescheduling). It contains: <strong>Patient *</strong> (a search box, &quot;Search by name or phone...&quot;, with a result list), <strong>Doctor *</strong> (a list of staff at the location shown as &quot;name — designation&quot;), <strong>Date &amp; Time *</strong> (a browser date-and-time field), <strong>Duration *</strong> (15 min, 30 min, 45 min, 1 hour, 1.5 hours, 2 hours, plus the location&#39;s default slot length), a live validation message, <strong>Appointment Type</strong> (Consultation, Follow Up, Treatment, Checkup, Emergency, Cleaning), an <strong>Emergency</strong> switch and <strong>Notes</strong>. The live message is green (&quot;Time slot is available&quot;) or red with the reason; when the doctor is busy it may offer &quot;Suggested: 10:30 Apply&quot;. The buttons are <strong>Cancel</strong> and <strong>Create Appointment</strong> (or <strong>Update Appointment</strong>). The submit button is disabled while saving and while the live check reports a problem.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch29-appointment-detail.svg" alt="Figure 29.4 — The Appointment Details dialog"></p>
+<p><em>Figure 29.4 — The Appointment Details dialog (screenshot pending).</em></p>
+<p>The detail dialog shows the status badge, a large <strong>Token</strong> (or &quot;Assigned at check-in&quot; before arrival, because a booking has no token until the patient arrives), the queue status and doctor, the appointment type and an &quot;Emergency&quot; badge. Its body lists the patient (patient number and phone, clickable to open the patient record), the doctor and designation, the date, time and duration, notes and any cancellation reason. A &quot;Quick actions&quot; block offers <strong>Confirm</strong> (scheduled only), <strong>Check in</strong>, <strong>No show</strong> and <strong>Cancel</strong> for bookings not yet checked in. For a checked-in booking it shows the hint that calling, starting and finishing the visit happen on the Queue board or the doctor&#39;s screen. The footer has <strong>Print ticket</strong> (once a token exists), <strong>Close</strong> and <strong>Edit</strong>.</p>
+<h2 id="ch29-appointments-29-3-features">29.3 Features</h2>
+<h3 id="ch29-appointments-29-3-1-see-bookings-and-walk-ins-in-one-list">29.3.1 See bookings and walk-ins in one list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows every booking at the active location, merged with that location&#39;s walk-ins, sorted by time and paged on the server. Staff can search and filter by date, doctor, status and type.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Appointments</strong> in the sidebar and choose the <strong>List</strong> tab.</li>
+<li>Pick a date preset (<strong>Today</strong>, <strong>Upcoming</strong>, <strong>Past 30 days</strong>, <strong>All</strong>), a custom range, or a day in the day strip.</li>
+<li>Narrow with the doctor filter, the search box, the status filter or the type filter (choose &quot;Walk-in&quot; to see only walk-ins).</li>
+<li>Click a row to open its details, or use the row menu (three dots).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Bookings and walk-ins live in two different tables. The server reads both, puts them in one time-ordered list and returns one page. A walk-in has no booking, so it is dressed up to look like a booking row, with its arrival time as its time. The doctor&#39;s own bookings are all a doctor sees.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /appointments</code> with <code>includeWalkIns=true</code> (the List view always sends it) runs <code>AppointmentsService.findAllWithWalkIns</code>: a SQL <code>UNION ALL</code> of <code>appointments</code> and walk-in <code>queue_entries</code> (joined to <code>queue_sessions</code> for doctor and location), counted and paged together, ordered by <code>sort_at</code> and id. Walk-in rows get <code>kind: &#39;walk_in&#39;</code>; their status is mapped from the queue status (waiting, called, in consultation, on hold, skipped → <code>checked_in</code>; completed → <code>completed</code>; cancelled, aborted, transferred → <code>cancelled</code>). Every booking row is enriched with its latest queue entry (token such as &quot;A-007&quot;, queue status, session id). Without <code>includeWalkIns</code>, a TypeORM query returns bookings only (the calendar uses this). The search box is debounced by 300 ms in the web app; the search runs as <code>ILIKE</code> on the patient&#39;s full name, phone and patient number.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Always limited to the active location.</li>
+<li>Scope of <code>appointments.view</code>: <code>own</code> limits rows to the signed-in doctor&#39;s bookings and sessions; <code>location</code> and <code>org</code> show the whole location.</li>
+<li>A booking-only status filter (scheduled, confirmed, no-show) or a booking type filter leaves walk-ins out; the type filter &quot;Walk-in&quot; leaves bookings out.</li>
+<li>Default page size 50 on the server; the web app uses 25.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.view</code> (scoped <code>own</code> / <code>location</code> / <code>org</code>), feature <code>appointments.core</code>. Default: Admin (<code>org</code>), Receptionist (<code>location</code>), Assistant (<code>location</code>), Doctor (<code>own</code>). Accountant: no.</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>patients</code>, <code>employees</code>, <code>locations</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None (read-only).</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> without <code>appointments.view</code>. 400 on an invalid filter value (for example a malformed date).</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.controller.ts</code> · <code>AppointmentsService.findAll</code> / <code>findAllWithWalkIns</code> · <code>web-app/src/features/appointments/components/AppointmentsList.tsx</code></p>
+<h3 id="ch29-appointments-29-3-2-browse-the-calendar-by-doctor">29.3.2 Browse the calendar by doctor</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows bookings on a month, week or day grid, with one column per doctor and each doctor&#39;s weekly working hours shaded in the background.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Appointments</strong>, choose the <strong>Calendar</strong> tab.</li>
+<li>Choose <strong>Month</strong>, <strong>Week</strong> or <strong>Day</strong>, and move with the arrows, the day strip or &quot;Jump to&quot;.</li>
+<li>Optionally filter by doctor, status, type or search text.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The page asks for the bookings in the visible range, the list of staff at the location (the columns) and the working-hours blocks for those days. The working hours come from each doctor&#39;s weekly schedule.</p>
+<p><strong>Behind the scenes — technically.</strong> Three calls: <code>GET /appointments</code> (bookings only, up to 500, for the visible range), <code>GET /appointments/doctors</code> (active staff assigned to the active location) and <code>GET /appointments/availability?startDate&amp;endDate</code> (<code>AppointmentsService.getAvailability</code>). The availability call walks the location-local calendar days in the range (with <code>ClockService</code>) and, for each doctor and weekday, turns the matching <code>employee_schedules</code> row (working, active) into start and end instants in the location&#39;s timezone. The status, type and search filters on this tab are applied in the browser to the loaded bookings.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Availability blocks come from the weekly schedule only. Date-specific availability overrides and approved leave are not shown (see 29.3.13).</li>
+<li>The weekly schedule lookup is by doctor and weekday; the schedule&#39;s own location is not considered, so a doctor who works Mondays at the second location shows Monday hours at the main location too.</li>
+<li>The &quot;doctors&quot; list is every active staff member with an active assignment at the location; the code does not filter by role.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.view</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant, Doctor (own bookings only).</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>employee_org_location_assignments</code>, <code>employees</code>, <code>employee_schedules</code>, <code>locations</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> without <code>appointments.view</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.service.ts</code> · <code>AppointmentsService.getAvailability</code> / <code>getDoctors</code> · <code>web-app/src/features/appointments/components/FullCalendarView.tsx</code></p>
+<h3 id="ch29-appointments-29-3-3-see-the-kpi-strip">29.3.3 See the KPI strip</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows six numbers for the month of the selected date: Total bookings, Upcoming (scheduled plus confirmed), Completed, Walk-ins, No-Show and Avg wait in minutes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Appointments</strong>. The strip appears at the top for users who can view bookings.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Booking counts come from the appointments table. Walk-ins and waiting time come from the queue, because only the queue knows when a patient arrived and when the doctor started.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /appointments/stats?startDate&amp;endDate</code> runs <code>AppointmentsService.getStats</code>: one grouped count over <code>appointments</code> (scoped by <code>appointments.view</code>) and one query over <code>queue_entries</code> joined to <code>queue_sessions</code>, giving walk-in count, waiting count, with-doctor count and the average of <code>consultation_started_at − checked_in_at</code> in minutes. The response also includes <code>cancelled</code>, <code>checkedIn</code>, <code>waiting</code>, <code>inProgress</code>, <code>completionRate</code> and <code>noShowRate</code>; the strip shows six of these.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The web app sends the first and last moment of the selected month, computed in the browser&#39;s timezone.</li>
+<li>Average wait counts only entries whose consultation has started.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.view</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant, Doctor (own figures only).</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.service.ts</code> · <code>AppointmentsService.getStats</code> · <code>web-app/src/features/appointments/components/StatsCards.tsx</code></p>
+<h3 id="ch29-appointments-29-3-4-book-an-appointment">29.3.4 Book an appointment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a booking for a patient with a doctor at the active location. A new booking starts as <code>scheduled</code> and has no token; the token is issued only when the patient arrives.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Create</strong> on the Appointments page, or select an empty time range in the calendar (doctor and time are pre-filled).</li>
+<li>Search and pick the <strong>Patient</strong>, choose the <strong>Doctor</strong>, set <strong>Date &amp; Time</strong> and <strong>Duration</strong>.</li>
+<li>Wait for the live check to turn green, or click <strong>Apply</strong> on a suggested time.</li>
+<li>Optionally set <strong>Appointment Type</strong>, <strong>Emergency</strong> and <strong>Notes</strong>.</li>
+<li>Click <strong>Create Appointment</strong>. A toast confirms it and the calendar moves to the booked day.</li>
+</ol>
+<p>Figure 29.5 shows the full exchange between the screen and the server.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch29-booking-sequence.png" alt="Figure 29.5 — Booking an appointment"></p>
+<p><em>Figure 29.5 — Booking: live validation, then the save that the database has the final say on.</em></p>
+<p>The diagram has five participants: the Receptionist, the Web app, the API, the AppointmentsService and PostgreSQL. In steps 1 to 7, the receptionist picks patient, doctor, date, time and duration; after a 500 ms pause the web app calls <code>POST /appointments/validate</code>; the service checks that the doctor is active and assigned to the location, that the slot fits the weekly hours, that there is no overlap and that the daily count is not reached; the answer (valid, or a reason with a suggested start) comes back and the form shows a green or red message with an Apply link. In steps 8 to 11, the receptionist clicks Create Appointment, the web app calls <code>POST /appointments</code>, the service runs the same checks again and inserts the row with status <code>scheduled</code>. An &quot;alt&quot; box then shows two outcomes. If another live booking for the same doctor overlaps (for example because two desks saved at the same moment), PostgreSQL rejects the insert with error 23P01 from the <code>no_doctor_overlap</code> constraint and the user receives 409 <code>DOCTOR_DOUBLE_BOOKED</code>. Otherwise the new row comes back, the API answers 201 and the screen shows a toast and jumps to the booked day.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The server runs a fixed list of checks in order: not in the past, the patient belongs to this organization, the doctor is active and works at this location, the slot fits inside one of the doctor&#39;s working blocks for that weekday, the doctor has no other live booking at that time at any location, and the location has not reached its daily booking limit. The database itself also refuses double bookings, so two people saving at the same second cannot both win.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /appointments</code> → <code>AppointmentsService.create</code>. Steps: resolve the location timezone (<code>ClockService.timezoneFor</code>); reject a start before <code>ClockService.now()</code>; load the patient by id and organization; <code>assertDoctorAtLocation</code> (active <code>employees</code> row and an active <code>employee_org_location_assignments</code> row for this organization and location); <code>validateSchedule</code> (weekday and &quot;HH:MM&quot; read in the location&#39;s timezone; the slot must fit inside one active, working <code>employee_schedules</code> block); <code>checkGlobalConflict</code> (any appointment of the doctor whose time overlaps and whose status is not cancelled or no-show, at any location); <code>assertDailyLimit</code> (count of non-cancelled, non-no-show bookings at the location on that local day against <code>location_settings.max_appointments_per_day</code>). The row is saved by <code>saveBooking</code>, which maps PostgreSQL error 23P01 from the exclusion constraint <code>no_doctor_overlap</code> to 409 <code>DOCTOR_DOUBLE_BOOKED</code>. The constraint is <code>EXCLUDE USING gist (doctor_id WITH =, tstzrange(start_time, end_time, &#39;[)&#39;) WITH &amp;&amp;) WHERE status NOT IN (&#39;cancelled&#39;,&#39;no_show&#39;)</code> and needs the <code>btree_gist</code> extension, which the API creates on start-up. No queue, event or audit-log write happens at booking; <code>created_by</code> and <code>updated_by</code> hold the user id.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Duration is a whole number of minutes from 5 to 480; patient, doctor and start time are required.</li>
+<li><code>type</code> defaults to <code>consultation</code>; <code>isEmergency</code> defaults to false. The emergency flag does not move the patient ahead in the queue on its own (Chapter 30).</li>
+<li>The start must not be in the past.</li>
+<li>The doctor must be active and actively assigned to the active location.</li>
+<li>The whole slot must fit inside one weekly working block for that weekday, read in the location&#39;s timezone. The lookup ignores which location the block belongs to (a known gap).</li>
+<li>No overlap with the doctor&#39;s other live bookings at any location of any organization the doctor works for. Cancelled and no-show bookings do not block. Bookings touching end-to-start do not overlap (<code>[)</code> range).</li>
+<li>Daily limit per location: <code>location_settings.max_appointments_per_day</code> (default 50 once the location&#39;s settings row exists; 0 or a missing row means no limit).</li>
+<li>The reason for visit can be stored (<code>reasonForVisit</code> in the API), but the booking dialog has no field for it.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.book</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant. Not Doctor or Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>, <code>employees</code>, <code>employee_org_location_assignments</code>, <code>employee_schedules</code>, <code>location_settings</code>, <code>locations</code> (timezone), <code>appointments</code>. Writes <code>appointments</code>.</p>
+<p><strong>Effects on other modules.</strong> The new booking appears in the calendar, the list, the KPI strip, the patient record&#39;s appointments tab and the clinic overview and visit reports (Chapter 36). A doctor with patient scope <code>own</code> can see a patient once that patient has an appointment with them.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>400 &quot;Cannot book appointments in the past&quot;.</li>
+<li>404 &quot;Patient not found&quot; → the patient is not in this organization.</li>
+<li>404 &quot;Doctor not found or is inactive&quot;.</li>
+<li>400 &quot;Doctor is not assigned to this location&quot;.</li>
+<li>400 &quot;Doctor does not work on Monday&quot; (or the weekday concerned).</li>
+<li>400 &quot;Requested time (10:00-10:30) is outside doctor&#39;s schedule. Available: 14:00 - 18:00&quot;.</li>
+<li>409 &quot;Doctor has a conflicting appointment during this time&quot; → the read check found an overlap (no error code).</li>
+<li>409 <code>DOCTOR_DOUBLE_BOOKED</code> → the database constraint caught an overlap.</li>
+<li>409 <code>DAILY_LIMIT_REACHED</code> → &quot;Daily limit reached: this location takes at most 50 bookings on 2026-10-26&quot;.</li>
+<li>402 <code>SUBSCRIPTION_EXPIRED</code> → the clinic is in read-only mode.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.service.ts</code> · <code>AppointmentsService.create</code>, <code>saveBooking</code>, <code>Appointment</code> (<code>no_doctor_overlap</code>) · <code>web-app/src/features/appointments/components/AppointmentModal.tsx</code></p>
+<h3 id="ch29-appointments-29-3-5-check-a-time-slot-live-and-get-a-suggested-time">29.3.5 Check a time slot live and get a suggested time</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> While the booking form is open, the server checks the chosen doctor, time and duration and, if the doctor is busy, suggests the next free start time on the same day.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Fill in Doctor, Date &amp; Time and Duration in the booking dialog.</li>
+<li>Read the green or red message. If a suggestion appears, click <strong>Apply</strong> to use it.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The same checks as a real booking run, but nothing is saved and problems come back as a message instead of an error. To suggest a time, the server walks forward through the doctor&#39;s bookings that day, jumping past each clash, until a free gap that still fits the working hours appears.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /appointments/validate</code> → <code>AppointmentsService.validate</code>, returning <code>{ valid, reason?, conflictLocation?, suggestedStartTime? }</code>. On a conflict, <code>suggestNextSlot</code> loads the doctor&#39;s live bookings for that location-local day, starts at the requested time and moves to the end of each clashing booking, up to 50 tries, stopping when the candidate no longer fits a working block. <code>excludeAppointmentId</code> lets a reschedule ignore the booking being moved. The web app calls it 500 ms after the last change to doctor, time or duration.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Checks doctor, weekly schedule, overlaps and the daily limit. It does not check &quot;in the past&quot;; the save does.</li>
+<li>When the clash is at another location, the reason reads &quot;Doctor busy at another location&quot;.</li>
+<li>The suggestion considers only the same day and the doctor&#39;s weekly hours.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.book</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant. A user with only <code>appointments.reschedule</code> (no <code>appointments.book</code>) gets 403 on this check when editing; the Receptionist template holds both.</p>
+<p><strong>Data read and written.</strong> Reads the same tables as booking. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Problems come back as <code>valid: false</code> with a reason (same texts as 29.3.4). 400 on invalid input; 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.service.ts</code> · <code>AppointmentsService.validate</code>, <code>suggestNextSlot</code> · <code>web-app/src/features/appointments/hooks/useValidateAppointment.ts</code></p>
+<h3 id="ch29-appointments-29-3-6-override-booking-rules">29.3.6 Override booking rules</h3>
+<p><strong>Status:</strong> [Partial] — the API supports it; no screen sends it.</p>
+<p><strong>What it does.</strong> Lets an authorised user book (or move) a booking outside the doctor&#39;s working hours or beyond the location&#39;s daily limit.</p>
+<p><strong>How the user does it.</strong> No screen offers this. It is available only to an API client that sends <code>overrideRules: true</code>.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The working-hours check and the daily-limit check are skipped. The double-booking check is never skipped.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CreateAppointmentDto.overrideRules</code> and <code>UpdateAppointmentDto.overrideRules</code>. <code>AppointmentsService.overridesRules</code> checks <code>access.can(&#39;appointments.override_rules&#39;)</code> and throws 403 <code>NO_PERMISSION</code> otherwise. When allowed, <code>validateSchedule</code> and <code>assertDailyLimit</code> are skipped; <code>checkGlobalConflict</code> and the <code>no_doctor_overlap</code> constraint still apply.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The live validation endpoint does not accept the flag, so it would still report &quot;outside schedule&quot; for such a slot.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.override_rules</code> (high-risk, implies <code>appointments.book</code>), feature <code>appointments.core</code>. Default: Admin only.</p>
+<p><strong>Data read and written.</strong> Same as booking and reschedule.</p>
+<p><strong>Effects on other modules.</strong> None beyond a normal booking.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> &quot;Missing permission: appointments.override_rules&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/dto/create-appointment.dto.ts</code> · <code>AppointmentsService.overridesRules</code> · no web-app caller</p>
+<h3 id="ch29-appointments-29-3-7-reschedule-or-edit-a-booking">29.3.7 Reschedule or edit a booking</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the time, duration, doctor, patient, type or notes of a booking that has not been checked in. A reschedule keeps the same row and the same status.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the booking (row click or calendar click) and click <strong>Edit</strong>, or choose <strong>Edit</strong> in the row menu.</li>
+<li>Change the fields and click <strong>Update Appointment</strong>.</li>
+<li>Or, in the Calendar, drag the booking to another time or another doctor&#39;s column, or drag its bottom edge to change its length. A toast confirms (&quot;Appointment rescheduled&quot;, &quot;Reassigned to Dr. Example One&quot;, &quot;Duration updated to 45 min&quot;); on failure the booking jumps back.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Only scheduled and confirmed bookings can change. If the time or doctor really changes, all the booking checks run again (excluding this booking itself). Changing only the notes runs no checks.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PUT /appointments/:id</code> → <code>AppointmentsService.update</code>. It loads the booking at the active location and calls <code>assertEditable</code> (status must be <code>scheduled</code> or <code>confirmed</code>, else 422 <code>APPOINTMENT_LOCKED</code>). <code>timeChanged</code> and <code>doctorChanged</code> decide whether to re-run the past-time check, <code>validateSchedule</code>, <code>checkGlobalConflict</code> and <code>assertDailyLimit</code> (with this booking excluded). The status is not touched. The web form sends <code>startTime</code> and <code>duration</code> only when they changed, so editing notes never reschedules. The dialog loads the &quot;Emergency&quot; switch, but the update API has no <code>isEmergency</code> field, so a change to that switch on edit is not saved.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only <code>scheduled</code> or <code>confirmed</code> bookings are editable.</li>
+<li>A changed start time must not be in the past.</li>
+<li>A new doctor must be active and assigned to the location; a new patient must be in the organization.</li>
+<li>Same schedule, overlap and daily-limit rules as booking; <code>overrideRules</code> works as in 29.3.6.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.reschedule</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist. Not Assistant, Doctor or Accountant.</p>
+<p><strong>Data read and written.</strong> Reads as booking. Writes <code>appointments</code> (time, duration, doctor, patient, type, notes, <code>updated_by</code>).</p>
+<p><strong>Effects on other modules.</strong> The calendar, list and KPI figures change. A booking moved to another day may change which day&#39;s queue it can be checked into.</p>
+<p><strong>Error cases.</strong> 404 &quot;Appointment not found&quot;; 422 <code>APPOINTMENT_LOCKED</code> &quot;A checked_in appointment can no longer be edited; only scheduled or confirmed bookings can&quot;; 400 &quot;Cannot move an appointment into the past&quot;; plus every booking error from 29.3.4.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointment-transitions.ts</code> · <code>AppointmentsService.update</code>, <code>assertEditable</code> · <code>web-app/src/features/appointments/components/FullCalendarView.tsx</code></p>
+<h3 id="ch29-appointments-29-3-8-confirm-a-booking">29.3.8 Confirm a booking</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Marks a scheduled booking as confirmed (for example after the patient answered a call). It is a status marker only; it changes no rule.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the row menu or the detail dialog, click <strong>Confirm</strong> (shown only for scheduled bookings).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The status moves from scheduled to confirmed if the status map allows it.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /appointments/:id/confirm</code> → <code>AppointmentsService.confirm</code> → <code>assertTransition(status, CONFIRMED)</code> against <code>APPOINTMENT_TRANSITIONS</code>, then save.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Allowed only from <code>scheduled</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.book</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Writes <code>appointments.status</code>, <code>updated_by</code>.</p>
+<p><strong>Effects on other modules.</strong> Counts as &quot;Upcoming&quot; in the KPI strip, like scheduled.</p>
+<p><strong>Error cases.</strong> 404 &quot;Appointment not found&quot;; 422 <code>INVALID_TRANSITION</code> &quot;Cannot change an appointment from confirmed to confirmed&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.service.ts</code> · <code>AppointmentsService.confirm</code> · <code>web-app/src/features/appointments/hooks/useAppointmentActions.ts</code></p>
+<h3 id="ch29-appointments-29-3-9-cancel-a-booking-with-reason-codes">29.3.9 Cancel a booking (with reason codes)</h3>
+<p><strong>Status:</strong> [Partial] — the API stores a reason code and text; the web app cancels with neither and asks no confirmation.</p>
+<p><strong>What it does.</strong> Ends a booking that has not been checked in. The API accepts a structured reason code (<code>patient_left</code> or <code>other</code>) and an optional free-text reason, for later analysis.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the row menu or the detail dialog, click <strong>Cancel</strong>. The booking is cancelled at once and a toast says &quot;Appointment cancelled&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The booking becomes cancelled and stops blocking the doctor&#39;s time. A patient who has already checked in cannot be cancelled here; they must be removed from the queue instead, which also cancels the booking.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /appointments/:id/cancel</code> with <code>{ reasonCode?, reason? }</code> → <code>AppointmentsService.cancel</code>. A <code>checked_in</code> booking is refused with 422 <code>INVALID_TRANSITION</code>. Otherwise <code>assertTransition(status, CANCELLED)</code>, then <code>cancel_reason_code</code>, <code>cancel_reason</code> and <code>cancelled_at</code> are set. The DTO refuses <code>no_show</code> as a reason code (&quot;use the no-show action for no-shows&quot;). The web app&#39;s cancel helper can send a reason, and the enum and option list exist in <code>features/appointments/types.ts</code>, but no screen uses them, and no confirm dialog is shown.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Allowed from <code>scheduled</code> or <code>confirmed</code>.</li>
+<li><code>reasonCode</code> must be <code>patient_left</code> or <code>other</code> when given.</li>
+<li>After check-in, the queue&#39;s &quot;Remove from queue&quot; or &quot;Stop consultation&quot; closes the booking as cancelled with code <code>patient_left</code> or <code>other</code> (Chapter 30).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>appointments.cancel</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> Writes <code>appointments</code> (<code>status</code>, <code>cancel_reason_code</code>, <code>cancel_reason</code>, <code>cancelled_at</code>, <code>updated_by</code>).</p>
+<p><strong>Effects on other modules.</strong> The slot becomes free for other bookings (the overlap check and the constraint ignore cancelled rows). The booking counts as cancelled in reports.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;The patient has checked in — remove them from the queue instead&quot;; 422 <code>INVALID_TRANSITION</code> for completed, cancelled or no-show bookings; 400 &quot;reasonCode must be patient_left or other; use the no-show action for no-shows&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/enums/cancel-reason.enum.ts</code> · <code>AppointmentsService.cancel</code>, <code>CancelAppointmentDto</code> · <code>web-app/src/features/appointments/components/AppointmentDetailModal.tsx</code></p>
+<h3 id="ch29-appointments-29-3-10-mark-a-no-show-by-hand-or-automatically">29.3.10 Mark a no-show (by hand or automatically)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records that a booked patient never arrived. Staff can do it by hand; a background job also does it automatically once a patient is later than the clinic&#39;s &quot;maximum late&quot; setting.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the row menu or the detail dialog of a scheduled or confirmed booking, click <strong>No show</strong>.</li>
+<li>Otherwise, do nothing: the job marks late bookings on its own.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The booking becomes a no-show and stops blocking the doctor&#39;s time. Every minute, a job looks for bookings that are still scheduled or confirmed and whose start time plus the &quot;maximum late&quot; minutes (45 by default) has passed, and marks them as no-shows.</p>
+<p><strong>Behind the scenes — technically.</strong> Manual: <code>PATCH /appointments/:id/no-show</code> → <code>AppointmentsService.noShow</code> → <code>assertTransition(status, NO_SHOW)</code>, sets <code>no_show_at</code>. Automatic: <code>QueueJobsService.markNoShows</code>, <code>@Interval</code> every 60 seconds in the worker process. It finds organization–location pairs with scheduled or confirmed bookings that started in the last 7 days, reads each location&#39;s effective queue policy, and runs one <code>UPDATE appointments SET status = &#39;no_show&#39;, no_show_at = now()</code> where <code>start_time + max_late_min &lt; now()</code>. The job writes directly with SQL: no queue event, no audit row and no realtime message.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Allowed only from <code>scheduled</code> or <code>confirmed</code>.</li>
+<li>The automatic threshold is the location&#39;s <code>max_late_min</code> (default 45 minutes; Chapter 30 covers queue policies).</li>
+</ul>
+<p><strong>Who can do it.</strong> Manual: <code>appointments.cancel</code> (a no-show ends the booking like a cancel does), feature <code>appointments.core</code>. Default: Admin, Receptionist. Automatic: the worker process, no user.</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>queue_policies</code>. Writes <code>appointments</code> (<code>status</code>, <code>no_show_at</code>, <code>updated_by</code> for the manual action).</p>
+<p><strong>Effects on other modules.</strong> No-shows count in the KPI strip and in the visit reports. A no-show booking no longer shows a <strong>Check in</strong> action in the web app (see 29.3.12).</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> for a booking that is not scheduled or confirmed.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/jobs/queue-jobs.service.ts</code> · <code>AppointmentsService.noShow</code>, <code>QueueJobsService.markNoShows</code> · <code>web-app/src/features/appointments/components/AppointmentsList.tsx</code></p>
+<h3 id="ch29-appointments-29-3-11-check-a-patient-in-hand-over-to-the-queue">29.3.11 Check a patient in (hand-over to the queue)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records that a booked patient has arrived and gives them a doctor-wise <strong>token</strong> (for example &quot;A-007&quot;) in that doctor&#39;s queue for today. From here on the queue runs the visit.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the row menu or the detail dialog, click <strong>Check in</strong>.</li>
+<li>In the &quot;Check in patient&quot; dialog, optionally tick <strong>Give urgent priority?</strong> and type a reason.</li>
+<li>Click <strong>Check in &amp; get token</strong>. A toast shows &quot;Checked in — token A-007&quot; with a <strong>Print ticket</strong> button.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The queue checks that the booking is for today and that the patient is not too late, opens the doctor&#39;s queue for the day if needed, issues the next token, and marks the booking as checked in. If the patient is too late, the dialog switches to &quot;Too late for the appointment&quot; and offers to convert them to a walk-in.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /appointments/:id/check-in</code> (requires an <code>Idempotency-Key</code> header) is served by the Appointments controller but runs <code>QueueOrchestrator.checkInAppointment</code> in one transaction: lock the appointment row, refuse a second active entry (409 <code>ALREADY_CHECKED_IN</code>), check the status map, check the booking&#39;s service date equals today&#39;s (422 <code>NOT_TODAY</code>), check <code>isBeyondMaxLate</code> (422 <code>LATE_LIMIT_EXCEEDED</code>), ensure and lock the doctor&#39;s <code>queue_sessions</code> row, issue a token, insert a <code>queue_entries</code> row (<code>queue_type = appointment</code>, status <code>waiting</code>), and set the appointment to <code>checked_in</code> with <code>checked_in_at</code>. Chapter 30 explains tokens, idempotency and the queue rules in full.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only from <code>scheduled</code> or <code>confirmed</code>, only on the booking&#39;s own service day, and only up to <code>max_late_min</code> after the start.</li>
+<li>A retried request with the same key returns the same token.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.checkin</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Writes <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> Creates the queue entry that the Queue module (Chapter 30) and the consultation workspace (Chapter 31) continue from.</p>
+<p><strong>Error cases.</strong> 409 <code>ALREADY_CHECKED_IN</code> (the dialog shows &quot;Already checked in — token A-007&quot;); 422 <code>LATE_LIMIT_EXCEEDED</code> (the dialog switches to the convert option); 422 <code>NOT_TODAY</code>; 422 <code>SESSION_NOT_OPEN</code> &quot;This queue is closed for the day&quot;; 400 <code>IDEMPOTENCY_KEY_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/appointments/appointments.controller.ts</code> · <code>QueueOrchestrator.checkInAppointment</code> · <code>web-app/src/features/queue/components/CheckInDialog.tsx</code></p>
+<h3 id="ch29-appointments-29-3-12-convert-a-late-booking-to-a-walk-in">29.3.12 Convert a late booking to a walk-in</h3>
+<p><strong>Status:</strong> [Implemented] — with a practical gap: the web app reaches it only in the short time before the no-show job runs.</p>
+<p><strong>What it does.</strong> For a patient who arrives later than the clinic allows, marks the booking as a no-show and adds the patient to the same doctor&#39;s queue as a walk-in with a new token, linked to the old booking.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Check in</strong> on the late booking.</li>
+<li>The dialog shows &quot;Too late for the appointment&quot; and the server&#39;s message (&quot;More than 45 minutes late — convert to a walk-in or reschedule&quot;).</li>
+<li>Click <strong>Convert to walk-in</strong>. A toast shows &quot;Added as walk-in — token A-012&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The booking is closed as a no-show, and a new walk-in entry is created for the patient in the doctor&#39;s queue, with a pointer back to the booking.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /appointments/:id/convert-to-walk-in</code> (with <code>Idempotency-Key</code>) → <code>QueueOrchestrator.convertToWalkIn</code>. Allowed when the booking is already <code>no_show</code>, or is <code>scheduled</code>/<code>confirmed</code> and beyond <code>max_late_min</code>. Sets the booking to <code>no_show</code> if needed, ensures today&#39;s session for the booking&#39;s doctor, refuses a duplicate active entry, and issues a token with <code>queue_type = walk_in</code>, <code>appointment_id = NULL</code> and <code>converted_from_appt_id</code> = the booking. The <code>CHECKED_IN</code> queue event carries reason code <code>CONVERTED_TO_WALK_IN</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Refused (422 <code>INVALID_TRANSITION</code>) when the booking is still within the late limit: &quot;Only an appointment past the late limit (or a no-show) can be converted; check the patient in instead&quot;.</li>
+<li>The web app shows <strong>Check in</strong> only for scheduled or confirmed bookings. Because the no-show job marks a late booking within about a minute of the limit passing, a late patient&#39;s booking is usually already <code>no_show</code> and shows no check-in action; the desk then has to add an ordinary walk-in (Chapter 30), which is not linked to the booking. This is a deduction from the code, not an observed test.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.checkin</code>, feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Writes <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The visit is billed and reported as a walk-in.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> (not late enough); 409 <code>ALREADY_CHECKED_IN</code>; 422 <code>SESSION_NOT_OPEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.convertToWalkIn</code> · <code>web-app/src/features/queue/components/CheckInDialog.tsx</code></p>
+<h3 id="ch29-appointments-29-3-13-respect-availability-overrides-and-leave-when-booking">29.3.13 Respect availability overrides and leave when booking</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing today. The Employees module stores date-specific availability overrides (<code>doctor_availability_overrides</code>: a doctor is unavailable on a date, or has special hours) and leave (<code>employee_leaves</code>), but booking, live validation, slot suggestion and the calendar&#39;s availability shading never read them.</p>
+<p><strong>How the user does it.</strong> Not available. A receptionist can book a doctor on a day the doctor is on approved leave, as long as the weekly schedule allows it.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Only the weekly schedule is consulted.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>AppointmentsService</code> reads <code>employee_schedules</code> only; there is no reference to <code>DoctorAvailabilityOverride</code> or <code>EmployeeLeave</code> in <code>backend/src/appointments/</code> or <code>backend/src/queue/</code>.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/entities/doctor-availability-override.entity.ts</code> · <code>DoctorAvailabilityOverride</code>, <code>EmployeeLeave</code> · no web-app use in appointments</p>
+<h3 id="ch29-appointments-29-3-14-reminders-recurring-bookings-and-online-booking">29.3.14 Reminders, recurring bookings and online booking</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing. The feature keys <code>appointments.reminders</code>, <code>appointments.recurring</code>, <code>appointments.online_booking</code> and <code>appointments.waiting_room</code> are commented out in the feature catalog. Notifications on the Platform are in-app only, and no notification event is raised for appointments.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> No reminder messages, no repeating bookings, no patient-facing booking page.</p>
+<p><strong>Behind the scenes — technically.</strong> Commented entries in <code>FEATURE_CATALOG_SEED</code>; <code>Appointment</code> has no recurrence fields; the notifications module has no appointment events.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-catalog.seed.ts</code> · <code>FEATURE_CATALOG_SEED</code> · none</p>
+<h2 id="ch29-appointments-29-4-entities-and-data-model">29.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch29-appointment-erd.png" alt="Figure 29.6 — Appointment data model"></p>
+<p><em>Figure 29.6 — The <code>appointments</code> table and the tables around it.</em></p>
+<p>The diagram centres on <code>appointments</code>, with columns <code>id</code>, <code>organization_id</code>, <code>location_id</code>, <code>patient_id</code>, <code>doctor_id</code>, <code>status</code>, <code>start_time</code>, <code>end_time</code> and <code>cancel_reason_code</code>. Four tables point into it: <code>organizations</code> (&quot;owns&quot;), <code>locations</code> (&quot;hosts&quot;), <code>patients</code> (&quot;books&quot;) and <code>employees</code> (&quot;is doctor of&quot;). Two tables hang off it: <code>queue_entries</code> (&quot;checked in as&quot;, with <code>appointment_id</code>, <code>queue_session_id</code>, <code>status</code>) and <code>patient_encounters</code> (&quot;source of&quot;, with <code>appointment_id</code> and <code>queue_entry_id</code>). On the right, <code>employees</code> also links to <code>employee_schedules</code> (&quot;works hours&quot;: <code>employee_id</code>, <code>location_id</code>, <code>day_of_week</code>, <code>start_time</code>, <code>end_time</code>) and to <code>employee_org_location_assignments</code> (&quot;is assigned&quot;: <code>employee_id</code>, <code>location_id</code>, <code>is_active</code>, <code>token_prefix</code>), and <code>locations</code> links to <code>location_settings</code> (&quot;configures&quot;: <code>appointment_slot_duration</code>, <code>max_appointments_per_day</code>). <code>locations</code> shows its <code>timezone</code> column, which every clinic-time calculation uses.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each appointment belongs to exactly one organization and one location. Deleting the organization or the location deletes its appointments (ON DELETE CASCADE).</li>
+<li>Each appointment belongs to exactly one patient. Deleting the patient deletes the patient&#39;s appointments (CASCADE).</li>
+<li>Each appointment has exactly one doctor, an employee. An employee who still has appointments cannot be deleted (ON DELETE RESTRICT).</li>
+<li>An appointment can have several queue entries over time, but at most one active one (partial unique index <code>one_active_entry_per_appt</code>). Deleting an appointment deletes its queue entries (CASCADE), because a booked entry must always point to its appointment.</li>
+<li>A walk-in created by &quot;Convert to walk-in&quot; points back to the booking through <code>queue_entries.converted_from_appt_id</code>, a logical link with no foreign key.</li>
+<li>An encounter (the clinical record of one consultation) may point to the appointment it came from. Deleting the appointment sets that pointer to NULL (ON DELETE SET NULL).</li>
+<li>Weekly working hours (<code>employee_schedules</code>) belong to one employee and one location, unique per employee, location and weekday. Booking reads them by employee and weekday only.</li>
+<li>Each location has at most one settings row; <code>appointment_slot_duration</code> (default 30) is the booking form&#39;s default duration, and <code>max_appointments_per_day</code> (default 50) is the daily limit.</li>
+</ul>
+<p>Key columns of <code>appointments</code>: <code>type</code> (consultation, follow_up, treatment, checkup, emergency, cleaning), <code>status</code> (six values, 29.5), <code>start_time</code>/<code>end_time</code> (timestamptz) and <code>duration_minutes</code>, <code>reason_for_visit</code>, <code>is_emergency</code>, <code>notes</code>, <code>cancel_reason_code</code> (no_show, patient_left, other) with <code>cancel_reason</code>, the lifecycle timestamps <code>checked_in_at</code>, <code>completed_at</code>, <code>cancelled_at</code>, <code>no_show_at</code>, and <code>created_by</code>/<code>updated_by</code>. Indexes cover location + start time, doctor + start + end, organization, patient, doctor and status. The schema comes from the entity (TypeORM synchronize in development; a reviewed schema sync in production); no migration file is specific to appointments.</p>
+<h2 id="ch29-appointments-29-5-status-lifecycles">29.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch29-appointment-status.png" alt="Figure 29.7 — Appointment status map"></p>
+<p><em>Figure 29.7 — The appointment status map from <code>appointment-transitions.ts</code>.</em></p>
+<p>The diagram has six states. A booking enters at <code>scheduled</code> through <code>POST /appointments</code>. From <code>scheduled</code>, &quot;PATCH confirm&quot; leads to <code>confirmed</code>. Both <code>scheduled</code> and <code>confirmed</code> lead to <code>checked_in</code> through &quot;PATCH check-in&quot;, to <code>cancelled</code> through &quot;PATCH cancel&quot;, and to <code>no_show</code> through &quot;PATCH no-show or no-show job or convert-to-walk-in&quot;. From <code>checked_in</code> there are two arrows: to <code>completed</code> when the queue entry is completed or force-completed, and to <code>cancelled</code> when the queue entry is removed from the queue or the consultation is stopped. <code>completed</code>, <code>cancelled</code> and <code>no_show</code> are final: each leads only to the end marker.</p>
+<p>Walking through each state:</p>
+<ul>
+<li><strong>scheduled</strong> — the starting state of every booking. It can be edited, confirmed, checked in, cancelled or marked no-show.</li>
+<li><strong>confirmed</strong> — same as scheduled, but someone has confirmed it. It cannot go back to scheduled.</li>
+<li><strong>checked_in</strong> — the patient arrived and has an active queue entry. The booking can no longer be edited (422 <code>APPOINTMENT_LOCKED</code>) or cancelled from the Appointments screen. The queue drives the rest.</li>
+<li><strong>completed</strong> — the queue entry was completed (normally by the doctor, or force-completed by an admin). <code>completed_at</code> is set.</li>
+<li><strong>cancelled</strong> — cancelled before arrival (with an optional reason code), or closed by the queue after arrival: code <code>patient_left</code> when reception removed the patient from the queue, code <code>other</code> with the stop reason when the doctor stopped the consultation.</li>
+<li><strong>no_show</strong> — the patient never came. Set by hand, by the no-show job, or by &quot;Convert to walk-in&quot;.</li>
+</ul>
+<p>Any other change is refused with 422 <code>INVALID_TRANSITION</code>. There is no &quot;rescheduled&quot; or &quot;in progress&quot; status: a reschedule keeps the same row and status. A transferred queue entry keeps the appointment <code>checked_in</code>, because the new entry in the other doctor&#39;s queue carries the same <code>appointment_id</code>.</p>
+<h2 id="ch29-appointments-29-6-connections-to-other-modules">29.6 Connections to other modules</h2>
+<ul>
+<li><strong>Queue (Chapter 30).</strong> Check-in and convert-to-walk-in are queue operations exposed under <code>/appointments</code>. The queue later sets the appointment to <code>completed</code> or <code>cancelled</code>. The automatic no-show job and the <code>max_late_min</code> setting belong to the queue.</li>
+<li><strong>Patients (Chapter 28).</strong> Bookings need an existing patient. The patient record shows the patient&#39;s appointments and visits. A doctor&#39;s <code>own</code> patient scope includes every patient who has an appointment or a queue visit with that doctor.</li>
+<li><strong>Employees (Chapter 37).</strong> Doctors are employees with an active assignment at the location; weekly schedules come from the Employees module. Availability overrides and leave are not used (29.3.13).</li>
+<li><strong>Locations and settings.</strong> The location&#39;s timezone drives every day and time calculation (<code>ClockService</code>); <code>location_settings</code> supplies the default duration and the daily limit.</li>
+<li><strong>Consultation (Chapter 31) and Billing (Chapter 34).</strong> The encounter keeps the appointment id; automatic charges carry it too.</li>
+<li><strong>Dashboard and reports (Chapter 36).</strong> The clinic overview and the visit reports read <code>appointments</code> and <code>queue_entries</code>.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> In read-only mode every write (book, edit, cancel, check-in) is refused with 402 <code>SUBSCRIPTION_EXPIRED</code>.</li>
+</ul>
+<h2 id="ch29-appointments-29-7-limitations-and-known-gaps">29.7 Limitations and known gaps</h2>
+<ul>
+<li>Working hours are looked up by doctor and weekday and ignore the schedule&#39;s location, both for validation and for the calendar shading.</li>
+<li>Availability overrides and leave are ignored by booking, validation and the calendar.</li>
+<li>The &quot;doctors&quot; list (calendar columns, booking dropdown) contains every active staff member assigned to the location, not only doctors.</li>
+<li>Cancel sends no reason code and asks for no confirmation; the reason options exist in code but are unused.</li>
+<li>No screen can override booking rules, enter a reason for visit, or change the emergency flag on an existing booking.</li>
+<li>Convert-to-walk-in is hard to reach from the web app once the no-show job has run.</li>
+<li>The web app computes date ranges and shows times in the browser&#39;s timezone; the server applies the location&#39;s timezone. They agree only when the browser is set to the location&#39;s timezone.</li>
+<li>Booking and status changes are not written to the general audit log; only <code>created_by</code>/<code>updated_by</code> and timestamps record them. Queue events record what happens after check-in.</li>
+<li>There is no card view on the List tab, and the slot length (<code>appointment_slot_duration</code>) is only a form default, not an enforced grid.</li>
+<li>Reminders, recurring bookings and online booking are not implemented.</li>
+</ul>
+<h2 id="ch29-appointments-29-8-owner-39-s-faq">29.8 Owner&#39;s FAQ</h2>
+<p><strong>Can two receptionists book the same doctor for the same time?</strong> No. The server checks for overlaps, and if two saves race, the database constraint <code>no_doctor_overlap</code> rejects the second with <code>DOCTOR_DOUBLE_BOOKED</code>. This holds across all locations.</p>
+<p><strong>Does a booking get a token?</strong> No. The token is issued at check-in by the queue. The booking shows &quot;Assigned at check-in&quot; until then.</p>
+<p><strong>What happens if a patient is very late?</strong> After <code>max_late_min</code> (45 minutes by default) check-in is refused with <code>LATE_LIMIT_EXCEEDED</code>, and within about a minute the no-show job marks the booking as a no-show. The patient can then be added as a walk-in.</p>
+<p><strong>Can a doctor see other doctors&#39; bookings?</strong> With the default Doctor role, no: <code>appointments.view</code> has scope <code>own</code>. An owner can widen the scope in the role editor.</p>
+<p><strong>Can I book a doctor at a location where they are not assigned?</strong> No: &quot;Doctor is not assigned to this location&quot;.</p>
+<p><strong>Does marking a booking &quot;Emergency&quot; put the patient first in the queue?</strong> No. Urgent priority is given at check-in or on the queue board, with a reason (Chapter 30).</p>
+<p><strong>Where is the daily booking limit set?</strong> In the location&#39;s settings (<code>location_settings.max_appointments_per_day</code>, default 50). Only users with <code>appointments.override_rules</code> can exceed it, and only through the API.</p>
+<p><strong>Can I undo a cancellation or a no-show?</strong> No. Both are final in the status map; create a new booking instead.</p>
+<p><strong>Where are bookings stored?</strong> In the <code>appointments</code> table, one row per booking, whatever happens to it.</p>
+</section></body></html>

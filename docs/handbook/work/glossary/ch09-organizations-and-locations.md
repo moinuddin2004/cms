@@ -1,0 +1,3 @@
+- **Unmanaged clinic** — an organization with neither `trial_ends_at` nor `paid_until`; it never expires and has no plan limits.
+- **Main branch** — a location with `is_main_branch = true`; not exclusive.
+- **Legacy organization settings** — the `organization_settings` table, stored and editable but read by no backend code.

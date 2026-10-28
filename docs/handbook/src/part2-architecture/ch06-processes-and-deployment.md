@@ -51,7 +51,7 @@ The table shows, for each running component, in which role it is active. Seeding
 
 **The relays.** Both relays are woken by PostgreSQL `LISTEN`/`NOTIFY` on a dedicated database connection and also poll as a fallback: the queue relay every second, the notification relay every two seconds (which also picks up retries and messages held back by quiet hours). If the `LISTEN` connection fails, they poll only.
 
-**Scheduled jobs.** There are eight. None of them sets a timezone, so every cron time below is in the **server's** timezone, not the location's.
+**Scheduled jobs.** There are eight. None of them sets a timezone, so every cron time in the next table is in the **server's** timezone, not the location's.
 
 | Job | Schedule | What it does |
 |---|---|---|
@@ -62,7 +62,7 @@ The table shows, for each running component, in which role it is active. Seeding
 | Patient credits expiry | every day at 01:00 server time | Marks active patient credits whose expiry date is before today (server-local midnight) as expired. |
 | `billing-invariants` | every day at 02:30 server time | Checks the money invariants for every patient with billing rows and logs violations. Read-only. |
 | Inventory alerts | every day at 08:00 server time | Finds low-stock and expiring items where inventory and inventory alerts are on, and only writes a log line; no notification is created [Partial]. |
-| `month-end-payroll` | on the 1st of each month at 05:00 server time | Generates payroll for the month that just ended for every active location. |
+| `month-end-payroll` | on the 1st of each month at 05:00 server time | Generates payroll for the previous month for every active location. |
 
 The table lists each job, how often it runs and its effect. The queue jobs re-check state under the session lock through `QueueOrchestrator`, so running one twice is harmless. The queue jobs decide "which clinic day" with the location's timezone through `ClockService`; the cron trigger times themselves follow the server clock. The payroll job's code comment says 00:05, but the cron expression means 05:00.
 
@@ -76,12 +76,12 @@ Redis is used only for messages between processes. No business data is stored in
 
 | Use | Channel or name | Publishers → listeners | Without Redis |
 |---|---|---|---|
-| Realtime queue events | `dentalflow:queue:realtime` | Worker relay → every API instance; worker heartbeat every 5 s | In `all` mode not needed. In split mode the relay keeps rows unpublished and retries; API instances refuse sockets after 15 s without a heartbeat and clients poll. |
-| Access changes | `dentalflow:access:changed` | Any process that bumps an organization's access version → every process (access cache, feature cache, socket `access.changed`) | Only the process that made the change hears it; others catch up through their cache lifetimes (15 s for the access version, 30 s for features). |
+| Realtime queue events | the queue realtime channel | Worker relay → every API instance; worker heartbeat every 5 s | In `all` mode not needed. In split mode the relay keeps rows unpublished and retries; API instances refuse sockets after 15 s without a heartbeat and clients poll. |
+| Access changes | the access-changed channel | Any process that bumps an organization's access version → every process (access cache, feature cache, socket `access.changed`) | Only the process that made the change hears it; others catch up through their cache lifetimes (15 s for the access version, 30 s for features). |
 | Settings cache invalidation | `settings-registry:invalidate` | Any process → every process | Other processes catch up through the settings cache lifetime. |
 | Bull queue `submissions` | Bull connection | Registered, but no producer or consumer exists | Nothing depends on it. |
 
-The table lists the four uses of Redis, the channel names, who talks to whom and what happens when Redis is unavailable. Redis connections are created to fail fast (no offline queue) and reconnect with back-off. The connection string is `REDIS_URL`; the default is a Redis on the local machine. The channel names still contain a former working name of the product; they are internal identifiers only.
+The table lists the four uses of Redis, the channel names, who talks to whom and what happens when Redis is unavailable. Redis connections are created to fail fast (no offline queue) and reconnect with back-off. The connection string is `REDIS_URL`; the default is a Redis on the local machine. The exact channel names are defined in `realtime-bus.ts` and `access-change-bus.ts`.
 
 Login rate limiting does not use Redis: attempts are counted in each process's memory, so with several API instances each instance counts on its own.
 

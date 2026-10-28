@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant Lab as Lab member
+  participant API
+  participant NS as NotificationService
+  participant PG as PostgreSQL
+  participant Relay as Notification relay - worker
+  participant Inbox as In-app provider
+  participant Doctor as Doctor web app
+  Lab->>API: Accept lab order
+  API->>NS: enqueue in the same transaction
+  NS->>PG: read settings, rules, templates
+  NS->>PG: insert notification_outbox rows
+  NS->>PG: pg_notify notification_outbox
+  API->>PG: COMMIT
+  PG-->>Relay: NOTIFY wakes relay, or 2 s poll
+  Relay->>PG: claim due rows FOR UPDATE SKIP LOCKED
+  Relay->>Inbox: send row
+  Inbox->>PG: insert user_notifications once per outbox row
+  Relay->>PG: mark row sent
+  Doctor->>API: GET /me/notifications/unread-count every 30 s
+  API-->>Doctor: count shown on the bell

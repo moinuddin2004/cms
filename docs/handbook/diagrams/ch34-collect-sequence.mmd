@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor Receptionist
+    participant Web as Web app
+    participant API
+    participant Pay as PaymentsService
+    participant Iss as InvoiceIssuer
+    participant DB as PostgreSQL
+    Receptionist->>Web: Select charges, type amount, pick account
+    Web->>API: POST /payments/preview after 300 ms pause
+    API->>Pay: preview, no locks, no writes
+    Pay-->>Web: balance, advance used, paying now, to advance, invoice to be issued, blockers
+    Receptionist->>Web: Receive Rs amount
+    Web->>API: POST /payments with clientRequestId
+    API->>Pay: collect
+    Pay->>DB: same clientRequestId already used?
+    Pay->>DB: BEGIN, lock invoices, then charges, then advance payments
+    Pay->>Pay: spread exclusive tax on unbilled charges, plan allocation
+    Pay->>Iss: issue invoice for the unbilled charges
+    Iss->>DB: next INV number, INSERT invoice ISSUED, link charges, ledger INVOICE_ISSUED, audit ISSUED
+    Pay->>DB: next REC number, INSERT payment
+    Pay->>DB: INSERT payment_allocations, PAYMENT and ADVANCE_APPLIED
+    Pay->>DB: recompute charge, invoice and payment totals with invariant checks
+    Pay->>DB: commission entries, ledger PAYMENT, audit CREATED, COMMIT
+    Pay-->>Web: receipt number, invoice number, allocations, new summary
+    Web-->>Receptionist: Received screen with Print receipt and Print invoice

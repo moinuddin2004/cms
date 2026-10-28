@@ -1,0 +1,4 @@
+- **Access token** — 15-minute JWT kept in browser memory.
+- **Session cookie** — httpOnly cookie `refresh_token` carrying session id and refresh secret.
+- **Silent refresh** — `POST /auth/refresh` on app start and after a 401.
+- **Staff login** — user linked to an employee through assignments (`type: employee`).

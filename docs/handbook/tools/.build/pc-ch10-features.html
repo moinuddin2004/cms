@@ -1,0 +1,369 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch10-features"><h1 id="ch10-features-chapter-10-features-entitlement-enablement-and-location-overrides">Chapter 10 — Features: entitlement, enablement and location overrides</h1>
+<p>A <strong>feature</strong> is a named part of the Platform, such as &quot;Invoices&quot; or &quot;Lab Management&quot;, that can be on for one clinic and off for another. This chapter explains the three switches that decide whether a feature is active (the super admin&#39;s entitlement, the owner&#39;s switch and a per-location override), the 24 features that exist, how the backend enforces them and which screens control them. It is written for the product owner, who sells and configures features per clinic.</p>
+<h2 id="ch10-features-10-1-the-three-switches">10.1 The three switches</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> The platform operator decides what a clinic is allowed to have; the clinic owner decides what the clinic actually uses; and the owner can switch a feature off at one branch. A feature works at a branch only when all three agree.</p>
+<div class="tw"><table><thead><tr>
+<th>Switch</th>
+<th>Who sets it</th>
+<th>Stored in</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><strong>Entitled</strong></td>
+<td>Super admin</td>
+<td><code>org_feature_flags.is_entitled</code>, optional <code>entitled_until</code></td>
+<td>The feature is part of this clinic&#39;s plan. With <code>entitled_until</code>, it is a trial that ends at that moment.</td>
+</tr>
+<tr>
+<td><strong>Enabled</strong></td>
+<td>Owner (or anyone with <code>admin.features.manage</code>); the super admin can also set it</td>
+<td><code>org_feature_flags.is_enabled</code></td>
+<td>The clinic has switched the feature on. Only possible while entitled.</td>
+</tr>
+<tr>
+<td><strong>Location override</strong></td>
+<td>Owner (same permission)</td>
+<td><code>location_feature_overrides.is_disabled</code></td>
+<td>Switches the feature off at one location. It can never switch on something the organization has off.</td>
+</tr>
+</tbody></table></div><p>The table lists the three switches, who controls each, where it is stored and what it means. A feature is <strong>active</strong> for an organization when its catalog entry is active, it is entitled (and the trial has not ended), and it is enabled. It is active at a location when, in addition, that location has not switched it off.</p>
+<p><strong>Defaults and missing rows.</strong></p>
+<ul>
+<li>When an organization is created (by the super admin or by self-signup), the Platform writes one <code>org_feature_flags</code> row per active catalog feature: features that are &quot;on by default&quot; in the catalog are both entitled and enabled; all others are neither.</li>
+<li>If an organization has <strong>no</strong> row for a feature, it counts as entitled, and enabled according to the catalog default. This keeps organizations that predate entitlement working.</li>
+<li>A trial end date must be in the future when set. When it passes, the feature becomes &quot;not entitled&quot; with the reason <code>trial_expired</code>; the owner sees it locked.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch10-feature-activation.png" alt="Figure 10.1 — How a feature becomes active"></p>
+<p><em>Figure 10.1 — The decision path from a catalog feature to &quot;active at this location&quot;.</em></p>
+<p>The flowchart reads left to right. It starts from &quot;Feature in the active catalog&quot; and reaches the first decision, &quot;Entitled? is_entitled and trial not ended&quot;, which the super admin controls by entitling with an optional trial end. If the answer is no, the feature is &quot;Not active&quot; with the reason <code>not_entitled</code> or <code>trial_expired</code>. If yes, the second decision asks &quot;Enabled? owner switch, else catalog default&quot;; the owner (or the super admin) controls this switch. If no, the feature is &quot;Off for the whole clinic&quot;. If yes, the third decision asks &quot;Switched off at this location?&quot;, controlled by the owner&#39;s location override. If yes, the feature is &quot;Off at this location only&quot;. If no, the feature is &quot;Active here&quot;, and the final box says what that means: routes marked <code>@RequireFeature</code> open, and the permissions that belong to the feature are kept.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-state.ts</code> · <code>featureState</code> · <code>resolveEnabledFeatures</code> · <code>narrowByLocation</code> · <code>FeatureFlagsService.seedFlagsForOrg</code></p>
+<h2 id="ch10-features-10-2-the-feature-catalog">10.2 The feature catalog</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The catalog (<code>feature_catalog</code>) lists every feature key with a name, a module, a description, specialty tags, a default and a sort order. It is seeded from code on every start: keys that are missing are inserted, existing rows are never changed (so super-admin edits stay), and keys that are not built are deactivated.</p>
+<p>There are <strong>24 active features</strong>:</p>
+<div class="tw"><table><thead><tr>
+<th>Key</th>
+<th>Name</th>
+<th align="center">On by default</th>
+<th>Specialty tags</th>
+<th>What it controls</th>
+</tr>
+</thead><tbody><tr>
+<td><code>appointments.core</code></td>
+<td>Appointments</td>
+<td align="center">yes</td>
+<td>general</td>
+<td>12 permissions: booking and the whole queue.</td>
+</tr>
+<tr>
+<td><code>patients.core</code></td>
+<td>Patient Records</td>
+<td align="center">yes</td>
+<td>general</td>
+<td>9 permissions, including viewing, registering, clinical records and conducting consultations.</td>
+</tr>
+<tr>
+<td><code>patients.teeth_chart</code></td>
+<td>Teeth Chart</td>
+<td align="center">no</td>
+<td>dental, ortho</td>
+<td><code>patients.chart.edit</code>; one endpoint marked <code>@RequireFeature</code>.</td>
+</tr>
+<tr>
+<td><code>patients.treatment_plans</code></td>
+<td>Treatment Plans</td>
+<td align="center">yes</td>
+<td>general</td>
+<td><code>plans.manage</code>, <code>plans.templates.manage</code>; three endpoints marked <code>@RequireFeature</code>.</td>
+</tr>
+<tr>
+<td><code>patients.prescriptions</code></td>
+<td>Prescriptions</td>
+<td align="center">yes</td>
+<td>general</td>
+<td><code>prescriptions.create</code>, <code>prescriptions.library.manage</code>; six endpoints marked <code>@RequireFeature</code>.</td>
+</tr>
+<tr>
+<td><code>patients.documents</code></td>
+<td>Documents</td>
+<td align="center">yes</td>
+<td>general</td>
+<td><code>patients.documents.manage</code>.</td>
+</tr>
+<tr>
+<td><code>patients.insurance</code></td>
+<td>Insurance</td>
+<td align="center">no</td>
+<td>general</td>
+<td>No permission; the three patient insurance endpoints are marked <code>@RequireFeature</code>.</td>
+</tr>
+<tr>
+<td><code>billing.invoices</code></td>
+<td>Invoices</td>
+<td align="center">no</td>
+<td>general</td>
+<td>9 billing permissions (desk, invoices, payments, refunds, cash close).</td>
+</tr>
+<tr>
+<td><code>billing.discounts</code></td>
+<td>Discounts &amp; Coupons</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>billing.discount.apply</code>, <code>billing.discount.custom</code>. Coupons no longer exist; discounts work through discount types.</td>
+</tr>
+<tr>
+<td><code>billing.expenses</code></td>
+<td>Expense Tracking</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>expenses.view</code>, <code>expenses.manage</code>.</td>
+</tr>
+<tr>
+<td><code>billing.financial_summary</code></td>
+<td>Financial Dashboard</td>
+<td align="center">no</td>
+<td>general</td>
+<td>The financial summary endpoints (<code>@RequireFeature</code>) and the dashboard&#39;s finance widgets.</td>
+</tr>
+<tr>
+<td><code>billing.credit_packages</code></td>
+<td>Credit Packages</td>
+<td align="center">no</td>
+<td>general</td>
+<td>The credit package endpoints (<code>@RequireFeature</code>); no page uses them.</td>
+</tr>
+<tr>
+<td><code>billing.commissions</code></td>
+<td>Doctor Commissions</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>earnings.own.view</code>, <code>earnings.all.view</code>, <code>compensation.manage</code>.</td>
+</tr>
+<tr>
+<td><code>comms.whatsapp</code></td>
+<td>WhatsApp</td>
+<td align="center">no</td>
+<td>general</td>
+<td>Nothing. No WhatsApp sending exists.</td>
+</tr>
+<tr>
+<td><code>comms.in_app</code></td>
+<td>In-App Notifications</td>
+<td align="center">yes</td>
+<td>general</td>
+<td>Nothing reads this key; in-app notifications work whether it is on or off.</td>
+</tr>
+<tr>
+<td><code>inventory.core</code></td>
+<td>Inventory</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>inventory.view</code>, <code>inventory.stock.adjust</code>, <code>inventory.po.manage</code>.</td>
+</tr>
+<tr>
+<td><code>inventory.alerts</code></td>
+<td>Inventory Alerts</td>
+<td align="center">no</td>
+<td>general</td>
+<td>Read by the daily inventory alert job, which only writes a log line.</td>
+</tr>
+<tr>
+<td><code>hr.payroll</code></td>
+<td>Payroll</td>
+<td align="center">yes</td>
+<td>general</td>
+<td><code>payroll.manage</code>.</td>
+</tr>
+<tr>
+<td><code>hr.leave</code></td>
+<td>Leave Management</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>leave.approve</code>.</td>
+</tr>
+<tr>
+<td><code>hr.commissions</code></td>
+<td>Commissions</td>
+<td align="center">no</td>
+<td>general</td>
+<td>Nothing. Doctor commissions use <code>billing.commissions</code>.</td>
+</tr>
+<tr>
+<td><code>reports.financial</code></td>
+<td>Financial Reports</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>reports.financial.view</code>, <code>finance.overview.view</code>.</td>
+</tr>
+<tr>
+<td><code>reports.clinical</code></td>
+<td>Clinical Reports</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>reports.clinical.view</code>.</td>
+</tr>
+<tr>
+<td><code>reports.exports</code></td>
+<td>Data Exports</td>
+<td align="center">no</td>
+<td>general</td>
+<td><code>reports.export</code>.</td>
+</tr>
+<tr>
+<td><code>dental.lab_orders</code></td>
+<td>Lab Management</td>
+<td align="center">no</td>
+<td>dental, ortho</td>
+<td>7 lab permissions (orders, billing, catalog, payables, links, templates).</td>
+</tr>
+</tbody></table></div><p>The table lists each active key, its display name, whether new clinics get it entitled and enabled, its specialty tags and what it actually controls in the code. Most features work through permissions: when a feature is not active, every permission tied to it is dropped from every role at resolution time (Chapter 11). Eleven permissions belong to no feature (&quot;core&quot;) and are always available: staff management and the nine Admin permissions.</p>
+<p><strong>Status of individual keys:</strong></p>
+<ul>
+<li>[Implemented]: every key in the table whose &quot;What it controls&quot; names permissions or <code>@RequireFeature</code> endpoints.</li>
+<li>[Partial]: <code>billing.credit_packages</code> (backend only, no page), <code>inventory.alerts</code> (the job only logs), <code>billing.discounts</code> (the name still says &quot;Coupons&quot;).</li>
+<li>[Not implemented]: <code>comms.whatsapp</code> and <code>hr.commissions</code> (switching them on changes nothing); <code>comms.in_app</code> (the switch has no effect).</li>
+</ul>
+<p><strong>Twelve keys are retired</strong> [Not implemented]. Their seed entries are commented out, and on every start the Platform deactivates any catalog row with these keys so nobody can switch on a feature that does nothing: <code>appointments.reminders</code>, <code>appointments.recurring</code>, <code>appointments.online_booking</code>, <code>appointments.waiting_room</code>, <code>patients.portal</code>, <code>patients.crm</code>, <code>billing.pdf_receipts</code>, <code>billing.insurance_claims</code>, <code>billing.online_payments</code>, <code>comms.sms</code>, <code>comms.email</code>, <code>dental.before_after</code>. (Some of the underlying ideas exist in other forms, such as the doctor-wise queue and the patient CRM tab, but these keys gate nothing.)</p>
+<p><strong>Catalog editing.</strong> <code>GET</code>, <code>POST /feature-flags/catalog</code> and <code>PATCH /feature-flags/catalog/:id</code> let the super admin read, add and edit catalog rows [Partial: backend only, no screen calls them].</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-catalog.seed.ts</code> · <code>FEATURE_CATALOG_SEED</code> · <code>RETIRED_FEATURE_KEYS</code> · <code>FeatureFlagsService.seedCatalog</code> · <code>backend/src/access/catalog/permissions.ts</code></p>
+<h2 id="ch10-features-10-3-how-the-backend-enforces-features">10.3 How the backend enforces features</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>There are two mechanisms.</p>
+<ol>
+<li><strong>Through permissions (the common case).</strong> Every permission names one feature. <code>AccessResolver</code> keeps a permission only if its feature is active at the request&#39;s organization and location (<code>filterByFeatures</code>). Turning a feature off therefore takes the permission away from every role <strong>without changing the roles</strong>; turning it back on restores access exactly as it was.</li>
+<li><strong>Through <code>@RequireFeature(key)</code>.</strong> Used where no permission expresses the feature, mainly on <code>@AnyMember()</code> routes. <code>FeatureFlagGuard</code>, the third global guard, collects every <code>@RequireFeature</code> key on the handler and its controller (both apply) and refuses with 403 &#39;The &quot;<key>&quot; feature is not enabled for this location&#39; if any is not active. Super admins and <code>@Public()</code> routes skip the check. The location header narrows the set; the guard trusts it without a membership check, which is safe because a location can only remove features.</li>
+</ol>
+<p><strong>Caching.</strong> <code>FeatureFlagsService</code> keeps the active set per organization, and per organization and location, in process memory for 30 seconds. Every change clears the cache in the process that made it. The change also raises the organization&#39;s <strong>access version</strong> (automatically for <code>org_feature_flags</code> writes, explicitly for location overrides), which is broadcast over Redis so every other process drops its cache at once, and the web app gets <code>access.changed</code> and refetches. If Redis is down, other processes catch up within the 30-second lifetime.</p>
+<p><strong>Every change is audited</strong> in <code>audit_logs</code> (entity types <code>org_feature_flag</code> and <code>location_feature_override</code>), in the same transaction as the change, with the before and after values.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/guards/feature-flag.guard.ts</code> · <code>FeatureFlagGuard</code> · <code>requiredFeaturesOf</code> · <code>FeatureFlagsService.getEnabledFeatures</code> · <code>FEATURE_CACHE_TTL_MS</code> · <code>AccessVersionSubscriber</code> · <code>FeatureAdminService</code></p>
+<h2 id="ch10-features-10-4-super-admin-entitle-features-for-a-clinic">10.4 Super admin: entitle features for a clinic</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Decides which features a clinic may use, optionally as a trial, and can also flip the clinic&#39;s own switch.</p>
+<p><strong>How the user does it.</strong> On the Organizations page, click the &quot;Manage features&quot; action of a clinic. The page lists features by module. Per feature, the <strong>Entitled</strong> switch grants or withdraws it, a date picker (&quot;No trial end&quot;) sets a trial end, and the <strong>Enabled</strong> switch flips the owner&#39;s switch. Per module, <strong>Entitle module</strong> and <strong>Withdraw module</strong> act on all features of that module at once.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>Load the page</td>
+<td><code>GET /feature-flags/org/:organizationId</code></td>
+</tr>
+<tr>
+<td>Entitle or withdraw one feature, with optional trial end</td>
+<td><code>PATCH /feature-flags/org/:organizationId/:featureKey/entitlement</code></td>
+</tr>
+<tr>
+<td>Entitle or withdraw a module or a list of keys</td>
+<td><code>POST /feature-flags/org/:organizationId/entitlement/bulk</code></td>
+</tr>
+<tr>
+<td>Flip the enabled switch (no entitlement check)</td>
+<td><code>PATCH /feature-flags/org/:organizationId/:featureKey</code></td>
+</tr>
+<tr>
+<td>Flip many enabled switches</td>
+<td><code>POST /feature-flags/org/:organizationId/bulk</code></td>
+</tr>
+<tr>
+<td>Create missing rows from catalog defaults</td>
+<td><code>POST /feature-flags/org/:organizationId/seed</code></td>
+</tr>
+</tbody></table></div><p>The table maps each action on the screen to its endpoint. All carry <code>@RequireSuperAdmin()</code>. Rows are locked (<code>pessimistic_write</code>) while being changed, and each changed row writes an audit entry recorded as a platform action.</p>
+<p><strong>Rules.</strong> The trial end must be a valid date in the future; it is ignored when withdrawing. Re-entitling keeps a running trial; an ended trial is dropped. Unknown keys give 404.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch10-org-entitlements.svg" alt="Figure 10.2 — Feature entitlement page"></p>
+<p><em>Figure 10.2 — Feature entitlement (screenshot pending).</em></p>
+<p>The page is titled &quot;Feature entitlement&quot; with a back button to Organizations and the subtitle &quot;Entitled = in this clinic&#39;s plan (optionally a trial). Enabled = the clinic owner&#39;s switch.&quot; A search box (&quot;Search features&quot;) filters the list. Each module is a card with <strong>Entitle module</strong> and <strong>Withdraw module</strong> buttons. Each feature row shows its name, specialty tags as small badges, a state badge (&quot;Not entitled&quot;, &quot;Trial ended&quot; or &quot;Off by clinic&quot; when it applies), the description, a trial-end date picker, and two labelled switches, <strong>Entitled</strong> and <strong>Enabled</strong>, each with a tooltip. Empty and error states read &quot;No features in the catalog&quot; and &quot;Could not load this organization&#39;s features.&quot;</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-flags.controller.ts</code> · <code>FeatureAdminService.setEntitlement</code> · <code>FeatureAdminService.bulkSetEntitlement</code> · <code>web-app/src/features/feature-flags/components/OrgFeatureEntitlements.tsx</code> · <code>EntitlementRow</code></p>
+<h2 id="ch10-features-10-5-owner-switch-features-on-or-off">10.5 Owner: switch features on or off</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the clinic turn the features in its plan on or off for the whole clinic, or off at single locations.</p>
+<p><strong>How the user does it.</strong> Open <strong>Features</strong> in the clinic setup part of the sidebar (<code>/admin/features</code>). Each feature has a switch. Locked features (not entitled, or trial ended) show a lock, a &quot;Locked&quot; badge and a Roman-Urdu note asking the user to contact the platform admin, and their switch is disabled. Turning a feature off opens a confirmation, &quot;Turn off <feature>?&quot;, that lists the permissions that stop working and the roles that lose them (&quot;No role uses this feature.&quot; when none). A location icon opens &quot;Per-location settings for <feature>&quot;, where each location can be switched off or back on.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+<th>Rule</th>
+</tr>
+</thead><tbody><tr>
+<td>Load the page</td>
+<td><code>GET /admin/features</code></td>
+<td>Returns modules, features with entitled, enabled, active, trial end, locked reason, permission count, and the locations where each is off; plus the active locations.</td>
+</tr>
+<tr>
+<td>Show the impact before turning off</td>
+<td><code>GET /admin/features/:key/impact</code></td>
+<td>Lists the feature&#39;s permissions and the active roles that grant any of them.</td>
+</tr>
+<tr>
+<td>Turn on or off for the clinic</td>
+<td><code>PATCH /admin/features/:key</code></td>
+<td>Refused with 403 <code>NOT_ENTITLED</code> (with the reason <code>not_entitled</code> or <code>trial_expired</code>) when the clinic is not entitled.</td>
+</tr>
+<tr>
+<td>Switch off or back on at one location</td>
+<td><code>PUT /admin/features/:key/locations/:locationId</code></td>
+<td>The location must belong to the clinic. &quot;Back on&quot; only removes the override; it never turns on a feature the clinic has off.</td>
+</tr>
+</tbody></table></div><p>The table maps each owner action to its endpoint and rule. The whole controller requires <code>admin.features.manage</code>, a core permission that owners, super admins and the system Admin role hold. The organization always comes from the active tenant, never from the URL. A super admin acting here is recorded in the audit log as a platform action.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch10-owner-features.svg" alt="Figure 10.3 — Owner&amp;#39;s Features page"></p>
+<p><em>Figure 10.3 — Features (screenshot pending).</em></p>
+<p>The page is titled &quot;Features&quot; with the subtitle &quot;Turn the features in your plan on or off for the clinic, or for one location.&quot; A filter row has a search box (&quot;Search features&quot;) and two selectors, &quot;All modules&quot; and &quot;All states&quot;. Features are grouped by module. Each row shows the name, an &quot;On&quot;, &quot;Off&quot; or &quot;Locked&quot; badge, a &quot;Trial until <date>&quot; badge during a trial, an &quot;Off at N locations&quot; badge when overrides exist, the description, a per-location icon button and the main switch with a tooltip such as &quot;Turn <feature> off for the clinic&quot;. Locked rows show &quot;Plan mein nahi — super admin se rabta karein&quot; or &quot;Trial khatam ho gaya — super admin se rabta karein&quot;. The per-location sheet lists each location as &quot;Follows the clinic (on)&quot; or &quot;Off at this location&quot; with a switch. Empty states read &quot;No features yet — The platform has not set up any features for this clinic.&quot; and &quot;No locations&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/admin-features.controller.ts</code> · <code>AdminFeaturesController</code> · <code>FeatureAdminService.setEnabled</code> · <code>FeatureAdminService.setLocationOverride</code> · <code>FeatureAdminService.getImpact</code> · <code>web-app/src/features/feature-settings/</code></p>
+<h2 id="ch10-features-10-6-how-the-web-app-uses-features">10.6 How the web app uses features</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><code>GET /me/access</code> returns the active feature keys for the active organization and location together with the permissions (Chapter 11). Because permissions are already filtered by feature, most screens only ask <code>can(...)</code>.</li>
+<li>An older endpoint, <code>GET /feature-flags/my-features</code>, returns the same active set; <code>FeatureFlagsContext</code> loads it and offers <code>useFeature(key)</code> and a <code>RequireFeaturePage</code> wrapper, used by six pages and some widgets (for example the dashboard&#39;s finance widgets check <code>billing.financial_summary</code>).</li>
+<li>When features change, the <code>access.changed</code> socket event makes the web app refetch both.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>web-app/src/context/FeatureFlagsContext.tsx</code> · <code>web-app/src/components/feature/RequireFeaturePage.tsx</code> · <code>FeatureFlagsController.getMyFeatures</code></p>
+<h2 id="ch10-features-10-7-limitations-and-known-gaps">10.7 Limitations and known gaps</h2>
+<ul>
+<li>Three active keys (<code>comms.whatsapp</code>, <code>comms.in_app</code>, <code>hr.commissions</code>) have no effect; an owner can switch them without any change in behaviour.</li>
+<li><code>inventory.alerts</code> only produces a server log line, no notification.</li>
+<li>Catalog editing has no screen.</li>
+<li>The legacy <code>organization_settings.feature_*</code> switches (Chapter 9) are unrelated to this system and do nothing.</li>
+</ul>
+<h2 id="ch10-features-10-8-owner-39-s-faq">10.8 Owner&#39;s FAQ</h2>
+<p><strong>What happens to roles when I turn a feature off?</strong> Nothing is deleted. The feature&#39;s permissions stop working for everyone; turning the feature back on restores them exactly.</p>
+<p><strong>Can I turn a feature on at one branch only?</strong> Not directly. Turn it on for the clinic and switch it off at the other branches.</p>
+<p><strong>Why can&#39;t I switch a feature on?</strong> It is not in your plan, or its trial has ended. Only the super admin can entitle it.</p>
+<p><strong>What happens when a trial ends?</strong> The feature becomes inactive at once (within the 30-second cache), and the owner&#39;s switch shows it locked with &quot;trial ended&quot;.</p>
+<p><strong>Does turning a feature off log people out?</strong> No. Open screens receive an access update and lose the related menu items and buttons.</p>
+</section></body></html>

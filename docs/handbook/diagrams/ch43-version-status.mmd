@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> draft: POST id/versions, New draft
+    draft --> draft: PATCH id/versions/vid, Save draft
+    draft --> [*]: DELETE id/versions/vid, Discard
+    draft --> published: POST id/versions/vid/publish, checks pass
+    published --> retired: POST id/versions/vid/retire, or a newer version published
+    retired --> [*]

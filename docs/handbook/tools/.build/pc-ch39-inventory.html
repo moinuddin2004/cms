@@ -1,0 +1,295 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch39-inventory"><h1 id="ch39-inventory-chapter-39-inventory">Chapter 39 — Inventory</h1>
+<p>This chapter describes the Inventory module of the Platform: how a clinic keeps a list of its supplies, tracks how much of each it holds, buys more from suppliers through purchase orders, and defines kits of materials used per procedure. It is written for the product owner, who needs to know exactly what works today and where the module stops. Inventory is a per-location module; it has a complete set of screens, but no sidebar entry, and several of its write paths carry an unverified risk that is explained in full.</p>
+<h2 id="ch39-inventory-39-1-what-this-module-is-for">39.1 What this module is for</h2>
+<p>The module keeps a stock list for each location. Every change of quantity is recorded as a <strong>stock movement</strong>, so the clinic can always see who changed what, when and why. Staff can:</p>
+<ul>
+<li>add items (gloves, composite, anaesthetic cartridges…) with a unit, cost, reorder level and expiry date;</li>
+<li>correct stock by hand, write off wastage, record transfers and returns;</li>
+<li>keep a list of suppliers and raise purchase orders, then receive the goods into stock;</li>
+<li>define <strong>consumption templates</strong> (kits of items used for a procedure).</li>
+</ul>
+<p>Who uses it: the <strong>Admin</strong> role (all actions) and the <strong>Assistant</strong> role (view only). Doctor, Receptionist and Accountant have no inventory permission by default.</p>
+<p>Where it appears: <strong>no sidebar entry</strong>. The page <code>/inventory</code> exists and is protected by <code>inventory.view</code>, but <code>web-app/src/features/access/nav/nav.registry.ts</code> has no item for it, and no other screen links to it. Users reach it only by typing the address. The component that would record materials used on a patient (<code>ConsumptionRecorder</code>) is exported but not placed on any screen, so the consultation and patient screens offer no link either.</p>
+<p>Two features exist: <code>inventory.core</code> (&quot;Inventory&quot;, off by default) gates every permission of the module; <code>inventory.alerts</code> (&quot;Inventory Alerts&quot;, off by default) only switches on the daily alert job.</p>
+<h2 id="ch39-inventory-39-2-screens">39.2 Screens</h2>
+<p>The page title is &quot;Inventory Management&quot; with the subtitle &quot;Track supplies, suppliers, purchase orders and consumption&quot;. Without an active location it shows &quot;Select a location first&quot;. Above four tabs (<strong>Items</strong>, <strong>Suppliers</strong>, <strong>Purchase Orders</strong>, <strong>Templates</strong>) sits a strip of five tiles: Total Items, Total Value (stock × cost price), Low Stock, Expiring (within 30 days) and Out of Stock.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch39-items-tab.svg" alt="Figure 39.1 — Inventory, Items tab"></p>
+<p><em>Figure 39.1 — Inventory, Items tab (screenshot pending).</em></p>
+<p>The Items tab has a search box (&quot;Search name or SKU…&quot;), a category filter (&quot;All categories&quot;), two toggle buttons <strong>Low Stock</strong> and <strong>Expiring</strong>, and an <strong>Add Item</strong> button for users with <code>inventory.stock.adjust</code>. The table shows Name, SKU, Category, Stock (for example &quot;12 / 10 pieces&quot;, coloured red when at or below the reorder level, amber up to twice that level, green above, or &quot;Out of stock&quot;), Unit Price and Expiry (a red &quot;Expired&quot; badge or a warning when within 30 days). A three-dot menu per row offers <strong>Edit item</strong>, <strong>Adjust stock</strong>, <strong>View movements</strong> and <strong>Deactivate</strong> (the last asks a browser confirmation &quot;Deactivate &quot;…&quot;?&quot;). Pages of 20 with <strong>Previous</strong> / <strong>Next</strong>. The <strong>Add Item</strong> / edit form is a dialog with Name, SKU, Category, Initial Stock (new items only), Unit, Cost Price, Reorder Level, Expiry Date, a <strong>Billable to patient</strong> switch with Selling Price, and Description.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch39-item-detail.svg" alt="Figure 39.2 — Item detail and the Adjust Stock dialog"></p>
+<p><em>Figure 39.2 — Item detail sheet and the Adjust Stock dialog (screenshot pending).</em></p>
+<p>Clicking a row opens a side sheet with the item name, SKU, Category, Unit, Cost Price, Selling Price, Expiry, Current Stock against the reorder level, an <strong>Adjust Stock</strong> button and a &quot;Stock Movements&quot; table (Date, Type, Qty, After, Notes) of the ten most recent movements. The Adjust Stock dialog, titled &quot;Adjust Stock — <item>&quot;, offers Reason (Manual Adjustment, Wastage, Return to Supplier, Transfer In, Transfer Out), Quantity, Direction (Increase or Decrease, for manual adjustments), Batch Number and Expiry Date (for incoming stock), Notes (required for manual adjustment and wastage), and a preview &quot;Current: 12 → New: 9&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch39-suppliers-tab.svg" alt="Figure 39.3 — Inventory, Suppliers tab"></p>
+<p><em>Figure 39.3 — Inventory, Suppliers tab (screenshot pending).</em></p>
+<p>The Suppliers tab lists Name, Contact Person, Phone, Email and City, with <strong>Add Supplier</strong> for users with <code>inventory.po.manage</code> and a row menu to edit or deactivate. The supplier dialog has Name (required), Contact Person, Phone, Email, City, Address, Website and Notes (&quot;Payment terms, delivery schedule…&quot;).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch39-purchase-orders.svg" alt="Figure 39.4 — Inventory, Purchase Orders tab"></p>
+<p><em>Figure 39.4 — Inventory, Purchase Orders tab with its dialogs (screenshot pending).</em></p>
+<p>The Purchase Orders tab has status buttons All, Draft, Ordered, Partial and Received (no Cancelled filter) and <strong>Create PO</strong>. The table shows PO #, Supplier, Order Date, Expected, Items, Total and Status. The &quot;Create Purchase Order&quot; dialog takes a supplier, Expected Delivery, items with Qty and Unit Price, Tax Rate (%) and Notes, and shows Subtotal, Tax and Total. Clicking a PO opens a sheet with its status badge, the lines (Item, Ordered, Received, Unit Price, Total) and buttons by status: <strong>Mark as Ordered</strong> and <strong>Cancel</strong> for a draft, <strong>Receive Items</strong> (or <strong>Receive More Items</strong>) for an ordered or partly received PO. The &quot;Receive Items — PO-…&quot; dialog asks per line for &quot;Receiving now&quot;, Batch # and Expiry.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch39-templates-tab.svg" alt="Figure 39.5 — Inventory, Templates tab"></p>
+<p><em>Figure 39.5 — Inventory, Templates tab (screenshot pending).</em></p>
+<p>The Templates tab lists Template, Procedure, Appointment Type and Items, with <strong>Add Template</strong>, edit and deactivate actions for users with <code>inventory.stock.adjust</code>. The template dialog has a name (&quot;Root Canal Kit&quot;), a procedure (&quot;Root Canal&quot;), &quot;Appointment Type (for auto-matching)&quot; and &quot;Add Items to Kit&quot; with quantity and notes per item.</p>
+<h2 id="ch39-inventory-39-3-features">39.3 Features</h2>
+<h3 id="ch39-inventory-39-3-1-browse-stock-and-see-stock-health">39.3.1 Browse stock and see stock health</h3>
+<p><strong>Status:</strong> [Partial] — works; reachable only by typing <code>/inventory</code> (no sidebar entry).</p>
+<p><strong>What it does.</strong> Lists the active items at the active location with search, category, low-stock and expiring filters, and shows five stock-health tiles.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Type the address <code>/inventory</code>.</li>
+<li>Search, pick a category, or toggle <strong>Low Stock</strong> / <strong>Expiring</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Low stock means more than zero but at or below the reorder level. Expiring means the item&#39;s nearest expiry date is within 30 days (already expired items count too). Total value is quantity times the last cost price.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /inventory/items</code> (<code>InventoryService.findAll</code>, paged, default 20, <code>ILIKE</code> on name and SKU) and <code>GET /inventory/items/stats</code> (<code>getStats</code>). Separate endpoints <code>GET /inventory/items/low-stock</code>, <code>/expiring?daysAhead=30</code> and <code>/out-of-stock</code> exist; the web app has hooks for two of them but no component calls them. <code>GET /inventory/categories</code> fills the category filter.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Active location and active items only.</li>
+<li>The 30-day window uses the server&#39;s date, not the location&#39;s; the per-item <code>expiryAlertDays</code> setting is stored but not used.</li>
+<li>The search box is not debounced; each keystroke queries.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>inventory.view</code>, feature <code>inventory.core</code>. Default: Admin, Assistant.</p>
+<p><strong>Data read and written.</strong> Reads <code>inventory_items</code>, <code>inventory_categories</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; the page shows &quot;No items found&quot; for an empty result (no separate filtered-empty message).</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/controllers/inventory.controller.ts</code> · <code>InventoryService.findAll</code>, <code>getStats</code> · <code>web-app/src/features/inventory/components/ItemsTab.tsx</code></p>
+<h3 id="ch39-inventory-39-3-2-add-edit-and-deactivate-an-item">39.3.2 Add, edit and deactivate an item</h3>
+<p><strong>Status:</strong> [Partial] — adding without stock, editing and deactivating work; adding with an initial stock goes through the stock-movement path whose foreign-key risk is described in 39.3.4 ([Unverified]).</p>
+<p><strong>What it does.</strong> Creates a stock item at the active location, edits its details, or hides it (soft delete).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Add Item</strong>, fill the dialog and save; or choose <strong>Edit item</strong> in the row menu.</li>
+<li>To remove, choose <strong>Deactivate</strong> and confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A new item starts at zero. If an initial stock is entered, an &quot;initial stock&quot; movement is recorded right after. Editing can never change the quantity; only movements can.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /inventory/items</code> → <code>InventoryService.create</code> (SKU uniqueness check per organization, save with <code>currentStock = 0</code>, then <code>adjustStock</code> with <code>INITIAL_STOCK</code> when <code>initialStock &gt; 0</code>; these are two separate steps, not one transaction). <code>PATCH /inventory/items/:id</code> → <code>update</code> (drops <code>currentStock</code> from the payload). <code>DELETE /inventory/items/:id</code> → <code>deactivate</code> (sets <code>isActive = false</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name, unit, cost price and initial stock (0 or more) are required by the API; reorder level defaults to 10, reorder quantity to 50, expiry alert days to 30.</li>
+<li>SKU must be unique within the organization (checked in code, not by a database constraint).</li>
+<li>Units: pieces, boxes, pairs, rolls, bottles, packets, cartridges, tubes, ml, gm, kg, liters.</li>
+<li>&quot;Billable to patient&quot; and the selling price are stored, but no billing screen uses them.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>inventory.stock.adjust</code> (implies <code>inventory.view</code>), feature <code>inventory.core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>inventory_items</code> (and <code>stock_movements</code> for initial stock).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 409 &quot;An item with SKU &quot;GLV-M-001&quot; already exists&quot;; 404 &quot;Inventory item not found&quot;; in the dialog &quot;Name is required&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/inventory.service.ts</code> · <code>InventoryService.create</code>, <code>update</code>, <code>deactivate</code> · <code>web-app/src/features/inventory/components/ItemFormDialog.tsx</code></p>
+<h3 id="ch39-inventory-39-3-3-manage-categories">39.3.3 Manage categories</h3>
+<p><strong>Status:</strong> [Partial] — the API supports create, rename and deactivate; the web app only lists categories, so there is no way to create one from a screen.</p>
+<p><strong>What it does.</strong> Groups items (for example &quot;Consumables&quot;, &quot;Anaesthetics&quot;) for filtering.</p>
+<p><strong>How the user does it.</strong> Only pick an existing category in the item form or the filter. No screen creates categories, and the default-category seeding function is never called, so a new organization has none.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Categories are shared by all locations of an organization.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /inventory/categories</code>, <code>GET</code>, <code>PATCH /inventory/categories/:id</code>, <code>DELETE</code> (deactivate) → <code>InventoryCategoryService</code>. <code>seedDefaults</code> exists but has no caller. The web hooks <code>useCreateCategory</code>, <code>useUpdateCategory</code>, <code>useDeleteCategory</code> are not used by any component.</p>
+<p><strong>Rules and validations.</strong> Organization-wide; deactivated categories are hidden. Deleting a category row in the database sets items&#39; category to null.</p>
+<p><strong>Who can do it.</strong> View: <code>inventory.view</code>; change: <code>inventory.stock.adjust</code>. Feature <code>inventory.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>inventory_categories</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Category not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/inventory-category.service.ts</code> · <code>InventoryCategoryService</code> · <code>web-app/src/features/inventory/hooks/useCategories.ts</code></p>
+<h3 id="ch39-inventory-39-3-4-adjust-stock-and-keep-the-movement-history">39.3.4 Adjust stock and keep the movement history</h3>
+<p><strong>Status:</strong> [Unverified] — the logic is complete and the screen calls it, but the code stores the signed-in user&#39;s id in <code>stock_movements.performedBy</code>, a column with a foreign key to <code>employees</code>. User ids and employee ids are different records on the Platform, so the insert is expected to fail with a database error. Not run or tested.</p>
+<p><strong>What it does.</strong> Changes an item&#39;s quantity for a stated reason and records the change as a stock movement with the stock before and after.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Choose <strong>Adjust stock</strong> in the row menu, or <strong>Adjust Stock</strong> in the item sheet.</li>
+<li>Pick the Reason, enter the Quantity (and Direction for a manual adjustment), optional Batch Number and Expiry Date, and Notes when required.</li>
+<li>Check the &quot;Current → New&quot; preview and save.</li>
+<li>Open the item (or <strong>View movements</strong>) to see the last ten movements.</li>
+</ol>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch39-stock-flow.png" alt="Figure 39.6 — Every path that changes stock"></p>
+<p><em>Figure 39.6 — All four ways stock changes go through one method.</em></p>
+<p>On the left are four sources: &quot;Add Item with initial stock&quot;, &quot;Adjust Stock dialog 5 manual types&quot;, &quot;Receive purchase order&quot; and &quot;Record patient consumption&quot;. All four arrows meet at &quot;applyMovement in one transaction&quot;. From there a diamond asks &quot;New stock below zero?&quot;. &quot;Yes&quot; leads to &quot;400 Insufficient stock&quot;. &quot;No&quot; leads to &quot;stock_movements row previous, delta, new&quot; and then to &quot;inventory_items currentStock, nearest expiry&quot;, meaning the movement is saved first and the item&#39;s quantity and nearest expiry date are then updated.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Incoming types (transfer in, purchase, initial stock) add; outgoing types (wastage, transfer out, return to supplier, consumption) subtract; a manual adjustment can go either way. Stock may never go below zero. When a batch arrives with an expiry date earlier than the item&#39;s current one, the item&#39;s expiry date moves to that earlier date. The movement list is the audit trail of stock; there is no other log.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /inventory/items/:id/adjust-stock</code> → <code>InventoryService.adjustStock</code> → <code>applyMovement</code> inside <code>dataSource.transaction</code>. It loads the item (organization and location), computes the signed delta, refuses a negative result, inserts the <code>stock_movements</code> row (<code>movementType</code>, signed <code>quantity</code>, <code>previousStock</code>, <code>newStock</code>, <code>referenceType</code>, <code>referenceId</code>, batch, expiry, notes, <code>performedBy</code>) and saves the item. The item row is read without a row lock, so two adjustments at the same instant could both read the same starting stock. The controller passes <code>req.user.uuid</code> (the user id) as <code>performedBy</code>. Movement history: the item detail returns the last 10 movements; <code>GET /inventory/items/:id/movements</code> (paged) exists but no screen calls it.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The dialog allows only MANUAL_ADJUSTMENT, WASTAGE, RETURN_TO_SUPPLIER, TRANSFER_IN, TRANSFER_OUT.</li>
+<li>Notes are required for manual adjustment and wastage.</li>
+<li>Quantity must be greater than zero in the dialog; resulting stock must not be negative.</li>
+<li>Transfers are recorded at one location only; nothing is added at the other location.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>inventory.stock.adjust</code>, feature <code>inventory.core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>stock_movements</code>, <code>inventory_items</code>.</p>
+<p><strong>Effects on other modules.</strong> None (stock is not linked to billing or the consultation).</p>
+<p><strong>Error cases.</strong> 400 &quot;Notes are required for wastage and manual adjustments&quot;; 400 &quot;Insufficient stock for &quot;Gloves&quot;. Available: 3 pieces&quot;; 400 on a disallowed movement type; in the dialog &quot;Enter a quantity greater than zero&quot;, &quot;Adjustment would take stock below zero&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/entities/stock-movement.entity.ts</code> · <code>InventoryService.adjustStock</code>, <code>applyMovement</code>, <code>StockMovementType</code> · <code>web-app/src/features/inventory/components/AdjustStockDialog.tsx</code></p>
+<h3 id="ch39-inventory-39-3-5-manage-suppliers">39.3.5 Manage suppliers</h3>
+<p><strong>Status:</strong> [Partial] — works; reachable only through the unlisted <code>/inventory</code> page.</p>
+<p><strong>What it does.</strong> Keeps the organization&#39;s supplier list for purchase orders.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the <strong>Suppliers</strong> tab click <strong>Add Supplier</strong>, fill the dialog and save.</li>
+<li>Use the row menu to edit or deactivate (with a browser confirmation).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Suppliers are shared by all locations of the organization; deactivation hides them.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /suppliers</code>, <code>GET /suppliers</code>, <code>GET /suppliers/:id</code>, <code>PATCH /suppliers/:id</code>, <code>DELETE /suppliers/:id</code> (sets <code>isActive = false</code>) → <code>SupplierService</code>.</p>
+<p><strong>Rules and validations.</strong> Name required; other fields free text with no format checks.</p>
+<p><strong>Who can do it.</strong> View: <code>inventory.view</code>; change: <code>inventory.po.manage</code>. Feature <code>inventory.core</code>. Default: Admin manages; Assistant views.</p>
+<p><strong>Data read and written.</strong> <code>suppliers</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Supplier not found&quot;; &quot;Name is required&quot; in the dialog.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/controllers/supplier.controller.ts</code> · <code>SupplierService</code> · <code>web-app/src/features/inventory/components/SuppliersTab.tsx</code></p>
+<h3 id="ch39-inventory-39-3-6-raise-and-track-a-purchase-order">39.3.6 Raise and track a purchase order</h3>
+<p><strong>Status:</strong> [Unverified] — screens and logic exist; creation stores the user id in <code>purchase_orders.createdBy</code>, which has a foreign key to <code>employees</code> (same risk as 39.3.4). Also, PO numbers are unique across the whole database but numbered per organization, so the second organization&#39;s first order in a year would collide (deduced from code).</p>
+<p><strong>What it does.</strong> Records an order to a supplier with lines, quantities, prices and tax, and moves it through Draft → Ordered.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Purchase Orders</strong> click <strong>Create PO</strong>, choose a supplier, add items with Qty and Unit Price, optional Expected Delivery, Tax Rate and Notes, and save. The PO starts as Draft.</li>
+<li>Open it and click <strong>Mark as Ordered</strong>, or <strong>Cancel</strong> while still a draft.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server numbers the order (for example &quot;PO-2026-00001&quot;), computes each line total, the subtotal, the tax and the total.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /purchase-orders</code> → <code>PurchaseOrderService.create</code>: <code>generatePoNumber</code> takes the organization&#39;s latest PO and adds one (<code>PO-&lt;year&gt;-&lt;5 digits&gt;</code>), lines get <code>totalPrice = qty × price</code> rounded to 2 decimals, <code>taxAmount = subtotal × rate / 100</code>. <code>GET /purchase-orders</code> (status and supplier filters, paged), <code>GET /purchase-orders/:id</code>. <code>PATCH /purchase-orders/:id/status</code> checks <code>VALID_PO_TRANSITIONS</code>. <code>DELETE /purchase-orders/:id</code> cancels a draft. <code>poNumber</code> has a unique index over the whole table.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>At least one line in the dialog; ordered quantity ≥ 1; unit price ≥ 0.</li>
+<li>The sequence continues across years (the counter is not reset), and two orders created at the same moment could get the same number.</li>
+<li>Line items are not checked to belong to the organization.</li>
+</ul>
+<p><strong>Who can do it.</strong> View: <code>inventory.view</code>; create and change: <code>inventory.po.manage</code> (implies <code>inventory.view</code>). Feature <code>inventory.core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>purchase_orders</code>, <code>purchase_order_items</code>.</p>
+<p><strong>Effects on other modules.</strong> None; purchase orders are not linked to expenses or lab payables, and do not appear in the P&amp;L.</p>
+<p><strong>Error cases.</strong> 400 &quot;Cannot transition purchase order from RECEIVED to ORDERED&quot;; 400 &quot;Only draft purchase orders can be cancelled&quot;; 404 &quot;Purchase order not found&quot;; dialog &quot;Select a supplier&quot;, &quot;Add at least one item&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/purchase-order.service.ts</code> · <code>PurchaseOrderService.create</code>, <code>updateStatus</code>, <code>VALID_PO_TRANSITIONS</code> · <code>web-app/src/features/inventory/components/PurchaseOrdersTab.tsx</code></p>
+<h3 id="ch39-inventory-39-3-7-receive-goods-into-stock">39.3.7 Receive goods into stock</h3>
+<p><strong>Status:</strong> [Unverified] — goes through the stock-movement path of 39.3.4 with the same foreign-key risk.</p>
+<p><strong>What it does.</strong> Records quantities that arrived against an ordered PO, adds them to stock with batch and expiry, updates the item&#39;s cost price, and sets the PO to Partially Received or Received.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open an Ordered or Partial PO and click <strong>Receive Items</strong> (or <strong>Receive More Items</strong>).</li>
+<li>Enter &quot;Receiving now&quot;, Batch # and Expiry per line, and save.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each line can be received in several deliveries, but never more than ordered. Each received line adds a &quot;purchase in&quot; movement. When every line is complete the order becomes Received.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /purchase-orders/:id/receive</code> → <code>PurchaseOrderService.receiveItems</code> in one transaction: per line with quantity &gt; 0, check <code>received + new ≤ ordered</code>, update the PO line, call <code>applyMovement</code> with <code>PURCHASE_IN</code> and reference <code>purchase_order</code>/PO id, and set <code>inventory_items.unitPrice</code> to the line price. Then it recomputes the status from all lines.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only from ORDERED or PARTIALLY_RECEIVED.</li>
+<li>No over-receiving; a zero line is skipped.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>inventory.po.manage</code>, feature <code>inventory.core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>purchase_order_items</code>, <code>purchase_orders</code>, <code>stock_movements</code>, <code>inventory_items</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;Cannot receive items for a purchase order in DRAFT status&quot;; 400 &quot;Cannot receive more than ordered for &quot;…&quot;. Ordered: 10, already received: 8&quot;; 404 &quot;Purchase order item … not found&quot;; dialog &quot;Enter at least one quantity to receive&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/purchase-order.service.ts</code> · <code>PurchaseOrderService.receiveItems</code> · <code>web-app/src/features/inventory/components/PurchaseOrdersTab.tsx</code></p>
+<h3 id="ch39-inventory-39-3-8-define-consumption-templates-procedure-kits">39.3.8 Define consumption templates (procedure kits)</h3>
+<p><strong>Status:</strong> [Partial] — templates can be created, edited and deactivated, but nothing on any screen uses them, because the consumption recorder is not placed anywhere.</p>
+<p><strong>What it does.</strong> Defines a named kit of items and quantities for a procedure, optionally tied to an appointment type for automatic matching.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Templates</strong> click <strong>Add Template</strong>, enter name and procedure, optionally an appointment type, add items with quantities and notes, and save.</li>
+<li>Edit or deactivate from the row actions.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A template is a list, not stock; saving it changes no quantities.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /consumption-templates</code>, <code>GET</code>, <code>GET /consumption-templates/:id</code>, <code>PATCH</code> (replaces all items in one transaction), <code>DELETE</code> (deactivate), <code>GET /consumption-templates/by-type?appointmentType=</code> (first active template for that type) → <code>ConsumptionTemplateService</code>. Items load the inventory item eagerly.</p>
+<p><strong>Rules and validations.</strong> Name and procedure required; at least one item in the dialog; item quantity ≥ 0.01. Templates are organization-wide, but items belong to one location, so a template made at one location lists that location&#39;s items.</p>
+<p><strong>Who can do it.</strong> View: <code>inventory.view</code>; change: <code>inventory.stock.adjust</code>. Feature <code>inventory.core</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> <code>consumption_templates</code>, <code>consumption_template_items</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Consumption template not found&quot;; dialog &quot;Name and procedure are required&quot;, &quot;Add at least one item&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/consumption-template.service.ts</code> · <code>ConsumptionTemplateService</code> · <code>web-app/src/features/inventory/components/TemplatesTab.tsx</code></p>
+<h3 id="ch39-inventory-39-3-9-record-materials-used-on-a-patient">39.3.9 Record materials used on a patient</h3>
+<p><strong>Status:</strong> [Not implemented] in the web app — the API and a ready component exist, but no screen shows the component. The API path also carries the foreign-key risk of 39.3.4.</p>
+<p><strong>What it does.</strong> Would record which items were used for a patient (optionally for an appointment or treatment plan), price them at cost, and deduct them from stock.</p>
+<p><strong>How the user does it.</strong> Not available. <code>ConsumptionRecorder</code> (template picker, &quot;Items Used&quot;, &quot;Add Item&quot;, Notes) is exported from the inventory feature but imported by no page, including the consultation workspace and the patient record.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> One record per use, with lines priced at the item&#39;s current cost; stock goes down in the same transaction, so either everything is saved or nothing is.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patient-consumptions</code> → <code>PatientConsumptionService.recordConsumption</code>: per line, load the item at the location, snapshot <code>unitPrice</code>, compute totals, save <code>patient_consumptions</code> with items, then <code>applyMovement</code> with <code>CONSUMPTION</code> and reference <code>appointment</code>, <code>treatment_plan</code> or <code>manual</code>. Read endpoints: <code>GET /patient-consumptions/appointment/:appointmentId</code>, <code>GET /patient-consumptions/patient/:patientId</code> (checks the patient is in the user&#39;s scope), <code>GET /patient-consumptions/report?dateFrom&amp;dateTo</code> (top 10 items, total cost, per performer, template versus manual). None of them is called by a screen.</p>
+<p><strong>Rules and validations.</strong> Quantity ≥ 0.01 per line; stock must not go negative; the treatment-plan id is stored without a foreign key.</p>
+<p><strong>Who can do it.</strong> Record: <code>inventory.stock.adjust</code>; read: <code>inventory.view</code>. Feature <code>inventory.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>patient_consumptions</code>, <code>patient_consumption_items</code>, <code>stock_movements</code>, <code>inventory_items</code>.</p>
+<p><strong>Effects on other modules.</strong> None today (not billed, not shown on the encounter).</p>
+<p><strong>Error cases.</strong> 404 &quot;Inventory item … not found&quot;; 400 &quot;Insufficient stock…&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/patient-consumption.service.ts</code> · <code>PatientConsumptionService.recordConsumption</code> · <code>web-app/src/features/inventory/components/ConsumptionRecorder.tsx</code></p>
+<h3 id="ch39-inventory-39-3-10-daily-low-stock-and-expiry-alerts">39.3.10 Daily low-stock and expiry alerts</h3>
+<p><strong>Status:</strong> [Partial] — the job runs and counts, but only writes a warning to the server log; no user is notified.</p>
+<p><strong>What it does.</strong> Once a day finds items that are low or expiring at each location where both inventory features are on.</p>
+<p><strong>How the user does it.</strong> Switch on <code>inventory.alerts</code> (and <code>inventory.core</code>) in <strong>Features</strong>. Nothing appears for users; the counts go to the server log only.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every morning the server checks each location&#39;s stock. A notification for users is planned in a code comment but not built.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>InventoryAlertService.checkAlerts</code>, <code>@Cron(&#39;0 8 * * *&#39;)</code>, every day at 08:00 server time (not the location&#39;s timezone), in the process that runs scheduled jobs (worker or all-in-one). For each organization–location pair with active items it checks both features, calls <code>getLowStockItems</code> and <code>getExpiringItems</code> (30 days) and logs &quot;[Inventory Alerts] org=… location=… lowStock=… expiringSoon=…&quot;. A TODO notes that in-app notifications should go to members holding <code>inventory.view</code>.</p>
+<p><strong>Rules and validations.</strong> Fixed 30-day window; out-of-stock items are not counted as low.</p>
+<p><strong>Who can do it.</strong> The job, no user. Feature <code>inventory.alerts</code> (no permission belongs to it).</p>
+<p><strong>Data read and written.</strong> Reads <code>inventory_items</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None; the notifications module (Chapter 44) receives nothing.</p>
+<p><strong>Error cases.</strong> None visible to users.</p>
+<p><strong>Technical references:</strong> <code>backend/src/inventory/services/inventory-alerts.service.ts</code> · <code>InventoryAlertService.checkAlerts</code> · none</p>
+<h2 id="ch39-inventory-39-4-entities-and-data-model">39.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch39-inventory-erd.png" alt="Figure 39.7 — Inventory data model"></p>
+<p><em>Figure 39.7 — The inventory tables and their links.</em></p>
+<p>The diagram centres on <code>inventory_items</code> (<code>id</code>, <code>organizationId</code>, <code>locationId</code>, <code>categoryId</code>, <code>currentStock</code>, <code>reorderLevel</code>, <code>expiryDate</code>). Above it, <code>inventory_categories</code> &quot;groups&quot; items. Left, <code>stock_movements</code> (<code>inventoryItemId</code>, <code>performedBy</code>, <code>movementType</code>, <code>quantity</code>, <code>newStock</code>, <code>referenceId</code>) records how items &quot;are changed&quot;; <code>employees</code> &quot;performs&quot; movements and &quot;creates&quot; <code>purchase_orders</code> (<code>supplierId</code>, <code>createdBy</code>, <code>poNumber</code>, <code>status</code>, <code>totalAmount</code>), which <code>suppliers</code> &quot;supplies&quot;. <code>purchase_orders</code> &quot;contains&quot; <code>purchase_order_items</code> (<code>purchaseOrderId</code>, <code>inventoryItemId</code>, <code>orderedQuantity</code>, <code>receivedQuantity</code>), each pointing to an item. Right, <code>consumption_templates</code> &quot;lists&quot; <code>consumption_template_items</code> (each a kit part pointing to an item); <code>patients</code> are &quot;used on&quot; <code>patient_consumptions</code> (<code>patientId</code>, <code>appointmentId</code>, <code>templateId</code>, <code>performedBy</code>, <code>totalCost</code>), which may be &quot;based on&quot; a template and &quot;contains&quot; <code>patient_consumption_items</code>, each pointing to an item.</p>
+<p>The relationships in words (columns are camelCase in this module, unlike most of the Platform):</p>
+<ul>
+<li>Each item belongs to one organization and one location; deleting either deletes its items (CASCADE). An item may have a category; deleting the category sets it to NULL.</li>
+<li>Each stock movement belongs to one item (deleting the item deletes its movements, CASCADE) and names one employee in <code>performedBy</code> (FK to <code>employees</code>, NO ACTION). <code>referenceType</code> + <code>referenceId</code> point to the cause (purchase order, appointment, treatment plan, manual) without a foreign key; <code>referenceId</code> is text.</li>
+<li>Suppliers and categories belong to the organization (CASCADE), not to a location.</li>
+<li>Each purchase order belongs to one organization and location (CASCADE), one supplier and one creating employee (both NO ACTION). Its lines are deleted with it (CASCADE); each line points to one item.</li>
+<li>Each template belongs to the organization (CASCADE); its items are deleted with it (CASCADE) and point to items.</li>
+<li>Each patient consumption belongs to an organization, location and patient (CASCADE), optionally to an appointment (SET NULL) and a template (SET NULL); <code>treatmentPlanId</code> has no foreign key. Its lines are deleted with it (CASCADE).</li>
+<li>Quantities and prices are <code>decimal(10,2)</code> numeric columns in rupees, not paisa.</li>
+<li>A legacy entity <code>inventory</code> (snake_case columns <code>item_name</code>, <code>quantity</code>, <code>unit_price</code>) exists in the code but is registered by no module, so the running API never creates or uses it.</li>
+</ul>
+<h2 id="ch39-inventory-39-5-status-lifecycles">39.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch39-po-status.png" alt="Figure 39.8 — Purchase order status"></p>
+<p><em>Figure 39.8 — The purchase order status map from <code>VALID_PO_TRANSITIONS</code>.</em></p>
+<p>A purchase order enters at <code>DRAFT</code> through <code>POST /purchase-orders</code>. From <code>DRAFT</code>, &quot;PATCH status ORDERED&quot; leads to <code>ORDERED</code> (setting the order date), and &quot;DELETE or PATCH status&quot; leads to <code>CANCELLED</code>. From <code>ORDERED</code>, &quot;POST receive, some lines short&quot; leads to <code>PARTIALLY_RECEIVED</code>, &quot;POST receive, all lines full&quot; leads to <code>RECEIVED</code>, and &quot;PATCH status, API only&quot; leads to <code>CANCELLED</code>. From <code>PARTIALLY_RECEIVED</code>, &quot;POST receive, all lines full&quot; leads to <code>RECEIVED</code> and &quot;PATCH status, API only&quot; to <code>CANCELLED</code>. <code>RECEIVED</code> and <code>CANCELLED</code> are final. The screen offers cancel only for drafts; cancelling an ordered PO is possible only through the API, and cancelling a partly received PO does not reverse stock already received. A manual status change to <code>RECEIVED</code> is also allowed by the map without receiving any goods.</p>
+<p>Stock movements have no lifecycle; they are written once and never changed. Their eight types are: <code>INITIAL_STOCK</code>, <code>PURCHASE_IN</code>, <code>TRANSFER_IN</code> (add), <code>CONSUMPTION</code>, <code>WASTAGE</code>, <code>TRANSFER_OUT</code>, <code>RETURN_TO_SUPPLIER</code> (subtract) and <code>MANUAL_ADJUSTMENT</code> (either way).</p>
+<h2 id="ch39-inventory-39-6-connections-to-other-modules">39.6 Connections to other modules</h2>
+<ul>
+<li><strong>Access control (Chapter 57).</strong> Three permissions (<code>inventory.view</code>, <code>inventory.stock.adjust</code>, <code>inventory.po.manage</code>) belong to the feature <code>inventory.core</code>.</li>
+<li><strong>Patients and Appointments (Chapters 28–29).</strong> Patient consumptions point to patients and appointments; no screen uses this yet.</li>
+<li><strong>Consultation (Chapter 31).</strong> Not connected: the consultation workspace does not record materials.</li>
+<li><strong>Billing and Reports (Chapters 34, 36).</strong> Not connected: billable items, purchase orders and consumption costs appear in no invoice, expense or report.</li>
+<li><strong>Notifications (Chapter 44).</strong> Not connected: the alert job only logs.</li>
+</ul>
+<h2 id="ch39-inventory-39-7-limitations-and-known-gaps">39.7 Limitations and known gaps</h2>
+<ul>
+<li>No sidebar entry; <code>/inventory</code> is reachable only by address.</li>
+<li>Stock movements, purchase orders and patient consumptions store the user id in columns that reference employees; this is expected to fail at the database (not tested).</li>
+<li>PO numbers are globally unique but generated per organization, so they can collide between organizations; the counter does not reset each year and is not safe against simultaneous creation.</li>
+<li>No category management screen and no default categories.</li>
+<li>Consumption recording, consumption reports and the full movement history have no screen.</li>
+<li>Alerts are log-only and use the server&#39;s time and date.</li>
+<li>Stock changes do not lock the item row.</li>
+<li>Transfers do not move stock to the other location.</li>
+<li>Inventory costs do not reach the P&amp;L, expenses or patient invoices.</li>
+<li>The tabs use plain tables without card view, and confirmations use the browser&#39;s dialog.</li>
+</ul>
+<h2 id="ch39-inventory-39-8-owner-39-s-faq">39.8 Owner&#39;s FAQ</h2>
+<p><strong>How do staff open Inventory?</strong> Only by typing <code>/inventory</code>; there is no sidebar item. Adding one means adding an entry to the navigation registry.</p>
+<p><strong>Can stock go negative?</strong> No. Any movement that would take stock below zero is refused with &quot;Insufficient stock&quot;.</p>
+<p><strong>Can I see who changed a quantity?</strong> Yes, in principle: every change is a stock movement with the before and after quantity, type, notes and the person. The item sheet shows the last ten.</p>
+<p><strong>Does receiving a purchase order create an expense or a lab bill?</strong> No. Purchase orders are not linked to billing or the P&amp;L.</p>
+<p><strong>Will the system warn me about low stock?</strong> Not on screen. The daily 08:00 job writes counts to the server log only. The Low Stock tile and filter on the page show the current state.</p>
+<p><strong>Are suppliers per branch?</strong> No. Suppliers, categories and templates are shared by the whole organization; items, stock and purchase orders are per location.</p>
+<p><strong>Can an Assistant change stock?</strong> Not with the default role: the Assistant can only view.</p>
+<p><strong>Where is stock stored?</strong> In <code>inventory_items.currentStock</code>, kept equal to the <code>newStock</code> of the latest movement in <code>stock_movements</code>.</p>
+</section></body></html>

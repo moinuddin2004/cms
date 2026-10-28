@@ -1,0 +1,180 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch63-realtime-and-jobs"><h1 id="ch63-realtime-and-jobs-chapter-63-realtime-updates-and-background-jobs">Chapter 63 — Realtime updates and background jobs</h1>
+<p>This chapter explains the two ways the Platform acts without a user clicking: it pushes live updates to open screens over a socket connection, and it runs timed jobs and background loops in a worker process. It is written for the product owner who must understand which processes to run and what happens when Redis or the worker is down. Appendix E holds the full job table; this chapter restates the essentials and explains how the pieces fit together. The queue module (Chapter 30) and notifications (Chapters 44 and 59) are the main users of these mechanisms.</p>
+<h2 id="ch63-realtime-and-jobs-63-1-process-roles">63.1 Process roles</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The backend is one program that starts in one of three roles, chosen by the start command.</p>
+<div class="tw"><table><thead><tr>
+<th>Role</th>
+<th>Start file</th>
+<th>Serves web requests and sockets</th>
+<th>Runs jobs and relays</th>
+<th>Needs Redis</th>
+</tr>
+</thead><tbody><tr>
+<td><code>api</code></td>
+<td><code>main.api.ts</code></td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes, to receive events</td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td><code>main.worker.ts</code></td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes, to send events</td>
+</tr>
+<tr>
+<td><code>all</code></td>
+<td><code>main.ts</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</tbody></table></div><p>The table shows the three roles. In production, run two or more <code>api</code> processes behind a load balancer and <strong>exactly one</strong> <code>worker</code>. In development, the single <code>all</code> process does everything and needs no Redis, because the relay hands events directly to the local socket gateway. The job scheduler is enabled only in processes whose role is not <code>api</code>, so adding API processes never duplicates a job.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch63-process-roles.png" alt="Figure 63.1 — Processes and the message bus"></p>
+<p><em>Figure 63.1 — The browser, two API processes, one worker, PostgreSQL and Redis.</em></p>
+<p>The flowchart reads left to right. The Browser talks to API process 1 and API process 2 over HTTP and Socket.IO. Both API processes read and write PostgreSQL. The Worker process, marked &quot;run exactly one&quot;, also uses PostgreSQL. The worker publishes events and a heartbeat to Redis. Redis delivers them to both API processes through a subscription. A further arrow shows an API process using Redis for the access change bus, which is how one API process tells the others that access changed (Chapter 57).</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/runtime/process-role.ts</code> · <code>backend/src/main.ts</code> · <code>main.api.ts</code> · <code>main.worker.ts</code> · <code>backend/src/app.module.ts</code> · <code>AppModule.forRole</code></p>
+<h2 id="ch63-realtime-and-jobs-63-2-the-realtime-gateway">63.2 The realtime gateway</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Pushes small &quot;something changed&quot; messages to open browser screens so that the reception board, doctor screen, waiting-room display and permission-aware screens stay live without constant refreshing.</p>
+<p><strong>How it connects.</strong> A Socket.IO gateway listens at the path <code>/realtime</code> of the API. The web app connects with websocket transport and passes its access token in the handshake. The token is verified once, when the socket connects. A browser with no token may connect anonymously, but may join only the public display room. After connecting, the client sends a <code>subscribe</code> message naming a room; the server answers with success or a reason.</p>
+<p><strong>Rooms.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Room</th>
+<th>Who may join</th>
+<th>What it carries</th>
+</tr>
+</thead><tbody><tr>
+<td><code>session:&lt;id&gt;</code></td>
+<td>Users with access to the queue session&#39;s location</td>
+<td>Events for one doctor&#39;s queue (doctor screen, reception)</td>
+</tr>
+<tr>
+<td><code>location:&lt;id&gt;:board</code></td>
+<td>Users with access to the location</td>
+<td>Events of every queue at the location (reception board)</td>
+</tr>
+<tr>
+<td><code>location:&lt;id&gt;:display</code></td>
+<td>Anyone, no sign-in</td>
+<td>Waiting-room TV events; payloads carry token numbers and doctor names, never patient names</td>
+</tr>
+<tr>
+<td><code>org:&lt;id&gt;</code></td>
+<td>Users with access to the organization (super admin, owner, or an active staff assignment)</td>
+<td>The <code>access.changed</code> event with the organization id and the new version</td>
+</tr>
+</tbody></table></div><p>The table lists the four room types. Anything else gets &quot;Unknown room&quot;; a room the user may not enter gets &quot;No access to this room&quot;.</p>
+<p><strong>Events are nudges.</strong> A message carries a sequence number (<code>seq</code>). The browser keeps the sequence of the snapshot it loaded, ignores older or duplicate messages and fetches a fresh snapshot when it sees a newer one. This makes delivery at least once safe, because a duplicate does nothing.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/realtime/queue.gateway.ts</code> · <code>QueueGateway</code> · <code>web-app/src/features/access/hooks/useAccessSocket.ts</code></p>
+<h2 id="ch63-realtime-and-jobs-63-3-from-a-commit-to-a-screen-outbox-relay-redis">63.3 From a commit to a screen: outbox, relay, Redis</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>When a queue action changes state, the same database transaction also writes an event row in the <code>outbox</code> table and sends a database NOTIFY, so an event exists only if the change was committed. The <strong>outbox relay</strong> in the worker takes unpublished rows (up to 100 at a time, locking them so a second relay would skip them), publishes each to one Redis channel, waits until Redis accepted the whole batch and only then marks the rows as published. If Redis is down, the batch is rolled back and tried again every second. It is woken by the NOTIFY and also polls every second as a fallback. Every API process subscribes to the channel and emits each message to its own local sockets, so a browser connected to any API process sees every event. Chapter 5, section 5.8, shows this as a sequence diagram.</p>
+<p><strong>Heartbeat and watchdog.</strong> The worker publishes a heartbeat to the same channel every 5 seconds. Each API process runs a watchdog: it considers the bus healthy only while it is subscribed and has seen a heartbeat within 15 seconds. When the bus is unhealthy (Redis or worker down), the API process <strong>refuses new socket connections and drops existing ones</strong>, using a transport close so that browsers keep trying to reconnect. Screens then fall back to polling about every 10 seconds and reload their data once the socket returns. At start-up the gateway stays closed until the first heartbeat arrives.</p>
+<p><strong>Access changes.</strong> The access change bus is a second, separate path on its own Redis channel. When an organization&#39;s access version is bumped, the bus notifies the local caches and the local gateway, and publishes to Redis so the other processes do the same. Each process then emits <code>access.changed</code> to its sockets in the <code>org:&lt;id&gt;</code> room. This path does not use the outbox or the worker (Chapter 57).</p>
+<p><strong>Single-process mode.</strong> In the <code>all</code> role, the relay publishes straight to the local gateway.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/realtime/outbox-relay.service.ts</code> · <code>OutboxRelayService</code> · <code>redis-realtime.publisher.ts</code> · <code>redis-realtime.subscriber.ts</code> · <code>realtime-bus.ts</code> · <code>in-process-realtime.publisher.ts</code> · <code>backend/src/access/version/access-change-bus.ts</code></p>
+<h2 id="ch63-realtime-and-jobs-63-4-scheduled-jobs">63.4 Scheduled jobs</h2>
+<p><strong>Status:</strong> [Implemented] (the inventory alert job is [Partial])</p>
+<p>All jobs run in the worker (or the <code>all</code> process). The schedules are in <strong>server time</strong>; none sets a timezone.</p>
+<div class="tw"><table><thead><tr>
+<th>Job</th>
+<th>Schedule</th>
+<th>What it does</th>
+</tr>
+</thead><tbody><tr>
+<td>Queue no-show marker</td>
+<td>every 60 seconds</td>
+<td>Marks a booked patient as no-show once they have not checked in by the start time plus the location&#39;s maximum lateness</td>
+</tr>
+<tr>
+<td>Queue call timeout</td>
+<td>every 15 seconds</td>
+<td>Skips a called patient who never came, when the queue policy sets a timeout</td>
+</tr>
+<tr>
+<td>Queue session day-end</td>
+<td>every 5 minutes</td>
+<td>Closes empty queue sessions of a past clinic day; leaves non-empty ones open and logs an alert</td>
+</tr>
+<tr>
+<td>Queue cleanup</td>
+<td>daily at 03:15</td>
+<td>Deletes queue idempotency keys older than 24 hours and published outbox rows older than 7 days</td>
+</tr>
+<tr>
+<td>Patient credit expiry</td>
+<td>daily at 01:00</td>
+<td>Marks prepaid credits past their expiry date as expired</td>
+</tr>
+<tr>
+<td>Billing invariant check</td>
+<td>daily at 02:30</td>
+<td>Recomputes billing totals, checks money rules including the commission ledger and logs any break</td>
+</tr>
+<tr>
+<td>Month-end payroll</td>
+<td>05:00 on the 1st of each month</td>
+<td>Generates payroll records for the month just ended for every active location; locations already generated are skipped</td>
+</tr>
+<tr>
+<td>Inventory alerts</td>
+<td>daily at 08:00</td>
+<td>Counts low-stock and soon-expiring items and writes a warning to the server log only</td>
+</tr>
+</tbody></table></div><p>The table lists the eight timed jobs. The first four keep the live queue consistent; the others handle daily and monthly housekeeping. Appendix E gives the same table with statuses and references. The queue day-end job is the only one that respects each location&#39;s clinic day, taken from its queue policy.</p>
+<p><strong>Background loops.</strong> Three loops run continuously in the worker. The <strong>queue outbox relay</strong> (section 63.3). The <strong>notification relay</strong>, which is woken by a database NOTIFY and polls every two seconds, sends notification rows to the inbox (Chapter 59). The <strong>heartbeat</strong> is published every 5 seconds. Both relays follow the outbox pattern: a change and its message commit together, and a separate loop delivers the message later. If the database NOTIFY connection drops, each relay logs a warning and keeps working by polling.</p>
+<p><strong>Other timers.</strong> The in-memory rate limit tables in the authentication guards and the magic-link throttle are swept every minute or when they grow large; they do not need the worker.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/jobs/queue-jobs.service.ts</code> · <code>backend/src/billing/patient-credits.service.ts</code> · <code>backend/src/billing/invariants/billing-invariant.job.ts</code> · <code>backend/src/payroll/payroll.service.ts</code> · <code>backend/src/inventory/services/inventory-alerts.service.ts</code> · <code>backend/src/notifications/delivery/notification-relay.service.ts</code> · <code>docs/handbook/src/appendix/appE-scheduled-jobs.md</code></p>
+<h2 id="ch63-realtime-and-jobs-63-5-limitations-and-known-gaps">63.5 Limitations and known gaps</h2>
+<ul>
+<li>Exactly one worker must run; nothing in the code stops a second worker, and a second worker would run each timed job a second time (the relays are safe with several workers, the timed jobs are not guaranteed to be).</li>
+<li>Job times follow the server timezone, not the clinics&#39;.</li>
+<li>Inventory alerts reach only the server log, not any user.</li>
+<li>Realtime depends on Redis in production; without it screens poll about every 10 seconds.</li>
+<li>The access token is checked once when a socket connects; the connection continues after the token expires.</li>
+<li>There is no clean-up job for session rows, security logs or the notification outbox.</li>
+</ul>
+<h2 id="ch63-realtime-and-jobs-63-6-owner-39-s-faq">63.6 Owner&#39;s FAQ</h2>
+<p><strong>What happens if Redis is down?</strong> Realtime stops: the API refuses sockets and screens poll every ten seconds, so they update a little later. Access changes still reach the process that made them at once and the others within 15 seconds.</p>
+<p><strong>What happens if the worker is down?</strong> No timed jobs run, no notifications are sent and no queue events are published. Rows wait in the database and are processed when the worker returns. Screens fall back to polling.</p>
+<p><strong>Can I run two workers for safety?</strong> No. Run exactly one. A second worker would repeat the scheduled jobs.</p>
+<p><strong>Do I need Redis on my laptop?</strong> No. The single <code>all</code> process does not need it.</p>
+<p><strong>Can the waiting-room TV show patient names?</strong> No. The public display room carries token numbers and doctor names only.</p>
+</section></body></html>

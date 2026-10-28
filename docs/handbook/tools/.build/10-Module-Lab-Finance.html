@@ -1,0 +1,497 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Lab Finance</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch42-lab-finance">Chapter 42 — Lab Finance</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch42-lab-finance"><h1 id="ch42-lab-finance-chapter-42-lab-finance">Chapter 42 — Lab Finance</h1>
+<p>This chapter describes the money side of lab work in the Platform: what a patient owes the clinic for lab work, and what the clinic owes the lab. It is written for the product owner, who needs to know what is built, which rules protect the money and where the gaps are. Lab Finance sits on top of the Lab Management module (Chapter 40), which creates lab orders and freezes their prices, and it feeds the commission feature (Chapter 35) and the double-entry journals.</p>
+<h2 id="ch42-lab-finance-42-1-what-this-module-is-for">42.1 What this module is for</h2>
+<p>Lab Finance is three backend modules that work as one flow.</p>
+<ul>
+<li><strong>Lab billing</strong> (<code>lab-billing</code>) handles the <strong>patient lab invoice</strong>: an estimate that becomes an invoice, payments, advances, credit notes, refunds and reminders. It is kept apart from the clinic&#39;s own billing (Chapter 34), with its own tables and numbers.</li>
+<li><strong>Lab payables</strong> (<code>lab-payables</code>) handles what the clinic owes each <strong>lab</strong>: the <strong>vendor bill</strong>, payments to the lab, the monthly <strong>lab statement</strong> and three reports.</li>
+<li><strong>Lab finance glue</strong> (<code>lab-finance</code>) has no screen and no endpoint. It listens to lab billing events and, in the same database transaction, records the doctor&#39;s lab commission and the double-entry journal lines.</li>
+</ul>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Accountant</strong>: the main user. The default Accountant system role holds both lab permissions and the two billing permissions needed to undo money.</li>
+<li><strong>Admin</strong> and the <strong>owner</strong>: everything.</li>
+<li><strong>Receptionist, Assistant, Doctor</strong>: no lab finance permissions by default. A doctor can still see the lab order, but not the Billing panel&#39;s actions.</li>
+<li><strong>Lab admin</strong> (a <strong>lab member</strong>): reads the bills, payments and statements that clinics created for their lab, on the lab portal (Chapter 41).</li>
+</ul>
+<p>Sidebar: <strong>Lab billing</strong> (<code>nav.lab.billing</code>, <code>/lab-billing</code>, needs <code>lab.billing.manage</code>) and <strong>Lab payables</strong> (<code>nav.lab.payables</code>, <code>/lab-payables</code>, needs <code>lab.payables.manage</code>), both in the Clinic group. The payables sub-pages (payments, statements, reports) have no sidebar entries of their own; they are reached through tabs inside Lab payables. All lab permissions belong to the feature <code>dental.lab_orders</code> (&quot;Lab Management&quot;, off by default).</p>
+<h2 id="ch42-lab-finance-42-2-screens">42.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-lab-billing-invoices.svg" alt="Figure 42.1 — Lab billing, Invoices tab"></p>
+<p><em>Figure 42.1 — Lab billing, Invoices tab (screenshot pending).</em></p>
+<p>The Lab billing page has the title &quot;Lab billing&quot;, the subtitle &quot;What patients are billed and pay for lab work&quot;, a <strong>Settings</strong> button (only for users who may edit settings) and two tabs, <strong>Invoices</strong> and <strong>Payments</strong>. Without <code>lab.billing.manage</code> the page shows &quot;No access to lab billing&quot;. The Invoices tab has a search box (&quot;Search invoice, order or patient…&quot;), a status filter, a From and To date range and a table with the columns Invoice, Patient, Status, Issued, Total and Balance. Drafts show &quot;Estimate&quot; and &quot;Not issued&quot;. Overdue invoices carry an &quot;Overdue&quot; badge. The empty state says that work is billed from the Billing panel of a submitted lab order.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-lab-billing-payments.svg" alt="Figure 42.2 — Lab billing, Payments tab"></p>
+<p><em>Figure 42.2 — Lab billing, Payments tab (screenshot pending).</em></p>
+<p>The Payments tab lists payments collected on lab invoices, including advances. It has a search box (receipt, patient or reference), method and status filters, a date range and the columns Receipt, Patient, Amount and Status (Posted or Reversed). Reversal rows are marked &quot;Reversal&quot;. Row actions are icon buttons with tooltips: &quot;Reverse payment&quot; and &quot;Refund advance&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-lab-invoice-detail.svg" alt="Figure 42.3 — Lab invoice detail"></p>
+<p><em>Figure 42.3 — Lab invoice detail (screenshot pending).</em></p>
+<p>The invoice page shows a Summary block (Subtotal, Discount, Tax, Total, Credited, Paid, Advance, Owes), a Lines table (Description, Qty, Price, Tax, Total), Payments, Credit notes and a History timeline. The action bar changes with the status. A draft shows <strong>Edit</strong> and <strong>Issue invoice</strong>. An open invoice shows <strong>Use advance (amount)</strong>, <strong>Send reminder</strong>, <strong>Credit note</strong>, <strong>Void</strong> and <strong>Collect payment</strong>. Credit note and Void need extra permissions.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-order-billing-panel.svg" alt="Figure 42.4 — Billing panel on a lab order"></p>
+<p><em>Figure 42.4 — Billing panel on a lab order (screenshot pending).</em></p>
+<p>On the lab order detail page (Chapter 40) the Billing panel shows Billed, Paid, Credited, Balance and the patient&#39;s advance, lists the order&#39;s invoices, and offers <strong>Bill N item(s)</strong> (opens the invoice sheet) and <strong>Collect payment</strong>. This is where most lab invoices start.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-vendor-bills.svg" alt="Figure 42.5 — Lab payables, Bills"></p>
+<p><em>Figure 42.5 — Lab payables, Bills (screenshot pending).</em></p>
+<p>Lab payables has the subtitle &quot;Vendor bills from your labs — review, approve, pay.&quot; and a tab strip Bills, Payments, Statements and Reports with a lab filter. The Bills tab has a search box (bill, order or lab invoice number), a status filter, a date range and a table with Bill, Lab, Bill date, Status, Total and Balance. Manual bills are marked &quot;Manual&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-vendor-bill-detail.svg" alt="Figure 42.6 — Vendor bill detail"></p>
+<p><em>Figure 42.6 — Vendor bill detail (screenshot pending).</em></p>
+<p>The bill page shows Total, Paid and Balance, the lines (Description, Kind, Qty, Unit, Total) and the Payments made against the bill. A draft shows a <strong>Re-read costs from the order</strong> icon button, <strong>Approve</strong> and <strong>Void</strong>. An approved or partly paid bill shows <strong>Pay</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-lab-payments.svg" alt="Figure 42.7 — Payments to labs"></p>
+<p><em>Figure 42.7 — Payments to labs (screenshot pending).</em></p>
+<p>The Payments tab (&quot;Payments to labs and advances not yet used.&quot;) lists payments with Payment, Amount, Advance left, Paid on and Status, and a <strong>Record payment</strong> button. The button is disabled until a lab is chosen in the filter. Each row has a &quot;Reverse payment&quot; action.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-lab-statements.svg" alt="Figure 42.8 — Lab statements"></p>
+<p><em>Figure 42.8 — Lab statements (screenshot pending).</em></p>
+<p>The Statements tab lists statements with Period, Lab says, To check and Status, and an <strong>Add statement</strong> button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-statement-detail.svg" alt="Figure 42.9 — Reconcile one lab statement"></p>
+<p><em>Figure 42.9 — Reconcile one lab statement (screenshot pending).</em></p>
+<p>The statement page lists each line with Lab reference, Lab says, Our bill, Our bills say and Result (Matched, Amount differs, Not in our bills, Not on statement). Buttons <strong>Dispute</strong> and <strong>Mark reconciled</strong> appear depending on the current status.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch42-payables-reports.svg" alt="Figure 42.10 — Payables reports"></p>
+<p><em>Figure 42.10 — Payables reports (screenshot pending).</em></p>
+<p>The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue), Lab cost by month (with a Year selector) and Case profit (Order, Patient, Invoiced, Collected, Lab cost, Expenses, Commission, Profit).</p>
+<h2 id="ch42-lab-finance-42-3-features">42.3 Features</h2>
+<h3 id="ch42-lab-finance-42-3-1-estimate-and-invoice-lab-work-for-a-patient">42.3.1 Estimate and invoice lab work for a patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a lab invoice from a submitted lab order, or from manual lines. A new invoice starts as a draft, called an estimate: it is editable, has no number and nothing is owed. Issuing it gives it a number and a due date.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open a submitted lab order and click <strong>Bill N item(s)</strong> in the Billing panel (or create from Lab billing).</li>
+<li>In the &quot;Bill lab work&quot; sheet, tick the items and charges to bill. Prices are the patient prices fixed when the order was submitted. Optionally add manual lines, a discount and a tax percentage.</li>
+<li>Click <strong>Save estimate</strong>, or switch on <strong>Issue now</strong> and click <strong>Issue invoice</strong>.</li>
+<li>Later, open the estimate, click <strong>Edit</strong> to change it, or <strong>Issue invoice</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each line copies the price the order froze when it was submitted, so a later change to the lab&#39;s price list never changes what the patient is billed. A piece of work can be on only one live invoice. Issuing takes the next number in a gapless counter, sets the due date from the clinic&#39;s setting and then uses the patient&#39;s advance if there is any.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/invoices</code> → <code>LabInvoicesService.create</code>; <code>PATCH /lab-billing/invoices/:id</code> → <code>update</code>; <code>POST /lab-billing/invoices/:id/issue</code> → <code>issue</code> / <code>issueIn</code>. Each runs in one transaction under a row lock on the invoice (<code>LabBillingLocks</code>). Three line kinds exist: <code>lab_item</code> (an order item at its frozen patient line price; if quantity times unit price differs from the frozen total, one line with quantity 1 is used), <code>lab_charge</code> (an approved charge request of the order) and <code>manual</code>. Line math (<code>lineMath</code>, <code>spreadDiscount</code>) is integer paisa with the tax rate in basis points; an order-wide discount is spread over the lines. Issue sets <code>invoice_no</code> (sequence <code>lab_invoice</code>, prefix <code>LINV</code>), <code>issued_on</code> (the location&#39;s today via <code>ClockService</code>), <code>due_on</code>, then calls <code>LabBillingTotals.recomputeInvoices</code>, writes a status-history row and emits <code>invoiceIssued</code>, then <code>LabAllocations.applyAdvance</code> and <code>advanceApplied</code>. The estimate&#39;s update replaces all its lines and bumps <code>version</code>. Optimistic locking uses <code>version</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A patient or an order is required; an order&#39;s patient must match the given patient.</li>
+<li>The order must be submitted (a draft order cannot be billed).</li>
+<li>Items in state cancelled or rejected cannot be billed.</li>
+<li>An item or charge already on another non-void invoice cannot be billed again. The partial unique indexes <code>uq_lab_invoice_lines_item</code> and <code>uq_lab_invoice_lines_charge</code> decide races.</li>
+<li>Only an approved charge request can be billed.</li>
+<li>A manual line needs a description (1 to 200 characters) and a price.</li>
+<li>At least one line before issue; at most 100 lines; quantity 1 to 1000; tax 0 to 10,000 basis points.</li>
+<li>Only a draft can be edited or issued, and the <code>version</code> sent must match.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code> (no scope), feature <code>dental.lab_orders</code>. Default: Admin and Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>lab_order_items</code>, <code>order_charge_requests</code>, <code>patients</code>, <code>lab_billing_settings</code>, <code>number_sequences</code>. Writes <code>lab_invoices</code>, <code>lab_invoice_lines</code>, <code>status_history</code>, <code>audit_logs</code>; on issue also journal and commission rows (42.3.12, 42.3.13).</p>
+<p><strong>Effects on other modules.</strong> Issuing creates the receivable journal and the commission snapshot. The order&#39;s Billing panel updates.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_INVALID</code> (missing patient, empty invoice, draft order); <code>LAB_BILLING_ITEM_NOT_BILLABLE</code>; <code>LAB_BILLING_ALREADY_BILLED</code>; <code>LAB_BILLING_INVOICE_NOT_DRAFT</code> (&quot;Only an estimate can be changed&quot;); <code>LAB_BILLING_VERSION_CONFLICT</code> (&quot;Someone else changed this invoice — reload and try again&quot;); <code>LAB_BILLING_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-invoices.service.ts</code> · <code>LabInvoicesService</code> · <code>backend/src/lab-billing/common/lab-billing-math.ts</code> · <code>web-app/src/features/lab-billing/components/InvoiceSheet.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-2-browse-lab-invoices-and-see-one-in-full">42.3.2 Browse lab invoices and see one in full</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists lab invoices with filters and opens one invoice with its lines, payments, credit notes, refunds and history.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Lab billing</strong>, tab <strong>Invoices</strong>.</li>
+<li>Search, filter by status (including Overdue), or set a date range.</li>
+<li>Click a row to open the detail page.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server reads the invoices and works out &quot;overdue&quot; on the fly: an issued or partly paid invoice whose due date is before today in the location&#39;s timezone.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-billing/invoices</code> → <code>LabBillingQueries.listInvoices</code> (raw SQL, page default 1, limit default 20, maximum 100); <code>GET /lab-billing/invoices/:id</code> → <code>invoice</code>. The <code>status=overdue</code> filter is not a stored status; it expands to <code>status IN (&#39;issued&#39;,&#39;partially_paid&#39;) AND due_on &lt; today</code>. Search uses <code>ILIKE</code> on invoice number, patient name, patient number and order number.</p>
+<p><strong>Rules and validations.</strong> Always limited to the active organization. The list is not limited by location.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_invoices</code>, <code>lab_invoice_lines</code>, <code>lab_payment_allocations</code>, <code>lab_payments</code>, <code>lab_credit_notes</code>, <code>lab_refunds</code>, <code>status_history</code>, <code>patients</code>, <code>lab_orders</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; <code>LAB_BILLING_NOT_FOUND</code> for an unknown id.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-billing-queries.service.ts</code> · <code>LabBillingQueries.listInvoices</code> / <code>invoice</code> · <code>web-app/src/features/lab-billing/components/InvoicesList.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-3-void-an-estimate-or-an-unpaid-invoice">42.3.3 Void an estimate or an unpaid invoice</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Cancels a draft, or an issued invoice that has no payment and no credit note. The invoice stays on record as void and its lab work can be billed again.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the invoice and click <strong>Void</strong>.</li>
+<li>Enter a reason (3 to 500 characters) in the &quot;Void&quot; dialog and confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A void is a cancellation, not a deletion. All its lines are marked void so the items are free again. If the invoice had been issued, the receivable entry is reversed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/invoices/:id/void</code> → <code>LabInvoicesService.void</code>: locks the invoice, checks <code>version</code>, sets status <code>void</code> with reason, time and user, marks all lines <code>is_void</code>, writes a status-history row and emits <code>invoiceVoided</code> (with <code>wasIssued</code>). <code>LabFinanceListeners</code> mirrors the receivable journal for an issued invoice.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Refused when payments (<code>paid_paisa &gt; 0</code>) or credit notes exist; use a payment reversal or a credit note instead.</li>
+<li>Refused if already void.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code> <strong>and</strong> <code>billing.invoice.void</code> (both required; the second belongs to feature <code>billing.invoices</code>). Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_invoices</code>, <code>lab_invoice_lines</code>, <code>status_history</code>, <code>audit_logs</code>, <code>ledger_journals</code>.</p>
+<p><strong>Effects on other modules.</strong> Receivable reversed in the journals; billed items become billable again.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_INVOICE_HAS_MONEY</code>; <code>LAB_BILLING_INVOICE_NOT_OPEN</code> (&quot;This invoice is already void&quot;); <code>LAB_BILLING_VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/lab-billing.controller.ts</code> · <code>LabInvoicesService.void</code> · <code>web-app/src/features/lab-billing/pages/LabInvoiceDetailPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-4-collect-a-payment-for-lab-work">42.3.4 Collect a payment for lab work</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records money received from a patient, and splits it over one or more open lab invoices. Whatever is not allocated stays as the patient&#39;s <strong>advance</strong>.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open an invoice (or the order&#39;s Billing panel) and click <strong>Collect payment</strong>.</li>
+<li>Enter Amount, Method (cash, card, bank transfer or wallet), Reference and Notes.</li>
+<li>Choose &quot;Put it on&quot; (which invoices), or keep &quot;Oldest unpaid invoices first&quot;, or keep the money as advance.</li>
+<li>Confirm. A toast says &quot;Payment received&quot; and a receipt number appears.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> One click creates one payment with a receipt number. The system locks the invoices so two desks cannot pay the same balance twice, allocates the amounts, recomputes each invoice&#39;s paid amount and status, and records the cash in the journals. The page sends a unique key with each click, so a retry after a network error never creates a second payment.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/payments</code> → <code>LabPaymentsService.collect</code> (header <code>Idempotency-Key</code> required). A replay is found first by <code>byKey</code>; the unique index <code>uq_lab_payments_org_idempotency</code> settles parallel retries. <code>runCollect</code> does, in one transaction: patient check → lock invoices → validate → receipt number (sequence <code>lab_receipt</code>, prefix <code>LRC</code>) → insert payment → insert <code>lab_payment_allocations</code> → <code>LabBillingTotals.recomputeInvoices</code> / <code>recomputePayments</code> → audit → <code>paymentCollected</code> event → <code>payment.receipt</code> notification to the outbox. Event listeners post the cash journal and the commission (42.3.12, 42.3.13). Invoice status is written only by <code>LabBillingTotals</code> (partially_paid when something is allocated, paid when the balance is zero).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Amount 1 to <code>MAX_PAISA</code>, in paisa; at most 50 allocations.</li>
+<li>An invoice may appear once; it must belong to the same patient and be open (issued or partly paid, not a draft or void).</li>
+<li>Each allocation is at most the invoice&#39;s balance; the allocations together are at most the payment.</li>
+<li>Without allocations, the payment is spread over the patient&#39;s open invoices, oldest first (<code>autoAllocate</code>, default true); with <code>autoAllocate</code> false the whole amount is advance. Any rest is advance.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_payments</code>, <code>lab_payment_allocations</code>, <code>lab_invoices</code> (cached totals and status), <code>number_sequences</code>, <code>audit_logs</code>, <code>idempotency</code> records, <code>ledger_journals</code>, <code>commission_entries</code>, notification outbox rows. Reads <code>patients</code>.</p>
+<p><strong>Effects on other modules.</strong> Doctor commission (Chapter 35); the patient notification <code>payment.receipt</code> is queued but the patient audience is switched off by default, so it is recorded as skipped (Chapter 44).</p>
+<p><strong>Error cases.</strong> <code>IDEMPOTENCY_KEY_REQUIRED</code>; <code>IDEMPOTENCY_KEY_REUSED</code> (same key, different body; 422); <code>LAB_BILLING_INVOICE_NOT_OPEN</code>; <code>LAB_BILLING_ALLOCATION_EXCEEDS_BALANCE</code>; <code>LAB_BILLING_ALLOCATION_EXCEEDS_PAYMENT</code>; <code>LAB_BILLING_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-payments.service.ts</code> · <code>LabPaymentsService.collect</code> / <code>runCollect</code> · <code>web-app/src/features/lab-billing/components/MoneySheets.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-5-use-a-patient-39-s-advance-on-an-invoice">42.3.5 Use a patient&#39;s advance on an invoice</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Puts money the patient already paid in advance onto an open invoice. No new money arrives and no receipt is made.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open an open invoice. If the patient has advance, the button <strong>Use advance (amount)</strong> appears.</li>
+<li>Click it. A toast says &quot;Advance applied&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The system takes from the patient&#39;s oldest advance first, never more than the invoice balance. This also happens automatically when an invoice is issued.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/invoices/:id/apply-advance</code> → <code>LabPaymentsService.applyAdvance</code> → <code>LabAllocations.applyAdvance</code> (header <code>Idempotency-Key</code> required; optional <code>amountPaisa</code>). It locks the invoice, then the advance payments (lock order: invoices before payments), inserts allocations, recomputes totals and emits <code>advanceApplied</code>.</p>
+<p><strong>Rules and validations.</strong> The invoice must be open with a balance; the patient must have advance.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_payment_allocations</code>, <code>lab_invoices</code>, <code>lab_payments</code> (cached allocated amount), journals and commission.</p>
+<p><strong>Effects on other modules.</strong> Commission is accrued on the allocated amount; the journal moves Patient Advances to Patient Receivable.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_INVOICE_NOT_OPEN</code>; <code>LAB_BILLING_NOTHING_TO_APPLY</code>; <code>IDEMPOTENCY_KEY_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-allocations.service.ts</code> · <code>LabAllocations.applyAdvance</code> · <code>web-app/src/features/lab-billing/pages/LabInvoiceDetailPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-6-reverse-a-lab-payment">42.3.6 Reverse a lab payment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Undoes a wrong payment. The payment stays on record as reversed, a mirror row with a negative amount is added, and the money comes off every invoice it paid.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the Payments tab, click the &quot;Reverse payment&quot; icon of a posted payment.</li>
+<li>Enter a reason and confirm. A toast says &quot;Payment reversed&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Nothing is deleted. The original is flagged, a negative twin is created with its own number, and the invoices&#39; paid amounts are recalculated. Once any part of a payment was refunded, it cannot be reversed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/payments/:id/reverse</code> → <code>LabPaymentsService.reverse</code> / <code>runReverse</code> (header <code>Idempotency-Key</code>). The service reads the touched invoice ids, locks them, then the payment; sets the original to <code>reversed</code>; inserts the mirror row (<code>reversal_of_id</code>, sequence <code>lab_payment_reversal</code>, prefix <code>LRV</code>); sets <code>reversed_at</code> on the allocations with reason <code>payment_reversed</code>; recomputes totals; emits <code>paymentReversed</code>. The ledger posts the exact opposite of what the payment still holds, not a plain mirror, because a credit note may have moved part of it into advance.</p>
+<p><strong>Rules and validations.</strong> A reversal cannot be reversed; an already reversed payment cannot be reversed again; a payment with <code>refunded_paisa &gt; 0</code> cannot be reversed; reason 3 to 500 characters.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code> <strong>and</strong> <code>billing.refund.issue</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_payments</code>, <code>lab_payment_allocations</code>, <code>lab_invoices</code>, journals, commission entries (negative), audit.</p>
+<p><strong>Effects on other modules.</strong> Commission earned on the payment is taken back by a negative entry.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_PAYMENT_REVERSED</code>; <code>LAB_BILLING_PAYMENT_REFUNDED</code>; <code>LAB_BILLING_INVALID</code>; <code>LAB_BILLING_VERSION_CONFLICT</code>; <code>IDEMPOTENCY_KEY_REUSED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-payments.service.ts</code> · <code>LabPaymentsService.reverse</code> · <code>web-app/src/features/lab-billing/components/PaymentsList.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-7-issue-a-credit-note">42.3.7 Issue a credit note</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lowers an issued invoice by an amount. If the patient had already paid more than the new total, the excess becomes advance again.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On an issued invoice click <strong>Credit note</strong>.</li>
+<li>Enter Amount and Reason and confirm. A toast says &quot;Credit note issued&quot;.</li>
+<li>If money was released, the invoice shows &quot;Moved to advance&quot;, and a refund can follow (42.3.8).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The credit note reduces what the invoice is worth. If the invoice was fully paid, the newest payments are released first and go back into the patient&#39;s advance. The credit note remembers how much was released, so it can later be paid out.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/invoices/:id/credit-notes</code> → <code>LabCreditsService.creditNote</code> (header <code>Idempotency-Key</code>, claim by request hash). Locks the invoice; <code>creditable = total − credited</code>; <code>excess = max(0, amount − balance)</code>; releases allocations newest first with reason <code>credit_note</code>; a row only partly needed stays allocated for the rest; creates the note (sequence <code>lab_credit_note</code>, prefix <code>LCN</code>) with status <code>applied</code> (fully absorbed) or <code>issued</code> (waiting for refund); emits <code>creditNoteIssued</code>.</p>
+<p><strong>Rules and validations.</strong> Only issued or partly paid or paid invoices can be credited; the amount is at most what is left to credit; reason 3 to 500 characters.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code> <strong>and</strong> <code>billing.invoice.void</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_credit_notes</code>, <code>lab_payment_allocations</code>, <code>lab_invoices</code>, <code>lab_payments</code>, journals, commission entries.</p>
+<p><strong>Effects on other modules.</strong> Commission is adjusted on the invoice&#39;s lines.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_INVOICE_NOT_OPEN</code> (&quot;Only an issued invoice can be credited&quot;); <code>LAB_BILLING_CREDIT_EXCEEDS_INVOICE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-credits.service.ts</code> · <code>LabCreditsService.creditNote</code> · <code>web-app/src/features/lab-billing/components/MoneySheets.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-8-refund-a-patient-39-s-advance">42.3.8 Refund a patient&#39;s advance</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Pays money back to the patient out of their advance, optionally as the payout of a credit note.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click &quot;Refund advance&quot; on a payment row, or choose the refund option next to a credit note.</li>
+<li>Enter Amount, Method, Reason, Reference and &quot;Paid back by&quot;.</li>
+<li>Confirm &quot;Pay this refund?&quot;. A toast says &quot;Refund recorded&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The refund is taken from the patient&#39;s advance payments, oldest first. A payment that was partly refunded can no longer be reversed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/refunds</code> → <code>LabCreditsService.refund</code> (header <code>Idempotency-Key</code>, unique on the refund&#39;s own key). It locks the credit note (if any) and the advance payments, writes one <code>lab_refunds</code> row (sequence <code>lab_refund</code>, prefix <code>LRF</code>) and one <code>lab_refund_sources</code> row per payment, raises each payment&#39;s <code>refunded_paisa</code>, updates the credit note&#39;s refunded total and status (<code>refunded</code> when fully paid out), and emits <code>refundPaid</code>. The response carries the patient&#39;s updated billing summary.</p>
+<p><strong>Rules and validations.</strong> The credit note must belong to the patient; the amount is at most what is left on the credit note, and at most the patient&#39;s advance.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code> <strong>and</strong> <code>billing.refund.issue</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_refunds</code>, <code>lab_refund_sources</code>, <code>lab_payments</code>, <code>lab_credit_notes</code>, journals, audit.</p>
+<p><strong>Effects on other modules.</strong> Cash or bank goes down in the journals.</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_REFUND_EXCEEDS_CREDIT</code>; <code>LAB_BILLING_REFUND_EXCEEDS_ADVANCE</code>; <code>LAB_BILLING_INVALID</code>; <code>IDEMPOTENCY_KEY_REUSED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-credits.service.ts</code> · <code>LabCreditsService.refund</code> · <code>web-app/src/features/lab-billing/components/MoneySheets.tsx</code> (<code>RefundSheet</code>)</p>
+<h3 id="ch42-lab-finance-42-3-9-send-a-payment-reminder">42.3.9 Send a payment reminder</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Queues a reminder message for the patient about the balance of an invoice.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On an open invoice click <strong>Send reminder</strong>.</li>
+<li>The toast says &quot;Reminder queued&quot;, or &quot;Reminder logged — patient messages are off for this event&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The reminder is written to the notification outbox. The Platform sends in-app notifications only, and the patient audience is off by default, so in practice the reminder is recorded as skipped.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-billing/invoices/:id/remind</code> → <code>LabInvoicesService.remind</code> → <code>LabPatientNotifier.reminder</code> → <code>NotificationService.enqueue</code> with event <code>payment.outstanding_reminder</code>. The decision order is: patient audience off → <code>skipped_disabled</code>; patient opt-out → <code>skipped_opt_out</code>; quiet hours → held. The result rows are returned (channel, status, reason). Nothing is sent from lab billing itself.</p>
+<p><strong>Rules and validations.</strong> The invoice must be open with a balance greater than zero.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes notification outbox rows and <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Notifications (Chapter 44).</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_INVOICE_NOT_OPEN</code> (&quot;Nothing is owed on this invoice&quot;).</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/notifications/patient-notifier.service.ts</code> · <code>LabPatientNotifier</code> · <code>web-app/src/features/lab-billing/pages/LabInvoiceDetailPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-10-see-billing-for-one-order-and-one-patient">42.3.10 See billing for one order and one patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the Billing panel on a lab order (billed, paid, credited, balance, advance, invoice list) and gives a per-patient summary used by the sheets.</p>
+<p><strong>How the user does it.</strong> Open a lab order; the panel is at the bottom of the detail page.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The numbers are read from the cached amounts on the invoices and payments, which only the billing totals service writes.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-billing/orders/:orderId</code> → <code>LabBillingQueries.order</code> (includes which items are still unbilled); <code>GET /lab-billing/patients/:patientId/summary</code> → <code>patientSummary</code> (invoiced, credited, collected, refunded, advance).</p>
+<p><strong>Rules and validations.</strong> Organization-scoped.</p>
+<p><strong>Who can do it.</strong> <code>lab.billing.manage</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>lab_order_items</code>, <code>lab_invoices</code>, <code>lab_payments</code>, <code>lab_credit_notes</code>, <code>lab_refunds</code>.</p>
+<p><strong>Effects on other modules.</strong> Shown inside Lab Management (Chapter 40).</p>
+<p><strong>Error cases.</strong> <code>LAB_BILLING_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/services/lab-billing-queries.service.ts</code> · <code>LabBillingQueries.order</code> / <code>patientSummary</code> · <code>web-app/src/features/lab-billing/components/LabBillingPanel.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-11-lab-billing-settings">42.3.11 Lab billing settings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sets the default tax rate and the number of days until payment is due for new lab invoices. Issued invoices keep the values they were issued with.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On Lab billing click <strong>Settings</strong>.</li>
+<li>Set &quot;Tax on lab work (%)&quot; and &quot;Payment due after (days)&quot; and save. A toast says &quot;Settings saved&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> One settings row per organization. With no row, tax is 0 and due days are 0.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-billing/settings</code> and <code>PATCH /lab-billing/settings</code> → <code>LabInvoicesService.readSettings</code> / <code>updateSettings</code>; saves <code>lab_billing_settings</code> and writes an audit row with before and after. Tax is stored in basis points.</p>
+<p><strong>Rules and validations.</strong> Tax 0 to 10,000 basis points; due days an integer from 0.</p>
+<p><strong>Who can do it.</strong> Read: <code>lab.billing.manage</code>. Change: <code>lab.billing.manage</code> <strong>and</strong> <code>admin.settings.manage</code>. Default: Admin both; Accountant read only unless the settings permission is added.</p>
+<p><strong>Data read and written.</strong> <code>lab_billing_settings</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; 400 for an out-of-range value.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-billing/lab-billing.controller.ts</code> · <code>LabInvoicesService.updateSettings</code> · <code>web-app/src/features/lab-billing/components/SettingsSheet.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-12-doctor-commission-on-lab-work">42.3.12 Doctor commission on lab work</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When lab work is invoiced and collected, the ordering doctor earns commission according to their compensation plan. It is recorded as <code>commission_entries</code> that settlements and payroll pick up unchanged.</p>
+<p><strong>How the user does it.</strong> Nothing to click. It runs when an invoice is issued, a payment is collected, an advance is applied, a payment is reversed or a credit note is issued.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> At issue, each line remembers which doctor, which plan and which rate applied that day. As money is collected, the doctor earns a share proportional to the money collected, after subtracting the lab&#39;s cost (so the doctor is paid on the clinic&#39;s margin). Reversals and credit notes give commission back.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>LabFinanceListeners</code> (an <code>OnModuleInit</code> hook on <code>LabBillingEvents</code>) calls <code>LabCommissionService.snapshot</code> on <code>invoiceIssued</code> and <code>recordForInvoices</code> on the money events. The snapshot is skipped when the feature <code>billing.commissions</code> is off for the organization. Per line it stores <code>performing_assignment_id</code>, <code>commission_plan_id</code> and the rate or fixed amount, resolved with <code>resolveCommissionRate</code> (lab work is treated as a procedure unless the mapped service says otherwise). <code>labLineCommissionTarget</code> (pure function) computes a cumulative target per line; because lab allocations are per invoice, each line&#39;s share is proportional to its pre-tax amount. The service inserts the difference between target and what is already recorded, so installments never drift. Lab cost per line comes from approved vendor bill lines, otherwise the order item&#39;s frozen snapshot. Source types used: allocation, unapply, charge adjust.</p>
+<p><strong>Rules and validations.</strong> Only lines with a doctor earn; a doctor with no assignment at the invoice&#39;s location or no plan in force on the issue date earns nothing. The commission basis is the &quot;collected&quot; basis net of lab cost.</p>
+<p><strong>Who can do it.</strong> Automatic; no permission. Commission screens follow Chapter 35.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, compensation plans, <code>vendor_bill_lines</code>, <code>lab_order_items</code>. Writes <code>lab_invoice_lines</code> (snapshot columns), <code>commission_entries</code> (with <code>lab_invoice_line_id</code>), journals.</p>
+<p><strong>Effects on other modules.</strong> Commissions (Chapter 35), payroll (Chapter 38).</p>
+<p><strong>Error cases.</strong> None shown to the user; a failure rolls back the whole money operation.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-finance/lab-finance.listeners.ts</code> · <code>LabFinanceListeners</code> · <code>backend/src/lab-finance/lab-commission.service.ts</code> · <code>backend/src/lab-finance/lab-commission-math.ts</code></p>
+<h3 id="ch42-lab-finance-42-3-13-receivables-journals-general-ledger">42.3.13 Receivables journals (general ledger)</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Posts balanced double-entry journals for every lab money event. Backend only: no screen or report reads these journals.</p>
+<p><strong>How the user does it.</strong> Nothing; it is automatic.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each event produces a journal with equal debits and credits. A correction is a new mirror journal, never an edit.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>LabReceivablesLedger</code> posts through <code>GeneralLedgerService</code> in the operation&#39;s own transaction. Patient side: invoice issue debits Patient Receivable and credits Lab Revenue (and Tax Payable); payment debits Cash or Bank and credits Receivable (allocated part) and Patient Advances (rest); advance applied moves Advances to Receivable; credit note debits Lab Revenue and credits Receivable, and moves released money from Receivable to Advances; refund debits Advances and credits Cash or Bank; commission debits Commission Expense and credits Commission Payable; void and reversal post the opposite. Payables side (42.3.15, 42.3.19) uses Lab Cost, Lab Payable and Lab Advances. Tables: <code>ledger_journals</code>, <code>ledger_journal_lines</code>. Account codes are constants in code, not a table.</p>
+<p><strong>Rules and validations.</strong> Journals balance; a reversal journal points at the original (<code>reversal_of_id</code>, unique); journal lines are never updated or deleted.</p>
+<p><strong>Who can do it.</strong> Automatic.</p>
+<p><strong>Data read and written.</strong> Writes <code>ledger_journals</code>, <code>ledger_journal_lines</code>.</p>
+<p><strong>Effects on other modules.</strong> None visible. The clinic profit-and-loss report (Chapter 36) does not read these lab journals.</p>
+<p><strong>Error cases.</strong> An unbalanced journal fails the whole operation.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-finance/lab-receivables-ledger.service.ts</code> · <code>LabReceivablesLedger</code> · <code>backend/src/billing/ledger/journal/general-ledger.service.ts</code></p>
+<h3 id="ch42-lab-finance-42-3-14-a-vendor-bill-drafts-itself-when-the-lab-accepts-work">42.3.14 A vendor bill drafts itself when the lab accepts work</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> As soon as a lab accepts an item of an order, the Platform creates, or updates, one draft vendor bill for that order, priced at the frozen lab costs.</p>
+<p><strong>How the user does it.</strong> Nothing. The draft appears in <strong>Lab payables</strong> → <strong>Bills</strong>. The empty-state text says a draft appears as soon as a lab accepts an order.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The bill is a mirror of what the order says the clinic owes: each accepted item at its lab cost (approved item charges are already inside), plus approved order-level charges. Running it again changes nothing. If a cost rises after approval, the difference goes onto a new draft.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CreateVendorBillDraftEffect</code> (effect code <code>create_vendor_bill_draft</code>, financial) registers an item-transition listener: on every item reaching state <code>accepted</code> it calls <code>BillDraftsService.sync(m, orderId)</code> inside the transition&#39;s transaction. The effect can also be listed in a workflow version; the sync is idempotent. <code>sync</code> locks the order, reads expected costs, reads what approved, partly paid or paid bills already hold, locks the open draft, and <code>planDraftLines</code> returns inserts and updates. A zero cost (a lab-fault remake) is listed on an open draft for the record but never opens a draft alone. A cost that went down after approval is left to a manual correction. Numbers: sequence <code>vendor_bill</code>, prefix <code>VB</code>. A system audit row is written on creation. Bill date is the location&#39;s today.</p>
+<p><strong>Rules and validations.</strong> The order must be submitted (have an order number); otherwise the effect fails with <code>WORKFLOW_MISCONFIGURED</code>.</p>
+<p><strong>Who can do it.</strong> Automatic.</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>lab_order_items</code>, <code>order_charge_requests</code>, remake requests. Writes <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Lab Management&#39;s accept action triggers it (Chapters 40 and 41).</p>
+<p><strong>Error cases.</strong> <code>WORKFLOW_MISCONFIGURED</code> for an unsubmitted order.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/workflow/vendor-bill-draft.effect.ts</code> · <code>CreateVendorBillDraftEffect</code> · <code>backend/src/lab-payables/services/bill-drafts.service.ts</code> · <code>BillDraftsService.sync</code></p>
+<h3 id="ch42-lab-finance-42-3-15-review-edit-approve-and-void-a-vendor-bill">42.3.15 Review, edit, approve and void a vendor bill</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> The accountant reviews a draft, re-reads costs from the order, approves it (this makes it a real debt to the lab) or voids it. Header edits and manual lines exist in the API but the screen does not offer them.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Lab payables</strong> → <strong>Bills</strong>, click a draft.</li>
+<li>Optionally click the <strong>Re-read costs from the order</strong> icon.</li>
+<li>Click <strong>Approve</strong>; in the sheet set the lab&#39;s invoice number, due date and tax %, and see &quot;Total owed&quot;.</li>
+<li>Or click <strong>Void</strong> with a reason.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Before approval the bill is re-synced from the order. If anything changed, the approval is refused with a stale-version message, so the accountant approves exactly what they saw. Approval books the cost and the debt in one step. A voided approved bill gets a mirror journal.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-payables/bills</code>, <code>GET /lab-payables/bills/:id</code>; <code>PATCH /lab-payables/bills/:id</code> (<code>VendorBillsService.update</code>: vendor invoice number, bill date, due date, tax in basis points, notes); <code>POST /lab-payables/bills/:id/lines</code> (<code>addLine</code>: kind, description, quantity, unit cost; creates a manual line); <code>POST /lab-payables/orders/:orderId/sync</code> (<code>syncOrder</code>); <code>POST /lab-payables/bills/:id/approve</code> (<code>approve</code>); <code>POST /lab-payables/bills/:id/void</code> (<code>void</code>). Approve: sync in its own transaction, then one transaction: lock draft and check <code>version</code>, recompute totals with <code>billTotals</code> (tax rounded half up on integer paisa), refuse total 0, set <code>due_on</code> (the given date, else bill date plus the lab link&#39;s <code>payment_terms_days</code>, default 30), post journal debit Lab Cost / credit Lab Payable, set status <code>approved</code>, balance = total, store <code>journal_id</code>, audit. Void: refused when <code>paid_paisa &gt; 0</code> or already void; a draft is closed without a journal; an approved bill is reversed with a mirror journal. The web screen calls approve, void, sync, list and read; <code>updateBill</code> and <code>addLine</code> exist in <code>lab-payables.api.ts</code> but no page uses them.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only a draft can be edited, have lines added or be approved.</li>
+<li>A bill of 0 cannot be approved (&quot;Void it instead&quot;).</li>
+<li>The lab&#39;s invoice number is unique per lab among bills (<code>uq_vendor_bills_vendor_invoice</code>).</li>
+<li>Line kinds: service, rush, shipping, material, remake, other.</li>
+<li><code>version</code> must match on every write.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code> (class-level on the controller), feature <code>dental.lab_orders</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>lab_orders</code>, <code>lab_clinic_links</code>. Writes <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>ledger_journals</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Lab cost enters the journals; the case-profit report reads bill totals.</p>
+<p><strong>Error cases.</strong> <code>PAYABLES_BILL_NOT_FOUND</code>; <code>PAYABLES_INVALID</code>; <code>PAYABLES_NOT_ALLOWED</code> (&quot;Reverse the payments on this bill before voiding it&quot;); <code>PAYABLES_DUPLICATE_INVOICE</code>; stale <code>version</code> error.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/vendor-bills.service.ts</code> · <code>VendorBillsService</code> · <code>web-app/src/features/lab-payables/pages/VendorBillDetailPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-16-pay-a-lab">42.3.16 Pay a lab</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records a payment to a lab and splits it over the lab&#39;s approved bills. An unallocated rest is kept as an advance to the lab.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Payments</strong> (choose the lab first) click <strong>Record payment</strong>, or click <strong>Pay</strong> on an approved bill.</li>
+<li>Enter Amount, Method (cash, bank transfer, cheque, other), Reference, Paid on and Notes.</li>
+<li>Under &quot;Split over bills&quot; enter an amount per bill (&quot;Never more than a bill&#39;s balance&quot;).</li>
+<li>Save. A toast says &quot;Payment recorded&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The payment is split over bills, never more than the payment and never more than a bill&#39;s balance. Bills are locked while this happens, and each bill&#39;s paid amount and status are recomputed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-payables/payments</code> → <code>VendorPaymentsService.create</code> (header <code>Idempotency-Key</code> optional; when given, replays return the stored response). One transaction: the lab must be linked to the clinic; allocations merged per bill; sum at most amount; <code>lockBills</code> (id order; same lab; status approved or partly paid; amount at most balance); number from sequence <code>vendor_payment</code> (prefix <code>VP</code>); insert payment and allocations; recompute each bill (<code>settledStatus</code>); journal debit Lab Payable (allocated), debit Lab Advances (rest), credit Cash or Bank by method; audit. The payment is recorded at the active location.</p>
+<p><strong>Rules and validations.</strong> Amount at least 1; at most 200 allocations; the bills must belong to the chosen lab.</p>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>vendor_payments</code>, <code>vendor_payment_allocations</code>, <code>vendor_bills</code>, <code>ledger_journals</code>, <code>audit_logs</code>, <code>number_sequences</code>.</p>
+<p><strong>Effects on other modules.</strong> Cash or bank reduces in the journals.</p>
+<p><strong>Error cases.</strong> <code>PAYABLES_LAB_NOT_FOUND</code> (&quot;Lab not linked to this clinic&quot;); <code>PAYABLES_ALLOCATION_LIMIT</code>; <code>PAYABLES_BILL_NOT_FOUND</code>; <code>PAYABLES_NOT_ALLOWED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/vendor-payments.service.ts</code> · <code>VendorPaymentsService.create</code> · <code>web-app/src/features/lab-payables/components/PayablesSheets.tsx</code> (<code>PayLabSheet</code>)</p>
+<h3 id="ch42-lab-finance-42-3-17-use-a-lab-advance-on-bills">42.3.17 Use a lab advance on bills</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Applies the unallocated rest of a payment already made to approved bills of the same lab.</p>
+<p><strong>How the user does it.</strong> The Payments tab shows &quot;Advance left&quot;, but no button on any page calls this action.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It moves money from the lab advance to the lab payable.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-payables/payments/:id/allocations</code> → <code>VendorPaymentsService.allocate</code>: locks the payment, checks <code>version</code>, <code>adding ≤ amount − allocated</code>, locks bills, writes allocations, posts a journal (debit Lab Payable, credit Lab Advances). <code>labPayablesApi.allocate</code> exists in the web client; no component uses it.</p>
+<p><strong>Rules and validations.</strong> The payment must be posted; the sum must fit the unallocated rest.</p>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code>.</p>
+<p><strong>Data read and written.</strong> Writes <code>vendor_payment_allocations</code>, <code>vendor_payments</code>, <code>vendor_bills</code>, journals.</p>
+<p><strong>Effects on other modules.</strong> Journals only.</p>
+<p><strong>Error cases.</strong> <code>PAYABLES_NOT_ALLOWED</code> (&quot;This payment is reversed&quot;); <code>PAYABLES_ALLOCATION_LIMIT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/vendor-payments.service.ts</code> · <code>VendorPaymentsService.allocate</code> · <code>web-app/src/features/lab-payables/services/lab-payables.api.ts</code></p>
+<h3 id="ch42-lab-finance-42-3-18-reverse-a-payment-to-a-lab">42.3.18 Reverse a payment to a lab</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Corrects a wrong entry: the payment becomes reversed, its allocations are cancelled, the bills get their balance back and every journal of the payment is mirrored. The payment stays on record.</p>
+<p><strong>How the user does it.</strong> Click &quot;Reverse payment&quot; on the row, enter a reason, confirm. A toast says &quot;Payment reversed&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-payables/payments/:id/reverse</code> → <code>VendorPaymentsService.reverse</code>: lock payment, check <code>version</code> and that it is posted, lock the touched bills in id order, set <code>reversed_at</code> on active allocations, set status <code>reversed</code>, recompute the bills, reverse the journals.</p>
+<p><strong>Rules and validations.</strong> Only a posted payment; <code>version</code> must match.</p>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Writes <code>vendor_payments</code>, <code>vendor_payment_allocations</code>, <code>vendor_bills</code>, journals, audit.</p>
+<p><strong>Effects on other modules.</strong> Journals.</p>
+<p><strong>Error cases.</strong> <code>PAYABLES_NOT_ALLOWED</code> (&quot;This payment is already reversed&quot;); <code>PAYABLES_PAYMENT_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/vendor-payments.service.ts</code> · <code>VendorPaymentsService.reverse</code> · <code>web-app/src/features/lab-payables/pages/LabPaymentsPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-19-check-a-lab-39-s-monthly-statement">42.3.19 Check a lab&#39;s monthly statement</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The clinic types in the lines of the lab&#39;s monthly statement. The Platform matches them to the clinic&#39;s bills for the period and shows what differs.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Statements</strong> click <strong>Add statement</strong>.</li>
+<li>Choose the lab, the period (From, To), the statement reference and enter the lines (lab reference, date, description, amount).</li>
+<li>Save. If everything matches, the toast says &quot;Statement saved and reconciled&quot;; otherwise the statement is &quot;Needs review&quot;.</li>
+<li>Open the statement and click <strong>Mark reconciled</strong> or <strong>Dispute</strong> (add a note).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each statement line is matched by reference (the lab&#39;s invoice number, the clinic&#39;s bill number or the order number) and amount. Each bill is used once. A bill the statement left out is added as a &quot;Not on statement&quot; row.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-payables/statements</code> → <code>LabStatementsService.create</code>; <code>POST /lab-payables/statements/:id/status</code> → <code>setStatus</code>; <code>GET /lab-payables/statements</code>, <code>/:id</code>. <code>reconcile()</code> (pure) returns per line one of <code>matched</code>, <code>amount_mismatch</code>, <code>missing_in_system</code> and a list <code>missingInStatement</code>. Period bills are those of the lab that are not void, have a total greater than 0 and a bill date inside the period, drafts included. When all lines match and none is missing, the statement starts as <code>reconciled</code>; otherwise <code>reconciling</code> (default column value is <code>uploaded</code>, which the code never writes on create). Matched bills get <code>statement_id</code>. The status endpoint accepts only <code>reconciled</code> or <code>disputed</code>, with <code>version</code>.</p>
+<p><strong>Rules and validations.</strong> The period end must not be before the start; the lab must be linked; the total defaults to the sum of the lines.</p>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>vendor_bills</code>, <code>lab_orders</code>, <code>lab_clinic_links</code>. Writes <code>lab_statements</code>, <code>lab_statement_lines</code>, <code>vendor_bills.statement_id</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The lab admin sees statements in the lab portal.</p>
+<p><strong>Error cases.</strong> <code>PAYABLES_INVALID</code>; <code>PAYABLES_LAB_NOT_FOUND</code>; <code>PAYABLES_STATEMENT_NOT_FOUND</code>; stale <code>version</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/lab-statements.service.ts</code> · <code>LabStatementsService</code> · <code>backend/src/lab-payables/common/payables-math.ts</code> · <code>web-app/src/features/lab-payables/pages/LabStatementDetailPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-20-payables-reports">42.3.20 Payables reports</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Three reports: what is owed to each lab by age, approved lab cost per lab per month, and profit per lab case.</p>
+<p><strong>How the user does it.</strong> Open <strong>Lab payables</strong> → <strong>Reports</strong>, choose Payables aging, Lab cost by month (and a Year) or Case profit; optionally filter by lab and dates.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Aging buckets are Not due, 1 to 30, 31 to 60, 61 to 90 and over 90 days past due. Case profit is revenue minus lab cost minus case expenses minus doctor commission. Invoiced and collected are shown apart.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-payables/reports/aging</code> (<code>PayablesReportsService.aging</code>: approved and partly paid bills with a balance, bucketed by days past <code>due_on</code>, or bill date when no due date, in the active location&#39;s today), <code>GET /lab-payables/reports/monthly-cost</code> (<code>monthlyCost</code>: approved bills by bill month plus what was paid) and <code>GET /lab-payables/reports/case-profit</code> (<code>caseProfit</code>: revenue from issued lab invoices net of credit notes, or the frozen patient price while nothing is invoiced; lab cost is the frozen item costs plus approved order charges; commission is the signed lab commission entries). A helper <code>forItems</code> gives other modules an item&#39;s lab cost: approved bill lines, else the frozen snapshot.</p>
+<p><strong>Rules and validations.</strong> Organization-scoped; aging uses the active location&#39;s timezone.</p>
+<p><strong>Who can do it.</strong> <code>lab.payables.manage</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>vendor_bills</code>, <code>vendor_payments</code>, <code>lab_orders</code>, <code>lab_invoices</code>, <code>commission_entries</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None. These are not part of the 37 clinic reports (Chapter 36).</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/services/payables-reports.service.ts</code> · <code>PayablesReportsService</code> · <code>web-app/src/features/lab-payables/pages/PayablesReportsPage.tsx</code></p>
+<h3 id="ch42-lab-finance-42-3-21-the-lab-sees-its-bills-payments-and-statements">42.3.21 The lab sees its bills, payments and statements</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A lab member can read, but not change, the approved bills, payments and statements that clinics recorded for their lab.</p>
+<p><strong>How the user does it.</strong> On the lab portal, open the lab billing page (<code>/lab-portal/billing</code>).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The lab never sees drafts. It sees only its own data.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>LabPortalPayablesController</code> under the lab portal path <code>payables</code>: <code>GET bills</code>, <code>bills/:id</code>, <code>payments</code>, <code>statements</code>, <code>statements/:id</code>, guarded by <code>LabPortalGuard</code> and <code>@LabActor</code>. <code>LabPortalPayablesService</code> excludes bills in status <code>draft</code>.</p>
+<p><strong>Rules and validations.</strong> Read-only; scoped to the member&#39;s lab.</p>
+<p><strong>Who can do it.</strong> A lab member (lab admin or technician); no clinic permission.</p>
+<p><strong>Data read and written.</strong> Reads <code>vendor_bills</code>, <code>vendor_payments</code>, <code>lab_statements</code>.</p>
+<p><strong>Effects on other modules.</strong> Lab portal (Chapter 41).</p>
+<p><strong>Error cases.</strong> 403 for a non-member; 404 for another lab&#39;s record.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-payables/controllers/lab-portal-payables.controller.ts</code> · <code>LabPortalPayablesService</code> · <code>web-app/src/features/lab-portal/payables/LabBillingPage.tsx</code></p>
+<h2 id="ch42-lab-finance-42-4-entities-and-data-model">42.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-lab-finance-erd.png" alt="Figure 42.11 — Patient lab invoice tables"></p>
+<p><em>Figure 42.11 — Tables for patient lab billing.</em></p>
+<p>The figure shows <code>lab_invoices</code> with a patient and an optional lab order, owning <code>lab_invoice_lines</code>. A <code>lab_invoice_lines</code> row may point at a <code>lab_order_items</code> row (dotted: optional). <code>lab_payments</code> belong to a patient and are split by <code>lab_payment_allocations</code> over invoices. <code>lab_credit_notes</code> belong to an invoice. <code>lab_refunds</code> draw from payments through <code>lab_refund_sources</code>. A dotted line shows that an invoice line earns <code>commission_entries</code>.</p>
+<p>Each invoice belongs to exactly one patient and optionally to one lab order; deleting either is blocked (<code>ON DELETE RESTRICT</code>, as for every foreign key in these tables). An invoice has one or more lines. A payment belongs to one patient; a reversal row points at the payment it reverses (<code>reversal_of_id</code>). An allocation links one payment to one invoice with an amount and, once released, a <code>reversed_at</code> time and reason. Credit notes point at one invoice. A refund has one or more sources, each a payment. <code>lab_billing_settings</code> holds one row per organization. Amounts are integer paisa in <code>bigint</code> columns; tax rates are basis points. The Labs data chapter (Chapter 25) describes the columns in full.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-payables-erd.png" alt="Figure 42.12 — Lab payables tables"></p>
+<p><em>Figure 42.12 — Tables for lab payables.</em></p>
+<p>The figure shows <code>labs</code> linked to <code>vendor_bills</code>, <code>vendor_payments</code> and <code>lab_statements</code>. A bill has lines, may point at a lab order and at a statement, and has an optional journal (dotted). Payments are split into <code>vendor_payment_allocations</code> over bills. A statement has <code>lab_statement_lines</code>; a line points at the bill it matched through <code>matched_bill_id</code> (dotted, logical link without a foreign key constraint in this diagram).</p>
+<p>Each vendor bill belongs to one lab and usually to one lab order (a manual bill has none). A bill&#39;s <code>statement_id</code> is set when a statement matches it. A payment belongs to one lab; each allocation ties one payment to one bill. The lab&#39;s invoice number is unique per lab among bills. The journals live in <code>ledger_journals</code> and <code>ledger_journal_lines</code> (Chapter 21).</p>
+<h2 id="ch42-lab-finance-42-5-status-lifecycles">42.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-lab-invoice-status.png" alt="Figure 42.13 — Lab invoice lifecycle"></p>
+<p><em>Figure 42.13 — Lab invoice: draft, issued, partially paid, paid, void.</em></p>
+<p>A lab invoice is created as <code>draft</code> (an estimate) and can be edited any number of times. <code>POST invoices/id/issue</code>, or creating with <code>issue: true</code>, moves it to <code>issued</code>. Payments or advance allocated move it to <code>partially_paid</code>, and to <code>paid</code> when the balance is zero (a credit note can also clear the balance). A reversal or credit note that releases money can move <code>paid</code> back to <code>partially_paid</code>, and a <code>partially_paid</code> invoice whose allocations are all released goes back to <code>issued</code>. A draft, or an issued invoice with no payment and no credit note, can be voided. <code>void</code> is final. The status is written only by the totals service, never directly.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-vendor-bill-status.png" alt="Figure 42.14 — Vendor bill lifecycle"></p>
+<p><em>Figure 42.14 — Vendor bill: draft, approved, partly paid, paid, void.</em></p>
+<p>A vendor bill starts as <code>draft</code> when a lab accepts work, and stays a draft while syncs, edits and manual lines change it. Approve makes it <code>approved</code>. Allocations move it to <code>partially_paid</code> and then <code>paid</code>. Reversing a payment moves it back. Void is allowed for a draft, or for an approved bill with nothing paid. <code>void</code> is final.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-lab-statement-status.png" alt="Figure 42.15 — Lab statement lifecycle"></p>
+<p><em>Figure 42.15 — Lab statement: reconciling, reconciled, disputed.</em></p>
+<p>A statement is created as <code>reconciled</code> when every line matched and no bill is missing, otherwise as <code>reconciling</code> (shown as &quot;Needs review&quot;). The accountant can mark it <code>reconciled</code> or <code>disputed</code> at any time, and move between the two. The enum also has <code>uploaded</code>, the column default, but no code path writes it.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-vendor-payment-status.png" alt="Figure 42.16 — Vendor payment lifecycle"></p>
+<p><em>Figure 42.16 — Vendor payment: posted, reversed.</em></p>
+<p>A vendor payment is <code>posted</code> on creation. More allocations can be added while it stays posted. Reversal makes it <code>reversed</code>, which is final.</p>
+<p>Patient lab payments follow the same two states, <code>posted</code> and <code>reversed</code>. Credit notes have three: <code>issued</code> (money released, waiting for refund), <code>applied</code> (fully absorbed by the invoice balance) and <code>refunded</code>.</p>
+<h2 id="ch42-lab-finance-42-6-connections-to-other-modules">42.6 Connections to other modules</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch42-lab-finance-sequence.png" alt="Figure 42.17 — From lab acceptance to commission"></p>
+<p><em>Figure 42.17 — A lab accepts work, a vendor bill drafts, the clinic invoices and collects, commission follows.</em></p>
+<p>The diagram has seven participants: Lab admin, Accountant, Web app, API, WorkflowEngineService, LabFinanceListeners and PostgreSQL. In steps 1 to 6, the lab admin accepts an item in the lab portal; the web app calls the item transition <code>accept</code>; the API asks the workflow engine to run it on the item&#39;s pinned workflow version; the engine writes the new state, runs the item listener <code>BillDraftsService.sync</code> and creates or updates the draft vendor bill at the frozen lab cost. A note marks that all of this is one transaction. In steps 7 to 13, the accountant bills the lab work with Issue now; the API creates the draft with lines at the frozen patient price, numbers it and sets the due date, emits <code>invoiceIssued</code>, the listeners snapshot the commission on the lines and post the receivable journal, then any patient advance is applied. In steps 14 to 20, the accountant collects a payment with an <code>Idempotency-Key</code>; the API writes receipt, payment, allocations and totals, emits <code>paymentCollected</code>, the listeners post the cash journal, commission entries and the commission journal, a receipt notification is queued and the API answers 201.</p>
+<p>Links to other modules:</p>
+<ul>
+<li><strong>Lab Management (Chapter 40)</strong> creates and submits orders, freezes prices, and hosts the Billing panel.</li>
+<li><strong>Lab Portal (Chapter 41)</strong> lets the lab accept work and read its bills.</li>
+<li><strong>Workflow Engine (Chapter 43)</strong> runs the accept transition and the vendor bill effect.</li>
+<li><strong>Commissions (Chapter 35)</strong> and <strong>Payroll (Chapter 38)</strong> use the lab commission entries.</li>
+<li><strong>Billing (Chapter 34)</strong>: lab invoices are separate from clinic invoices; only the number sequences, journals and the void and refund permissions are shared.</li>
+<li><strong>Notifications (Chapter 44)</strong> receive the receipt and reminder events.</li>
+</ul>
+<h2 id="ch42-lab-finance-42-7-limitations-and-known-gaps">42.7 Limitations and known gaps</h2>
+<ul>
+<li>The journals (<code>ledger_journals</code>) are written for every lab money event, but no screen or report reads them. The clinic profit-and-loss report does not include them.</li>
+<li>Vendor bill header edit (<code>PATCH bills/:id</code>) and manual lines (<code>POST bills/:id/lines</code>) exist in the API only. The screen has no form for them, so a lab&#39;s partial charge on a cancelled item cannot be entered from the UI.</li>
+<li>&quot;Use advance&quot; on a lab payment (<code>POST payments/:id/allocations</code>) has no button.</li>
+<li>Payment reminders and receipts are queued but not delivered to patients, because only in-app notifications exist and the patient audience is off by default.</li>
+<li>A cost that goes down after bill approval is not corrected automatically; it needs a manual credit that the UI cannot enter.</li>
+<li>Statement lines are typed in by hand; there is no file upload even though the initial status is called <code>uploaded</code>.</li>
+<li>Lab invoices are not limited by location in the list; the permissions have no scope.</li>
+<li>There is no print layout for lab invoices or receipts in the code reviewed. [Unverified]: whether a PDF exists elsewhere.</li>
+</ul>
+<h2 id="ch42-lab-finance-42-8-owner-39-s-faq">42.8 Owner&#39;s FAQ</h2>
+<p><strong>Can a receptionist collect a lab payment?</strong> Not by default. <code>lab.billing.manage</code> is held by Admin and Accountant. You can add it to a custom role.</p>
+<p><strong>What if the patient paid more than the invoice?</strong> The rest stays as the patient&#39;s advance, usable on the next lab invoice or refundable.</p>
+<p><strong>Can an invoice be deleted?</strong> No. A draft or unpaid issued invoice can be voided; paid ones need a payment reversal or a credit note.</p>
+<p><strong>Why can the Accountant not change the tax rate?</strong> Settings need <code>admin.settings.manage</code> in addition to lab billing; add it to the role if wanted.</p>
+<p><strong>What happens if two people click Collect payment together?</strong> The invoices are row-locked and the unique key stops duplicates; the second sees an allocation error if the balance is gone.</p>
+<p><strong>Where do I see what we owe a lab?</strong> Lab payables → Reports → Payables aging, or Bills filtered by lab.</p>
+<p><strong>Does the lab&#39;s price change alter a patient&#39;s invoice?</strong> No. Prices are frozen when the order is submitted.</p>
+<p><strong>Is there a general ledger screen?</strong> No. The journals exist in the database only.</p>
+<p><strong>Does the doctor earn commission on lab work?</strong> Yes, when the commissions feature is on and the doctor has a plan; it is calculated on collected money net of lab cost.</p>
+</section></body></html>

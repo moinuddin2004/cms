@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch20-billing-core"><h1 id="ch20-billing-core-chapter-20-billing-core">Chapter 20 — Billing core</h1>
+<p>This chapter describes the tables that hold a clinic&#39;s money for treatment work: the service catalog, prices, charges, invoices, payments, allocations, refunds, discount types, payment accounts and per-location billing settings. It is written for the product owner who needs to know where every rupee is recorded and which database rules protect it. The design is called &quot;billing v2&quot; in the code; it replaced an older single-table invoice model. The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference; this chapter explains meaning, keys and relationships only.</p>
+<h2 id="ch20-billing-core-20-1-the-idea-in-one-paragraph">20.1 The idea in one paragraph</h2>
+<p>A <strong>charge</strong> is one billable line for a patient, for example one consultation or one filling. It is the atomic unit of billing. An <strong>invoice</strong> is an issued document that groups some of the patient&#39;s charges; there are no draft invoices. A <strong>payment</strong> is money received from the patient. It belongs to the patient, not to an invoice. An <strong>allocation</strong> says how much of a payment went to which charge. Money that has been received but not allocated is the patient&#39;s <strong>advance</strong>. A <strong>refund</strong> always gives back advance money, and refund sources record which payments funded it. Prices, discounts and the service type are copied onto each charge when it is created, so later catalog edits never change old bills.</p>
+<p><strong>Money convention.</strong> Every amount in this chapter is a <code>numeric(12,2)</code> column in rupees (major units), not paisa. The commission snapshot columns on <code>charges</code> are the exception: they use basis points and paisa, because they feed the commission ledger (the Compensation chapter, Chapter 22, explains it).</p>
+<p><strong>Key generation.</strong> All tables in this chapter use random UUID (version 4) primary keys generated by the database, except <code>location_billing_settings</code>, whose key is the location id supplied by the application.</p>
+<p><strong>Status:</strong> [Implemented]. All tables in this chapter are written by the billing module (<code>backend/src/billing/</code>) and shown on billing screens (billing desk, invoices, payments, billing settings).</p>
+<h2 id="ch20-billing-core-20-2-catalog-and-pricing-tables">20.2 Catalog and pricing tables</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch20-catalog-pricing-erd.png" alt="Figure 20.1 — Catalog and pricing tables"></p>
+<p><em>Figure 20.1 — The service catalog, location prices, discount types, payment accounts and location billing settings.</em></p>
+<p>The figure shows seven boxes. <code>services</code> is at the centre. A solid line runs from <code>services</code> to <code>service_prices</code> labelled &quot;priced per location, RESTRICT&quot;, and a second solid line runs from <code>employees</code> to <code>service_prices</code> labelled &quot;doctor price, RESTRICT&quot;. Dotted lines, which mean the column has no foreign key, run from <code>services</code> to <code>charges</code> (service_id), from <code>discount_types</code> to <code>charges</code> (discount_type_id), from <code>services</code> to <code>discount_types</code> (the <code>service_ids</code> array, a many-to-many link), and from <code>services</code> and <code>payment_accounts</code> to <code>location_billing_settings</code> (the default consultation service and default payment account). Each box lists its primary key and a few key columns; the notes &quot;unique per org&quot; and &quot;unique per location&quot; mark business-unique names, and &quot;no FK&quot; marks tenant columns without a database constraint.</p>
+<h3 id="ch20-billing-core-services-the-service-catalog"><code>services</code> — the service catalog</h3>
+<p>Code class name: <code>CatalogService</code> (the table name and class name differ). One row is something the clinic sells: a consultation, a procedure or &quot;other&quot;. It belongs to an organization, not a location. Key columns: <code>name</code>, optional <code>code</code>, <code>kind</code> (CONSULTATION, PROCEDURE, OTHER), <code>default_price</code>, <code>is_active</code> (soft delete) and <code>sort_order</code>.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li>The name is unique per organization (<code>uq_services_org_name</code>).</li>
+<li>The code is unique per organization when present (<code>uq_services_org_code</code>, a partial unique index that ignores rows with no code).</li>
+</ul>
+<h3 id="ch20-billing-core-service-prices-location-and-doctor-price-overrides"><code>service_prices</code> — location and doctor price overrides</h3>
+<p>One row overrides a service&#39;s default price at one location, and optionally for one doctor at that location. Doctors are identified by their employee record, the same way queue sessions identify them.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li>At most one location-wide price per service and location (<code>uq_service_prices_loc</code>, partial: only rows with no doctor).</li>
+<li>At most one doctor-specific price per service, location and doctor (<code>uq_service_prices_loc_doc</code>, partial: only rows with a doctor).</li>
+</ul>
+<h3 id="ch20-billing-core-discount-types-discount-presets"><code>discount_types</code> — discount presets</h3>
+<p>An owner-defined discount, such as &quot;Staff family 20%&quot; or &quot;Senior citizen PKR 500 off&quot;. It replaced the older coupon idea. Key columns: <code>kind</code> (PERCENTAGE or FIXED), <code>value</code>, an optional cap <code>max_amount</code>, and <code>applies_to</code> (ALL, SERVICE_KINDS or SERVICES) with the matching <code>service_kinds</code> or <code>service_ids</code> arrays. <code>reception_editable</code>, <code>min_value</code> and <code>max_value</code> let the front desk adjust the value within a range. <code>requires_note</code> forces a written reason. <code>valid_from</code> and <code>valid_to</code> limit the period. <code>is_active</code> is the soft-delete flag.</p>
+<p>Constraints that matter: the name is unique per organization, and the code is unique per organization when present.</p>
+<h3 id="ch20-billing-core-payment-accounts-ways-a-location-receives-money"><code>payment_accounts</code> — ways a location receives money</h3>
+<p>One row is one way a location can take money: cash drawer, a bank account, a mobile wallet. Key columns: <code>name</code>, <code>method</code> (CASH, CARD, BANK_TRANSFER, CHEQUE, ONLINE_WALLET), optional bank details, <code>requires_reference</code> (the cashier must type a transaction reference), <code>counted_in_cash_close</code> (the account is counted at the end-of-day cash close), <code>is_active</code> and <code>sort_order</code>.</p>
+<p>Constraint that matters: the name is unique per organization and location (<code>uq_payment_accounts_loc_name</code>).</p>
+<h3 id="ch20-billing-core-location-billing-settings-one-settings-row-per-location"><code>location_billing_settings</code> — one settings row per location</h3>
+<p>The primary key is the location id itself, so each location has at most one row. The row is created with defaults the first time it is needed. Key columns:</p>
+<ul>
+<li><code>document_code</code>: the 2–6 character location code printed inside invoice, receipt and refund numbers. It lives here, not on <code>locations.code</code>, because the location code is free-form and up to 50 characters.</li>
+<li><code>due_days</code> (default 7): days from issue to due date.</li>
+<li><code>invoice_print_format</code> and <code>receipt_print_format</code> (A4 or THERMAL_80).</li>
+<li>Display switches: <code>show_logo</code>, <code>show_previous_balance</code>, <code>show_outstanding_at_check_in</code>, and a <code>footer_note</code>.</li>
+<li><code>default_consultation_service_id</code> and <code>default_payment_account_id</code>.</li>
+<li><code>cash_variance_alert_amount</code>: the cash-close difference that triggers an alert.</li>
+</ul>
+<h2 id="ch20-billing-core-20-3-charges-invoices-payments-and-refunds">20.3 Charges, invoices, payments and refunds</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch20-charges-payments-erd.png" alt="Figure 20.2 — Charges, invoices, payments and refunds"></p>
+<p><em>Figure 20.2 — How charges, invoices, payments, allocations, refunds and refund sources connect.</em></p>
+<p>The figure shows <code>patients</code> at the top with four solid lines down to <code>charges</code> (&quot;billed&quot;), <code>invoices</code> (&quot;owes&quot;), <code>payments</code> (&quot;pays&quot;) and <code>refunds</code> (&quot;refunded&quot;), all marked RESTRICT. <code>invoices</code> connects to <code>charges</code> with &quot;groups, RESTRICT&quot;. Three small boxes on the left, <code>employees</code>, <code>employee_org_location_assignments</code> and <code>compensation_plans</code>, each connect to <code>charges</code> with &quot;doctor&quot;, &quot;performer&quot; and &quot;rate snapshot&quot; (all RESTRICT). <code>payment_accounts</code> connects to <code>payments</code> with &quot;received into, RESTRICT&quot;. At the bottom, <code>payment_allocations</code> hangs from both <code>payments</code> (&quot;applied as&quot;) and <code>charges</code> (&quot;settled by&quot;), and <code>refund_sources</code> hangs from both <code>refunds</code> (&quot;funded by&quot;) and <code>payments</code> (&quot;funds&quot;). Dotted lines show the logical links without foreign keys: <code>invoices</code> to <code>payment_allocations</code> (a copied invoice id), <code>invoices</code> to <code>refunds</code> (invoice_id) and <code>payment_accounts</code> to <code>refunds</code> (payment_account_id).</p>
+<h3 id="ch20-billing-core-charges-billable-lines"><code>charges</code> — billable lines</h3>
+<p>One row is one billable line for one patient at one location. Charges come from four sources (<code>source</code>): CONSULTATION, TREATMENT, TREATMENT_PLAN and MANUAL; <code>source_id</code> points at the originating record. Key columns:</p>
+<ul>
+<li>Pricing snapshot: <code>service_id</code>, <code>service_kind</code>, <code>description</code>, <code>quantity</code>, <code>unit_price</code>, <code>gross_amount</code>.</li>
+<li>Discount snapshot: <code>discount_type_id</code>, <code>discount_name</code>, <code>discount_kind</code>, <code>discount_value</code>, <code>discount_amount</code>, <code>discount_note</code>, <code>is_custom_discount</code>.</li>
+<li>Results: <code>net_amount</code>, <code>tax_amount</code> (this charge&#39;s share of its invoice&#39;s sales tax; zero while unbilled) and <code>allocated_amount</code> (a cached sum of allocations).</li>
+<li>Billing state: <code>invoice_id</code> (null means the charge is not yet invoiced), <code>status</code> (ACTIVE or VOID), void details, <code>needs_pricing</code> and <code>source_removed_at</code> (set when the doctor removed the source treatment after billing).</li>
+<li>Commission snapshot: <code>doctor_id</code>, <code>performing_assignment_id</code>, <code>commission_plan_id</code>, <code>commission_rate_bps</code>, <code>commission_fixed_paisa</code>.</li>
+<li>Links to the visit: <code>encounter_id</code> and <code>appointment_id</code>.</li>
+</ul>
+<p>The balance of a charge is never stored. The code computes it as net + tax − allocated.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>uq_charges_source</code> (partial unique index): an active charge can exist only once per organization, source and source id. This stops the same consultation or treatment being charged twice. Voided charges are excluded, so a corrected charge can be created after a void.</li>
+<li><code>chk_charges_commission_rate</code>: the rate is null or between 0 and 10,000 basis points (0–100%).</li>
+</ul>
+<h3 id="ch20-billing-core-invoices-issued-documents"><code>invoices</code> — issued documents</h3>
+<p>One row is one issued invoice for one patient at one location. There is no draft state: an invoice is created and issued in one step. Key columns: <code>invoice_number</code>, <code>status</code> (ISSUED or CANCELLED), <code>revision</code> (an edit after issue increases it), <code>issue_date</code>, <code>due_date</code>, and the cached money columns <code>subtotal</code>, <code>discount_total</code>, <code>tax_rate</code> (copied from the location&#39;s settings at issue), <code>tax_amount</code>, <code>total_amount</code>, <code>paid_amount</code>, <code>balance_due</code>, <code>released_amount</code> and <code>refunded_amount</code>. Only the billing totals service writes the cached columns.</p>
+<p>Constraint that matters: the invoice number is unique per organization (<code>uq_invoices_org_number</code>). Numbers are produced by the document numbering table described in the Billing ledgers chapter (Chapter 21).</p>
+<h3 id="ch20-billing-core-payments-money-received"><code>payments</code> — money received</h3>
+<p>One row is money received from one patient. It belongs to the patient, not to an invoice. Apart from the cached <code>allocated_amount</code> and <code>refunded_amount</code>, a payment row never changes. The patient&#39;s advance from a payment is amount − allocated − refunded. Key columns: <code>receipt_number</code>, <code>amount</code>, <code>payment_account_id</code>, snapshots of the account&#39;s <code>method</code> and name, <code>reference_number</code>, <code>payment_date</code>, <code>received_at</code>, <code>received_by</code> and <code>client_request_id</code>.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li>The receipt number is unique per organization.</li>
+<li><code>client_request_id</code> is unique per organization (<code>uq_payments_org_client_request</code>). The web app sends a fresh id with each &quot;collect payment&quot; action, so a double click or a network retry cannot record the same payment twice.</li>
+</ul>
+<h3 id="ch20-billing-core-payment-allocations-which-payment-paid-which-charge"><code>payment_allocations</code> — which payment paid which charge</h3>
+<p>One row says &quot;this much of payment P was applied to charge C&quot; (positive amount) or &quot;this much was released back to advance&quot; (negative amount). The table is designed as append-only: rows are never updated or deleted, and corrections are new rows with the opposite sign. The <code>reason</code> column records why: PAYMENT, ADVANCE_APPLIED, INVOICE_EDIT_RELEASE or UNAPPLY. <code>invoice_id</code> is a copy of the charge&#39;s invoice at the time of writing, kept for fast invoice queries.</p>
+<p>Constraint that matters: <code>chk_payment_allocations_amount_nonzero</code> forbids zero-amount rows. The append-only rule itself is enforced by the application, not by a database trigger.</p>
+<h3 id="ch20-billing-core-refunds-money-returned"><code>refunds</code> — money returned</h3>
+<p>One row is money returned to a patient. A refund always comes out of advance money. If <code>invoice_id</code> is set, it is an invoice refund; if it is null, it is a plain advance refund. Key columns: <code>refund_number</code>, <code>amount</code>, <code>payment_account_id</code> with method and name snapshots, <code>reason</code> (required), <code>refund_date</code>, <code>refunded_at</code>, <code>refunded_by</code> and <code>client_request_id</code>.</p>
+<p>Constraints that matter: the refund number and the client request id are each unique per organization.</p>
+<h3 id="ch20-billing-core-refund-sources-which-payments-funded-a-refund"><code>refund_sources</code> — which payments funded a refund</h3>
+<p>One row says how much of one payment&#39;s advance was used for one refund. The rows of one refund add up to the refund amount; the application enforces this sum.</p>
+<h2 id="ch20-billing-core-20-4-relationships-explained">20.4 Relationships explained</h2>
+<p>Foreign-key relationships (the database enforces these):</p>
+<ul>
+<li><strong>Service → service prices.</strong> Each service price belongs to exactly one service; a service has zero or more prices. A service with prices cannot be deleted (ON DELETE RESTRICT).</li>
+<li><strong>Doctor → service prices.</strong> A service price may name one doctor (an employee); a doctor can have many prices. Deleting an employee who has prices is blocked (RESTRICT).</li>
+<li><strong>Patient → charges, invoices, payments, refunds.</strong> Each of these rows belongs to exactly one patient, and a patient can have many of each. A patient with any billing history cannot be deleted (RESTRICT on all four).</li>
+<li><strong>Invoice → charges.</strong> A charge belongs to zero or one invoice; an invoice groups one or more charges. An invoice that still has charges cannot be deleted (RESTRICT).</li>
+<li><strong>Doctor → charges.</strong> A charge may name the doctor (employee) who did the work; deleting that employee is blocked (RESTRICT).</li>
+<li><strong>Assignment → charges.</strong> A charge may name the performing assignment, which is the doctor&#39;s link to the organization and location; deleting that assignment is blocked (RESTRICT).</li>
+<li><strong>Compensation plan → charges.</strong> A charge may record the compensation plan whose rate was copied onto it; that plan cannot be deleted (RESTRICT).</li>
+<li><strong>Payment account → payments.</strong> Each payment was received into exactly one payment account; an account with payments cannot be deleted (RESTRICT). This is why accounts are switched off with <code>is_active</code> instead.</li>
+<li><strong>Payment → allocations</strong> and <strong>charge → allocations.</strong> Each allocation row belongs to exactly one payment and exactly one charge. A payment or charge with allocations cannot be deleted (RESTRICT).</li>
+<li><strong>Refund → refund sources</strong> and <strong>payment → refund sources.</strong> Each refund source belongs to exactly one refund and exactly one payment; neither parent can be deleted while sources exist (RESTRICT).</li>
+</ul>
+<p>Logical relationships (an id column with no foreign key; the database accepts ids that do not exist):</p>
+<ul>
+<li><code>charges.service_id</code> → <code>services</code>; <code>charges.discount_type_id</code> → <code>discount_types</code>; <code>charges.encounter_id</code> → <code>patient_encounters</code>; <code>charges.appointment_id</code> → <code>appointments</code>. Each charge refers to at most one of each.</li>
+<li><code>charges.source_id</code> is polymorphic: its meaning depends on <code>source</code> (for example a treatment or an encounter).</li>
+<li><code>discount_types.service_ids</code> is an array of service ids, a many-to-many link with no constraint.</li>
+<li><code>location_billing_settings.default_consultation_service_id</code> → <code>services</code> and <code>default_payment_account_id</code> → <code>payment_accounts</code>.</li>
+<li><code>payment_allocations.invoice_id</code> and <code>payment_allocations.patient_id</code> are copies for fast reads.</li>
+<li><code>refunds.invoice_id</code> → <code>invoices</code> and <code>refunds.payment_account_id</code> → <code>payment_accounts</code>. Note that, unlike payments, refunds have no foreign key to the payment account.</li>
+<li>Actor columns (<code>created_by</code>, <code>voided_by</code>, <code>discount_applied_by</code>, <code>issued_by</code>, <code>last_edited_by</code>, <code>cancelled_by</code>, <code>received_by</code>, <code>refunded_by</code>) hold a user id with no foreign key.</li>
+</ul>
+<h2 id="ch20-billing-core-20-5-tenant-scope">20.5 Tenant scope</h2>
+<ul>
+<li><strong>Organization and location:</strong> <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>payment_allocations</code>, <code>refunds</code>, <code>service_prices</code>, <code>payment_accounts</code>, <code>location_billing_settings</code>.</li>
+<li><strong>Organization only:</strong> <code>services</code>, <code>discount_types</code> (both shared by every location), and <code>refund_sources</code>.</li>
+<li><strong>No foreign key on the tenant columns.</strong> In every table of this chapter, <code>organization_id</code> and <code>location_id</code> are plain columns without a foreign key to <code>organizations</code> or <code>locations</code> (the one exception is that <code>location_billing_settings.location_id</code> is the primary key). Tenant isolation therefore depends entirely on the application always filtering by the active organization and location. The Overlaps chapter (Chapter 27) discusses this choice.</li>
+</ul>
+<h2 id="ch20-billing-core-20-6-what-an-owner-should-remember">20.6 What an owner should remember</h2>
+<ul>
+<li>Deleting a patient who has any billing history is impossible by design. Patients are deactivated instead.</li>
+<li>A charge&#39;s price and discount never change when the catalog changes, because they are copied at creation.</li>
+<li>The patient&#39;s balance and advance are always derived from charges, allocations and refunds; the cached totals are recomputed by one service.</li>
+<li>Duplicate protection exists at three levels: one active charge per source, unique document numbers per organization, and one payment or refund per client request id.</li>
+</ul>
+</section></body></html>

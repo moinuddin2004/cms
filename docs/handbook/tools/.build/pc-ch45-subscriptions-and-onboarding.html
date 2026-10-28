@@ -1,0 +1,307 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch45-subscriptions-and-onboarding"><h1 id="ch45-subscriptions-and-onboarding-chapter-45-subscriptions-and-onboarding">Chapter 45 — Subscriptions and Onboarding</h1>
+<p>This chapter describes how a new clinic joins the Platform and how its right to keep using the Platform is tracked. It covers self-signup, email verification, the one-time setup wizard, the 14-day trial, plan limits, the read-only mode that starts after a subscription runs out, and the super admin screens that record manual payments. It is written for the product owner, who needs to know what a clinic sees, what the backend enforces and where the gaps are.</p>
+<h2 id="ch45-subscriptions-and-onboarding-45-1-what-this-module-is-for">45.1 What this module is for</h2>
+<p>A <strong>subscription</strong> is the clinic&#39;s permission to use the Platform for a period of time under a plan. Plans are defined in code, not in a table. Nothing charges the clinic automatically: the clinic pays by bank transfer, JazzCash or similar, and a <strong>super admin</strong> records the payment by hand, which extends the period.</p>
+<p><strong>Onboarding</strong> is the path from &quot;I found the Platform&quot; to &quot;my clinic is set up&quot;. A visitor creates an account and a clinic in one step, starts a 14-day trial on the Professional plan, and then completes a three-step setup wizard.</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Visitor, then owner</strong>: registers, verifies the email address, completes the wizard and watches the trial.</li>
+<li><strong>Owner</strong>: opens &quot;Plan &amp; billing&quot; to see the plan, usage and payment history. Only the owner (or a super admin) can use the setup and plan screens. Other staff see only the warning banners.</li>
+<li><strong>Super admin</strong>: lists every clinic&#39;s subscription, changes plan, dates and limits, records payments and edits the payment instructions text.</li>
+</ul>
+<p>Where it appears: the super admin sidebar item <strong>Subscriptions</strong> (key <code>nav.subscriptions</code>, route <code>/subscriptions</code>, super admin only). Owners reach <strong>Plan &amp; billing</strong> from Settings (route <code>/settings/subscription</code>), where the link is shown to owners only. <code>/register</code>, <code>/verify-email</code> and <code>/setup</code> have no sidebar entry.</p>
+<p>Permissions and feature keys: none. These endpoints are <code>@AnyMember()</code> with an owner check in code, <code>@Public()</code>, or <code>@RequireSuperAdmin()</code>. There is no feature key.</p>
+<h2 id="ch45-subscriptions-and-onboarding-45-2-screens">45.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-register.svg" alt="Figure 45.1 — Create your clinic"></p>
+<p><em>Figure 45.1 — Create your clinic (screenshot pending).</em></p>
+<p>The registration page (<code>/register</code>) is headed &quot;Create your clinic&quot; with the line &quot;Start your 14-day free trial. No card needed.&quot; Its fields are the clinic name (placeholder &quot;City Care Clinic&quot;), the owner&#39;s full name, an email address, a phone number and a password with a show or hide toggle. Messages say &quot;Enter your clinic name&quot;, &quot;Please enter a valid email&quot;, &quot;Password must be at least 6 characters&quot; and &quot;At most 20 characters&quot; for the phone. On success a toast says &quot;Your clinic is ready&quot; and &quot;Your 14-day free trial has started.&quot;, and the app moves to the setup wizard. A failure shows &quot;Registration failed. Please try again.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-verify-email.svg" alt="Figure 45.2 — Verify email"></p>
+<p><em>Figure 45.2 — Verify email (screenshot pending).</em></p>
+<p>The page <code>/verify-email?token=…</code> is the landing page of the link in the verification email. It confirms the address and offers &quot;Continue to the app&quot; or &quot;Go to sign in&quot;. If the link has no token it says &quot;This link is missing its token.&quot; If the token is wrong or expired it says &quot;This verification link is invalid or has expired.&quot; and &quot;Use &quot;Resend link&quot; in the app to get a new one.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-setup-wizard.svg" alt="Figure 45.3 — Setup wizard"></p>
+<p><em>Figure 45.3 — Setup wizard (screenshot pending).</em></p>
+<p>The wizard (<code>/setup</code>) shows three steps in a progress strip: <strong>Clinic</strong>, <strong>Location &amp; tax</strong> and <strong>Your team</strong>. The Clinic step asks for the clinic name, &quot;What kind of clinic is it?&quot; (pick every type that applies, because it decides which tools the user sees), phone, clinic email, timezone (a list including Asia/Karachi, Asia/Dubai, Asia/Riyadh, Asia/Qatar, Asia/Kolkata, Asia/Dhaka, Europe/London and America/New_York) and currency. The Location &amp; tax step asks for the location name (&quot;Your first branch. You can add more under Locations later.&quot;), address, city, phone, email and &quot;Sales tax on invoices (%)&quot; with the hint &quot;Added on top of each patient invoice. Leave 0 for no tax.&quot; The Your team step explains that doctors and front-desk staff can be added later, each with a role, and links to Employees, User Admin and Patients → Import. Its final button finishes setup, and a toast says &quot;Your clinic is ready&quot;. Once setup is done, the page shows a <strong>Back to the app</strong> button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-account-banner.svg" alt="Figure 45.4 — Account banners"></p>
+<p><em>Figure 45.4 — Subscription and verification banners (screenshot pending).</em></p>
+<p>A banner appears at the top of every dashboard page when something needs attention. For an unverified email: &quot;Please verify your email — we sent a link to …&quot; with a <strong>Resend link</strong> button. For a trial, owners see &quot;Free trial — N days left.&quot; with a <strong>See plans</strong> link. For an active plan close to its end, owners see &quot;Your plan renews in N days — send the payment to keep the clinic running without interruption.&quot; During the grace period everyone sees a warning that the clinic turns read-only in N days. After expiry: &quot;Subscription expired. The clinic is read-only — renew your plan to make changes again.&quot; (owners) or &quot;The clinic is read-only until the owner renews the plan.&quot; (others). An owner whose setup is pending is redirected to <code>/setup</code> from any other page.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-plan-billing.svg" alt="Figure 45.5 — Plan and billing"></p>
+<p><em>Figure 45.5 — Plan and billing (screenshot pending).</em></p>
+<p>&quot;Plan &amp; billing&quot; has the subtitle &quot;Your subscription, usage and payments.&quot; It shows the current plan and status with &quot;Trial ends&quot;, &quot;Paid until&quot; or &quot;Ended on&quot;, usage bars for Locations and Logins against the limits, a &quot;Plans&quot; section with Free, Starter, Professional and Enterprise (price as &quot;PKR n / month&quot; or &quot;Custom pricing&quot;, &quot;Unlimited&quot; limits), a &quot;How to pay&quot; box with the instructions text, and a &quot;Payment history&quot; table (Paid on, Plan, Period, Method, Amount) with the empty state &quot;No payments yet&quot;. Non-owners see &quot;Only the clinic owner can see this&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-admin-subscriptions.svg" alt="Figure 45.6 — Subscriptions (super admin)"></p>
+<p><em>Figure 45.6 — Subscriptions (super admin) (screenshot pending).</em></p>
+<p>The super admin page has the subtitle &quot;Every clinic&#39;s plan and status. Record payments clinics send you.&quot; A &quot;Payment instructions&quot; card holds a text field (at most 2000 characters, shown to every owner) with &quot;Unsaved changes&quot; tracking. Below it, a table lists clinics with columns Clinic, Plan, Status, Period ends and Days left, a search box (&quot;Search clinics…&quot;), a status filter (&quot;All statuses&quot;) and a row action with the tooltip &quot;Manage subscription&quot;. The empty state is &quot;No clinics yet&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch45-manage-subscription.svg" alt="Figure 45.7 — Manage subscription sheet"></p>
+<p><em>Figure 45.7 — Manage subscription sheet (screenshot pending).</em></p>
+<p>The sheet has three tabs. <strong>Record payment</strong>: Plan, &quot;Months paid&quot;, &quot;Amount received (PKR)&quot;, Method, &quot;Paid on&quot;, &quot;Reference / transaction ID&quot; and Notes. <strong>Plan &amp; limits</strong>: Plan, &quot;Trial ends&quot; (&quot;Extend a trial by moving this date.&quot;), &quot;Paid until&quot; (&quot;Normally set by recording a payment.&quot;), &quot;Location limit&quot; and &quot;Login limit&quot;. <strong>History</strong>: the clinic&#39;s payments, or &quot;No payments recorded yet&quot;. Both forms warn about unsaved changes.</p>
+<h2 id="ch45-subscriptions-and-onboarding-45-3-features">45.3 Features</h2>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-1-sign-up-and-create-a-clinic">45.3.1 Sign up and create a clinic</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates the owner&#39;s login, the clinic (organization), its first location and the ownership link in one step, starts a 14-day trial and signs the owner in.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <code>/register</code>.</li>
+<li>Fill in clinic name, full name, email, phone (optional) and password.</li>
+<li>Submit. The app signs the owner in and opens the setup wizard.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The clinic is ready to use at once. It starts on the Professional plan for 14 days, with PKR and the Asia/Karachi timezone as starting values, and is marked &quot;onboarding pending&quot; until the wizard is finished. If clinic creation fails, the new login is removed so no orphan account is left behind.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /auth/register</code> (<code>@Public</code>, rate limit 5 per hour) runs <code>AuthService.register</code>: <code>UserService.createLocalUser</code>, then <code>ClinicSetupService.createClinicForOwner</code> in one transaction. The transaction creates the organization (slug from the clinic name, with a random suffix on collision; plan <code>TRIAL_PLAN</code> = professional; <code>trial_ends_at</code> = now + <code>TRIAL_DAYS</code> (14); <code>onboarding_pending</code> = true), a location with code <code>MAIN</code> and <code>is_main_branch</code>, its settings row and the primary ownership row. After the commit, <code>FeatureFlagsService.seedFlagsForOrg</code> and <code>AccessTemplatesService.seedForOrg</code> seed feature switches and the five system roles; a failure there is only logged. A verification email is then sent and the user is signed in through <code>login()</code> with a 30-day session.</p>
+<p><strong>Rules and validations.</strong> Email must be valid; name and clinic name are required (at most 255); password at least 6 characters; phone at most 20.</p>
+<p><strong>Who can do it.</strong> Anyone, no account needed (a public route, also listed in <code>PUBLIC_ROUTES</code>).</p>
+<p><strong>Data read and written.</strong> Writes <code>users</code>, <code>organizations</code>, <code>locations</code>, <code>location_settings</code>, <code>organization_ownership</code>, and, after commit, feature-flag and role tables.</p>
+<p><strong>Effects on other modules.</strong> The new clinic gets the default features and roles (Chapters 10 and 11).</p>
+<p><strong>Error cases.</strong> A duplicate email is rejected by user creation; more than 5 attempts per hour is rate limited; any clinic-creation error returns the error and deletes the new user.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.service.ts</code> · <code>AuthService.register</code> · <code>backend/src/subscriptions/clinic-setup.service.ts</code> · <code>ClinicSetupService.createClinicForOwner</code> · <code>web-app/src/routes/register.tsx</code>, <code>web-app/src/features/auth/components/RegisterForm.tsx</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch45-signup-sequence.png" alt="Figure 45.8 — Sign-up to trial"></p>
+<p><em>Figure 45.8 — From sign-up to a verified, set-up clinic.</em></p>
+<p>The diagram has six participants: Owner, Web app, API, ClinicSetupService, PostgreSQL and SMTP mail. The Owner fills the &quot;Create your clinic&quot; form and the Web app posts to the API. The API creates the user, then asks ClinicSetupService to create the clinic, which writes the organization, the MAIN location, its settings and the ownership in one transaction and, after the commit, seeds feature flags and system roles. The API sends the verification link by email (a failure is only logged) and returns a signed-in 30-day session. The Web app moves the Owner to <code>/setup</code>. The Owner completes the Clinic step and the Location and tax step, which the Web app saves with two PATCH calls, then finishes on the Your team step, which posts to <code>/account/setup/complete</code> and clears the pending flag. Separately, the Owner opens the link from the email; the Web app posts the token to the API, which stores the verification time and clears the token.</p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-2-verify-the-email-address-and-resend-the-link">45.3.2 Verify the email address and resend the link</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Sends a link to the new owner&#39;s email and confirms the address when the link is opened. Verification is informational: nothing is blocked while the email is unverified.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>After signing up, read the banner &quot;Please verify your email&quot;.</li>
+<li>Open the link in the email, which lands on <code>/verify-email</code>.</li>
+<li>If the link is lost or expired, click <strong>Resend link</strong> in the banner.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The email contains a one-time random token. The server stores only a fingerprint of it, valid for 48 hours. A new link replaces the old one. The banner shows while a token is still waiting.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>sendVerificationEmail</code> creates 32 random bytes, stores the SHA-256 hash in <code>users.email_verification_token</code> with <code>email_verification_expires</code> = now + 48 h, and calls <code>MailService.sendEmailVerification</code>, which builds <code>&lt;frontend URL&gt;/verify-email?token=…</code> and sends through SMTP (environment variables <code>SMTP_USER</code>, <code>SMTP_PASS</code> and <code>FRONTEND_URL</code>). <code>POST /auth/verify-email</code> (<code>@Public</code>, 10 per 15 minutes) hashes the token, finds an unexpired match, sets <code>email_verified_at</code> and clears the token. <code>POST /auth/resend-verification</code> (signed in, <code>@ContextFree</code>, 3 per hour) sends a fresh link, or answers &quot;Email already verified&quot; when no token is pending. The user DTO exposes <code>emailVerificationPending</code> (token present), which drives the banner.</p>
+<p><strong>Rules and validations.</strong> Token valid for 48 hours; single use. Partial because no feature or screen is gated by <code>email_verified_at</code>, and a failed email send is only logged, so the user sees success.</p>
+<p><strong>Who can do it.</strong> Anyone with the link (verify); any signed-in user (resend).</p>
+<p><strong>Data read and written.</strong> <code>users</code> (<code>email_verification_token</code>, <code>email_verification_expires</code>, <code>email_verified_at</code>).</p>
+<p><strong>Effects on other modules.</strong> None; sign-in does not require verification.</p>
+<p><strong>Error cases.</strong> &quot;This verification link is invalid or has expired&quot; (validation error) when the token is unknown or expired; 429 when rate limited; toast &quot;Could not send the email. Try again.&quot; when resend fails.</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.service.ts</code> · <code>verifyEmail</code>, <code>resendVerification</code> · <code>backend/src/common/services/mail.service.ts</code> · <code>MailService</code> · <code>web-app/src/routes/verify-email.tsx</code>, <code>web-app/src/features/account/pages/VerifyEmailPage.tsx</code>, <code>components/AccountBanner.tsx</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-3-complete-the-setup-wizard">45.3.3 Complete the setup wizard</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Collects the clinic&#39;s real details in three steps and then clears the &quot;onboarding pending&quot; flag.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>After signing up, the app opens <code>/setup</code>. Until it is finished, an owner who opens any other page is sent back to <code>/setup</code>.</li>
+<li>Step <strong>Clinic</strong>: name, clinic types, phone, email, timezone, currency. Save and continue.</li>
+<li>Step <strong>Location &amp; tax</strong>: location name, address, city, phone, email and the sales tax percentage. Save and continue.</li>
+<li>Step <strong>Your team</strong>: read the hints, then finish. The app refreshes the session and opens the home page.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The first two steps save immediately. The finish button only flips the flag; it does not check the earlier steps were saved. Saving the clinic step copies the timezone and currency to every location of the clinic, because a new clinic&#39;s branches follow the clinic.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /account/setup</code> returns the main location (first active by <code>is_main_branch DESC, created_at ASC</code>). <code>PATCH /account/setup/clinic</code> (<code>SetupClinicDto</code>: name, phone, email, website, <code>specialtyTags</code> from <code>CLINIC_SPECIALTIES</code>, timezone, currency upper-cased) runs <code>saveClinic</code> in a transaction, updating the organization and every location. <code>PATCH /account/setup/location</code> runs <code>saveLocation</code> in a transaction, updating the main location and its settings, with <code>taxRate</code> 0–100. <code>POST /account/setup/complete</code> sets <code>onboarding_pending</code> to false. All four are <code>@AnyMember()</code> and call <code>assertOwner</code>. Setup writes are on the always-writable path list, so an expired clinic can still finish setup.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Owner or super admin only.</li>
+<li>Email must be valid; tax 0–100; clinic types must come from the fixed list; timezone is free text and is not checked against the IANA list.</li>
+<li>Currency is upper-cased.</li>
+</ul>
+<p><strong>Who can do it.</strong> The owner or a super admin; no permission key, no feature key.</p>
+<p><strong>Data read and written.</strong> Reads and writes <code>organizations</code>, <code>locations</code>, <code>location_settings</code>; reads <code>organization_ownership</code>.</p>
+<p><strong>Effects on other modules.</strong> Timezone and currency drive clinic times and money display everywhere (Chapter 62). Tax rate is added to patient invoices (Chapter 34). Clinic types decide which tools show.</p>
+<p><strong>Error cases.</strong> 403 &quot;Only the clinic owner can do this&quot;; validation errors per field; toast &quot;Could not save. Try again.&quot;</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/account.controller.ts</code> · <code>AccountController</code> · <code>clinic-setup.service.ts</code> · <code>ClinicSetupService.saveClinic</code>, <code>saveLocation</code>, <code>complete</code> · <code>web-app/src/routes/setup.tsx</code>, <code>web-app/src/features/account/pages/SetupWizardPage.tsx</code>, <code>hooks/useSetupForms.ts</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-4-trial-plans-and-plan-limits">45.3.4 Trial, plans and plan limits</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Gives each managed clinic a plan with limits on locations and logins, and refuses to exceed them.</p>
+<p><strong>How the user does it.</strong> The owner opens <strong>Settings → Plan &amp; billing</strong> to see the plan, the usage bars and the plan catalog. Reaching a limit shows the error when adding a location or a login.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Four plans exist. A clinic with no trial date and no paid date is called unmanaged: it has no limits and never expires (older clinics and clinics created by a super admin). A limit set on the clinic itself wins over the plan&#39;s limit.</p>
+<div class="tw"><table><thead><tr>
+<th>Plan</th>
+<th>Price per month (PKR)</th>
+<th>Locations</th>
+<th>Logins</th>
+</tr>
+</thead><tbody><tr>
+<td>Free</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Starter</td>
+<td>4 999</td>
+<td>1</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Professional</td>
+<td>9 999</td>
+<td>3</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Enterprise</td>
+<td>custom</td>
+<td>unlimited</td>
+<td>unlimited</td>
+</tr>
+</tbody></table></div><p>The table lists the plan catalog from code. Prices are only what the clinic sees; nothing bills them. A &quot;login&quot; is an owner plus any employee with portal access.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PLANS</code> in <code>plans.ts</code>. <code>effectiveLimits(org)</code> returns <code>org.maxLocations ?? plan.maxLocations</code> and likewise for users, and none for unmanaged clinics. <code>assertCanAddLocation</code> and <code>assertCanAddUser</code> compare against <code>usage()</code> (active locations; owners plus active staff with a <code>user_id</code>) and throw <code>PlanLimitException</code> (code <code>PLAN_LIMIT</code>). <code>GET /account</code> returns the summary, usage and, for owners, the plans, payment instructions and payments. Location creation calls the check for non-super-admins; login creation calls it from the user service.</p>
+<p><strong>Rules and validations.</strong> Limits are skipped for super admins and unmanaged clinics.</p>
+<p><strong>Who can do it.</strong> Any member reads the summary; owners also get plans and payments. Writes happen when locations or logins are added.</p>
+<p><strong>Data read and written.</strong> Reads <code>organizations</code>, <code>locations</code>, <code>employee_org_location_assignments</code>, <code>organization_ownership</code>, <code>subscription_payments</code>, <code>config_values</code>.</p>
+<p><strong>Effects on other modules.</strong> Locations (Chapter 9) and Employees (Chapter 37) are blocked at the limit.</p>
+<p><strong>Error cases.</strong> <code>PLAN_LIMIT</code> (HTTP 403): &quot;Your Professional plan allows 3 locations. Upgrade your plan to add more.&quot; or &quot;… allows 15 logins. …&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/plans.ts</code> · <code>PLANS</code>, <code>TRIAL_PLAN</code>, <code>TRIAL_DAYS</code> · <code>subscription-state.ts</code> · <code>effectiveLimits</code> · <code>subscriptions.service.ts</code> · <code>SubscriptionsService.usage</code>, <code>assertCanAddLocation</code>, <code>assertCanAddUser</code> · <code>web-app/src/routes/settings_.subscription.tsx</code>, <code>web-app/src/features/account/pages/SubscriptionPage.tsx</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-5-read-only-mode-after-expiry">45.3.5 Read-only mode after expiry</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When a clinic&#39;s period and its grace days have passed, every write is refused until a payment is recorded. Reading still works, so the clinic keeps its data.</p>
+<p><strong>How the user does it.</strong> Staff see the red banner and a rejected save. The owner pays and the super admin records it (45.3.7).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The period end is the later of the trial end and the paid-until date. After that there are 3 grace days with a warning, then the clinic becomes read-only. The decision is cached for 30 seconds per server process, so a renewal can take up to 30 seconds to be seen.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>SubscriptionGuard</code> is the last global guard. It lets GET, HEAD and OPTIONS pass; skips <code>@Public</code> routes and super admins; lets paths starting with <code>/auth/</code>, <code>/account</code>, <code>/me/</code> and <code>/admin/subscriptions</code> through; resolves the organization from the access context or the <code>x-organization-id</code> header; and calls <code>SubscriptionsService.isReadOnly</code>, a 30 s cache over <code>subscriptionState()</code>. When read-only it throws HTTP 402 with code <code>SUBSCRIPTION_EXPIRED</code>. Requests with no organization pass.</p>
+<p><strong>Rules and validations.</strong> <code>GRACE_DAYS</code> = 3. Unmanaged clinics are never read-only.</p>
+<p><strong>Who can do it.</strong> Applies to every user except super admins.</p>
+<p><strong>Data read and written.</strong> Reads <code>organizations</code> (<code>trial_ends_at</code>, <code>paid_until</code>).</p>
+<p><strong>Effects on other modules.</strong> Every module&#39;s write endpoints are blocked, including the queue and billing. Realtime reads are unaffected.</p>
+<p><strong>Error cases.</strong> HTTP 402 <code>SUBSCRIPTION_EXPIRED</code>: &quot;Your subscription has expired — the clinic is read-only until it is renewed.&quot;</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/subscription.guard.ts</code> · <code>SubscriptionGuard</code> · <code>subscriptions.service.ts</code> · <code>isReadOnly</code> · <code>web-app/src/features/account/components/AccountBanner.tsx</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-6-see-subscription-status-and-warnings">45.3.6 See subscription status and warnings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows owners and staff where the subscription stands and warns before it runs out.</p>
+<p><strong>How the user does it.</strong> The banner appears automatically. Owners open Plan &amp; billing for detail.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The status is never stored. It is worked out every time from the two dates and the current time.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>subscriptionState(org, now)</code> returns <code>status</code>, <code>periodEndsAt</code>, <code>readOnlyFrom</code>, <code>daysLeft</code> and <code>readOnly</code>. Rules: no dates means <code>unmanaged</code>; <code>paid_until</code> in the future means <code>active</code>; else <code>trial_ends_at</code> in the future means <code>trialing</code>; else before period end plus 3 days means <code>grace</code>; else <code>expired</code>. <code>AccountBanner</code> reads <code>GET /account</code> and shows the matching message; owners see trial and renewal messages, everyone sees grace and expiry.</p>
+<p><strong>Rules and validations.</strong> The status rules are the ones in the technical paragraph.</p>
+<p><strong>Who can do it.</strong> Any signed-in member sees the banner for their clinic.</p>
+<p><strong>Data read and written.</strong> Reads <code>organizations</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> The banner is simply absent if the account request fails.</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/subscription-state.ts</code> · <code>subscriptionState</code> · <code>web-app/src/features/account/components/AccountBanner.tsx</code>, <code>hooks/useAccount.ts</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-7-record-a-manual-payment-super-admin">45.3.7 Record a manual payment (super admin)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records a payment the clinic made outside the Platform and extends the paid period.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>As a super admin, open <strong>Subscriptions</strong> in the sidebar.</li>
+<li>Click <strong>Manage subscription</strong> on the clinic&#39;s row.</li>
+<li>On the <strong>Record payment</strong> tab, pick the plan, months paid, amount, method, date, reference and notes.</li>
+<li>Save. A toast says &quot;Payment recorded — the plan is extended&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The new period starts where the current trial or paid period ends, so paying early loses no days. Recording a payment also sets the clinic&#39;s plan to the plan paid for, so paying for Starter during a Professional trial lowers the limits at once.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /admin/subscriptions/:orgId/payments</code> (<code>RecordSubscriptionPaymentDto</code>) runs <code>SubscriptionsService.recordPayment</code> in a transaction: locks the organization row, computes <code>nextPaidPeriod(org, months, now)</code>, inserts a <code>subscription_payments</code> row with <code>period_start</code> and <code>period_end</code>, sets <code>paid_until</code> to the period end and <code>subscription_plan</code> to the payment&#39;s plan, writes audit entries and clears the read-only cache.</p>
+<p><strong>Rules and validations.</strong> Plan in the enum; months 1–36; amount at least 0 with 2 decimals; method one of bank_transfer, jazzcash, easypaisa, cash, cheque, other; reference at most 120; notes at most 1 000; date optional.</p>
+<p><strong>Who can do it.</strong> Super admin only (<code>@RequireSuperAdmin()</code> on the controller). No feature key.</p>
+<p><strong>Data read and written.</strong> Writes <code>subscription_payments</code>, <code>organizations</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Lifts read-only mode; changes the plan limits.</p>
+<p><strong>Error cases.</strong> 404 &quot;Organization not found&quot;; 400 validation errors; 403 for non-super-admins.</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/admin-subscriptions.controller.ts</code> · <code>AdminSubscriptionsController.recordPayment</code> · <code>subscriptions.service.ts</code> · <code>recordPayment</code> · <code>entities/subscription-payment.entity.ts</code> · <code>web-app/src/routes/subscriptions.tsx</code>, <code>web-app/src/features/account/components/ManageSubscriptionSheet.tsx</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-8-change-a-clinic-39-s-plan-dates-or-limits-super-admin">45.3.8 Change a clinic&#39;s plan, dates or limits (super admin)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets a super admin set the plan, trial end, paid-until date and per-clinic location and login limits directly.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Subscriptions</strong>, click <strong>Manage subscription</strong> on a row, choose the <strong>Plan &amp; limits</strong> tab.</li>
+<li>Change fields and save. A toast says &quot;Subscription updated&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Moving the trial date extends a trial. Clearing both dates makes the clinic unmanaged (no limits, no expiry).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /admin/subscriptions/:orgId</code> (<code>UpdateSubscriptionDto</code>) runs <code>update</code> under a <code>pessimistic_write</code> lock, records an audit entry with before and after values (<code>organization_subscription</code>) and clears the cache. <code>GET /admin/subscriptions</code> lists clinics (including inactive ones) with derived state, and <code>GET /admin/subscriptions/:orgId</code> returns one clinic with its payments.</p>
+<p><strong>Rules and validations.</strong> Dates are ISO strings or null; limits are integers of at least 1 or null.</p>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>organizations</code>, <code>audit_logs</code>; reads <code>subscription_payments</code>.</p>
+<p><strong>Effects on other modules.</strong> Same as 45.3.4 and 45.3.5.</p>
+<p><strong>Error cases.</strong> 404 for an unknown clinic; 400 on invalid values.</p>
+<p><strong>Technical references:</strong> <code>AdminSubscriptionsController.list</code>, <code>get</code>, <code>update</code> · <code>SubscriptionsService.update</code> · <code>web-app/src/features/account/pages/AdminSubscriptionsPage.tsx</code>, <code>hooks/useAdminSubscriptionForms.ts</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-9-edit-the-payment-instructions-super-admin">45.3.9 Edit the payment instructions (super admin)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sets the text every clinic owner sees under &quot;How to pay&quot;.</p>
+<p><strong>How the user does it.</strong> On the Subscriptions page, edit the &quot;Payment instructions&quot; card and save (&quot;Payment instructions saved&quot;).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> One text for the whole Platform, with a built-in default asking the clinic to pay by bank transfer or JazzCash and share the receipt with support.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET</code> and <code>PUT /admin/subscriptions/payment-instructions</code> (<code>PaymentInstructionsDto</code>, at most 2 000 characters) through the settings registry key <code>subscription.payment_instructions</code> at platform scope. The route is declared before <code>:orgId</code>.</p>
+<p><strong>Rules and validations.</strong> At most 2 000 characters; platform scope only; not lockable.</p>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>config_values</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Toast &quot;Could not save. Try again.&quot;</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/subscription.settings.ts</code> · <code>SUBSCRIPTION_SETTINGS</code> · <code>SubscriptionsService.setPaymentInstructions</code></p>
+<h3 id="ch45-subscriptions-and-onboarding-45-3-10-create-a-clinic-from-the-organizations-screen-older-path">45.3.10 Create a clinic from the Organizations screen (older path)</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> A super admin can create or edit an organization on the Organizations screen. The result is an unmanaged clinic with no owner, no location and no trial. The plan selector on that screen is broken: it sends uppercase values the API rejects.</p>
+<p><strong>How the user does it.</strong> Super admin, Organizations screen, create or edit dialog.</p>
+<p><strong>Behind the scenes — technically.</strong> The form offers FREE, BASIC, PREMIUM and ENTERPRISE and sends them as the <code>subscriptionPlan</code>. The DTO validates against the <code>SubscriptionPlan</code> enum, whose values are lowercase <code>free</code>, <code>starter</code>, <code>professional</code> and <code>enterprise</code>. So every uppercase value fails validation, and BASIC and PREMIUM are not plans at all. This was verified by reading both files; the app was not run. The plan is optional in the DTO, so a request that omits it would pass. Plan changes made here are not audited, unlike changes through the Subscriptions screen.</p>
+<p><strong>Rules and validations.</strong> <code>@IsEnum(SubscriptionPlan)</code> on create and update.</p>
+<p><strong>Who can do it.</strong> Super admin.</p>
+<p><strong>Data read and written.</strong> <code>organizations</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> HTTP 400 with a message that <code>subscriptionPlan</code> must be one of the enum values.</p>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/dto/organization.dto.ts</code> · <code>subscriptionPlan</code> · <code>web-app/src/features/organizations/OrganizationManagementView.tsx</code> · <code>backend/docs/modules/01-organizations-locations.md</code></p>
+<h2 id="ch45-subscriptions-and-onboarding-45-4-entities-and-data-model">45.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch45-subscription-erd.png" alt="Figure 45.9 — Subscription and onboarding data model"></p>
+<p><em>Figure 45.9 — The tables behind subscriptions and sign-up.</em></p>
+<p>The diagram shows seven tables. <code>users</code> carries the email verification columns (<code>email_verification_token</code>, <code>email_verified_at</code>). <code>organizations</code> carries the subscription columns: <code>subscription_plan</code>, <code>trial_ends_at</code>, <code>paid_until</code>, <code>max_locations</code> (and a login limit) and <code>onboarding_pending</code>. <code>organization_ownership</code> links a user to an organization. <code>locations</code> has a code and an <code>is_main_branch</code> flag. <code>location_settings</code> holds the tax rate. <code>subscription_payments</code> records each manual payment. <code>employee_org_location_assignments</code> is read to count logins.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each ownership row links one user to one organization; deleting either deletes the row (ON DELETE CASCADE). A clinic created through signup has one primary owner.</li>
+<li>Each location belongs to one organization (CASCADE). Signup creates the first one with code <code>MAIN</code>.</li>
+<li>Each location has at most one settings row.</li>
+<li>Each payment belongs to one organization; deleting the organization deletes its payments (CASCADE). The organization has many payments over time.</li>
+<li>Login usage is counted from owners plus active assignments that have a user; this is a read, not a link.</li>
+</ul>
+<p>Key <code>subscription_payments</code> columns: <code>plan</code>, <code>months</code>, <code>amount</code> (numeric, 2 decimals), <code>method</code>, <code>reference</code>, <code>paid_at</code>, <code>period_start</code>, <code>period_end</code>, <code>notes</code> and <code>recorded_by</code>. Plan definitions are not stored; they live in <code>plans.ts</code>. The subscription status is not stored either.</p>
+<h2 id="ch45-subscriptions-and-onboarding-45-5-status-lifecycles">45.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch45-subscription-status.png" alt="Figure 45.10 — Subscription status"></p>
+<p><em>Figure 45.10 — Derived subscription status.</em></p>
+<p>A clinic is <strong>unmanaged</strong> when created by a super admin (no dates), and <strong>trialing</strong> when created by signup. <strong>Trialing</strong> becomes <strong>active</strong> when a payment is recorded, or <strong>grace</strong> when the trial end passes. <strong>Active</strong> becomes <strong>grace</strong> when <code>paid_until</code> passes. <strong>Grace</strong> lasts 3 days and then becomes <strong>expired</strong>; a recorded payment returns it to active. <strong>Expired</strong> is read-only, and a recorded payment returns it to active. A super admin can move an unmanaged clinic to active (payment) or trialing (set a future trial end), and can send an active or expired clinic back to unmanaged by clearing both dates. A future trial end also moves an expired clinic back to trialing. Status is computed on read, so these changes happen as time passes, not through a job.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch45-onboarding.png" alt="Figure 45.11 — Onboarding pending"></p>
+<p><em>Figure 45.11 — The <code>onboarding_pending</code> flag.</em></p>
+<p>A signup creates the organization as pending. <code>POST /account/setup/complete</code> sets it to done. An organization created by a super admin starts as done. There is no way back to pending.</p>
+<h2 id="ch45-subscriptions-and-onboarding-45-6-connections-to-other-modules">45.6 Connections to other modules</h2>
+<ul>
+<li><strong>Authentication (Chapter 56)</strong> owns register, verify and resend, and the 30-day session after signup.</li>
+<li><strong>Organizations and locations (Chapter 9)</strong> and <strong>Features (Chapter 10)</strong>: signup seeds feature switches and the five system roles (Chapter 11). Plan limits block adding locations and logins.</li>
+<li><strong>Employees (Chapter 37)</strong>: adding a login counts against the login limit.</li>
+<li><strong>Billing (Chapter 34)</strong>: the tax rate saved in the wizard applies to patient invoices.</li>
+<li><strong>Request lifecycle (Chapter 5)</strong> lists the five global guards; the subscription guard is the last.</li>
+<li><strong>Audit logging (Chapter 60)</strong>: plan changes and payments are audited.</li>
+<li><strong>Time, money and numbering (Chapter 62)</strong>: timezone and currency from the wizard.</li>
+</ul>
+<h2 id="ch45-subscriptions-and-onboarding-45-7-limitations-and-known-gaps">45.7 Limitations and known gaps</h2>
+<ul>
+<li>Nothing charges clinics. Payments are recorded by hand, and there is no reminder email for renewals.</li>
+<li>Email verification is not required for anything; a failed send is only logged.</li>
+<li>A free-text timezone is accepted in the wizard without checking it against the IANA list.</li>
+<li>The wizard&#39;s finish button does not check the earlier steps were saved.</li>
+<li>Saving the clinic step overwrites timezone and currency on every location.</li>
+<li>Recording a payment overwrites the plan, which can lower the limits.</li>
+<li>The location limit is skipped when a super admin acts; unmanaged clinics have no limits.</li>
+<li>Read-only state is cached for 30 seconds per server process.</li>
+<li>The Organizations screen sends plan values the API rejects (45.3.10), and changes through it are not audited.</li>
+</ul>
+<h2 id="ch45-subscriptions-and-onboarding-45-8-owner-39-s-faq">45.8 Owner&#39;s FAQ</h2>
+<p><strong>What does a new clinic get?</strong> A 14-day trial on Professional (3 locations, 15 logins), one location called <code>MAIN</code>, default features and the five system roles.</p>
+<p><strong>What happens when the trial ends?</strong> The clinic has 3 grace days with a warning banner, then becomes read-only. Reads work, all saves are refused with <code>SUBSCRIPTION_EXPIRED</code>.</p>
+<p><strong>How does a clinic pay?</strong> Outside the Platform, by the method in the instructions text. A super admin then records the payment, which extends the period and lifts read-only mode.</p>
+<p><strong>Can an expired clinic still finish setup?</strong> Yes. Sign-in, <code>/account</code> (including setup), <code>/me/</code> and <code>/admin/subscriptions</code> paths stay writable.</p>
+<p><strong>Can a clinic add a fourth branch on Professional?</strong> No. It gets <code>PLAN_LIMIT</code> unless a super admin raises its location limit.</p>
+<p><strong>Do users have to verify their email?</strong> No. The banner nags, but nothing is blocked.</p>
+<p><strong>Where is the status stored?</strong> Nowhere. It is derived from <code>trial_ends_at</code> and <code>paid_until</code>.</p>
+<p><strong>Can a super admin give a clinic unlimited access?</strong> Yes, by clearing both dates (unmanaged) or by setting Enterprise limits.</p>
+<p><strong>What if the verification email never arrives?</strong> The owner clicks Resend link (3 per hour). If SMTP is not configured, sending fails silently on the server and only a log line records it.</p>
+</section></body></html>

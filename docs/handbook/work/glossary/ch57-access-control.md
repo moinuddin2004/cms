@@ -1,0 +1,4 @@
+- **Access context** — per-request object answering can, scope and decide (`AccessContext`).
+- **Row scope** — `applyScope` filter limiting rows to own, location or organization.
+- **Field hiding** — `@VisibleIf` removes response fields without the permission.
+- **Access change bus** — cross-process notifier for access_version bumps.

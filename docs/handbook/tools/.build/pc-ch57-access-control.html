@@ -1,0 +1,182 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch57-access-control"><h1 id="ch57-access-control-chapter-57-access-control-in-depth">Chapter 57 — Access control in depth</h1>
+<p>This chapter follows the Platform&#39;s access control from the first guard that sees a request to the last button hidden in the browser. It is written for the product owner, who needs to know where a permission is checked, how quickly a change reaches users and which protections do not exist. Chapter 11 explains the permission catalog, the system roles and the roles screen; this chapter does not repeat them and goes deeper into the mechanics. Customization screens (features, roles, sidebar, theme) are in Chapter 58.</p>
+<h2 id="ch57-access-control-57-1-the-idea-in-one-minute">57.1 The idea in one minute</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Access control answers four separate questions, in this order: Is this a real, signed-in user? Is this user allowed to work in this organization and location? Is the feature switched on for this clinic? Does the user&#39;s role hold the permission this action needs? A fifth check asks whether the clinic&#39;s subscription still allows writing. Each question is a global guard that runs before the controller. After the guards, two more mechanisms narrow what a person sees inside a permitted action: <strong>row scope</strong> (only own, location or organization rows) and <strong>field hiding</strong> (prices removed from a response). The browser repeats the same questions only to decide what to show; the server never trusts the browser.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>backend/src/access/</code> · <code>web-app/src/features/access/</code></p>
+<h2 id="ch57-access-control-57-2-the-five-guards-in-order">57.2 The five guards in order</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Five global guards run on every HTTP request, in a fixed order, and the first refusal stops the request (Chapter 5, section 5.4, lists them with their skip rules).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch57-guard-chain.png" alt="Figure 57.1 — The five global guards"></p>
+<p><em>Figure 57.1 — The five global guards in the order they run, with the refusal each can give.</em></p>
+<p>The flowchart reads from top to bottom. A Request enters guard 1, <code>JwtAuthGuard</code>, which asks whether the token is valid; if not, the answer is 401 and the request is refused. Guard 2, <code>TenantContextGuard</code>, asks whether the organization and location in the headers are allowed for this user; if not, the answer is 400 (headers missing) or 403. Guard 3, <code>FeatureFlagGuard</code>, asks whether the required feature is active; if not, 403. Guard 4, <code>AccessGuard</code>, asks whether the permission is held; if not, 403 with the code <code>NO_PERMISSION</code>. Guard 5, <code>SubscriptionGuard</code>, asks whether a write is allowed; if the subscription has expired the answer is 402. A request that passes all five reaches the handler, where row scope and field hiding apply. Every refusal leads to the same &quot;Refused&quot; box.</p>
+<p>The details that matter to an owner:</p>
+<ul>
+<li><strong>Guard 1 and public routes.</strong> <code>JwtAuthGuard</code> skips only the routes in a fixed public list (sign-in, register, refresh, password routes, email verification, logout, the public theme, the waiting-room display state and the lab magic links). Marking a handler <code>@Public()</code> is not enough on its own; the route must also be in that list.</li>
+<li><strong>Guard 2 and super admins.</strong> A super admin passes without headers. <code>@RequireSuperAdmin()</code> routes are checked here: anyone else gets 403 &quot;Super admin access required&quot;. <code>@ContextFree()</code> routes skip the tenant check, and the handler then checks access itself. The guard has no path-prefix exceptions. A user passes for an organization if they own it, or if they have an active assignment at that exact location with portal access on.</li>
+<li><strong>Guard 3 only runs for tagged routes.</strong> <code>@RequireFeature(&#39;key&#39;)</code> is needed only on routes that use <code>@AnyMember()</code>, because a permission already implies its feature (the access context drops permissions of inactive features).</li>
+<li><strong>Guard 4 attaches the access context.</strong> Whenever the request names an organization, it puts the resolved access context on the request for the handler, even on routes with no permission marker.</li>
+<li><strong>Guard 5 is read-only mode.</strong> It refuses writes with 402 <code>SUBSCRIPTION_EXPIRED</code> for a clinic whose subscription has lapsed. Reads, super admins and the paths for signing in, the account, <code>/me/</code> and subscription administration stay open.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/auth/guards/jwt.guard.ts</code> · <code>backend/src/auth/guards/tenant-context.guard.ts</code> · <code>backend/src/feature-flags/guards/feature-flag.guard.ts</code> · <code>backend/src/access/access.guard.ts</code> · <code>backend/src/subscriptions/subscription.guard.ts</code></p>
+<h2 id="ch57-access-control-57-3-the-decorators">57.3 The decorators</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Decorator</th>
+<th>Where</th>
+<th>What it means</th>
+<th>Enforced by</th>
+</tr>
+</thead><tbody><tr>
+<td><code>@Can(&#39;a&#39;, &#39;b&#39;)</code></td>
+<td>handler or controller</td>
+<td>Every listed permission is required; class-level and handler-level lists are merged</td>
+<td><code>AccessGuard</code></td>
+</tr>
+<tr>
+<td><code>@AnyMember()</code></td>
+<td>handler or controller</td>
+<td>Any active member of the location (owners and super admins too)</td>
+<td><code>AccessGuard</code></td>
+</tr>
+<tr>
+<td><code>@Public()</code></td>
+<td>handler or controller</td>
+<td>No sign-in required (plus the public route list)</td>
+<td>all guards skip</td>
+</tr>
+<tr>
+<td><code>@ContextFree()</code></td>
+<td>handler or controller</td>
+<td>No tenant headers needed; the handler checks access itself</td>
+<td><code>TenantContextGuard</code> skips</td>
+</tr>
+<tr>
+<td><code>@RequireSuperAdmin()</code></td>
+<td>handler or controller</td>
+<td>Platform operator only</td>
+<td><code>TenantContextGuard</code></td>
+</tr>
+<tr>
+<td><code>@RequireFeature(&#39;key&#39;)</code></td>
+<td>handler or controller</td>
+<td>The feature must be active; class and handler lists are merged</td>
+<td><code>FeatureFlagGuard</code></td>
+</tr>
+<tr>
+<td><code>@Access()</code></td>
+<td>handler parameter</td>
+<td>Injects the <code>AccessContext</code> of the request</td>
+<td>decorator</td>
+</tr>
+<tr>
+<td><code>@VisibleIf(&#39;perm&#39;)</code></td>
+<td>property of a response class</td>
+<td>The field is removed from the response unless the caller holds the permission</td>
+<td>global interceptor</td>
+</tr>
+</tbody></table></div><p>The table lists the eight decorators with their placement and meaning. The first five say who may call a handler. <code>@RequireFeature</code> adds a feature condition. <code>@Access()</code> and <code>@VisibleIf</code> are tools for handlers and response classes.</p>
+<p><strong>The coverage test.</strong> The test <code>access-coverage.spec.ts</code> loads every controller and fails if any handler lacks one of the markers <code>@Can</code>, <code>@AnyMember</code>, <code>@Public</code>, <code>@RequireSuperAdmin</code>, <code>@ContextFree</code> or an explicit <code>@UseGuards(...)</code>, or if any handler still uses the removed role decorator. Controllers under the path prefixes for authentication, sessions and health, and the hello endpoint, are exempt. This test is the safety net, because at runtime a handler with no marker passes the access guard.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/decorators/access.decorators.ts</code> · <code>backend/src/common/decorators/</code> · <code>backend/src/access/access-coverage.spec.ts</code></p>
+<h2 id="ch57-access-control-57-4-the-access-context">57.4 The access context</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>For each request that names an organization, <code>AccessResolver</code> builds an <code>AccessContext</code>: user id, organization, location, access version, super-admin flag, owner flag, member flag, employee id, active features, granted permissions (feature-filtered, with implied permissions expanded), the role and its home page. Owners and super admins receive every permission at its widest scope. Staff receive the permissions of the role on their assignment at the active location, and only if portal access is on for that assignment. A role that is inactive or belongs to another organization gives nothing. A missing key means no access.</p>
+<p>The context offers a small set of questions that code uses instead of role names:</p>
+<ul>
+<li><code>can(permission)</code> and <code>canAll([...])</code>: is it granted.</li>
+<li><code>scope(permission)</code>: <code>own</code>, <code>location</code> or <code>org</code>, or nothing. An unscoped grant reads as <code>org</code>.</li>
+<li><code>applyScope(queryBuilder, permission, columns)</code>: adds the row filter to a database query. With <code>own</code> it adds a condition on the caller&#39;s employee id (or a custom condition). With <code>location</code> it adds a condition on the active location. With <code>org</code> it adds nothing, because the organization filter is the caller&#39;s. With no grant, or when the caller has no employee record or no location to match, it adds a condition that matches no rows. If a developer forgets to name the column, it throws an error rather than silently showing nothing.</li>
+<li><code>decide(permission, { value, min, max, approvalFlow })</code>: returns allow, deny or &quot;needs approval&quot;. Inside the range the answer is allow; outside it, allow only when the caller holds the escalation permission (today: preset discounts are escalated by the custom-discount permission), otherwise needs approval when the clinic runs an approval flow, else deny.</li>
+</ul>
+<p><strong>Field hiding.</strong> A response class can mark a property <code>@VisibleIf(&#39;patients.price.view&#39;)</code>. A global interceptor removes that property from every instance in the response when the caller lacks the permission, and removes every guarded field when there is no access context. It works only on class instances, not on plain object literals.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.resolver.ts</code> · <code>backend/src/access/access-context.ts</code> · <code>AccessContext</code> · <code>backend/src/access/visible-if/visible-if.ts</code> · <code>backend/src/patients/access/patient-scope.ts</code></p>
+<h2 id="ch57-access-control-57-5-what-the-web-app-receives-get-me-access">57.5 What the web app receives: <code>GET /me/access</code></h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><code>GET /me/access</code> is a context-free route that checks membership itself. It needs the organization header and, for staff, the location header; without a location, staff roles give no permissions because roles are per location. It answers 400 without an organization, 403 when the caller has no access there. The answer has these parts: the access version; the organization and location ids; the super-admin and owner flags; the list of active feature keys; the granted permissions with their scope (or <code>true</code>); the roles (id, name and template key); the employee id; the home page; and the clinic&#39;s sidebar layout, which is null while the clinic uses the default. <code>GET /access/catalog</code> (needs <code>admin.roles.manage</code>) returns the catalog, bundles and role templates for the roles screen.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.controller.ts</code> · <code>MeAccessController</code> · <code>AccessCatalogController</code></p>
+<h2 id="ch57-access-control-57-6-in-the-browser">57.6 In the browser</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong><code>AccessProvider</code></strong> loads <code>/me/access</code> for the active organization and location. The data is fresh for 30 seconds and refetched when the window regains focus, when the realtime socket announces <code>access.changed</code> and after a reconnect.</li>
+<li><strong><code>useAccess()</code></strong> returns <code>can(permission)</code>, which takes one permission or a list and means any-of; <code>canAll(list)</code> for all-of; <code>scope(permission)</code>; feature checks; the owner and super-admin flags; the home page and the sidebar layout. The <code>&lt;Can perm=&quot;...&quot;&gt;</code> component wraps content the same way. When no payload exists yet for a super admin on a setup page, a fallback allows everything; a loaded payload is always the source of truth.</li>
+<li><strong>Route gate.</strong> Each route file declares <code>staticData: { can: ... }</code>. One component, <code>RouteAccessGate</code>, mounted in the root route (<code>__root.tsx</code>), reads the requirement of every matched route and shows the No access page when any requirement fails. While access is loading it shows a skeleton; if loading fails it shows &quot;Couldn&#39;t load your access&quot; with a retry button. Routes without a requirement pass.</li>
+<li><strong>Sidebar.</strong> The sidebar comes from a developer-owned registry of 39 items. Each item declares its own requirement: a permission (any-of), <code>superAdminOnly</code> (six items: Organizations, Subscriptions, Lab Directory, Form schemas, Workflows, Stage templates), <code>labMember</code> (the Lab portal item) and <code>ownerOrSuperAdmin</code> (the flag exists but no item uses it today). The clinic&#39;s saved layout only arranges, renames and hides these items; items a user may not open are removed before display. Registry items that the layout forgot appear in a trailing &quot;More&quot; section so a new page never disappears silently.</li>
+<li><strong>Home page.</strong> After sign-in, the role&#39;s home page is used, then the clinic&#39;s home page, and the page is opened only if the user passes the same sidebar and route checks; otherwise the Dashboard opens.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/no-access-page.jpg" alt="Figure 57.2 — The No access page"></p>
+<p><em>Figure 57.2 — The No access page shown when a role lacks the permission of the page.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name of the product in the corner; the product is now called the Platform and each clinic sets its own name. A test user in a custom role opened a page their role does not allow. The sidebar is short: Dashboard, and under &quot;Clinic&quot; only Patients and Appointments, with Settings and the user at the bottom. The main area is titled &quot;No access&quot; and shows a shield icon, a Roman-Urdu headline meaning that the user has no permission for this page, an English sentence saying the user does not have permission and should ask the clinic owner to add the page to their role, and a button, &quot;Go to my home page&quot;. The user can click the button to go to the role&#39;s home page, or to the Dashboard if the role has none.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/access/components/AccessProvider.tsx</code> · <code>RouteAccessGate.tsx</code> · <code>NoAccess.tsx</code> · <code>web-app/src/features/access/lib/access.ts</code> · <code>web-app/src/features/access/nav/nav.registry.ts</code> · <code>resolveNav.ts</code> · <code>homeRoute.ts</code> · <code>web-app/src/routes/__root.tsx</code></p>
+<h2 id="ch57-access-control-57-7-how-fast-a-change-reaches-users">57.7 How fast a change reaches users</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Each organization has a counter, <code>organizations.access_version</code>. It is raised by one after any committed change that can alter someone&#39;s access: employment roles (any column), assignments (role, location, organization, active flag, portal access or linked login), organization feature flags, ownership, location feature overrides and sidebar layout changes. An entity subscriber does this automatically for writes made through the data layer, once per transaction after the commit and never on rollback. Code that uses raw SQL or database cascades must bump explicitly; the employee delete path does.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch57-access-change-sequence.png" alt="Figure 57.3 — From a role change to every open tab"></p>
+<p><em>Figure 57.3 — Sequence from an owner&#39;s role change to the refreshed browser tabs.</em></p>
+<p>The diagram has six participants: the Owner, the API process, PostgreSQL, the <code>AccessChangeBus</code>, the <code>QueueGateway</code> and a Staff browser tab. (1) The owner saves a role change. (2) The API commits the role row. (3) The API increments <code>access_version</code> of the organization. (4) The API publishes the organization id and new version to the bus. (5) The bus drops cached access contexts of that organization. (6) It notifies listeners in this process and, through Redis, in the other processes. (7) The gateway emits <code>access.changed</code> to the organization&#39;s room. (8) The browser tab calls <code>GET /me/access</code>. (9) The API answers with new permissions and features. (10) The sidebar and buttons update and the route gate checks again.</p>
+<p>The timing rules are:</p>
+<ul>
+<li><strong>Version cache.</strong> Each process caches the current version of an organization for 15 seconds. The bus updates it at once in every process that hears the change.</li>
+<li><strong>Context cache.</strong> Access contexts are cached in process memory, at most 10,000, for at most 5 minutes, keyed by user, organization, location and version. A new version means a new key, so stale entries are never used.</li>
+<li><strong>Redis.</strong> One Redis channel carries access-change messages between API and worker processes. If Redis is down, only the process that made the change learns at once; the others catch up within 15 seconds, when their cached version expires.</li>
+<li><strong>Feature cache.</strong> The enabled-feature set is cached for a short time and dropped by the same bus.</li>
+<li><strong>Browser.</strong> Open tabs refetch when told, on focus, and in any case after 30 seconds of staleness.</li>
+</ul>
+<p>In practice, an owner&#39;s change reaches other staff within seconds, and within 15 seconds even when Redis is unavailable. A person who is already inside a permitted request is not interrupted.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/version/access-version.service.ts</code> · <code>AccessVersionService</code> · <code>access-version.subscriber.ts</code> · <code>access-change-bus.ts</code> · <code>web-app/src/features/access/hooks/useAccessSocket.ts</code></p>
+<h2 id="ch57-access-control-57-8-the-lab-portal-is-a-separate-door">57.8 The lab portal is a separate door</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Lab staff do not use the clinic guards for their screens. Every lab portal controller uses its own <code>LabPortalGuard</code> after the global guards (which skip these routes as context free). It rejects any request carrying clinic headers (400 <code>LAB_PORTAL_CLINIC_CONTEXT</code>), so lab and clinic scopes cannot mix. It requires an active membership of an active lab; the lab is named by an <code>x-lab-id</code> header, or is the user&#39;s only lab (several labs without a header gives 400 <code>LAB_SELECTION_REQUIRED</code>). Another lab&#39;s id looks exactly like a lab that does not exist (403 <code>LAB_ACCESS_DENIED</code>). A lab role list on the handler (lab admin or technician) is checked against the membership. Super admins hold no lab membership and are refused. Chapter 41 describes the portal itself.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/portal/lab-portal.guard.ts</code> · <code>LabPortalGuard</code> · <code>backend/src/labs/portal/lab-memberships.ts</code></p>
+<h2 id="ch57-access-control-57-9-row-level-security-does-not-exist">57.9 Row-level security does not exist</h2>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The database has no row-level security policies. Tenant isolation is enforced by the application: handlers filter every query by the organization (and often the location) taken from the validated tenant context, and by <code>applyScope</code> for own, location and organization reach. A bug in a query that forgets the organization filter would therefore not be stopped by the database. The safeguards are the coverage test, the single <code>@ActiveTenant()</code> source of the organization, and code review. Chapter 8 describes the tenant model.</p>
+<h2 id="ch57-access-control-57-10-limitations-and-known-gaps">57.10 Limitations and known gaps</h2>
+<ul>
+<li>Tenant isolation is application-level only (section 57.9).</li>
+<li>A handler without a marker passes the access guard at runtime; only the coverage test prevents it.</li>
+<li>Contexts and version numbers are cached in process memory; with Redis down, other processes may lag up to 15 seconds.</li>
+<li>An access token already issued is not re-checked against the session; permissions, however, are checked on every request from the access context, so a role change takes effect without a new token.</li>
+<li>The <code>ownerOrSuperAdmin</code> sidebar flag is unused today.</li>
+</ul>
+<h2 id="ch57-access-control-57-11-owner-39-s-faq">57.11 Owner&#39;s FAQ</h2>
+<p><strong>I removed a permission from a role. When does it stop working?</strong> Within seconds for open screens (the browser is told over the realtime connection) and on the next request on the server. At worst 15 seconds if the message bus is down.</p>
+<p><strong>A user opens a page by typing its address. Can they bypass the sidebar?</strong> No. The route gate shows No access and the API refuses the data calls with 403 <code>NO_PERMISSION</code>. Hiding a sidebar item is cosmetic; the checks are the permission on the route and on the API.</p>
+<p><strong>Does the sidebar layout give anyone access?</strong> Never. The layout only arranges pages the registry knows; every item still needs the viewer&#39;s permission.</p>
+<p><strong>Can the database stop one clinic seeing another&#39;s data?</strong> Not by itself. The application filters every query by organization; there are no database row-level policies.</p>
+<p><strong>Who can see which patients?</strong> The scope of <code>patients.view</code>: a doctor sees own patients, front desk sees the location, an admin sees the organization (Chapter 11).</p>
+<p><strong>What does 402 mean?</strong> The clinic&#39;s subscription expired; the clinic is read-only until a payment is recorded (Chapter 45).</p>
+</section></body></html>

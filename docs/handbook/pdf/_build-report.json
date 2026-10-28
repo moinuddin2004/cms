@@ -1,0 +1,26 @@
+{
+ "rows": [
+  {
+   "name": "00-Complete-Handbook",
+   "chapters": 73,
+   "pages": 787,
+   "expected": 787,
+   "images": 288,
+   "broken": 0,
+   "mb": "62.6",
+   "sec": "201"
+  },
+  {
+   "name": "95-Status-and-Gaps",
+   "chapters": 5,
+   "pages": 48,
+   "expected": 48,
+   "images": 0,
+   "broken": 0,
+   "mb": "1.5",
+   "sec": "3"
+  }
+ ],
+ "broken": [],
+ "images": 0
+}

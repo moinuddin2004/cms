@@ -1,0 +1,193 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch07-running-locally"><h1 id="ch07-running-locally-chapter-7-running-the-platform-locally">Chapter 7 — Running the Platform locally</h1>
+<p>This chapter lists what a developer needs to run the Platform on one machine: prerequisites, installation, configuration, start commands, the first super-admin step and the test suites. It is written for the product owner who wants to see the system running or hand it to a new engineer. The steps come from the two <code>package.json</code> files, the backend&#39;s configuration code and the root README; nothing was executed while writing this chapter.</p>
+<h2 id="ch07-running-locally-7-1-prerequisites">7.1 Prerequisites</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Need</th>
+<th>Why</th>
+<th>Notes</th>
+</tr>
+</thead><tbody><tr>
+<td>Node.js and npm</td>
+<td>Both applications are Node projects.</td>
+<td>Neither <code>package.json</code> pins a Node version. The README recommends Node 20 or newer.</td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td>The only data store.</td>
+<td>The account must be allowed to create the <code>btree_gist</code> extension and a function on first start. The API always opens its connection <strong>with SSL</strong> (<code>ssl: { rejectUnauthorized: false }</code>), so the server must accept SSL connections; Neon does. Whether a plain local PostgreSQL without SSL works was not verified [Unverified].</td>
+</tr>
+<tr>
+<td>Redis</td>
+<td>Messages between processes.</td>
+<td>Optional when running the single development process (<code>all</code> role): realtime then works in-process. The access, settings and Bull connections still try to reach Redis and log warnings while it is missing. Required when <code>api</code> and <code>worker</code> run as separate processes.</td>
+</tr>
+<tr>
+<td>A Cloudinary account</td>
+<td>File uploads (logos, patient documents, attachments).</td>
+<td>Uploads fail without it; the rest of the Platform runs.</td>
+</tr>
+<tr>
+<td>An SMTP mail account</td>
+<td>Verification and password-reset emails.</td>
+<td>Optional for local work.</td>
+</tr>
+</tbody></table></div><p>The table lists each external dependency, why the Platform needs it and what to know when setting it up locally.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>backend/src/common/database/ensure-extensions.ts</code> · <code>README.md</code> (root)</p>
+<h2 id="ch07-running-locally-7-2-install">7.2 Install</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The two applications are installed separately; there is no root-level install.</p>
+<ol>
+<li>In <code>backend/</code>, run <code>npm install</code>.</li>
+<li>In <code>web-app/</code>, run <code>npm install</code>.</li>
+</ol>
+<p><strong>Technical references:</strong> <code>backend/package.json</code> · <code>web-app/package.json</code></p>
+<h2 id="ch07-running-locally-7-3-configure">7.3 Configure</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ol>
+<li>Copy <code>backend/.env.example</code> to <code>backend/.env</code>. The template names: <code>DATABASE_URL</code>, <code>PORT</code>, <code>NODE_ENV</code>, <code>JWT_ACCESS_SECRET</code>, <code>JWT_REFRESH_SECRET</code>, the Google and GitHub OAuth pairs, <code>EMAIL_TOKEN_SECRET</code>, <code>RESET_TOKEN_SECRET</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code> and the three <code>CLOUDINARY_*</code> variables.</li>
+<li>Fill in at least <code>DATABASE_URL</code> and <code>JWT_ACCESS_SECRET</code>. Leave <code>NODE_ENV</code> unset or not <code>production</code>, so the schema is created from the entities.</li>
+<li>Add the variables the template does not list when the defaults do not fit: <code>REDIS_URL</code> (default: Redis on the local machine), <code>CORS_ORIGIN</code> and <code>FRONTEND_URL</code> (default <code>http://localhost:3000</code>), and optionally the magic-link and rate-limit variables. Chapter 6 lists every variable with its purpose.</li>
+<li>The web app reads one variable, <code>VITE_API_BASE_URL</code> (default <code>http://localhost:5000</code>). Put it in <code>web-app/.env</code> only if the API runs elsewhere.</li>
+</ol>
+<p>Several template entries have no effect: <code>JWT_REFRESH_SECRET</code>, <code>EMAIL_TOKEN_SECRET</code> and <code>RESET_TOKEN_SECRET</code> are not read by any code, and the OAuth variables do nothing because OAuth is not registered.</p>
+<p><strong>Technical references:</strong> <code>backend/.env.example</code> (names only) · <code>web-app/src/lib/api.ts</code></p>
+<h2 id="ch07-running-locally-7-4-run">7.4 Run</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Terminal</th>
+<th>Command</th>
+<th>Result</th>
+</tr>
+</thead><tbody><tr>
+<td>1</td>
+<td>in <code>backend/</code>: <code>npm run start:dev</code></td>
+<td>One <code>all</code>-role process in watch mode on port 5000: HTTP API, Socket.IO, relays and scheduled jobs.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>in <code>web-app/</code>: <code>npm run dev</code></td>
+<td>The web app&#39;s Vite dev server on port 3000.</td>
+</tr>
+</tbody></table></div><p>The table shows the two commands needed for a working local system. Then open <code>http://localhost:3000</code>.</p>
+<p>What happens on the first backend start:</p>
+<ol>
+<li>The <code>btree_gist</code> extension and the <code>uuid_generate_v7()</code> function are created.</li>
+<li>TypeORM <code>synchronize</code> creates every table from the entities.</li>
+<li>The legacy migration baseline is recorded and the two hand-written migrations run (triggers and backfills).</li>
+<li>The feature catalog is seeded with the 24 active features, and the 5 system role templates are seeded into every existing organization.</li>
+</ol>
+<p>To try the production split locally: <code>npm run build</code>, then <code>npm run start:api</code> and <code>npm run start:worker</code> in two terminals, with Redis running. Do not start a second worker.</p>
+<p><strong>Technical references:</strong> <code>backend/src/main.ts</code> · <code>backend/src/bootstrap/http.ts</code> · <code>AppModule.forRole</code> · <code>FeatureFlagsService.seedCatalog</code> · <code>AccessTemplatesService</code></p>
+<h2 id="ch07-running-locally-7-5-the-first-super-admin">7.5 The first super admin</h2>
+<p><strong>Status:</strong> [Partial] — there is no screen, command or seed that creates a super admin; it is a manual database step.</p>
+<p>The super admin is the platform operator who creates organizations, entitles features, records subscription payments and runs Config Studio. A user is a super admin when the <code>users.global_role</code> column holds <code>super_admin</code>.</p>
+<ol>
+<li><p>Open <code>/register</code> and sign up. Self-signup creates <strong>both</strong> a user and a new clinic: an organization on a 14-day trial with Professional limits, its <code>MAIN</code> location and the ownership link. That trial clinic is harmless for local work.</p>
+</li>
+<li><p>Promote the user with one SQL statement against the database:</p>
+<pre><code class="language-sql">UPDATE users SET global_role = &#39;super_admin&#39; WHERE email = &#39;&lt;your sign-up email&gt;&#39;;
+</code></pre>
+</li>
+<li><p>Sign out and sign in again, so the login response reports the new role.</p>
+</li>
+<li><p>As super admin you choose an organization at sign-in, and you can open the setup pages (Organizations, Locations, Lab Directory, Config Studio, Subscriptions) even before choosing a location. Create an organization and its locations, entitle features, then add employees and give them logins and roles (Chapter 11).</p>
+</li>
+</ol>
+<p>Email verification does not block sign-in.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/enums/global-role.enum.ts</code> · <code>backend/src/subscriptions/clinic-setup.service.ts</code> · <code>web-app/src/routes/__root.tsx</code> (<code>SUPER_ADMIN_SETUP_PATHS</code>)</p>
+<h2 id="ch07-running-locally-7-6-test-suites">7.6 Test suites</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Suite</th>
+<th>Command</th>
+<th>What it runs</th>
+<th>Needs a database</th>
+</tr>
+</thead><tbody><tr>
+<td>Backend unit</td>
+<td>in <code>backend/</code>: <code>npm test</code></td>
+<td>Jest over the 67 <code>*.spec.ts</code> files in <code>backend/src</code>, including <code>access-coverage.spec.ts</code>, which fails if any endpoint lacks an access decorator.</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Backend e2e</td>
+<td><code>npm run test:e2e</code></td>
+<td>One starter test that boots the full application and calls <code>GET /</code>.</td>
+<td>yes (it starts the real module)</td>
+</tr>
+<tr>
+<td>All DB integration specs</td>
+<td><code>npm run test:int</code></td>
+<td>Every <code>*.int-spec.ts</code> file under <code>backend/test/</code> with the billing suite&#39;s setup.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Labs</td>
+<td><code>npm run test:int:labs</code></td>
+<td>Lab module integration tests.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Tenancy</td>
+<td><code>npm run test:int:tenancy</code></td>
+<td>Tenant isolation tests.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Access core</td>
+<td><code>npm run test:int:access</code></td>
+<td>Access resolution, patient scope, sidebar layouts.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Access acceptance</td>
+<td><code>npm run test:int:acceptance</code></td>
+<td>The 166-case access-control acceptance plan in 11 spec files.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Web</td>
+<td>in <code>web-app/</code>: <code>npm test</code></td>
+<td>Vitest with Testing Library and jsdom over 34 test files.</td>
+<td>no</td>
+</tr>
+</tbody></table></div><p>The table lists each test command, what it covers and whether it needs PostgreSQL. There are 35 integration spec files in total.</p>
+<p>How the database suites protect data: each suite creates its <strong>own PostgreSQL schema</strong> (for example <code>billingit</code>, <code>tenancy_it</code>, <code>acceptit</code>), drops and recreates it at the start and drops it at the end, and never touches the <code>public</code> schema. They read <code>BILLING_IT_DATABASE_URL</code> when set, otherwise <code>DATABASE_URL</code>; for Neon they strip the connection-pooler part of the host name, because schema isolation needs a direct connection. Some suites accept a <code>*_KEEP_SCHEMA</code> variable to keep the schema for inspection. The suites share one database, so run them one at a time.</p>
+<p>Other useful scripts: <code>npm run lint</code> and <code>npm run format</code> (backend), <code>npm run check</code> (web: Prettier and ESLint fixes), and <code>npm run access:export</code> (backend), which regenerates the web app&#39;s copy of the permission catalog after <code>permissions.ts</code> changes.</p>
+<p><strong>Technical references:</strong> <code>backend/package.json</code> · <code>backend/test/*.json</code> · <code>backend/test/billing/db.config.ts</code> · <code>web-app/vitest.config.ts</code> · <code>backend/scripts/export-access-catalog.ts</code></p>
+</section></body></html>

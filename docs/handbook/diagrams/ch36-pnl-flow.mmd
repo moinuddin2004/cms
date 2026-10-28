@@ -1,0 +1,17 @@
+flowchart LR
+    PAY["payments minus refunds<br/>minus tax on allocations"] --> CC["Clinic collected"]
+    LPAY["lab_payments minus lab_refunds"] --> LC["Lab collected"]
+    INV["invoices ISSUED<br/>total minus tax"] --> CB["Clinic billed"]
+    LINV["lab_invoices issued or paid<br/>total minus credited"] --> LB["Lab billed"]
+    CC --> REV{"Revenue<br/>by chosen basis"}
+    LC --> REV
+    CB --> REV
+    LB --> REV
+    VB["vendor_bills approved or paid<br/>by bill date"] --> DIR["Direct costs"]
+    CE["commission_entries<br/>by date earned"] --> DIR
+    REV --> GP["Gross profit"]
+    DIR --> GP
+    PR["payroll_records<br/>base salary by payroll month"] --> OPX["Operating expenses"]
+    EXP["expenses<br/>by category and date"] --> OPX
+    GP --> NP["Net profit or net loss<br/>and margin"]
+    OPX --> NP

@@ -1,0 +1,13 @@
+stateDiagram-v2
+    direction LR
+    state "ACTIVE, unbilled<br/>invoice_id empty" as unbilled
+    state "ACTIVE, billed<br/>on an ISSUED invoice" as billed
+    state "VOID" as void
+    [*] --> unbilled : consultation completed, POST charges, plan items
+    unbilled --> unbilled : PATCH charge, discount, needs price set
+    unbilled --> billed : POST payments, POST advance apply, POST invoices
+    billed --> billed : POST invoices edit, payments allocated
+    billed --> unbilled : POST invoices cancel
+    unbilled --> void : POST charges void, treatment removed by doctor
+    billed --> void : invoice edit voidCharge
+    void --> [*]

@@ -1,0 +1,59 @@
+erDiagram
+  patients ||--o{ payments : "pays"
+  payment_accounts ||--o{ payments : "received into"
+  payments ||--o{ payment_allocations : "applied as"
+  charges ||--o{ payment_allocations : "settled by"
+  invoices |o..o{ payment_allocations : "invoice_id, no FK"
+  patients ||--o{ refunds : "refunded"
+  refunds ||--o{ refund_sources : "funded by"
+  payments ||--o{ refund_sources : "funds"
+  invoices |o..o{ refunds : "invoice_id, no FK"
+  patients ||..o{ ledger_entries : "statement rows"
+  cash_closes ||--o{ cash_close_lines : "per account"
+  payment_accounts |o..o{ cash_close_lines : "snapshot, no FK"
+  payments {
+    uuid id PK
+    uuid payment_account_id FK
+    varchar receipt_number
+    numeric amount
+    numeric allocated_amount
+    numeric refunded_amount
+  }
+  payment_allocations {
+    uuid id PK
+    uuid payment_id FK
+    uuid charge_id FK
+    numeric amount "signed, not 0"
+    enum reason
+  }
+  refunds {
+    uuid id PK
+    varchar refund_number
+    numeric amount
+    uuid invoice_id "null = advance refund"
+  }
+  refund_sources {
+    uuid id PK
+    uuid refund_id FK
+    uuid payment_id FK
+    numeric amount
+  }
+  ledger_entries {
+    uuid id PK
+    uuid patient_id
+    enum type
+    numeric debit
+    numeric credit
+  }
+  cash_closes {
+    uuid id PK
+    timestamptz period_start
+    timestamptz period_end
+    numeric total_variance
+  }
+  cash_close_lines {
+    uuid id PK
+    uuid cash_close_id FK
+    numeric expected
+    numeric counted
+  }

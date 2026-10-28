@@ -1,0 +1,6 @@
+flowchart TB
+    I["User types 4500.50"] --> P["Web converts<br/>to 450050 paisa"]
+    P --> A["API field<br/>rupees or paisa"]
+    A --> M["Integer paisa math<br/>half-up rounding"]
+    M --> D[("Database<br/>numeric or bigint")]
+    D --> F["Web formats with<br/>organization currency"]

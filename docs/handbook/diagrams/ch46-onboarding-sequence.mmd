@@ -1,0 +1,32 @@
+sequenceDiagram
+  participant Owner
+  participant SA as Super admin
+  participant Web as Web app
+  participant API
+  participant PG as PostgreSQL
+  participant Mail as SMTP mail
+  alt Path A - self-signup
+    Owner->>Web: Fill Create your clinic form
+    Web->>API: POST /auth/register
+    API->>PG: user, organization, MAIN location, ownership, feature rows, system roles, 14-day trial
+    API->>Mail: verification link, failure only logged
+    API-->>Web: signed-in 30-day session
+    Owner->>Web: Setup wizard, three steps
+    Web->>API: PATCH /account/setup/clinic, PATCH /account/setup/location, POST /account/setup/complete
+  else Path B - super admin creates the organization
+    SA->>Web: Organizations, Create
+    Web->>API: POST /organizations
+    API->>PG: organization, feature rows, system roles - no owner, no location, no dates
+    SA->>Web: Locations, Create Location, organization picked
+    Web->>API: POST /locations
+    SA->>Web: Select the organization and location, then User Admin, Create User, type Owner
+    Web->>API: POST /user
+    API->>PG: user plus organization_ownership row
+  end
+  SA->>Web: Manage features, Entitled switch or Entitle module
+  Web->>API: PATCH /feature-flags/org/:organizationId/:featureKey/entitlement
+  API->>PG: entitlement saved, access_version raised
+  Owner->>Web: Features page, switch the feature on
+  Web->>API: PATCH /admin/features/:key
+  Owner->>Web: Roles, Locations, Theme, Navigation, Employees
+  Web->>API: PATCH /admin/roles/:id, POST /locations, PUT /admin/theme, PUT /admin/navigation, POST /employees

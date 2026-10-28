@@ -1,0 +1,474 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Consultation</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch31-consultation">Chapter 31 — Consultation</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch31-consultation"><h1 id="ch31-consultation-chapter-31-consultation">Chapter 31 — Consultation</h1>
+<p>This chapter describes the consultation module of the Platform: the single screen a doctor works on while a patient is in the chair. It is written for the product owner and explains what the screen does, how the clinical record of one visit (the <strong>encounter</strong>) is created and saved, and how finishing the visit hands work over to billing. The consultation sits between the queue (which brings the patient to the doctor) and billing (which charges for the visit), so it touches both.</p>
+<h2 id="ch31-consultation-31-1-what-this-module-is-for">31.1 What this module is for</h2>
+<p>When a doctor starts seeing a patient from their queue, the Platform opens the <strong>consultation workspace</strong>. On one screen the doctor sees who the patient is and anything dangerous to know (allergies, blood thinners, pregnancy), writes the visit notes (complaint, examination, diagnosis, advice, next visit), records the <strong>treatments</strong> performed today, writes and signs the <strong>prescription</strong>, and finally presses &quot;Complete visit&quot;. Everything saves itself while the doctor types.</p>
+<p>Behind the screen, every consultation is stored as one <strong>encounter</strong>: the clinical record of one consultation. The Platform creates the encounter automatically when the doctor starts the consultation from the queue. There is no separate &quot;new encounter&quot; button.</p>
+<p><strong>Who uses it.</strong> Doctors, by default. The Doctor system role holds the permission <code>consultation.conduct</code> at scope <code>own</code>, so a doctor can only open consultations that came from their own queue. The Admin system role does not get this permission by default (Admins clone the Doctor role if they also see patients). The owner of the organization holds every permission.</p>
+<p><strong>Where it appears.</strong> The consultation workspace has <strong>no sidebar entry</strong>. The doctor reaches it from the &quot;My Queue&quot; sidebar item (<code>/queue/doctor</code>): the button &quot;Patient is here — start&quot; starts the consultation and opens the workspace, and the button &quot;Open consultation&quot; re-opens it later. The workspace route is <code>/consultation/$encounterId</code>.</p>
+<h2 id="ch31-consultation-31-2-screens">31.2 Screens</h2>
+<p>The module has one page with two overlays. There are no usable screenshots of these screens yet, so each figure is a placeholder and the paragraph after it describes the screen from the web-app code.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch31-consultation-workspace.svg" alt="Figure 31.1 — Consultation workspace"></p>
+<p><em>Figure 31.1 — Consultation workspace (screenshot pending).</em></p>
+<p>The consultation workspace is a full-screen page without the normal sidebar. A sticky header runs across the top. On its left is a &quot;Back to my queue&quot; button, the patient&#39;s initials avatar, the patient&#39;s full name and a sub-line with age, gender, patient number and the doctor&#39;s name. Next to it is the queue <strong>token</strong> (for example &quot;A-007&quot;) and a timer showing how many minutes the consultation has been running; once the queue entry is no longer in consultation, the timer is replaced by &quot;Visit ended&quot;. A row of shortcut buttons opens the patient record: &quot;History&quot;, &quot;Teeth&quot; (only with permission <code>patients.chart.edit</code>), &quot;Vitals&quot; and &quot;Files&quot; (only with <code>patients.documents.manage</code>). On the right is the green &quot;Complete visit&quot; button. Under the header, a strip of coloured alert chips appears when the patient has allergies or other risks. The body has three columns on a wide screen. The left column, &quot;Patient at a glance&quot;, shows the latest vitals, up to four previous visits and up to three previous signed prescriptions, each with a &quot;Use these medicines again&quot; icon button. The middle column, &quot;Visit notes&quot;, has text boxes for Complaint, Examination, Diagnosis and &quot;Advice to patient&quot;, each with one-tap phrase chips, and a &quot;Next visit&quot; row with chips (3 days, 1 week, 2 weeks, 1 month, 3 months, 6 months) and a date picker. The right column holds two panels: &quot;Treatment done today&quot; and &quot;Prescription&quot;. On a phone or tablet the columns stack, and the patient summary folds behind a &quot;Patient summary &amp; history&quot; button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch31-record-drawer.svg" alt="Figure 31.2 — Patient record slide-over"></p>
+<p><em>Figure 31.2 — Patient record slide-over (screenshot pending).</em></p>
+<p>The patient record slide-over opens from the right on top of the workspace when the doctor presses one of the header shortcuts or a &quot;See all&quot;, &quot;Record&quot; or &quot;Update&quot; link in the patient summary. Its title is the patient&#39;s name followed by &quot;patient record&quot;, with the line &quot;Look anything up or add to it. Closing this returns to the consultation.&quot; It has tabs: &quot;History&quot; (past visits and treatments, with amounts hidden), &quot;Teeth chart&quot; (needs <code>patients.chart.edit</code>), &quot;Vitals &amp; dental&quot;, &quot;Prescriptions&quot; (needs <code>prescriptions.create</code>), &quot;X-rays &amp; files&quot; (needs <code>patients.documents.manage</code>) and &quot;Consents&quot;. The tabs reuse the same components as the patient detail page, so anything the doctor adds here is saved to the patient record. Closing the slide-over returns the doctor to exactly where they were.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch31-complete-dialog.svg" alt="Figure 31.3 — Complete this visit? dialog"></p>
+<p><em>Figure 31.3 — &quot;Complete this visit?&quot; dialog (screenshot pending).</em></p>
+<p>The &quot;Complete this visit?&quot; dialog opens when the doctor presses &quot;Complete visit&quot;. Its description says &quot;The patient leaves your queue and reception is told you are done.&quot; It lists four reminder lines, each with a green tick or an amber warning icon: whether visit notes are written (or &quot;No complaint or diagnosis written&quot;), how many treatments were recorded (or &quot;No treatment recorded&quot;), the prescription state (&quot;Prescription signed&quot;, &quot;Prescription is still a draft — not signed&quot;, or &quot;No prescription written&quot;) and the next visit date (or &quot;No next visit set&quot;). These are reminders only: the doctor can always finish. The buttons are &quot;Keep working&quot; and &quot;Complete visit&quot;.</p>
+<h2 id="ch31-consultation-31-3-features">31.3 Features</h2>
+<h3 id="ch31-consultation-31-3-1-start-a-consultation-the-encounter-is-created">31.3.1 Start a consultation (the encounter is created)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the doctor accepts the called patient, the queue entry moves to &quot;in consultation&quot; and the Platform creates the encounter for that visit. The doctor lands straight in the consultation workspace.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On &quot;My Queue&quot;, call the next patient (Chapter 30 covers calling).</li>
+<li>When the patient walks in, press &quot;Patient is here — start&quot;.</li>
+<li>The consultation workspace opens for that patient.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Starting the consultation and creating the clinical record happen together, in one database transaction. Either both happen or neither does. If the patient was sent for a test and comes back, starting again re-uses the same encounter instead of making a second one.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch31-start-sequence.png" alt="Figure 31.4 — Starting a consultation and saving notes"></p>
+<p><em>Figure 31.4 — Sequence from &quot;Patient is here — start&quot; to the first auto-saved note.</em></p>
+<p>Figure 31.4 is a sequence diagram with six participants: Doctor, Web app, API, QueueOrchestrator, EncountersService and PostgreSQL. In step 1 the doctor presses &quot;Patient is here — start&quot;. In step 2 the web app sends <code>PATCH /queue/entries/:id/start-consultation</code> with an Idempotency-Key header and an If-Match header carrying the entry&#39;s version. In step 3 the API calls <code>startConsultation</code> on the QueueOrchestrator. In step 4 the orchestrator locks the queue session and entry in PostgreSQL and checks that the move from <code>called</code> to <code>in_consultation</code> is allowed. In step 5 it calls <code>ensureForQueueEntry</code> on the EncountersService inside the same transaction, and in step 6 that service looks for an encounter with this queue entry id and inserts one only if none exists. In step 7 the orchestrator writes the queue event and outbox row and commits. In step 8 the API returns the entry result plus the new <code>encounterId</code>. In steps 9 and 10 the web app loads <code>GET /encounters/:id/workspace</code> and receives the encounter with its treatments, the queue entry&#39;s token and version, and the doctor. In step 11 the workspace opens. In steps 12 to 14 the doctor types notes, the web app sends <code>PATCH /encounters/:id</code> after a short pause, and the API updates only the fields that were sent.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/start-consultation</code> (doctor queue controller) calls <code>QueueOrchestrator.startConsultation</code>. Inside the orchestrator&#39;s <code>mutate</code> transaction it locks the entry, checks the caller runs this doctor&#39;s session (<code>assertSessionDoctor</code>), applies the transition <code>called → in_consultation</code> with <code>consultation_started_at</code>, and records the queue event <code>CONSULTATION_STARTED</code>. It then calls <code>EncountersService.ensureForQueueEntry(tx, entry, locationId, userId)</code>. That method returns the existing encounter for <code>queue_entry_id</code> if there is one; otherwise it inserts a row with the entry&#39;s appointment id (null for a <strong>walk-in</strong>), patient, organization, location, <code>encounter_date = now</code>, <code>reason</code> copied from the entry&#39;s reason for visit, and <code>created_by</code> / <code>updated_by</code> set to the user. The response adds <code>encounterId</code>, and the doctor queue page navigates to <code>/consultation/$encounterId</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only the doctor of that queue session can start it, or staff holding <code>queue.doctor.any</code>.</li>
+<li>The entry must be in status <code>called</code>; anything else answers 422 <code>INVALID_TRANSITION</code>.</li>
+<li>The request needs an Idempotency-Key header; If-Match must match the entry version when sent.</li>
+<li>At most one encounter per queue entry (unique <code>queue_entry_id</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> Permission <code>queue.doctor.own</code> (feature <code>appointments.core</code>), held by the Doctor template. The Admin template holds <code>queue.doctor.any</code>, which implies it. Opening the workspace afterwards also needs <code>consultation.conduct</code> (feature <code>patients.core</code>), which only the Doctor template holds by default.</p>
+<p><strong>Data read and written.</strong> <code>queue_entries</code>, <code>queue_sessions</code>, <code>queue_events</code>, outbox, <code>patient_encounters</code>.</p>
+<p><strong>Effects on other modules.</strong> The queue board and TV display update through the realtime outbox (Chapter 30). The encounter becomes visible in the patient&#39;s visit history (Chapter 28).</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Only this queue&#39;s doctor can do that&quot; (403 <code>FORBIDDEN</code>) → another doctor&#39;s entry without <code>queue.doctor.any</code>.</li>
+<li>422 <code>INVALID_TRANSITION</code> → the entry is not in <code>called</code>.</li>
+<li>409 <code>VERSION_CONFLICT</code>, &quot;This was changed by someone else. The latest state is shown.&quot; → reception changed the entry meanwhile.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.startConsultation</code>, <code>EncountersService.ensureForQueueEntry</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch31-consultation-31-3-2-re-open-a-consultation-that-is-already-running">31.3.2 Re-open a consultation that is already running</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> If the doctor reloads the page, closes the tab, or goes back to their queue, they can return to the same consultation without starting anything again.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On &quot;My Queue&quot;, the current patient shows the button &quot;Open consultation&quot;.</li>
+<li>Press it. The workspace opens with everything saved so far.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform looks up the encounter that belongs to the queue entry and opens it. If the consultation was never started, it says so.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /encounters/by-queue-entry/:queueEntryId</code> → <code>EncountersService.getWorkspaceByQueueEntry</code> finds the encounter by <code>queue_entry_id</code> within the active organization and location, checks the conduct scope (<code>assertConductScope</code>), and returns the same workspace object as <code>GET /encounters/:id/workspace</code> (<code>getWorkspace</code>): the encounter with its appointment, patient and treatments (newest first), the queue entry (id, display token built from the session&#39;s token prefix and a three-digit number, status, version, session id) and the doctor (id, full name). The web hook <code>useOpenConsultation</code> then navigates to <code>/consultation/$encounterId</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The encounter must belong to the active organization and location.</li>
+<li>With scope <code>own</code>, the caller must be the doctor of the queue session the encounter came from. With scope <code>location</code> or <code>org</code>, any encounter at this location is reachable.</li>
+<li>Outside that reach the encounter reads as &quot;not found&quot;, so its existence is not revealed.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>consultation.conduct</code> (feature <code>patients.core</code>, scopes own / location / org). Doctor template: <code>own</code>. Not in the Admin, Receptionist, Assistant or Accountant templates. The route itself is gated by <code>staticData.can = &#39;consultation.conduct&#39;</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_encounters</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>employees</code>, <code>treatments</code>, <code>appointments</code>, <code>patients</code>.</p>
+<p><strong>Effects on other modules.</strong> None; read only.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;This patient has not been started yet&quot; (404) → no encounter exists for that queue entry.</li>
+<li>&quot;Encounter not found&quot; (404) → wrong organization or location, or outside the caller&#39;s scope.</li>
+<li>The workspace page shows &quot;Couldn’t open this consultation&quot; with a retry button when loading fails.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/encounters/encounters.service.ts</code> · <code>EncountersService.getWorkspace</code>, <code>assertConductScope</code> · <code>web-app/src/features/consultation/hooks/useConsultation.ts</code></p>
+<h3 id="ch31-consultation-31-3-3-see-the-patient-at-a-glance">31.3.3 See the patient at a glance</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The left column, &quot;Patient at a glance&quot;, gives the doctor the latest vitals, the last few visits and the last few signed prescriptions, and lets them reuse an old prescription with one tap.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Read &quot;Latest vitals&quot; (BP, Pulse, Temp °C, SpO₂ %, Weight kg, Height cm, with the date recorded). Press &quot;Record&quot; or &quot;Update&quot; to open the Vitals tab of the record slide-over.</li>
+<li>Read &quot;Earlier visits&quot;: up to four previous encounters, each showing the diagnosis (or complaint, or reason) and date, with the treatments under it. &quot;See all&quot; opens the History tab.</li>
+<li>Under &quot;Earlier prescriptions&quot;, press the repeat icon (&quot;Use these medicines again&quot;) next to an old prescription to copy its medicines into today&#39;s prescription.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The screen pulls the patient&#39;s history, vitals and recent prescriptions. Amounts are never shown here.</p>
+<p><strong>Behind the scenes — technically.</strong> The page calls <code>GET /patients/:id</code> (patient), <code>GET /patients/:id/vitals</code> (the newest record is picked on the client), <code>GET /patients/:id/history</code> (encounters with treatments; the current encounter is filtered out) and <code>GET /prescriptions/patient/:patientId?page=1&amp;limit=5</code> (draft and empty prescriptions, and those of this encounter, are filtered out; three are shown). The history endpoint runs through <code>HideTreatmentPricesInterceptor</code>, so treatment costs are removed for callers without <code>patients.price.view</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only finalized or amended prescriptions with at least one medicine appear under &quot;Earlier prescriptions&quot;.</li>
+<li>Reusing medicines skips any medicine already on today&#39;s prescription (matched by name, case-insensitive).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code> for history and vitals; reading prescriptions also needs the feature <code>patients.prescriptions</code>. The Doctor template holds both.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>, <code>patient_vitals</code>, <code>patient_encounters</code>, <code>treatments</code>, <code>prescriptions</code>, <code>prescription_medicines</code>.</p>
+<p><strong>Effects on other modules.</strong> Reusing medicines feeds the Prescription panel (Chapter 32).</p>
+<p><strong>Error cases.</strong> Each section shows an empty message instead of an error (&quot;No vitals recorded yet.&quot;, &quot;First visit — nothing earlier on record.&quot;, &quot;No earlier prescriptions.&quot;).</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/consultation/components/PatientSnapshot.tsx</code> · <code>PatientSnapshot</code> · <code>backend/src/patients/patients.controller.ts</code></p>
+<h3 id="ch31-consultation-31-3-4-allergy-and-medical-alerts">31.3.4 Allergy and medical alerts</h3>
+<p><strong>Status:</strong> [Partial] — the alert strip works, but it is built from free-text fields. There is no structured allergy list and no automatic check of a prescribed medicine against allergies.</p>
+<p><strong>What it does.</strong> Before treating, the doctor sees coloured chips under the header for anything that can hurt the patient today.</p>
+<p><strong>How the user does it.</strong> Nothing to do; the chips appear automatically. Red chips are dangers, amber chips are context.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The screen reads the patient&#39;s allergy and medical-history text and the latest vitals record, and turns them into labels.</p>
+<p><strong>Behind the scenes — technically.</strong> The web function <code>patientAlerts(patient, vitals)</code> builds the list on the client:</p>
+<ul>
+<li>red &quot;Allergy: <text>&quot; when <code>patients.allergies</code> is not blank;</li>
+<li>red &quot;Blood thinners&quot; and &quot;Pregnant&quot; from the latest vitals flags <code>isOnBloodThinners</code> and <code>isPregnant</code>;</li>
+<li>amber &quot;Diabetic&quot;, &quot;Hypertensive&quot;, &quot;On antibiotics&quot; from the vitals flags;</li>
+<li>amber &quot;Medical history: <text>&quot; from <code>patients.medical_history</code>;</li>
+<li>amber &quot;Minor&quot; (with &quot;Guardian: …&quot; when a guardian name exists).
+No backend endpoint is involved beyond loading the patient and vitals.</li>
+</ul>
+<p><strong>Rules and validations.</strong> Alerts follow the most recent vitals record only; older flags are ignored.</p>
+<p><strong>Who can do it.</strong> Anyone who can open the workspace (<code>consultation.conduct</code>).</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code> and <code>patient_vitals</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None; with no data there is no alert strip.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/consultation/utils/patientInfo.ts</code> · <code>patientAlerts</code> · <code>web-app/src/features/consultation/components/ConsultationHeader.tsx</code></p>
+<h3 id="ch31-consultation-31-3-5-write-the-visit-notes-auto-saved">31.3.5 Write the visit notes (auto-saved)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The doctor records the chief complaint, examination findings, diagnosis, advice to the patient and the next-visit date. There is no Save button: the notes save themselves.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Type into Complaint, Examination, Diagnosis and &quot;Advice to patient&quot;, or tap the phrase chips under them (for example &quot;Toothache&quot;, &quot;Dental caries&quot;, &quot;Warm salt-water rinse&quot;). The first five chips show, the rest behind &quot;+N more&quot;. Tapping a chip appends the phrase once.</li>
+<li>Under &quot;Next visit&quot;, tap a chip such as &quot;1 week&quot; or pick a date (dates before today are blocked). Tap the active chip again to clear it.</li>
+<li>Watch the save badge in the panel header; it shows saving, saved, or an error.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> About a second after the doctor stops typing, the screen sends the notes to the server. If a save fails, it tries again on the next change. Before the visit is completed, anything still unsaved is sent first. The Complaint box starts with the reason for visit from check-in when no complaint has been written yet.</p>
+<p><strong>Behind the scenes — technically.</strong> The <code>useAutosave</code> hook waits 800 ms after the last change, then calls <code>PATCH /encounters/:id</code> with the five note fields. <code>EncountersService.updateNotes</code> loads the encounter for the active organization and location and touches only fields present in the body: an empty string or <code>null</code> clears a field, a missing field is left alone. It sets <code>updated_by</code> to the user and saves. When the doctor leaves the screen with an unsaved change, the hook sends it once more. The one-tap phrases are fixed lists in the web app (<code>quickPicks.ts</code>); clinics cannot edit them.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Each text field is at most 4,000 characters.</li>
+<li><code>followUpDate</code> must be a valid date string, or empty / null to clear.</li>
+<li>Scope check <code>assertConductScope</code> runs before every save.</li>
+<li>The server does not refuse edits after the visit is completed.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>consultation.conduct</code> (scoped). Doctor template: <code>own</code>.</p>
+<p><strong>Data read and written.</strong> Writes <code>patient_encounters</code> (<code>chief_complaint</code>, <code>examination</code>, <code>diagnosis</code>, <code>advice</code>, <code>follow_up_date</code>, <code>updated_by</code>).</p>
+<p><strong>Effects on other modules.</strong> The prescription written in the same workspace copies the complaint, diagnosis, advice and follow-up date into its own fields so they print on the prescription (Chapter 32). The follow-up date does not create an appointment.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>400 validation message → a field longer than 4,000 characters or an invalid date.</li>
+<li>&quot;Encounter not found&quot; (404) → outside the caller&#39;s scope.</li>
+<li>The save badge shows an error state; the next edit retries.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/encounters/encounters.controller.ts</code> · <code>EncountersService.updateNotes</code>, <code>UpdateEncounterNotesDto</code> · <code>web-app/src/features/consultation/components/VisitNotes.tsx</code></p>
+<h3 id="ch31-consultation-31-3-6-record-the-treatments-done-today">31.3.6 Record the treatments done today</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The doctor records each procedure performed in this visit. Each one becomes a <strong>treatment</strong> in the patient&#39;s history and, when the visit is completed, a <strong>charge</strong> for billing. The doctor never sees or types a price.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In &quot;Treatment done today&quot;, tap a procedure chip. The chips come from the clinic&#39;s service catalog (eight shown; a &quot;Search procedures&quot; box appears when there are more than ten). If the clinic has no catalog yet, the chips are a fixed list of common procedures and the doctor types the name.</li>
+<li>Tap &quot;Other…&quot; to type a procedure that is not in the catalog.</li>
+<li>Optionally type the tooth in &quot;Tooth #&quot;.</li>
+<li>Press &quot;Add&quot;. The treatment appears in the list with a green tick.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A picked catalog procedure is stored with a link to the catalog service, so billing can price it later. A typed name is stored without a price, and reception prices the charge at the billing desk. The tooth number is saved as a note &quot;Tooth: …&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /treatments/catalog</code> → <code>TreatmentsService.listProcedureCatalog</code> returns id, name and code of active services of kind <code>PROCEDURE</code> in the organization, ordered by sort order and name. No prices are returned.</li>
+<li><code>POST /encounters/:encounterId/treatments</code> → <code>EncountersService.assertPatientInScope</code>, then <code>TreatmentsService.createForEncounter</code>. It takes the patient from the encounter (so the patient can never mismatch) and calls <code>create</code>, which:<ul>
+<li>checks the patient exists in the organization and, if given, the plan template;</li>
+<li>checks <code>serviceId</code> points to an active <code>PROCEDURE</code> service, else 422;</li>
+<li>uses the typed name, or the service name when none is typed;</li>
+<li>stores <code>cost = null</code> when a service is linked (billing prices it), else the optional legacy cost;</li>
+<li>stores <code>date = now</code> unless given.</li>
+</ul>
+</li>
+<li>The web app refreshes the workspace, the patient&#39;s treatments and the patient&#39;s history.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Either a service or a treatment name is required (&quot;Pick a service or enter a treatment name&quot;).</li>
+<li>Name at most 200 characters.</li>
+<li>A linked service must be an active procedure (<code>TREATMENT_SERVICE_INVALID</code>).</li>
+<li>The encounter must be at the active location.</li>
+<li>There is no remove or edit button for a treatment in the workspace, and no API endpoint to delete one.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.edit</code> (feature <code>patients.core</code>), plus the patient must be inside the caller&#39;s <code>patients.view</code> scope. Doctor and Admin templates hold <code>patients.clinical.edit</code>; <code>consultation.conduct</code> also implies it.</p>
+<p><strong>Data read and written.</strong> Reads <code>services</code>, <code>patient_encounters</code>, <code>patients</code>, <code>plan_templates</code>; writes <code>treatments</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing turns each treatment into a charge when the visit is completed (31.3.10). Commissions are snapshotted on those charges (Chapter 35). The treatment shows in the patient&#39;s history (Chapter 28).</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Pick a service or enter a treatment name&quot; (400) → nothing chosen.</li>
+<li>&quot;Pick an active procedure from the service catalog&quot; (422 <code>TREATMENT_SERVICE_INVALID</code>) → service inactive or not a procedure.</li>
+<li>&quot;Service not found&quot; / &quot;Encounter not found&quot; / &quot;Treatment plan not found&quot; (404).</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/treatments/treatments.service.ts</code> · <code>TreatmentsService.createForEncounter</code>, <code>listProcedureCatalog</code> · <code>web-app/src/features/consultation/components/TreatmentsToday.tsx</code></p>
+<h3 id="ch31-consultation-31-3-7-look-up-or-add-to-the-patient-record-without-leaving">31.3.7 Look up or add to the patient record without leaving</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The doctor can open the full patient record in a slide-over (Figure 31.2), use it, and close it to return to the consultation.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press &quot;History&quot;, &quot;Teeth&quot;, &quot;Vitals&quot; or &quot;Files&quot; in the header, or a link in the patient summary.</li>
+<li>Switch tabs inside the slide-over as needed and add data.</li>
+<li>Close the slide-over.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The slide-over shows the same tabs as the patient detail page. History is shown without amounts.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>RecordDrawer</code> renders the patients feature components <code>VisitsTab</code> and <code>TreatmentsTab</code> (with <code>hideAmounts</code>), <code>TeethChartTab</code>, <code>VitalsAndDentalTab</code>, <code>ClinicalTab</code>, <code>FilesTab</code> and <code>ConsentsTab</code>. Their endpoints are described in the Patients chapter (Chapter 28).</p>
+<p><strong>Rules and validations.</strong> Tabs are hidden without their permission: Teeth chart needs <code>patients.chart.edit</code>, Prescriptions needs <code>prescriptions.create</code>, X-rays &amp; files needs <code>patients.documents.manage</code>.</p>
+<p><strong>Who can do it.</strong> As for each tab; the Doctor template holds all of them.</p>
+<p><strong>Data read and written.</strong> As for each patient tab.</p>
+<p><strong>Effects on other modules.</strong> New vitals immediately refresh the alert strip and the vitals shown in the summary.</p>
+<p><strong>Error cases.</strong> As for each patient tab.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/consultation/components/RecordDrawer.tsx</code> · <code>RecordDrawer</code> · <code>web-app/src/features/patients/components/tabs/</code></p>
+<h3 id="ch31-consultation-31-3-8-write-the-prescription-inside-the-consultation">31.3.8 Write the prescription inside the consultation</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The &quot;Prescription&quot; panel lets the doctor write, sign and print the prescription for this visit without leaving the workspace. The Prescriptions chapter (Chapter 32) covers prescriptions in full; this section only describes how the panel fits the consultation.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Search a medicine (&quot;Search medicine…&quot;), tap a suggestion chip, press &quot;Add “name”&quot; for a medicine not in the directory, press &quot;Repeat last&quot;, or choose from &quot;Use a preset&quot;.</li>
+<li>Open each medicine line to set Dose, How often, For how long, With food and an optional note.</li>
+<li>Press &quot;Sign &amp; print&quot;. If the doctor has no saved signature, a &quot;Sign the prescription&quot; dialog asks them to sign once; it is saved for next time.</li>
+<li>The PDF opens in an in-app preview with a Print button. Afterwards the panel offers &quot;Print&quot; and &quot;Amend&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The prescription is created as a draft the moment the first complete medicine line exists, and saves itself after that. The complaint, diagnosis, advice, follow-up date and today&#39;s vitals from the visit notes are copied onto the prescription automatically, so nothing is typed twice. A preset&#39;s English instructions are offered to the &quot;Advice&quot; note when it is still empty.</p>
+<p><strong>Behind the scenes — technically.</strong> The panel uses <code>GET /prescriptions/encounter/:encounterId</code> to find this visit&#39;s prescription, then <code>POST /prescriptions</code> (with <code>patientId</code>, <code>encounterId</code> and the queue session&#39;s doctor as <code>doctorId</code>) for the first save and <code>PATCH /prescriptions/:id</code> with the full medicine list for later saves (autosave after 1 second). &quot;Sign &amp; print&quot; flushes the autosave, then calls <code>POST /prescriptions/:id/finalize</code> with the signature image and <code>GET /prescriptions/:id/pdf</code>. Vitals are copied only when the latest vitals record was taken on the encounter&#39;s date.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only medicine lines with name, dose, frequency and duration are saved.</li>
+<li>&quot;Sign &amp; print&quot; refuses with &quot;Choose how often and for how long for every medicine&quot; or &quot;Add at least one medicine&quot;.</li>
+<li>The panel is shown whether or not the user holds <code>prescriptions.create</code> or the feature <code>patients.prescriptions</code> is on; the server refuses the writes in that case.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code> (feature <code>patients.prescriptions</code>). Doctor template only, by default.</p>
+<p><strong>Data read and written.</strong> <code>prescriptions</code>, <code>prescription_medicines</code>, <code>prescription_history</code>, <code>doctor_signatures</code>.</p>
+<p><strong>Effects on other modules.</strong> The signed prescription appears in the patient&#39;s record and the Prescriptions list (Chapter 32).</p>
+<p><strong>Error cases.</strong> &quot;Could not sign the prescription — try again&quot;, &quot;Signed, but the PDF could not be opened — tap Print&quot;, &quot;Could not save the prescription — try again&quot;.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/consultation/components/PrescriptionPanel.tsx</code> · <code>PrescriptionPanel</code> · <code>backend/src/prescriptions/controllers/prescription.controller.ts</code></p>
+<h3 id="ch31-consultation-31-3-9-order-lab-work-from-the-consultation">31.3.9 Order lab work from the consultation</h3>
+<p><strong>Status:</strong> [Not implemented] — the workspace has no lab-order entry point, and a <strong>lab order</strong> has no link to an encounter.</p>
+<p><strong>What it does.</strong> Nothing in the workspace today. A doctor who wants to send a case to a dental lab must leave the consultation and use the Labs module (Chapter 40), which is reached from the sidebar.</p>
+<p><strong>How the user does it.</strong> Not available in the workspace.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The consultation feature code contains no lab component, the record slide-over has no lab tab, and the lab-order tables carry no encounter reference.</p>
+<p><strong>Behind the scenes — technically.</strong> No <code>lab</code> reference exists in <code>web-app/src/features/consultation/</code>, and <code>backend/src/lab-orders/</code> has no <code>encounter</code> field.</p>
+<p><strong>Rules and validations.</strong> Not applicable.</p>
+<p><strong>Who can do it.</strong> Not applicable (the Doctor template holds <code>lab.orders.create</code> for the Labs module).</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/consultation/</code> · <code>RecordDrawer</code> · <code>backend/src/lab-orders/</code></p>
+<h3 id="ch31-consultation-31-3-10-complete-the-visit">31.3.10 Complete the visit</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Finishing the visit removes the patient from the doctor&#39;s queue, closes the booked appointment, tells reception, and creates the charges for billing.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press &quot;Complete visit&quot; in the header.</li>
+<li>Read the reminders in the &quot;Complete this visit?&quot; dialog (Figure 31.3).</li>
+<li>Press &quot;Complete visit&quot; again, or &quot;Keep working&quot; to go back.</li>
+<li>A &quot;Visit completed&quot; message appears and the doctor returns to &quot;My Queue&quot;.</li>
+</ol>
+<p>The doctor can also press &quot;Complete&quot; directly on the &quot;My Queue&quot; page without opening the workspace. A user holding <code>queue.doctor.any</code> can force-complete a visit the doctor forgot to close (Chapter 30).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> First the screen makes sure the latest notes and prescription are saved; if that fails, it stops and says so. Then, in one transaction, the queue entry becomes completed, the appointment (if any) becomes completed, and billing creates the charges. The doctor&#39;s screen receives no prices or charge data.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch31-complete-sequence.png" alt="Figure 31.5 — Completing a visit"></p>
+<p><em>Figure 31.5 — Sequence from &quot;Complete visit&quot; to the automatic charges.</em></p>
+<p>Figure 31.5 is a sequence diagram with six participants: Doctor, Web app, API, QueueOrchestrator, ChargeSourcesService and PostgreSQL. In step 1 the doctor presses &quot;Complete visit&quot; and confirms. In step 2 the web app flushes any pending notes and prescription saves to the API. In step 3 it sends <code>PATCH /queue/entries/:id/complete</code> with the entry version in If-Match. In step 4 the API calls <code>complete</code> on the QueueOrchestrator. In step 5 the orchestrator locks the entry and moves it from <code>in_consultation</code> to <code>completed</code>. In step 6 it marks the booked appointment as completed. In step 7 it calls <code>syncForEncounter</code> on the ChargeSourcesService in the same transaction. In step 8 that service stops if the feature <code>billing.invoices</code> is off, otherwise it reads the encounter and its treatments. In step 9 it inserts the consultation and treatment charges with &quot;ON CONFLICT DO NOTHING&quot;. In step 10 it voids unbilled charges whose treatment has disappeared and writes billing audit rows. In step 11 the orchestrator writes the queue event and outbox row and commits. In step 12 the API returns the entry result without any charge data, and in step 13 the web app shows &quot;Visit completed&quot; and returns the doctor to My Queue.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/complete</code> → <code>QueueOrchestrator.complete</code>: lock, <code>assertSessionDoctor</code> (or <code>assertAnyDoctor</code> for force-complete), transition to <code>completed</code> with <code>finished_at</code>, queue event <code>COMPLETED</code> (or <code>FORCE_COMPLETED</code>), update the appointment to <code>COMPLETED</code> with <code>completed_at</code>, then <code>ChargeSourcesService.syncForEncounter</code>, all inside one transaction. The automatic charges are described in 31.3.11.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The entry must be <code>in_consultation</code>; otherwise 422 <code>INVALID_TRANSITION</code>.</li>
+<li>Only the session&#39;s doctor, or <code>queue.doctor.any</code> for force-complete.</li>
+<li>The web &quot;Complete visit&quot; button is disabled while saving, once the visit has ended, or when the encounter has no queue entry.</li>
+<li>Nothing is mandatory: a visit can be completed with no notes, no treatment and no prescription.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (complete), <code>queue.doctor.any</code> (force-complete). Doctor template: complete; Admin template: force-complete.</p>
+<p><strong>Data read and written.</strong> <code>queue_entries</code>, <code>queue_events</code>, outbox, <code>appointments</code>, and the billing tables in 31.3.11.</p>
+<p><strong>Effects on other modules.</strong> Queue board, TV display and reception see the change in real time (Chapter 30). Billing receives the charges (Chapter 34). Commission entries follow the charges (Chapter 35).</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Your latest changes could not be saved. Check the connection and try again.&quot; → the pre-completion save failed; nothing is completed.</li>
+<li>409 <code>VERSION_CONFLICT</code> → someone changed the entry; the dialog closes and the workspace reloads.</li>
+<li>403 &quot;Only this queue&#39;s doctor can do that&quot;.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.complete</code> · <code>web-app/src/features/consultation/components/CompleteDialog.tsx</code></p>
+<h3 id="ch31-consultation-31-3-11-automatic-charges-when-the-visit-is-completed">31.3.11 Automatic charges when the visit is completed</h3>
+<p><strong>Status:</strong> [Implemented] — runs only when the organization has the feature <code>billing.invoices</code> enabled.</p>
+<p><strong>What it does.</strong> Every completed consultation produces one consultation <strong>charge</strong> plus one charge per treatment, ready for reception to collect. Nobody has to re-enter what the doctor did.</p>
+<p><strong>How the user does it.</strong> Nothing; it happens on completion. Reception sees the charges at the billing desk (Chapter 34).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The consultation fee comes from the clinic&#39;s &quot;default consultation service&quot; in billing settings. Each treatment linked to a catalog procedure is priced from the catalog, using the doctor-specific price when one exists. A treatment typed by name uses its old-style fee if it has one; otherwise the charge is created at zero and marked &quot;needs pricing&quot; for reception. A pricing problem never blocks the doctor: the charge is only marked &quot;needs pricing&quot;. If the same visit is completed twice, no duplicate charges appear.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>ChargeSourcesService.syncForEncounter(manager, { tenant, queueEntryId, doctorId, completedAt, actorUserId })</code>:</p>
+<ul>
+<li>Returns at once when <code>billing.invoices</code> is not enabled for the organization, or when no encounter exists for the queue entry.</li>
+<li>Loads the encounter&#39;s treatments and the existing active charges with source <code>CONSULTATION</code> or <code>TREATMENT</code> for this encounter.</li>
+<li>Builds drafts with <code>ChargeDraftFactory</code>: one <code>CONSULTATION</code> draft (source id = encounter id) if none exists, and one <code>TREATMENT</code> draft (source id = treatment id) for each treatment not yet billed.</li>
+<li>Prices them through <code>ChargePricingService.resolve</code>. A <code>BillingException</code> is caught, so the draft gets <code>unit_price = 0</code> and <code>needs_pricing = true</code>.</li>
+<li>Sets the charge date to the completion moment converted to a date in the <strong>location&#39;s</strong> timezone.</li>
+<li>Takes a commission snapshot for the doctor&#39;s compensation plan on that date (<code>CommissionService.snapshot</code>).</li>
+<li>Inserts with <code>.orIgnore()</code> against the partial unique index <code>uq_charges_source</code> (organization, source, source id, active only).</li>
+<li>Writes <code>CREATED</code> rows to the billing audit log.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One active charge per source (enforced by <code>uq_charges_source</code>).</li>
+<li>The function returns nothing, so no charge data reaches the doctor&#39;s response.</li>
+<li>Runs inside the queue completion transaction: if it fails, the completion is rolled back.</li>
+</ul>
+<p><strong>Who can do it.</strong> Runs as a system billing actor on behalf of the doctor who completed the visit; no billing permission is needed by the doctor.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_encounters</code>, <code>treatments</code>, <code>location_billing_settings</code>, <code>services</code>, <code>service_prices</code> and the compensation tables (<code>compensation_plans</code>, <code>commission_rules</code>); writes <code>charges</code> and <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing desk and ready-to-bill list (Chapter 34); commission entries (Chapter 35); finance reports (Chapter 36).</p>
+<p><strong>Error cases.</strong> None shown to the doctor; pricing failures are logged as warnings and the charge is flagged &quot;needs pricing&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charge-sources.service.ts</code> · <code>ChargeSourcesService.syncForEncounter</code>, <code>ChargeDraftFactory</code> · (no screen; called by <code>QueueOrchestrator.complete</code>)</p>
+<h3 id="ch31-consultation-31-3-12-void-the-charge-of-a-treatment-the-doctor-removed">31.3.12 Void the charge of a treatment the doctor removed</h3>
+<p><strong>Status:</strong> [Partial] — the logic exists in billing, but no current flow reaches it: there is no endpoint or button that removes a treatment from an encounter, and the charge sync runs only once, at completion.</p>
+<p><strong>What it does.</strong> If a treatment that was already charged disappears from the encounter, its unbilled charge is voided with the reason &quot;Treatment removed by doctor&quot;. If the charge is already on an invoice, the money is kept and the charge is only flagged for review.</p>
+<p><strong>How the user does it.</strong> No user action leads here today.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> When billing compares the encounter&#39;s treatments with the charges it already created, a charge without a matching treatment is either voided (not invoiced yet) or flagged (already invoiced).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>ChargeSourcesService.handleRemoved</code> finds active <code>TREATMENT</code> charges whose <code>source_id</code> is no longer among the encounter&#39;s treatments. Charges without <code>invoice_id</code> are voided (<code>voidCharge</code>, reason &quot;Treatment removed by doctor&quot;) and audited as <code>VOIDED</code>. Invoiced charges get <code>source_removed_at</code> set to the completion time.</p>
+<p><strong>Rules and validations.</strong> Invoiced charges are never voided by this path.</p>
+<p><strong>Who can do it.</strong> System, inside the completion transaction.</p>
+<p><strong>Data read and written.</strong> <code>charges</code>, <code>billing_audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing review of flagged charges (Chapter 34).</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charge-sources.service.ts</code> · <code>ChargeSourcesService.handleRemoved</code> · (no screen)</p>
+<h3 id="ch31-consultation-31-3-13-keep-prices-away-from-doctors">31.3.13 Keep prices away from doctors</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Doctors never see treatment prices in the consultation, the procedure picker or the patient history.</p>
+<p><strong>How the user does it.</strong> Nothing; it is automatic.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Any response from the consultation or treatment endpoints has the <code>cost</code> field removed unless the caller may see prices.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>HideTreatmentPricesInterceptor</code> is applied to the encounters and treatments controllers (and the patient history endpoint). It deletes <code>cost</code> from every object that has a <code>treatmentName</code>, anywhere in the response, unless the caller holds <code>patients.price.view</code>. With no access context it strips (fail-closed). The <code>Treatment.cost</code> column also carries <code>@VisibleIf(&#39;patients.price.view&#39;)</code>. The procedure catalog returns only id, name and code.</p>
+<p><strong>Rules and validations.</strong> Prices are visible only with <code>patients.price.view</code>.</p>
+<p><strong>Who can do it.</strong> <code>patients.price.view</code> is held by the Receptionist, Accountant and Admin templates, not by Doctor.</p>
+<p><strong>Data read and written.</strong> None (response filtering only).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/interceptors/hide-treatment-prices.interceptor.ts</code> · <code>HideTreatmentPricesInterceptor</code> · <code>web-app/src/features/consultation/utils/treatmentInput.ts</code></p>
+<h3 id="ch31-consultation-31-3-14-encounter-and-treatment-records-outside-the-consultation">31.3.14 Encounter and treatment records outside the consultation</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The same backend serves the patient record: reading one encounter in full, listing treatments of a patient or an encounter, and recording a treatment without a consultation.</p>
+<p><strong>How the user does it.</strong> From the patient detail page (Chapter 28), for example the visits and treatments tabs.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> These endpoints follow the patient&#39;s visibility rules: a patient outside the caller&#39;s reach looks like it does not exist.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /encounters/:id</code> → <code>assertPatientInScope</code>, then <code>findOne</code>: the encounter with appointment, queue entry, patient and treatments (newest first), limited to the active location.</li>
+<li><code>GET /treatments?patientId=</code> or <code>?encounterId=</code> → treatments with their plan template, newest first. One of the two parameters is required.</li>
+<li><code>POST /treatments</code> → the standalone create path of <code>TreatmentsService.create</code>. Here the caller may pass <code>encounterId</code>, <code>planTemplateId</code>, <code>serviceId</code> and a legacy <code>cost</code> (0 or more, two decimals).</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A treatment linked to an encounter must belong to the encounter&#39;s patient (&quot;Treatment patient does not match the encounter patient&quot;).</li>
+<li>&quot;Provide either patientId or encounterId&quot; when listing without either.</li>
+<li>Patient scope enforced on every path.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code> (reads), <code>patients.clinical.edit</code> (create). Reads: Doctor, Assistant, Admin. Create: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>patient_encounters</code>, <code>treatments</code>.</p>
+<p><strong>Effects on other modules.</strong> A standalone treatment with no encounter is not picked up by the automatic charges of 31.3.11.</p>
+<p><strong>Error cases.</strong> 404 &quot;Patient not found&quot; / &quot;Encounter not found&quot;; 400 for mismatched patient or missing parameter.</p>
+<p><strong>Technical references:</strong> <code>backend/src/treatments/treatments.controller.ts</code> · <code>TreatmentsService.create</code>, <code>EncountersService.findOne</code> · <code>web-app/src/features/patients/services/patients.api.ts</code></p>
+<h3 id="ch31-consultation-31-3-15-soap-notes-and-note-templates">31.3.15 SOAP notes and note templates</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> There is no separate clinical-note entity (for example structured SOAP notes with versions) and no clinic-defined note templates. The encounter&#39;s own fields (complaint, examination, diagnosis, advice, follow-up date) are the only visit notes, and the one-tap phrases are fixed in the web-app code.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Not built.</p>
+<p><strong>Behind the scenes — technically.</strong> No entity, controller or route for clinical notes or note templates exists in <code>backend/src/encounters/</code> or <code>web-app/src/features/consultation/</code>.</p>
+<p><strong>Rules and validations.</strong> Not applicable.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/encounters/entities/patient-encounter.entity.ts</code> · <code>PatientEncounter</code> · <code>web-app/src/features/consultation/constants/quickPicks.ts</code></p>
+<h2 id="ch31-consultation-31-4-entities-and-data-model">31.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch31-encounter-erd.png" alt="Figure 31.6 — Encounter data model"></p>
+<p><em>Figure 31.6 — Entity-relationship diagram of encounters, treatments and their neighbours.</em></p>
+<p>Figure 31.6 shows the table <code>patient_encounters</code> in the centre with its key columns: <code>id</code> (primary key), <code>queue_entry_id</code> (foreign key, unique), <code>appointment_id</code> (foreign key, null for walk-ins), <code>patient_id</code>, <code>location_id</code>, <code>encounter_date</code>, <code>diagnosis</code> and <code>follow_up_date</code>. In the top row are <code>queue_entries</code> (&quot;starts&quot;), <code>patients</code> (&quot;has&quot;), <code>appointments</code> (&quot;books&quot;) and <code>locations</code> (&quot;hosts&quot;). Under it, <code>treatments</code> (&quot;records&quot;) shows <code>patient_id</code>, the nullable <code>encounter_id</code> and <code>plan_template_id</code>, a logical <code>service_id</code> without a foreign key, <code>treatment_name</code> and the legacy <code>cost</code>. <code>treatments</code> also links to <code>patients</code> (&quot;receives&quot;), to <code>plan_templates</code> (&quot;follows&quot;) and, with a dotted line, to <code>services</code> (&quot;prices&quot;). <code>prescriptions</code> hangs off the encounter (&quot;issues&quot;) through a nullable <code>encounter_id</code>. <code>charges</code> is connected to the encounter by a dotted line (&quot;bills&quot;) through the logical columns <code>encounter_id</code>, <code>source</code> (CONSULTATION or TREATMENT) and <code>source_id</code>.</p>
+<p>The relationships in words:</p>
+<ul>
+<li><strong>Queue entry → encounter.</strong> Each encounter belongs to exactly one queue entry, and a queue entry has at most one encounter (unique <code>queue_entry_id</code>). Deleting the queue entry deletes the encounter (ON DELETE CASCADE).</li>
+<li><strong>Appointment → encounter.</strong> An encounter has an appointment only for booked visits; walk-ins have none. Deleting the appointment keeps the encounter and sets <code>appointment_id</code> to null (ON DELETE SET NULL).</li>
+<li><strong>Patient, organization, location → encounter.</strong> Each encounter belongs to one patient, one organization and one location. Deleting any of them deletes the encounter (ON DELETE CASCADE). The patient id is stored on the encounter for fast lookup even though the queue entry also has it.</li>
+<li><strong>Encounter → treatments.</strong> An encounter can have many treatments. A treatment always belongs to a patient (ON DELETE CASCADE from patients) and may belong to an encounter; deleting the encounter keeps the treatment and clears <code>encounter_id</code> (ON DELETE SET NULL).</li>
+<li><strong>Plan template → treatments.</strong> A treatment may follow a clinic <strong>plan template</strong>; deleting the template clears the link (SET NULL).</li>
+<li><strong>Service → treatment.</strong> <code>treatments.service_id</code> points to a row in <code>services</code> (the billing catalog) but has no database foreign key; it is a logical link checked by the service code.</li>
+<li><strong>Encounter → prescriptions.</strong> A prescription may record the encounter it was written in; deleting the encounter clears the link (SET NULL).</li>
+<li><strong>Encounter → charges.</strong> <code>charges.encounter_id</code> and <code>charges.source_id</code> are logical links (no foreign keys). For the consultation charge, <code>source_id</code> is the encounter id; for a treatment charge, it is the treatment id.</li>
+</ul>
+<p>Indexes exist on <code>appointment_id</code>, <code>organization_id</code>, <code>location_id</code>, <code>patient_id</code> and <code>encounter_date</code> of <code>patient_encounters</code>, and on organization, location, patient and encounter of <code>treatments</code>. The encounter is a different thing from <code>patient_visits</code>, which is a per-location visit-count aggregate (Chapter 18 explains both).</p>
+<h2 id="ch31-consultation-31-5-status-lifecycles">31.5 Status lifecycles</h2>
+<p>The encounter itself has <strong>no status column</strong>. Whether a consultation is running, paused or finished is read from the status of its queue entry. Figure 31.7 therefore shows the queue-entry states that matter to an encounter, using the code&#39;s state names.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch31-encounter-lifecycle.png" alt="Figure 31.7 — Encounter lifecycle through its queue entry"></p>
+<p><em>Figure 31.7 — Life of an encounter, read from the status of its queue entry.</em></p>
+<p>Figure 31.7 is a left-to-right state diagram. From the start point, the transition &quot;PATCH start-consultation, creates the encounter&quot; leads to <code>in_consultation</code>. From <code>in_consultation</code> four transitions leave:</p>
+<ul>
+<li>&quot;PATCH send-for-test&quot; goes to <code>on_hold</code>. From there &quot;PATCH return-from-test&quot; goes to <code>waiting</code>, &quot;call next or select&quot; goes to <code>called</code>, and &quot;start-consultation again, same encounter reused&quot; returns to <code>in_consultation</code>.</li>
+<li>&quot;PATCH complete or force-complete, charges created&quot; goes to <code>completed</code>.</li>
+<li>&quot;PATCH abort, no charges&quot; goes to <code>aborted</code>.</li>
+<li>&quot;transfer, new entry, new encounter later&quot; goes to <code>transferred</code>.</li>
+</ul>
+<p><code>completed</code>, <code>aborted</code> and <code>transferred</code> each lead to the end point.</p>
+<p>Walking through each state:</p>
+<ul>
+<li><strong>in_consultation.</strong> The encounter exists and the doctor is working. Notes, treatments and the prescription are saved continuously.</li>
+<li><strong>on_hold.</strong> The doctor pressed &quot;Send for test&quot; (for example an X-ray). The encounter and everything written so far stay. When reception marks the patient back, the entry returns to <code>waiting</code>; the doctor calls the patient again and starts again, and <code>ensureForQueueEntry</code> returns the same encounter.</li>
+<li><strong>completed.</strong> The visit is finished. The appointment is marked completed and the automatic charges are created (31.3.11). The workspace shows &quot;Visit ended&quot; and disables &quot;Complete visit&quot;.</li>
+<li><strong>aborted.</strong> The doctor pressed &quot;Stop consultation&quot; on &quot;My Queue&quot;. The appointment is closed as cancelled. The encounter row and its notes and treatments remain, but no charges are created because the charge sync runs only on completion.</li>
+<li><strong>transferred.</strong> The patient was moved to another doctor. The encounter stays with the original queue entry. The new queue entry in the other doctor&#39;s queue gets its own encounter when that doctor starts.</li>
+</ul>
+<p>The server does not lock an encounter after completion: <code>PATCH /encounters/:id</code> and <code>POST /encounters/:id/treatments</code> still accept changes. A treatment added after completion is not charged automatically.</p>
+<h2 id="ch31-consultation-31-6-connections-to-other-modules">31.6 Connections to other modules</h2>
+<ul>
+<li><strong>Queue (Chapter 30).</strong> Starting, sending for test, completing, aborting and transferring are queue actions run by <code>QueueOrchestrator</code>. The encounter is created inside the start transaction and billing runs inside the complete transaction.</li>
+<li><strong>Appointments (Chapter 29).</strong> A booked visit&#39;s appointment is linked to the encounter and is marked completed (or cancelled on abort).</li>
+<li><strong>Patients (Chapter 28).</strong> The workspace reads the patient, vitals and history, and the record slide-over reuses the patient tabs. Patient visibility (<code>patients.view</code> scope) governs treatment and encounter reads.</li>
+<li><strong>Prescriptions (Chapter 32).</strong> The Prescription panel writes a prescription linked to the encounter and copies the visit notes onto it.</li>
+<li><strong>Treatment plans (Chapter 33).</strong> A treatment can reference a plan template; planned work is separate from treatments performed.</li>
+<li><strong>Billing (Chapter 34).</strong> Completion creates consultation and treatment charges, priced from the service catalog.</li>
+<li><strong>Commissions (Chapter 35).</strong> Each automatic charge carries a commission snapshot for the doctor.</li>
+<li><strong>Access control (Chapter 57).</strong> <code>consultation.conduct</code>, <code>patients.clinical.*</code>, <code>patients.price.view</code>, <code>queue.doctor.*</code>.</li>
+</ul>
+<h2 id="ch31-consultation-31-7-limitations-and-known-gaps">31.7 Limitations and known gaps</h2>
+<ul>
+<li>No lab-order entry point in the workspace, and lab orders do not reference an encounter.</li>
+<li>No structured clinical notes, SOAP note entity or note templates; the one-tap phrases are fixed in code and dental-oriented.</li>
+<li>Allergies are free text; there is no allergy list and no check of prescribed medicines against allergies.</li>
+<li>Treatments cannot be edited or removed from the workspace, and no API deletes them. The &quot;Treatment removed by doctor&quot; voiding therefore has no current trigger.</li>
+<li>The encounter is not locked after completion; later edits are saved but later treatments are not charged.</li>
+<li>The follow-up date is only a note; it does not book an appointment or remind anyone.</li>
+<li>The Prescription panel is shown even when the user lacks <code>prescriptions.create</code> or the prescriptions feature is off; the server then refuses the save.</li>
+<li>Automatic charges depend on the feature <code>billing.invoices</code> being enabled for the organization; with it off, completion creates no charges and nothing is created later.</li>
+</ul>
+<h2 id="ch31-consultation-31-8-owner-39-s-faq">31.8 Owner&#39;s FAQ</h2>
+<p><strong>When exactly is the encounter created?</strong> When the doctor presses &quot;Patient is here — start&quot;, in the same transaction that moves the queue entry to <code>in_consultation</code>. Check-in does not create it, so waiting patients can still be cancelled cleanly.</p>
+<p><strong>Can a receptionist open the consultation screen?</strong> Not with the default templates. The route and the workspace endpoints need <code>consultation.conduct</code>, which only the Doctor template holds. A custom role can be given it at scope <code>location</code> or <code>org</code>.</p>
+<p><strong>Can one doctor open another doctor&#39;s consultation?</strong> Not with scope <code>own</code>, which the Doctor template uses: the encounter must come from the doctor&#39;s own queue session, otherwise it reads as &quot;not found&quot;.</p>
+<p><strong>What happens if the doctor&#39;s connection drops while typing?</strong> The notes save about a second after typing stops. A failed save shows an error badge and is retried on the next change. Before completion the screen saves everything first and refuses to complete if that fails.</p>
+<p><strong>What if the doctor completes a visit without writing anything?</strong> It is allowed. The dialog only warns. A consultation charge is still created (if billing is enabled), priced from the default consultation service or marked &quot;needs pricing&quot;.</p>
+<p><strong>Do doctors ever see prices?</strong> No. The treatment cost is stripped from responses for anyone without <code>patients.price.view</code>, and the procedure picker returns names only.</p>
+<p><strong>Where are the visit notes stored?</strong> In <code>patient_encounters</code>, columns <code>chief_complaint</code>, <code>examination</code>, <code>diagnosis</code>, <code>advice</code> and <code>follow_up_date</code>, one row per consultation.</p>
+<p><strong>What happens to the record if the visit is stopped half-way?</strong> The encounter and anything written stay in the patient&#39;s history, the appointment is cancelled, and no charges are created.</p>
+<p><strong>If the patient goes for an X-ray and comes back, is a second record created?</strong> No. Starting the consultation again re-uses the same encounter for that queue entry.</p>
+</section></body></html>

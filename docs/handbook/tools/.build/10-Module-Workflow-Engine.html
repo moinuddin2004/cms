@@ -1,0 +1,323 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Workflow Engine</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch43-workflow-engine">Chapter 43 — Workflow Engine (Config Studio)</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch43-workflow-engine"><h1 id="ch43-workflow-engine-chapter-43-workflow-engine-config-studio">Chapter 43 — Workflow Engine (Config Studio)</h1>
+<p>This chapter describes the workflow engine and its editing tool, Config Studio. The engine stores order forms, try-in stage templates and status state machines as versioned data, so that the Lab Management module can run on them. The chapter is written for the product owner, who needs to know what the super admin can configure without a code change, what the engine enforces at run time and what cannot be configured. The data tables are described in Chapter 26; the lab module that uses the engine is described in Chapters 40 and 41.</p>
+<h2 id="ch43-workflow-engine-43-1-what-this-module-is-for">43.1 What this module is for</h2>
+<p>The engine answers three questions for lab work: what does the doctor fill in when ordering an item (a <strong>form schema</strong>), which try-in rounds does the item go through (a <strong>stage template</strong>), and which status changes are allowed, by whom and with what side effects (a <strong>workflow template</strong>). All three belong to a <strong>specialty</strong> (the seed has one, DENTAL). Forms and workflows are versioned. A version is a draft while edited, becomes published when it passes the checks, and is retired when replaced.</p>
+<p>Who uses it: only the <strong>super admin</strong>. Every editing endpoint is restricted to super admins, and the web routes send everyone else to the dashboard. Clinic users never open Config Studio; they only meet its results (the order form, the status names, the allowed actions). Two read-only endpoints serve clinic members: the forms an organization currently uses, and the specialties it works in.</p>
+<p>Where it appears: the <strong>Admin</strong> sidebar group, under <strong>Config Studio</strong>, with three items: <strong>Form schemas</strong> (<code>/studio/forms</code>), <strong>Workflows</strong> (<code>/studio/workflows</code>) and <strong>Stage templates</strong> (<code>/studio/stages</code>). All three are <code>superAdminOnly</code> entries. The route <code>/studio</code> redirects to <code>/studio/forms</code>. The studio routes declare no <code>staticData.can</code>; they rely on the super admin check in the route component and on the API. Config Studio is not tied to a feature key; it is platform-level.</p>
+<h2 id="ch43-workflow-engine-43-2-screens">43.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch43-studio-forms.svg" alt="Figure 43.1 — Config Studio, Form schemas"></p>
+<p><em>Figure 43.1 — Config Studio, Form schemas (screenshot pending).</em></p>
+<p>The page is titled &quot;Form schemas&quot; with the subtitle &quot;Order forms per specialty — JSON definition with a live preview. Platform admins only.&quot; and a <strong>New form</strong> button. It has a search box (&quot;Search by code or name…&quot;), filters by specialty and owner (All owners, Platform defaults, or one organization) and a list of cards or rows showing code, name, specialty, owner, number of versions, and an &quot;Enter&quot; action. An empty list shows &quot;No form schemas yet&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch43-studio-form-detail.svg" alt="Figure 43.2 — Form schema detail"></p>
+<p><em>Figure 43.2 — Form schema detail (screenshot pending).</em></p>
+<p>The detail page has a &quot;Back to form schemas&quot; link, the code and name, an &quot;Inactive&quot; badge when switched off, and tabs <strong>Editor</strong> and <strong>Activity</strong>. The editor has a Versions panel (Version, Status, Created, Published, Retired; icon buttons to open, compare, make a new draft from, or retire a version) and, for a draft, three JSON areas: <code>schemaJson</code> (fields), <code>uiJson</code> (layout) and <code>promotions</code>, each with a format button. Beside it is a live &quot;Form preview&quot; that shows the form as a doctor would see it, with a button to reset answers, and a list &quot;Fix before publishing&quot; that names every problem. Buttons are <strong>Save draft</strong>, <strong>Publish</strong> and <strong>Discard draft</strong>. A compare view marks fields Added, Removed or Changed. The Activity tab lists every change of the form.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch43-studio-workflows.svg" alt="Figure 43.3 — Config Studio, Workflows"></p>
+<p><em>Figure 43.3 — Config Studio, Workflows (screenshot pending).</em></p>
+<p>The Workflows list is titled &quot;Workflows&quot; with the subtitle &quot;States and transitions for orders, items and stages. Platform admins only.&quot; It has a <strong>New workflow</strong> button, the same search and owner filters, and a filter by entity (order, item, stage). The empty state says workflows define which status changes are allowed, by whom, and what they trigger.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch43-studio-workflow-detail.svg" alt="Figure 43.4 — Workflow detail"></p>
+<p><em>Figure 43.4 — Workflow detail (screenshot pending).</em></p>
+<p>The detail page has the same header and Versions panel. A draft is edited as tables: States (Code, Name, Category, Order) and Transitions (From, Action, To, Sides, Roles, Required input, Reason, Effects), with &quot;Any role&quot; and &quot;None&quot; placeholders. Beside the tables is a <strong>Test run</strong> panel that lists the shortest path from the initial state to each end state. Buttons are <strong>Save draft</strong>, <strong>Publish</strong> and <strong>Discard draft</strong>; a compare view shows States and Transitions that changed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch43-studio-stages.svg" alt="Figure 43.5 — Config Studio, Stage templates"></p>
+<p><em>Figure 43.5 — Config Studio, Stage templates (screenshot pending).</em></p>
+<p>The page lists stage templates (Template, Specialty, Owner, Steps, Active) with an edit icon per row and a &quot;New stage template&quot; sheet. The sheet has Code, Name, Specialty, Owner, Active and a list of steps (code, name, lab days, whether a patient visit and doctor approval are needed), with move and remove icon buttons.</p>
+<h2 id="ch43-workflow-engine-43-3-features">43.3 Features</h2>
+<h3 id="ch43-workflow-engine-43-3-1-manage-form-schemas">43.3.1 Manage form schemas</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a form schema (for example CROWN), renames it, lists and searches them, and shows its history. A schema without an owner is the platform default, used by every organization. A schema owned by one organization overrides the default with the same code for that organization.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Config Studio → Form schemas</strong>, click <strong>New form</strong>.</li>
+<li>Fill Code, Name, Description, Specialty, Owner (&quot;Platform default (everyone)&quot; or an organization) and &quot;Start from&quot; (empty definition or a copy of an existing version).</li>
+<li>Save, then open the card with &quot;Enter&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A form schema is the stable identity; the actual fields live in its versions. Creating one makes the schema and its first draft.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /platform/form-schemas</code>, <code>POST /platform/form-schemas</code>, <code>GET /platform/form-schemas/:id</code>, <code>PATCH /platform/form-schemas/:id</code>, <code>GET /platform/form-schemas/:id/history</code>, all behind <code>@RequireSuperAdmin()</code> (<code>PlatformFormSchemasController</code>). <code>FormSchemasService.create</code> / <code>createInTx</code> / <code>update</code> / <code>history</code>. Updates carry <code>version</code> for optimistic locking. Changes are written to <code>audit_logs</code> (entity <code>form_schema</code>); history reads them as a timeline.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Code is unique per specialty and per owner (one platform schema and one per organization for each code).</li>
+<li>The specialty must exist; the owner organization must exist.</li>
+<li>Copying a version needs a version of the same kind.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only. No permission key, no feature key. No system role holds it.</p>
+<p><strong>Data read and written.</strong> Reads and writes <code>form_schemas</code>, <code>form_schema_versions</code>, <code>audit_logs</code>; reads <code>specialties</code>, <code>organizations</code>.</p>
+<p><strong>Effects on other modules.</strong> New schemas appear in the order form of Lab Management once a version is published (43.3.3).</p>
+<p><strong>Error cases.</strong> <code>FORM_SCHEMA_EXISTS</code> (409); <code>FORM_SCHEMA_NOT_FOUND</code> (404); <code>SPECIALTY_NOT_FOUND</code>; <code>ORGANIZATION_NOT_FOUND</code>; 403 for a non-super-admin.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/forms/form-schemas.controller.ts</code> · <code>FormSchemasService</code> · <code>web-app/src/features/engine-studio/pages/DefinitionsListPage.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-2-edit-a-form-version-and-preview-it">43.3.2 Edit a form version and preview it</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a draft version, edits its JSON (fields, layout, promotions), saves it, previews it with sample answers and discards it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open a form schema and, in the Versions panel, click &quot;New draft&quot; (or &quot;New draft from vN&quot;).</li>
+<li>Edit <code>schemaJson</code>, <code>uiJson</code> and <code>promotions</code>. The preview on the side updates, and &quot;Fix before publishing&quot; lists problems.</li>
+<li>Click <strong>Save draft</strong>. An &quot;Unsaved changes&quot; marker shows pending edits.</li>
+<li>Click <strong>Discard draft</strong> to throw it away.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Saving never needs a clean form: problems are shown but do not block saving. The preview runs the same server rules that real orders use, so it tells the truth about what would be accepted.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /platform/form-schemas/:id/versions</code> (<code>createDraft</code>, optionally from a version), <code>GET .../versions/:versionId</code>, <code>PATCH .../versions/:versionId</code> (<code>updateDraft</code>: saves, returns issues), <code>DELETE .../versions/:versionId</code> (<code>discardDraft</code>), <code>POST .../versions/:versionId/validate</code> (<code>validateData</code>: tries answers against any version, drafts included). The checker <code>checkDefinition</code> and the answer validator <code>FormDataValidator</code> are pure code. Field types: <code>tooth_chart</code>, <code>select</code>, <code>multi_select</code>, <code>text</code>, <code>textarea</code>, <code>number</code>, <code>date</code>, <code>boolean</code>, <code>file</code>. Promotions copy chosen answers into typed columns of <code>dental_item_details</code> (shade system, shade, material code, implant system, platform, diameter, margin type), and only to targets whose field type fits.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only a draft&#39;s content can change; a published or retired version cannot.</li>
+<li>At most one draft per form at a time (<code>FORM_DRAFT_EXISTS</code>).</li>
+<li>A discarded draft is deleted, and an audit row on the schema keeps its content.</li>
+<li><code>version</code> must match on save.</li>
+<li>Answer validation rejects unknown keys, so a client typo never silently loses data; a field hidden by <code>visibleIf</code> is neither required nor stored.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>form_schema_versions</code> (<code>schema_json</code>, <code>ui_json</code>, <code>promotions</code>), <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None until published.</p>
+<p><strong>Error cases.</strong> <code>FORM_VERSION_NOT_FOUND</code>; <code>FORM_VERSION_NOT_DRAFT</code>; <code>FORM_DRAFT_EXISTS</code>; stale <code>version</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/forms/form-schemas.service.ts</code> · <code>FormSchemasService.updateDraft</code> · <code>backend/src/engine/forms/form-definition.checker.ts</code> · <code>web-app/src/features/engine-studio/components/FormVersionEditor.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-3-publish-and-retire-a-form-version">43.3.3 Publish and retire a form version</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Publishing makes a draft the live version that new lab orders use. Retiring stops offering a published version to new orders; orders already pinned to it keep working.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the editor with a clean draft, click <strong>Publish</strong>, confirm &quot;Publish version N&quot;.</li>
+<li>To retire, click the retire icon in the Versions panel and confirm &quot;Retire vN&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The system checks the whole definition first. If anything is wrong, nothing is published. Publishing stores exactly what was checked, in cleaned form. The previous published version is retired by the same step, so there is only ever one live version.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST .../versions/:versionId/publish</code> → <code>FormSchemasService.publish</code>: locks the schema and the draft, checks <code>version</code>, runs <code>checkDefinition</code> and throws <code>FORM_DEFINITION_INVALID</code> with an <code>issues</code> list on any problem, then <code>publishInTx</code>. <code>POST .../retire</code> → <code>retire</code>: only the published version can be retired. Status changes are written to <code>status_history</code> and <code>audit_logs</code>. A database check constraint requires a publish date on every non-draft version. Immutability of published versions is enforced by the service, not by a trigger.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Valid JSON shape, unique field keys, known types and properties, consistent options and limits, conditions that point back to fields placed before them only (so no cycles), a layout that names only real fields, promotions to registered columns of a matching type.</li>
+<li>At most one published version per form.</li>
+<li>Retire needs a published version.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>form_schema_versions</code>, <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Clinics see the newly published form on their next lab order (43.3.4). Drafts are never shown to clinics.</p>
+<p><strong>Error cases.</strong> <code>FORM_DEFINITION_INVALID</code> (422, with issues); <code>FORM_VERSION_NOT_DRAFT</code>; <code>FORM_VERSION_NOT_PUBLISHED</code>; stale <code>version</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/forms/form-schemas.service.ts</code> · <code>FormSchemasService.publish</code> / <code>retire</code> · <code>web-app/src/features/engine-studio/components/VersionsPanel.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-4-clinics-read-the-forms-they-use">43.3.4 Clinics read the forms they use</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets any clinic member read the current published form per code for their organization&#39;s specialties, and test answers against a pinned version.</p>
+<p><strong>How the user does it.</strong> Nothing directly. The lab order form and the lab price list load these forms.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> An organization sees the platform defaults and its own forms. Its own form with the same code wins. It never sees drafts or another organization&#39;s forms.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /form-schemas</code> (<code>@AnyMember</code>), <code>GET /form-schemas/versions/:versionId</code>, <code>POST /form-schemas/versions/:versionId/validate</code> → <code>FormResolverService.current</code> / <code>version</code> / <code>validate</code>. A retired version still validates answers, so orders pinned to it keep working. Specialty enablement is respected (<code>SPECIALTY_NOT_ENABLED</code> when an organization does not work in the specialty).</p>
+<p><strong>Rules and validations.</strong> Another organization&#39;s version answers 404.</p>
+<p><strong>Who can do it.</strong> Any member of the active organization (<code>@AnyMember</code>).</p>
+<p><strong>Data read and written.</strong> Reads <code>form_schemas</code>, <code>form_schema_versions</code>, <code>organization_specialties</code>.</p>
+<p><strong>Effects on other modules.</strong> Lab orders (Chapter 40) and the lab catalog.</p>
+<p><strong>Error cases.</strong> <code>FORM_VERSION_NOT_FOUND</code>; <code>FORM_DATA_INVALID</code> (422); <code>SPECIALTY_NOT_ENABLED</code> (403).</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/forms/form-resolver.service.ts</code> · <code>FormResolverService</code> · <code>web-app/src/features/lab-catalog/services/lab-catalog.api.ts</code></p>
+<h3 id="ch43-workflow-engine-43-3-5-manage-workflow-templates">43.3.5 Manage workflow templates</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a workflow template for one kind of record (order, item or stage), lists and searches them, and renames them.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Config Studio → Workflows</strong>, click <strong>New workflow</strong>.</li>
+<li>Fill Code, Name, Description, Specialty, &quot;Runs on&quot; (order, item or stage), Owner, and &quot;Start from&quot; (empty or a copy of an existing version of the same kind).</li>
+<li>Save and open the workflow.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A template is the identity; the state machine is in its versions. A copy keeps the definition but starts a new template.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /platform/workflow-templates</code>, <code>GET/PATCH /platform/workflow-templates/:id</code> → <code>WorkflowTemplatesService.list / create / get / update</code>, all super admin only. Copying checks that the source&#39;s entity type equals the requested one (<code>WORKFLOW_DEFINITION_INVALID</code> otherwise). The new template gets a draft version 1.</p>
+<p><strong>Rules and validations.</strong> Code unique per specialty, entity type and owner (<code>WORKFLOW_TEMPLATE_EXISTS</code>); specialty and organization must exist.</p>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>workflow_templates</code>, <code>workflow_template_versions</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None until a version is published.</p>
+<p><strong>Error cases.</strong> <code>WORKFLOW_TEMPLATE_EXISTS</code>; <code>WORKFLOW_TEMPLATE_NOT_FOUND</code>; <code>WORKFLOW_VERSION_NOT_FOUND</code>; <code>SPECIALTY_NOT_FOUND</code>; <code>ORGANIZATION_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/workflows/workflow-templates.controller.ts</code> · <code>WorkflowTemplatesService</code> · <code>web-app/src/features/engine-studio/pages/DefinitionsListPage.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-6-edit-a-workflow-draft-and-run-a-test">43.3.6 Edit a workflow draft and run a test</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Edits the states and transitions of a draft, and shows a test run: the shortest route from the start to each end state, computed without touching data.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the Versions panel click &quot;New draft&quot; or &quot;New draft from vN&quot;.</li>
+<li>Edit States (code, name, category initial, active, waiting, done or cancelled) and Transitions (from, action, to, sides, roles, required input, reason, effects). The effect dropdown lists only handlers that exist in code.</li>
+<li>Click <strong>Save draft</strong>. Problems appear in &quot;Fix before publishing&quot;; the Test run panel updates.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The definition is JSON while it is a draft. It is not used by any order. The effects list is a menu of code that already exists: configuration can pick among them but cannot add new behaviour.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /platform/workflow-templates/:id/versions</code>, <code>GET .../versions/:versionId</code>, <code>PATCH .../versions/:versionId</code> (<code>updateDraft</code>, returns <code>issues</code> and a <code>simulation</code>), <code>DELETE .../versions/:versionId</code> (<code>discardDraft</code>), <code>GET /platform/workflow-effects</code> (<code>PlatformWorkflowEffectsController</code>, lists <code>EffectRegistry</code> handlers). The simulation is <code>simulateWorkflow</code>. Registered effect codes in this build: <code>recompute_order_status</code>, <code>init_stages</code>, <code>notify</code>, <code>start_warranty</code>, <code>check_warranty_on_remake</code>, <code>create_vendor_bill_draft</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>At most one draft per template (<code>WORKFLOW_DRAFT_EXISTS</code>); only a draft can be edited or discarded.</li>
+<li>Limits: 60 states, 300 transitions.</li>
+<li>Checks at publish time are in 43.3.7.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>workflow_template_versions.definition_json</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None until published.</p>
+<p><strong>Error cases.</strong> <code>WORKFLOW_VERSION_NOT_DRAFT</code>; <code>WORKFLOW_DRAFT_EXISTS</code>; <code>WORKFLOW_VERSION_NOT_FOUND</code>; stale <code>version</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/workflows/workflow-templates.service.ts</code> · <code>WorkflowTemplatesService.updateDraft</code> · <code>backend/src/engine/workflows/workflow-definition.checker.ts</code> · <code>web-app/src/features/engine-studio/components/WorkflowVersionEditor.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-7-publish-and-retire-a-workflow-version">43.3.7 Publish and retire a workflow version</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Publishing turns the JSON draft into real rows (states, transitions, effects) and makes it the version that new orders and items pin. The previous published version is retired in the same transaction.</p>
+<p><strong>How the user does it.</strong> Click <strong>Publish</strong> and confirm &quot;Publish version N&quot;; or use the retire icon and confirm &quot;Retire vN&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The checker is strict: it refuses any machine that could trap work. Rows are written once and never change. Work already in progress stays on the version it started with.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST .../versions/:versionId/publish</code> → <code>publishInTx</code>: runs <code>checkWorkflow(definition, effects.codes())</code>; on any issue throws <code>WORKFLOW_DEFINITION_INVALID</code> with <code>issues</code>. Otherwise inserts <code>workflow_states</code> (with <code>is_terminal</code> from the category and <code>sort_order</code>), <code>workflow_transitions</code> (from, to, action, <code>allowed_sides</code>, <code>allowed_roles</code>, <code>required_fields</code>, <code>requires_reason</code>) and <code>transition_effects</code> (in order, with params), retires the current published version, sets <code>published_at</code> and <code>published_by</code>, and records status history and audit. <code>POST .../retire</code> → <code>retire</code> (only a published version).</p>
+<p><strong>Rules and validations.</strong> The checks (lab ERD section 18):</p>
+<ul>
+<li>Exactly one initial state; at least one done and one cancelled end state.</li>
+<li>Every state reachable from the initial state; every non-terminal state has a way forward (no dead end).</li>
+<li>Nothing leaves a terminal state; no self-loop.</li>
+<li>Unique state codes; each (state, action) leads to one target (except derived changes).</li>
+<li>Only registered effects (no duplicates in one transition) and only existing roles.</li>
+<li>Valid sides (clinic, lab, system) and required fields.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>workflow_template_versions</code>, <code>workflow_states</code>, <code>workflow_transitions</code>, <code>transition_effects</code>, <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> New lab orders and items pin the new version (43.3.9). Existing ones are unchanged.</p>
+<p><strong>Error cases.</strong> <code>WORKFLOW_DEFINITION_INVALID</code> (422, with issues); <code>WORKFLOW_VERSION_NOT_DRAFT</code>; <code>WORKFLOW_VERSION_NOT_PUBLISHED</code>; stale <code>version</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/workflows/workflow-templates.service.ts</code> · <code>WorkflowTemplatesService.publishInTx</code> · <code>web-app/src/features/engine-studio/components/VersionsPanel.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-8-manage-stage-templates">43.3.8 Manage stage templates</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Defines the try-in rounds of a kind of work, for example metal, bisque, final. Not versioned: changing a template affects only work that starts later.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Config Studio → Stage templates</strong>, click to create (&quot;New stage template&quot;), or the edit icon on a row.</li>
+<li>Enter Code, Name, Specialty, Owner, Active, and steps: code, name, lab days, whether a patient visit and doctor approval are needed. Reorder or remove steps with the icon buttons.</li>
+<li>Click <strong>Create template</strong> or <strong>Save changes</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> When an order item starts, the system copies the steps into the item&#39;s own stage rows. Editing a template later cannot damage running work.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /platform/stage-templates</code>, <code>GET/PATCH /platform/stage-templates/:id</code> → <code>StageTemplatesService</code> (<code>PlatformStageTemplatesController</code>, super admin only). Steps are in <code>stage_template_steps</code> (cascade delete with the template). Seeded templates: <code>SINGLE_STAGE</code>, <code>PFM_3_STAGE</code> and <code>COMPLETE_DENTURE</code>.</p>
+<p><strong>Rules and validations.</strong> Code unique per specialty and owner; step codes unique within a template; lab days 0 to 365; the last step must require doctor approval. There is no delete endpoint; a template is switched inactive.</p>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> <code>stage_templates</code>, <code>stage_template_steps</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The <code>init_stages</code> effect creates an item&#39;s stage rows from the template (Chapter 40).</p>
+<p><strong>Error cases.</strong> <code>STAGE_TEMPLATE_EXISTS</code>; <code>STAGE_TEMPLATE_NOT_FOUND</code>; <code>STAGE_TEMPLATE_INVALID</code> (422).</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/stages/stage-templates.service.ts</code> · <code>StageTemplatesService</code> · <code>web-app/src/features/engine-studio/components/StageTemplateSheet.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-9-a-lab-order-39-s-state-machine-comes-from-a-published-workflow-version">43.3.9 A lab order&#39;s state machine comes from a published workflow version</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Every lab order, item and try-in stage stores the id of the workflow version it started on. Every status change is then checked against that version.</p>
+<p><strong>How the user does it.</strong> Nothing special: a doctor creates a lab order draft; later the doctor, the lab or the system performs actions such as submit, accept or approve.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Think of the workflow version as the rule book printed on the day the case opened. The case keeps its copy. If the super admin publishes a new rule book tomorrow, old cases still follow the old one. A referee (the engine) is the only way to change a status: a direct status update is not allowed. The order&#39;s status is not set by hand; it is derived from its items.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>OrderWorkflowService.pinWorkflowVersion</code> chooses the newest published version of the given template, or, without one, of the specialty&#39;s default template for the entity type; the organization&#39;s own template beats the platform&#39;s (<code>ORDER BY organization_id IS NOT NULL DESC</code>). It is stored in <code>workflow_template_version_id</code> on <code>lab_orders</code> and <code>lab_order_items</code>. If no published workflow exists, the order fails with <code>LAB_ORDER_WORKFLOW_MISSING</code>. <code>WorkflowEngineService.transition</code> runs in one transaction: idempotency claim, lock the subject, find the (state, action) pair in its pinned version, check side and role, check required input and reason, write the state, write status history, run the effects in order, run the after-transition hook (derive the order status from its items), audit. <code>transitionIn</code> runs the same inside a larger transaction (for example order submit). <code>applyDerived</code> sets a status the engine computed, which is not looked up as a user transition. <code>compiled</code> loads and caches a version&#39;s states and transitions and refuses a draft version. A clinic user can act for a lab (proxy) only with the lab-coordinator capability, and the action is recorded as proxy.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch43-pin-and-run.png" alt="Figure 43.6 — How a pinned workflow runs"></p>
+<p><em>Figure 43.6 — From publishing a version to a checked transition.</em></p>
+<p>The flowchart reads top to bottom. &quot;Super admin publishes workflow version&quot; leads to &quot;States, transitions, effects written as rows&quot;. &quot;Doctor creates lab order draft&quot; leads to &quot;pinWorkflowVersion: newest published, organization beats platform&quot;, then to &quot;Order and items store workflow_template_version_id&quot;. A &quot;User action, for example accept&quot; goes to &quot;WorkflowEngineService transition&quot;, then to a decision &quot;State and action allowed in the pinned version?&quot;. If no, the result is <code>INVALID_TRANSITION</code> or <code>TRANSITION_FORBIDDEN</code>. If yes, the engine writes state, status history, runs effects and audit, and the order status is derived from its items.</p>
+<p>The seeded dental workflows show what a version holds. The item workflow (<code>DENTAL_ITEM</code>) has states such as Waiting for lab (initial), Accepted, In production, At clinic for try-in, Quality check, Ready, Dispatched, Received, Approved, Delivered (done), and Rejected by lab, Cancelled and Remake required (cancelled). Its transition <code>accept</code> is allowed on the lab side for the lab admin role and requires the field <code>lab_expected_on</code>; <code>reject</code> and <code>qc_fail</code> require a reason; <code>send_tryin</code> and <code>dispatch</code> are system-driven. The order workflow (<code>DENTAL_ORDER</code>) runs Draft, Submitted, Clarification needed, Accepted, In progress, On hold, Partially ready, Ready, Completed and Cancelled, among others. The stage workflow (<code>DENTAL_STAGE</code>) covers one try-in round.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A subject pinned to a draft version is refused (<code>WORKFLOW_MISCONFIGURED</code>).</li>
+<li>A user action needs the right side (clinic, lab or system) and, if the transition lists roles, a matching role.</li>
+<li>Required fields and reasons are enforced per transition.</li>
+<li>Derived order status never overrides terminal states.</li>
+</ul>
+<p><strong>Who can do it.</strong> The permissions are those of the lab order actions (Chapters 40 and 41), not Config Studio. Super admin configures the version only.</p>
+<p><strong>Data read and written.</strong> Reads <code>workflow_template_versions</code>, <code>workflow_states</code>, <code>workflow_transitions</code>, <code>transition_effects</code>. Writes the subject&#39;s <code>status_code</code>, <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Effects fire in Lab Management (stages, warranty, notifications), Lab Finance (the <code>create_vendor_bill_draft</code> effect creates a vendor bill draft when a lab accepts an item, Chapter 42) and order status.</p>
+<p><strong>Error cases.</strong> <code>INVALID_TRANSITION</code> (422), <code>TRANSITION_FORBIDDEN</code> (403), <code>TRANSITION_INPUT_REQUIRED</code> (422), <code>TRANSITION_REASON_REQUIRED</code> (422), <code>WORKFLOW_SUBJECT_NOT_FOUND</code> (404), <code>WORKFLOW_MISCONFIGURED</code> (500), <code>REQUEST_IN_FLIGHT</code> (409), <code>IDEMPOTENCY_KEY_REUSED</code> (422), <code>LAB_ORDER_WORKFLOW_MISSING</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/runtime/workflow-engine.service.ts</code> · <code>WorkflowEngineService.transition</code> · <code>backend/src/lab-orders/workflow/order-workflow.service.ts</code> · <code>OrderWorkflowService.pinWorkflowVersion</code> · <code>backend/src/engine/workflows/order-status.ts</code></p>
+<h3 id="ch43-workflow-engine-43-3-10-compare-versions-and-read-the-activity-log">43.3.10 Compare versions and read the activity log</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows what changed between two versions of a form or workflow, and lists every change to a form.</p>
+<p><strong>How the user does it.</strong> In the Versions panel click the compare icon, pick the compare version; the diff marks Added, Removed, Changed. Open the Activity tab on a form for the timeline.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Comparison happens in the browser on two loaded versions. The activity log is a view of the audit trail.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>FormCompare</code>, <code>WorkflowCompare</code> and <code>DiffView</code> in the web app. <code>GET /platform/form-schemas/:id/history</code> → <code>FormSchemasService.history</code> reads the audit timeline of the schema and of each of its versions. There is no history endpoint for workflows or stage templates; the Activity tab exists only on forms.</p>
+<p><strong>Rules and validations.</strong> Read-only.</p>
+<p><strong>Who can do it.</strong> Super admin only.</p>
+<p><strong>Data read and written.</strong> Reads <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> <code>FORM_SCHEMA_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/forms/form-schemas.service.ts</code> · <code>FormSchemasService.history</code> · <code>web-app/src/features/engine-studio/components/StudioActivity.tsx</code></p>
+<h3 id="ch43-workflow-engine-43-3-11-specialties-and-which-organizations-use-them">43.3.11 Specialties and which organizations use them</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Lists specialties, creates or edits one, and switches a specialty on or off per organization. The seed creates DENTAL, enabled by default.</p>
+<p><strong>How the user does it.</strong> The Studio only reads the specialty list (to fill the Specialty filters and dropdowns). No screen creates a specialty or switches it per organization.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> An organization&#39;s specialty rows are created on first use from the &quot;enabled by default&quot; flag. A super admin&#39;s later on/off choice always wins.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /platform/specialties</code>, <code>POST /platform/specialties</code>, <code>PATCH /platform/specialties/:id</code>, <code>GET /platform/specialties/:id/organizations</code>, <code>PUT /platform/specialties/:id/organizations/:organizationId</code> (<code>PlatformSpecialtiesController</code>, super admin only) and <code>GET /specialties</code> (<code>@AnyMember</code>, the organization&#39;s enabled specialties) → <code>SpecialtiesService</code>. The web client calls only <code>GET /platform/specialties</code>.</p>
+<p><strong>Rules and validations.</strong> Specialty code unique (<code>SPECIALTY_EXISTS</code>); an organization change is audited only when the value changes.</p>
+<p><strong>Who can do it.</strong> Super admin (platform endpoints); any member for <code>GET /specialties</code>.</p>
+<p><strong>Data read and written.</strong> <code>specialties</code>, <code>organization_specialties</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> A specialty that is off for an organization hides its forms (<code>SPECIALTY_NOT_ENABLED</code>).</p>
+<p><strong>Error cases.</strong> <code>SPECIALTY_NOT_FOUND</code>; <code>SPECIALTY_EXISTS</code>; <code>ORGANIZATION_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/specialties/specialties.service.ts</code> · <code>SpecialtiesService</code> · <code>web-app/src/features/engine-studio/services/studio.api.ts</code></p>
+<h3 id="ch43-workflow-engine-43-3-12-built-in-seed-of-dental-defaults">43.3.12 Built-in seed of dental defaults</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> On every start, the engine registers the code effect handlers and creates the dental starter data if it is missing: the DENTAL specialty, five forms (CROWN, BRIDGE, IMPLANT_CROWN, DENTURE, REPAIR), the three dental workflows and three stage templates.</p>
+<p><strong>How the user does it.</strong> Nothing.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The seed only adds what is missing. It never edits existing rows, so published versions stay exactly as they were and a super admin&#39;s changes are not overwritten.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>EngineSeedService</code> (<code>OnApplicationBootstrap</code>, after every effect handler has registered). One advisory lock stops an API and a worker that boot together from both inserting. It syncs <code>workflow_effects</code> from the in-memory registry (a handler removed from code is marked unavailable, old versions that mention it remain).</p>
+<p><strong>Rules and validations.</strong> Insert-if-missing only.</p>
+<p><strong>Who can do it.</strong> Automatic.</p>
+<p><strong>Data read and written.</strong> <code>specialties</code>, <code>form_schemas</code>, <code>form_schema_versions</code>, <code>workflow_templates</code>, <code>workflow_template_versions</code>, <code>workflow_states</code>, <code>workflow_transitions</code>, <code>transition_effects</code>, <code>stage_templates</code>, <code>stage_template_steps</code>, <code>workflow_effects</code>.</p>
+<p><strong>Effects on other modules.</strong> Without this seed no lab order could be created.</p>
+<p><strong>Error cases.</strong> A failure is logged at start.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/seeds/engine-seed.service.ts</code> · <code>EngineSeedService.seed</code> · <code>backend/src/engine/seeds/dental-workflows.seed.ts</code></p>
+<h2 id="ch43-workflow-engine-43-4-entities-and-data-model">43.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch43-engine-erd.png" alt="Figure 43.7 — Engine tables"></p>
+<p><em>Figure 43.7 — Specialties, forms, workflows and the lab orders that pin versions.</em></p>
+<p>The figure shows <code>specialties</code> at the top, with <code>form_schemas</code>, <code>workflow_templates</code> and <code>stage_templates</code> under it. <code>form_schemas</code> own <code>form_schema_versions</code>. <code>workflow_templates</code> own <code>workflow_template_versions</code>, which own <code>workflow_states</code> and <code>workflow_transitions</code>. <code>workflow_transitions</code> link to <code>workflow_effects</code> through <code>transition_effects</code>. A dotted line goes from <code>workflow_template_versions</code> to <code>lab_orders</code>, labelled &quot;pinned by&quot;.</p>
+<p>Each form, workflow and stage template belongs to one specialty; deleting a specialty is blocked. Each version belongs to one template or schema. A published version&#39;s states and transitions are written once. A transition&#39;s effects are listed in order. The link from a lab order to its version is a stored id (<code>workflow_template_version_id</code>); it is drawn as a logical link. Stage steps are removed when their template is removed (cascade). <code>organization_id</code> empty on a schema or template means the platform default. Chapter 26 describes every column and constraint.</p>
+<h2 id="ch43-workflow-engine-43-5-status-lifecycles">43.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch43-version-status.png" alt="Figure 43.8 — Version lifecycle"></p>
+<p><em>Figure 43.8 — A form or workflow version: draft, published, retired.</em></p>
+<p>A version is created as <code>draft</code>. Saving keeps it a draft. Discarding deletes the row (an audit entry keeps its content). Publishing, which requires a clean definition, makes it <code>published</code> and retires the previously published version. Retiring a published version makes it <code>retired</code> with no replacement, so new orders find no published version until another is published (lab orders then fail with <code>LAB_ORDER_WORKFLOW_MISSING</code>). <code>retired</code> is final. At most one draft and one published version exist per template at any time. Stage templates have no versions, only an Active switch.</p>
+<h2 id="ch43-workflow-engine-43-6-connections-to-other-modules">43.6 Connections to other modules</h2>
+<ul>
+<li><strong>Lab Management (Chapter 40)</strong>: order forms, try-in stages and every status change.</li>
+<li><strong>Lab Portal (Chapter 41)</strong>: lab-side actions are transitions with side <code>lab</code>.</li>
+<li><strong>Lab Finance (Chapter 42)</strong>: the <code>create_vendor_bill_draft</code> effect.</li>
+<li><strong>Notifications (Chapter 44)</strong>: the <code>notify</code> effect.</li>
+<li><strong>Audit (Chapter 60)</strong>: every definition change and every transition is recorded.</li>
+<li><strong>Access control (Chapter 57)</strong>: Config Studio uses the super admin check, not permission keys.</li>
+</ul>
+<h2 id="ch43-workflow-engine-43-7-limitations-and-known-gaps">43.7 Limitations and known gaps</h2>
+<ul>
+<li>Config Studio is for super admins only. Clinics cannot create their own forms or workflows, although the data model supports organization-owned ones.</li>
+<li>Effects are fixed in code. Configuration can choose and order them, not create new ones.</li>
+<li>Specialty management and per-organization enablement have no screen.</li>
+<li>Stage templates are not versioned and have no delete.</li>
+<li>Workflows and stage templates have no activity tab.</li>
+<li>The role names in transitions (for example <code>lab_admin</code>, <code>doctor</code>, <code>clinic_admin</code>) are legacy role names derived from permissions; they do not match the five system role templates one to one.</li>
+<li>Studio routes declare no <code>staticData.can</code>; protection is the super admin check in the route component plus the API.</li>
+<li>Published versions are immutable by service logic only; no database trigger enforces it.</li>
+</ul>
+<h2 id="ch43-workflow-engine-43-8-owner-39-s-faq">43.8 Owner&#39;s FAQ</h2>
+<p><strong>Can a clinic owner change the lab order form?</strong> No. Only the super admin, in Config Studio. An organization-owned override exists in the data model.</p>
+<p><strong>If I publish a new workflow, what happens to open lab orders?</strong> Nothing. Each order keeps the version it started on.</p>
+<p><strong>What if I retire the only published workflow?</strong> New orders cannot be created until another version is published.</p>
+<p><strong>Can I add a new action, such as &quot;send SMS to patient&quot;?</strong> Only by choosing an existing effect; a new kind of effect needs code.</p>
+<p><strong>Can I undo a publish?</strong> Not directly. Create a draft from the old version and publish it; the engine retires the one in use.</p>
+<p><strong>Where do I see who changed a form?</strong> Form schemas → Activity tab.</p>
+<p><strong>Why does a workflow fail to publish?</strong> The checker lists each problem: a state that cannot be reached, a dead end, a missing end state, an unknown effect or role.</p>
+<p><strong>Is the Studio tied to a feature flag?</strong> No. It is platform-level and visible only to super admins.</p>
+</section></body></html>

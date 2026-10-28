@@ -1,0 +1,10 @@
+flowchart LR
+    B["Browser"] -->|"HTTP and Socket.IO"| A1["API process 1"]
+    B --> A2["API process 2"]
+    A1 --> DB[("PostgreSQL")]
+    A2 --> DB
+    W["Worker process<br/>run exactly one"] --> DB
+    W -->|"publish events and heartbeat"| RD[("Redis")]
+    RD -->|"subscribe"| A1
+    RD -->|"subscribe"| A2
+    A1 -->|"access change bus"| RD

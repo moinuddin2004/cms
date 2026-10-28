@@ -1,0 +1,54 @@
+erDiagram
+    inventory_categories ||--o{ inventory_items : groups
+    inventory_items ||--o{ stock_movements : "is changed by"
+    employees ||--o{ stock_movements : performs
+    suppliers ||--o{ purchase_orders : supplies
+    employees ||--o{ purchase_orders : creates
+    purchase_orders ||--|{ purchase_order_items : contains
+    inventory_items ||--o{ purchase_order_items : "is ordered as"
+    consumption_templates ||--o{ consumption_template_items : lists
+    inventory_items ||--o{ consumption_template_items : "is kit part"
+    patients ||--o{ patient_consumptions : "used on"
+    consumption_templates |o--o{ patient_consumptions : "based on"
+    patient_consumptions ||--o{ patient_consumption_items : contains
+    inventory_items ||--o{ patient_consumption_items : "is used as"
+    inventory_items {
+        uuid id PK
+        uuid organizationId FK
+        uuid locationId FK
+        uuid categoryId FK
+        decimal currentStock
+        int reorderLevel
+        date expiryDate
+    }
+    stock_movements {
+        uuid id PK
+        uuid inventoryItemId FK
+        uuid performedBy FK
+        enum movementType
+        decimal quantity
+        decimal newStock
+        varchar referenceId
+    }
+    purchase_orders {
+        uuid id PK
+        uuid supplierId FK
+        uuid createdBy FK
+        varchar poNumber
+        enum status
+        decimal totalAmount
+    }
+    purchase_order_items {
+        uuid purchaseOrderId FK
+        uuid inventoryItemId FK
+        decimal orderedQuantity
+        decimal receivedQuantity
+    }
+    patient_consumptions {
+        uuid id PK
+        uuid patientId FK
+        uuid appointmentId FK
+        uuid templateId FK
+        uuid performedBy FK
+        decimal totalCost
+    }

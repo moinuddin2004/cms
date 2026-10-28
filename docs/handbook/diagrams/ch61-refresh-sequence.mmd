@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Screen as Screen
+    participant Axios as apiClient
+    participant API as API
+    Screen->>Axios: request A
+    Axios->>API: A with expired access token
+    API-->>Axios: 401 Token has expired
+    Axios->>Axios: mark A as retried, start refresh
+    Axios->>API: POST /auth/refresh with the cookie
+    API-->>Axios: new access token, new cookie
+    Axios->>Axios: store token and context
+    Axios->>API: A again with the new token
+    API-->>Axios: 200 envelope
+    Axios-->>Screen: data
+    Note over Axios,API: If refresh fails, auth is cleared and the browser goes to /login

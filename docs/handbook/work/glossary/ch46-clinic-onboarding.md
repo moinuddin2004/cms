@@ -1,0 +1,2 @@
+- **Path A / Path B** - self-signup versus super-admin-created organization.
+- **Unmanaged clinic** - an organization with no trial date and no paid date: no plan limits, never expires (code status `unmanaged`).

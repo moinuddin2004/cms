@@ -1,0 +1,12 @@
+stateDiagram-v2
+    direction LR
+    [*] --> DRAFT : POST /purchase-orders
+    DRAFT --> ORDERED : PATCH status ORDERED
+    DRAFT --> CANCELLED : DELETE or PATCH status
+    ORDERED --> PARTIALLY_RECEIVED : POST receive, some lines short
+    ORDERED --> RECEIVED : POST receive, all lines full
+    PARTIALLY_RECEIVED --> RECEIVED : POST receive, all lines full
+    ORDERED --> CANCELLED : PATCH status, API only
+    PARTIALLY_RECEIVED --> CANCELLED : PATCH status, API only
+    RECEIVED --> [*]
+    CANCELLED --> [*]

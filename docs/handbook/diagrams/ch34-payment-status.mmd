@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction LR
+    [*] --> UNPAID : issued, nothing paid
+    UNPAID --> PARTIALLY_PAID : part of balance paid
+    UNPAID --> PAID : balance reaches 0
+    PARTIALLY_PAID --> PAID : balance reaches 0
+    UNPAID --> OVERDUE : due date passes
+    PARTIALLY_PAID --> OVERDUE : due date passes
+    OVERDUE --> PAID : balance reaches 0
+    PAID --> PARTIALLY_PAID : edit raises total or unapply, before due date
+    PAID --> OVERDUE : edit raises total or unapply, after due date

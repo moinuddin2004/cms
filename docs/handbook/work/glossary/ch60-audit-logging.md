@@ -1,0 +1,2 @@
+- **Subject** — record whose merged history an audit row joins (`subject_id`).
+- **Append only** — table protected from update and delete.

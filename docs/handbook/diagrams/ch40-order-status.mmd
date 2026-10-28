@@ -1,0 +1,26 @@
+stateDiagram-v2
+    direction TB
+    [*] --> draft : create, from template or repeat
+    draft --> submitted : submit
+    draft --> cancelled : cancel
+    submitted --> clarification_needed : lab asks a question
+    clarification_needed --> submitted : clinic reply or revision
+    submitted --> rejected_by_lab : lab rejects
+    rejected_by_lab --> draft : reopen
+    submitted --> cancelled : cancel
+    submitted --> accepted : derived - all items accepted
+    accepted --> cancelled : cancel
+    accepted --> in_progress : derived - work started
+    in_progress --> on_hold : hold
+    on_hold --> in_progress : resume
+    in_progress --> partially_ready : derived
+    in_progress --> ready : derived
+    partially_ready --> ready : derived
+    ready --> partially_received : derived
+    ready --> under_review : derived
+    partially_received --> under_review : derived
+    under_review --> in_progress : derived
+    under_review --> completed : derived - all items approved or delivered
+    completed --> partially_received : remake agreed - re-derived
+    completed --> [*]
+    cancelled --> [*]

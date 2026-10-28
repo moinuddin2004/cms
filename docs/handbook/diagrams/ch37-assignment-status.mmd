@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Active : POST /employees
+    Active --> Inactive : PATCH /employees/id/status - isActive false
+    Inactive --> Active : PATCH /employees/id/status - isActive true
+    Active --> Deleted : DELETE /employees/id
+    Inactive --> Deleted : DELETE /employees/id
+    Deleted --> [*]

@@ -1,0 +1,360 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch06-processes-and-deployment"><h1 id="ch06-processes-and-deployment-chapter-6-processes-deployment-and-environments">Chapter 6 — Processes, deployment and environments</h1>
+<p>This chapter explains how the backend of the Platform runs as operating-system processes, what each process does, what Redis is used for, who owns the database schema, and which environment variables the code reads. It is written for the product owner who has to run or deploy the Platform. Everything comes from the backend code and the current migrations document; no deployment configuration exists in the repository, and that gap is stated where it matters.</p>
+<h2 id="ch06-processes-and-deployment-6-1-one-codebase-three-process-roles">6.1 One codebase, three process roles</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The backend is one NestJS application, but it can start in one of three <strong>process roles</strong>. The role decides which parts are switched on. The roles are defined in <code>backend/src/common/runtime/process-role.ts</code>.</p>
+<div class="tw"><table><thead><tr>
+<th>Role</th>
+<th>Entry file</th>
+<th>Start command</th>
+<th>What it runs</th>
+<th>How many</th>
+</tr>
+</thead><tbody><tr>
+<td><code>all</code></td>
+<td><code>main.ts</code></td>
+<td><code>npm run start:dev</code> (watch mode)</td>
+<td>Everything: HTTP API, Socket.IO gateway, outbox relay, notification relay, scheduled jobs. The relay hands realtime events straight to the local gateway, so Redis is not needed for realtime.</td>
+<td>One. The development default.</td>
+</tr>
+<tr>
+<td><code>api</code></td>
+<td><code>main.api.ts</code></td>
+<td><code>npm run start:api</code> (after a build)</td>
+<td>HTTP API and the Socket.IO gateway. Receives realtime events from the worker through Redis. Runs no background jobs.</td>
+<td>Two or more, each with its own port.</td>
+</tr>
+<tr>
+<td><code>worker</code></td>
+<td><code>main.worker.ts</code></td>
+<td><code>npm run start:worker</code> (after a build)</td>
+<td>Outbox relay, notification relay and every scheduled job. No HTTP server at all.</td>
+<td><strong>Exactly one.</strong></td>
+</tr>
+</tbody></table></div><p>The table lists each role with its entry file, its npm script, what it runs and how many copies should run. The split exists so that the API can be scaled out without running the background jobs more than once: scheduled jobs are only loaded where jobs run (<code>runsJobs(role)</code> is true for <code>all</code> and <code>worker</code>), and HTTP is only started where it is needed (<code>runsHttp(role)</code> is true for <code>all</code> and <code>api</code>).</p>
+<p>How the role reaches the code: each entry file calls <code>AppModule.forRole(role)</code>. That method adds, per role, the TypeORM connection (with schema ownership only for HTTP roles), the <code>ScheduleModule</code> (only where jobs run), <code>QueueRuntimeModule.forRole(role)</code> (gateway, Redis subscriber, relay and queue jobs as needed) and <code>NotificationsRuntimeModule.forRole(role)</code> (the notification sending loop only where jobs run).</p>
+<p>Two oddities in the npm scripts:</p>
+<ul>
+<li><code>npm run start:prod</code> runs <code>node dist/main</code>, but the build writes <code>dist/src/main.js</code>. Use <code>start:api</code> and <code>start:worker</code> for built code [Partial].</li>
+<li>The <code>start:api</code> and <code>start:worker</code> scripts run the compiled <code>dist/src/...</code> files, so <code>npm run build</code> must run first.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/common/runtime/process-role.ts</code> · <code>ProcessRole</code> · <code>runsHttp</code> · <code>runsJobs</code> · <code>backend/src/main.ts</code> · <code>backend/src/main.api.ts</code> · <code>backend/src/main.worker.ts</code> · <code>AppModule.forRole</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch06-processes.png" alt="Figure 6.1 — Processes and what connects them"></p>
+<p><em>Figure 6.1 — The production process layout: API processes, one worker, PostgreSQL, Redis and the outside services, plus the single development process.</em></p>
+<p>The figure shows the web app in the browser on the left. It sends HTTPS REST requests to the &quot;API process, role api&quot;, which runs HTTP and the Socket.IO gateway and is meant to run two or more times; a two-way arrow labelled &quot;Socket.IO /realtime&quot; connects the same two boxes. The API process sends SQL to PostgreSQL, uploads files to Cloudinary and sends email through an SMTP server. The &quot;Worker process, role worker&quot; runs the outbox relay, the notification relay and the scheduled jobs, and must run exactly once; it also sends SQL to PostgreSQL, and PostgreSQL sends it NOTIFY messages. The worker publishes realtime events and a heartbeat to Redis, and Redis delivers them to the API process through a subscription. Two more two-way arrows connect Redis with the API process (access and settings cache invalidation) and with the worker (access cache invalidation). A separate box at the bottom, &quot;Development: role all&quot;, shows that in development one process does the work of both API and worker and publishes realtime events in-process; a dotted line shows that it uses the same database.</p>
+<h2 id="ch06-processes-and-deployment-6-2-what-runs-where">6.2 What runs where</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Component</th>
+<th align="center"><code>all</code></th>
+<th align="center"><code>api</code></th>
+<th align="center"><code>worker</code></th>
+</tr>
+</thead><tbody><tr>
+<td>HTTP API (Express, port <code>PORT</code>)</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+</tr>
+<tr>
+<td>Socket.IO gateway <code>/realtime</code> (<code>QueueGateway</code>)</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+</tr>
+<tr>
+<td>Redis realtime subscriber (<code>RedisRealtimeSubscriber</code>)</td>
+<td align="center">no</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+</tr>
+<tr>
+<td>Queue outbox relay (<code>OutboxRelayService</code>)</td>
+<td align="center">yes, publishes in-process</td>
+<td align="center">no</td>
+<td align="center">yes, publishes to Redis</td>
+</tr>
+<tr>
+<td>Notification relay (<code>NotificationRelayService</code>)</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+<td align="center">yes</td>
+</tr>
+<tr>
+<td>Scheduled jobs (<code>@Cron</code>, <code>@Interval</code>)</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+<td align="center">yes</td>
+</tr>
+<tr>
+<td>Postgres extensions, schema synchronize (dev), startup migrations</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+<td align="center">no</td>
+</tr>
+<tr>
+<td>Feature catalog seeding and role template seeding at boot</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+</tr>
+<tr>
+<td>Access and settings cache invalidation bus (Redis)</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+<td align="center">yes</td>
+</tr>
+</tbody></table></div><p>The table shows, for each running component, in which role it is active. Seeding runs in every process because every process loads every domain module; both seeders insert only missing rows and ignore conflicts, so concurrent processes are safe.</p>
+<p><strong>The relays.</strong> Both relays are woken by PostgreSQL <code>LISTEN</code>/<code>NOTIFY</code> on a dedicated database connection and also poll as a fallback: the queue relay every second, the notification relay every two seconds (which also picks up retries and messages held back by quiet hours). If the <code>LISTEN</code> connection fails, they poll only.</p>
+<p><strong>Scheduled jobs.</strong> There are eight. None of them sets a timezone, so every cron time in the next table is in the <strong>server&#39;s</strong> timezone, not the location&#39;s.</p>
+<div class="tw"><table><thead><tr>
+<th>Job</th>
+<th>Schedule</th>
+<th>What it does</th>
+</tr>
+</thead><tbody><tr>
+<td><code>queue-no-show-marker</code></td>
+<td>every 60 seconds</td>
+<td>Marks booked patients who never checked in, past start time plus the allowed lateness, as no-show.</td>
+</tr>
+<tr>
+<td><code>queue-call-timeout</code></td>
+<td>every 15 seconds</td>
+<td>Skips a called patient who never came, when that queue setting is on.</td>
+</tr>
+<tr>
+<td><code>queue-session-day-end</code></td>
+<td>every 5 minutes</td>
+<td>Closes empty queue sessions from a past clinic day; sessions with waiting patients are left for an admin and logged.</td>
+</tr>
+<tr>
+<td><code>queue-cleanup</code></td>
+<td>every day at 03:15 server time</td>
+<td>Deletes idempotency keys older than 24 hours and published outbox rows older than 7 days.</td>
+</tr>
+<tr>
+<td>Patient credits expiry</td>
+<td>every day at 01:00 server time</td>
+<td>Marks active patient credits whose expiry date is before today (server-local midnight) as expired.</td>
+</tr>
+<tr>
+<td><code>billing-invariants</code></td>
+<td>every day at 02:30 server time</td>
+<td>Checks the money invariants for every patient with billing rows and logs violations. Read-only.</td>
+</tr>
+<tr>
+<td>Inventory alerts</td>
+<td>every day at 08:00 server time</td>
+<td>Finds low-stock and expiring items where inventory and inventory alerts are on, and only writes a log line; no notification is created [Partial].</td>
+</tr>
+<tr>
+<td><code>month-end-payroll</code></td>
+<td>on the 1st of each month at 05:00 server time</td>
+<td>Generates payroll for the previous month for every active location.</td>
+</tr>
+</tbody></table></div><p>The table lists each job, how often it runs and its effect. The queue jobs re-check state under the session lock through <code>QueueOrchestrator</code>, so running one twice is harmless. The queue jobs decide &quot;which clinic day&quot; with the location&#39;s timezone through <code>ClockService</code>; the cron trigger times themselves follow the server clock. The payroll job&#39;s code comment says 00:05, but the cron expression means 05:00.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/queue-runtime.module.ts</code> · <code>backend/src/notifications/notifications-runtime.module.ts</code> · <code>backend/src/queue/jobs/queue-jobs.service.ts</code> · <code>BillingInvariantJob</code> · <code>InventoryAlertService</code> · <code>PayrollService.runMonthEndPayroll</code> · <code>PatientCreditsService.checkExpiredCredits</code></p>
+<h2 id="ch06-processes-and-deployment-6-3-what-redis-is-used-for">6.3 What Redis is used for</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Redis is used only for messages between processes. No business data is stored in it.</p>
+<div class="tw"><table><thead><tr>
+<th>Use</th>
+<th>Channel or name</th>
+<th>Publishers → listeners</th>
+<th>Without Redis</th>
+</tr>
+</thead><tbody><tr>
+<td>Realtime queue events</td>
+<td>the queue realtime channel</td>
+<td>Worker relay → every API instance; worker heartbeat every 5 s</td>
+<td>In <code>all</code> mode not needed. In split mode the relay keeps rows unpublished and retries; API instances refuse sockets after 15 s without a heartbeat and clients poll.</td>
+</tr>
+<tr>
+<td>Access changes</td>
+<td>the access-changed channel</td>
+<td>Any process that bumps an organization&#39;s access version → every process (access cache, feature cache, socket <code>access.changed</code>)</td>
+<td>Only the process that made the change hears it; others catch up through their cache lifetimes (15 s for the access version, 30 s for features).</td>
+</tr>
+<tr>
+<td>Settings cache invalidation</td>
+<td><code>settings-registry:invalidate</code></td>
+<td>Any process → every process</td>
+<td>Other processes catch up through the settings cache lifetime.</td>
+</tr>
+<tr>
+<td>Bull queue <code>submissions</code></td>
+<td>Bull connection</td>
+<td>Registered, but no producer or consumer exists</td>
+<td>Nothing depends on it.</td>
+</tr>
+</tbody></table></div><p>The table lists the four uses of Redis, the channel names, who talks to whom and what happens when Redis is unavailable. Redis connections are created to fail fast (no offline queue) and reconnect with back-off. The connection string is <code>REDIS_URL</code>; the default is a Redis on the local machine. The exact channel names are defined in <code>realtime-bus.ts</code> and <code>access-change-bus.ts</code>.</p>
+<p>Login rate limiting does not use Redis: attempts are counted in each process&#39;s memory, so with several API instances each instance counts on its own.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/redis/redis-connection.ts</code> · <code>backend/src/queue/realtime/realtime-bus.ts</code> · <code>AccessChangeBus</code> · <code>backend/src/settings-registry/settings-cache-bus.ts</code> · <code>backend/src/auth/guards/rate-limiter.guard.ts</code></p>
+<h2 id="ch06-processes-and-deployment-6-4-who-owns-the-database-schema">6.4 Who owns the database schema</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> The table structure is defined by the entity classes in the code. In development the API adjusts the database to the entities automatically on start. In production nothing changes the tables automatically: an operator first reviews the planned changes and then applies them. Hand-written migrations add what entities cannot express, such as triggers.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li><strong>Entities own table shapes.</strong> Only processes that serve HTTP own the schema (<code>api</code> and <code>all</code>); the worker never touches it.</li>
+<li><strong>Start-up order in a schema-owning process:</strong><ol>
+<li><code>ensurePostgresExtensions</code> installs the <code>btree_gist</code> extension (needed by the doctor double-booking constraint) and a <code>uuid_generate_v7()</code> function (default primary key of the lab tables).</li>
+<li>The TypeORM connection starts. <code>synchronize</code> is <strong>on</strong> unless <code>NODE_ENV</code> is <code>production</code>.</li>
+<li><code>runPendingMigrations</code> records the legacy baseline as applied, then runs pending migrations, each in its own transaction. If one fails, start-up fails.</li>
+</ol>
+</li>
+<li><strong>Migrations.</strong> <code>backend/src/migrations/</code> holds three files. <code>1776356529788-create-table.ts</code> is a legacy baseline that is recorded as applied and never executed. The other two (<code>doctor-compensation</code>, <code>lab-management-foundation</code>) are hand-written and idempotent: they skip tables that already exist and add triggers and backfills.</li>
+<li><strong>Production.</strong> <code>synchronize</code> is off. The documented procedure is: build; review the SQL with <code>npm run schema:log:prod</code>; apply it with <code>npm run schema:sync:prod</code> after a backup; start <strong>one</strong> API instance so it runs the migrations; only then start further API instances and the worker (concurrent start-ups take no migration lock). Alternatively run <code>npm run migration:run:prod</code> as a release step.</li>
+<li><strong>CLI data source.</strong> The TypeORM command-line tools use <code>backend/src/data-sourse.ts</code>, which loads entities by file pattern. It therefore also sees entity files that no module registers (<code>chairs</code> and the old single <code>inventory</code> entity), which can show up in <code>schema:log</code> output.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>backend/src/common/database/ensure-extensions.ts</code> · <code>backend/src/common/database/migrations.ts</code> · <code>runPendingMigrations</code> · <code>backend/src/data-sourse.ts</code> · <code>docs/database-migrations.md</code></p>
+<h2 id="ch06-processes-and-deployment-6-5-environments">6.5 Environments</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<p>The code knows only one environment switch: <code>NODE_ENV</code>. When it equals <code>production</code>:</p>
+<ul>
+<li>TypeORM <code>synchronize</code> is off;</li>
+<li>the refresh-token cookie is marked <code>secure</code> (sent over HTTPS only).</li>
+</ul>
+<p>Everything else is the same in every environment. There is no separate staging configuration, no environment-specific config file and no feature that behaves differently per environment. The README and the migrations document describe a production database hosted on Neon (managed PostgreSQL); the code&#39;s SSL settings are written to work with Neon.</p>
+<p><strong>Not in the repository [Not implemented]:</strong></p>
+<ul>
+<li>no Dockerfile or container compose file;</li>
+<li>no CI pipeline (no <code>.github/</code> folder or other CI configuration);</li>
+<li>no hosting, process-manager or load-balancer configuration.</li>
+</ul>
+<p>Whoever deploys the Platform must therefore provide, outside the repository: a PostgreSQL database, a Redis server (required as soon as <code>api</code> and <code>worker</code> run as separate processes), a way to run two or more <code>api</code> processes behind a load balancer and exactly one <code>worker</code>, HTTPS, and the web app build. The Socket.IO gateway allows both WebSocket and long-polling transports; the web app connects with WebSocket only, and a code comment notes that long-polling behind several API instances would need sticky sessions.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>backend/src/auth/auth.service.ts</code> (<code>REFRESH_TOKEN_COOKIE_OPTIONS</code>) · <code>backend/src/queue/realtime/queue.gateway.ts</code></p>
+<h2 id="ch06-processes-and-deployment-6-6-environment-variables">6.6 Environment variables</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Values are never shown in this handbook. The backend reads its variables through <code>@nestjs/config</code> (which loads <code>backend/.env</code>) or <code>process.env</code>. The template file <code>backend/.env.example</code> lists some of them.</p>
+<div class="tw"><table><thead><tr>
+<th>Variable</th>
+<th>Purpose</th>
+<th>In <code>.env.example</code></th>
+</tr>
+</thead><tbody><tr>
+<td><code>DATABASE_URL</code></td>
+<td>PostgreSQL connection string for the API, the worker, the relays&#39; <code>LISTEN</code> connections and the CLI.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td>HTTP port of an API process (default 5000).</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>NODE_ENV</code></td>
+<td><code>production</code> turns <code>synchronize</code> off and makes the refresh cookie secure.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>JWT_ACCESS_SECRET</code></td>
+<td>Signs and checks access tokens (also used by the Socket.IO gateway).</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>JWT_REFRESH_SECRET</code></td>
+<td>Listed in the template, but no code reads it: refresh tokens are random values stored with the session, not JWTs.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>EMAIL_TOKEN_SECRET</code>, <code>RESET_TOKEN_SECRET</code></td>
+<td>Listed in the template, but no code reads them: verification and reset tokens are random values.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>REDIS_URL</code></td>
+<td>Redis for the realtime bus, the access and settings buses and Bull (default: local Redis).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>CORS_ORIGIN</code></td>
+<td>The one web origin allowed by CORS and by the Socket.IO gateway (default <code>http://localhost:3000</code>).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>FRONTEND_URL</code></td>
+<td>Base URL of the web app used in email links (default <code>http://localhost:3000</code>).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>SMTP_USER</code>, <code>SMTP_PASS</code></td>
+<td>Credentials of the outgoing mail account.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>CLOUDINARY_CLOUD_NAME</code>, <code>CLOUDINARY_API_KEY</code>, <code>CLOUDINARY_API_SECRET</code></td>
+<td>File uploads to Cloudinary.</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>MAGIC_LINK_SECRET</code></td>
+<td>Signs lab magic links; falls back to <code>JWT_ACCESS_SECRET</code>, then <code>JWT_SECRET</code>.</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>JWT_SECRET</code></td>
+<td>Last fallback for the magic-link secret only.</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>LAB_MAGIC_LINK_TTL_HOURS</code></td>
+<td>Lifetime of a lab magic link (default 24 hours, at most 7 days).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>LAB_LINK_RATE_LIMIT</code></td>
+<td>Request limit for magic-link pages (default 120).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>RATE_LIMIT_LOGIN_MAX</code>, <code>RATE_LIMIT_LOGIN_WINDOW_SECONDS</code></td>
+<td>Login rate limit (default 5 attempts per 900 seconds).</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>GITHUB_CLIENT_ID</code>, <code>GITHUB_CLIENT_SECRET</code></td>
+<td>OAuth sign-in. OAuth is not registered, so these have no effect [Not implemented].</td>
+<td>yes</td>
+</tr>
+<tr>
+<td><code>VITE_API_BASE_URL</code> (web app)</td>
+<td>Base URL of the API for the browser (default <code>http://localhost:5000</code>).</td>
+<td>no web template exists</td>
+</tr>
+</tbody></table></div><p>The table lists every environment variable the code reads, with its purpose and whether the template file mentions it. Variables only used by the integration test suites (for example <code>BILLING_IT_DATABASE_URL</code> and the <code>*_KEEP_SCHEMA</code> switches) are described in Chapter 7.</p>
+<p><strong>Technical references:</strong> <code>backend/.env.example</code> (names only) · <code>backend/src/bootstrap/http.ts</code> · <code>backend/src/lab-access/magic-links/magic-link-token.ts</code> · <code>backend/src/common/services/mail.service.ts</code> · <code>web-app/src/lib/api.ts</code></p>
+</section></body></html>

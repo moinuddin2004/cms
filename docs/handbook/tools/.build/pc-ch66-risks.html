@@ -1,0 +1,290 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch66-risks"><h1 id="ch66-risks-chapter-66-risks">Chapter 66 — Risks</h1>
+<p>This chapter lists the risks an owner carries by running the Platform as it is today: risks in the data model, risks in how it is operated, observations that a regulator or a careful customer might ask about, and security risks described at category level only. It is for the product owner, who decides what to fix before more clinics rely on the Platform. Nothing in this chapter was tested by running the application; every item comes from reading the code and the generated data-model catalog.</p>
+<h2 id="ch66-risks-66-1-how-to-read-the-risks">66.1 How to read the risks</h2>
+<p>Each risk has a likelihood in normal use (Likely, Possible, Unlikely) and an impact on a live clinic (High, Medium, Low). Security items are grouped by category and deliberately contain no file paths, endpoint paths, secret values or exploit detail, because this text is shared outside the engineering team. The engineering team holds the detailed findings separately.</p>
+<h2 id="ch66-risks-66-2-data-model-risks">66.2 Data-model risks</h2>
+<div class="tw"><table><thead><tr>
+<th>Risk</th>
+<th>What can happen</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Count-plus-one and last-plus-one numbering</td>
+<td>After a permanent delete, or when two people save at the same moment, a patient, plan, employee or purchase order number can repeat and the save fails.</td>
+<td>Likely for patients after any delete</td>
+<td>High</td>
+<td>Chapters 28, 62</td>
+</tr>
+<tr>
+<td>Platform-wide unique keys with per-organization numbering</td>
+<td>Prescription and purchase order numbers restart for each organization but are unique across all of them, so a second clinic collides with the first.</td>
+<td>Likely in a multi-clinic deployment</td>
+<td>High</td>
+<td>Chapters 19, 32, 39, 62</td>
+</tr>
+<tr>
+<td>Login id stored in employee-id columns</td>
+<td>Some writes put a user id where an employee id is expected. Without a foreign key the value is silently wrong; with one the write may fail.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 28, 32, 39</td>
+</tr>
+<tr>
+<td>Tenant columns without foreign keys</td>
+<td>Most billing, queue and lab tables keep organization and location ids with no foreign key, so the database cannot reject a wrong tenant id.</td>
+<td>Unlikely</td>
+<td>Medium</td>
+<td>Chapters 12, 27</td>
+</tr>
+<tr>
+<td>&quot;Append-only&quot; promised by comments only</td>
+<td>Only the commission ledger, the audit log and the status history are protected by triggers. The billing audit log, the queue log, the ledgers and the allocation table rely on application code.</td>
+<td>Unlikely</td>
+<td>Medium</td>
+<td>Chapters 26, 27</td>
+</tr>
+<tr>
+<td>Duplicate concepts</td>
+<td>Two prescription tables, two audit mechanisms, two number-sequence mechanisms, two outbox tables and two feature-switch mechanisms coexist. A change to one can miss the other.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Deletes blocked by RESTRICT keys</td>
+<td>Deleting a patient or employee with history fails with a generic error.</td>
+<td>Likely</td>
+<td>Low</td>
+<td>Chapters 16, 17</td>
+</tr>
+<tr>
+<td>Schema drift between development and production</td>
+<td>Development builds the schema from the entities; production applies a reviewed diff. Two migrations were written before later entity changes, so production needs the diff applied.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 6, 12</td>
+</tr>
+<tr>
+<td>Mixed timestamp types</td>
+<td>Older tables use timestamps without a time zone, newer ones with.</td>
+<td>Unlikely</td>
+<td>Low</td>
+<td>Chapter 12</td>
+</tr>
+</tbody></table></div><p>The two numbering rows are the most urgent because they fail in ordinary use. The rest are latent: they cost nothing until a clinic hits a particular edge.</p>
+<h2 id="ch66-risks-66-3-operational-risks">66.3 Operational risks</h2>
+<div class="tw"><table><thead><tr>
+<th>Risk</th>
+<th>What can happen</th>
+<th>Likelihood</th>
+<th>Impact</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Exactly one worker process</td>
+<td>The worker runs the outbox relay, the notification relay and all eight scheduled jobs. Two workers would duplicate jobs; none would stop live queue updates, notifications and nightly checks. There is no supervision described.</td>
+<td>Possible</td>
+<td>High</td>
+<td>Chapters 6, 63</td>
+</tr>
+<tr>
+<td>In-memory rate limiting</td>
+<td>Login and other limits are counted in one API process. With several instances the limit multiplies, and a restart clears it.</td>
+<td>Likely when scaled out</td>
+<td>Medium</td>
+<td>Chapters 6, 56</td>
+</tr>
+<tr>
+<td>Server time zone for jobs</td>
+<td>No schedule sets a time zone, so jobs follow the server clock, not each location.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapters 6, 62, 63</td>
+</tr>
+<tr>
+<td>No deploy or CI configuration</td>
+<td>There is no pipeline, container file or hosting description in the repository. Builds and releases depend on individual knowledge. The built output path also differs from the one in the start script.</td>
+<td>Likely</td>
+<td>High</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Dependence on Redis</td>
+<td>Realtime updates, access-change propagation and settings caches use Redis. Without it clinics see stale screens for up to the fallback interval.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapters 54, 63</td>
+</tr>
+<tr>
+<td>Per-process caches</td>
+<td>The subscription decision (30 seconds), access context (5 minutes), version (15 seconds) and queue policy (60 seconds) are cached per process.</td>
+<td>Likely</td>
+<td>Low</td>
+<td>Chapters 30, 45, 57</td>
+</tr>
+<tr>
+<td>Nightly jobs only log</td>
+<td>The money invariant check and the inventory alert job write to the log. Nobody is told unless someone reads it.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapters 34, 39</td>
+</tr>
+<tr>
+<td>Calendar licence</td>
+<td>The appointment calendar uses premium resource views from a third-party library, and the licence key in use is a non-commercial one.</td>
+<td>Likely</td>
+<td>Medium</td>
+<td>Chapter 29</td>
+</tr>
+<tr>
+<td>Seeded data re-created at boot</td>
+<td>Seeds run in the worker as well as the API and recreate a deleted system role, and re-seed starter plan templates when a clinic has none.</td>
+<td>Possible</td>
+<td>Low</td>
+<td>Chapters 11, 33</td>
+</tr>
+<tr>
+<td>Unrun test coverage of behaviour</td>
+<td>The handbook was written by reading code. The access and billing suites exist, but the findings here were not reproduced.</td>
+<td>Possible</td>
+<td>Medium</td>
+<td>Chapter 64</td>
+</tr>
+</tbody></table></div><p>Of these, the single worker and the missing deploy configuration matter most, because a failure there is silent and affects every clinic at once.</p>
+<h2 id="ch66-risks-66-4-compliance-sounding-observations">66.4 Compliance-sounding observations</h2>
+<p>These are observations, not legal conclusions. A clinic or a regulator may ask about them; the Platform makes no compliance claim, and earlier screenshots that showed such claims were excluded from the handbook.</p>
+<ul>
+<li><strong>No retention policy.</strong> Nothing purges or archives old sessions, security logs, audit rows, notification messages or consent signatures. Network addresses and browser strings are kept indefinitely.</li>
+<li><strong>Audit coverage is partial.</strong> Patient records, billing, prescriptions and queue events keep history. Appointments, employees, payroll, organizations and locations do not, and there is no organization-wide viewer.</li>
+<li><strong>No row-level security.</strong> Tenant isolation is application-level only. The queue sets database session values for tenant and location, but no database policy uses them.</li>
+<li><strong>Patient documents on external storage.</strong> Documents, insurance images and prescription PDFs are stored with an external provider and referenced by address. Access to those addresses is not decided by the Platform&#39;s permissions.</li>
+<li><strong>Consent signatures inside the database.</strong> Signature images are stored inline in the consent row, and immutability of consents is a convention, not a database rule.</li>
+<li><strong>Message text in logs.</strong> The stand-in delivery provider writes message bodies and recipient addresses to the application log, which would be unsuitable once real patient channels are switched on. Outbox rows also keep rendered text.</li>
+<li><strong>No second factor or lockout.</strong> Accounts rely on a password with a short minimum.</li>
+</ul>
+<h2 id="ch66-risks-66-5-security-risks-by-category">66.5 Security risks by category</h2>
+<p>These categories summarise findings from all chapters. They contain no locations, paths or exploit detail by design.</p>
+<div class="tw"><table><thead><tr>
+<th>Category</th>
+<th>Summary</th>
+<th>Impact</th>
+<th>Chapters</th>
+</tr>
+</thead><tbody><tr>
+<td>Tenant isolation checks missing on some endpoints</td>
+<td>A few reads or writes do not filter by organization or location, or do not verify that referenced records belong to the caller&#39;s organization or patient scope. A few reads apply organization scope where the permission has a narrower scope.</td>
+<td>High</td>
+<td>19, 30, 32, 33, 34, 42</td>
+</tr>
+<tr>
+<td>Application-level isolation only</td>
+<td>No database row-level policies back up the application checks, so one missed check is a data leak.</td>
+<td>Medium</td>
+<td>8, 30, 57</td>
+</tr>
+<tr>
+<td>Committed credentials in test scripts</td>
+<td>Test scripts and a fixture in the repository hold a database connection and test passwords. They need rotation and removal from history.</td>
+<td>High</td>
+<td>Inventory of documents</td>
+</tr>
+<tr>
+<td>Token handling and logging</td>
+<td>A legacy realtime gateway logs token-related data and accepts any origin. Real-time connections check the token once and outlive its expiry. A revoked session&#39;s access token stays valid until it expires.</td>
+<td>High</td>
+<td>56, 57, 63</td>
+</tr>
+<tr>
+<td>Input from clients trusted</td>
+<td>The server fetches a signature image address supplied by the client. An upload route is open to any organization member. Upload size and type are only partly restricted. Some edit screens send whole rows.</td>
+<td>Medium</td>
+<td>28, 32, 58</td>
+</tr>
+<tr>
+<td>Information exposure in errors</td>
+<td>The error envelope carries raw internal messages for unexpected errors.</td>
+<td>Medium</td>
+<td>5, 61</td>
+</tr>
+<tr>
+<td>Public routes by design</td>
+<td>The waiting-room display and lab magic links need no login by design, using an identifier or a bearer token as the credential. They rely on expiry, revocation and throttling, and the throttle is in memory.</td>
+<td>Medium</td>
+<td>30, 40, 41</td>
+</tr>
+<tr>
+<td>Secret reuse</td>
+<td>The signing secret for magic links falls back to the access-token secret when its own is missing.</td>
+<td>Medium</td>
+<td>40, 41</td>
+</tr>
+<tr>
+<td>Authentication hardening</td>
+<td>Short minimum password, two different minimums on two paths, no lockout, no second factor, no logging of wrong passwords, no rate limit on two sensitive endpoints.</td>
+<td>Medium</td>
+<td>56, 45, 47</td>
+</tr>
+<tr>
+<td>Authorization granularity</td>
+<td>Some actions need only a broad read permission, and one payroll permission guards all payroll data.</td>
+<td>Medium</td>
+<td>37, 38, 40</td>
+</tr>
+<tr>
+<td>Audit and retention</td>
+<td>Missing audit for personnel and payroll data; no retention.</td>
+<td>Medium</td>
+<td>13, 60</td>
+</tr>
+<tr>
+<td>Money-moving replay protection</td>
+<td>Idempotency keys are required for most money actions but optional for one vendor payment path.</td>
+<td>Low</td>
+<td>42</td>
+</tr>
+<tr>
+<td>Third-party licence</td>
+<td>See the calendar licence in Section 66.3.</td>
+<td>Medium</td>
+<td>29</td>
+</tr>
+</tbody></table></div><p>The high-impact rows are tenant-isolation gaps, committed credentials and token handling. The others are hardening work that lowers the chance and the blast radius of a mistake.</p>
+<h2 id="ch66-risks-66-6-what-to-fix-first">66.6 What to fix first</h2>
+<p>Fix the committed credentials first: rotate them and remove the files from history, because the exposure already exists. Then close the tenant-isolation gaps and the token logging, since a single missing filter lets one clinic read another&#39;s data. Third, fix the two numbering collisions, which break daily work. Fourth, document and automate deployment and decide how the single worker is supervised. After these, add audit coverage for staff and payroll and a retention policy, then harden authentication and the realtime token check. The rest can follow the roadmap.</p>
+</section></body></html>

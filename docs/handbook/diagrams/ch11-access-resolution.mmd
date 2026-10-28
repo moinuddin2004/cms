@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TB
     Req["Request: user, organization, location"] --> Ver["Read access_version<br/>cached 15 s"]
     Ver --> Hit{"Cached context for user, org,<br/>location and version, under 5 min?"}
     Hit -- "yes" --> Ctx

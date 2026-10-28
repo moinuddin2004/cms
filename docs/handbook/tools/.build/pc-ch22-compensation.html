@@ -1,0 +1,119 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch22-compensation"><h1 id="ch22-compensation-chapter-22-compensation">Chapter 22 — Compensation</h1>
+<p>This chapter describes the four tables that decide how a doctor or other employee is paid: compensation plans, commission rules, the commission ledger and commission settlements. It is for the product owner who needs to understand how commission is recorded, why its amounts can never be edited, and how it reaches payroll. The tables live in the billing module (<code>backend/src/billing/commissions/</code>) and connect billing charges, lab invoice lines and payroll records. The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference.</p>
+<p><strong>Status:</strong> [Implemented]. Plans and rules are edited from the employee screens; commission entries are written automatically when money is collected; settlements are created and paid through payroll; the commission pages show earnings.</p>
+<h2 id="ch22-compensation-22-1-the-idea-in-one-paragraph">22.1 The idea in one paragraph</h2>
+<p>Pay is set per <strong>assignment</strong>, which is an employee&#39;s link to one organization and location, because the same doctor can be paid differently at two branches. A <strong>compensation plan</strong> says how the assignment is paid during a date range: salary, commission, or both. <strong>Commission rules</strong> override the plan&#39;s default rate for one service or one service category. Commission is earned only on money actually collected. Every time collection on a charge changes, the Platform writes a <strong>commission entry</strong> with only the difference, positive or negative. When payroll is generated, the unsettled entries of the assignment are grouped into a <strong>settlement</strong>, which is paid through one <strong>payroll record</strong>.</p>
+<p><strong>Money convention.</strong> All amounts here are <code>bigint</code> paisa (integer minor units). Rates are basis points: 4000 means 40.00%.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch22-compensation-erd.png" alt="Figure 22.1 — Compensation tables"></p>
+<p><em>Figure 22.1 — Compensation plans, commission rules, the commission ledger and settlements, with their links to billing and payroll.</em></p>
+<p>The figure shows <code>employee_org_location_assignments</code> with three solid lines: to <code>compensation_plans</code> (&quot;paid under, CASCADE&quot;), to <code>commission_entries</code> (&quot;earns, RESTRICT&quot;) and to <code>commission_settlements</code> (&quot;batched for, RESTRICT&quot;). <code>compensation_plans</code> connects to <code>commission_rules</code> (&quot;overridden by, CASCADE&quot;) and to <code>charges</code> (&quot;rate snapshot, RESTRICT&quot;), and has a dotted line to <code>lab_invoice_lines</code> (commission_plan_id, no FK). <code>services</code> connects to <code>commission_rules</code> (&quot;service rule, CASCADE&quot;). <code>commission_entries</code> receives solid lines from <code>charges</code> (&quot;on clinic charge&quot;), <code>lab_invoice_lines</code> (&quot;on lab line&quot;) and <code>commission_settlements</code> (&quot;settles&quot;), all RESTRICT. <code>payroll_records</code> connects one-to-one with <code>commission_settlements</code> (&quot;paid through, RESTRICT&quot;). Each main box shows its key columns, and <code>amount_paisa</code> on the entry is marked &quot;signed&quot;.</p>
+<h2 id="ch22-compensation-22-2-tables">22.2 Tables</h2>
+<h3 id="ch22-compensation-compensation-plans-how-an-assignment-is-paid"><code>compensation_plans</code> — how an assignment is paid</h3>
+<p>One row is one version of an assignment&#39;s pay, valid from <code>effective_from</code> to <code>effective_to</code> (both inclusive; an empty <code>effective_to</code> means &quot;current&quot;). <code>type</code> is SALARY, COMMISSION or SALARY_PLUS_COMMISSION. <code>base_salary_paisa</code> holds the salary, <code>default_rate_bps</code> the default commission rate, and <code>commission_basis</code> (NET by default, or GROSS) which charge amount the commission rate is applied to. A change of pay closes the current version and adds a new one, so old charges keep the rate that was copied onto them.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>excl_compensation_plans_overlap</code> (an EXCLUDE constraint using the <code>btree_gist</code> extension): two versions of the same assignment can never have overlapping date ranges.</li>
+<li><code>chk_compensation_plans_fields</code>: a SALARY plan must have a salary and no rate; a COMMISSION plan must have a rate and no salary; SALARY_PLUS_COMMISSION must have both.</li>
+<li><code>chk_compensation_plans_dates</code>, <code>chk_compensation_plans_salary</code>, <code>chk_compensation_plans_rate</code>: the end date is not before the start, the salary is not negative, and the rate is between 0 and 10,000 basis points.</li>
+</ul>
+<h3 id="ch22-compensation-commission-rules-per-service-and-per-category-overrides"><code>commission_rules</code> — per-service and per-category overrides</h3>
+<p>One row overrides the plan&#39;s default for either one catalog service (<code>service_id</code>) or one service category (<code>service_category</code>: CONSULTATION, PROCEDURE or OTHER), never both. It holds either a rate (<code>rate_bps</code>) or a fixed amount per fully paid charge (<code>fixed_amount_paisa</code>), never both. When the Platform looks up the rate for a charge, it tries the service rule first, then the category rule, then the plan default.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>chk_commission_rules_target</code> and <code>chk_commission_rules_amount</code>: exactly one target and exactly one kind of amount.</li>
+<li><code>chk_commission_rules_rate</code> and <code>chk_commission_rules_fixed</code>: valid ranges.</li>
+<li><code>uq_commission_rules_service</code> and <code>uq_commission_rules_category</code> (partial unique indexes): at most one rule per plan and service, and at most one per plan and category.</li>
+</ul>
+<h3 id="ch22-compensation-commission-entries-the-commission-ledger"><code>commission_entries</code> — the commission ledger</h3>
+<p>One row is one change in what an assignment has earned on one source line. The source line is either a clinic charge (<code>charge_id</code>) or a lab invoice line (<code>lab_invoice_line_id</code>), never both. <code>source_type</code> says what caused the entry: ALLOCATION (new money), UNAPPLY, CHARGE_ADJUST, VOID or MANUAL; <code>source_id</code> is the payment or operation behind it. <code>base_paisa</code> is how much had been collected on the line (capped at its net amount) when the entry was written, <code>rate_bps</code> the rate used, and <code>amount_paisa</code> the signed difference. For each line, the sum of its entries always equals the commission due on what has been collected so far. <code>settlement_id</code> is empty until the entry is settled.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>chk_commission_entries_target</code>: exactly one of <code>charge_id</code> and <code>lab_invoice_line_id</code> is set.</li>
+<li><code>uq_commission_entries_source</code> (source type, source id, charge) and <code>uq_commission_entries_lab_source</code> (partial, for lab lines): the same operation cannot write commission twice for the same line.</li>
+<li><code>idx_commission_entries_unsettled</code>: a partial index over unsettled entries, used when payroll collects them.</li>
+</ul>
+<p><strong>The append-only trigger.</strong> This table is protected in the database by the trigger <code>trg_commission_entries_append_only</code>, installed by the hand-written migration <code>1792403456699-doctor-compensation</code>. The trigger:</p>
+<ul>
+<li>refuses every DELETE;</li>
+<li>refuses any UPDATE that changes a column other than <code>settlement_id</code>;</li>
+<li>allows <code>settlement_id</code> to be set once, from empty to a settlement;</li>
+<li>allows <code>settlement_id</code> to be cleared back to empty only while that settlement is still PENDING. Once the settlement is PAID, the entry can no longer move.</li>
+</ul>
+<p>It is one of only three tables in the Platform whose append-only rule is enforced by the database itself (the others are <code>audit_logs</code> and <code>status_history</code>).</p>
+<h3 id="ch22-compensation-commission-settlements-a-payout-batch"><code>commission_settlements</code> — a payout batch</h3>
+<p>One row groups unsettled commission entries of one assignment for a period (<code>period_start</code>, <code>period_end</code>) and links them to one payroll record. <code>total_paisa</code> is the sum of the entries; it is signed, because a period with only reversals can be negative. <code>status</code> is PENDING, then PAID, with <code>paid_at</code> and <code>paid_by</code>.</p>
+<p>How it is used in the code:</p>
+<ul>
+<li>When payroll is generated, the unsettled entries created before the cut-off are locked (<code>SELECT … FOR UPDATE</code>), so one entry can never land in two settlements. A PENDING settlement is created and the entries are pointed at it.</li>
+<li>When the payroll record is marked paid, the settlement becomes PAID in the same transaction.</li>
+<li>If the payroll record is deleted before payment, the entries are released back to the unsettled pool and the settlement row is deleted. Once PAID, release is refused.</li>
+</ul>
+<p>Constraint that matters: <code>payroll_record_id</code> is unique, so one payroll record has at most one settlement.</p>
+<h2 id="ch22-compensation-22-3-relationships-explained">22.3 Relationships explained</h2>
+<ul>
+<li><strong>Assignment → compensation plans.</strong> Each plan belongs to exactly one assignment; an assignment has zero or more plan versions. Deleting an assignment deletes its plans (ON DELETE CASCADE). In practice this cascade is blocked as soon as any charge has copied one of those plans, because charges point at plans with RESTRICT.</li>
+<li><strong>Compensation plan → commission rules.</strong> Each rule belongs to exactly one plan; deleting the plan deletes its rules (CASCADE).</li>
+<li><strong>Service → commission rules.</strong> A rule may target one catalog service; deleting the service deletes its rules (CASCADE). Services are normally switched off with <code>is_active</code> rather than deleted.</li>
+<li><strong>Compensation plan → charges.</strong> A charge may record the plan whose rate it copied; that plan cannot be deleted (RESTRICT). The rate and fixed amount themselves are also copied onto the charge.</li>
+<li><strong>Assignment → commission entries.</strong> Each entry belongs to exactly one assignment; an assignment with entries cannot be deleted (RESTRICT).</li>
+<li><strong>Charge → commission entries.</strong> An entry may belong to one charge; a charge has zero or more entries. A charge with entries cannot be deleted (RESTRICT).</li>
+<li><strong>Lab invoice line → commission entries.</strong> An entry may belong to one lab invoice line instead; that line cannot be deleted (RESTRICT). Lab invoice lines are covered in the Labs chapter (Chapter 25).</li>
+<li><strong>Settlement → commission entries.</strong> An entry belongs to zero or one settlement; a settlement groups many entries. A settlement that still has entries cannot be deleted (RESTRICT); the release step clears the entries first.</li>
+<li><strong>Assignment → commission settlements.</strong> Each settlement belongs to exactly one assignment (RESTRICT).</li>
+<li><strong>Payroll record → commission settlement.</strong> One-to-one: a settlement may be paid through one payroll record, and a payroll record has at most one settlement. A payroll record with a settlement cannot be deleted at database level (RESTRICT); the payroll service releases the settlement first, and only while it is PENDING.</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><code>lab_invoice_lines.commission_plan_id</code> → <code>compensation_plans</code> and <code>lab_invoice_lines.performing_assignment_id</code> → <code>employee_org_location_assignments</code>: the same snapshot as on charges, but without constraints.</li>
+<li><code>commission_entries.source_id</code> is polymorphic, discriminated by <code>source_type</code>.</li>
+<li>Actor columns <code>compensation_plans.created_by</code> and <code>commission_settlements.paid_by</code> hold a user id.</li>
+</ul>
+<h2 id="ch22-compensation-22-4-tenant-scope">22.4 Tenant scope</h2>
+<ul>
+<li><strong>Organization and location:</strong> <code>commission_entries</code>, <code>commission_settlements</code>.</li>
+<li><strong>Organization only:</strong> <code>compensation_plans</code> (the location is implied by the assignment).</li>
+<li><strong>No tenant column:</strong> <code>commission_rules</code>, scoped only through its plan. Queries must join <code>compensation_plans</code>.</li>
+<li>None of the tenant columns here has a foreign key; isolation is enforced by the application.</li>
+</ul>
+<h2 id="ch22-compensation-22-5-what-an-owner-should-remember">22.5 What an owner should remember</h2>
+<ul>
+<li>Commission follows cash, not invoices: nothing is earned until money is allocated to a charge or lab line.</li>
+<li>Commission amounts cannot be edited or deleted by any ordinary SQL statement, because the trigger rejects it. Corrections are new signed entries.</li>
+<li>Tax is not part of the commission base. The base is the collected amount capped at the line&#39;s net amount.</li>
+<li>A rate change never rewrites history: old charges keep the rate copied onto them.</li>
+</ul>
+</section></body></html>

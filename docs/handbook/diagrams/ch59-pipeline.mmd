@@ -1,0 +1,10 @@
+flowchart TB
+    A["Business event<br/>for example order.submitted"] --> B["notify effect<br/>inside the transaction"]
+    B --> C["Recipient resolver<br/>audiences and people"]
+    C --> D["Decision<br/>switches, opt-out, quiet hours"]
+    D --> E["Template<br/>render placeholders"]
+    E --> F[("notification_outbox<br/>one row per person and channel")]
+    F --> G["Relay in the worker<br/>NOTIFY plus 2 s poll"]
+    G --> H["In-app provider"]
+    H --> I[("user_notifications<br/>bell inbox")]
+    G --> J["Dev log provider<br/>WhatsApp, SMS, email"]

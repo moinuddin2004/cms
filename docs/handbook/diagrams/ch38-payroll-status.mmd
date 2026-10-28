@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction LR
+    [*] --> pending : POST /payroll/generate, month-end job or POST /payroll
+    pending --> paid : PATCH /payroll/id/mark-paid
+    on_hold --> paid : PATCH /payroll/id/mark-paid
+    pending --> on_hold : PATCH /payroll/id/mark-on-hold or PATCH /payroll/id status
+    on_hold --> pending : PATCH /payroll/id status
+    pending --> deleted : DELETE /payroll/id
+    on_hold --> deleted : DELETE /payroll/id
+    paid --> deleted : DELETE /payroll/id - only when no commission was paid out
+    deleted --> [*]

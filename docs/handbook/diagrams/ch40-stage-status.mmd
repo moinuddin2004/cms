@@ -1,0 +1,11 @@
+stateDiagram-v2
+    direction TB
+    [*] --> pending : lab accepts the item - init_stages
+    pending --> at_lab : start - system, next round due
+    at_lab --> sent_to_clinic : dispatch - lab ships the round
+    sent_to_clinic --> received : receive - clinic receives
+    received --> tryin_done : record_tryin
+    tryin_done --> approved : approve
+    tryin_done --> correction : request_correction
+    approved --> [*]
+    correction --> [*] : new round_no plus 1 starts at pending

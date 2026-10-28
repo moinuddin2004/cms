@@ -1,0 +1,3 @@
+- **Paisa** — hundredth of a rupee, integer minor unit.
+- **Document code** — 2 to 6 character location code in invoice numbers.
+- **Exclusive tax** — prices before tax; tax added on top.

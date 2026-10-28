@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> dispatched : POST shipments - lab or clinic sends
+    dispatched --> partially_received : receive some lines
+    dispatched --> received : receive all lines
+    partially_received --> received : receive the rest
+    dispatched --> lost : mark lost
+    partially_received --> lost : mark lost
+    received --> [*]
+    lost --> [*]

@@ -1,0 +1,736 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch28-patients"><h1 id="ch28-patients-chapter-28-patients">Chapter 28 — Patients</h1>
+<p>The Patients module is the clinic&#39;s register of people it treats: who they are, how to reach them, and every clinical and administrative record attached to them. Front-desk staff use it to register and find patients; doctors and assistants use it to read and add clinical records; the owner uses it to import an old register, export data and review who changed what. Almost every other part of the Platform (appointments, the queue, the consultation workspace, prescriptions, billing, labs) points at a patient record from this module.</p>
+<h2 id="ch28-patients-28-1-what-this-module-is-for">28.1 What this module is for</h2>
+<p>A <strong>patient</strong> is a person registered with one <strong>organization</strong> (one clinic business). The patient record belongs to the whole organization, not to one <strong>location</strong>: a patient registered at the Main location can be booked at the Second location without registering again. Each patient gets a patient number such as <code>P-00042</code> that is unique inside the organization.</p>
+<p>The module covers:</p>
+<ul>
+<li>registration, editing, activation and deactivation, and permanent deletion;</li>
+<li>the patient list with card and list views, search and filters;</li>
+<li>bulk import from an Excel or CSV file, and export of the list to CSV;</li>
+<li>the patient detail page with its tabs: Overview, Appointments, Visits, Treatments, Vitals &amp; Dental, Teeth Chart, Clinical &amp; Rx, Consents, Billing and Files;</li>
+<li>clinical sub-records: dental info, teeth charts (FDI notation), vitals, consents with a drawn signature, uploaded documents, and the legacy quick prescription;</li>
+<li>CRM-style sub-records (communications log, recalls, referrals, feedback, insurance), which exist in the backend but have no screen today;</li>
+<li>a per-patient change history built from the audit log.</li>
+</ul>
+<p><strong>Who uses it</strong> (system roles, by default): the Receptionist registers, edits and finds patients at their location; the Doctor reads and adds clinical records for their own patients; the Assistant reads clinical records and edits teeth charts at their location; the Admin can do everything, including delete, export and change history; the Accountant has no patient-list access by default and sees patients only through billing screens.</p>
+<p><strong>Sidebar:</strong> the entry <strong>Patients</strong> (route <code>/patients</code>) sits in the &quot;Clinic&quot; section of the default sidebar and is shown to anyone holding <code>patients.view</code>. The detail page <code>/patients/$patientId</code> has no sidebar entry; it is reached from the list, from search pickers in other modules, or by link. The old route <code>/patients/new</code> only redirects to <code>/patients</code>, because registration happens in a dialog on the list page.</p>
+<h2 id="ch28-patients-28-2-screens">28.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-patient-list.svg" alt="Figure 28.1 — Patient list"></p>
+<p><em>Figure 28.1 — Patient list (screenshot pending).</em></p>
+<p>The patient list page has the title &quot;Patients&quot; with a subtitle giving the total count, for example &quot;128 patients total&quot;. The top-right corner holds a card/table view toggle, an <strong>Export</strong> button (only for holders of <code>patients.export</code>), an <strong>Import</strong> button and a filled <strong>Create</strong> button (both only for holders of <code>patients.create</code>). Under the header is a filter row with a search box (&quot;Search by name or phone...&quot;, debounced by 300 ms), a <strong>Gender</strong> select, a <strong>Status</strong> select (Active / Inactive) and a reset control. In table view the columns are Patient (initials avatar, name as a link, patient number underneath), Phone, Age, Gender, Blood, City, Status and an action column with a &quot;View patient&quot; eye button, an &quot;Edit patient&quot; pencil, an activate/deactivate switch and a red &quot;Delete patient permanently&quot; bin. The table has page-size and previous/next controls. Card view shows the same patients as cards in a responsive grid with the same actions. The page shows a loading skeleton while it loads, an error state with a retry button on failure, &quot;No patients yet&quot; with a <strong>New Patient</strong> button when the clinic has no patients, and a separate &quot;no results&quot; state with a clear-filters button when filters hide every patient.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-new-patient.svg" alt="Figure 28.2 — New patient dialog"></p>
+<p><em>Figure 28.2 — New patient dialog (screenshot pending).</em></p>
+<p>Pressing <strong>Create</strong> opens a wide dialog with a step indicator. Step 1, &quot;Basic Info&quot; (Personal, Guardian, Emergency &amp; Medical), holds Full Name and Phone Number (both required), WhatsApp, Gender, Blood Group, Marital Status, Date of Birth, CNIC, Email, City, Address, a &quot;minor&quot; switch that reveals Guardian name, phone and relation, the emergency contact (Name, Phone, Relation), General Medical History and Known Allergies. Step 2, &quot;Clinic Info&quot; (Source &amp; Clinic Notes), holds Source, Referral Notes, Preferred Language, Communication Preference, Occupation, &quot;Patient Tags (VIP, Anxious, etc.)&quot; and Internal Clinic Notes. The footer has <strong>Cancel</strong> / <strong>Back</strong>, <strong>Next</strong>, and on the last step <strong>Add Patient</strong>. Problems found when the user presses Next are listed at the top of the step. After a successful save the dialog moves to a third step, &quot;Book Appointment&quot;, where the user can pick a doctor and time and press <strong>Book Appointment</strong>, or press <strong>Skip</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-patient-detail.svg" alt="Figure 28.3 — Patient detail"></p>
+<p><em>Figure 28.3 — Patient detail page with its tabs (screenshot pending).</em></p>
+<p>The detail page header shows a back button (&quot;Back to patients&quot;), an initials avatar, the patient&#39;s name, an Active or Inactive badge, the patient number, an outstanding-dues badge (for holders of <code>billing.invoice.view</code>), age, gender, blood group, phone and email. A clock-style &quot;Change history&quot; button appears for holders of <code>admin.audit.view</code>. Under the header is a row of tabs; each tab appears only when the viewer holds the permission (and the feature) its data needs: <strong>Overview</strong> (always), <strong>Appointments</strong> (<code>appointments.view</code>), <strong>Visits</strong>, <strong>Treatments</strong>, <strong>Vitals &amp; Dental</strong> and <strong>Consents</strong> (<code>patients.clinical.view</code>), <strong>Teeth Chart</strong> (<code>patients.clinical.view</code> and the <code>patients.teeth_chart</code> feature), <strong>Clinical &amp; Rx</strong> (<code>patients.clinical.view</code> and the <code>patients.prescriptions</code> feature), <strong>Billing</strong> (<code>billing.invoice.view</code>) and <strong>Files</strong> (<code>patients.documents.manage</code>). The Overview tab has an <strong>Edit Details</strong> button (for <code>patients.edit</code>), the latest vitals card, &quot;Medical Quick Access&quot; (medical history and allergy chips), &quot;Alerts &amp; Tags&quot; (tags plus a &quot;Minor Patient&quot; or &quot;Blacklisted Patient&quot; warning), &quot;Emergency Contact&quot; and &quot;Demographics &amp; Internal&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-teeth-chart.svg" alt="Figure 28.4 — Teeth Chart tab"></p>
+<p><em>Figure 28.4 — Teeth Chart tab (screenshot pending).</em></p>
+<p>The Teeth Chart tab is titled &quot;FDI Teeth Charting&quot;. It shows two rows of drawn teeth numbered in FDI two-digit notation (upper 18 to 28, lower 48 to 38, as seen facing the patient) and a &quot;Chart History&quot; side list of saved snapshots, with the first one marked as the initial chart. Holders of <code>patients.chart.edit</code> see <strong>New Chart</strong>, which opens the &quot;Interactive FDI Chart&quot;: the user picks a condition (Healthy, Caries, Filled, Crown, Extraction, Missing), clicks teeth to mark them, can add a note per tooth, sees a &quot;N teeth marked&quot; counter with <strong>Clear all</strong>, writes chart notes and presses <strong>Save Immutable Snapshot</strong>. Clicking a saved snapshot opens a read-only viewer with a legend of the conditions it contains.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-import-wizard.svg" alt="Figure 28.5 — Import patients"></p>
+<p><em>Figure 28.5 — Import patients side panel (screenshot pending).</em></p>
+<p>The <strong>Import</strong> button opens a side panel with five steps shown as a step indicator: Upload, Map columns, Check, Import and Summary. Upload accepts one <code>.xlsx</code> or <code>.csv</code> file and offers <strong>Download sample template</strong>. Map columns shows a table with &quot;Column in your file&quot;, &quot;Example value&quot; and &quot;Import as&quot;, plus a preview of the first rows; the <strong>Check N rows</strong> button stays disabled until Full name (or First name) and Phone are mapped. Check shows counts of rows that will be created, duplicates and errors, two duplicate-rule cards (&quot;Skip the row&quot; and &quot;Create anyway&quot;), and a table of &quot;Rows that will not be imported&quot; with row number, status and reason; the <strong>Import N patients</strong> button starts the real import. Import shows a progress bar. Summary shows created, skipped-as-duplicate and failed counts, a <strong>Download error report</strong> button when any row failed, and <strong>Done</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch28-change-history.svg" alt="Figure 28.6 — Patient change history"></p>
+<p><em>Figure 28.6 — Patient change history side panel (screenshot pending).</em></p>
+<p>The change-history panel is titled &quot;<patient name> — change history&quot; with the line &quot;Every edit to the patient and their records, with who made it.&quot; It lists events newest first: who acted, when, what kind of record changed (patient, vitals, consent, document and so on), and field-by-field before and after values. Events on records the reader cannot open still appear, but without their values.</p>
+<h2 id="ch28-patients-28-3-features">28.3 Features</h2>
+<h3 id="ch28-patients-28-3-1-register-a-patient">28.3.1 Register a patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a new patient in the organization, gives them the next patient number and, optionally, books their first appointment straight away.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <code>/patients</code>, press <strong>Create</strong>.</li>
+<li>Fill step &quot;Basic Info&quot;: Full Name and Phone Number are required; for a minor, turn on the minor switch and enter the guardian.</li>
+<li>Press <strong>Next</strong>, fill &quot;Clinic Info&quot;, and press <strong>Add Patient</strong>.</li>
+<li>On the &quot;Book Appointment&quot; step, pick a doctor and a time and press <strong>Book Appointment</strong>, or press <strong>Skip</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform checks that no other patient in the clinic has the same phone number, counts the clinic&#39;s patients to make the next number, saves the patient with the current location as their home location, and writes a &quot;created&quot; entry in the audit log.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients</code> → <code>PatientsService.create</code>. It calls <code>validatePhoneUnique</code> (exact match of <code>phone</code> inside the organization), then <code>generatePatientNumber</code> (<code>P-</code> plus the count of the organization&#39;s patients plus one, padded to five digits). <code>primaryLocationId</code> defaults to the active location; <code>createdBy</code> is the caller&#39;s user id. The insert and the audit row (<code>recordPatientChange</code>, action <code>create</code>) run in one database transaction. While the user moves between steps, the web app keeps a draft of the form in the patient store so going back does not lose input. The appointment step calls the Appointments module (the Appointments chapter, Chapter 29, covers booking).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Full name: required, at most 150 characters. Phone: required, at most 20 characters; the form also checks 7–20 digits and the characters <code>+ - ( )</code> and space.</li>
+<li>Phone must be unique inside the organization (server rule, exact text match).</li>
+<li>Email must be a valid address; CNIC must look like <code>12345-0000000-0</code> (form rule); date of birth cannot be in the future (form rule).</li>
+<li>A minor needs a guardian name (form rule).</li>
+<li>Gender, blood group, marital status, language, communication preference and source must be values from fixed lists. Defaults: language Urdu, communication preference WhatsApp, source walk-in.</li>
+<li>Tags are free text chosen in a multi-select that can create new tags.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.create</code> (no scope; implies <code>patients.view</code>), feature <code>patients.core</code>. Default holders: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>; writes <code>patients</code> and <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The new patient can be booked, checked in to the queue, billed and searched from every patient picker.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;A patient with this phone number already exists in this organization&quot; (409) → another patient already has this exact phone.</li>
+<li>&quot;Full name is required&quot; / &quot;Phone number is required&quot; (400) → missing fields.</li>
+<li>The form&#39;s own messages (for example &quot;Phone Number looks invalid (7–20 digits)&quot;) → shown at the top of the step before anything is sent.</li>
+<li>&quot;Failed to create patient&quot; toast → any other server error.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>PatientsService.create</code>, <code>CreatePatientDto</code> · <code>web-app/src/features/patients/components/CreatePatientModal.tsx</code>, <code>PatientForm.tsx</code>, <code>AddAppointmentStep.tsx</code></p>
+<h3 id="ch28-patients-28-3-2-check-a-phone-number-before-saving">28.3.2 Check a phone number before saving</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint and a web hook exist, but no screen calls them; the duplicate is caught only when the user saves.</p>
+<p><strong>What it does.</strong> Answers &quot;does another patient in this clinic already have this phone number?&quot; without saving anything.</p>
+<p><strong>How the user does it.</strong> No screen uses it. The registration form relies on the server&#39;s check at save time, which answers 409 for a duplicate phone.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform looks for a patient with the same phone in the organization, optionally ignoring one patient (the one being edited), and answers yes or no.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/check-phone/:phone?excludeId=</code> → <code>PatientsService.checkPhoneExists</code> returns <code>{ exists: boolean }</code>. The web hook <code>useCheckPhone</code> and API function <code>checkPhoneUnique</code> are exported but not used by any component.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Exact text match on <code>phone</code> inside the organization; no normalisation.</li>
+<li>The answer ignores the caller&#39;s patient scope, but only says yes or no.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.view</code> (any scope), feature <code>patients.core</code>. Default holders: Admin, Doctor, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None specific.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.controller.ts</code> · <code>checkPhone</code>, <code>checkPhoneExists</code> · <code>web-app/src/features/patients/hooks/useCheckPhone.ts</code></p>
+<h3 id="ch28-patients-28-3-3-browse-search-and-filter-the-patient-list">28.3.3 Browse, search and filter the patient list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the patients the viewer is allowed to see, one page at a time, in a table or as cards, with search and filters.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Patients</strong> in the sidebar.</li>
+<li>Type in the search box to match name, phone or patient number.</li>
+<li>Narrow with <strong>Gender</strong> and <strong>Status</strong>; clear with the reset control or the &quot;no results&quot; state&#39;s clear button.</li>
+<li>Switch between table and card view with the view toggle; in table view change the page size or page.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The list only ever contains patients inside the viewer&#39;s reach: everyone in the organization, everyone connected to the current location, or only the doctor&#39;s own patients (those with an appointment or queue entry with that doctor).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients</code> → <code>PatientsService.findAll</code> → shared <code>listQuery</code>, which applies <code>access.applyScope(qb, &#39;patients.view&#39;, patientScope(&#39;p.id&#39;))</code>, then the filters, then sorting, then paging (<code>page</code>, <code>limit</code>, default 10, maximum 100). Search uses case-insensitive <code>ILIKE</code> on <code>full_name</code>, <code>phone</code> and <code>patient_number</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The API also accepts <code>bloodGroup</code>, <code>source</code>, <code>city</code>, <code>tag</code>, <code>isBlacklisted</code>, <code>isMinor</code>, <code>sortBy</code> (<code>createdAt</code>, <code>fullName</code>, <code>patientNumber</code>) and <code>sortOrder</code>; the screen offers only search, gender and status.</li>
+<li>Default order is newest registration first. Column sorting in table view re-orders the rows of the current page only.</li>
+<li>Card view shows the current page only and has no paging controls.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.view</code> with scope <code>own</code>, <code>location</code> or <code>org</code>, feature <code>patients.core</code>. Default holders: Admin (org), Receptionist (location), Assistant (location), Doctor (own).</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code> and, for scoped viewers, <code>appointments</code>, <code>queue_entries</code> and <code>queue_sessions</code>.</p>
+<p><strong>Effects on other modules.</strong> The same endpoint feeds the type-ahead patient pickers of other modules (<code>usePatientSearch</code>, two or more characters, 300 ms debounce, eight results).</p>
+<p><strong>Error cases.</strong> Error state with <strong>Retry</strong> → the list request failed.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>findAll</code>, <code>listQuery</code>, <code>PatientQueryDto</code> · <code>web-app/src/features/patients/pages/PatientsPage.tsx</code>, <code>PatientTable.tsx</code>, <code>PatientCard.tsx</code>, <code>FiltersBar.tsx</code></p>
+<h3 id="ch28-patients-28-3-4-open-the-patient-detail-page">28.3.4 Open the patient detail page</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows one patient&#39;s profile and the tabs of records the viewer may open.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click a patient&#39;s name or the &quot;View patient&quot; eye button in the list.</li>
+<li>Pick a tab. Use the ← button to go back to where you came from.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Before answering, the Platform checks that the patient is inside the viewer&#39;s reach. A patient outside it is reported as &quot;not found&quot;, exactly like a patient of another clinic, so the viewer cannot even learn that the patient exists.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id</code> → <code>PatientsService.findOne</code>. The controller carries <code>@PatientInScope(&#39;id&#39;)</code>, so <code>PatientScopeGuard</code> runs <code>isPatientInScope</code> for every route with an <code>:id</code> parameter (every sub-record route too) and throws <code>NotFoundException(&#39;Patient not found&#39;)</code> when the patient is outside the <code>patients.view</code> scope. Tabs are chosen by <code>visiblePatientTabs</code> from the viewer&#39;s permissions and features.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A malformed id returns 400 (UUID check).</li>
+<li>A tab appears only when the viewer holds the permission its data needs; for example Teeth Chart needs <code>patients.clinical.view</code> and the <code>patients.teeth_chart</code> feature, Files needs <code>patients.documents.manage</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.view</code> (scoped), feature <code>patients.core</code>; the route declares <code>staticData.can: &#39;patients.view&#39;</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>.</p>
+<p><strong>Effects on other modules.</strong> The header&#39;s dues badge reads the Billing module.</p>
+<p><strong>Error cases.</strong> &quot;Failed to load patient details. Please try again.&quot; → patient missing, out of scope, or request failed.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/access/patient-scope.ts</code> · <code>PatientScopeGuard</code>, <code>PatientInScope</code> · <code>web-app/src/routes/patients/$patientId.index.tsx</code>, <code>features/patients/utils/patientTabs.ts</code></p>
+<h3 id="ch28-patients-28-3-5-edit-patient-details">28.3.5 Edit patient details</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes any demographic, contact, medical quick-access or clinic field of a patient.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the list, press the &quot;Edit patient&quot; pencil, or on the detail Overview tab press <strong>Edit Details</strong>.</li>
+<li>Change fields in the same two-step form, shown in a side sheet.</li>
+<li>Press <strong>Update Details</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If the phone changed, the Platform re-checks that no other patient has it. It then saves the changes and records exactly which fields changed, from what to what.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PUT /patients/:id</code> → <code>PatientsService.update</code>. A snapshot of the row is taken first; <code>Object.assign</code> applies the DTO; <code>saveAudited</code> saves the row and the audit row (<code>update</code>, with a field diff) in one transaction. An update that changes nothing writes no audit row.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>All fields optional; same limits as registration.</li>
+<li>Phone uniqueness is checked only when the phone actually changes, ignoring this patient.</li>
+<li>The DTO also accepts <code>isActive</code>, <code>isBlacklisted</code> and <code>blacklistReason</code>; the form does not send the blacklist fields.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.edit</code>, feature <code>patients.core</code>. Default holders: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> <code>patients</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Name, phone and allergies changes appear immediately in appointments, queue, consultation and billing screens, which read the patient row.</p>
+<p><strong>Error cases.</strong> 409 phone duplicate (same message as registration); &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>update</code>, <code>UpdatePatientDto</code> · <code>web-app/src/features/patients/components/EditPatientSheet.tsx</code></p>
+<h3 id="ch28-patients-28-3-6-activate-or-deactivate-a-patient">28.3.6 Activate or deactivate a patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Marks a patient inactive (hidden from &quot;Active&quot; filters, but every record kept) or active again. It is the recommended alternative to deletion.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the list (table or card), flip the switch in the patient&#39;s action area. Its tooltip reads &quot;Deactivate patient&quot; or &quot;Activate patient&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform flips the active flag and writes a status-change entry saying who moved the patient from active to inactive or back.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /patients/:id/status</code> with <code>{ isActive }</code> → <code>PatientsService.setActive</code>. When the value already matches, nothing is written. Otherwise the save and <code>AuditService.recordStatus</code> (table <code>status_history</code>, action code <code>activate</code> or <code>deactivate</code>, subject = the patient) run in one transaction.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only the <code>isActive</code> boolean is accepted.</li>
+<li>Inactive patients are not blocked anywhere else: they can still be booked, checked in and billed. The flag is informational and a list filter.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.edit</code>, feature <code>patients.core</code>. Default holders: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> <code>patients</code>, <code>status_history</code>.</p>
+<p><strong>Effects on other modules.</strong> The dashboard&#39;s patient count asks for active patients only.</p>
+<p><strong>Error cases.</strong> &quot;Could not update patient status&quot; toast → request failed.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>setActive</code>, <code>UpdatePatientStatusDto</code> · <code>web-app/src/features/patients/hooks/useSetPatientStatus.ts</code></p>
+<h3 id="ch28-patients-28-3-7-blacklist-a-patient">28.3.7 Blacklist a patient</h3>
+<p><strong>Status:</strong> [Partial] — stored, filterable and displayed, but no screen can set it; only an API client can.</p>
+<p><strong>What it does.</strong> Flags a patient the clinic does not want to serve, with a reason.</p>
+<p><strong>How the user does it.</strong> No screen sets the flag. When it is set, the Overview tab&#39;s &quot;Alerts &amp; Tags&quot; card shows &quot;Blacklisted Patient&quot; and &quot;Reason: …&quot; (&quot;Not specified&quot; when empty).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It is a yes/no flag plus a reason text on the patient row. Nothing in booking, the queue or billing reads it.</p>
+<p><strong>Behind the scenes — technically.</strong> Set through <code>PUT /patients/:id</code> (the patient edit endpoint) with <code>isBlacklisted</code> and <code>blacklistReason</code>, audited as a field change. Listable with <code>GET /patients?isBlacklisted=true</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>No rule blocks a blacklisted patient from being booked, queued or billed.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.edit</code>, feature <code>patients.core</code>. Default holders: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> <code>patients</code> (<code>is_blacklisted</code>, <code>blacklist_reason</code>), <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> As for editing.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient.entity.ts</code> · <code>isBlacklisted</code>, <code>blacklistReason</code> · <code>web-app/src/features/patients/components/tabs/OverviewTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-8-delete-a-patient-permanently">28.3.8 Delete a patient permanently</h3>
+<p><strong>Status:</strong> [Partial] — works for patients without billing or lab records; for a patient with charges, invoices, payments, refunds or lab records the database refuses and the user sees a generic failure.</p>
+<p><strong>What it does.</strong> Removes the patient and every record that hangs off them, for good.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the list, press the red bin (&quot;Delete patient permanently&quot;).</li>
+<li>Read the dialog &quot;Delete patient permanently?&quot;, which says the patient and all records will be deleted and suggests deactivating instead.</li>
+<li>Press <strong>Delete permanently</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Before deleting, the Platform counts how many linked records of each kind will disappear and stores the patient&#39;s last state and those counts in the audit log, so the deletion itself stays on record. Then it deletes the row, and the database deletes the dependent records.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>DELETE /patients/:id</code> → <code>PatientsService.remove</code>, in one transaction: <code>cascadeCounts</code> reads the Postgres catalog for every foreign key that cascades from <code>patients</code> and counts rows per table; <code>recordPatientChange</code> writes an audit row with action <code>delete</code>, <code>before</code> = snapshot plus <code>linkedRecords</code>; then a hard <code>DELETE</code>. Cascading tables include appointments, queue entries, encounters, treatments, prescriptions, inventory consumption, patient credits and every <code>patient_*</code> sub-record. Tables <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>refunds</code>, <code>lab_orders</code>, <code>lab_invoices</code>, <code>lab_payments</code> and <code>lab_credits</code> reference patients with <code>ON DELETE RESTRICT</code>, so the delete fails when any of them has a row, and the whole transaction (including the audit row) rolls back.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Always behind a confirmation dialog.</li>
+<li>Hard delete: the entity has a <code>deleted_at</code> column but the service does not use soft delete.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.delete</code> (high-risk permission), feature <code>patients.core</code>. Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> Every table that cascades from <code>patients</code>; <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The patient disappears from appointments, the queue history, consultation history and prescriptions. Patient numbering is count-based, so after a deletion the next new patient can be given a number that already exists, and that save then fails.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Could not delete patient&quot; toast → the server failed, typically because of billing or lab records (the server answers with the generic &quot;Something went wrong&quot;).</li>
+<li>&quot;Patient not found&quot; (404).</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>remove</code>, <code>cascadeCounts</code> · <code>web-app/src/features/patients/pages/PatientsPage.tsx</code> (ConfirmDialog)</p>
+<h3 id="ch28-patients-28-3-9-import-patients-from-a-spreadsheet">28.3.9 Import patients from a spreadsheet</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Brings an existing patient register (for example from an old system or an Excel sheet) into the Platform: read the file, match its columns to patient fields, check every row without saving, then create the valid rows.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <code>/patients</code>, press <strong>Import</strong>. Optionally press <strong>Download sample template</strong> to get a CSV with the recognised headers (Full Name, Phone, CNIC, Gender, Date of Birth, Age, Email, Address, City, Blood Group, Allergies, Medical History, Notes, Old File No).</li>
+<li>Upload one <code>.xlsx</code> or <code>.csv</code> file.</li>
+<li>In <strong>Map columns</strong>, check the suggested &quot;Import as&quot; field for each column; set unwanted columns to be ignored. Full name (or first name) and Phone must be mapped.</li>
+<li>Press <strong>Check N rows</strong>. Review the counts and the &quot;Rows that will not be imported&quot; table. Choose <strong>Skip the row</strong> or <strong>Create anyway</strong> for duplicates.</li>
+<li>Press <strong>Import N patients</strong>. Wait for the progress bar.</li>
+<li>On <strong>Summary</strong>, press <strong>Download error report</strong> if any row failed, then <strong>Done</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The file is read in memory and never stored. Each row is cleaned up the way a careful receptionist would: extra phone numbers move into notes, an age becomes an estimated birth date, CNICs are reformatted, common spellings of blood groups and genders are understood. Every row is checked against the same rules as manual registration and against existing patients (same phone or CNIC). Each row is then created on its own, so one bad row never undoes the others. Every imported patient is tagged <code>imported</code>.</p>
+<p><strong>Behind the scenes — technically.</strong> Figure 28.7 shows the flow.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-import-flow.png" alt="Figure 28.7 — Patient import flow"></p>
+<p><em>Figure 28.7 — Sequence of a patient import, from file upload to summary.</em></p>
+<p>The diagram has six participants: Receptionist, Web app, API, PatientImportService, PatientsService and PostgreSQL. (1) The receptionist chooses a file. (2) The web app sends it to <code>POST /patients/import/parse</code>. (3) The API returns headers, rows and a suggested column mapping; nothing is stored. (4) The receptionist confirms the mapping. (5) The web app sends all mapped rows to <code>POST /patients/import</code> with <code>dryRun: true</code>. (6) The API hands them to <code>PatientImportService</code>, which (7) reads the phone and CNIC of every existing patient in the organization and (8) returns, per row, <code>would_create</code>, <code>duplicate</code> or <code>error</code>. (9) The receptionist picks the duplicate rule and presses Import. A loop then runs once per batch of 500 rows: (10) the web app posts the batch with <code>dryRun: false</code>; (11) the service marks the organization as &quot;import running&quot; in this server process; an inner loop runs per valid row, where (12) the service calls the normal patient create and (13) <code>PatientsService</code> inserts the patient and its audit row in one transaction; (14) the batch result comes back per row as <code>created</code>, <code>duplicate</code> or <code>error</code>. (15) The web app shows the summary and offers the error-report CSV.</p>
+<p>Parsing uses <code>parseImportFile</code> (first non-empty worksheet of an <code>.xlsx</code>, or RFC-4180 CSV; the first non-empty row is the header; blank headers become &quot;Column N&quot;; repeated headers get &quot;(2)&quot;, &quot;(3)&quot;). <code>suggestMapping</code> matches header names, including common local spellings, to the fields in <code>IMPORT_FIELDS</code>. <code>validateImportRow</code> runs <code>mapImportRow</code> and then the <code>CreatePatientDto</code> validators. Duplicate detection normalises phones to digits with a leading zero (so <code>+92…</code>, <code>0092…</code> and <code>0…</code> match) and CNICs to digits. &quot;Today&quot; for date-of-birth checks is the location&#39;s date (<code>ClockService</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>File: <code>.xlsx</code> (checked by its zip signature) or <code>.csv</code>/<code>.txt</code>; at most 10 MB; at most 5,000 data rows. Old <code>.xls</code> files are rejected with a &quot;Save as .xlsx&quot; hint.</li>
+<li>A dry run accepts up to 5,000 rows in one request; a real import at most 1,000 per request (the web app sends 500).</li>
+<li>Only one real import per organization at a time in one server process.</li>
+<li>Mapping fields: full name, first name, last name, phone, WhatsApp, CNIC, gender, date of birth, age, email, address, city, blood group, marital status, occupation, allergies, medical history, notes, old file number, guardian name and phone, emergency contact name and phone, referred by.</li>
+<li>First phone number becomes the patient&#39;s phone; further numbers go to internal notes as &quot;Other phone: …&quot;.</li>
+<li>An age (for example &quot;35&quot;, &quot;35 years&quot;, &quot;6 months&quot;) becomes 1 January of the estimated birth year, with a note &quot;Date of birth estimated from age …&quot;. Dates accept day-first formats, ISO, month names and Excel serial numbers. A birth date in the future or before 1900 is an error.</li>
+<li>&quot;Old File No&quot; goes into internal notes as &quot;Old file no: …&quot; (the patient has no legacy-number column).</li>
+<li>Source becomes referral when &quot;referred by&quot; is filled, otherwise other.</li>
+<li>Duplicates: same phone or same CNIC as an existing patient or a previous row of the same file. With <strong>Skip the row</strong> the row is reported as a duplicate. With <strong>Create anyway</strong>, a same-CNIC row is created, but a same-phone row is always an error because phones are unique per clinic.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.create</code>, feature <code>patients.core</code>. Default holders: Admin, Receptionist.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>; writes <code>patients</code> and <code>audit_logs</code> (one create entry per imported patient).</p>
+<p><strong>Effects on other modules.</strong> Imported patients behave exactly like hand-registered ones.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;No file provided&quot; → upload without a file.</li>
+<li>&quot;Unsupported file. Upload an Excel (.xlsx) or CSV file — for old .xls files use &quot;Save as&quot; .xlsx first.&quot; → wrong type.</li>
+<li>&quot;Could not read the Excel file. Is it a valid .xlsx?&quot;, &quot;The workbook has no sheets&quot;, &quot;The file is empty&quot;, &quot;The file has no patient rows&quot;, &quot;The file has more than 5,000 patient rows. Split it into smaller files.&quot; → unreadable or oversized file.</li>
+<li>&quot;Send at most 1000 rows per import request&quot; → oversized real-import request.</li>
+<li>&quot;Another patient import is running for this clinic. Try again when it finishes.&quot; (409) → parallel import.</li>
+<li>Per-row reasons such as &quot;Phone number &quot;…&quot; looks invalid (7–20 digits)&quot;, &quot;CNIC &quot;…&quot; must have 13 digits (e.g. 12345-0000000-0)&quot;, &quot;Date of birth cannot be in the future&quot;, &quot;Same phone number as P-00012 (…)&quot;.</li>
+<li>&quot;The server could not import this batch&quot; → a batch request failed; all its rows are reported as errors and the import continues with the next batch.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/patients/import/patient-import.service.ts</code>, <code>patient-import.ts</code> · <code>PatientImportService.import</code>, <code>parseImportFile</code>, <code>mapImportRow</code>, <code>findDuplicate</code> · <code>web-app/src/features/patients/components/ImportPatientsSheet.tsx</code>, <code>hooks/usePatientImport.ts</code>, <code>utils/patientImport.ts</code></p>
+<h3 id="ch28-patients-28-3-10-export-the-patient-list">28.3.10 Export the patient list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Downloads the patients matching the current search and filters as a CSV file that opens correctly in Excel, including Urdu names.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <code>/patients</code>, set the search and filters you want.</li>
+<li>Press <strong>Export</strong>. A toast says &quot;Export downloaded&quot;, or &quot;Export downloaded (first 10,000 patients only)&quot; when the result was cut.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The export uses the same reach and filters as the list but no paging, stops at 10,000 patients, and is always written to the audit log because patient data is leaving the system.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/export</code> → <code>PatientsService.exportCsv</code> (same <code>listQuery</code>, <code>take(10001)</code> to detect truncation). The controller writes an audit row with <code>entity_type = &#39;patient_export&#39;</code>, action <code>export</code>, and <code>after = { rows, truncated, filters }</code>, then streams the CSV with headers <code>Content-Disposition: attachment; filename=&quot;patients-YYYY-MM-DD.csv&quot;</code>, <code>X-Export-Truncated: true|false</code> (exposed to the browser) and <code>Cache-Control: no-store</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Columns: Patient number, Name, Phone, Email, Gender, Date of birth, Blood group, City, Source, Active, Registered on.</li>
+<li>At most 10,000 rows (<code>EXPORT_MAX_ROWS</code>).</li>
+<li>Cells that a spreadsheet would run as a formula get a leading apostrophe; phone-like values such as <code>+92…</code> are left as they are.</li>
+<li>The file starts with a UTF-8 byte-order mark.</li>
+<li>The date in the file name and the &quot;Registered on&quot; column are UTC dates, not the location&#39;s date.</li>
+<li>The button is disabled when the list is empty.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.export</code> (high-risk; implies <code>patients.view</code>), feature <code>patients.core</code>. Default holder: Admin. The rows are limited by the caller&#39;s <code>patients.view</code> scope.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>; writes <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Could not export patients&quot; toast → request failed.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.controller.ts</code>, <code>patients.service.ts</code> · <code>export</code>, <code>exportCsv</code>, <code>csvCell</code>, <code>EXPORT_MAX_ROWS</code> · <code>web-app/src/features/patients/services/patients.api.ts</code> (<code>exportPatientsCsv</code>)</p>
+<h3 id="ch28-patients-28-3-11-see-a-patient-39-s-appointments-and-walk-in-visits">28.3.11 See a patient&#39;s appointments and walk-in visits</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The Appointments tab lists upcoming appointments and a history of past appointments and walk-in queue visits.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the patient, then the <strong>Appointments</strong> tab.</li>
+<li>Read &quot;N upcoming · M past&quot;; press <strong>Book appointment</strong> to open the scheduler.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Booked visits come from the Appointments module; walk-ins, which have no appointment, come from the patient&#39;s queue history.</p>
+<p><strong>Behind the scenes — technically.</strong> The tab calls the Appointments list with <code>patientId</code> (up to 100) and the Queue module&#39;s patient-visits query, keeping only <code>walk_in</code> entries. Future appointments that are not completed, cancelled or no-show count as upcoming. The Appointments chapter (Chapter 29) and the Queue chapter (Chapter 30) cover those endpoints.</p>
+<p><strong>Rules and validations.</strong> None specific to this module.</p>
+<p><strong>Who can do it.</strong> Tab shown with <code>appointments.view</code>. Default holders: Admin, Doctor (own), Receptionist and Assistant (location).</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>queue_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None specific.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/patients/components/tabs/AppointmentsTab.tsx</code> · <code>useAppointments</code>, <code>usePatientVisits</code></p>
+<h3 id="ch28-patients-28-3-12-see-visits-and-full-clinical-history">28.3.12 See visits and full clinical history</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The Visits tab lists the patient&#39;s consultations (encounters), each with its treatments, and opens a &quot;Visit Details&quot; dialog. The same history feeds the patient snapshot in the consultation workspace.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the <strong>Visits</strong> tab.</li>
+<li>Each row shows the date, a summary (diagnosis, complaint or reason) and the treatments; press the &quot;View visit details&quot; arrow to open the visit.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform gathers the patient, all their appointments, all their encounters with linked treatments, and treatments that were recorded without a visit. Prices are removed for viewers who may not see them.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/history</code> → <code>PatientsService.getHistory</code>: patient, <code>appointments</code> (newest first), <code>EncountersService.findByPatient</code>, and <code>TreatmentsService.findByPatient</code> filtered to <code>encounterId = null</code> as <code>standaloneTreatments</code>. <code>HideTreatmentPricesInterceptor</code> deletes <code>cost</code> from every treatment-shaped object when the caller lacks <code>patients.price.view</code>. Encounters are created when the doctor starts a consultation (the Consultation chapter, Chapter 31, covers this).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>No paging; everything is returned.</li>
+<li>Fees are hidden in the Visits tab when the viewer lacks <code>patients.price.view</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code>, feature <code>patients.core</code>. Default holders: Admin, Doctor, Assistant.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>, <code>appointments</code>, <code>patient_encounters</code>, <code>treatments</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>getHistory</code>, <code>HideTreatmentPricesInterceptor</code> · <code>web-app/src/features/patients/components/tabs/VisitsTab.tsx</code>, <code>EncounterDetailDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-13-per-location-visit-statistics">28.3.13 Per-location visit statistics</h3>
+<p><strong>Status:</strong> [Not implemented] — the table and a read endpoint exist, but no code ever writes to the table and no screen reads it.</p>
+<p><strong>What it does.</strong> Was meant to keep, per patient and location, the first and last visit date, the visit count, the total spent and a preferred-location flag.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The endpoint always returns an empty list because nothing fills the table.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/visits</code> → <code>PatientsService.getVisits</code> reads <code>patient_visits</code> (unique per patient and location). The web function <code>fetchVisits</code>/<code>useVisits</code> exists but is not used. The encounter entity notes that <code>patient_visits</code> is &quot;left untouched&quot;.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> <code>patients.view</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_visits</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-visit.entity.ts</code> · <code>PatientVisit</code>, <code>getVisits</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (<code>useVisits</code>)</p>
+<h3 id="ch28-patients-28-3-14-view-a-patient-39-s-change-history">28.3.14 View a patient&#39;s change history</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows who created, changed, activated, deactivated or deleted the patient and any of their records, field by field.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the patient detail header, press the &quot;Change history&quot; button.</li>
+<li>Read the timeline in the side panel.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Every write in this module also writes an audit entry in the same transaction, tagged with the patient as its subject, so one lookup reads the patient&#39;s whole history. File links (documents, X-rays, signatures, insurance cards, profile picture) are never copied into the log. When a reader lacks the right to open a kind of record, they still see that the event happened but not the values.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/audit-trail</code> → <code>PatientsService.getAuditTrail</code> → <code>AuditService.subjectTimeline</code> (merges <code>audit_logs</code> and <code>status_history</code> where <code>subject_id</code> = patient, newest first, at most 200 entries) → <code>redactPatientTimeline</code>. Values are removed for dental info, teeth charts, vitals, treatment plans, plan items, legacy prescriptions and consents unless the reader holds <code>patients.clinical.view</code>, and for documents unless they hold <code>patients.documents.manage</code>; medical history and allergies are removed from patient-row changes for readers without <code>patients.clinical.view</code>. What is logged:</p>
+<div class="tw"><table><thead><tr>
+<th>Record</th>
+<th><code>entity_type</code></th>
+<th>Logged on</th>
+</tr>
+</thead><tbody><tr>
+<td>Patient</td>
+<td><code>patient</code></td>
+<td>create, update (diff), delete (last state and linked-record counts); activate/deactivate in <code>status_history</code></td>
+</tr>
+<tr>
+<td>Dental info</td>
+<td><code>patient_dental_info</code></td>
+<td>create, update</td>
+</tr>
+<tr>
+<td>Teeth chart, vitals, document, consent, communication, referral, feedback, legacy prescription</td>
+<td><code>patient_teeth_chart</code>, <code>patient_vitals</code>, <code>patient_document</code>, <code>patient_consent</code>, <code>patient_communication</code>, <code>patient_referral</code>, <code>patient_feedback</code>, <code>patient_prescription</code></td>
+<td>create</td>
+</tr>
+<tr>
+<td>Treatment plan, plan item, recall, insurance</td>
+<td><code>patient_treatment_plan</code>, <code>treatment_plan_item</code>, <code>patient_recall</code>, <code>patient_insurance</code></td>
+<td>create, update</td>
+</tr>
+<tr>
+<td>Patient export</td>
+<td><code>patient_export</code></td>
+<td>every export (row count, truncated flag, filters); not tied to a patient subject</td>
+</tr>
+</tbody></table></div><p>The table lists each kind of patient record, the <code>entity_type</code> value its audit rows carry, and which actions produce a row. Updates that change nothing are not logged. Identity and bookkeeping columns (ids, timestamps, created-by) are left out of every snapshot because the audit row already records who and when.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The button and endpoint need <code>admin.audit.view</code> in addition to the patient being in the caller&#39;s scope.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>admin.audit.view</code> (feature <code>core</code>, always on). Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>audit_logs</code>, <code>status_history</code>.</p>
+<p><strong>Effects on other modules.</strong> The Audit logging chapter (Chapter 60) describes the shared audit tables.</p>
+<p><strong>Error cases.</strong> Error state with retry in the panel.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patient-audit.ts</code> · <code>PATIENT_AUDIT_ENTITY</code>, <code>recordPatientChange</code>, <code>redactPatientTimeline</code> · <code>web-app/src/features/patients/components/PatientAuditSheet.tsx</code></p>
+<h3 id="ch28-patients-28-3-15-record-dental-info">28.3.15 Record dental info</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Keeps one &quot;Dental Health &amp; Habits&quot; sheet per patient: last check-up, gum condition, sensitivity, brushing and flossing frequency, smoking, tobacco chewing, orthodontic history, prosthetics, previous extractions and surgeries, X-ray notes and dentist notes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Vitals &amp; Dental</strong>.</li>
+<li>Fill the &quot;Dental Health &amp; Habits&quot; form (Gum Condition, Brushing Frequency, Flossing Frequency, checkboxes such as Teeth Sensitivity, Smoker, Tobacco Chewing, and notes fields).</li>
+<li>Press <strong>Save Dental Info</strong> (first time) or <strong>Update Dental Info</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> There is at most one sheet per patient; saving again overwrites it and the audit log keeps the old values.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/dental-info</code>; <code>POST /patients/:id/dental-info</code> → <code>upsertDentalInfo</code> (find, then update or create) → <code>saveAudited</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One row per patient (unique <code>patient_id</code>).</li>
+<li>Gum condition: healthy, mild gingivitis, moderate gingivitis, severe periodontitis.</li>
+<li>The form is read-only without <code>patients.clinical.edit</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code>; write <code>patients.clinical.edit</code>; feature <code>patients.core</code>. Default writers: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_dental_info</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>upsertDentalInfo</code>, <code>UpsertDentalInfoDto</code> · <code>web-app/src/features/patients/components/tabs/VitalsAndDentalTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-16-record-vitals">28.3.16 Record vitals</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds a dated set of vitals: blood pressure, pulse, temperature, SpO₂, weight, height and an automatically calculated BMI.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Vitals &amp; Dental</strong>.</li>
+<li>Under &quot;Record New Vitals&quot;, enter the values and notes.</li>
+<li>Press <strong>Save Vitals</strong>. The new card appears in &quot;Patient Vitals History&quot;, newest first.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Vitals are never edited; each save adds a new reading. The latest reading is shown on the Overview tab and in the consultation workspace.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/vitals</code> (newest first); <code>POST /patients/:id/vitals</code> → <code>createVitals</code>. BMI = weight ÷ (height in metres)², rounded to two decimals, when both are given. <code>recordedBy</code> is sent by the web app as the signed-in user&#39;s id; <code>locationId</code> is the active location.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Form ranges: systolic 50–300, diastolic 30–200, pulse 20–250, temperature 30–45 °C, SpO₂ 50–100 %, weight 1–500 kg, height 20–300 cm.</li>
+<li>The API also accepts flags (diabetic, hypertensive, pregnant, on blood thinners, on antibiotics) and anaesthesia details; the form does not show them.</li>
+<li>No update or delete endpoint.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code>; write <code>patients.clinical.edit</code>; feature <code>patients.core</code>. Default writers: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_vitals</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The consultation workspace shows the latest vitals (Chapter 31).</p>
+<p><strong>Error cases.</strong> Field messages from the range checks; &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>createVitals</code>, <code>CreateVitalsDto</code> · <code>web-app/src/features/patients/components/tabs/VitalsAndDentalTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-17-chart-teeth-fdi">28.3.17 Chart teeth (FDI)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Saves a snapshot of the condition of each tooth, in FDI notation, and keeps every previous snapshot.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Teeth Chart</strong> and press <strong>New Chart</strong>.</li>
+<li>Pick a condition, click teeth to mark them (click again with the same condition to unmark), add tooth notes and chart notes.</li>
+<li>Press <strong>Save Immutable Snapshot</strong>. Pick any entry in &quot;Chart History&quot; to view it.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Charts are append-only: a correction is a new snapshot, never an edit. The first chart of a patient is marked as the initial chart.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/teeth-charts</code> (newest first); <code>POST /patients/:id/teeth-charts</code> → <code>createTeethChart</code>. <code>chart_data</code> is JSON keyed by tooth number with <code>{ condition, note }</code>; <code>is_initial_chart</code> defaults to true when the patient has no chart yet. The web app sends the signed-in user&#39;s id as <code>dentistId</code>. A <code>periodontal_chart</code> JSON column exists but the screen does not fill it.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>chartData</code> is required; there is no update or delete endpoint.</li>
+<li>Conditions offered by the screen: Healthy, Caries, Filled, Crown, Extraction, Missing.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code> plus feature <code>patients.teeth_chart</code>; write <code>patients.chart.edit</code> (feature <code>patients.teeth_chart</code>). Default writers: Admin, Doctor, Assistant. The feature is off by default in the catalog (dental and orthodontic clinics switch it on).</p>
+<p><strong>Data read and written.</strong> <code>patient_teeth_chart</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Feature-off error → the organization does not have <code>patients.teeth_chart</code> active (the tab is hidden in that case).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>createTeethChart</code>, <code>CreateTeethChartDto</code> · <code>web-app/src/features/patients/components/tabs/TeethChartTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-18-record-a-treatment-from-the-patient-page">28.3.18 Record a treatment from the patient page</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The Treatments tab lists all treatments performed (linked to a visit or standalone) and lets a user record one, optionally starting from a plan template.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Treatments</strong> and press <strong>Add Treatment</strong>.</li>
+<li>In &quot;Record Treatment&quot;, optionally pick a &quot;Treatment plan&quot; (a plan template) and a &quot;Procedure&quot;, which fills the name and cost; enter the date, optional visit link and notes.</li>
+<li>Press <strong>Save Treatment</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Treatments belong to the Treatments module; this tab is a window on them. The Treatment Plans chapter (Chapter 33) explains how plan templates fill the form.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /treatments?patientId=</code>, <code>POST /treatments</code>. The button shows only for viewers with both <code>patients.clinical.edit</code> and <code>patients.price.view</code>.</p>
+<p><strong>Rules and validations.</strong> Treatment name and date required; cost cannot be negative.</p>
+<p><strong>Who can do it.</strong> <code>patients.clinical.edit</code> and <code>patients.price.view</code>. Default holder with both: Admin.</p>
+<p><strong>Data read and written.</strong> <code>treatments</code>.</p>
+<p><strong>Effects on other modules.</strong> Treatments can create charges (Chapters 31 and 34).</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; → the chosen template was deleted.</p>
+<p><strong>Technical references:</strong> <code>backend/src/treatments/treatments.service.ts</code> · <code>TreatmentsService.create</code> · <code>web-app/src/features/patients/components/tabs/TreatmentsTab.tsx</code>, <code>TreatmentFormDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-19-patient-treatment-plans">28.3.19 Patient treatment plans</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen lists, creates or edits a patient&#39;s treatment plan.</p>
+<p><strong>What it does.</strong> Stores multi-step plans (for example a root canal over several sessions) with items, estimated costs and a status for each patient.</p>
+<p><strong>How the user does it.</strong> No screen. The Treatment Plans chapter (Chapter 33) describes the endpoints <code>GET/POST /patients/:id/treatment-plans</code>, <code>PATCH …/:planId</code>, <code>GET/POST …/:planId/items</code> and <code>PATCH …/items/:itemId</code> in full.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Plans and items are stored, numbered <code>TP-00001</code> and audited like every other patient record.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PatientsService.createTreatmentPlan</code>, <code>updateTreatmentPlan</code>, <code>createPlanItem</code>, <code>updatePlanItem</code>, each through <code>saveAudited</code>.</p>
+<p><strong>Rules and validations.</strong> Covered in Chapter 33.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code> plus feature <code>patients.treatment_plans</code>; write <code>plans.manage</code>. Default writers: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_treatment_plans</code>, <code>treatment_plan_items</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing can turn plan items into charges (backend only).</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot;, &quot;Plan item not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>createTreatmentPlan</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (unused hooks)</p>
+<h3 id="ch28-patients-28-3-20-prescriptions-tab-and-the-legacy-quick-prescription">28.3.20 Prescriptions tab and the legacy quick prescription</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The <strong>Clinical &amp; Rx</strong> tab shows the patient&#39;s prescriptions from the Prescriptions module and, in a collapsed &quot;Legacy quick-Rx history&quot; section, the older simple prescriptions stored with the patient.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Clinical &amp; Rx</strong>. Press <strong>New Prescription</strong> to open the full prescription builder for this patient.</li>
+<li>To use the legacy form, open &quot;Legacy quick-Rx history&quot; and press <strong>New Rx</strong>: enter Chief Complaint, Diagnosis, Medications (Name, Dosage, Frequency, Instructions) and General Special Instructions. Saved legacy prescriptions can be printed.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Two prescription stores exist side by side. The full one belongs to the Prescriptions module (Chapter 32). The legacy one is a single table with the medicines as a JSON list, numbered <code>RX-00001</code> per organization.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/prescriptions</code> (feature <code>patients.prescriptions</code>, newest first) and <code>POST /patients/:id/prescriptions</code> → <code>createPrescription</code>, writing <code>patient_prescriptions</code>. The web app sends the signed-in user&#39;s id as <code>prescribedBy</code>. The number is a count of the organization&#39;s legacy prescriptions plus one.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>prescribedBy</code> and a <code>medications</code> list are required.</li>
+<li>No update or delete endpoint.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code> plus feature <code>patients.prescriptions</code>; write <code>prescriptions.create</code>. Default writer: Doctor (the Admin template does not include <code>prescriptions.create</code>; an owner has every permission).</p>
+<p><strong>Data read and written.</strong> <code>patient_prescriptions</code>, <code>audit_logs</code>; the main list reads <code>prescriptions</code>.</p>
+<p><strong>Effects on other modules.</strong> None for the legacy table.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-prescription.entity.ts</code> · <code>createPrescription</code> · <code>web-app/src/features/patients/components/tabs/ClinicalTab.tsx</code>, <code>PrescriptionFormDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-21-capture-a-signed-consent">28.3.21 Capture a signed consent</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records that the patient (or guardian) agreed to a procedure, with the consent text, the signer&#39;s name and a hand-drawn signature, and lets staff print it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Consents</strong> and press <strong>Capture Signature</strong>.</li>
+<li>In &quot;Capture Consent&quot;, choose the Consent Type, edit the Consent Terms, enter the signer&#39;s name, pick Signatory Type (Patient or Guardian; Guardian is preselected for a minor), draw the signature on the pad and tick the agreement box.</li>
+<li>Save. Each saved consent shows Status, Agreed Date, Signed By, Signatory Type, Witnessed By and the signature image, with a print button.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Consents cannot be changed or deleted once saved. The drawn signature is stored inside the record as an image, not as a separate upload.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/consents</code>; <code>POST /patients/:id/consents</code> → <code>createConsent</code>. The signature is a PNG data URL in <code>signature_url</code> (text). The web app sends the signed-in user&#39;s id as <code>witnessedBy</code>. <code>ip_address</code> exists but the screen does not send it. The audit snapshot omits <code>signature_url</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Consent type, consent text, agreement flag and signer name are required (signer name at most 150 characters).</li>
+<li>The form refuses to save without a signer name (&quot;Signatory name is required.&quot;) or without a drawn signature (&quot;Please capture a signature before saving.&quot;).</li>
+<li>Consent types: general treatment, extraction, implant, root canal, orthodontic, sedation, photo release.</li>
+<li>No update or delete endpoint.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read <code>patients.clinical.view</code>; write <code>patients.clinical.edit</code>; feature <code>patients.core</code>. Default writers: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_consents</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> The two form messages listed; &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-consent.entity.ts</code> · <code>createConsent</code>, <code>CreateConsentDto</code> · <code>web-app/src/features/patients/components/tabs/ConsentsTab.tsx</code>, <code>ConsentFormDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-22-upload-and-view-documents">28.3.22 Upload and view documents</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Stores X-rays, scans, reports, photos and ID copies against the patient, with type, tooth number, date taken and notes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Files</strong> and press the upload button.</li>
+<li>In &quot;Upload Document&quot;, choose an image or PDF, the Document Type, an optional Tooth #, a Title / Description, Clinical Notes and the other fields, and save.</li>
+<li>Each document in the list opens its file in a new tab.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The file goes first to the Platform&#39;s file-storage service (the Cloudinary storage provider), which returns a link; the Platform then saves a document record holding that link.</p>
+<p><strong>Behind the scenes — technically.</strong> Step one: <code>POST /uploads</code> (multipart, optional <code>folder</code>) → <code>UploadsController</code> → the configured <code>StorageProvider</code>. Step two: <code>POST /patients/:id/documents</code> → <code>createDocument</code> with <code>fileUrl</code>, <code>fileName</code>, size and MIME type. <code>GET /patients/:id/documents</code> lists them newest first.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Allowed file types: JPEG, PNG, GIF, WebP, HEIC and PDF; at most 15 MB.</li>
+<li>Document types: X-ray, CBCT scan, report, prescription, consent form, insurance card, CNIC copy, photo before, photo after, other.</li>
+<li>No update or delete endpoint for documents.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.documents.manage</code> for both reading and writing (feature <code>patients.documents</code>). Default holders: Admin, Doctor, Receptionist. The upload endpoint itself is open to any member of the organization.</p>
+<p><strong>Data read and written.</strong> <code>patient_documents</code>, <code>audit_logs</code> (without the file link).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Please choose a file to upload.&quot;; storage messages such as &quot;Unsupported file type …&quot; or &quot;File size exceeds the 15MB limit&quot;; &quot;File upload failed&quot; toast.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/storage/uploads.controller.ts</code> · <code>createDocument</code>, <code>CreateDocumentDto</code> · <code>web-app/src/features/patients/components/tabs/FilesTab.tsx</code>, <code>DocumentFormDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-23-communications-log">28.3.23 Communications log</h3>
+<p><strong>Status:</strong> [Partial] — backend complete; the web component (<code>CrmTab</code> with a &quot;log communication&quot; dialog) exists but is not shown on any page.</p>
+<p><strong>What it does.</strong> Records calls, messages and visits with the patient: type (SMS, WhatsApp, call, email, in person), direction, purpose, subject, body and delivery status.</p>
+<p><strong>How the user does it.</strong> No reachable screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It is a manual log; the Platform does not send messages to patients (notifications are in-app only).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/communications</code>, <code>POST /patients/:id/communications</code> → <code>createCommunication</code>. Columns for automation and external message ids exist but nothing fills them.</p>
+<p><strong>Rules and validations.</strong> Type and direction required; subject at most 300 characters. No update endpoint, so the status set at creation never changes.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.view</code>; write <code>patients.edit</code>; feature <code>patients.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>patient_communications</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-communication.entity.ts</code> · <code>createCommunication</code> · <code>web-app/src/features/patients/components/tabs/CrmTab.tsx</code>, <code>CommunicationFormDialog.tsx</code></p>
+<h3 id="ch28-patients-28-3-24-recalls">28.3.24 Recalls</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no component uses the recall hooks, and no job sends reminders or marks recalls overdue.</p>
+<p><strong>What it does.</strong> Schedules a future check-up for the patient (six-month check-up, annual cleaning, post-treatment follow-up, implant review, orthodontic review, custom) and tracks it through statuses.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A recall is a due date plus a status that staff would update by hand. Columns for first, second and third reminder times exist but nothing fills them.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/recalls</code> (by due date), <code>POST /patients/:id/recalls</code> → <code>createRecall</code> (status <code>scheduled</code>), <code>PATCH /patients/:id/recalls/:recallId</code> → <code>updateRecall</code> (status, linked appointment, notes). Any status can be set at any time; there is no transition map.</p>
+<p><strong>Rules and validations.</strong> Recall type and due date required; any status can be set at any time.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.view</code>; write <code>patients.edit</code>; feature <code>patients.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>patient_recalls</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Recall not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-recall.entity.ts</code> · <code>createRecall</code>, <code>updateRecall</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (<code>useRecalls</code>, unused)</p>
+<h3 id="ch28-patients-28-3-25-referrals">28.3.25 Referrals</h3>
+<p><strong>Status:</strong> [Partial] — backend create and list only; shown only in the unreachable <code>CrmTab</code>.</p>
+<p><strong>What it does.</strong> Records that this patient referred someone (an existing patient or a name and phone), with reward fields.</p>
+<p><strong>How the user does it.</strong> No reachable screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each referral starts as pending; there is no endpoint to change its status or mark a reward given.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/referrals</code> (where the patient is the referrer), <code>POST /patients/:id/referrals</code> → <code>createReferral</code>. If the referred patient is deleted, the link is cleared (<code>ON DELETE SET NULL</code>).</p>
+<p><strong>Rules and validations.</strong> All fields optional; referred name at most 150 characters.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.view</code>; write <code>patients.edit</code>; feature <code>patients.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>patient_referrals</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-referral.entity.ts</code> · <code>createReferral</code> · <code>web-app/src/features/patients/components/tabs/CrmTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-26-feedback">28.3.26 Feedback</h3>
+<p><strong>Status:</strong> [Partial] — backend create and list only; shown only in the unreachable <code>CrmTab</code>.</p>
+<p><strong>What it does.</strong> Stores a 1–5 rating with a category (doctor, service, facility, billing, waiting time, general), text and an anonymous flag.</p>
+<p><strong>How the user does it.</strong> No reachable screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Columns for publishing and for a clinic response exist, but no endpoint sets them.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/feedback</code>, <code>POST /patients/:id/feedback</code> → <code>createFeedback</code>.</p>
+<p><strong>Rules and validations.</strong> Rating required, whole number 1–5.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.view</code>; write <code>patients.edit</code>; feature <code>patients.core</code>.</p>
+<p><strong>Data read and written.</strong> <code>patient_feedback</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Rating out of range (400).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-feedback.entity.ts</code> · <code>createFeedback</code> · <code>web-app/src/features/patients/components/tabs/CrmTab.tsx</code></p>
+<h3 id="ch28-patients-28-3-27-insurance">28.3.27 Insurance</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no component uses the insurance hooks.</p>
+<p><strong>What it does.</strong> Stores a patient&#39;s insurance policies: provider, plan, policy number, holder, coverage percentage, annual maximum, used benefit, validity dates, card images and an active flag.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Policies are reference information only; billing does not read them and insurance claims are not built.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /patients/:id/insurance</code>, <code>POST /patients/:id/insurance</code>, <code>PATCH /patients/:id/insurance/:insuranceId</code>, all requiring feature <code>patients.insurance</code>.</p>
+<p><strong>Rules and validations.</strong> Provider name and policy number required; coverage 0–100 %.</p>
+<p><strong>Who can do it.</strong> Read <code>patients.view</code>; write <code>patients.edit</code>; feature <code>patients.insurance</code> (off by default).</p>
+<p><strong>Data read and written.</strong> <code>patient_insurance</code>, <code>audit_logs</code> (card links omitted).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Insurance record not found&quot; (404); feature-off error.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/entities/patient-insurance.entity.ts</code> · <code>createInsurance</code>, <code>updateInsurance</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (<code>useInsurance</code>, unused)</p>
+<h3 id="ch28-patients-28-3-28-billing-tab">28.3.28 Billing tab</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the patient&#39;s money position (summary cards) and four sub-tabs: Open charges, Invoices, Payments and Statement, with collect-payment and, when the patient holds an advance, refund actions.</p>
+<p><strong>How the user does it.</strong> Open <strong>Billing</strong>. The Billing chapter (Chapter 34) describes every action.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> This tab is the Billing module embedded in the patient page.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PatientBillingTab</code> from the billing feature.</p>
+<p><strong>Rules and validations.</strong> Covered in Chapter 34.</p>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code>. Default holders: Admin, Receptionist, Accountant.</p>
+<p><strong>Data read and written.</strong> Billing tables.</p>
+<p><strong>Effects on other modules.</strong> Billing.</p>
+<p><strong>Error cases.</strong> Covered in Chapter 34.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/features/billing/components/patient-billing/PatientBillingTab.tsx</code> · <code>PatientBillingTab</code></p>
+<h3 id="ch28-patients-28-3-29-patient-portal-and-the-crm-feature-key">28.3.29 Patient portal and the CRM feature key</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> The feature keys <code>patients.portal</code> (patient self-service) and <code>patients.crm</code> (referrals, feedback and recalls as a switchable feature) are retired in the feature catalog: their entries are commented out and any existing row is deactivated so they cannot be switched on. The <code>patients.user_id</code> column reserved for a portal login is never filled.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The communications, recall, referral and feedback endpoints are not gated by any CRM feature; they follow <code>patients.view</code> and <code>patients.edit</code>.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>RETIRED_FEATURE_KEYS</code> in the feature catalog seed.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Nobody.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/feature-flags/feature-catalog.seed.ts</code> · <code>RETIRED_FEATURE_KEYS</code> · none in web-app</p>
+<h3 id="ch28-patients-28-3-30-who-can-see-which-patients-scope">28.3.30 Who can see which patients (scope)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Limits every patient list, export and patient page to the viewer&#39;s reach, so a doctor sees only their own patients and front-desk staff only patients connected to their location.</p>
+<p><strong>How the user does it.</strong> Nothing to do; the owner sets the scope of <code>patients.view</code> per role on the roles screen (Chapter 11).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Figure 28.8 summarises the rules.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-patient-scope.png" alt="Figure 28.8 — Patient scope rules"></p>
+<p><em>Figure 28.8 — How the scope of <code>patients.view</code> decides which patients a user can reach.</em></p>
+<p>The flowchart starts from &quot;Request for a patient or the patient list&quot; and branches on the scope of <code>patients.view</code>. With <code>org</code>, the user reaches every patient of the organization. With <code>location</code>, the user reaches patients registered at the active location (their primary location), booked at it, or queued at it. With <code>own</code>, the user reaches patients who have an appointment or a queue entry with this doctor. With no grant, the list is empty and any single patient answers 404.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>patientScope()</code> builds <code>EXISTS</code> sub-queries over <code>appointments</code>, <code>queue_entries</code>/<code>queue_sessions</code> and <code>patients.primary_location_id</code>; <code>AccessContext.applyScope</code> adds them to list and export queries; <code>PatientScopeGuard</code> checks single-patient routes. Prices are hidden separately: plan cost columns carry <code>@VisibleIf(&#39;patients.price.view&#39;)</code>, and the history endpoint strips treatment costs.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A doctor with no employee record, or a user with no active location, gets an empty list under <code>own</code> or <code>location</code>.</li>
+<li><code>GET /patients/check-phone</code> is not scope-limited (it only answers yes or no).</li>
+</ul>
+<p><strong>Who can do it.</strong> Applies to everyone except the owner and super admin, who hold every permission at <code>org</code> scope.</p>
+<p><strong>Data read and written.</strong> Reads <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>patients</code>.</p>
+<p><strong>Effects on other modules.</strong> Other modules that list patients reuse <code>patientScope</code> or the patient-scope guard (encounters, treatments, prescriptions and inventory patient consumption).</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404) for an out-of-scope patient.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/access/patient-scope.ts</code> · <code>patientScope</code>, <code>isPatientInScope</code>, <code>PatientScopeGuard</code> · <code>web-app/src/features/patients/utils/patientTabs.ts</code></p>
+<h2 id="ch28-patients-28-4-entities-and-data-model">28.4 Entities and data model</h2>
+<p>The module owns fifteen tables. Two figures split them into clinical records and CRM-style records.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-erd-clinical.png" alt="Figure 28.9 — Patient and clinical sub-records"></p>
+<p><em>Figure 28.9 — Entity-relationship diagram of the patient and its clinical sub-records.</em></p>
+<p>The diagram puts <code>patients</code> in the centre, with <code>organizations</code> and <code>locations</code> at the top and nine clinical tables along the bottom. Each patient belongs to exactly one organization; deleting the organization deletes its patients (ON DELETE CASCADE). A patient may have one primary location; deleting that location clears the link (ON DELETE SET NULL). A patient has at most one <code>patient_dental_info</code> row (unique <code>patient_id</code>). A patient has any number of <code>patient_teeth_chart</code>, <code>patient_vitals</code>, <code>patient_documents</code>, <code>patient_consents</code>, <code>patient_prescriptions</code> (legacy) and <code>patient_treatment_plans</code> rows; all of them are deleted with the patient (ON DELETE CASCADE), and most also carry <code>organization_id</code> and <code>location_id</code> foreign keys that cascade. Each treatment plan has any number of <code>treatment_plan_items</code>, deleted with the plan. Key columns shown: <code>patients.patient_number</code> (unique per organization), <code>phone</code>, <code>is_active</code>, <code>is_blacklisted</code>; <code>chart_data</code> and <code>is_initial_chart</code> on charts; <code>bp_systolic</code> and <code>bmi</code> on vitals; <code>document_type</code> and <code>file_url</code> on documents; <code>consent_type</code> and <code>signature_url</code> on consents; <code>prescription_number</code> and <code>medications</code> (JSON) on legacy prescriptions; <code>plan_number</code> and <code>status</code> on plans; <code>procedure_name</code> and <code>status</code> on items. Columns such as <code>dentist_id</code>, <code>recorded_by</code>, <code>uploaded_by</code>, <code>prescribed_by</code> and <code>witnessed_by</code> hold user or employee ids without a foreign key; the web app fills them with the signed-in user&#39;s id.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-erd-crm.png" alt="Figure 28.10 — Patient CRM records and audit link"></p>
+<p><em>Figure 28.10 — Entity-relationship diagram of the patient&#39;s CRM records, visit statistics and audit link.</em></p>
+<p>This diagram shows <code>patients</code> with seven related tables. A patient has any number of <code>patient_communications</code>, <code>patient_recalls</code>, <code>patient_feedback</code> and <code>patient_insurance</code> rows, all deleted with the patient. <code>patient_referrals</code> links to patients twice: <code>referring_patient_id</code> (the patient who referred; deleted with them) and an optional <code>referred_patient_id</code> (the person referred, if registered; cleared when that patient is deleted). <code>patient_visits</code> holds one row per patient and location (unique pair) with <code>visit_count</code>; nothing writes to it. The dotted line to <code>audit_logs</code> is a logical link without a foreign key: audit rows carry the patient id in <code>subject_id</code>, so they survive the patient&#39;s deletion.</p>
+<p>Patients are also referenced from outside the module. Appointments, queue entries, encounters, treatments, prescriptions, inventory consumption and patient credits cascade on patient deletion; charges, invoices, payments, refunds, lab orders, lab invoices, lab payments and lab credits restrict it.</p>
+<p>Money columns in this module (<code>patient_treatment_plans</code> costs, <code>treatment_plan_items.estimated_cost</code>, <code>patient_insurance</code> benefits, <code>patient_visits.total_spent</code>, referral reward) are decimal numbers in currency units (for example rupees), not paisa.</p>
+<h2 id="ch28-patients-28-5-status-lifecycles">28.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-patient-status.png" alt="Figure 28.11 — Patient active status"></p>
+<p><em>Figure 28.11 — Lifecycle of a patient&#39;s active status.</em></p>
+<p>A patient is created <strong>active</strong> by <code>POST /patients</code> or by an import row. <code>PATCH /patients/:id/status</code> with <code>isActive: false</code> moves them to <strong>inactive</strong>, and with <code>isActive: true</code> back to <strong>active</strong>; each move writes a <code>status_history</code> row. From either state, <code>DELETE /patients/:id</code> removes the patient permanently (the end marker). Inactive patients keep all records and can still be booked and billed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-patient-blacklist.png" alt="Figure 28.12 — Patient blacklist flag"></p>
+<p><em>Figure 28.12 — Lifecycle of the blacklist flag.</em></p>
+<p>The blacklist flag is independent of the active status. A new patient is <strong>not blacklisted</strong>. <code>PUT /patients/:id</code> with <code>isBlacklisted: true</code> (API only, no screen) makes them <strong>blacklisted</strong>, and <code>isBlacklisted: false</code> reverses it. The change is recorded as a normal field update in <code>audit_logs</code>, not in <code>status_history</code>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch28-recall-status.png" alt="Figure 28.13 — Recall status"></p>
+<p><em>Figure 28.13 — Typical path of a recall through its statuses.</em></p>
+<p><code>POST /patients/:id/recalls</code> creates a recall in <strong>scheduled</strong>. The diagram shows the intended paths, each caused by <code>PATCH /patients/:id/recalls/:recallId</code>: from scheduled to <strong>reminder_sent</strong>, <strong>contacted</strong>, <strong>booked</strong> or <strong>overdue</strong>; reminder_sent to contacted; overdue to contacted; contacted to <strong>booked</strong> or <strong>ignored</strong>; booked to <strong>completed</strong>. The code has no transition map: the PATCH accepts any status from any status, and no background job sets reminder_sent or overdue. Recalls have no screen today.</p>
+<p>Other status-like columns in the module have no transitions: referrals are always created as <code>pending</code> (no update endpoint), communications keep the status given at creation, and insurance <code>is_active</code> changes only through its PATCH. The treatment-plan and plan-item lifecycles are drawn in the Treatment Plans chapter (Chapter 33).</p>
+<h2 id="ch28-patients-28-6-connections-to-other-modules">28.6 Connections to other modules</h2>
+<ul>
+<li><strong>Appointments and Queue (Chapters 29–30):</strong> booking and check-in pick a patient from this module; both appointment and queue rows define a doctor&#39;s <code>own</code> patient scope and a location&#39;s reach. Registration offers a &quot;Book Appointment&quot; step.</li>
+<li><strong>Consultation (Chapter 31):</strong> the workspace shows the patient snapshot (history, latest vitals, allergies) from this module; encounters and treatments appear in the Visits and Treatments tabs.</li>
+<li><strong>Prescriptions (Chapter 32):</strong> the Clinical &amp; Rx tab links to the prescription builder; the legacy <code>patient_prescriptions</code> table lives here.</li>
+<li><strong>Treatment Plans (Chapter 33):</strong> patient plans and items are stored by this module; plan templates fill the Record Treatment form.</li>
+<li><strong>Billing (Chapter 34):</strong> the Billing tab and dues badge; billing tables block patient deletion.</li>
+<li><strong>Dental lab (Chapter 40):</strong> lab orders reference a patient and block deletion.</li>
+<li><strong>Access control (Chapters 11 and 57):</strong> permissions, scopes and features listed in each feature.</li>
+<li><strong>Audit logging (Chapter 60):</strong> every write here produces an audit row tied to the patient.</li>
+<li><strong>Reports and dashboard (Chapter 36):</strong> the dashboard counts active patients.</li>
+</ul>
+<h2 id="ch28-patients-28-7-limitations-and-known-gaps">28.7 Limitations and known gaps</h2>
+<ul>
+<li><strong>No screen for treatment plans, recalls, insurance, communications, referrals or feedback.</strong> The backend endpoints work; the CRM tab component exists but is not mounted.</li>
+<li><strong>Blacklisting has no screen</strong> and does not block booking, queueing or billing. Inactive patients are not blocked either.</li>
+<li><strong>Deleting a patient with billing or lab records fails</strong> with a generic error, although the confirmation text says invoices and payments will be deleted.</li>
+<li><strong>Patient, plan and legacy prescription numbers come from a row count.</strong> After a permanent deletion the count drops, so the next number can repeat an existing one; the unique index then makes the save fail with a server error. Two registrations at the same moment can also collide. Import guards against parallel imports only inside one server process.</li>
+<li><strong>The live phone check is not wired</strong>, and phone uniqueness at registration is an exact text match, while import compares normalised phones. &quot;0300 0000000&quot; and &quot;03000000000&quot; are different to manual registration.</li>
+<li><strong><code>patient_visits</code> is never filled</strong>, so <code>GET /patients/:id/visits</code> is always empty.</li>
+<li><strong>No edit or delete for vitals, charts, consents, documents or legacy prescriptions</strong> (by design for consents and charts; a mistaken upload cannot be removed from the screen).</li>
+<li><strong>The list screen exposes only search, gender and status filters</strong>; card view has no paging; column sorting applies to the current page only.</li>
+<li><strong>Export uses UTC dates</strong> for the file name and &quot;Registered on&quot; column.</li>
+<li><strong>Teeth charts store no periodontal data</strong> from the screen, and vitals&#39; medical flags are not in the form.</li>
+</ul>
+<h2 id="ch28-patients-28-8-owner-39-s-faq">28.8 Owner&#39;s FAQ</h2>
+<p><strong>Can a receptionist delete a patient?</strong>
+Not with the default Receptionist role: <code>patients.delete</code> is in the Admin template only. An owner can add it to a role on the roles screen; it is marked high-risk.</p>
+<p><strong>What happens to a patient&#39;s appointments and visits when I delete the patient?</strong>
+They are deleted with the patient, together with queue entries, encounters, treatments, prescriptions and all patient sub-records. If the patient has any charge, invoice, payment, refund or lab record, the delete is refused. Deactivating keeps everything and is the safer choice.</p>
+<p><strong>Why can a doctor not find a patient who is registered in the clinic?</strong>
+The Doctor role sees only <code>own</code> patients: those with an appointment or a queue entry with that doctor. Once the patient is booked with or queued for the doctor, they appear.</p>
+<p><strong>Can two patients share a phone number, for example a mother and child?</strong>
+No. The phone is unique per organization. Put the parent&#39;s number in the guardian phone and give the child another number, or leave the child&#39;s guardian details on a separate record.</p>
+<p><strong>Where are uploaded X-rays stored?</strong>
+In the external file-storage service behind the Platform&#39;s storage provider (Cloudinary today). The Platform stores only the link, file name, size and type in <code>patient_documents</code>.</p>
+<p><strong>Is every change to a patient recorded?</strong>
+Yes, for every write in this module: creation, edits with before/after values, activation changes, deletions and each sub-record. Exports are recorded too. Reads are not logged.</p>
+<p><strong>Can I bring in my old patient register?</strong>
+Yes, with <strong>Import</strong> on the Patients page: Excel <code>.xlsx</code> or CSV, up to 5,000 rows and 10 MB per file. Run the check first; rows with problems are listed and can be downloaded as an error report.</p>
+<p><strong>Who sees treatment prices on the patient page?</strong>
+Only holders of <code>patients.price.view</code> (Admin, Receptionist and Accountant by default). Doctors and assistants do not see fees in the Visits or Treatments tabs.</p>
+<p><strong>Does the Platform send recall reminders to patients?</strong>
+No. Recalls can be stored through the API, but there is no screen, no reminder job, and notifications are in-app only.</p>
+</section></body></html>

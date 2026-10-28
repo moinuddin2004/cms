@@ -1,0 +1,22 @@
+sequenceDiagram
+    participant Receptionist
+    participant Web as Web app
+    participant API
+    participant Pay as PaymentsService
+    participant Com as CommissionService
+    participant DB as PostgreSQL
+    Note over API,DB: At visit completion each visit charge got a snapshot - doctor assignment, plan, rate or fixed amount
+    Receptionist->>Web: Open Collect payment and pick charges
+    Web->>API: POST /payments/preview
+    API->>Com: previewForAllocations
+    Com-->>API: Doctor share per doctor - only with earnings.all.view and billing.commissions on
+    API-->>Web: Preview with or without the Doctor share line
+    Receptionist->>Web: Confirm the payment
+    Web->>API: POST /payments
+    API->>Pay: runCollect in one transaction
+    Pay->>DB: Insert payment and allocations, recompute totals
+    Pay->>Com: recordForCharges, source ALLOCATION
+    Com->>DB: Read net, tax, allocated and already recorded per charge
+    Com->>Com: target = rate on pre-tax collected, capped at net
+    Com->>DB: Insert one entry per charge = target minus already recorded
+    API-->>Web: Payment saved, receipt shown

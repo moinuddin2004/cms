@@ -1,0 +1,833 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Dental Lab</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch40-dental-lab">Chapter 40 — Dental Lab</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch40-dental-lab"><h1 id="ch40-dental-lab-chapter-40-dental-lab">Chapter 40 — Dental Lab</h1>
+<p>This chapter describes the clinic side of dental-lab work on the Platform: how a clinic keeps a list of the dental labs it works with, how it orders crowns, bridges and dentures from them, follows the work through try-ins and shipments, and approves or sends back what comes home. It is written for the product owner, who needs to know exactly what the module does today and where it stops. &quot;Lab&quot; here always means a dental laboratory that makes prosthetics, never a diagnostic test lab. The lab&#39;s own screens (the lab portal and the no-login magic link page) are in Chapter 41, and the money side (patient lab invoices, vendor bills, payments, statements) is in Chapter 42.</p>
+<h2 id="ch40-dental-lab-40-1-what-this-module-is-for">40.1 What this module is for</h2>
+<p>A dental clinic rarely makes crowns, bridges and dentures itself. It sends a <strong>lab order</strong> to a <strong>lab</strong>, the lab makes the work in stages, ships it back, and the clinic fits it on the patient. This module covers that whole case from the clinic&#39;s chair:</p>
+<ul>
+<li><strong>Lab list.</strong> The clinic chooses which labs it works with. Each connection is a <strong>lab link</strong> that carries payment terms and how much of the patient&#39;s identity the lab may see.</li>
+<li><strong>Lab price list.</strong> For every service a linked lab offers, the clinic sees what the lab charges it and what it charges the patient, and maps each lab service to one of its own billable treatments.</li>
+<li><strong>Order templates.</strong> A doctor saves &quot;my usual zirconia crown&quot; once and starts later orders from it.</li>
+<li><strong>Lab orders.</strong> One order is one case for one patient with one or more <strong>lab order items</strong> (a crown, a bridge). The order is a draft until submitted. At submit, prices and form answers are frozen. After submit, changes are revisions, never overwrites.</li>
+<li><strong>Lab access.</strong> The lab can answer through the lab portal, through a <strong>magic link</strong> (a no-login web page the clinic sends by message) or, when the lab does not answer at all, a lab coordinator at the clinic can record the lab&#39;s answer on its behalf.</li>
+<li><strong>Production.</strong> Work moves through the lab&#39;s stages. Try-in rounds go to the clinic and back. The clinic receives parcels, approves or rejects them, delivers the finished item and, if needed, asks for a remake.</li>
+</ul>
+<p>Who uses it, by canonical role:</p>
+<ul>
+<li><strong>Doctor.</strong> Creates and submits orders, answers the lab&#39;s questions, decides try-ins, approves or rejects work, delivers it. Sees orders they ordered or created (scope <code>own</code>).</li>
+<li><strong>Receptionist</strong> and <strong>Assistant.</strong> Can view the lab orders of their location and receive shipments at the front desk. They cannot create or change orders.</li>
+<li><strong>Admin</strong> and the <strong>owner.</strong> Everything, including the lab list, the lab price list, shared templates and acting for a lab.</li>
+<li><strong>Accountant.</strong> No lab-order access; the Accountant holds the lab billing and payables permissions that Chapter 42 covers.</li>
+<li><strong>Super admin.</strong> Maintains the platform lab directory, the lab members and each lab&#39;s services and prices.</li>
+</ul>
+<p>Where it appears in the sidebar (labels from <code>nav.registry.ts</code>, all inside the <strong>Clinic</strong> section by default): <strong>Labs</strong> (<code>/labs</code>, needs <code>lab.links.manage</code>), <strong>Lab orders</strong> (<code>/lab-orders</code>, needs <code>lab.orders.view</code>), <strong>Lab price list</strong> (<code>/lab-catalog</code>, needs <code>lab.catalog.manage</code>) and <strong>Order templates</strong> (<code>/lab-order-templates</code>, needs <code>lab.orders.create</code>). <strong>Lab billing</strong> and <strong>Lab payables</strong> also sit there and belong to Chapter 42. A <strong>Lab portal</strong> entry appears only for users who are lab members. For the super admin there is <strong>Lab Directory</strong> (<code>/lab-directory</code>) in the <strong>Admin</strong> section.</p>
+<p>The clinic side sits behind the feature <strong><code>dental.lab_orders</code></strong> (display name &quot;Lab Management&quot;). It is not enabled by default: the super admin entitles it to an organization and the owner switches it on. The platform routes (directory, catalog) ignore it, and so do the lab portal routes, because a lab is not a tenant.</p>
+<h3 id="ch40-dental-lab-how-the-lab-order-runs-on-the-workflow-engine">How the lab order runs on the workflow engine</h3>
+<p>A lab order, each lab order item and each try-in stage round have a status. These statuses are <strong>not fixed in code</strong>. Each one is a state of a <strong>workflow template</strong> (a versioned definition of states and transitions that the super admin edits in Config Studio; Chapter 43 covers the engine). When a draft order is created it pins the newest published order workflow of its specialty, and every item it contains pins an item workflow. Later edits to a template never change cases already in flight. Every status change goes through one engine call, which locks the row, finds the (state, action) pair in the pinned version, checks the actor&#39;s side (clinic, lab or system) and role, checks a required reason or input, writes the new state, writes the status history and then runs the transition&#39;s effects.</p>
+<p>The default dental templates are seeded as published version 1 (<code>DENTAL_ORDER</code>, <code>DENTAL_ITEM</code>, <code>DENTAL_STAGE</code>). The state diagrams in section 40.5 show those seeded definitions. An organization that has published its own version would see different states, and nothing in this chapter would describe them. The labels in the web app are a lookup table for the seeded codes; an unknown code is shown with its underscores replaced by spaces.</p>
+<p>One rule is in code, not in data: <strong>the order&#39;s status follows its items.</strong> After every item change the engine recomputes the order status in the same transaction, using fixed rules (first match wins): all items cancelled gives cancelled; a manual hold gives on hold; ignoring items that left the work (cancelled, rejected, remake required), all items approved or delivered gives completed; all received or later gives under review; some received gives partially received; all ready or dispatched gives ready; some ready gives partially ready; any in production, at clinic try-in or in QC gives in progress; all accepted gives accepted; otherwise submitted. The statuses draft, clarification needed, rejected by lab, cancelled and completed are never overwritten by this derivation, except that a remake reopens a completed order.</p>
+<h2 id="ch40-dental-lab-40-2-screens">40.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-lab-links.svg" alt="Figure 40.1 — Labs (the clinic&amp;#39;s lab list)"></p>
+<p><em>Figure 40.1 — Labs, the clinic&#39;s lab list (screenshot pending).</em></p>
+<p>The <strong>Labs</strong> page (<code>/labs</code>) has the title &quot;Labs&quot;, the subtitle &quot;The dental labs your clinic sends work to.&quot; and an <strong>Add lab</strong> button. A filter row holds a search box (&quot;Search by lab, city or phone…&quot;) and a status filter (&quot;All statuses&quot;, Awaiting confirmation, Active, Suspended). A view toggle switches between a table and a grid of cards. The table has the columns Lab, Contact, Status, Payment terms, &quot;Patient details shared&quot; and an actions column. The row menu offers <strong>Edit terms</strong>, <strong>Activate</strong> (for a link awaiting confirmation), <strong>Reactivate</strong> (for a suspended link), <strong>History</strong> and <strong>Suspend</strong>. With no links the page shows &quot;No labs yet&quot; and a short explanation; with filters that match nothing it shows &quot;No labs match your filters.&quot; and a clear-filters action. <strong>Add lab</strong> opens a side sheet that lists the platform directory with a search box (&quot;Search labs by name or city…&quot;), then asks for the payment terms in days, the patient-details setting and notes.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-lab-directory.svg" alt="Figure 40.2 — Lab Directory (super admin)"></p>
+<p><em>Figure 40.2 — The platform Lab Directory (screenshot pending).</em></p>
+<p>The <strong>Lab Directory</strong> page (<code>/lab-directory</code>, super admin only; other users are sent to the dashboard) is titled &quot;Lab Directory&quot; with the subtitle &quot;Dental labs on the platform. Clinics add labs from this list.&quot; Its table has the columns Lab, Type (External or In-house), Contact, Clinics, Staff and Status, plus an edit button on each row. Filters are a search box (name, city, phone or email), a status filter and a type filter. The <strong>Add lab</strong> sheet asks for the name, the type (an In-house lab also asks for the owner clinic), and the contact details and address.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-lab-detail.svg" alt="Figure 40.3 — Lab detail (super admin)"></p>
+<p><em>Figure 40.3 — One lab in the directory (screenshot pending).</em></p>
+<p>The lab detail page (<code>/lab-directory/$labId</code>, super admin only) shows the lab&#39;s phone, WhatsApp, email, city, address and, for an in-house lab, the clinic it belongs to. Under that are four tabs: <strong>Services &amp; prices</strong> (the lab&#39;s catalog with price windows and options), <strong>Staff</strong> (the lab members, with a role selector and an active switch on each row and an <strong>Add lab member</strong> sheet), <strong>Clinics</strong> (every clinic linked to the lab, with link status, payment terms, patient-details setting and active-since date) and <strong>Activity</strong> (the audit timeline). A switch suspends or reactivates the whole lab after a confirmation.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-price-list.svg" alt="Figure 40.4 — Lab price list"></p>
+<p><em>Figure 40.4 — The clinic&#39;s Lab price list (screenshot pending).</em></p>
+<p>The <strong>Lab price list</strong> page (<code>/lab-catalog</code>) has the title &quot;Lab price list&quot; and the subtitle &quot;Lab costs, patient prices and which lab makes each treatment.&quot; It has two tabs. <strong>Lab services</strong> lists every service of every linked lab with the columns Service, Lab, Charged (per tooth, unit, arch or case), Lab cost, Patient price, Margin and an action to bill the service as one of the clinic&#39;s treatments; filters are search, lab, category and &quot;Mapped or not&quot;. <strong>Treatment mapping</strong> lists the existing mappings with the columns &quot;Your treatment&quot;, &quot;Lab service&quot; and Default, a star button to make a lab the default for a treatment and an unlink button that removes a mapping after a confirmation.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-templates.svg" alt="Figure 40.5 — Order templates"></p>
+<p><em>Figure 40.5 — Order templates (screenshot pending).</em></p>
+<p>The <strong>Order templates</strong> page (<code>/lab-order-templates</code>) has the title &quot;Order templates&quot; and the subtitle &quot;Your usual lab orders, ready to send in seconds.&quot; Its table has the columns Template, Lab, Owner, Used and an edit button; filters are search, owner (mine or shared), lab and &quot;Include archived&quot;. The <strong>New order template</strong> sheet asks for a name, a &quot;Share with the whole clinic&quot; switch (shown only to users who may share), one or more services with their options, quantity, rush flag and any form answers, and &quot;Notes for the lab&quot;. All services of a template must belong to one lab.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-orders-list.svg" alt="Figure 40.6 — Lab orders list"></p>
+<p><em>Figure 40.6 — The Lab orders list (screenshot pending).</em></p>
+<p>The <strong>Lab orders</strong> page (<code>/lab-orders</code>) has the title &quot;Lab orders&quot; and the subtitle &quot;Crowns, bridges, dentures — from draft to delivery.&quot; A <strong>New lab order</strong> button appears for users with <code>lab.orders.create</code>. Filters are a debounced search (&quot;Search order no. or patient…&quot;), status, lab, doctor and a From and To date. The table has the columns Order, Patient, Lab, Doctor, Status, &quot;Due back&quot;, &quot;Lab cost&quot;, Created and an actions column; a card view is the alternative. The lab cost is hidden for drafts. With no orders the page shows &quot;No lab orders yet&quot; and explains that prices are fixed at submit.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-new-order.svg" alt="Figure 40.7 — The New lab order sheet"></p>
+<p><em>Figure 40.7 — The New lab order sheet, step 1 of 3 (screenshot pending).</em></p>
+<p>The <strong>New lab order</strong> sheet is a three-step form: &quot;Patient &amp; lab&quot;, &quot;Items&quot; and &quot;Prices &amp; send&quot;. Step 1 has a patient search (&quot;Search by name, number or phone…&quot;), the lab, the ordering doctor (default: the signed-in user if they are a doctor), the priority, &quot;Needed back by&quot; and &quot;Instructions for the lab&quot;. Once a patient is chosen, a &quot;Quick start&quot; box offers <strong>From a template</strong> and <strong>Repeat last order</strong>. Step 2 lists the items; each has the service, its options, quantity, a Rush switch and the form fields of that service (shade, material, teeth and so on). Step 3 shows the price quote per line (lab cost and patient price) and a total. Buttons are <strong>Cancel</strong> or <strong>Back</strong>, <strong>Next</strong>, <strong>Save draft</strong> and <strong>Submit to lab</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/lab-order-detail.jpg" alt="Figure 40.8 — Lab order detail (screenshot)"></p>
+<p><em>Figure 40.8 — Lab order LAB-0001 in status Submitted, with one zirconia crown item and the Lab access panel.</em></p>
+<p>This screenshot was captured on 2026-10-23 in dark theme and shows the former working name &quot;MedTrackr&quot; in the sidebar corner. The page header reads &quot;Lab order LAB-0001&quot; with the line &quot;Regression Patient · Regression Lab&quot; under it and a back arrow to the lab orders list. A green toast at the top right confirms that the order was sent to the lab. Buttons on the right are <strong>Work order</strong>, <strong>Revise</strong>, <strong>Repeat</strong> and a red <strong>Cancel order</strong>. A status line shows the badge &quot;Submitted&quot;, the doctor, the due-back date and &quot;Revision 1&quot;. The <strong>Items</strong> section shows the total &quot;Lab PKR 5,000 · Patient PKR 15,000&quot; and one item, &quot;1. Zirconia crown × 1&quot;, with tooth 12, the shade system, shade and material, the lab price PKR 5,000 with the patient price PKR 15,000, and the item badge &quot;Waiting for lab&quot;. Under it the <strong>Lab access</strong> panel explains that a link lets the lab open the order and answer without logging in, that it expires after a day and stops working when the order closes, and offers <strong>Send link to lab</strong> and <strong>Copy link</strong>; its list of links was still loading when the picture was taken. The start of the Billing section is visible at the bottom. All names in the picture are test data.</p>
+<p>Besides these, the order detail page has sections that the screenshot does not reach: <strong>Production</strong>, <strong>Billing</strong> (Chapter 42), <strong>Messages</strong>, <strong>Extra charges</strong>, <strong>Revisions</strong>, <strong>History</strong> and <strong>Files</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-production-panel.svg" alt="Figure 40.9 — The Production panel on a lab order"></p>
+<p><em>Figure 40.9 — The Production section of a lab order (screenshot pending).</em></p>
+<p>The <strong>Production</strong> section lists &quot;Incoming from the lab&quot; shipments with their lines and a button to mark a shipment lost, then one block per item with its status, its try-in rounds as an ordered list (&quot;Stages&quot;), its warranty dates once delivered, and the next action for the clinic. Depending on the state these are <strong>Record try-in</strong>, <strong>Approve</strong> (the stage name is added), <strong>Needs correction</strong>, <strong>Approve work</strong>, <strong>Reject — remake</strong>, <strong>Fitted — mark delivered</strong> and <strong>Request remake</strong> (after delivery). A &quot;Remake requests&quot; block lists each request with its reason, responsible party, status and a decision button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch40-receive-shipment.svg" alt="Figure 40.10 — Receive a shipment"></p>
+<p><em>Figure 40.10 — The Receive shipment page opened from a slip&#39;s QR code (screenshot pending).</em></p>
+<p>The receive page (<code>/lab-orders/receive/$token</code>) is titled &quot;Receive SHP-0001&quot; (the shipment number) with the subtitle &quot;From&quot; and the lab&#39;s name. Each line of the parcel has a tick box to receive it, a Condition selector (the first choice is OK, then Damaged and Missing), a received quantity, an &quot;Incoming QC&quot; selector with &quot;Not checked&quot; as its first choice, and a notes box (&quot;e.g. box cracked, shade looks off&quot;). The button is <strong>Receive</strong>. If nothing is left to receive the page says &quot;Nothing left to receive&quot; with the shipment status.</p>
+<h2 id="ch40-dental-lab-40-3-features">40.3 Features</h2>
+<h3 id="ch40-dental-lab-40-3-1-keep-the-platform-lab-directory">40.3.1 Keep the platform lab directory</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The super admin keeps one list of dental labs for the whole Platform. A lab is either <strong>external</strong> (serves many clinics) or <strong>in-house</strong> (belongs to one clinic and serves only it). A lab can be suspended; suspending blocks new links and new activations, while links that already exist stay as they are.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>As super admin, open <strong>Lab Directory</strong> in the sidebar.</li>
+<li>Press <strong>Add lab</strong>. Enter the name, choose External or In-house (for In-house choose the owner clinic) and fill the contact details.</li>
+<li>To change contact details press the edit button on the row. To suspend, use the status switch on the lab detail page and confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Labs belong to the Platform, not to a clinic, so there is no clinic filter. When an in-house lab is created, the Platform also creates its link to the owner clinic, already active, in the same step.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /platform/labs</code>, <code>GET/PATCH /platform/labs/:id</code>, <code>POST /platform/labs/:id/status</code>, <code>GET /platform/labs/:id/links</code>, <code>GET /platform/labs/:id/history</code> in <code>PlatformLabsController</code> (<code>@RequireSuperAdmin</code>, no tenant context) over <code>LabsDirectoryService</code>. Create runs in one transaction: owner check, insert into <code>labs</code> (UUID version 7 key), an <code>audit_logs</code> row, and for an in-house lab a call to <code>LabLinksService.createInTx</code> that inserts the active link plus a <code>status_history</code> row. Update and status change lock the lab row (<code>pessimistic_write</code>) and compare the sent <code>version</code> with the stored one (409 <code>STALE_VERSION</code> when they differ).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only in-house labs have an owner organization, and every in-house lab must have one (<code>LAB_OWNER_INVALID</code>, <code>LAB_OWNER_ORG_NOT_FOUND</code>).</li>
+<li>The lab name is not editable from the lab portal; only contact fields are (Chapter 41).</li>
+<li>Suspending a lab does not close existing links, but a magic link of a suspended lab stops working.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin only (<code>@RequireSuperAdmin</code>). No feature key applies.</p>
+<p><strong>Data read and written.</strong> Reads and writes <code>labs</code>, <code>lab_clinic_links</code>, <code>audit_logs</code>, <code>status_history</code>; reads <code>organizations</code>.</p>
+<p><strong>Effects on other modules.</strong> Clinics can add only active external labs and their own in-house labs.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_NOT_FOUND</code>; 422 <code>LAB_OWNER_INVALID</code> or <code>LAB_OWNER_ORG_NOT_FOUND</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/directory/platform-labs.controller.ts</code> · <code>LabsDirectoryService</code> · <code>web-app/src/features/labs/pages/LabDirectoryPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-2-manage-the-staff-of-a-lab">40.3.2 Manage the staff of a lab</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The super admin adds people to a lab as <strong>lab members</strong>, with the role lab admin or lab technician, changes a role, and switches a member on or off. These accounts are how lab staff log in to the lab portal (Chapter 41).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>As super admin open a lab from <strong>Lab Directory</strong> and choose the <strong>Staff</strong> tab.</li>
+<li>Press <strong>Add lab member</strong>, enter the account email and the role. The account must already exist: create it first under <strong>User Admin</strong>.</li>
+<li>Change the role in the role selector, or flip the Active switch to deactivate.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A lab member is a normal user account with one extra row that says &quot;works at this lab&quot;. Lab staff have no clinic membership at all, so no clinic screen can ever show their data and no lab screen can show a clinic&#39;s.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /platform/labs/:id/members</code>, <code>PATCH /platform/labs/:id/members/:memberId</code> over <code>LabMembersService</code>. Add runs in a transaction: finds the user by lower-cased email (not deleted), runs the &quot;may join&quot; check, inserts into <code>lab_members</code>, writes an audit row. Update locks the member row and checks the version. Members are deactivated, never deleted.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A super admin account cannot be a lab member (<code>LAB_MEMBER_NOT_ALLOWED</code>).</li>
+<li>A user who owns an organization or has an active staff assignment cannot join an external lab. For an in-house lab the only clinic account allowed is one of its owner clinic.</li>
+<li>One membership per lab and user (<code>LAB_MEMBER_EXISTS</code>).</li>
+<li>If no account uses the email, the message is &quot;No account uses this email. Create the user first, then add them here.&quot;</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin. Lab admins can also add and change members of their own lab from the portal, but not themselves (Chapter 41).</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_members</code>, <code>audit_logs</code>; reads <code>users</code>, <code>organization_ownership</code>, <code>employee_org_location_assignments</code>.</p>
+<p><strong>Effects on other modules.</strong> Active members receive in-app notifications about the lab&#39;s orders.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_MEMBER_USER_NOT_FOUND</code>; 409 <code>LAB_MEMBER_EXISTS</code>, <code>LAB_MEMBER_NOT_ALLOWED</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/members/lab-members.service.ts</code> · <code>LabMembersService</code> · <code>web-app/src/features/labs/components/LabMembersPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-3-manage-a-lab-39-s-services-options-and-prices">40.3.3 Manage a lab&#39;s services, options and prices</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> For each lab, the super admin keeps the list of what the lab makes (a <strong>lab service</strong>, for example a zirconia crown), the <strong>options</strong> on it (a material or variant with an extra cost per unit) and its <strong>prices</strong>. A price is a window of dates. A lab&#39;s <strong>list price</strong> applies to every clinic; a <strong>negotiated price</strong> applies to one clinic and wins over the list price.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>As super admin open the lab and choose <strong>Services &amp; prices</strong>.</li>
+<li>Add a service: category, code, name, how it is charged (per tooth, per unit, per arch or per case), turnaround in days, description, and the form, item workflow and try-in stage template an order line will use.</li>
+<li>Open the pricing sheet of a service to add prices (list or for one clinic, with &quot;From&quot; and &quot;Until&quot; dates and an optional rush surcharge) and options.</li>
+<li>A price that has not started yet can be edited or voided. A running price can only be ended.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Prices are never overwritten. A new open-ended price closes the one running before it the day before. A price that is being used can only get an end date, so history stays true. A mistaken future price is voided, not deleted.</p>
+<p><strong>Behind the scenes — technically.</strong> Routes under <code>/platform/labs/:labId/services</code> in <code>PlatformLabServicesController</code> (<code>@RequireSuperAdmin</code>): list, get, create, patch, history, options (add, patch) and prices (list, add, patch, <code>POST …/void</code>, history). Services run in transactions; price writes lock the service row so two edits queue up, then pure functions (<code>planNewWindow</code>, <code>checkWindowEdit</code>) check dates, and the database exclusion constraint <code>excl_lab_service_prices_overlap</code> is the last line of defence. &quot;Today&quot; for a price window is the platform&#39;s day in the Asia/Karachi timezone (<code>CATALOG_TIMEZONE</code>), not a location&#39;s. Every change writes an <code>audit_logs</code> row.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A new price cannot start in the past (<code>LAB_PRICE_INVALID</code>); the end date cannot precede the start date.</li>
+<li>Two non-void windows of the same service and clinic cannot overlap (<code>LAB_PRICE_OVERLAP</code>) unless the new one is open-ended and supersedes an open-ended one that began before it.</li>
+<li>A started price cannot change its amounts or start date (<code>LAB_PRICE_LOCKED</code>) and can end yesterday at the earliest.</li>
+<li>A negotiated price needs the clinic to be linked to the lab.</li>
+<li>The form, workflow and stage template must be active platform definitions of the service&#39;s specialty (<code>LAB_SERVICE_DEFINITION_INVALID</code>); the category must be of the same specialty.</li>
+<li>Amounts are <code>bigint</code> paisa, at most PKR 1,000,000,000 (<code>MAX_PAISA</code>).</li>
+<li>Archived services are hidden from new orders; old orders keep them.</li>
+</ul>
+<p><strong>Who can do it.</strong> Super admin. The lab itself cannot edit its catalog: no lab portal screen or route exists for it (the code comments say the portal &quot;will add&quot; one).</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_services</code>, <code>lab_service_options</code>, <code>lab_service_prices</code>, <code>audit_logs</code>; reads <code>service_categories</code>, <code>form_schemas</code>, <code>workflow_templates</code>, <code>stage_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> Clinics see these services and prices in the Lab price list and in the order sheet.</p>
+<p><strong>Error cases.</strong> 409 <code>LAB_PRICE_OVERLAP</code>, <code>LAB_PRICE_LOCKED</code>; 422 <code>LAB_PRICE_INVALID</code>, <code>LAB_SERVICE_DEFINITION_INVALID</code>, <code>SERVICE_CATEGORY_MISMATCH</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/categories/platform-catalog.controller.ts</code> · <code>LabServicesService</code>, <code>LabServicePricesService</code>, <code>price-resolver.ts</code> · <code>web-app/src/features/lab-catalog/components/LabServicesPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-4-service-categories">40.3.4 Service categories</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Categories such as Crowns, Bridges, Implant restorations, Dentures, Orthodontic appliances and &quot;Repairs &amp; relines&quot; group lab services, so clinics can compare labs like for like. They are seeded for the dental specialty.</p>
+<p><strong>How the user does it.</strong> The category list appears as a filter and in the service form. There is no screen to create or rename a category.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The six default categories exist after start-up. Adding more needs an API call.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /platform/service-categories</code> and <code>PATCH …/:id</code> (super admin) exist; the web app calls only the list. <code>CatalogSeedService</code> inserts missing default categories and never changes existing ones.</p>
+<p><strong>Rules and validations.</strong> Category code is unique per specialty (<code>SERVICE_CATEGORY_EXISTS</code>).</p>
+<p><strong>Who can do it.</strong> Super admin.</p>
+<p><strong>Data read and written.</strong> <code>service_categories</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None beyond grouping.</p>
+<p><strong>Error cases.</strong> 409 <code>SERVICE_CATEGORY_EXISTS</code>; 404 <code>SERVICE_CATEGORY_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/categories/service-categories.service.ts</code> · <code>ServiceCategoriesService</code> · <code>web-app/src/features/lab-catalog/hooks/usePlatformCatalog.ts</code> (read only)</p>
+<h3 id="ch40-dental-lab-40-3-5-add-a-lab-to-the-clinic-39-s-lab-list">40.3.5 Add a lab to the clinic&#39;s lab list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A clinic chooses a lab from the platform directory and adds it to its own list. The new link starts as <strong>invited</strong> (&quot;Awaiting confirmation&quot;) until it is activated.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Labs</strong> and press <strong>Add lab</strong>.</li>
+<li>Search the directory and pick a lab. Labs already linked show their link status.</li>
+<li>Set &quot;Payment terms (days)&quot;, &quot;Patient details shared&quot; and optional notes, then press <strong>Add lab</strong>.</li>
+<li>The message says &quot;Lab added — activate it once the lab confirms&quot;. Activate it as in 40.3.7.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The directory offers only active external labs plus the clinic&#39;s own in-house labs; another clinic&#39;s in-house lab never appears and answers &quot;not found&quot; even if its id is guessed.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-links/directory</code> (up to 25 labs, optional search) and <code>POST /lab-links</code> in <code>LabLinksController</code> (<code>lab.links.manage</code>) over <code>LabLinksService.create</code>: one transaction that read-locks the lab, inserts into <code>lab_clinic_links</code> with status invited (unique per lab and organization), writes an <code>audit_logs</code> row and a <code>status_history</code> row (action <code>invite</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The lab must be active (<code>LAB_SUSPENDED</code> otherwise) and visible to the clinic (<code>LAB_NOT_FOUND</code>).</li>
+<li>One link per lab and clinic (<code>LAB_LINK_EXISTS</code>: &quot;This lab is already in your lab list&quot;).</li>
+<li>Payment terms are 0 to 365 days, default 30.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.links.manage</code>, feature <code>dental.lab_orders</code>. Default: Admin. Reading the lab list (<code>GET /lab-links</code>, <code>GET /lab-links/:id</code>) is open to every member of the clinic (needed so doctors can pick a lab), still behind the feature.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_clinic_links</code>, <code>audit_logs</code>, <code>status_history</code>; reads <code>labs</code>.</p>
+<p><strong>Effects on other modules.</strong> Only an active link allows ordering, pricing quotes and price negotiation.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_NOT_FOUND</code>; 409 <code>LAB_LINK_EXISTS</code>; 422 <code>LAB_SUSPENDED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/links/lab-links.controller.ts</code> · <code>LabLinksService</code> · <code>web-app/src/features/labs/components/LabLinkSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-6-set-payment-terms-and-patient-data-level">40.3.6 Set payment terms and patient data level</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> On each lab link the clinic sets how many days it takes to pay the lab, and how much of the patient&#39;s identity the lab sees: <strong>Full patient name</strong> or <strong>Patient code only</strong>. The change applies to new orders; the sheet says &quot;Orders already sent keep their terms.&quot;</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Labs</strong> open the row menu of the lab and choose <strong>Edit terms</strong> (or click the row).</li>
+<li>Change &quot;Payment terms (days)&quot;, &quot;Patient details shared&quot; or &quot;Notes&quot; and press <strong>Save terms</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> With &quot;Patient code only&quot; the lab sees the clinic&#39;s patient number instead of the name on its order list, the order page, the magic link page, the printed work order and notifications. The patient number is still sent in a separate field in lab responses.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /lab-links/:id</code> → <code>LabLinksService.update</code>: lock, version check, copy changed fields, audit diff, save only if something changed. <code>patient_data_level</code> is read through the order&#39;s <code>lab_clinic_link_id</code> by <code>patientForLab</code> (order mapper) and by <code>orderRecipients</code> (notification variable <code>patient_ref</code>).</p>
+<p><strong>Rules and validations.</strong> Payment terms 0 to 365. A stale version gives 409.</p>
+<p><strong>Who can do it.</strong> <code>lab.links.manage</code>; Admin by default.</p>
+<p><strong>Data read and written.</strong> <code>lab_clinic_links</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Payment terms are used by lab payables (Chapter 42).</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_LINK_NOT_FOUND</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/links/lab-links.service.ts</code> · <code>LabLinksService.update</code>, <code>patientForLab</code> · <code>web-app/src/features/labs/components/LabLinkSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-7-activate-suspend-and-reactivate-a-lab-link">40.3.7 Activate, suspend and reactivate a lab link</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A link moves between three states: invited, active and suspended. Either side can stop working with the other and a reason is kept. A suspension can be lifted only by the side that made it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Labs</strong> open the row menu.</li>
+<li>Choose <strong>Activate</strong> on a link awaiting confirmation, or <strong>Reactivate</strong> on a suspended one.</li>
+<li>To stop, choose <strong>Suspend</strong>, type a reason (&quot;e.g. Repeated late deliveries&quot;) and confirm.</li>
+<li>Choose <strong>History</strong> to see the timeline of changes.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Today the clinic can confirm a lab on the lab&#39;s behalf, so most links are activated by the clinic. A lab that has a portal account can also accept an invitation itself from its portal (Chapter 41). If the lab suspended the link, the clinic cannot undo it, and the reverse.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-links/:id/transitions</code> with <code>action</code> and optional <code>reason</code>, <code>version</code>; <code>GET /lab-links/:id/history</code>. <code>LabLinksService.applyTransition</code> is the single place a link&#39;s status changes, shared with the lab portal. It checks the transition table (<code>activate</code>: from invited; <code>suspend</code>: from invited or active, reason required; <code>reactivate</code>: from suspended), refuses activation when the lab itself is suspended, and on reactivation reads the last suspension actor from <code>status_history</code> (<code>canLiftSuspension</code>). Writes <code>lab_clinic_links</code>, <code>status_history</code> (with <code>via</code>) and <code>audit_logs</code> in one transaction under a row lock.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A reason is required to suspend (<code>LAB_LINK_REASON_REQUIRED</code>).</li>
+<li>A wrong from-state gives <code>INVALID_TRANSITION</code>.</li>
+<li>Only the suspending side (or the platform) reactivates (<code>LAB_LINK_SUSPENDED_BY_OTHER_SIDE</code>).</li>
+<li><code>activated_at</code> is set on the first activation only.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.links.manage</code>; Admin by default.</p>
+<p><strong>Data read and written.</strong> <code>lab_clinic_links</code>, <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Ordering requires an active link (<code>LAB_NOT_LINKED</code>). Orders already sent are not touched by a suspension.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>, <code>LAB_LINK_REASON_REQUIRED</code>, <code>LAB_SUSPENDED</code>; 403 <code>LAB_LINK_SUSPENDED_BY_OTHER_SIDE</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/labs/links/lab-link-transitions.ts</code> · <code>resolveLinkTransition</code>, <code>canLiftSuspension</code> · <code>web-app/src/features/labs/components/LabLinkActions.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-8-read-the-lab-price-list">40.3.8 Read the lab price list</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the clinic every active service of every lab on its list, with the price this clinic pays (its negotiated price, else the list price), the patient price of the mapped treatment at the active location and the margin. A clinic never sees another clinic&#39;s negotiated price.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Lab price list</strong> and stay on <strong>Lab services</strong>.</li>
+<li>Search, or filter by lab, category and &quot;Mapped or not&quot;.</li>
+<li>Open a service for its options and details.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The list joins the lab&#39;s catalog with the clinic&#39;s own billing catalog through the mapping. Services without a mapping show &quot;Not mapped&quot; for the patient price.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-catalog/categories</code>, <code>/lab-catalog/services</code> and <code>/lab-catalog/services/:id</code> (<code>@AnyMember</code>, <code>@RequireFeature(&#39;dental.lab_orders&#39;)</code>, so every member of the clinic can read them) in <code>ClinicCatalogController</code> over <code>ClinicCatalogService</code>, tenant-filtered by the clinic&#39;s links.</p>
+<p><strong>Rules and validations.</strong> Only labs with a link on the clinic&#39;s list contribute services; unlinked ids answer 404.</p>
+<p><strong>Who can do it.</strong> Every clinic member for the reads, behind <code>dental.lab_orders</code>. The page itself opens with <code>lab.catalog.manage</code> (Admin by default).</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_services</code>, <code>lab_service_options</code>, <code>lab_service_prices</code>, <code>service_mappings</code>, <code>services</code>, <code>lab_clinic_links</code>.</p>
+<p><strong>Effects on other modules.</strong> Feeds the order sheet&#39;s service pickers.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_SERVICE_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/clinic/clinic-catalog.controller.ts</code> · <code>ClinicCatalogService</code> · <code>web-app/src/features/lab-catalog/components/ClinicServicesTab.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-9-get-a-price-quote">40.3.9 Get a price quote</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> For a lab service, chosen options, a rush flag and a date, the quote returns the lab cost per unit (base price + option extras + rush surcharge) and the patient price per unit, and says where each came from.</p>
+<p><strong>How the user does it.</strong> The user does not ask for it directly. Step 3 of the New lab order sheet requests one quote per line and shows &quot;Prices&quot; and a &quot;Total&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient price follows the same precedence billing uses (doctor at location, then location, then the treatment&#39;s default), so the order line and the charge later billed for it agree.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-catalog/price-quote</code> (<code>@AnyMember</code>, feature-gated) → <code>LabPriceResolver.quote</code>: loads the service, requires an active link and an active service, validates the options, picks a lab price (<code>pickLabPrice</code>: negotiated window active that day, else list window), computes <code>labUnitCost</code>, then resolves the patient price through the active service mapping or a given treatment (<code>pickPatientPrice</code>). Read only. The same function runs again at submit inside the order transaction.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Without a price window on the day: 422 <code>LAB_PRICE_MISSING</code> (&quot;The lab has no price for … on …&quot;).</li>
+<li>Without a mapped treatment the patient price is null; at submit this blocks the line.</li>
+<li>The quote endpoint defaults to the platform day (Asia/Karachi) when no date is sent; submit prices on the location&#39;s day.</li>
+</ul>
+<p><strong>Who can do it.</strong> Every clinic member, feature <code>dental.lab_orders</code>.</p>
+<p><strong>Data read and written.</strong> Reads only.</p>
+<p><strong>Effects on other modules.</strong> The numbers become the order&#39;s frozen price snapshot at submit.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_SERVICE_NOT_FOUND</code>; 422 <code>LAB_NOT_LINKED</code>, <code>LAB_SERVICE_INACTIVE</code>, <code>LAB_PRICE_MISSING</code>, <code>LAB_SERVICE_OPTION_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/pricing/lab-price-resolver.service.ts</code> · <code>LabPriceResolver.quote</code> · <code>web-app/src/features/lab-orders/components/LabOrderSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-10-map-a-lab-service-to-a-clinic-treatment">40.3.10 Map a lab service to a clinic treatment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A <strong>mapping</strong> says &quot;when we order this lab service, we bill the patient for this treatment from our own catalog&quot;. The treatment&#39;s price is what the patient pays; the lab&#39;s price is the clinic&#39;s cost. One treatment can have several lab services, one of them the <strong>default</strong>.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Lab price list</strong>, press the bill button on a service row (tooltip &quot;Bill … as one of your treatments&quot;), or open the <strong>Treatment mapping</strong> tab.</li>
+<li>In &quot;Map to a treatment&quot; choose the &quot;Lab service&quot; and &quot;Your treatment&quot;, and tick the default option if wanted.</li>
+<li>Make another lab the default with the star button; remove a mapping with the unlink button and a confirmation.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If a mapping was removed before, adding the same pair brings the old row back instead of creating a duplicate. The first mapping of a treatment becomes its default automatically.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-catalog/treatments</code>, <code>GET/POST /lab-catalog/mappings</code>, <code>PATCH /lab-catalog/mappings/:id</code> (<code>lab.catalog.manage</code>) over <code>ServiceMappingsService</code>. Writes lock the treatment row so &quot;one default per treatment&quot; cannot race; unique indexes enforce one row per organization, treatment and lab service and one active mapping per lab service.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The treatment and the lab service must both be active (<code>CLINIC_TREATMENT_INACTIVE</code>, <code>LAB_SERVICE_INACTIVE</code>).</li>
+<li>An active lab service maps to only one treatment (<code>LAB_SERVICE_ALREADY_MAPPED</code>); the same pair twice gives <code>SERVICE_MAPPING_EXISTS</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.catalog.manage</code>; Admin by default.</p>
+<p><strong>Data read and written.</strong> <code>service_mappings</code>, <code>audit_logs</code>; reads <code>services</code> (the billing catalog), <code>lab_services</code>.</p>
+<p><strong>Effects on other modules.</strong> The mapping chooses the treatment, and so the patient price, that a lab order line carries into lab billing (Chapter 42) and commissions (Chapter 35).</p>
+<p><strong>Error cases.</strong> 409 <code>SERVICE_MAPPING_EXISTS</code>, <code>LAB_SERVICE_ALREADY_MAPPED</code>; 422 <code>CLINIC_TREATMENT_INACTIVE</code>, <code>LAB_SERVICE_INACTIVE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/mappings/service-mappings.service.ts</code> · <code>ServiceMappingsService</code> · <code>web-app/src/features/lab-catalog/components/MappingsTab.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-11-save-and-reuse-order-templates">40.3.11 Save and reuse order templates</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A template stores the lines of a lab order (services, options, quantity, rush, answers that do not depend on the patient) and notes. A template is private to its owner or shared with the whole clinic. Templates can be archived.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Order templates</strong> and press the add button.</li>
+<li>Name the template, add one or more services (all from one lab), set options, quantity and rush, and add notes.</li>
+<li>Switch on &quot;Share with the whole clinic&quot; if you hold the right to share.</li>
+<li>Edit later with the edit button, or archive it by switching it off.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Nobody sees another user&#39;s private templates. The use counter rises when an order started from the template is submitted, so the list shows the most used first.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /lab-catalog/order-templates</code>, <code>GET/PATCH …/:id</code>, <code>POST …/:id/use</code> (<code>lab.orders.create</code>) over <code>OrderTemplatesService</code>. The body is validated and stored in <code>order_templates.template_json</code> (at most 20 lines). Create and update run in a transaction with an audit row. <code>markUsed</code> is a raw <code>UPDATE</code> of <code>use_count</code> and <code>last_used_at</code> (not an edit, so no version bump and no audit); <code>OrderSubmitService</code> calls it inside the submit transaction. The explicit <code>POST …/:id/use</code> endpoint exists, but no web screen calls it.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Every service must be active, of one lab on the clinic&#39;s list, and of one specialty; options must belong to their service; answers must fit the service&#39;s form (partial answers allowed).</li>
+<li>Sharing or editing a shared template needs <code>lab.templates.share</code> (<code>ORDER_TEMPLATE_FORBIDDEN</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code> to use and keep private templates (Doctor, Admin); <code>lab.templates.share</code> to share (Admin only by default).</p>
+<p><strong>Data read and written.</strong> <code>order_templates</code>, <code>audit_logs</code>; reads <code>lab_services</code>, <code>lab_service_options</code>, <code>lab_clinic_links</code>, form definitions.</p>
+<p><strong>Effects on other modules.</strong> A draft started from a template records <code>order_template_id</code>.</p>
+<p><strong>Error cases.</strong> 403 <code>ORDER_TEMPLATE_FORBIDDEN</code>; 422 <code>ORDER_TEMPLATE_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-catalog/templates/order-templates.service.ts</code> · <code>OrderTemplatesService</code> · <code>web-app/src/features/lab-catalog/pages/OrderTemplatesPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-12-create-a-lab-order-draft">40.3.12 Create a lab order draft</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Starts a case for a patient with a chosen lab and one or more items. A draft is a working copy: no order number, no frozen prices, free to edit or abandon.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press <strong>New lab order</strong> on <strong>Lab orders</strong>.</li>
+<li>Step 1: choose the patient, lab, ordering doctor, priority and &quot;Needed back by&quot;; add instructions.</li>
+<li>Step 2: add items. For each choose the service, options, quantity, Rush and fill its form (shade, material, teeth, files).</li>
+<li>Press <strong>Save draft</strong> (or continue to step 3 and submit). A draft can be reopened from the order page with <strong>Edit draft</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The draft already remembers which version of each service&#39;s form and workflow it will use, so changes made by the super admin later do not alter it. Saving twice with the same key returns the same draft instead of making a second one.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders</code> (<code>lab.orders.create</code>, optional <code>Idempotency-Key</code>) → <code>OrderDraftsService.create</code>: one transaction that checks the patient, the active link, the doctor and the optional appointment and treatment, loads the services, requires one specialty, inserts <code>lab_orders</code> (UUID version 7 key, status <code>draft</code>, pinned order workflow version) and the items with their pinned form and item workflow versions (<code>pin</code>), saves a form-response row per item, and writes a <code>status_history</code> row (<code>create</code>) and an <code>audit_logs</code> row. A racing duplicate key is caught on the unique constraint <code>uq_lab_orders_org_idempotency</code> and returns the winner. <code>PATCH /lab-orders/:id</code> updates a draft under a row lock with a version check; it can rewrite the lines (kept items are re-pinned only if the service changed; removed lines are deleted, which is allowed only for drafts).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>1 to 20 items per order (<code>MAX_ORDER_ITEMS</code>); all items must be services of the chosen lab and of one specialty (<code>LAB_ORDER_LAB_MISMATCH</code>, <code>LAB_ORDER_INVALID</code>).</li>
+<li>The lab link must be active (<code>LAB_NOT_LINKED</code>: &quot;Activate this lab in your lab list before ordering from it&quot;).</li>
+<li>The doctor defaults to the caller when the caller can conduct consultations.</li>
+<li>Drafts are not validated beyond coherence; form answers are checked at submit.</li>
+<li>Only drafts can be edited (<code>LAB_ORDER_NOT_DRAFT</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>, feature <code>dental.lab_orders</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_orders</code>, <code>lab_order_items</code>, <code>item_form_responses</code>, <code>status_history</code>, <code>audit_logs</code>; reads <code>patients</code>, <code>appointments</code>, <code>treatments</code>, <code>lab_clinic_links</code>, <code>lab_services</code>, workflow and form versions.</p>
+<p><strong>Effects on other modules.</strong> None until submit.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_PATIENT_NOT_FOUND</code>, <code>LAB_ORDER_DOCTOR_NOT_FOUND</code>; 409 <code>LAB_ORDER_NOT_DRAFT</code>; 422 <code>LAB_ORDER_INVALID</code>, <code>LAB_ORDER_WORKFLOW_MISSING</code>, <code>LAB_SERVICE_INACTIVE</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/order-drafts.service.ts</code> · <code>OrderDraftsService.create</code>, <code>update</code> · <code>web-app/src/features/lab-orders/components/LabOrderSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-13-start-from-a-template-or-repeat-a-past-order">40.3.13 Start from a template or repeat a past order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Two shortcuts fill a new draft. <strong>From a template</strong> copies the template&#39;s lines. <strong>Repeat last order</strong> (and the <strong>Repeat</strong> button on an order) copies the lines and answers of a past order of the same patient onto the current form versions.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In step 1 of the sheet, after choosing the patient, open &quot;Quick start&quot;.</li>
+<li>Choose &quot;From a template&quot; and start it, or press <strong>Repeat last order</strong>.</li>
+<li>Or, on a submitted order, press <strong>Repeat</strong>; a new draft opens.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Files never carry over. Teeth carry over only when the new order is for the same patient. Cancelled items are skipped.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/from-template</code> and <code>POST /lab-orders/:id/repeat</code> (<code>lab.orders.create</code>) → <code>OrderDraftsService.fromTemplate</code> / <code>repeat</code>, both ending in <code>create</code>. &quot;Repeat last order&quot; first lists the patient&#39;s latest submitted order, then repeats it; a patient without one gives the message &quot;This patient has no past lab order&quot; in the web app. Repeating returns a draft with the same lab, priority and notes.</p>
+<p><strong>Rules and validations.</strong> A template must be active and have a lab (<code>LAB_ORDER_INVALID</code>: &quot;This template can’t be used&quot;). Private templates of other users stay invisible.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> As 40.3.12; reads <code>order_templates</code>, <code>item_form_responses</code>.</p>
+<p><strong>Effects on other modules.</strong> Submitting a draft that came from a template raises its use count.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_NOT_FOUND</code>; 422 <code>LAB_ORDER_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/order-drafts.service.ts</code> · <code>OrderDraftsService.fromTemplate</code>, <code>repeat</code> · <code>web-app/src/features/lab-orders/components/LabOrderSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-14-submit-an-order-to-the-lab">40.3.14 Submit an order to the lab</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Sends the case. The order gets its number (for example LAB-0001), the prices of every line are frozen, the form answers are checked, the lab is told, and a magic link is sent to the lab if it has a contact address.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the sheet press <strong>Submit to lab</strong>, or on a draft&#39;s page press <strong>Submit to lab</strong>.</li>
+<li>If lines need attention, the message lists them (for example a per-tooth service without teeth, or a service not mapped to a treatment); fix and submit again.</li>
+<li>On success the toast says &quot;Order … sent to …&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Everything happens in one step: if anything fails, nothing happened, not even the order number. Pressing the button twice is safe: the second call returns the first result.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/submit</code> with a required <code>Idempotency-Key</code> header and the draft&#39;s <code>version</code> → <code>OrderSubmitService.submit</code>, one transaction: claim the idempotency key (<code>IdempotencyService</code>, scope <code>lab_order.submit</code>, replay returns the stored result with <code>replayed: true</code>) → engine <code>transitionIn</code> of the order with action <code>submit</code> (state, role and version checks) → require an ordering doctor → per line: validate answers against the pinned form version (<code>validateFormData</code>), derive the quantity from the teeth for per-tooth services, call <code>LabPriceResolver.quote</code> on the location&#39;s clinic day and write snapshot columns (<code>service_name_snap</code>, <code>options_snap</code>, lab and patient unit and line prices in paisa, <code>priced_on</code>) → order number from the organization&#39;s number sequence (<code>NumberSequenceService</code>, prefix <code>LAB</code>) → <code>lab_expected_on</code> = the requested date or submit day plus the longest default turnaround → per line the initial item state (<code>pending_acceptance</code>), form answers, teeth rows and promoted detail columns (<code>item_teeth</code>, <code>dental_item_details</code>), a <code>status_history</code> row → revision 1 in <code>order_revisions</code> with a snapshot that carries lab cost but not the patient price → template use count → <code>audit_logs</code> row → outbox row <code>order.submitted</code> for the lab&#39;s members → lifecycle hooks (the magic-link module issues a link when the lab has a WhatsApp number, phone or email). After submit, a guard on <code>LabOrderItem</code> saves (<code>snapshot-freeze.ts</code>) refuses to change frozen columns except through a revision or an approved charge (<code>LAB_ORDER_SNAPSHOT_FROZEN</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>Idempotency-Key</code> is mandatory (<code>IDEMPOTENCY_KEY_REQUIRED</code>, 400).</li>
+<li>The status must allow <code>submit</code> (draft only) for the caller&#39;s role: in the seeded workflow, roles <code>doctor</code> or <code>clinic_admin</code>, which the code derives from permissions (<code>consultation.conduct</code> gives doctor, any <code>admin.*</code> gives clinic admin; the owner has every role).</li>
+<li>An ordering doctor is required; at least one line.</li>
+<li>Every line must price on the submit day: a lab price window and a mapped treatment must exist.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code> plus the seeded workflow role (doctor or clinic admin). Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>lab_orders</code>, <code>lab_order_items</code>, <code>item_form_responses</code>, <code>item_teeth</code>, <code>dental_item_details</code>, <code>order_revisions</code>, <code>order_templates</code>, <code>idempotency_keys</code>, <code>status_history</code>, <code>audit_logs</code>, <code>magic_links</code>, <code>notification_outbox</code>; reads price, mapping and form tables, <code>number_sequences</code>.</p>
+<p><strong>Effects on other modules.</strong> Lab members are notified in the app. Billing and payables read the frozen prices later.</p>
+<p><strong>Error cases.</strong> 400 <code>IDEMPOTENCY_KEY_REQUIRED</code>; 403 <code>TRANSITION_FORBIDDEN</code>; 409 <code>STALE_VERSION</code>; 422 <code>INVALID_TRANSITION</code>, <code>LAB_ORDER_INVALID</code> (with a list of line issues), <code>LAB_PRICE_MISSING</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/order-submit.service.ts</code> · <code>OrderSubmitService.submit</code> · <code>web-app/src/features/lab-orders/hooks/useLabOrderForm.ts</code></p>
+<h3 id="ch40-dental-lab-40-3-15-list-and-search-lab-orders">40.3.15 List and search lab orders</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists the clinic&#39;s lab orders with item count, lab cost, patient price, dates and status, newest first, as a table or cards.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Lab orders</strong>.</li>
+<li>Search by order number, patient name or patient number; filter by status, lab, doctor and dates.</li>
+<li>Click a row to open the order; &quot;Clear all filters&quot; appears when filters are active.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> What a user sees depends on their permission scope: a doctor sees orders they ordered or created, the front desk sees their location.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-orders</code> (<code>lab.orders.view</code>) → <code>LabOrdersService.list</code> with <code>scopeOrders</code>: scope <code>own</code> filters on <code>created_by</code> or <code>doctor_id</code>, <code>location</code> on the active location, <code>org</code> is unfiltered, no grant gives no rows. Sub-selects sum the lab line cost and the patient line price of items that are not cancelled; both are null for drafts.</p>
+<p><strong>Rules and validations.</strong> Paged on the server. An order outside the caller&#39;s scope answers 404, not 403.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.view</code>, scope own, location or org. Default: Doctor (own), Receptionist and Assistant (location), Admin (org).</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_orders</code>, <code>lab_order_items</code>, <code>patients</code>, <code>labs</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; 400 on an invalid filter.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.list</code>, <code>scopeOrders</code> · <code>web-app/src/features/lab-orders/pages/LabOrdersPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-16-open-an-order-and-print-the-work-order">40.3.16 Open an order and print the work order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The order page shows the status, the doctor, the due-back date, the revision number, warnings, every item with its teeth and details and both prices, and the sections listed in 40.2. <strong>Work order</strong> prints a sheet with a QR code and the instructions, without prices, to travel with the case.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open an order from the list. A back arrow returns to the list.</li>
+<li>Press <strong>Work order</strong> to print it (not available for drafts).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The QR on the printed sheet points at one address that works for both sides: a lab member who scans it signed in lands on the lab portal order, a clinic user lands on the clinic order, and anyone else gets &quot;not found&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-orders/:id</code> and <code>GET /lab-orders/:id/work-order</code> (<code>lab.orders.view</code>). The detail includes <code>availableActions</code> for the caller from the pinned workflow (minus actions with their own endpoint) and warnings such as <code>LAB_DUE_AFTER_NEXT_APPOINTMENT</code>. The work order carries <code>qrValue</code> = the front-end base address (environment variable <code>FRONTEND_URL</code>) plus <code>/o/:orderId</code> and a patient reference that follows the link&#39;s patient data level. <code>GET /order-links/:orderId</code> (<code>@ContextFree</code>, signed in) resolves the QR for the web route <code>/o/$orderId</code>.</p>
+<p><strong>Rules and validations.</strong> A work order needs an order number (submit first).</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.view</code>. Default: Doctor, Receptionist, Assistant, Admin.</p>
+<p><strong>Data read and written.</strong> Reads orders, items, parts, <code>lab_clinic_links</code>, <code>organizations</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_NOT_FOUND</code>; 422 <code>LAB_ORDER_INVALID</code> for a draft work order.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/controllers/lab-orders.controller.ts</code> · <code>LabOrdersService.workOrder</code>, <code>OrderLinkController.resolve</code> · <code>web-app/src/features/lab-orders/pages/LabOrderDetailPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-17-cancel-hold-resume-or-reopen-an-order">40.3.17 Cancel, hold, resume or reopen an order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The buttons next to Work order come from the workflow: <strong>Cancel order</strong> (with a reason, from draft, submitted or accepted), <strong>Put on hold</strong> (from in progress, with a reason), <strong>Resume</strong> and <strong>Reopen as draft</strong> (after the lab rejected the order).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press the action button.</li>
+<li>Type the reason in the dialog (the reason is kept in the history) and confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Only actions that the pinned workflow allows from the current state, for the caller&#39;s role, are offered. In the seeded workflow, cancelling the order does not itself cancel its items, and an order that is already in progress cannot be cancelled as a whole; work in progress is stopped item by item (see 40.3.26).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/transitions</code> (<code>lab.orders.create</code>, body <code>action</code>, <code>reason</code>, <code>version</code>) → <code>LabOrdersService.transition</code> → engine <code>transition</code>. The actions <code>submit</code>, <code>reply</code> and <code>request_clarification</code> have their own endpoints and are refused here. <code>resume</code> runs the <code>recompute_order_status</code> effect. Closing an order (cancelled, completed, rejected by lab) revokes its magic links in the same transaction through a lifecycle hook.</p>
+<p><strong>Rules and validations.</strong> Reason required for cancel, hold, reject and similar (<code>TRANSITION_REASON_REQUIRED</code>). A state/action pair that the workflow lacks gives <code>INVALID_TRANSITION</code>.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code> and the seeded roles doctor or clinic admin. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>magic_links</code>.</p>
+<p><strong>Effects on other modules.</strong> Closed orders stop being open to the lab through links.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>, <code>TRANSITION_REASON_REQUIRED</code>; 403 <code>TRANSITION_FORBIDDEN</code>; 409 <code>STALE_VERSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/engine/runtime/workflow-engine.service.ts</code> · <code>WorkflowEngine.transition</code> · <code>web-app/src/features/lab-orders/pages/LabOrderDetailPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-18-revise-a-submitted-order">40.3.18 Revise a submitted order</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the instructions of an order that was already sent: options, rush, quantity, answers and notes. The lab receives the new revision and must acknowledge it. Prices stay as agreed at submit unless the work itself changed.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On an order in submitted, clarification needed, accepted, in progress or on hold press <strong>Revise</strong>.</li>
+<li>In &quot;Revise …&quot; edit the lines and fill &quot;What changed&quot;.</li>
+<li>Press the send button; the message says &quot;Revision n sent to the lab&quot;. The Revisions section shows &quot;Not read by lab yet&quot; until the lab acknowledges it.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A revision never overwrites: it adds a numbered snapshot. Changed lines are re-checked against their pinned form and re-priced on the original price day, so a price change since submit does not leak in. Approved extra charges stay on top.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/revisions</code> (<code>lab.orders.create</code>) → <code>LabOrdersService.revise</code>: one transaction under a row lock; validates and re-prices each changed line, saves it with <code>snapshotChange: &#39;revision&#39;</code>, rewrites answers, teeth and promoted details, re-applies approved item charges, increments <code>current_revision_no</code>, inserts <code>order_revisions</code> (snapshot, reason), writes audit. If the order was in clarification needed, open clarification messages are marked resolved and the <code>reply</code> transition runs.</p>
+<p><strong>Rules and validations.</strong> Allowed statuses are submitted, clarification needed, accepted, in progress and on hold (<code>LAB_ORDER_REVISION_NOT_ALLOWED</code> otherwise); the reason is required; a cancelled line cannot be revised.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_order_items</code>, <code>item_form_responses</code>, <code>item_teeth</code>, <code>dental_item_details</code>, <code>order_revisions</code>, <code>order_messages</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The lab&#39;s open work now follows the new instructions; the vendor bill draft follows the items&#39; frozen costs.</p>
+<p><strong>Error cases.</strong> 409 <code>LAB_ORDER_REVISION_NOT_ALLOWED</code>, <code>STALE_VERSION</code>; 422 <code>LAB_ORDER_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.revise</code> · <code>web-app/src/features/lab-orders/components/RevisionSheet.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-19-talk-to-the-lab-messages-and-clarifications">40.3.19 Talk to the lab: messages and clarifications</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A message thread on the order (optionally on one item). The lab can ask a clarification question, which moves the order to &quot;Clarification needed&quot;; the clinic answers with a reply, which moves it back to &quot;Submitted&quot;.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Messages</strong> type a note (&quot;Message the lab&quot;), or when the lab asked a question type the answer (&quot;Reply to the lab&quot;).</li>
+<li>Send. The thread shows each message with its side and time.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The clinic cannot ask for clarification; only the lab does. A reply is accepted only while a question is open.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/messages</code> (<code>lab.orders.create</code>) → <code>LabOrdersService.clinicMessage</code>: locks the order, refuses closed orders, resolves open clarification messages for a reply, inserts <code>order_messages</code> (author side clinic), runs the <code>reply</code> transition. The lab&#39;s counterpart is <code>labMessage</code> and the lab actions of Chapter 41.</p>
+<p><strong>Rules and validations.</strong> <code>LAB_ORDER_MESSAGE_INVALID</code> for a clinic clarification request or a reply without a question. Closed orders (draft, cancelled, completed, rejected by lab) take no messages.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin. Reading: <code>lab.orders.view</code>.</p>
+<p><strong>Data read and written.</strong> <code>order_messages</code>, <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The doctor receives <code>order.clarification_requested</code> when the lab asks (40.3.30).</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ORDER_MESSAGE_INVALID</code>, <code>LAB_ORDER_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.clinicMessage</code> · <code>web-app/src/features/lab-orders/pages/LabOrderDetailPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-20-decide-the-lab-39-s-extra-charge-requests">40.3.20 Decide the lab&#39;s extra charge requests</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> After submit, the lab can ask for an extra charge (rush, material, shipping, other) with an amount and a reason. The clinic approves or rejects each request. An approved charge on an item is added to that item&#39;s lab cost.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>If requests exist, the <strong>Extra charges</strong> section lists them with the kind, amount and reason.</li>
+<li>Press the approve or reject icon button (tooltips &quot;Approve charge&quot;, &quot;Reject charge&quot;).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> This is, together with a revision, the only way a frozen price can move. An order-level charge (for example shipping) does not touch an item; it stays a separate row and later lands on the vendor bill.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/charge-requests/:chargeId/decision</code> (<code>lab.orders.create</code>, body decision approve or reject, note, version) → <code>LabOrdersService.decideCharge</code>: row lock, version check, only pending requests, sets status, <code>decided_by</code>, <code>decided_at</code>, and for an approved item charge adds the amount to <code>lab_line_cost_paisa</code> with <code>snapshotChange: &#39;charge&#39;</code>. Audit row written. The request itself is created by the lab; see Chapter 41 for why that has no screen yet.</p>
+<p><strong>Rules and validations.</strong> <code>LAB_ORDER_CHARGE_DECIDED</code> if already decided; the amount is greater than zero and a reason is required (set when the lab asks).</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>order_charge_requests</code>, <code>lab_order_items</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> The patient price is not changed; only the lab cost. Lab payables (Chapter 42) read the new cost.</p>
+<p><strong>Error cases.</strong> 404 <code>LAB_ORDER_CHARGE_NOT_FOUND</code>; 409 <code>LAB_ORDER_CHARGE_DECIDED</code>, <code>STALE_VERSION</code>; 403 <code>LAB_ORDER_FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/services/lab-orders.service.ts</code> · <code>LabOrdersService.decideCharge</code> · <code>web-app/src/features/lab-orders/pages/LabOrderDetailPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-21-attach-and-download-files">40.3.21 Attach and download files</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Staff attach files (scans, photos, documents) to an order or to one item and choose who may see them: internal (clinic only), shared with the lab, or shared with the patient. Files are downloaded through short-lived links.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In <strong>Files</strong> choose &quot;Who can see it&quot; and upload.</li>
+<li>Press the download button of a file (tooltip &quot;Download …&quot;). Files can also be added in the form of an item that has a file field.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The file is stored privately; the database keeps only its name, type, size and a checksum. A download link works for ten minutes. The lab can only ever see files marked as shared with the lab.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/attachments</code> (multipart, <code>lab.orders.create</code>; default visibility <code>lab_shared</code>) and <code>GET /lab-orders/:id/attachments/:attachmentId/url</code> (<code>lab.orders.view</code>) over <code>AttachmentsService</code> and an <code>ATTACHMENT_STORAGE</code> binding (the Cloudinary implementation uploads as an authenticated, non-public object and signs the download URL with a 600-second lifetime; the credentials are environment variables of the file-upload service). One row in <code>attachments</code> per file with a SHA-256 checksum, and an audit row.</p>
+<p><strong>Rules and validations.</strong> At most 50 MB per file (<code>ATTACHMENT_INVALID</code>); a file must be chosen; the item, if given, must belong to the order. Download of an unknown or (for the lab) not lab-shared file answers <code>ATTACHMENT_NOT_FOUND</code>. The <code>patient_shared</code> visibility is stored, but no patient-facing screen reads it.</p>
+<p><strong>Who can do it.</strong> Upload: <code>lab.orders.create</code>; download: <code>lab.orders.view</code>.</p>
+<p><strong>Data read and written.</strong> <code>attachments</code>, <code>audit_logs</code>, private file storage.</p>
+<p><strong>Effects on other modules.</strong> A file field of an order form refers to an attachment id and is checked at submit.</p>
+<p><strong>Error cases.</strong> 422 <code>ATTACHMENT_INVALID</code>; 404 <code>ATTACHMENT_NOT_FOUND</code>, <code>LAB_ORDER_ITEM_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-orders/attachments/attachments.service.ts</code> · <code>AttachmentsService</code>, <code>CloudinaryAttachmentStorage</code> · <code>web-app/src/features/lab-orders/components/OrderItemEditor.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-22-send-copy-and-revoke-magic-links">40.3.22 Send, copy and revoke magic links</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A <strong>magic link</strong> lets one lab contact open one order and answer it without logging in. The clinic can send it to the lab by message, copy it to paste into a chat app, and revoke it. A link is created automatically at submit when the lab has a WhatsApp number, phone or email.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On a submitted order open <strong>Lab access</strong>.</li>
+<li>Press <strong>Send link to lab</strong> (the message goes to the lab&#39;s contact) or <strong>Copy link</strong> (&quot;Link copied — paste it into WhatsApp&quot;).</li>
+<li>The list shows each link&#39;s state (Active, Expired, Used up, Revoked), how it was delivered and when it was last used.</li>
+<li>To stop a link press its revoke button (tooltip &quot;Revoke link&quot;) and confirm &quot;Revoke this link?&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The link&#39;s secret part is never stored. The database keeps a one-way hash and a random value from which the server can rebuild the secret only at the moment of sending, so a database leak gives nobody a working link. A link dies by itself after 24 hours (configurable), when it is revoked, when the order closes or when the lab is suspended.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET/POST /lab-orders/:id/magic-links</code>, <code>POST …/:linkId/revoke</code> in <code>ClinicLabAccessController</code> (read: <code>lab.orders.view</code>; issue and revoke: <code>lab.orders.create</code>) over <code>MagicLinksService</code>. Issue: random 32-byte nonce; token = HMAC-SHA256 of the nonce with the signing secret (environment variable <code>MAGIC_LINK_SECRET</code>, with a fallback to the access-token secret); table stores <code>token_hash</code> (SHA-256, unique) and the nonce; expiry = now + hours from the request (1 to 168) or <code>LAB_MAGIC_LINK_TTL_HOURS</code> (default 24); <code>max_uses</code> null. For delivery <code>notification</code> the outbox row <code>order.magic_link</code> carries a placeholder; a payload finalizer swaps in the real URL just before sending and drops the message if the link was revoked or expired meanwhile. For <code>copy</code> the URL is returned once in the response. Revoke locks the link, stamps <code>revoked_at</code>, <code>revoked_reason</code> <code>revoked_by</code> and writes a <code>void</code> audit row. Purposes: <code>lab_view_order</code> (read only) and <code>lab_update_order</code>; the default is update.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The order must be submitted (<code>LAB_ORDER_INVALID</code>: &quot;Submit the order before sending the lab a link&quot;).</li>
+<li>Sending needs a lab contact; otherwise &quot;copy the link instead&quot;.</li>
+<li><code>receive_shipment</code> links exist as a purpose but nothing creates them (clinics receive by the shipment&#39;s own QR token).</li>
+</ul>
+<p><strong>Who can do it.</strong> Send, copy, revoke: <code>lab.orders.create</code>. List: <code>lab.orders.view</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>magic_links</code>, <code>notification_outbox</code>, <code>audit_logs</code>; reads <code>labs</code>, <code>lab_orders</code>.</p>
+<p><strong>Effects on other modules.</strong> The lab can accept, reject or ask a question through the link (Chapter 41).</p>
+<p><strong>Error cases.</strong> 422 <code>LAB_ORDER_INVALID</code>; 404 <code>MAGIC_LINK_NOT_FOUND</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/magic-links/magic-links.service.ts</code> · <code>MagicLinksService.issue</code>, <code>revoke</code> · <code>web-app/src/features/lab-orders/components/LabAccessPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-23-update-on-behalf-of-a-lab-that-does-not-answer">40.3.23 Update on behalf of a lab that does not answer</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When a lab does not use the portal or the link, a <strong>lab coordinator</strong> at the clinic can record the lab&#39;s answer: accept (with the expected date), reject, record a clarification question, or change the expected date. The history marks such changes as &quot;entered by clinic for the lab&quot;.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On a submitted order, find &quot;Update for the lab&quot; in <strong>Lab access</strong> (visible only to coordinators).</li>
+<li>Choose the action offered and fill the dialog (for Accept, the &quot;Ready on&quot; date and a note).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The change is checked as if the lab had made it, but it is stamped as a proxy action with the lab&#39;s id, so nobody can mistake it for the lab&#39;s own click.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-orders/:id/proxy/actions</code>, <code>POST …/proxy/accept</code>, <code>…/reject</code>, <code>…/clarification</code>, <code>…/expected-date</code> (<code>@Can(&#39;lab.orders.create&#39;,&#39;lab.links.manage&#39;)</code>) → <code>LabOrderActionsService</code> with a <code>LabSideCall</code> whose actor has side clinic, <code>via = proxy</code> and <code>onBehalfOfLabId</code>. The engine&#39;s <code>authorize</code> accepts the proxy only if the caller holds both permissions and the lab id matches the order&#39;s lab; it then checks the transition as side lab without lab roles. History rows carry <code>via</code> and <code>on_behalf_of_lab_id</code>. Accept, reject, clarify and date change are described in 40.3.30 and Chapter 41.</p>
+<p><strong>Rules and validations.</strong> As for the lab&#39;s own actions: accept needs an expected date not in the past in the location&#39;s day and a submitted order; reject needs a reason; a date change needs a reason and an accepted, in-progress, partly ready or on-hold order.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code> and <code>lab.links.manage</code> together, which only Admin and the owner hold by default.</p>
+<p><strong>Data read and written.</strong> As the lab&#39;s own actions: <code>lab_orders</code>, <code>lab_order_items</code>, <code>order_messages</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> Accepting creates the item stages and the vendor bill draft (40.3.24, Chapter 42).</p>
+<p><strong>Error cases.</strong> 403 <code>TRANSITION_FORBIDDEN</code> (&quot;You cannot update on behalf of this case’s lab&quot;); 422 <code>LAB_ACTION_NOT_ALLOWED</code>, <code>LAB_EXPECTED_DATE_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-access/controllers/clinic-lab-access.controller.ts</code> · <code>ClinicLabAccessController</code>, <code>WorkflowEngine.authorize</code> · <code>web-app/src/features/lab-orders/components/LabAccessPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-24-follow-production-and-try-in-rounds">40.3.24 Follow production and try-in rounds</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Once the lab accepts, the order page shows each item moving through the lab: accepted, in production, at clinic for try-in, quality check, ready, dispatched, received. Items with a <strong>stage template</strong> (for example metal try-in, bisque try-in, final) show each try-in round as a stage.</p>
+<p><strong>How the user does it.</strong> Open the order and read <strong>Production</strong>. For a try-in stage that has arrived, press <strong>Record try-in</strong> after the patient visit (an appointment of the patient can be linked), then <strong>Approve</strong> the stage or press <strong>Needs correction</strong> and type what the lab must fix.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> When the lab accepts, the Platform copies the item&#39;s stage template into real stage rows (names are copied, so editing the template later changes nothing). Only one round per item is active at a time. A correction closes the round and opens the same stage again as the next round; rounds are never overwritten.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-orders/:id/production</code>, <code>POST …/stages/:stageId/tryin</code>, <code>POST …/stages/:stageId/decision</code> (<code>lab.orders.view</code> to read, <code>lab.orders.create</code> to act) in <code>ClinicProductionController</code> over <code>ClinicProductionService</code>, one transaction each. <code>ProductionWorkflowService</code> listens to every item transition: at accepted it runs <code>initStages</code> (inserts <code>order_item_stages</code> round 1 for each template step, initial state from the pinned stage workflow, expected dates from default lab days, last step <code>is_final</code>); at in production it starts the next unstarted round (<code>ensureActiveStage</code>); at delivered it starts the warranty; at remake required it opens the remake request. The stage adapter keeps <code>is_active</code> true while a stage&#39;s state category is active or waiting. <code>record_tryin</code> moves received to try-in done; the decision <code>approve</code> approves the stage and, for a try-in, moves the item back to production (<code>resume</code>) so the next round starts, while for the final stage it approves the item; <code>correction</code> needs notes, runs <code>request_correction</code>, closes the round, adds <code>round_no + 1</code> and resumes the item. Notifications <code>stage.approved</code> and <code>stage.correction</code> go to the lab.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A final stage cannot be &quot;corrected&quot;: final work is approved or rejected (<code>PRODUCTION_NOT_ALLOWED</code>).</li>
+<li>Correction notes are required (<code>PRODUCTION_INVALID</code>: &quot;Say what the lab must correct&quot;).</li>
+<li>A try-in appointment must be one of the patient&#39;s (<code>PRODUCTION_INVALID</code>).</li>
+<li>A stage that needs no patient visit goes straight from received to the decision.</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: <code>lab.orders.view</code>. Act: <code>lab.orders.create</code> plus the workflow role (seeded: doctor or clinic admin). Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>order_item_stages</code>, <code>lab_order_items</code>, <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>; reads <code>stage_template_steps</code>, <code>appointments</code>.</p>
+<p><strong>Effects on other modules.</strong> Try-in appointments are linked by id; no appointment is created or reminded automatically (the event <code>tryin.appointment_due</code> is not emitted; see 40.3.30).</p>
+<p><strong>Error cases.</strong> 404 <code>PRODUCTION_STAGE_NOT_FOUND</code>; 409 <code>PRODUCTION_NOT_ALLOWED</code>, <code>STALE_VERSION</code>; 422 <code>PRODUCTION_INVALID</code>, <code>INVALID_TRANSITION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/clinic-production.service.ts</code> · <code>ClinicProductionService.recordTryin</code>, <code>decideStage</code> · <code>web-app/src/features/lab-orders/components/production/ProductionPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-25-approve-reject-or-deliver-finished-work">40.3.25 Approve, reject or deliver finished work</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the finished item has been received, the doctor either approves it (then marks it delivered once fitted on the patient) or rejects it and asks for a remake.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On a received item press <strong>Approve work</strong>, or <strong>Reject — remake</strong> (choose the reason and say what is wrong).</li>
+<li>After approval press <strong>Fitted — mark delivered</strong>. The toast says &quot;Delivered — warranty started&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Delivery starts a warranty of 12 months by default (terms &quot;Standard lab warranty&quot;). When all items are approved or delivered, the order becomes completed, and the patient and doctor are told.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/items/:itemId/approve</code>, <code>…/reject</code>, <code>…/deliver</code> (<code>lab.orders.create</code>) → <code>ClinicProductionService.approveWork</code>, <code>rejectWork</code>, <code>deliver</code>, each in a transaction, each through the engine. Approve goes through the final stage&#39;s approval when stages exist, otherwise approves the item directly. Reject allows only received items, closes the final round with outcome rejected, moves the item to remake required (<code>reject_work</code>, reason required) and opens a remake request with the warranty check. Deliver moves approved to delivered and <code>startWarranty</code> inserts <code>item_warranties</code> (starts on the location&#39;s day, ends the day before the anniversary). After each item change the order is re-derived; <code>order.completed</code> is queued when the order reaches completed.</p>
+<p><strong>Rules and validations.</strong> Only received work can be rejected (<code>PRODUCTION_NOT_ALLOWED</code>); reason required; version checks (409). Roles per the seeded workflow: doctor or clinic admin.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin.</p>
+<p><strong>Data read and written.</strong> <code>lab_order_items</code>, <code>order_item_stages</code>, <code>item_warranties</code>, <code>remake_requests</code>, <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> Delivered work is what lab billing and commissions later settle on (Chapters 42 and 35).</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>, <code>STALE_VERSION</code>; 422 <code>INVALID_TRANSITION</code>, <code>TRANSITION_REASON_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/clinic-production.service.ts</code> · <code>approveWork</code>, <code>rejectWork</code>, <code>deliver</code> · <code>web-app/src/features/lab-orders/components/production/ProductionPanel.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-26-cancel-one-item">40.3.26 Cancel one item</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Cancels a single item of an order while it is accepted or in production, with a reason.</p>
+<p><strong>How the user does it.</strong> No screen offers it. The order&#39;s own <strong>Cancel order</strong> button works at order level only, and only from draft, submitted or accepted.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The capability exists in the API, so work in progress can be stopped item by item, but the web app has no button for it.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/items/:itemId/cancel</code> (<code>lab.orders.create</code>) → <code>ClinicProductionService.cancelItem</code> → item transition <code>cancel</code> (seeded from accepted or in production, reason required). <code>productionApi</code> in the web app has no matching function.</p>
+<p><strong>Rules and validations.</strong> Reason required; the workflow decides from which states.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code> plus the seeded role (doctor or clinic admin).</p>
+<p><strong>Data read and written.</strong> <code>lab_order_items</code>, <code>lab_orders</code> (re-derived), <code>status_history</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> A cancelled item no longer counts for the order&#39;s progress.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>, <code>TRANSITION_REASON_REQUIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/controllers/clinic-production.controller.ts</code> · <code>ClinicProductionService.cancelItem</code> · no web-app caller</p>
+<h3 id="ch40-dental-lab-40-3-27-ask-for-a-remake-and-decide-who-pays">40.3.27 Ask for a remake and decide who pays</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A <strong>remake request</strong> asks the lab to make an item again. It opens when received work is rejected, or on request for delivered work (for example a fracture months later). If the item&#39;s warranty is active, the request is marked as a warranty claim automatically. The lab may dispute it. The clinic then agrees or closes it and says who is responsible, which decides the prices of the new item.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>After delivery press <strong>Request remake</strong>, choose the reason (shade, fit, fracture, design, damaged, other) and write what is wrong.</li>
+<li>In <strong>Remake requests</strong> press the decision button. In &quot;Remake decision&quot; choose &quot;Agree — make it again&quot; or &quot;Close — no remake&quot;, pick &quot;Who is responsible&quot; (lab, clinic, patient) and add a note.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If the lab is at fault, the new item costs nobody anything. If the clinic is at fault, the clinic pays the lab and the patient pays nothing. If the patient is at fault, both pay as originally priced. The new item sits in the same order with a copy of the original&#39;s answers and teeth, starts again from &quot;Waiting for lab&quot;, and the lab accepts it like any new work. A completed order reopens.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-orders/:id/items/:itemId/remake-requests</code> and <code>POST /lab-orders/:id/remake-requests/:remakeId/decision</code> (<code>lab.orders.create</code>). <code>requestRemake</code> accepts delivered items (or remake required items without an agreed remake) and calls <code>openRemakeRequest</code>, which is idempotent per item (one open request at a time, enforced by a partial unique index) and queues <code>remake.requested</code> to the lab. <code>decideRemake</code> runs in one transaction: lock the request, check version and that it is requested or disputed, then either closes it, or computes charges (<code>remakeCharges</code>), creates the new item through <code>createRemakeItem</code> (copy of snapshot with <code>remake_of_item_id</code>, charges as line prices, initial state), sets the request to agreed with the new item id, re-derives the order with <code>reopen</code>, queues <code>remake.agreed</code> and writes audit. Agreeing needs a responsible party other than undetermined.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>&quot;Decide who is responsible before agreeing a remake&quot; (<code>PRODUCTION_INVALID</code>).</li>
+<li>An item already remade cannot be remade again; received work must be rejected, not &quot;requested&quot; (<code>PRODUCTION_NOT_ALLOWED</code>).</li>
+<li>A decided request (agreed or closed) cannot be decided again.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>. Default: Doctor, Admin. The lab&#39;s dispute is in Chapter 41.</p>
+<p><strong>Data read and written.</strong> <code>remake_requests</code>, <code>lab_order_items</code>, <code>item_form_responses</code>, <code>item_teeth</code>, <code>dental_item_details</code>, <code>item_warranties</code>, <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> The new item&#39;s costs feed the vendor bill (a remake line, free when the lab is at fault) and the patient lab invoice (Chapter 42).</p>
+<p><strong>Error cases.</strong> 404 <code>PRODUCTION_REMAKE_NOT_FOUND</code>; 409 <code>PRODUCTION_NOT_ALLOWED</code>; 422 <code>PRODUCTION_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/clinic-production.service.ts</code> · <code>requestRemake</code>, <code>decideRemake</code>, <code>remakeCharges</code> · <code>web-app/src/features/lab-orders/components/production/RemakeSheets.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-28-receive-a-shipment-and-report-a-lost-one">40.3.28 Receive a shipment and report a lost one</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> When the lab ships try-in or finished work, the clinic sees an incoming shipment. The front desk records each line (quantity, condition, quality check) and the work moves to &quot;Received&quot;. A parcel that never arrives can be marked lost.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Scan the QR code on the slip, or use the incoming list in <strong>Production</strong>. The page &quot;Receive SHP-…&quot; opens.</li>
+<li>For each line set Condition (OK, Damaged, Missing), the received quantity, the incoming QC choice and notes. Untick lines that have not arrived.</li>
+<li>Press <strong>Receive</strong>. Or on a parcel that did not come press the lost button (tooltip &quot;Mark this shipment lost&quot;) and give a reason.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Lines left out stay open, so a parcel can be received in parts. &quot;Missing&quot; closes a line without receiving work, and the work stays owed so the lab can ship it again. Marking a parcel lost turns every open line into missing and tells both the lab and the doctor.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /lab-shipments</code>, <code>GET /lab-shipments/by-token/:token</code>, <code>GET /lab-shipments/:id</code>, <code>POST /lab-shipments/:id/receive</code>, <code>POST …/:id/lost</code> (<code>lab.orders.view</code>; there is no separate shipments permission in the catalog, so the front desk can receive). <code>ShipmentsService.receive</code> runs in one transaction under a shipment row lock: direction must be to clinic, status open; each line is validated (quantity between 1 and the shipped quantity, or 0 for missing), saved, and the stage (<code>receive</code>) and the item (<code>receive</code> from dispatched) are moved through the engine with <code>via = qr</code> when scanned; the shipment becomes partially received or received; audit row; notification <code>shipment.received</code> to the lab. <code>markLost</code> sets the lost fields, marks open lines missing, and queues <code>shipment.lost</code> to the lab and the doctor of each order. The slip&#39;s QR value is the front-end address plus <code>/lab-orders/receive/</code> and a random 16-byte hex token, unique platform-wide, stored in <code>shipments.qr_token</code>. Shipment numbers (SHP-0001 style) come from the organization&#39;s number sequence with prefix <code>SHP</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A shipment to the lab cannot be received from the clinic side.</li>
+<li>Received quantity 1 to shipped quantity; a missing line has quantity 0; a line already received cannot be changed.</li>
+<li>Workflow roles for <code>receive</code> include receptionist, doctor and clinic admin.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>lab.orders.view</code> (Doctor, Receptionist, Assistant, Admin).</p>
+<p><strong>Data read and written.</strong> <code>shipments</code>, <code>shipment_items</code>, <code>order_item_stages</code>, <code>lab_order_items</code>, <code>lab_orders</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>.</p>
+<p><strong>Effects on other modules.</strong> Received work is what the doctor approves next.</p>
+<p><strong>Error cases.</strong> 404 <code>PRODUCTION_SHIPMENT_NOT_FOUND</code>; 409 <code>PRODUCTION_NOT_ALLOWED</code>; 422 <code>PRODUCTION_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/services/shipments.service.ts</code> · <code>ShipmentsService.receive</code>, <code>markLost</code> · <code>web-app/src/features/lab-orders/pages/ReceiveShipmentPage.tsx</code></p>
+<h3 id="ch40-dental-lab-40-3-29-send-impressions-and-models-to-the-lab">40.3.29 Send impressions and models to the lab</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> Creates a shipment from the clinic to the lab (impressions, models, work going back). It changes no status; the lab confirms receipt in its portal.</p>
+<p><strong>How the user does it.</strong> No clinic screen offers it. The web app&#39;s API layer has a <code>sendToLab</code> function that no component uses.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The backend can record that the clinic posted something to the lab, with a courier and tracking number, and print-able QR data; no button exists.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /lab-shipments</code> (<code>lab.orders.create</code>) → <code>ShipmentsService.dispatchToLab</code>: all lines must belong to one lab and to items that are not rejected or cancelled; a shipment row and lines are inserted with direction <code>to_lab</code>, number from the <code>SHP</code> sequence and a QR token; an audit row is written.</p>
+<p><strong>Rules and validations.</strong> An item cannot be listed twice; one shipment goes to one lab.</p>
+<p><strong>Who can do it.</strong> <code>lab.orders.create</code>.</p>
+<p><strong>Data read and written.</strong> <code>shipments</code>, <code>shipment_items</code>, <code>audit_logs</code>, <code>number_sequences</code>.</p>
+<p><strong>Effects on other modules.</strong> The lab can receive it in its portal (Chapter 41).</p>
+<p><strong>Error cases.</strong> 409 <code>PRODUCTION_NOT_ALLOWED</code>; 422 <code>PRODUCTION_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/controllers/clinic-production.controller.ts</code> · <code>ShipmentsService.dispatchToLab</code> · <code>web-app/src/features/lab-orders/services/production.api.ts</code> (<code>sendToLab</code>, unused)</p>
+<h3 id="ch40-dental-lab-40-3-30-notifications-about-lab-work">40.3.30 Notifications about lab work</h3>
+<p><strong>Status:</strong> [Partial]</p>
+<p><strong>What it does.</strong> The doctor, the lab&#39;s members, the lab contact and the patient are told about key moments. Doctor and lab-member messages are in-app. Messages to a lab contact or a patient have a channel (WhatsApp, SMS or email), but the Platform has no real provider for those channels yet: the only provider registered for them writes the message to the server log.</p>
+<p><strong>How the user does it.</strong> Nothing to do. In-app messages appear in the notification inbox of the doctor or lab member.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each message is written to an outbox in the same transaction as the business change, so a message exists exactly when the change committed. A worker sends it later. Which channels and templates apply is set by notification rules (Chapter 44).</p>
+<p><strong>Behind the scenes — technically.</strong> Events are seeded in <code>notification-events.seed.ts</code> and queued with <code>NotificationService.enqueue</code>. The code that emits each one:</p>
+<div class="tw"><table><thead><tr>
+<th>Event</th>
+<th>Emitted by</th>
+<th>Audience</th>
+</tr>
+</thead><tbody><tr>
+<td><code>order.submitted</code></td>
+<td><code>OrderSubmitService.submit</code></td>
+<td>lab members</td>
+</tr>
+<tr>
+<td><code>order.magic_link</code></td>
+<td><code>MagicLinksService.issue</code></td>
+<td>lab contact</td>
+</tr>
+<tr>
+<td><code>order.accepted</code>, <code>order.rejected</code>, <code>order.clarification_requested</code>, <code>order.expected_date_changed</code></td>
+<td><code>LabOrderActionsService</code></td>
+<td>ordering doctor</td>
+</tr>
+<tr>
+<td><code>item.ready</code></td>
+<td><code>LabWorkService.qc</code> (on QC pass)</td>
+<td>doctor and patient</td>
+</tr>
+<tr>
+<td><code>stage.sent_to_clinic</code></td>
+<td><code>ShipmentsService.dispatchToClinic</code></td>
+<td>doctor</td>
+</tr>
+<tr>
+<td><code>shipment.received</code></td>
+<td><code>ShipmentsService.receive</code> (shipments to the clinic)</td>
+<td>lab members</td>
+</tr>
+<tr>
+<td><code>shipment.lost</code></td>
+<td><code>ShipmentsService.markLost</code></td>
+<td>lab members and doctor</td>
+</tr>
+<tr>
+<td><code>stage.approved</code>, <code>stage.correction</code></td>
+<td><code>ClinicProductionService.decideStage</code></td>
+<td>lab members</td>
+</tr>
+<tr>
+<td><code>remake.requested</code></td>
+<td><code>ProductionWorkflowService.openRemakeRequest</code></td>
+<td>lab members</td>
+</tr>
+<tr>
+<td><code>remake.agreed</code></td>
+<td><code>ClinicProductionService.decideRemake</code></td>
+<td>lab members</td>
+</tr>
+<tr>
+<td><code>order.completed</code></td>
+<td><code>LabPatientNotifier</code> (on order state completed)</td>
+<td>doctor and patient</td>
+</tr>
+</tbody></table></div><p>The table lists, for each seeded event that code actually emits, the emitting class and who receives it. Four seeded events have no emitter in the code: <code>order.overdue</code>, <code>shipment.dispatched</code>, <code>tryin.appointment_due</code> and <code>appointment.rescheduled_lab_delay</code>. No scheduled job checks for overdue orders or due try-ins (the only <code>@Cron</code> jobs belong to other modules). A workflow transition could emit an event through a <code>notify</code> effect, but the seeded dental workflows list none. The patient is addressed in notifications only as the patient&#39;s number or name according to the link&#39;s patient data level.</p>
+<p><strong>Rules and validations.</strong> A message with no recipient is skipped. Lab members get a link into the portal; the doctor gets a link to the clinic order.</p>
+<p><strong>Who can do it.</strong> Automatic.</p>
+<p><strong>Data read and written.</strong> <code>notification_outbox</code>, then <code>user_notifications</code> for in-app delivery.</p>
+<p><strong>Effects on other modules.</strong> Chapter 44 covers rules, quiet hours and delivery.</p>
+<p><strong>Error cases.</strong> None are shown to the user; a failed send is retried by the notification worker.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-production/workflow/production-notifier.ts</code> · <code>ProductionNotifier</code>, <code>NotificationService.enqueue</code> · <code>backend/src/notifications/seeds/notification-events.seed.ts</code></p>
+<h2 id="ch40-dental-lab-40-4-entities-and-data-model">40.4 Entities and data model</h2>
+<p>The lab module has about fifty tables. This section covers the ones the clinic side uses; Chapter 25 describes every table and Chapter 42 the money tables. Every foreign key in the lab tables uses ON DELETE RESTRICT: no lab record can be deleted while anything refers to it, so records are voided, reversed, archived or switched off instead. All lab tables use UUID version 7 keys, whose first 48 bits are the creation time.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-catalog-erd.png" alt="Figure 40.11 — Lab catalog data model"></p>
+<p><em>Figure 40.11 — Lab services, options, prices, mappings and order templates.</em></p>
+<p>The diagram centres on <code>lab_services</code>, with columns <code>lab_id</code>, <code>service_category_id</code>, <code>form_schema_id</code>, <code>workflow_template_id</code>, <code>stage_template_id</code>, <code>code</code>, <code>unit_type</code> and <code>default_turnaround_days</code>. <code>labs</code> points to it (&quot;makes&quot;) and <code>service_categories</code> points to it (&quot;files&quot;). Three tables hang off it: <code>lab_service_options</code> (&quot;offers option&quot;, with <code>extra_cost_paisa</code>), <code>lab_service_prices</code> (&quot;priced by&quot;, with <code>unit_price_paisa</code>, <code>rush_surcharge_paisa</code>, <code>effective_from</code>, <code>effective_to</code>, <code>voided_at</code>) and <code>service_mappings</code> (&quot;billed as&quot;, with <code>is_default</code> and <code>is_active</code>) hang off it. <code>organizations</code> connects to <code>lab_service_prices</code> with an optional line (&quot;negotiated for&quot;), because an empty organization means the list price. <code>services</code> (the clinic&#39;s billing catalog) connects to <code>service_mappings</code> (&quot;clinic treatment&quot;). <code>order_templates</code> belongs to an organization (&quot;owns&quot;) and optionally to a lab (&quot;default lab&quot;), and holds <code>owner_user_id</code> (a logical link to a user, no foreign key), <code>template_json</code> and <code>use_count</code>.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each lab service belongs to exactly one lab and one service category; its form, workflow and stage template are optional.</li>
+<li>Each option and each price row belongs to exactly one lab service; a price row belongs to zero or one organization.</li>
+<li>Two non-void windows of one service and one clinic (or both list prices) cannot overlap: the exclusion constraint <code>excl_lab_service_prices_overlap</code> guarantees it.</li>
+<li>Each mapping belongs to one organization, one clinic treatment and one lab service. There is at most one active default per treatment, and an active lab service maps to one treatment per organization.</li>
+<li>Each template belongs to one organization; its lab, if set, is one lab.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-orders-erd.png" alt="Figure 40.12 — Lab order data model"></p>
+<p><em>Figure 40.12 — Lab orders, items, revisions, messages, charge requests and magic links.</em></p>
+<p>The diagram shows <code>lab_orders</code> with <code>organization_id</code>, <code>location_id</code>, <code>patient_id</code>, <code>lab_clinic_link_id</code>, <code>workflow_template_version_id</code>, <code>order_no</code>, <code>status_code</code> and <code>current_revision_no</code>. It points down to <code>lab_order_items</code> (&quot;contains&quot;: <code>order_id</code>, <code>lab_service_id</code>, <code>remake_of_item_id</code>, <code>status_code</code>, <code>lab_line_cost_paisa</code>, <code>patient_line_price_paisa</code>), which has a loop to itself (&quot;remake of&quot;), one <code>item_form_responses</code> row and many <code>item_teeth</code>. <code>lab_orders</code> also reaches <code>order_revisions</code> (&quot;revised as&quot;, with a <code>snapshot</code> and <code>lab_acknowledged_at</code>), <code>order_messages</code> (&quot;discusses&quot;), <code>order_charge_requests</code> (&quot;extra charges&quot;) and <code>magic_links</code> (&quot;opened by&quot;, with <code>token_hash</code>, <code>expires_at</code>, <code>revoked_at</code>). <code>lab_clinic_links</code> (&quot;carries&quot;) links a lab and an organization to the orders, and <code>patients</code> (&quot;ordered for&quot;) points to the order. A dotted line from <code>lab_orders</code> to <code>attachments</code> is labelled &quot;order_id, no FK&quot;.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each order belongs to exactly one organization, location, patient, lab and lab link, and pins one workflow version that never changes; the doctor is optional.</li>
+<li>Each order contains at least one item. Deleting is blocked (RESTRICT); only draft items may be removed, by the draft editor.</li>
+<li>An item points to at most one original item it remakes; a request and a new item are linked one to one.</li>
+<li>Each item has at most one form-response row and any number of tooth rows.</li>
+<li>Each revision, message and charge request belongs to one order; messages and charge requests may point at one item.</li>
+<li><code>order_no</code> is unique per organization; <code>idempotency_key</code> is unique per organization.</li>
+<li>Attachments point to an order by <code>order_id</code> without a foreign key and are polymorphic by <code>entity_type</code> (order or item).</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-production-erd.png" alt="Figure 40.13 — Lab production data model"></p>
+<p><em>Figure 40.13 — Stages, technician assignments, shipments, remake requests and warranties.</em></p>
+<p>The diagram shows <code>lab_order_items</code> at the centre. <code>order_item_stages</code> hangs off it (&quot;try-in rounds&quot;) with <code>seq</code>, <code>round_no</code>, <code>status_code</code>, <code>is_final</code>, <code>is_active</code> and <code>outcome</code>, and is &quot;copied from&quot; <code>stage_template_steps</code>. <code>item_assignments</code> (&quot;worked on&quot;) connects an item to <code>lab_members</code> (&quot;assigned&quot;) with <code>unassigned_at</code>. <code>shipments</code> (&quot;carries&quot;) has <code>shipment_items</code>, each of which points to an item (&quot;shipped as&quot;) and optionally a stage (&quot;round shipped&quot;); a shipment has <code>direction</code>, <code>status</code> and <code>qr_token</code>. <code>remake_requests</code> connects twice to the item (&quot;original item&quot; many, &quot;new item&quot; one to one) and carries <code>reason_code</code>, <code>responsible_party</code> and <code>status</code>. <code>item_warranties</code> is one to one with the item, with <code>starts_on</code> and <code>ends_on</code>.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>At most one stage round per item is active at a time (partial unique index), and rounds are unique by item, sequence and round number.</li>
+<li>At most one open assignment per item (partial unique index); reassigning closes the old row.</li>
+<li>A shipment carries lines for items of one clinic and one lab; an item appears at most once in a shipment; received quantity cannot exceed shipped quantity.</li>
+<li><code>new_item_id</code> is unique, and at most one open (requested or disputed) remake request exists per original item.</li>
+<li>A warranty is one per item.</li>
+</ul>
+<p>The schema comes from the entity files; there is no migration file for these tables, because the lab module relies on the development schema sync and a reviewed schema sync in production.</p>
+<h2 id="ch40-dental-lab-40-5-status-lifecycles">40.5 Status lifecycles</h2>
+<p>The statuses in this section are the <strong>seeded defaults</strong> (version 1 of the <code>DENTAL_ORDER</code>, <code>DENTAL_ITEM</code> and <code>DENTAL_STAGE</code> workflows). Because states and transitions are data, a custom published version can differ; the order derivation rules described in 40.1 are fixed in code.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-order-status.png" alt="Figure 40.14 — Lab order status"></p>
+<p><em>Figure 40.14 — The seeded lab order workflow.</em></p>
+<p>The diagram has thirteen states. A new order enters at <code>draft</code> (by create, from a template, or by repeat). <code>draft</code> leads to <code>submitted</code> on &quot;submit&quot; and to <code>cancelled</code> on &quot;cancel&quot;. From <code>submitted</code>: the lab asks a question and the order goes to <code>clarification_needed</code>; the clinic&#39;s reply or a revision returns it to <code>submitted</code>; the lab rejects and the order goes to <code>rejected_by_lab</code>, from which &quot;reopen&quot; returns it to <code>draft</code>; the clinic cancels and it goes to <code>cancelled</code>; and when every item is accepted it is derived to <code>accepted</code>. <code>accepted</code> can be cancelled, or derived to <code>in_progress</code> when work starts. <code>in_progress</code> can be put on hold (<code>on_hold</code>, with a reason) and resumed, or derived to <code>partially_ready</code> or <code>ready</code>. <code>partially_ready</code> is derived to <code>ready</code>. <code>ready</code> is derived to <code>partially_received</code> or <code>under_review</code>; <code>partially_received</code> to <code>under_review</code>. <code>under_review</code> is derived back to <code>in_progress</code> (for example after a rejection) or onward to <code>completed</code> once all items are approved or delivered. <code>completed</code> can return to <code>partially_received</code> when a remake adds new work. <code>completed</code> and <code>cancelled</code> end the diagram.</p>
+<p>Walking through the states:</p>
+<ul>
+<li><strong>draft</strong> — editable working copy, no number. Anyone with the right to order may edit, submit, cancel.</li>
+<li><strong>submitted</strong> — number and prices frozen, the lab has been told. Changes are revisions.</li>
+<li><strong>clarification_needed</strong> — the lab asked something. A reply or a revision answers it.</li>
+<li><strong>rejected_by_lab</strong> — the lab refused the order, with a reason. The clinic may reopen it as a draft. Its items keep the status &quot;Waiting for lab&quot; in the database, which is an oddity recorded in the conflicts file.</li>
+<li><strong>accepted</strong> — every item accepted with an expected date.</li>
+<li><strong>in_progress</strong>, <strong>partially_ready</strong>, <strong>ready</strong> — derived from the items&#39; production states.</li>
+<li><strong>on_hold</strong> — a manual hold by the clinic. Derivation does not override it; <strong>Resume</strong> re-derives.</li>
+<li><strong>partially_received</strong>, <strong>under_review</strong> — derived from receipt and approval.</li>
+<li><strong>completed</strong>, <strong>cancelled</strong> — closed; magic links are revoked.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-item-status.png" alt="Figure 40.15 — Lab order item status"></p>
+<p><em>Figure 40.15 — The seeded item workflow.</em></p>
+<p>The diagram runs from <code>pending_acceptance</code> (entry at submit, or when a remake is agreed) to <code>accepted</code> on &quot;accept&quot;. An unused branch leads to <code>rejected</code> (&quot;reject&quot;, no endpoint calls it). <code>accepted</code> goes to <code>in_production</code> on &quot;start&quot; or to <code>cancelled</code>. <code>in_production</code> goes to <code>at_clinic_tryin</code> (&quot;send_tryin&quot;, when a try-in round is shipped), back from there on &quot;resume&quot;, to <code>qc</code> on &quot;finish&quot;, or to <code>cancelled</code>. <code>qc</code> returns to <code>in_production</code> on &quot;qc_fail&quot; or advances to <code>ready</code> on &quot;qc_pass&quot;. <code>ready</code> goes to <code>dispatched</code> on &quot;dispatch&quot; (final work shipped). <code>dispatched</code> goes to <code>received</code> on &quot;receive&quot;. <code>received</code> goes to <code>approved</code> on &quot;approve&quot; or to <code>remake_required</code> on &quot;reject_work&quot;. <code>approved</code> goes to <code>delivered</code> on &quot;deliver&quot;. <code>delivered</code>, <code>cancelled</code>, <code>rejected</code> and <code>remake_required</code> are final. The last state is final for this item only: the remake is a new item.</p>
+<p>Walking through the states: <strong>pending_acceptance</strong> (shown as &quot;Waiting for lab&quot;) waits for the lab&#39;s accept with an expected date; <strong>accepted</strong> has its stages created; <strong>in_production</strong> is bench work; <strong>at_clinic_tryin</strong> means a try-in round is with the clinic; <strong>qc</strong> is the lab&#39;s own quality check; <strong>ready</strong> means passed QC; <strong>dispatched</strong> is on the way to the clinic; <strong>received</strong> has been logged by the front desk; <strong>approved</strong> has been accepted by the doctor; <strong>delivered</strong> was fitted and has a warranty; <strong>remake_required</strong> was rejected and has an open remake request. The <code>send_tryin</code>, <code>resume</code> and <code>dispatch</code> transitions are done by the system, driven by shipments and decisions, not by a user button. The <code>rejected</code> state has no caller in the code that this review found (the order-level reject changes only the order); this is listed as unverified in the hand-back.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-stage-status.png" alt="Figure 40.16 — Try-in stage status"></p>
+<p><em>Figure 40.16 — One try-in round.</em></p>
+<p>The diagram shows one round: <code>pending</code> (created when the lab accepts) goes to <code>at_lab</code> when it is started by the system, to <code>sent_to_clinic</code> when the lab ships it, to <code>received</code> on receipt, to <code>tryin_done</code> when the doctor records the try-in, and then either to <code>approved</code> (end) or to <code>correction</code> (end). A correction closes the round and the same stage starts again as <code>round_no</code> plus one, beginning at <code>pending</code>.</p>
+<p>Walking through the states: <strong>pending</strong> — created, not yet started; <strong>at_lab</strong> — the active round, being worked; <strong>sent_to_clinic</strong> — on its way; <strong>received</strong> — logged at the clinic; <strong>tryin_done</strong> — the patient has tried it; <strong>approved</strong> — the stage is complete and the next stage starts; <strong>correction</strong> — closed with notes, a new round follows. A stage that needs no patient visit goes straight from received to the decision.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-shipment-status.png" alt="Figure 40.17 — Shipment status"></p>
+<p><em>Figure 40.17 — The shipment status values.</em></p>
+<p>The diagram shows a shipment entering at <code>dispatched</code> when either side posts it. It goes to <code>received</code> when every line is recorded, or to <code>partially_received</code> when some lines are recorded and others remain; <code>partially_received</code> goes to <code>received</code> when the rest arrive. From <code>dispatched</code> or <code>partially_received</code> a shipment can be marked <code>lost</code>. <code>received</code> and <code>lost</code> are final. These four values are fixed in code, not in a workflow.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-remake-status.png" alt="Figure 40.18 — Remake request status"></p>
+<p><em>Figure 40.18 — The remake request status values.</em></p>
+<p>The diagram shows a request entering at <code>requested</code> (a rejection or a remake request). The lab may dispute it (<code>disputed</code>). From <code>requested</code> or <code>disputed</code> the clinic either agrees (<code>agreed</code>, a new item is created) or closes it (<code>closed</code>, no remake). <code>agreed</code> and <code>closed</code> are final. These values are fixed in code.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch40-link-status.png" alt="Figure 40.19 — Lab link status"></p>
+<p><em>Figure 40.19 — The lab link status values and who may move them.</em></p>
+<p>The diagram shows a link entering at <code>invited</code> (a clinic adds a lab) or directly at <code>active</code> (the super admin creates an in-house lab). <code>invited</code> goes to <code>active</code> on &quot;activate&quot; or to <code>suspended</code> on &quot;suspend&quot; (reason required). <code>active</code> goes to <code>suspended</code> on &quot;suspend&quot;. <code>suspended</code> goes back to <code>active</code> on &quot;reactivate&quot;, only by the side that suspended it. These values and rules are fixed in code (<code>lab-link-transitions.ts</code>).</p>
+<h2 id="ch40-dental-lab-40-6-connections-to-other-modules">40.6 Connections to other modules</h2>
+<ul>
+<li><strong>Workflow engine (Chapter 43).</strong> Order, item and stage statuses and their transitions are workflow template data; forms are form schemas. The super admin edits them in Config Studio.</li>
+<li><strong>Lab portal (Chapter 41).</strong> The lab&#39;s side of every step: accept, reject, ask, produce, ship, dispute, read bills.</li>
+<li><strong>Lab finance (Chapter 42).</strong> Accepting an order creates the vendor bill draft from the items&#39; frozen lab costs; the patient lab invoice, payments and statements read the same snapshots.</li>
+<li><strong>Billing and treatments (Chapters 33 and 34).</strong> A lab service is billed through a mapped treatment from the billing catalog; the patient price follows the billing price precedence.</li>
+<li><strong>Commissions (Chapter 35).</strong> Lab-line commissions read the lab cost and the treatment&#39;s doctor.</li>
+<li><strong>Patients and appointments (Chapters 28 and 29).</strong> An order belongs to a patient; a draft may link an appointment and a treatment; a try-in may link the patient&#39;s appointment. A warning appears when the lab&#39;s date is after the patient&#39;s next appointment.</li>
+<li><strong>Notifications (Chapter 44).</strong> The events in 40.3.30.</li>
+<li><strong>Access control and features (Chapters 10 and 11).</strong> Permissions <code>lab.*</code> and the feature <code>dental.lab_orders</code>.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> In read-only mode every write is refused with 402 <code>SUBSCRIPTION_EXPIRED</code>.</li>
+</ul>
+<h2 id="ch40-dental-lab-40-7-limitations-and-known-gaps">40.7 Limitations and known gaps</h2>
+<ul>
+<li>The lab cannot manage its own catalog or prices; only the super admin does, through the Lab Directory.</li>
+<li>Service categories can be created only through the API.</li>
+<li>No screen cancels a single item or sends impressions and models to the lab, although the API supports both.</li>
+<li>A whole order that is already in progress cannot be cancelled in the seeded workflow, and cancelling an order does not cancel its items.</li>
+<li>Four seeded notification events are never emitted: <code>order.overdue</code>, <code>shipment.dispatched</code>, <code>tryin.appointment_due</code> and <code>appointment.rescheduled_lab_delay</code>. There is no overdue job.</li>
+<li>Patient and lab-contact messages go to a development logger until a real provider exists.</li>
+<li>Attachment visibility &quot;patient shared&quot; is stored but nothing shows it to a patient.</li>
+<li>Lab price windows use the platform&#39;s Asia/Karachi day, while order submit prices on the location&#39;s day.</li>
+<li>The warranty length is fixed at 12 months by default; no screen or endpoint changes or voids it.</li>
+<li>Magic-link rate limiting is kept in the memory of each API process, so it is per server instance.</li>
+<li>A suspended link stops new orders but does not stop orders already sent.</li>
+<li>A rejected order that is reopened keeps its items in the status &quot;Waiting for lab&quot; while the order is a draft again.</li>
+</ul>
+<h2 id="ch40-dental-lab-40-8-owner-39-s-faq">40.8 Owner&#39;s FAQ</h2>
+<p><strong>Can a receptionist create a lab order?</strong> No. The Receptionist and Assistant templates have only <code>lab.orders.view</code> at location scope, so they can read orders and receive shipments but not create or change them. Doctors and Admin hold <code>lab.orders.create</code>.</p>
+<p><strong>Who can see which orders?</strong> Scope of <code>lab.orders.view</code>: a doctor sees the orders they are the doctor of or created; the front desk sees their location&#39;s orders; Admin sees all. Orders outside the scope answer &quot;not found&quot;.</p>
+<p><strong>What happens to the price if the lab changes its price after I submit?</strong> Nothing. Prices of every line are copied into the item at submit and cannot change except by a revision or an approved extra charge.</p>
+<p><strong>Why did my submit fail with a message about a treatment?</strong> The line&#39;s lab service is not mapped to one of your treatments, so the patient price is unknown. Map it in <strong>Lab price list</strong> under <strong>Treatment mapping</strong>, or choose a treatment on the line.</p>
+<p><strong>What if the lab never answers?</strong> A coordinator holding both <code>lab.orders.create</code> and <code>lab.links.manage</code> (Admin by default) can record the lab&#39;s accept, reject, question or date change as a proxy action. It is marked in the history as entered by the clinic for the lab.</p>
+<p><strong>How long does a magic link last, and can I stop it?</strong> 24 hours by default (the environment variable <code>LAB_MAGIC_LINK_TTL_HOURS</code> changes it, up to 168 hours). You can revoke it at any time; it also stops when the order is completed, cancelled or rejected, or the lab is suspended.</p>
+<p><strong>What does &quot;Patient code only&quot; do?</strong> The lab sees the patient number instead of the name in its portal, its link page, the printed work order and notifications.</p>
+<p><strong>Where are lab orders stored?</strong> In <code>lab_orders</code> with their items in <code>lab_order_items</code>; every status change is also written to <code>status_history</code> and every edit to <code>audit_logs</code>.</p>
+<p><strong>Can I delete a lab order?</strong> No. There is no delete. Drafts can be cancelled; submitted orders are cancelled or completed, and every foreign key blocks deletion.</p>
+<p><strong>Can a lab see what I charge the patient?</strong> No. Lab-facing responses and the revision snapshots carry the lab cost only, never the patient price, the clinic&#39;s treatment or internal files.</p>
+</section></body></html>

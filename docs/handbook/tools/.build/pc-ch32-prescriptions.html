@@ -1,0 +1,603 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch32-prescriptions"><h1 id="ch32-prescriptions-chapter-32-prescriptions">Chapter 32 — Prescriptions</h1>
+<p>This chapter describes the prescriptions module of the Platform: how doctors write, sign, amend and print prescriptions, and how the clinic maintains the library behind them (medicines, ready-made medicine sets and print layouts). It is written for the product owner. Prescriptions are part of the clinical record of a patient and are usually written inside the consultation workspace, so this module sits next to Patients (Chapter 28) and Consultation (Chapter 31).</p>
+<h2 id="ch32-prescriptions-32-1-what-this-module-is-for">32.1 What this module is for</h2>
+<p>A <strong>prescription</strong> is the signed list of medicines a doctor gives a patient, with dose, frequency, duration and instructions in English and Urdu, printed on the clinic&#39;s letterhead. In the Platform a prescription starts as a draft, becomes final when the doctor signs it, and can be amended later; every change is logged.</p>
+<p>The module has three parts:</p>
+<ul>
+<li><strong>Prescriptions themselves</strong>: list, builder, detail page, signing, PDF printing.</li>
+<li><strong>The prescription library</strong>, shared by the whole organization:<ul>
+<li>the <strong>medicine directory</strong> (the drug catalogue doctors search);</li>
+<li><strong>prescription presets</strong> (ready-made sets of medicines for common situations);</li>
+<li><strong>print layouts</strong> (letterhead, footer and paper size).</li>
+</ul>
+</li>
+<li><strong>Doctor signatures</strong>: each doctor&#39;s saved signature image.</li>
+</ul>
+<p><strong>Who uses it.</strong></p>
+<ul>
+<li>Doctors write and sign prescriptions (<code>prescriptions.create</code>, held only by the Doctor system role by default).</li>
+<li>Staff with <code>patients.clinical.view</code> (Doctor, Assistant and Admin by default) can read and print them.</li>
+<li>The Admin role maintains the library (<code>prescriptions.library.manage</code>).</li>
+<li>The owner holds every permission.</li>
+</ul>
+<p>The whole module sits behind the <strong>feature</strong> <code>patients.prescriptions</code>, which is enabled by default for new organizations.</p>
+<p><strong>Where it appears.</strong> The sidebar item &quot;Prescriptions&quot; (<code>/prescriptions</code>) sits in the &quot;Clinic&quot; section and is shown to users holding <code>prescriptions.create</code>. The library pages have no sidebar entries of their own: they are reached through the &quot;Library&quot; button on the Prescriptions page and through links in the builder, and they share one tabbed header, &quot;Prescription Library&quot;. Inside the consultation workspace, the &quot;Prescription&quot; panel is the doctor&#39;s main way to write prescriptions.</p>
+<h2 id="ch32-prescriptions-32-2-screens">32.2 Screens</h2>
+<p>There are no usable screenshots of these screens yet, so each figure is a placeholder followed by a description taken from the web-app code.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-prescription-list.svg" alt="Figure 32.1 — Prescriptions list"></p>
+<p><em>Figure 32.1 — Prescriptions list (screenshot pending).</em></p>
+<p>The Prescriptions page (<code>/prescriptions</code>) has the title &quot;Prescriptions&quot; and the subtitle &quot;Create, review, and manage patient prescriptions.&quot; In the top-right are a card/table view toggle, a &quot;Library&quot; button that opens the prescription library, and &quot;New Prescription&quot; (only with <code>prescriptions.create</code>). A strip of four counters shows Total, This month, Drafts and Finalized. Under the counters, a filter row has status tabs &quot;All&quot;, &quot;Drafts&quot;, &quot;Finalized&quot; and &quot;Amended&quot;, each with a count, a &quot;Clear filter&quot; button when a status is chosen, and the number of prescriptions found. The table view lists Patient, Doctor, Medicines, Status (a coloured badge: Draft, Finalized or Amended), Created, and an &quot;Open prescription&quot; icon button; clicking a row also opens it. The card view shows the same prescriptions as cards. Both views have pagination with a page-size selector (10, 20, 50, 100). Empty, error and &quot;No prescriptions match this status.&quot; states are shown when relevant.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-prescription-builder.svg" alt="Figure 32.2 — Prescription builder"></p>
+<p><em>Figure 32.2 — Prescription builder (screenshot pending).</em></p>
+<p>The builder (<code>/prescriptions/new</code>, title &quot;New Prescription&quot;, with a back button to the list) has an editor on the left and a live preview of the printed page on the right. The toolbar of the editor has a &quot;Presets&quot; menu (&quot;Apply prescription preset&quot;, with a link &quot;Manage prescription presets&quot;), a layout selector listing the organization&#39;s print layouts (or a &quot;Set up layout&quot; link when there are none), and, for a saved prescription, &quot;History&quot;, a &quot;Finalized&quot; badge and &quot;Print&quot;. The editor then has cards for:</p>
+<ul>
+<li><strong>Patient</strong>: search box &quot;Search patient by name or phone…&quot;, with &quot;Change&quot; once a patient is chosen.</li>
+<li><strong>Prescribing Doctor</strong>: &quot;Select a doctor…&quot;.</li>
+<li><strong>Chief Complaint</strong> and <strong>Diagnosis</strong>.</li>
+<li><strong>Vitals (optional)</strong>: BP, Pulse, Temp, SpO₂, Weight, Height.</li>
+<li><strong>Medicines</strong>: numbered rows, each with a medicine search box, Dose, Frequency (free text or a pick list), a meal-relation selector, Duration, and English and Urdu instruction boxes, plus a delete icon. &quot;Add medicine&quot; adds a row.</li>
+<li><strong>Further Plan / Comment</strong>.</li>
+<li><strong>Instructions (English)</strong> and a right-to-left Urdu instructions box set in the Nastaliq font.</li>
+</ul>
+<p>At the bottom are &quot;Save Draft&quot; and &quot;Finalize &amp; Sign&quot; (&quot;Amend &amp; Sign&quot; for a finalized prescription).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-prescription-detail.svg" alt="Figure 32.3 — Prescription detail and print"></p>
+<p><em>Figure 32.3 — Prescription detail and print (screenshot pending).</em></p>
+<p>The detail page (<code>/prescriptions/$prescriptionId</code>) has the title &quot;Prescription&quot; and a back button &quot;Back to prescriptions&quot;. It shows the same builder, loaded with the saved prescription, so the doctor can keep editing a draft or amend a finalized one. &quot;Print&quot; in the toolbar fetches the PDF and opens it in a new browser tab. The live preview on the right shows the prescription number and date.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-library-presets.svg" alt="Figure 32.4 — Prescription Library, Presets tab"></p>
+<p><em>Figure 32.4 — Prescription Library: Presets (screenshot pending).</em></p>
+<p>All three library pages share the title &quot;Prescription Library&quot;, a back button to the prescriptions list and a tab bar with &quot;Presets&quot; (hint &quot;Ready-made medicine sets&quot;), &quot;Medicines&quot; (&quot;Drug catalogue&quot;) and &quot;Print layouts&quot; (&quot;Letterhead and paper&quot;). The Presets tab (<code>/prescription-presets</code>) has the subtitle &quot;Ready-made medicine sets. One tap adds a whole set to a prescription.&quot; It offers a search box &quot;Search presets or medicines…&quot;, a category filter (&quot;All categories&quot; and about forty categories such as Toothache, Post extraction, Root canal, Pregnancy safe), a card/table toggle, and &quot;New preset&quot; for library managers. The table shows Preset, Category, Medicines and row actions &quot;Edit preset&quot; and &quot;Deactivate preset&quot; (library managers only). The empty state suggests saving a set such as &quot;Toothache after extraction&quot;. The &quot;New prescription preset&quot; side sheet has sections &quot;Preset&quot; (Name, Category, Description), &quot;Medicines&quot; (each with Dose, How often, With food, For how long) and &quot;Instructions for the patient&quot; (English, Urdu, Further plan).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-library-medicines.svg" alt="Figure 32.5 — Prescription Library, Medicines tab"></p>
+<p><em>Figure 32.5 — Prescription Library: Medicines (screenshot pending).</em></p>
+<p>The Medicines tab (<code>/medicine-directory</code>) has the subtitle &quot;The drug catalogue doctors search while writing a prescription.&quot; It has a search box &quot;Search by brand or generic name…&quot; (300 ms debounce), a type filter (&quot;All types&quot;, Tablet, Capsule, Syrup and so on), a card/table toggle and &quot;Add medicine&quot; for library managers. The table shows Medicine (with the generic name under it), Type, Strength, &quot;Usual prescription&quot; (the default dose, frequency, duration and meal relation), and Edit / Deactivate icon buttons. When the directory is empty, the empty state offers &quot;Add common medicines&quot; and &quot;Add medicine&quot;. The &quot;Add medicine&quot; side sheet has &quot;Medicine&quot; (Name, Generic name, Urdu name, Type, Strength) and &quot;Defaults on a prescription&quot; (Dose, With food, How often, For how long). Deactivation asks &quot;Deactivate this medicine?&quot; and explains that existing prescriptions are not changed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-library-print-layouts.svg" alt="Figure 32.6 — Prescription Library, Print layouts tab"></p>
+<p><em>Figure 32.6 — Prescription Library: Print layouts (screenshot pending).</em></p>
+<p>The Print layouts tab (<code>/prescription-templates</code>) has the subtitle &quot;Letterhead, footer and paper size for printed prescriptions.&quot; It lists layouts with Layout, Paper and Default columns and row actions, and offers &quot;New layout&quot; for library managers. The empty state reads &quot;No print layouts yet&quot;. The layout side sheet shows a live preview of the printed page beside these sections:</p>
+<ul>
+<li><strong>Layout</strong>: Name, Paper size (A4, A5, Letter), Accent colour, &quot;Use as the default layout&quot;.</li>
+<li><strong>Letterhead (top of the page)</strong>: Clinic name, Clinic name in Urdu, Qualification, Registration no., Doctor phone.</li>
+<li><strong>Footer (bottom of the page)</strong>: Address, Timings, Clinic phone, Small print.</li>
+<li><strong>Show on the prescription</strong>: switches for Vitals, Medicine names in Urdu, Patient gender, Date.</li>
+</ul>
+<h2 id="ch32-prescriptions-32-3-features">32.3 Features</h2>
+<h3 id="ch32-prescriptions-32-3-1-browse-and-filter-prescriptions">32.3.1 Browse and filter prescriptions</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows every prescription at the active location, with counters and a status filter.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open &quot;Prescriptions&quot; in the sidebar.</li>
+<li>Pick a status tab (&quot;All&quot;, &quot;Drafts&quot;, &quot;Finalized&quot;, &quot;Amended&quot;); &quot;Clear filter&quot; resets it.</li>
+<li>Switch between table and cards; change the page size or page.</li>
+<li>Click a row or the &quot;Open prescription&quot; icon.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The list only contains prescriptions of patients the user is allowed to see, at the location the user is working in.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /prescriptions</code> → <code>PrescriptionService.findAll</code>: filters by organization and active location, applies the caller&#39;s <code>patients.view</code> scope to <code>patient_id</code> (<code>patientScope</code>), and accepts optional filters <code>patientId</code>, <code>doctorId</code>, <code>status</code>, <code>dateFrom</code>, <code>dateTo</code>, <code>page</code>, <code>limit</code>. It returns rows with patient, doctor and medicines, newest first.</li>
+<li><code>GET /prescriptions/stats</code> → <code>getStats</code> returns <code>total</code>, <code>thisMonth</code>, <code>finalized</code> and <code>draft</code> under the same scope.</li>
+<li>The &quot;Amended&quot; count is computed in the browser as total minus drafts minus finalized.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>status</code> must be DRAFT, FINALIZED or AMENDED.</li>
+<li><code>page</code> and <code>limit</code> are at least 1.</li>
+<li>&quot;This month&quot; starts on the first day of the month in the server&#39;s clock, not the location&#39;s timezone.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code> plus feature <code>patients.prescriptions</code> (controller-level <code>@RequireFeature</code>). Route: any of <code>prescriptions.create</code> or <code>patients.clinical.view</code>. Doctor, Assistant and Admin templates can open it; only the Doctor sees the sidebar item.</p>
+<p><strong>Data read and written.</strong> Reads <code>prescriptions</code>, <code>prescription_medicines</code>, <code>patients</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> Error state with retry when the list fails; &quot;No prescriptions match this status.&quot; for an empty filter.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>PrescriptionService.findAll</code>, <code>getStats</code> · <code>web-app/src/features/prescriptions/pages/PrescriptionsPage.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-2-write-a-prescription-and-save-it-as-a-draft">32.3.2 Write a prescription and save it as a draft</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a new prescription for a patient, with medicines, vitals and instructions, stored as a draft until it is signed.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press &quot;New Prescription&quot; on the list, or &quot;New Prescription&quot; on the patient&#39;s prescriptions tab (which pre-selects the patient).</li>
+<li>Choose the patient and the prescribing doctor.</li>
+<li>Fill Chief Complaint, Diagnosis and optional vitals.</li>
+<li>Add medicines. Typing two or more letters searches the medicine directory; picking a result fills its defaults. Set dose, frequency, meal relation, duration and instructions.</li>
+<li>Optionally fill Further Plan and the English and Urdu instructions.</li>
+<li>Press &quot;Save Draft&quot;. The page moves to the saved prescription.</li>
+</ol>
+<p>In the consultation workspace the same thing happens automatically: the draft is created as soon as the first complete medicine line exists and then saves itself every second (Chapter 31 describes the panel).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform gives the prescription a number such as &quot;RX-2026-00042&quot;, links it to the patient (and the visit or appointment when known), chooses the print layout, and logs a &quot;created&quot; entry in its history.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /prescriptions</code> → <code>PrescriptionService.create(ctx, dto, dto.doctorId)</code>:</p>
+<ol>
+<li>If <code>treatmentPlanTemplateId</code> (a preset) is given, the preset&#39;s medicines, further plan and instructions fill any fields the caller left empty.</li>
+<li>The print layout is the one given in the request; otherwise the location&#39;s default; otherwise the organization-wide default; otherwise none.</li>
+<li>The number is generated per organization as <code>RX-{current year}-{5 digits}</code>: it reads the organization&#39;s most recently created prescription and adds one to its last number part.</li>
+<li>The prescription is saved with status <code>DRAFT</code>, version 1 and its medicines (cascade). Missing meal relation becomes <code>NONE</code>, missing sort order becomes the row position.</li>
+<li>A history row <code>CREATED</code> is written.</li>
+</ol>
+<p>Later saves use <code>PATCH /prescriptions/:id</code>, covered in 32.3.4.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>patientId</code> is required (UUID).</li>
+<li>Each medicine needs a name (at most 200 characters), dosage (50), frequency (100) and duration (50). Urdu name is at most 200 characters, type at most 30. Meal relation must be BEFORE_MEAL, AFTER_MEAL, WITH_MEAL, EMPTY_STOMACH or NONE.</li>
+<li>The builder refuses to save without a patient (&quot;Please select a patient first&quot;) or without a named medicine (&quot;Add at least one medicine&quot;).</li>
+<li>The prescription number column is unique across the whole Platform.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code> (feature <code>patients.prescriptions</code>). Doctor template only by default; the Admin template deliberately leaves it out.</p>
+<p><strong>Data read and written.</strong> Reads <code>treatment_plan_templates</code>, <code>prescription_templates</code>; writes <code>prescriptions</code>, <code>prescription_medicines</code>, <code>prescription_history</code>.</p>
+<p><strong>Effects on other modules.</strong> The prescription appears on the patient record (Chapter 28) and, when linked to an encounter, in the consultation workspace and the patient&#39;s &quot;Earlier prescriptions&quot;.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>400 with the field message → a medicine line with an empty dose, frequency or duration (the builder sends any row with a name).</li>
+<li>&quot;Treatment plan template not found&quot; (404) → the preset id does not belong to the organization.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>PrescriptionService.create</code>, <code>CreatePrescriptionDto</code> · <code>web-app/src/features/prescriptions/components/PrescriptionBuilder.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-3-fill-a-prescription-from-a-preset">32.3.3 Fill a prescription from a preset</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A <strong>prescription preset</strong> (for example &quot;Root canal aftercare&quot;) adds a whole set of medicines and instructions in one tap.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li>In the builder, open &quot;Presets&quot; and choose one. The medicine list is replaced by the preset&#39;s medicines, and empty Further Plan and instruction boxes are filled from the preset.</li>
+<li>In the consultation workspace, open &quot;Use a preset&quot; in the Prescription panel. The preset&#39;s medicines are added (duplicates by name are skipped), and its English instructions go into the visit&#39;s &quot;Advice&quot; note if that is empty.</li>
+</ul>
+<p><strong>Behind the scenes — in simple terms.</strong> Presets live in the prescription library and belong to the whole organization. Choosing one only copies its contents; later changes to the preset do not change prescriptions already written.</p>
+<p><strong>Behind the scenes — technically.</strong> The web app loads <code>GET /treatment-plan-templates</code> (active presets, optional <code>category</code> filter, ordered by name, medicines eager-loaded) and copies the medicines into the editor. The builder also sends the preset id as <code>treatmentPlanTemplateId</code>, which is stored on the prescription.</p>
+<p><strong>Rules and validations.</strong> Only active presets are listed.</p>
+<p><strong>Who can do it.</strong> Reading presets is open to any member of the organization (<code>@AnyMember</code>) when the feature is on. Writing the prescription needs <code>prescriptions.create</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>treatment_plan_templates</code>, <code>treatment_plan_template_medicines</code>.</p>
+<p><strong>Effects on other modules.</strong> None beyond the prescription.</p>
+<p><strong>Error cases.</strong> None specific; an empty preset list hides the menu in the workspace and shows a &quot;Manage prescription presets&quot; link in the builder.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/controllers/treatment-plan-template.controller.ts</code> · <code>TreatmentPlanTemplateService.findAll</code> · <code>web-app/src/features/prescriptions/components/PrescriptionBuilder.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-4-sign-finalize-a-prescription">32.3.4 Sign (finalize) a prescription</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Signing makes the prescription final: it is stamped with the doctor&#39;s signature and time, and a PDF is produced.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li>In the builder: press &quot;Finalize &amp; Sign&quot;. The prescription is saved first. The dialog &quot;Sign &amp; finalize prescription&quot; shows the saved signature (if any) with &quot;Tap Confirm to use this — or draw a new one below to override it&quot;, and a &quot;Draw new signature&quot; pad. Press &quot;Confirm &amp; Sign&quot;.</li>
+<li>In the consultation workspace: press &quot;Sign &amp; print&quot;. If no signature is saved, the &quot;Sign the prescription&quot; dialog asks once (&quot;Sign with your finger or mouse. It is saved, so you only do this once.&quot;). The PDF opens in an in-app preview with &quot;Print&quot;.</li>
+</ul>
+<p><strong>Behind the scenes — in simple terms.</strong> A newly drawn signature is saved for next time. The prescription is checked (it must have medicines), marked final, and a PDF is generated and stored in the clinic&#39;s file storage if storage is available. If PDF storage fails, signing still succeeds and the PDF is built when someone prints.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch32-sign-print-sequence.png" alt="Figure 32.7 — Sign and print from the consultation"></p>
+<p><em>Figure 32.7 — Sequence of &quot;Sign &amp; print&quot; in the consultation workspace.</em></p>
+<p>Figure 32.7 is a sequence diagram with seven participants: Doctor, Web app, API, PrescriptionService, PrescriptionPdfService, File storage and PostgreSQL. In step 1 the doctor presses &quot;Sign &amp; print&quot;. In step 2 the web app flushes the autosave with <code>PATCH /prescriptions/id</code> carrying all medicines. In step 3 it asks <code>GET /doctor-signatures/my</code>. A note explains that when no signature is saved, the sign dialog opens and the drawing is saved with <code>POST /doctor-signatures</code>. In step 4 the web app sends <code>POST /prescriptions/id/finalize</code> with the signature image. In step 5 the API calls <code>finalize</code> on the PrescriptionService. In step 6 the service checks that the status is DRAFT or AMENDED and that there is at least one medicine. In step 7 it sets FINALIZED, the signing time and the signature, and clears the stored PDF address. In step 8 it asks the PrescriptionPdfService to generate the PDF address, best effort. In step 9 that service uploads the PDF to the &quot;prescriptions&quot; folder in file storage. In step 10 the PrescriptionService saves the PDF address and a FINALIZED history row. In steps 11 to 13 the web app calls <code>GET /prescriptions/id/pdf</code>, the API builds the PDF fresh with <code>generatePdfBuffer</code> and returns it inline as <code>application/pdf</code>. In step 14 the doctor sees the in-app preview with Print.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /prescriptions/:id/finalize</code> → <code>PrescriptionService.finalize</code>:</p>
+<ul>
+<li>Refuses unless the status is <code>DRAFT</code> or <code>AMENDED</code> and at least one medicine exists.</li>
+<li>Takes the signature image from the request, otherwise the saved signature found by the caller&#39;s user id (<code>DoctorSignatureService.getByEmployee</code>).</li>
+<li>Sets <code>status = FINALIZED</code>, <code>signed_at = now</code>, <code>signature_image_url</code>, <code>pdf_url = null</code>, and saves.</li>
+<li>Calls <code>PrescriptionPdfService.generatePdfUrl</code>, which builds the PDF and uploads it through the <code>StorageProvider</code> (folder &quot;prescriptions&quot;); any error is swallowed and the URL stays empty.</li>
+<li>Logs history <code>FINALIZED</code> with optional <code>changeNotes</code>.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only DRAFT or AMENDED can be finalized.</li>
+<li>At least one medicine is required.</li>
+<li>The workspace also refuses when a medicine line is incomplete (&quot;Choose how often and for how long for every medicine&quot;).</li>
+<li>The builder refuses without a signature (&quot;Please draw your signature or use a saved one&quot;).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code>. Doctor template only by default.</p>
+<p><strong>Data read and written.</strong> <code>prescriptions</code>, <code>prescription_history</code>, <code>doctor_signatures</code>; the PDF file in external storage.</p>
+<p><strong>Effects on other modules.</strong> The signed status shows in the consultation&#39;s &quot;Complete this visit?&quot; dialog (&quot;Prescription signed&quot;) and in the patient&#39;s &quot;Earlier prescriptions&quot;.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Only DRAFT or AMENDED prescriptions can be finalized&quot; (400).</li>
+<li>&quot;Cannot finalize a prescription with no medicines&quot; (400).</li>
+<li>Workspace toasts &quot;Could not sign the prescription — try again&quot; and &quot;Signed, but the PDF could not be opened — tap Print&quot;.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>PrescriptionService.finalize</code> · <code>web-app/src/features/consultation/components/PrescriptionPanel.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-5-amend-a-signed-prescription">32.3.5 Amend a signed prescription</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A signed prescription can still be corrected. Editing it turns it into an <strong>amended</strong> prescription with a higher version number; signing again makes it final once more. The state before each change is kept in the history.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li>Builder: open the prescription, edit, then press &quot;Amend &amp; Sign&quot; (or &quot;Save Draft&quot; to save the amendment unsigned).</li>
+<li>Workspace: press &quot;Amend&quot;, edit the medicines, then &quot;Sign amendment &amp; print&quot;.</li>
+</ul>
+<p><strong>Behind the scenes — in simple terms.</strong> Every save takes a full copy of the prescription before the change and stores it in the history, so any older version can be rebuilt. The cached PDF is thrown away so the next print shows the new content.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /prescriptions/:id</code> → <code>PrescriptionService.update</code>:</p>
+<ol>
+<li>Takes a JSON snapshot of the prescription and its medicines (<code>PrescriptionHistoryService.snapshot</code>).</li>
+<li>In a transaction:<ul>
+<li>if <code>medicines</code> is sent, deletes all medicine rows and inserts the new list (replace-all);</li>
+<li>merges the other fields;</li>
+<li>when the prescription was <code>FINALIZED</code>, sets <code>status = AMENDED</code>, increments <code>version</code> and clears <code>pdf_url</code>.</li>
+</ul>
+</li>
+<li>Logs a history row <code>AMENDED</code> with the snapshot and optional <code>changeNotes</code>.</li>
+</ol>
+<p>A draft edit is also logged as <code>AMENDED</code>, with the same version.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Any status can be patched: DRAFT stays DRAFT, FINALIZED becomes AMENDED, AMENDED stays AMENDED.</li>
+<li>Medicine lines follow the rules in 32.3.2.</li>
+<li>The patient, encounter, appointment and doctor cannot be changed through this endpoint.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code>, and the patient must be inside the caller&#39;s <code>patients.view</code> scope (otherwise &quot;Prescription not found&quot;).</p>
+<p><strong>Data read and written.</strong> <code>prescriptions</code>, <code>prescription_medicines</code>, <code>prescription_history</code>.</p>
+<p><strong>Effects on other modules.</strong> An amended (unsigned) prescription shows as &quot;Prescription is still a draft — not signed&quot; in the consultation completion dialog.</p>
+<p><strong>Error cases.</strong> &quot;Prescription not found&quot; (404) → wrong organization or patient out of scope.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>PrescriptionService.update</code>, <code>PrescriptionHistoryService.snapshot</code> · <code>web-app/src/features/prescriptions/components/PrescriptionBuilder.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-6-add-edit-or-remove-one-medicine-line">32.3.6 Add, edit or remove one medicine line</h3>
+<p><strong>Status:</strong> [Partial] — backend only. No screen calls these endpoints; both the builder and the workspace send the whole medicine list with <code>PATCH /prescriptions/:id</code>.</p>
+<p><strong>What it does.</strong> Changes a single medicine on a draft or amended prescription without resending the rest.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The change is allowed only while the prescription is not signed, and each change is noted in the history.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /prescriptions/:id/medicines</code> adds a line at the end of the sort order.</li>
+<li><code>PATCH /prescriptions/:id/medicines/:medicineId</code> updates a line.</li>
+<li><code>DELETE /prescriptions/:id/medicines/:medicineId</code> removes a line.</li>
+</ul>
+<p>Each runs <code>assertEditable</code> (status DRAFT or AMENDED) and logs history <code>AMENDED</code> with a note such as &quot;Added medicine: …&quot;. The version does not change.</p>
+<p><strong>Rules and validations.</strong> Finalized prescriptions refuse with &quot;Finalized prescriptions cannot be edited — amend instead&quot;. Medicine field rules as in 32.3.2.</p>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code> with patient scope.</p>
+<p><strong>Data read and written.</strong> <code>prescription_medicines</code>, <code>prescription_history</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Medicine line not found&quot; (404); the edit-refusal message (400).</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/controllers/prescription.controller.ts</code> · <code>PrescriptionService.addMedicine</code>, <code>updateMedicine</code>, <code>removeMedicine</code> · <code>web-app/src/features/prescriptions/hooks/usePrescriptionMedicines.ts</code> (unused hooks)</p>
+<h3 id="ch32-prescriptions-32-3-7-duplicate-a-prescription">32.3.7 Duplicate a prescription</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen calls it. It also stores the caller&#39;s user id in the doctor column, which normally holds an employee id; whether that save succeeds was not verified.</p>
+<p><strong>What it does.</strong> Creates a new draft prescription for the same patient with the same layout, notes, vitals and medicines.</p>
+<p><strong>How the user does it.</strong> Not available in the web app. The consultation&#39;s &quot;Repeat last&quot; and &quot;Use these medicines again&quot; copy medicines in the browser instead.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It is a copy that starts again as a draft with a new number, without the appointment link.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /prescriptions/:id/duplicate</code> → <code>PrescriptionService.duplicate</code> reads the source and calls <code>create</code> with its fields and medicines. The encounter and appointment are not copied. <code>doctorId</code> is <code>req.user.uuid</code>.</p>
+<p><strong>Rules and validations.</strong> As for create.</p>
+<p><strong>Who can do it.</strong> <code>prescriptions.create</code> with patient scope.</p>
+<p><strong>Data read and written.</strong> <code>prescriptions</code>, <code>prescription_medicines</code>, <code>prescription_history</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Prescription not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>PrescriptionService.duplicate</code> · (no screen)</p>
+<h3 id="ch32-prescriptions-32-3-8-change-history-of-a-prescription">32.3.8 Change history of a prescription</h3>
+<p><strong>Status:</strong> [Partial] — history rows are written on every create, edit, line change and signing, but no screen shows them, and the read endpoint looks broken.</p>
+<p><strong>What it does.</strong> Keeps an audit trail of a prescription: who changed it, when, the type of change, the version and a full copy of the prescription before an edit.</p>
+<p><strong>How the user does it.</strong> The builder has a &quot;History&quot; button, but it only reloads the same page with a <code>tab=history</code> parameter that nothing reads, so no history view appears.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each change adds one row; rows are never edited.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li>Writing: <code>PrescriptionHistoryService.log</code> stores <code>prescription_id</code>, <code>version</code>, <code>changed_by</code>, <code>change_type</code> (CREATED, AMENDED or FINALIZED are used; PRINTED and SHARED exist in the enum but are never written), <code>previous_data</code> (JSON snapshot) and <code>change_notes</code>.</li>
+<li><code>changed_by</code> holds the employee id given at creation, but the user id for later changes.</li>
+<li>Reading: <code>GET /prescriptions/:id/history</code> → <code>listFor</code> asks the database layer to load a relation named <code>changedByEmployee</code>. The history entity does not declare that relation, and TypeORM normally refuses such a query, so the endpoint is expected to fail at run time (found by reading the code, not tested).</li>
+</ul>
+<p><strong>Rules and validations.</strong> Rows are append-only by code convention; the database does not enforce it.</p>
+<p><strong>Who can do it.</strong> Written by the system; reading needs <code>patients.clinical.view</code> with patient scope.</p>
+<p><strong>Data read and written.</strong> <code>prescription_history</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> See the read problem described in the technical paragraph.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription-history.service.ts</code> · <code>PrescriptionHistoryService.log</code>, <code>listFor</code> · <code>web-app/src/features/prescriptions/hooks/usePrescriptionHistory.ts</code> (unused)</p>
+<h3 id="ch32-prescriptions-32-3-9-print-a-prescription-as-pdf-with-urdu">32.3.9 Print a prescription as PDF, with Urdu</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Produces a one-page PDF of the prescription on the clinic&#39;s layout. Urdu text (medicine names, notes, instructions, clinic name, disclaimer) is printed in proper Nastaliq script, right to left, with numbers and English words kept the right way round.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li>Workspace: &quot;Sign &amp; print&quot; or &quot;Print&quot; opens an in-app PDF preview with a &quot;Print&quot; button.</li>
+<li>Builder or detail page: &quot;Print&quot; opens the PDF in a new browser tab.</li>
+</ul>
+<p><strong>Behind the scenes — in simple terms.</strong> The PDF is built fresh each time it is requested, from the saved prescription and its print layout. Any staff member who can read the prescription can print it, including drafts.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch32-printed-pdf.svg" alt="Figure 32.8 — Printed prescription PDF"></p>
+<p><em>Figure 32.8 — Printed prescription PDF (screenshot pending).</em></p>
+<p>Figure 32.8 stands for the generated PDF. From the PDF code, the page is laid out from top to bottom as follows:</p>
+<ul>
+<li><strong>Header.</strong> &quot;Dr. <doctor name>&quot; on the left in the layout&#39;s accent colour, with the qualification under it. The clinic name is on the right (the layout&#39;s clinic name, else the location name, else &quot;Clinic&quot;), the Urdu clinic name under it, then the doctor phone. A coloured line closes the header.</li>
+<li><strong>Patient bar.</strong> A grey bar with Name, Age, Gender, Reg#, Date and the RX number.</li>
+<li><strong>Vitals row.</strong> BP, Pulse, Temp, SpO2, Wt and the other vitals present, unless the layout hides vitals.</li>
+<li><strong>Clinical text.</strong> Labelled blocks &quot;Chief Complaint&quot; and &quot;Diagnosis&quot;.</li>
+<li><strong>Medicines.</strong> A bold &quot;Rx&quot;, then numbered medicines. Each shows the name in bold; under it dose, frequency, &quot;× duration&quot; and the meal relation in brackets; then a bullet with the special instruction. When a medicine has an Urdu name or Urdu note, they are printed in a right-hand column taking five-twelfths of the width.</li>
+<li><strong>Instructions.</strong> Labelled blocks &quot;Instructions&quot;, the Urdu instructions block (right-aligned, headed in Urdu) and &quot;Further Plan&quot;.</li>
+<li><strong>Signature.</strong> In the bottom right: the signature image, a line and the doctor&#39;s name.</li>
+<li><strong>Footer.</strong> Address, timings, phone and website, with the English small print on the left and the Urdu small print on the right.</li>
+<li><strong>Watermark.</strong> An optional watermark text drawn diagonally across the page.</li>
+</ul>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /prescriptions/:id/pdf</code> → <code>PrescriptionPdfService.generatePdfBuffer</code> loads the prescription with patient, doctor and layout, falling back to the location or organization default layout.</li>
+<li>It draws one page with pdf-lib, sized from the layout (A4 595×842 pt, A5, Letter, or custom millimetres). Margins and colours come from the layout&#39;s <code>styling</code>, with defaults of 15 mm top and bottom, 12 mm left and right, and a teal accent.</li>
+<li>Latin text uses the standard Helvetica fonts.</li>
+<li>Arabic-script runs go through <code>PdfTextWriter</code>:<ul>
+<li>text is split into direction runs by a small bidirectional algorithm (<code>bidi.ts</code>);</li>
+<li>each Urdu run is shaped with fontkit in Noto Nastaliq Urdu (from the <code>@fontsource/noto-nastaliq-urdu</code> package), giving joined letter forms and right-to-left order;</li>
+<li>each glyph is drawn as a vector outline, about 15% larger than the Latin text.</li>
+</ul>
+</li>
+<li>Urdu printed this way cannot be selected or searched in the PDF; the code accepts that trade-off.</li>
+<li>The signature image is fetched (a <code>data:</code> URL is decoded, an http(s) URL is downloaded) and embedded as PNG or JPEG; if embedding fails, the page is printed without it.</li>
+<li>The response is streamed inline with <code>Content-Type: application/pdf</code>.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The PDF can be generated for any status, including DRAFT.</li>
+<li>The date printed is the creation date, formatted day/month/year by the server.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code> with patient scope and the feature <code>patients.prescriptions</code>. Doctor, Assistant and Admin templates.</p>
+<p><strong>Data read and written.</strong> Reads <code>prescriptions</code>, <code>prescription_medicines</code>, <code>patients</code>, <code>employees</code>, <code>prescription_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>&quot;Prescription not found&quot; (404).</li>
+<li>Web toasts &quot;Failed to load PDF&quot; (builder) or &quot;Could not open the prescription PDF&quot; (workspace).</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription-pdf.service.ts</code> · <code>PrescriptionPdfService.generatePdfBuffer</code>, <code>PdfTextWriter</code> (<code>backend/src/prescriptions/pdf/pdf-text.ts</code>, <code>bidi.ts</code>) · <code>web-app/src/features/consultation/components/PdfPreviewDialog.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-10-print-layouts-prescription-templates">32.3.10 Print layouts (prescription templates)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A print layout defines how printed prescriptions look: paper size, accent colour, letterhead, footer and which items to show. One layout can be the default. In code a print layout is a &quot;prescription template&quot;; the screens call it a print layout.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open &quot;Prescriptions&quot; → &quot;Library&quot; → &quot;Print layouts&quot;.</li>
+<li>Press &quot;New layout&quot;, or the edit icon on a row.</li>
+<li>Fill the sheet (Figure 32.6) and watch the live preview. Switch on &quot;Use as the default layout&quot; if wanted.</li>
+<li>Save. To retire a layout, use &quot;Deactivate&quot; and confirm &quot;Deactivate this layout?&quot;.</li>
+<li>In the builder, pick a layout in the toolbar selector for one prescription.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Layouts can belong to one location or to the whole organization. When a prescription is created without a chosen layout, it takes the location&#39;s default, else the organization&#39;s default. Layouts made from the web screen are always organization-wide.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch32-layout-resolution.png" alt="Figure 32.9 — Which print layout a prescription uses"></p>
+<p><em>Figure 32.9 — How the print layout of a prescription is chosen.</em></p>
+<p>Figure 32.9 is a left-to-right flowchart. It starts at &quot;Prescription is created&quot; and asks &quot;Layout chosen in the request?&quot;. If yes, the next box is &quot;Store that layout id&quot;. If no, it asks &quot;Default layout for this location?&quot;; yes leads to &quot;Store location default&quot;. No leads to &quot;Org-wide default layout exists?&quot;; yes leads to &quot;Store org-wide default&quot; and no leads to &quot;Store no layout&quot;. The three &quot;store&quot; boxes lead to &quot;PDF uses stored layout&quot;. &quot;Store no layout&quot; leads to &quot;At print time look up location then org default again&quot;, and from there to &quot;None found: built-in A4, 12 to 15 mm margins, teal accent&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /prescription-templates</code>: when <code>isDefault</code> is set, it first clears the default flag of the other layouts with the same location (or the other organization-wide layouts). It then merges the given <code>header</code>, <code>footer</code> and <code>styling</code> objects over built-in defaults (Helvetica, Noto Nastaliq Urdu, show vitals, show Urdu medicine names, margins and so on).</li>
+<li><code>PATCH /prescription-templates/:id</code> merges the JSON objects field by field and moves the default flag the same way.</li>
+<li><code>DELETE /prescription-templates/:id</code> sets <code>is_active = false</code> and <code>is_default = false</code>.</li>
+<li><code>GET /prescription-templates?locationId=</code> lists active layouts for that location plus organization-wide ones, default first.</li>
+<li><code>GET /prescription-templates/default?locationId=</code> resolves location default, then organization default.</li>
+<li><code>GET /prescription-templates/:id</code> reads one layout.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>At most one default per location and one organization-wide default, kept by the service rather than a database constraint.</li>
+<li>A deactivated layout already stored on a prescription is still used for that prescription&#39;s PDF.</li>
+<li>The PDF ignores <code>orientation</code> (always portrait), the logo flag and the registration number, even though the web preview shows the registration number.</li>
+</ul>
+<p><strong>Who can do it.</strong> Reading: any member (<code>@AnyMember</code>). Writing: <code>prescriptions.library.manage</code> (feature <code>patients.prescriptions</code>), held by the Admin template. Route: any of <code>prescriptions.create</code> or <code>prescriptions.library.manage</code>.</p>
+<p><strong>Data read and written.</strong> <code>prescription_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> Every printed prescription.</p>
+<p><strong>Error cases.</strong> &quot;Prescription template not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/prescription-template.service.ts</code> · <code>PrescriptionTemplateService.getDefaultForLocation</code> · <code>web-app/src/features/prescriptions/pages/PrintLayoutsPage.tsx</code>, <code>components/library/LayoutSheet.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-11-doctor-signatures">32.3.11 Doctor signatures</h3>
+<p><strong>Status:</strong> [Implemented] — saving and reading one&#39;s own signature work from the screens. Deleting a signature and reading another doctor&#39;s signature exist only in the backend.</p>
+<p><strong>What it does.</strong> Each doctor keeps one saved signature image, which is placed on every prescription they sign unless they draw a new one at signing time.</p>
+<p><strong>How the user does it.</strong> The first time a doctor signs, they draw in the signature pad; the drawing is saved automatically. Drawing a new one later replaces it.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The signature is stored once per login account. It can be an image link or the drawing itself embedded as data.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /doctor-signatures</code> → <code>DoctorSignatureService.save</code> upserts the row keyed by the caller&#39;s <strong>user id</strong> (stored in the column <code>employee_id</code>; the entity comment says this becomes a real employee link later). It sets <code>signature_image_url</code>, optional <code>signature_data</code> and <code>is_active = true</code>.</li>
+<li><code>GET /doctor-signatures/my</code> returns the caller&#39;s active signature.</li>
+<li><code>DELETE /doctor-signatures</code> removes it (no screen calls this).</li>
+<li><code>GET /doctor-signatures/doctor/:employeeId</code> returns a given owner&#39;s active signature (no screen calls this).</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One signature per owner (unique index on <code>employee_id</code>).</li>
+<li><code>signatureImageUrl</code> is required and must not be empty.</li>
+</ul>
+<p><strong>Who can do it.</strong> Save, read own and delete: <code>prescriptions.create</code>. Read by id: any member (<code>@AnyMember</code>). Feature <code>patients.prescriptions</code>.</p>
+<p><strong>Data read and written.</strong> <code>doctor_signatures</code>.</p>
+<p><strong>Effects on other modules.</strong> Finalize falls back to the saved signature when the request has none.</p>
+<p><strong>Error cases.</strong> &quot;Signature not found&quot; (404) on delete.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/doctor-signature.service.ts</code> · <code>DoctorSignatureService.save</code> · <code>web-app/src/features/prescriptions/hooks/useDoctorSignature.ts</code></p>
+<h3 id="ch32-prescriptions-32-3-12-medicine-directory">32.3.12 Medicine directory</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The organization&#39;s drug catalogue. Doctors search it while writing; picking a medicine fills its usual dose, frequency, duration, meal relation and Urdu name. A new clinic can load a starter list with one button.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open &quot;Prescriptions&quot; → &quot;Library&quot; → &quot;Medicines&quot;.</li>
+<li>With an empty directory, press &quot;Add common medicines&quot; to load the starter list, or &quot;Add medicine&quot;.</li>
+<li>Fill the &quot;Add medicine&quot; sheet: name, generic name, Urdu name, type, strength, and the defaults.</li>
+<li>Use the edit icon to change a medicine, or &quot;Deactivate&quot; (with confirmation) to hide it from search.</li>
+<li>Doctors search by typing at least two letters in a medicine box in the builder or the workspace.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Medicines are never deleted, only deactivated, so old prescriptions keep their link. Each prescription stores its own copy of the medicine name and details, so renaming a directory entry does not change prescriptions already written. The starter list adds ten common medicines (for example paracetamol, ibuprofen and amoxicillin brands) only when the directory is completely empty.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /medicine-directory</code> lists active medicines by name.</li>
+<li><code>GET /medicine-directory/search?query=&amp;type=&amp;limit=</code> does a case-insensitive match on name, generic name or Urdu name among active rows. Limit defaults to 10, maximum 50.</li>
+<li><code>POST /medicine-directory</code> creates; <code>PATCH /medicine-directory/:id</code> updates; <code>DELETE /medicine-directory/:id</code> sets <code>is_active = false</code>.</li>
+<li><code>POST /medicine-directory/seed-common</code> → <code>seedCommonMedicines</code> returns <code>{ seeded, skipped }</code>. It is skipped when any row (active or not) exists for the organization.</li>
+<li>The Medicines page filters the full list in the browser with a 300 ms debounced search and a type filter.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name is required (at most 200 characters).</li>
+<li>Type must be one of the 15 medicine types (Tablet, Capsule, Syrup, Injection, Cream, Drops, Inhaler, Sachet, Suppository, Ointment, Gel, Patch, Spray, Powder, Other).</li>
+<li>Default meal relation from the meal-relation list.</li>
+<li>Names are not unique; duplicates are possible.</li>
+</ul>
+<p><strong>Who can do it.</strong> Reading and search: any member (<code>@AnyMember</code>). Create, edit, deactivate and seed: <code>prescriptions.library.manage</code> (Admin template). Feature <code>patients.prescriptions</code>.</p>
+<p><strong>Data read and written.</strong> <code>medicine_directory</code>.</p>
+<p><strong>Effects on other modules.</strong> Prescriptions and presets keep a nullable link to the directory row (<code>medicine_directory_id</code>).</p>
+<p><strong>Error cases.</strong> &quot;Medicine not found&quot; (404). The seed answers &quot;Directory already populated&quot; when skipped.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/medicine-directory.service.ts</code> · <code>MedicineDirectoryService.search</code>, <code>seedCommonMedicines</code> · <code>web-app/src/features/prescriptions/pages/MedicinesPage.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-13-prescription-presets">32.3.13 Prescription presets</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> A <strong>prescription preset</strong> is a named, reusable set of medicines with instructions, filed under a category such as &quot;Post extraction&quot; or &quot;Pregnancy safe&quot;. In the backend it is called a &quot;treatment plan template&quot; (<code>/treatment-plan-templates</code>, table <code>treatment_plan_templates</code>). Despite the name, it has nothing to do with clinical treatment plans or the <strong>plan templates</strong> at <code>/plan-templates</code>, which describe planned dental work (Chapter 33).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open &quot;Prescriptions&quot; → &quot;Library&quot; (the Presets tab opens first).</li>
+<li>Press &quot;New preset&quot;. In the sheet, enter Name, Category and Description, add medicines with Dose, How often, With food and For how long, and fill the instructions (English, Urdu, Further plan).</li>
+<li>Save. Edit or deactivate from the row icons.</li>
+<li>Use presets from the builder (&quot;Presets&quot;) or the workspace (&quot;Use a preset&quot;), as described in 32.3.3.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A preset belongs to the whole organization. Deactivating hides it from the lists but keeps it.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>POST /treatment-plan-templates</code> creates the preset with its medicines in one save (cascade). <code>specialty_tags</code> defaults to <code>[&quot;general&quot;]</code>.</li>
+<li><code>PATCH /treatment-plan-templates/:id</code> replaces all medicines in a transaction when a medicine list is sent; otherwise it updates fields only.</li>
+<li><code>DELETE /treatment-plan-templates/:id</code> sets <code>is_active = false</code>.</li>
+<li><code>GET /treatment-plan-templates?category=</code> lists active presets; <code>GET /treatment-plan-templates/:id</code> reads one.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name required (at most 200 characters).</li>
+<li>At least one medicine (&quot;Template must include at least one medicine&quot;).</li>
+<li>Category must be one of the <code>PresetCategory</code> values (about forty, from GENERAL to OTHER).</li>
+<li>Medicine line rules as for prescriptions.</li>
+</ul>
+<p><strong>Who can do it.</strong> Reading: any member. Writing: <code>prescriptions.library.manage</code> (Admin template). Feature <code>patients.prescriptions</code>.</p>
+<p><strong>Data read and written.</strong> <code>treatment_plan_templates</code>, <code>treatment_plan_template_medicines</code>.</p>
+<p><strong>Effects on other modules.</strong> Prescriptions created from a preset store its id in <code>treatment_plan_template_id</code>.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan template not found&quot; (404); validation message for an empty medicine list (400).</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/services/treatment-plan-template.service.ts</code> · <code>TreatmentPlanTemplateService</code>, <code>PresetCategory</code> · <code>web-app/src/features/prescriptions/pages/PresetsPage.tsx</code>, <code>components/library/PresetSheet.tsx</code></p>
+<h3 id="ch32-prescriptions-32-3-14-prescriptions-of-one-patient-one-visit-or-one-appointment">32.3.14 Prescriptions of one patient, one visit or one appointment</h3>
+<p><strong>Status:</strong> [Partial] — the patient and visit lookups are used by screens; the appointment lookup is backend only.</p>
+<p><strong>What it does.</strong> Returns the prescriptions written for a patient, for a consultation (encounter) or for a booked appointment.</p>
+<p><strong>How the user does it.</strong></p>
+<ul>
+<li>The patient record&#39;s prescriptions tab and the consultation&#39;s &quot;Earlier prescriptions&quot; use the patient lookup.</li>
+<li>The consultation&#39;s Prescription panel uses the visit lookup to find today&#39;s prescription.</li>
+<li>No screen uses the appointment lookup.</li>
+</ul>
+<p><strong>Behind the scenes — in simple terms.</strong> All three follow the patient visibility rules.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /prescriptions/patient/:patientId?page=&amp;limit=</code> is guarded by <code>@PatientInScope</code>. It is paged (default 20), with doctor and medicines, newest first.</li>
+<li><code>GET /prescriptions/encounter/:encounterId</code> and <code>GET /prescriptions/appointment/:appointmentId</code> drop rows whose patient is outside the caller&#39;s scope (<code>visibleOnly</code>).</li>
+<li><code>GET /prescriptions/:id</code> reads one prescription with patient, appointment, doctor and both template links, after <code>ensureVisible</code>.</li>
+</ul>
+<p><strong>Rules and validations.</strong> Organization filter on all; location filter is not applied to these lookups (unlike the main list).</p>
+<p><strong>Who can do it.</strong> <code>patients.clinical.view</code> plus the feature.</p>
+<p><strong>Data read and written.</strong> Reads <code>prescriptions</code>, <code>prescription_medicines</code>.</p>
+<p><strong>Effects on other modules.</strong> Feeds the consultation workspace (Chapter 31) and the patient record (Chapter 28).</p>
+<p><strong>Error cases.</strong> &quot;Prescription not found&quot; (404) for a single read out of scope.</p>
+<p><strong>Technical references:</strong> <code>backend/src/prescriptions/controllers/prescription.controller.ts</code> · <code>PrescriptionService.listByPatient</code>, <code>listByEncounter</code>, <code>listByAppointment</code> · <code>web-app/src/features/prescriptions/hooks/usePrescriptions.ts</code></p>
+<h3 id="ch32-prescriptions-32-3-15-legacy-quick-prescriptions-patient-prescriptions">32.3.15 Legacy quick prescriptions (<code>patient_prescriptions</code>)</h3>
+<p><strong>Status:</strong> [Implemented] — kept for older data; still readable and writable from the patient record.</p>
+<p><strong>What it does.</strong> Before the current module, prescriptions were stored as a simple record on the patient, with the medicines in one JSON list. That older table, <code>patient_prescriptions</code>, still exists next to the new <code>prescriptions</code> table. The patient&#39;s prescriptions tab shows it in a collapsed section &quot;Legacy quick-Rx history&quot; (&quot;Older prescriptions saved in the simple form. Kept for reference.&quot;), with a button to add one in the old simple form.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open a patient, then the prescriptions tab.</li>
+<li>Expand &quot;Legacy quick-Rx history&quot; to see old entries (with &quot;Printed (n)&quot; counters).</li>
+<li>Users with <code>prescriptions.create</code> can add one through the old dialog.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The two tables are separate: legacy entries do not appear in the Prescriptions list, the consultation or the PDF printing of the new module, and the new prescriptions do not appear in the legacy list. The old entries print through the browser, not through the PDF service.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /patients/:id/prescriptions</code> and <code>POST /patients/:id/prescriptions</code> are in the patients controller (Chapter 28), with patient scope.</li>
+<li>Legacy numbers are <code>RX-{5 digits}</code> counted per organization, unique per organization.</li>
+<li>Legacy writes are audited through the patients audit trail.</li>
+<li>Columns include <code>prescribed_by</code>, <code>appointment_id</code>, <code>prescription_date</code>, <code>medications</code> (JSON), <code>special_instructions</code>, <code>follow_up_date</code>, <code>is_printed</code>, <code>printed_at</code> and <code>print_count</code>.</li>
+</ul>
+<p><strong>Rules and validations.</strong> Read: <code>patients.clinical.view</code> and feature <code>patients.prescriptions</code>. Create: <code>prescriptions.create</code>.</p>
+<p><strong>Who can do it.</strong> As in the rules; Doctor writes, Doctor, Assistant and Admin read.</p>
+<p><strong>Data read and written.</strong> <code>patient_prescriptions</code>.</p>
+<p><strong>Effects on other modules.</strong> None on the new module.</p>
+<p><strong>Error cases.</strong> As for patient sub-records (Chapter 28).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.controller.ts</code> · <code>PatientPrescription</code> · <code>web-app/src/features/patients/components/tabs/ClinicalTab.tsx</code></p>
+<h2 id="ch32-prescriptions-32-4-entities-and-data-model">32.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch32-prescription-erd.png" alt="Figure 32.10 — Prescription data model"></p>
+<p><em>Figure 32.10 — Entity-relationship diagram of prescriptions and the prescription library.</em></p>
+<p>Figure 32.10 shows <code>prescriptions</code> with its key columns:</p>
+<ul>
+<li><code>id</code> (primary key) and <code>prescription_number</code> (marked &quot;unique platform-wide&quot;);</li>
+<li><code>patient_id</code>, plus the nullable foreign keys <code>encounter_id</code> and <code>doctor_id</code>;</li>
+<li><code>status</code> (DRAFT, FINALIZED, AMENDED) and <code>version</code>.</li>
+</ul>
+<p>Around it:</p>
+<ul>
+<li><strong>Top of the figure.</strong> <code>patient_encounters</code> (&quot;written in&quot;), <code>employees</code> (&quot;prescribes&quot;), <code>patients</code> (&quot;receives&quot;), <code>prescription_templates</code> (&quot;prints with&quot;: <code>location_id</code> where null means organization-wide, <code>is_default</code>, <code>page_size</code>) and <code>treatment_plan_templates</code> (&quot;seeded from&quot;: <code>name</code> as preset name and <code>category</code>).</li>
+<li><strong>Bottom of the figure.</strong> <code>prescription_medicines</code> (&quot;lists&quot;: <code>prescription_id</code>, nullable <code>medicine_directory_id</code>, <code>medicine_name</code> marked &quot;copied&quot;, <code>frequency</code>) and <code>prescription_history</code> (&quot;logs&quot;: <code>prescription_id</code>, <code>change_type</code>, <code>previous_data</code>).</li>
+<li><strong>Library tables.</strong> <code>medicine_directory</code> is a &quot;source of&quot; both <code>prescription_medicines</code> and <code>treatment_plan_template_medicines</code>, and <code>treatment_plan_templates</code> &quot;contains&quot; <code>treatment_plan_template_medicines</code>.</li>
+<li><strong>Legacy.</strong> <code>patients</code> also links to the separate <code>patient_prescriptions</code> table (&quot;legacy&quot;, with <code>prescription_number</code> unique per organization and <code>medications</code> as JSON).</li>
+</ul>
+<p>The relationships in words:</p>
+<ul>
+<li><strong>Patient → prescriptions.</strong> Each prescription belongs to exactly one patient, organization and location; deleting any of them deletes the prescription (ON DELETE CASCADE).</li>
+<li><strong>Encounter, appointment, doctor → prescription.</strong> Optional links. Deleting the encounter, appointment or employee keeps the prescription and clears the link (ON DELETE SET NULL). The appointment link is not drawn in the figure.</li>
+<li><strong>Print layout and preset → prescription.</strong> Optional links to <code>prescription_templates</code> and <code>treatment_plan_templates</code>; deleting either clears the link (SET NULL). In practice layouts and presets are only deactivated, never deleted.</li>
+<li><strong>Prescription → medicines.</strong> A prescription has many medicine lines; deleting the prescription deletes its lines (CASCADE). Lines copy the medicine&#39;s name and details, and keep an optional link to <code>medicine_directory</code> that is cleared if the directory row is deleted (SET NULL).</li>
+<li><strong>Prescription → history.</strong> Many history rows per prescription; deleted with it (CASCADE). <code>changed_by</code> is a plain id with no foreign key.</li>
+<li><strong>Preset → preset medicines.</strong> <code>treatment_plan_template_medicines.template_id</code> is required; deleting the preset deletes its medicines (CASCADE); the optional directory link is SET NULL.</li>
+<li><strong>Doctor signatures</strong> (not drawn). <code>doctor_signatures</code> has one row per owner (unique <code>employee_id</code>, which currently holds a user id, without a foreign key) and a foreign key to the organization (CASCADE).</li>
+<li><strong>Legacy table.</strong> <code>patient_prescriptions</code> belongs to a patient, location and organization (CASCADE). Its <code>prescribed_by</code> and <code>appointment_id</code> are plain ids without foreign keys. It has no link to the new tables.</li>
+</ul>
+<p>Indexes: <code>prescriptions</code> on (organization, location), patient, appointment, encounter, doctor and a unique index on <code>prescription_number</code>; <code>medicine_directory</code> on (organization, is_active) and (organization, name); <code>prescription_templates</code> on (organization, is_active) and (location, is_default); <code>treatment_plan_templates</code> on (organization, is_active) and (organization, category); <code>prescription_history</code> on (prescription, created_at). Chapter 19 covers these tables in the full data model.</p>
+<h2 id="ch32-prescriptions-32-5-status-lifecycles">32.5 Status lifecycles</h2>
+<p>A prescription has one status column with three values: <code>DRAFT</code>, <code>FINALIZED</code> and <code>AMENDED</code>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch32-prescription-lifecycle.png" alt="Figure 32.11 — Prescription lifecycle"></p>
+<p><em>Figure 32.11 — Prescription status lifecycle.</em></p>
+<p>Figure 32.11 is a left-to-right state diagram:</p>
+<ul>
+<li>From the start point, &quot;POST /prescriptions&quot; leads to DRAFT.</li>
+<li>DRAFT has a loop &quot;PATCH /prescriptions/id or medicine line edits&quot;.</li>
+<li>&quot;POST /prescriptions/id/finalize&quot; leads from DRAFT to FINALIZED.</li>
+<li>&quot;PATCH /prescriptions/id, version plus 1&quot; leads from FINALIZED to AMENDED.</li>
+<li>AMENDED has a loop &quot;PATCH or medicine line edits&quot;.</li>
+<li>&quot;POST /prescriptions/id/finalize&quot; leads from AMENDED back to FINALIZED.</li>
+</ul>
+<p>There is no end state: a prescription can always be amended again.</p>
+<p>Walking through each state:</p>
+<ul>
+<li><strong>DRAFT.</strong> Created by the builder or the consultation panel, version 1. It can be edited freely, printed (the PDF works for drafts) and finalized once it has at least one medicine.</li>
+<li><strong>FINALIZED.</strong> Signed: <code>signed_at</code> and the signature are set and a PDF may be stored. Single-line medicine edits are refused, but a full <code>PATCH</code> is accepted and turns it into AMENDED.</li>
+<li><strong>AMENDED.</strong> A signed prescription that has been edited and not yet signed again. Its version is one higher, the stored PDF address is cleared, and the state before the edit is saved in the history. Signing again returns it to FINALIZED with the same version.</li>
+</ul>
+<p>The enum of history change types also contains PRINTED and SHARED, but nothing writes them; printing does not change the status or the history. There is no cancelled or deleted status, and no endpoint deletes a prescription.</p>
+<h2 id="ch32-prescriptions-32-6-connections-to-other-modules">32.6 Connections to other modules</h2>
+<ul>
+<li><strong>Consultation (Chapter 31).</strong> The workspace&#39;s Prescription panel writes the prescription linked to the encounter, copies complaint, diagnosis, advice, follow-up and same-day vitals onto it, and signs and prints it. The completion dialog reports whether it is signed.</li>
+<li><strong>Patients (Chapter 28).</strong> The patient&#39;s prescriptions tab lists new prescriptions, links to the builder with the patient pre-selected, and shows the legacy quick prescriptions. Patient visibility (<code>patients.view</code> scope) limits every read and write.</li>
+<li><strong>Treatment plans (Chapter 33).</strong> Unrelated despite the backend name &quot;treatment plan templates&quot; for presets; real plan templates live at <code>/plan-templates</code>.</li>
+<li><strong>Employees (Chapter 37).</strong> The prescribing doctor is an employee; the builder&#39;s doctor list comes from the employees module.</li>
+<li><strong>Features and access (Chapters 10 and 57).</strong> Feature <code>patients.prescriptions</code>; permissions <code>prescriptions.create</code>, <code>prescriptions.library.manage</code>, <code>patients.clinical.view</code>.</li>
+<li><strong>File storage.</strong> Finalized PDFs are uploaded through the Platform&#39;s shared storage provider (the same one used for patient files) when it is configured.</li>
+</ul>
+<h2 id="ch32-prescriptions-32-7-limitations-and-known-gaps">32.7 Limitations and known gaps</h2>
+<ul>
+<li><strong>Numbering can collide.</strong><ul>
+<li>Numbers are counted per organization (<code>RX-{year}-{5 digits}</code>), but the database requires the number to be unique across the whole Platform. Two organizations will produce the same first number, and the second insert would be refused by the database (found by reading the code, not tested).</li>
+<li>The counter reads the latest prescription, so two simultaneous creates in one organization can also clash.</li>
+<li>The counter does not restart with a new year.</li>
+</ul>
+</li>
+<li><strong>History is incomplete.</strong> History is written but cannot be viewed: the &quot;History&quot; button does nothing visible, and the read endpoint requests a relation the entity does not have.</li>
+<li><strong>Backend-only endpoints.</strong> Duplicate, single-line medicine edits, signature delete, signature read by doctor and the by-appointment lookup have no screen.</li>
+<li><strong>PDF limits.</strong><ul>
+<li>The PDF is a single page; no page-break logic exists, so a very long prescription can run off the page.</li>
+<li>Orientation, logo and registration number from the layout are not printed.</li>
+<li>Urdu text in the PDF is drawn as shapes and cannot be selected or searched.</li>
+<li>The PDF date is the creation date formatted by the server, and drafts can be printed.</li>
+</ul>
+</li>
+<li><strong>Clock.</strong> &quot;This month&quot; on the list uses the server&#39;s clock rather than the location&#39;s timezone.</li>
+<li><strong>Layouts from the screen.</strong> The web screen creates organization-wide layouts only; per-location layouts exist in the API (<code>locationId</code>) but have no field in the sheet.</li>
+<li><strong>Signatures.</strong> Signatures are stored per login account, not per employee, so one person working in two organizations has a single signature row.</li>
+<li><strong>Two prescription tables.</strong> The legacy <code>patient_prescriptions</code> table still accepts new entries, which keeps two separate prescription histories per patient.</li>
+<li><strong>Ordering.</strong> Medicine order is kept, but there is no way to reorder lines except removing and re-adding them.</li>
+</ul>
+<h2 id="ch32-prescriptions-32-8-owner-39-s-faq">32.8 Owner&#39;s FAQ</h2>
+<p><strong>Can an Admin write prescriptions?</strong> Not with the default templates. The Admin role is given every permission except a few doctor-only ones, and <code>prescriptions.create</code> is one of them. Admins can read, print and manage the library. An owner, or a custom role with <code>prescriptions.create</code>, can write.</p>
+<p><strong>Can a receptionist print a prescription?</strong> Not by default. Printing needs <code>patients.clinical.view</code>, which the Receptionist template does not hold. The Assistant template does, so an assistant can open the list by URL and print, even without a sidebar entry.</p>
+<p><strong>What happens if the clinic switches off the Prescriptions feature?</strong> The sidebar entry disappears (the permissions tied to the feature are dropped), every prescription endpoint answers with a feature error, and the legacy list read is blocked too. Existing data stays in the database.</p>
+<p><strong>Is a signed prescription locked?</strong> It cannot be edited line by line, but it can be amended. Amending raises the version, marks it AMENDED, and saves the previous version in <code>prescription_history</code>. It must be signed again to become final.</p>
+<p><strong>If we rename a medicine in the directory, do old prescriptions change?</strong> No. Each prescription line stores its own copy of the medicine name and details.</p>
+<p><strong>Where is the signature stored?</strong> In <code>doctor_signatures</code>, one row per login account. The image is either a link to file storage or the drawing embedded as a data URL. A copy of the image reference is also stored on each prescription at signing time.</p>
+<p><strong>Where are PDFs kept?</strong> The PDF is built on demand every time someone prints. At signing, the Platform also tries to upload a copy to the clinic&#39;s file storage and keeps its address in <code>pdf_url</code>; the web app does not use that stored copy.</p>
+<p><strong>How does Urdu print correctly?</strong> The server shapes Urdu with the Noto Nastaliq Urdu font and draws each letter as a vector shape in the right order, because the PDF library cannot join Urdu letters by itself. Numbers and English words inside Urdu text keep left-to-right order.</p>
+<p><strong>What is the difference between a preset and a plan template?</strong> A preset (backend name &quot;treatment plan template&quot;) is a ready-made list of medicines for a prescription. A plan template (<code>/plan-templates</code>) describes planned dental work and its costs. Chapter 33 covers plan templates.</p>
+<p><strong>Are old prescriptions from the first version lost?</strong> No. They stay in <code>patient_prescriptions</code> and appear under &quot;Legacy quick-Rx history&quot; on the patient&#39;s prescriptions tab.</p>
+</section></body></html>

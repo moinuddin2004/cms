@@ -1,0 +1,67 @@
+erDiagram
+  organizations ||--o{ notification_audience_settings : "configures"
+  organizations ||--o{ notification_rules : "configures"
+  notification_events ||--o{ notification_rules : "switched by"
+  notification_events ||--o{ notification_templates : "worded by"
+  notification_templates |o--o{ notification_rules : "custom wording"
+  notification_events ||--o{ notification_outbox : "raised as"
+  organizations ||--o{ notification_outbox : "owns"
+  notification_outbox ||--o| user_notifications : "copied to inbox"
+  users ||--o{ user_notifications : "receives"
+  patients ||--o| patient_comm_prefs : "has"
+  notification_events {
+    text code PK
+    text_array audiences
+    bool is_mandatory_internal
+    text_array variables
+  }
+  notification_rules {
+    uuid id PK
+    uuid organization_id FK
+    text event_code FK
+    uuid template_id FK
+    text channel
+    bool is_enabled
+  }
+  notification_templates {
+    uuid id PK
+    uuid organization_id FK "null means platform"
+    text event_code FK
+    text channel
+    text language
+  }
+  notification_audience_settings {
+    uuid id PK
+    uuid organization_id FK
+    text audience
+    bool is_enabled
+    time quiet_start
+  }
+  notification_outbox {
+    uuid id PK
+    uuid organization_id FK
+    text event_code FK
+    uuid recipient_id
+    text channel
+    text status
+  }
+  user_notifications {
+    uuid id PK
+    uuid user_id FK
+    uuid outbox_id FK
+    timestamptz read_at
+  }
+  patient_comm_prefs {
+    uuid patient_id PK
+    bool whatsapp_opt_out
+    text preferred_language
+  }
+  organizations {
+    uuid id PK
+  }
+  users {
+    uuid uuid PK
+  }
+  patients {
+    uuid id PK
+  }

@@ -1,0 +1,116 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch13-identity-and-sessions"><h1 id="ch13-identity-and-sessions-chapter-13-identity-and-sessions">Chapter 13 — Identity and sessions</h1>
+<p>This chapter describes the four tables that hold the people who can sign in to the Platform and the record of what happened when they did. It is for the product owner who needs to know where a login account lives, how a session is kept, and how sign-in events are logged. These tables sit underneath every other domain: a staff login, an owner, a super admin and a lab member are all rows in <code>users</code>.</p>
+<h2 id="ch13-identity-and-sessions-13-1-context">13.1 Context</h2>
+<p>The identity domain is global. Its tables carry no <code>organization_id</code> or <code>location_id</code>, because one person has one account and may work for several organizations. What a user may do inside a clinic is not stored here; it comes from ownership (Chapter 14) and from the user&#39;s assignments and roles (Chapters 15 and 16). The tables are owned by three small modules: <code>user</code> owns <code>users</code>, <code>auth</code> owns <code>oauth_providers</code> and <code>security_logs</code>, and <code>session</code> owns <code>user_sessions</code>. Every column of every table is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch13-identity-and-sessions-13-2-the-tables">13.2 The tables</h2>
+<h3 id="ch13-identity-and-sessions-13-2-1-users-user-account">13.2.1 <code>users</code> — user account</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per login account on the whole Platform. The key columns are:</p>
+<ul>
+<li><code>uuid</code> — the primary key. This table, and the other three in this chapter, name the key column <code>uuid</code> instead of <code>id</code>.</li>
+<li><code>email</code> — unique across the whole Platform. Two accounts can never share an email address.</li>
+<li><code>password</code> — the stored password hash; the column is nullable.</li>
+<li><code>global_role</code> — null for normal users; the value <code>super_admin</code> marks a super admin. No other value exists.</li>
+<li><code>status</code> — <code>active</code>, <code>suspended</code> or <code>deleted</code>, with <code>suspended_at</code>, <code>suspension_reason</code> and <code>deleted_at</code> recording when and why. The account is never removed by this flag; it is a status.</li>
+<li><code>email_verification_token</code>, <code>email_verification_expires</code>, <code>email_verified_at</code> — used only for self-signup accounts, so accounts created by an administrator are never asked to verify.</li>
+<li><code>last_accessed_organization_id</code>, <code>last_accessed_location_id</code> — the organization and location the user last worked in, so the next login can return there.</li>
+<li><code>provider</code> — <code>local</code>, <code>google</code> or <code>github</code>; defaults to <code>local</code>.</li>
+<li><code>refresh_token</code> — a deprecated single refresh token kept for backward compatibility. Sessions now keep their own refresh tokens in <code>user_sessions</code>.</li>
+</ul>
+<p>There is an index on <code>status</code> for listing accounts by state.</p>
+<h3 id="ch13-identity-and-sessions-13-2-2-oauth-providers-linked-external-sign-in">13.2.2 <code>oauth_providers</code> — linked external sign-in</h3>
+<p><strong>Status:</strong> [Not implemented] (table exists, nothing reads or writes it)</p>
+<p>Designed to record external sign-in identities (Google, GitHub) linked to an account: <code>user_id</code>, <code>provider</code>, <code>provider_id</code> (the provider&#39;s own id for the person), and the email, display name, avatar and raw profile the provider returned. A user can have at most one row per provider (unique <code>user_id</code> + <code>provider</code>), and lookups by <code>provider</code> + <code>provider_id</code> are indexed.</p>
+<p>The auth module registers the table, so it is created in the database, but no service injects or queries it. External sign-in itself is disabled: the Google and GitHub strategies exist as files but are not registered, and the module comment says Google/GitHub sign-in is disabled. Expect this table to be empty.</p>
+<h3 id="ch13-identity-and-sessions-13-2-3-security-logs-security-event-log">13.2.3 <code>security_logs</code> — security event log</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per security-relevant event: a successful or failed login, logout, logout of all devices, password change or reset, email verification, session created, revoked or expired, token refreshed, account suspended, deleted or restored, a login from a new device, and suspicious activity. Key columns:</p>
+<ul>
+<li><code>user_id</code> — the account concerned; nullable, because a failed login for an unknown email has no account.</li>
+<li><code>event_type</code> — one of twenty event codes such as <code>LOGIN_SUCCESS</code>, <code>LOGIN_FAILED</code>, <code>SESSION_REVOKED</code>.</li>
+<li><code>success</code> and <code>error_message</code> — whether the event succeeded and why not.</li>
+<li><code>session_id</code> — the session involved, when the event concerns a session.</li>
+<li><code>metadata</code> — free-form JSON with event-specific detail.</li>
+<li>The table also records the network address and browser string of the request. Those values are personal data and are not reproduced in this handbook.</li>
+</ul>
+<p>Indexes on <code>created_at</code> and on <code>user_id</code> + <code>event_type</code> support &quot;recent events&quot; and &quot;events of this kind for this user&quot; queries. The table has only <code>created_at</code>; rows are never updated by design, but the database does not enforce that.</p>
+<h3 id="ch13-identity-and-sessions-13-2-4-user-sessions-login-session">13.2.4 <code>user_sessions</code> — login session</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per signed-in device or browser. Each session has its own refresh token, so a user can be signed in on several devices and sign one out without affecting the others. Key columns:</p>
+<ul>
+<li><code>user_id</code> — the account.</li>
+<li><code>refresh_token_hash</code> — a hash of this session&#39;s refresh token; the token itself is never stored.</li>
+<li><code>expires_at</code> — after this moment the session is expired.</li>
+<li><code>is_revoked</code> — a soft revocation flag: when true the session is no longer valid, and the row stays as history.</li>
+<li><code>device</code>, <code>browser</code>, <code>os</code> and a free-text <code>location</code> describe the device; an <code>is_current</code> flag is also stored.</li>
+<li><code>last_active_at</code> — updated on every save of the row.</li>
+</ul>
+<p>An index on <code>user_id</code> + <code>is_revoked</code> makes &quot;this user&#39;s live sessions&quot; fast.</p>
+<h2 id="ch13-identity-and-sessions-13-3-entity-relationship-diagram">13.3 Entity-relationship diagram</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch13-identity-erd.png" alt="Figure 13.1 — Identity and session tables"></p>
+<p><em>Figure 13.1 — Identity and session tables.</em></p>
+<p>The diagram has <code>users</code> in the centre, with the key columns <code>uuid</code> (primary key), <code>email</code> (unique), <code>global_role</code>, <code>status</code>, <code>last_accessed_organization_id</code> and <code>last_accessed_location_id</code>. Under it are three child tables. On the left, <code>oauth_providers</code> (<code>uuid</code>, <code>user_id</code>, <code>provider</code>, <code>provider_id</code>) hangs from <code>users</code> with a solid line labelled &quot;links&quot;: one user, zero or more provider rows, and every provider row must have a user. In the middle, <code>security_logs</code> (<code>uuid</code>, <code>user_id</code>, <code>session_id</code>, <code>event_type</code>, <code>success</code>) hangs from <code>users</code> with a solid line labelled &quot;logs&quot; whose user end is optional. On the right, <code>user_sessions</code> (<code>uuid</code>, <code>user_id</code>, <code>refresh_token_hash</code>, <code>expires_at</code>, <code>is_revoked</code>) hangs from <code>users</code> with a solid line labelled &quot;opens&quot;. A dashed line labelled &quot;session_id, no FK&quot; runs from <code>user_sessions</code> to <code>security_logs</code>. At the top, <code>organizations</code> and <code>locations</code> are drawn as context boxes with only their <code>id</code>; each has a dashed line to <code>users</code> labelled &quot;last accessed, no FK&quot;. Solid lines are foreign keys; dashed lines are logical references the database does not enforce.</p>
+<h2 id="ch13-identity-and-sessions-13-4-relationships-explained">13.4 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong><code>oauth_providers.user_id</code> → <code>users</code>.</strong> Each provider row belongs to exactly one user; a user has zero or more (at most one per provider). Deleting the user deletes their provider rows (ON DELETE CASCADE).</li>
+<li><strong><code>security_logs.user_id</code> → <code>users</code>.</strong> Each log row belongs to zero or one user; a user has zero or more log rows. Deleting the user keeps the log rows and sets <code>user_id</code> to null (ON DELETE SET NULL), so the security history survives the account.</li>
+<li><strong><code>user_sessions.user_id</code> → <code>users</code>.</strong> Each session belongs to exactly one user; a user has zero or more sessions. Deleting the user deletes their sessions (ON DELETE CASCADE).</li>
+</ul>
+<p>Logical relationships (no foreign key; the database accepts any value):</p>
+<ul>
+<li><strong><code>security_logs.session_id</code> → <code>user_sessions</code>.</strong> The session an event concerns. Zero or one session per log row. If the session row disappears, the log keeps a dangling id.</li>
+<li><strong><code>users.last_accessed_organization_id</code> → <code>organizations</code></strong> and <strong><code>users.last_accessed_location_id</code> → <code>locations</code>.</strong> A convenience pointer for the next login. If the organization or location is removed, the pointer is not cleared by the database.</li>
+</ul>
+<p>Links into <code>users</code> from other domains (described in their own chapters):</p>
+<ul>
+<li><code>organization_ownership.user_id</code> (CASCADE) makes a user an owner of an organization (Chapter 14).</li>
+<li><code>employee_org_location_assignments.user_id</code> (SET NULL) gives an employee&#39;s assignment a staff login (Chapter 16).</li>
+<li><code>lab_members.user_id</code> (RESTRICT) makes a user a member of a lab (Chapter 25). Because of RESTRICT, a user who is a lab member cannot be hard-deleted.</li>
+<li><code>user_notifications.user_id</code> (CASCADE) is the user&#39;s in-app inbox (Chapter 24).</li>
+<li>Many tables keep &quot;actor&quot; columns such as <code>created_by</code>, <code>updated_by</code>, <code>approved_by</code> or <code>recorded_by</code>. They hold a <code>users.uuid</code> but have no foreign key (see Chapter 12).</li>
+</ul>
+<h2 id="ch13-identity-and-sessions-13-5-tenant-scope">13.5 Tenant scope</h2>
+<p>All four tables are global: no <code>organization_id</code>, no <code>location_id</code>. A user&#39;s link to clinics is indirect, through <code>organization_ownership</code> and through assignments. This is why <code>users.email</code> is unique across the whole Platform rather than per organization. Only the super admin has a platform-wide role, stored in <code>users.global_role</code>.</p>
+<h2 id="ch13-identity-and-sessions-13-6-ownership-and-ambiguities">13.6 Ownership and ambiguities</h2>
+<ul>
+<li><strong><code>oauth_providers</code> is registered but unused.</strong> The table is created, but no code path reads or writes it, and external sign-in is disabled. It is a leftover of a planned feature.</li>
+<li><strong>Two places for a refresh token.</strong> <code>users.refresh_token</code> is marked deprecated; the live mechanism is one hashed token per row in <code>user_sessions</code>.</li>
+<li><strong><code>security_logs.session_id</code> has no foreign key</strong>, so a log row can point to a session that no longer exists. This is acceptable for a log but means joins must be outer joins.</li>
+<li><strong>Append-only by convention.</strong> Nothing in the database prevents an update or delete of <code>security_logs</code> rows.</li>
+</ul>
+</section></body></html>

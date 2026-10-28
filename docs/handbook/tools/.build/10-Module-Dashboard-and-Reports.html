@@ -1,0 +1,589 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Dashboard and Reports</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch36-dashboard-and-reports">Chapter 36 — Dashboard and Reports</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch36-dashboard-and-reports"><h1 id="ch36-dashboard-and-reports-chapter-36-dashboard-and-reports">Chapter 36 — Dashboard and Reports</h1>
+<p>This chapter describes how the Platform shows a clinic its numbers: the home dashboard, the finance overview (profit and loss), the clinic overview (patients, appointments and waiting), and a library of 37 reports that can be read on screen or downloaded as Excel or PDF. It is written for the product owner, who needs to know where every figure comes from, who may see it and where the numbers can disagree. The module only reads data; it owns no tables and changes nothing except one audit row per download.</p>
+<h2 id="ch36-dashboard-and-reports-36-1-what-this-module-is-for">36.1 What this module is for</h2>
+<p>The module answers two questions for the people who run a clinic: &quot;How is the clinic doing?&quot; and &quot;Where is the money?&quot;. It has five screens:</p>
+<ul>
+<li><strong>Dashboard</strong> (<code>/dashboard</code>): the home page after sign-in. Sidebar item <strong>Dashboard</strong> (key <code>nav.dashboard</code>). It has no page permission; each tile appears only when the user holds the permission behind it.</li>
+<li><strong>Clinic overview</strong> (<code>/clinic-overview</code>): patients, appointments, waiting and doctors for a period. Sidebar item <strong>Clinic overview</strong> (key <code>nav.clinic_overview</code>, section Clinic, needs <code>reports.clinical.view</code>).</li>
+<li><strong>Finance overview</strong> (<code>/finance</code>): the owner&#39;s profit and loss dashboard. Sidebar item <strong>Finance overview</strong> (key <code>nav.finance</code>, section Finance, needs <code>finance.overview.view</code>).</li>
+<li><strong>All reports</strong> (<code>/reports</code>): the report library. Sidebar item <strong>All reports</strong> (key <code>nav.reports</code>, in the Finance → Reports group, needs <code>reports.financial.view</code> or <code>reports.clinical.view</code>).</li>
+<li><strong>Report viewer</strong> (<code>/reports/&lt;report key&gt;</code>): one report on screen, opened from the library or from a link on an overview card. No sidebar entry of its own.</li>
+</ul>
+<p>The old address <code>/financial-summary</code> has no screen any more: it redirects to <code>/dashboard</code>. The same Reports sidebar group also holds <strong>Doctor revenue</strong>, <strong>Doctor earnings</strong> and <strong>Billing activity</strong>; those screens belong to the Billing and Commissions chapters (Chapters 34 and 35).</p>
+<p>Who uses it:</p>
+<ul>
+<li>The <strong>owner</strong> and the <strong>Admin</strong> role: everything, for one location or for all locations together.</li>
+<li><strong>Accountant</strong>: financial reports, the finance overview and downloads, for the active location only.</li>
+<li><strong>Doctor</strong>: clinical reports with scope <code>own</code>, so only the eight reports that can be narrowed to one doctor, showing only their own rows.</li>
+<li><strong>Receptionist</strong> and <strong>Assistant</strong>: no report permission; they see only the dashboard tiles their other permissions allow.</li>
+</ul>
+<p>Three features gate the module, all off by default for a new organization: <code>reports.financial</code> (&quot;Financial Reports&quot;), <code>reports.clinical</code> (&quot;Clinical Reports&quot;) and <code>reports.exports</code> (&quot;Data Exports&quot;). The dashboard&#39;s money tiles also need the older feature <code>billing.financial_summary</code> (&quot;Financial Dashboard&quot;, off by default).</p>
+<h2 id="ch36-dashboard-and-reports-36-2-screens">36.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch36-dashboard.svg" alt="Figure 36.1 — Dashboard"></p>
+<p><em>Figure 36.1 — Dashboard (screenshot pending).</em></p>
+<p>The dashboard was redesigned on 2026-10-23; this describes the current code. The header shows today&#39;s date, a greeting such as &quot;Good morning, Dr. Example One&quot;, and the organization and location name. On the right are a month picker (the last 12 months), a <strong>Refresh</strong> icon button, <strong>Collect payment</strong> (for users with <code>billing.desk.use</code>) and <strong>New appointment</strong> (for users with <code>appointments.book</code>). Below come up to four KPI tiles: <strong>Active patients</strong> (needs <code>patients.view</code>), <strong>Visits today</strong> with a progress bar of &quot;done&quot; and &quot;in clinic&quot; (needs <code>appointments.view</code>), <strong>Revenue · Oct</strong> with a daily sparkline and the change against last month (needs <code>reports.financial.view</code> and the <code>billing.financial_summary</code> feature) and <strong>Outstanding</strong> with an overdue count (needs <code>billing.invoice.view</code>). Each tile links to its module. The next row holds the <strong>Revenue overview</strong> card (month figures Revenue, Expenses, Net profit, Avg. invoice and a six-month revenue-versus-expenses bar chart) and the <strong>Visits</strong> donut (Completed, Upcoming, In clinic, No-show, Cancelled, plus Completion rate and Avg. wait). The last row holds <strong>Today&#39;s schedule</strong> (up to 8 visits with a <strong>View all</strong> link) and <strong>Top procedures</strong> (the month&#39;s six best-earning procedures). A user who lacks a permission simply does not see that tile or card.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch36-finance-overview.svg" alt="Figure 36.2 — Finance overview"></p>
+<p><em>Figure 36.2 — Finance overview (screenshot pending).</em></p>
+<p>The finance overview has the title &quot;Finance overview&quot; and a subtitle naming the location scope, the period and the period it is compared with. The top-right buttons are <strong>Download P&amp;L</strong> (Excel or PDF, for users with <code>reports.export</code>) and <strong>All reports</strong>. The filter bar offers period presets (<strong>This month</strong>, <strong>Last month</strong>, <strong>This quarter</strong>, <strong>This year</strong>, <strong>Last year</strong>), a <strong>Custom range</strong> picker, a <strong>This location / All locations</strong> switch (only for org-wide access in an organization with more than one location) and a <strong>Collected / Billed</strong> switch with a short hint. Four KPI tiles show revenue, <strong>Total costs</strong>, <strong>Net profit</strong> (or Net loss) with margin, and <strong>Patients owe</strong>. Cards follow: <strong>Last 12 months</strong> (revenue, costs and profit chart, link &quot;Cash book&quot;), <strong>Needs attention</strong> (overdue patient balances, overdue lab bills, lab bills to pay, patient advances held, plus data warnings), <strong>Profit &amp; loss</strong> (the statement, link &quot;Full statement&quot;), <strong>Where the money goes</strong> (cost breakdown), <strong>Billing</strong> (Invoices, Average invoice, Patients billed, Discounts given), <strong>Revenue by doctor</strong>, <strong>Top services</strong> and <strong>Cash and receivables</strong> (money in by payment account and unpaid balances by age). Each card link opens the matching report.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch36-clinic-overview.svg" alt="Figure 36.3 — Clinic overview"></p>
+<p><em>Figure 36.3 — Clinic overview (screenshot pending).</em></p>
+<p>The clinic overview has the same filter bar without the revenue basis, and an <strong>All reports</strong> button. Its KPI tiles are <strong>Patients seen</strong> (with visits and returning patients), <strong>New patients</strong> (with the walk-in share), <strong>Show-up rate</strong> (with appointments booked) and <strong>Average wait</strong> (with average consultation length). Cards follow: <strong>Visits per day / week / month</strong> (first visits and returning patients), <strong>Needs attention</strong> (missed follow-ups in the last 30 days, no-shows to call back, follow-ups due this week, patients who stopped coming, late lab orders), <strong>Appointment outcomes</strong>, <strong>Busiest times</strong> (check-ins by weekday and hour), <strong>Doctors</strong> (visits and waiting per doctor), <strong>Patient mix</strong> (tabs Source, Gender, Age) and <strong>What we treat</strong> (tabs Diagnoses, Treatments). Card links open the related report. This screen has no download button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch36-reports-hub.svg" alt="Figure 36.4 — The report library"></p>
+<p><em>Figure 36.4 — The report library (screenshot pending).</em></p>
+<p>The library has the title &quot;Reports&quot; and the subtitle &quot;Every report in one place — view on screen or download as Excel / PDF.&quot;, with buttons to the clinic and finance overviews. The shared filter bar sets the period and location scope used by the quick downloads. Extra filters are a search box (&quot;Search reports&quot;), category chips (All plus each category that has at least one visible report) and <strong>Clear filters</strong> with a count. A card / table view switch is on the right. In card view the reports are grouped under category headings; each card shows an icon, the title, a one-line description, an <strong>Open</strong> button and two icon buttons, <strong>Download Excel</strong> and <strong>Download PDF</strong>. Table view lists Report, Category, What it shows and the same actions. Only reports the user may open are listed.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/profit-loss-report.jpg" alt="Figure 36.5 — Profit &amp;amp; loss report"></p>
+<p><em>Figure 36.5 — The Profit &amp; loss report in the report viewer.</em></p>
+<p>This screenshot was captured on 2026-10-23 in dark theme and shows the former working name &quot;MedTrackr&quot; in the top-left corner; the product is called the Platform. On the left is the owner&#39;s full sidebar: Dashboard, then the Clinic section (Clinic overview, Patients, Appointments, My Queue, My earnings, Prescriptions, Treatment Plans, Labs, Lab orders, Lab billing, Lab price list, Order templates, Lab payables), then the Finance section (Finance overview, Billing) and Settings. The page has a back arrow, the title &quot;Profit &amp; loss&quot; and the line &quot;Revenue, costs and net profit for the period. · A Main · 01 Oct – 23 Oct 2026&quot;. A <strong>Download</strong> button sits top right. The filter bar shows the presets with <strong>This month</strong> selected, <strong>Custom range</strong>, the switch <strong>This location / All locations</strong> and the switch <strong>Collected / Billed</strong> with the hint &quot;Revenue = money received (minus refunds)&quot;. A strip of five tiles shows Rows 12, Revenue PKR 0, Total costs PKR 0, Net profit PKR 0 and Margin 0.0%. The statement lists REVENUE (Clinic services, Lab work, Total revenue), DIRECT COSTS (Lab bills, Doctor commissions, Gross profit), OPERATING EXPENSES (Salaries (payroll), Total operating expenses) and a highlighted Net profit line, all PKR 0 because the test clinic had no money movement. Two notes at the bottom explain the revenue basis and when each cost counts.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch36-report-viewer.svg" alt="Figure 36.6 — A report in the report viewer"></p>
+<p><em>Figure 36.6 — A list report, such as &quot;Payments received&quot;, in the report viewer (screenshot pending).</em></p>
+<p>Every other report uses the same viewer. The header has a back button (&quot;Back to reports&quot;), the report title, its description, the location scope and the period, and a <strong>Download</strong> menu with <strong>Excel (.xlsx)</strong> and <strong>PDF</strong>. The filter bar adds a doctor picker (&quot;All doctors&quot;) for reports that can be narrowed to one doctor, and an expense category picker for the expense register. Snapshot reports show &quot;Balances as of today&quot; instead of the period. Below come summary tiles (Rows plus the report&#39;s own summary or its column totals), an amber warning when more than 5,000 rows exist (&quot;Showing the first 5,000 rows. Download Excel for up to 50,000, or pick a shorter period.&quot;), the sortable, paged table, and the report&#39;s notes. Empty results say &quot;No records in this period.&quot;; empty results with a doctor or category filter say &quot;No results for your filters&quot;.</p>
+<h2 id="ch36-dashboard-and-reports-36-3-features">36.3 Features</h2>
+<h3 id="ch36-dashboard-and-reports-36-3-1-see-the-home-dashboard">36.3.1 See the home dashboard</h3>
+<p><strong>Status:</strong> [Partial] — the rendered dashboard uses real data; the money tiles need a second, older feature, and a mock data module with unused widgets is still in the code.</p>
+<p><strong>What it does.</strong> Gives each signed-in user a one-page view of today and the selected month, limited to what their role may see.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Sign in, or click <strong>Dashboard</strong> in the sidebar.</li>
+<li>Optionally pick another month in the month picker, or click <strong>Refresh</strong>.</li>
+<li>Click a tile to jump to Patients, Appointments, Finance overview or Invoices.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The page asks several existing services for their numbers: the patient list for a count, the appointment statistics for today and for the month, the invoice statistics for what is owed, and the financial summary for the month&#39;s revenue, expenses and top procedures. It only asks for what the user may see, so a receptionist never gets an empty &quot;PKR 0&quot; money tile.</p>
+<p><strong>Behind the scenes — technically.</strong> Calls: <code>GET /patients?page=1&amp;limit=1&amp;isActive=true</code> (count), <code>GET /appointments/stats</code> twice (today and month), <code>GET /appointments</code> (today, 8 rows), <code>GET /invoices/stats</code>, <code>GET /financial-summary/monthly?month&amp;year</code> and <code>GET /financial-summary/trend?months=6</code>. The financial-summary endpoints run <code>FinancialSummaryService</code>: monthly revenue is payments in the month minus refunds minus the tax part of allocations to taxed charges; expenses are the <code>expenses</code> table only; net profit is revenue minus those expenses; average invoice, paid-invoice count, revenue by day, expenses by category, payment-account split and the top 5 procedures (by <code>charges.net_amount</code> on issued invoices) come with it. The trend loops month by month for revenue and expenses. Each widget query uses <code>retry: false</code>, so one refused call blanks one widget only. <code>features/dashboard/services/dashboard.api.ts</code> is a mock module (fixed numbers such as &quot;1630&quot; patients and a simulated delay). Its four hooks (<code>useDashboardStats</code>, <code>useDashboardChart</code>, <code>useSpendingBreakdown</code>, <code>useDashboardAppointments</code>) are exported from the dashboard barrel, but nothing imports that barrel, and the widgets built for it (<code>AnalyticsChartCard</code>, <code>AppointmentsTable</code>, <code>SpendingBreakdownCard</code>, the dashboard <code>StatCard</code>, <code>KpiCard</code>) and several older cards (<code>AppointmentStatusCard</code>, <code>ExpenseCategoryChart</code>, <code>RecentAppointmentsCard</code>, <code>TopProceduresCard</code>, <code>DashboardSkeletons</code>) are not rendered anywhere. No mock number reaches a user.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The money tile, Revenue overview and Top procedures need <code>reports.financial.view</code> and the feature <code>billing.financial_summary</code>.</li>
+<li>Dashboard &quot;Net profit&quot; is collected revenue minus recorded expenses only. It does not subtract salaries, lab bills or commissions, so it differs from the P&amp;L (36.3.3).</li>
+<li>Today&#39;s and the month&#39;s ranges are built from the browser&#39;s date and sent as UTC midnight to UTC midnight; the financial summary uses calendar months of the payment date. Figures near midnight can differ from the location&#39;s clinic day.</li>
+<li>Only the active location is counted.</li>
+</ul>
+<p><strong>Who can do it.</strong> Any signed-in member. Tiles: <code>patients.view</code>, <code>appointments.view</code>, <code>billing.invoice.view</code>, <code>reports.financial.view</code> (+ feature <code>billing.financial_summary</code>). Admin sees everything; Receptionist sees patients, visits and outstanding; Assistant sees patients and visits; Doctor sees visits (own); Accountant sees revenue and outstanding.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>, <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>invoices</code>, <code>payments</code>, <code>refunds</code>, <code>payment_allocations</code>, <code>charges</code>, <code>expenses</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> A refused or failed call leaves that one widget empty or at zero; the rest of the page still loads. 403 <code>NO_PERMISSION</code> or a feature refusal on <code>/financial-summary/*</code> when the feature is off.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/financial-summary.service.ts</code> · <code>FinancialSummaryService.getMonthlySummary</code>, <code>getRevenueComparison</code>, <code>DashboardPage</code> · <code>web-app/src/features/dashboard/pages/DashboardPage.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-2-read-the-finance-overview">36.3.2 Read the finance overview</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the owner the period&#39;s revenue, costs, net profit and margin, compared with the period before, with a 12-month trend, a cost breakdown, revenue per doctor and service, cash by account, money owed both ways and warnings about incomplete data.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Finance overview</strong> in the sidebar.</li>
+<li>Pick a period preset or a custom range; choose <strong>Collected</strong> or <strong>Billed</strong>; optionally choose <strong>All locations</strong>.</li>
+<li>Read the cards; click a card link (for example &quot;Full statement&quot; or &quot;Who owes&quot;) to open the matching report.</li>
+<li>Click <strong>Download P&amp;L</strong> for an Excel or PDF statement.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server builds the profit and loss for the chosen period and for the comparison period, the monthly figures for the last 12 months, and several side lists, all in one request. It also checks for three common data problems: a month whose payroll was not generated, salaries entered both as payroll and as &quot;Salary&quot; expenses, and lab bills still in draft.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports/finance/overview</code> → <code>FinanceOverviewService.overview</code>. It runs nine queries in parallel: P&amp;L of the period and of <code>previousRange</code> (a period starting on the 1st compares with the same days of the previous month; a whole month with the whole previous month; any other range with the same number of days just before it), <code>FinanceDataService.monthlyComponents</code> for 12 trailing months, <code>balances</code> (open patient balances on issued invoices and live lab invoices, aged Not due / 1–30 / 31–60 / 61–90 / 90+ days against the due date; payable and overdue lab bills; patient advances = payments minus allocated minus refunded), <code>topDoctors</code> (billed: <code>charges.net_amount</code> on issued invoices; collected: pre-tax part of allocations), <code>topServices</code> (top 6 by net billed), <code>collectionsByAccount</code> (clinic payments minus refunds per <code>payment_account_name</code>, plus lab payments per method), <code>counts</code> and <code>warnings</code>. Lists keep the top 5 and fold the rest into &quot;Others&quot;. Money is summed in paisa and returned in rupees. The scope comes from <code>ReportScopeService</code> with the rule &quot;gate on <code>finance.overview.view</code>, reach from <code>reports.financial.view</code>&quot;.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Dates are clinic-local <code>YYYY-MM-DD</code>; default period is the first of this month to today; &quot;from&quot; must not be after &quot;to&quot;; at most 3 years.</li>
+<li>&quot;All locations&quot; needs <code>reports.financial.view</code> with scope <code>org</code>.</li>
+<li>Change percentages are null when the earlier value is 0.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>finance.overview.view</code> (unscoped), feature <code>reports.financial</code>; all-locations reach needs <code>reports.financial.view</code> at <code>org</code>. Default: Admin (all locations), Accountant (active location). Not Doctor, Receptionist or Assistant.</p>
+<p><strong>Data read and written.</strong> Reads <code>payments</code>, <code>refunds</code>, <code>payment_allocations</code>, <code>charges</code>, <code>invoices</code>, <code>services</code>, <code>lab_payments</code>, <code>lab_refunds</code>, <code>lab_invoices</code>, <code>vendor_bills</code>, <code>commission_entries</code>, <code>payroll_records</code>, <code>expenses</code>, <code>employees</code>, <code>locations</code>, <code>organizations</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; 403 &quot;Your access does not cover all locations together.&quot;; 400 &quot;Dates must be YYYY-MM-DD.&quot;, &quot;&quot;From&quot; must be on or before &quot;to&quot;.&quot;, &quot;A report can cover at most 3 years.&quot;; the screen shows &quot;Couldn&#39;t load the finance overview&quot; with a retry button.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/finance/finance-overview.service.ts</code> · <code>FinanceOverviewService.overview</code>, <code>ReportScopeService.resolve</code> · <code>web-app/src/features/reports/pages/FinanceDashboardPage.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-3-read-the-profit-and-loss-statement">36.3.3 Read the profit and loss statement</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Produces a classic profit and loss statement: revenue (clinic services, lab work), direct costs (lab bills, doctor commissions), gross profit, operating expenses (salaries from payroll and each expense category) and net profit or net loss, each with its share of revenue.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>All reports</strong> and click <strong>Open</strong> on &quot;Profit &amp; loss&quot;, or click &quot;Full statement&quot; on the finance overview.</li>
+<li>Pick the period, location scope and <strong>Collected</strong> or <strong>Billed</strong>.</li>
+<li>Optionally click <strong>Download</strong> → <strong>Excel (.xlsx)</strong> or <strong>PDF</strong>.</li>
+</ol>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch36-pnl-flow.png" alt="Figure 36.7 — How the profit and loss is computed"></p>
+<p><em>Figure 36.7 — Where each line of the profit and loss comes from.</em></p>
+<p>The diagram reads from left to right. Four source boxes feed four revenue figures: &quot;payments minus refunds minus tax on allocations&quot; gives Clinic collected; &quot;lab_payments minus lab_refunds&quot; gives Lab collected; &quot;invoices ISSUED total minus tax&quot; gives Clinic billed; &quot;lab_invoices issued or paid total minus credited&quot; gives Lab billed. All four flow into a diamond &quot;Revenue by chosen basis&quot;: the Collected basis uses the two collected figures, the Billed basis the two billed figures. Below, &quot;vendor_bills approved or paid by bill date&quot; and &quot;commission_entries by date earned&quot; flow into Direct costs. Revenue and Direct costs together give Gross profit. &quot;payroll_records base salary by payroll month&quot; and &quot;expenses by category and date&quot; flow into Operating expenses. Gross profit and Operating expenses together give the final box &quot;Net profit or net loss and margin&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Revenue can be counted two ways. <strong>Collected</strong> counts money that actually came in during the period (clinic receipts and lab receipts, minus refunds, with sales tax taken out because tax is not the clinic&#39;s income). <strong>Billed</strong> counts work invoiced in the period (issued clinic invoices without tax, plus lab invoices minus credits), whether paid or not. Costs are always counted in the period they belong to, whatever basis is chosen: what labs billed the clinic by the bill date, doctor commission when it was earned, salaries by payroll month, and expenses by their expense date. Gross profit is revenue minus lab bills and commissions; net profit also subtracts salaries and expenses.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>FinanceDataService.monthlyComponents</code> runs one SQL <code>UNION ALL</code> that returns, per month, <code>clinicCollected</code> (<code>payments.amount</code> by <code>payment_date</code>, minus <code>refunds.amount</code> by <code>refund_date</code>, minus <code>amount − preTaxAllocationSql</code> for <code>payment_allocations</code> on charges with <code>tax_amount &gt; 0</code>, by allocation date in the location&#39;s timezone), <code>labCollected</code> (<code>lab_payments.amount_paisa</code> by <code>received_on</code> minus <code>lab_refunds</code> by <code>refunded_at</code>), <code>clinicBilled</code> (<code>invoices.total_amount − tax_amount</code>, status <code>ISSUED</code>, by <code>issue_date</code>), <code>labBilled</code> (<code>lab_invoices.total_paisa − credited_paisa</code>, status issued, partially paid or paid, by <code>issued_on</code>), <code>labCost</code> (<code>vendor_bills.total_paisa</code>, status approved, partially paid or paid, by <code>bill_date</code>), <code>commission</code> (<code>commission_entries.amount_paisa</code> by <code>created_at</code>), <code>salaries</code> (<code>payroll_records.base_salary_paisa</code>, or <code>salary_amount</code> for older rows without a breakdown, by payroll year and month) and <code>expense</code> per category (<code>expenses.amount</code> by <code>expense_date</code>). Clinic billing tables store numeric rupees and are multiplied by 100; lab, commission and payroll tables store integer paisa. <code>buildProfitLoss</code> then computes revenue, direct costs, gross profit, operating total, net profit and margin (one decimal, null when revenue is 0). The report definition <code>profit-loss</code> turns this into section, line, subtotal and total rows, with summary tiles Revenue, Total costs, Net profit/Net loss and Margin, and two notes.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Payroll counts base salary only; the commission part of payroll is already counted when earned, so it is not counted twice.</li>
+<li>Draft lab bills and cancelled clinic invoices are not counted.</li>
+<li>Expense category &quot;Salary&quot; is shown as &quot;Salaries (expenses)&quot;; if the clinic also runs payroll, the finance overview warns that salaries may be counted twice.</li>
+<li>Zero-value expense categories are hidden; expense lines are sorted largest first.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>reports.financial.view</code> (scope <code>location</code> or <code>org</code>), feature <code>reports.financial</code>. Download also needs <code>reports.export</code> (feature <code>reports.exports</code>). Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> As 36.3.2. Writes an audit row only on download (36.3.7).</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> As 36.3.2; 403 <code>NO_PERMISSION</code> without <code>reports.financial.view</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/finance/profit-loss.ts</code> · <code>buildProfitLoss</code>, <code>FinanceDataService.monthlyComponents</code>, <code>financeReports</code> · <code>web-app/src/features/reports/components/PnlStatement.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-4-read-the-clinic-overview">36.3.4 Read the clinic overview</h3>
+<p><strong>Status:</strong> [Partial] — works for org- and location-scoped users; a Doctor with the default role sees the sidebar item but the page is refused (deduced from code, not observed).</p>
+<p><strong>What it does.</strong> Shows how the clinic is running: patients seen, new patients, appointments and show-up rate, waiting and consultation times, trends, busiest hours, doctors, patient mix, top diagnoses and treatments, and &quot;Needs attention&quot; lists.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Clinic overview</strong> in the sidebar.</li>
+<li>Pick a period and, if allowed, <strong>All locations</strong>.</li>
+<li>Read the cards; use the tabs on Patient mix and What we treat; click a card link to open the detailed report.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server counts encounters (consultations), new patient registrations, appointments and queue entries for the period and the comparison period. The trend is grouped by day for up to 14 days, by week up to 120 days and by month beyond. &quot;Needs attention&quot; ignores the period and looks at today: follow-ups missed in the last 30 days with no later visit, follow-ups due in the next 7 days, patients not seen for 180 days or more, no-shows of the last 30 days with no later booking or visit, and open lab orders past their expected date.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports/clinic/overview</code> → <code>ClinicOverviewService.overview</code>, eleven queries in parallel. Patients seen and visits come from <code>patient_encounters</code>; new patients from <code>patients.created_at</code> (deleted patients excluded); appointments, no-show and show-up rate from <code>appointments</code> (show-up = due minus no-show over due, where due = completed, checked in or no-show); average wait = check-in to call (or to consultation start), average consultation = start to finish of completed entries, walk-in share from <code>queue_entries</code> (transferred entries excluded); heatmap by ISO weekday and hour of check-in in the location&#39;s timezone; demographics by gender and age band (Under 18, 18–29, 30–44, 45–59, 60+, Not recorded); top 6 diagnoses (free text, grouped ignoring case and spaces) and treatments. Scope rule: <code>reports.clinical.view</code> without a doctor filter, so a grant with scope <code>own</code> is refused.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Same date rules as 36.3.2.</li>
+<li>The Doctor template holds <code>reports.clinical.view</code> with scope <code>own</code>. The sidebar item checks only that the permission exists, so it is shown, but <code>ReportScopeService</code> answers 403 for <code>own</code> scope here.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>reports.clinical.view</code> at <code>location</code> or <code>org</code>, feature <code>reports.clinical</code>. Default: Admin. Accountant, Receptionist and Assistant: no. Doctor: refused (see rules).</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_encounters</code>, <code>patients</code>, <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>treatments</code>, <code>lab_orders</code>, <code>employees</code>. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 &quot;Your access covers only your own data; this report has no per-doctor view.&quot;; the date errors of 36.3.2; the screen shows &quot;Couldn&#39;t load the clinic overview&quot; with a retry button.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/clinic/clinic-overview.service.ts</code> · <code>ClinicOverviewService.overview</code> · <code>web-app/src/features/reports/pages/ClinicOverviewPage.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-5-browse-the-report-library">36.3.5 Browse the report library</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists every report the user may open, grouped by category, with search, category filters and quick downloads.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>All reports</strong> in the sidebar (Finance → Reports).</li>
+<li>Search, or click a category chip; switch between card and table view.</li>
+<li>Click <strong>Open</strong>, or use <strong>Download Excel</strong> / <strong>Download PDF</strong> for the current period.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server holds a fixed list of 37 report definitions and returns only those the user&#39;s permissions allow. A doctor with own-only access gets only the reports that can be narrowed to one doctor.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports</code> (<code>@AnyMember</code>) → <code>ReportsService.catalog(access)</code>: keeps a definition when <code>access.scope(permissionOf(def))</code> is set, and, for scope <code>own</code>, only when the definition has <code>filters.doctor</code>. Each entry carries key, title, description, category, filter spec and permission. <code>permissionOf</code> maps feature <code>reports.clinical</code> to <code>reports.clinical.view</code> and everything else to <code>reports.financial.view</code>. The catalog is cached for 10 minutes in the web app. Categories are shown in the order Profit &amp; cash, Revenue &amp; collections, Expenses, Staff &amp; payroll, Patients, Appointments, Waiting &amp; queue, Clinical, Lab.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Search is debounced by 300 ms and matches title and description.</li>
+<li>Quick downloads use &quot;All locations&quot; only when the user&#39;s grant for that report reaches the whole organization.</li>
+</ul>
+<p><strong>Who can do it.</strong> Page: <code>reports.financial.view</code> or <code>reports.clinical.view</code>. Default: Admin (37 reports), Accountant (15 financial reports), Doctor (8 doctor-filterable clinical reports).</p>
+<p><strong>Data read and written.</strong> Nothing from the database for the list.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Couldn&#39;t load reports&quot; with a retry button; &quot;No reports available&quot; when the list is empty; &quot;No reports match your filters.&quot;</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/reports.service.ts</code> · <code>ReportsService.catalog</code>, <code>permissionOf</code> · <code>web-app/src/features/reports/pages/ReportsHubPage.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-6-run-a-report-on-screen">36.3.6 Run a report on screen</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Runs one report for a period, a location scope and optional filters, and shows summary tiles, a sortable table and notes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open a report from the library or an overview card.</li>
+<li>Set the period (snapshot reports have none), the location scope, and the doctor or expense category filter if the report has one.</li>
+<li>Read the tiles, table and notes; click ← to go back.</li>
+</ol>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch36-report-sequence.png" alt="Figure 36.8 — Running and downloading a report"></p>
+<p><em>Figure 36.8 — A report request, then an Excel or PDF download.</em></p>
+<p>The diagram has seven participants: the Owner, the Web app, the API, &quot;Guards and ReportsController&quot;, ReportScopeService, ReportsService and PostgreSQL. In steps 1 to 11, the owner opens a report and picks period, scope and filters; the web app calls <code>GET /reports/:key</code> with from, to, scope, basis and doctorId; the global guards check the JWT, tenant, feature and access; the controller checks the report&#39;s own permission (financial or clinical); the scope service reads the organization&#39;s locations and the location&#39;s timezone and hands the engine the location ids, the doctor (for own-only users) and the clinic-local today; the engine runs the definition&#39;s SQL in paisa with a cap of 5,000 rows; rows come back and the engine returns columns, rows and totals in rupees, the summary and notes; the screen shows tiles, a sortable table and notes. In steps 12 to 18, the owner clicks Download and picks Excel or PDF; the web app calls <code>GET /reports/:key/export?format=xlsx</code> or <code>pdf</code>; the engine repeats the same run capped at 50,000 rows, builds an ExcelJS workbook or a pdfmake A4 document; the API writes an audit row with action EXPORT, report, format and row count; the file comes back as an attachment and the screen shows the toast &quot;Excel file downloaded&quot;.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every report is a definition: a title, a category, the filters it supports, its columns and one database query. The same rows feed the screen, the Excel file and the PDF, so they always match. Money is calculated in paisa (whole numbers, so no rounding drift) and shown in rupees with two decimals. Dates are clinic days in the active location&#39;s timezone.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports/:key</code> (<code>@AnyMember</code>; the handler checks <code>permissionOf(def)</code>) → <code>ReportScopeService.resolve</code> → <code>ReportsService.view</code>. Snapshot (&quot;as of&quot;) reports run with from = to = today. The engine fetches the cap plus one row to detect truncation, adds the note &quot;Totals cover only the rows shown.&quot; when truncated, computes a totals row from columns marked <code>total</code> (in paisa), converts money to rupees and adds meta: organization name, scope label, period, basis and a clinic-local &quot;generated&quot; time. <code>doctorId</code> from an own-only user is forced to their employee id whatever the request says. The viewer refuses to run until the catalog has loaded, so it knows the report&#39;s filter spec.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Unknown key → 404 &quot;Report not found&quot;; the screen says &quot;Report not found — This report doesn&#39;t exist or isn&#39;t available to you.&quot;</li>
+<li>On screen at most 5,000 rows; dates and range as 36.3.2.</li>
+<li>The P&amp;L is drawn as a statement; all other reports as a table (25 rows per page by default).</li>
+</ul>
+<p><strong>Who can do it.</strong> The report&#39;s permission: <code>reports.financial.view</code> or <code>reports.clinical.view</code> (scope <code>own</code> / <code>location</code> / <code>org</code>); feature <code>reports.financial</code> or <code>reports.clinical</code>. Default as in 36.3.5.</p>
+<p><strong>Data read and written.</strong> Per report (table in 36.3.8). Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> &quot;Missing permission: reports.clinical.view&quot; (or financial); 403 for own-only users on a report without a doctor filter; 404; 400 date errors; screen &quot;Couldn&#39;t load this report&quot; with retry.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/reports.controller.ts</code> · <code>ReportsService.view</code>, <code>ReportDefinition</code> · <code>web-app/src/features/reports/pages/ReportViewerPage.tsx</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch36-report-reach.png" alt="Figure 36.9 — How far a report reaches"></p>
+<p><em>Figure 36.9 — How the permission&#39;s scope decides which locations and rows a report covers.</em></p>
+<p>The flowchart starts at &quot;Report request&quot; and asks &quot;Holds the report&#39;s permission?&quot;; &quot;no&quot; ends at &quot;403 NO_PERMISSION&quot;. On &quot;yes&quot; it branches on &quot;Scope of the grant&quot;. With &quot;org&quot;, the report runs for the active location, or for all active locations if asked. With &quot;location&quot;, it covers the active location only; if all locations were asked for, it ends at &quot;403 - access does not cover all locations&quot;; otherwise it runs. With &quot;own&quot;, it asks &quot;Report has a doctor filter?&quot;; &quot;no&quot; ends at &quot;403 - no per-doctor view&quot;, &quot;yes&quot; runs the report for the active location with the user&#39;s own rows only. All successful paths end at &quot;Run the report&quot;.</p>
+<h3 id="ch36-dashboard-and-reports-36-3-7-download-a-report-as-excel-or-pdf">36.3.7 Download a report as Excel or PDF</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Saves the report with the current filters as an Excel workbook or an A4 PDF, and records who downloaded what.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the viewer click <strong>Download</strong> → <strong>Excel (.xlsx)</strong> or <strong>PDF</strong>; on the finance overview click <strong>Download P&amp;L</strong>; or use the icon buttons in the library.</li>
+<li>The button shows &quot;Preparing…&quot;; the file is saved, named like <code>profit-loss_2026-10-01_to_2026-10-23.xlsx</code>, and a toast confirms.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server runs the report again with a larger limit, turns it into a file and writes an audit entry before sending it, because clinic data is leaving the system.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports/:key/export?format=xlsx|pdf</code> (<code>@Can(&#39;reports.export&#39;)</code> plus the report&#39;s own permission). Up to 50,000 rows. Excel (ExcelJS): one sheet with title, organization and scope line, period line, summary block, a frozen and filterable header, typed numbers and dates with formats (money <code>#,##0.00</code> with red negatives, percent, dd-mmm-yyyy), a bold totals row and the notes. PDF (pdfmake): A4, landscape for wide registers, title block, summary strip, zebra table with a repeating header, bold totals, &quot;Page x of y&quot; footer; Urdu text is set in the bundled Noto Naskh Arabic font; the PDF engine may read only its bundled fonts and no URLs. <code>AuditService.record</code> writes <code>entityType: &#39;report&#39;</code>, action <code>EXPORT</code>, with report key, format, period, scope label and row count. Headers: <code>Content-Disposition: attachment</code>, <code>Cache-Control: no-store</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>PDF is refused above 5,000 rows.</li>
+<li>The download control is hidden for users without <code>reports.export</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>reports.export</code> (high-risk, feature <code>reports.exports</code>) plus the report&#39;s permission. Default: Admin, Accountant. Not Doctor.</p>
+<p><strong>Data read and written.</strong> Reads as the report. Writes one audit-log row (Chapter 60).</p>
+<p><strong>Effects on other modules.</strong> The export appears in the audit trail.</p>
+<p><strong>Error cases.</strong> 400 &quot;This report has 6,200 rows — too many for a PDF (max 5000). Download Excel or pick a shorter period.&quot;; 403 <code>NO_PERMISSION</code>; the web app shows the server message as an error toast, or &quot;Could not download the report.&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/exporters/xlsx.exporter.ts</code> · <code>ReportsService.export</code>, <code>exportXlsx</code>, <code>exportPdf</code> · <code>web-app/src/features/reports/components/ExportMenu.tsx</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-8-the-37-reports">36.3.8 The 37 reports</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Provides 37 ready-made reports in 9 categories. 35 are written out individually; 2 (&quot;Top diagnoses&quot;, &quot;Top complaints&quot;) are built by one shared helper over free-text encounter fields.</p>
+<div class="tw"><table><thead><tr>
+<th>Key</th>
+<th>Title</th>
+<th>Category</th>
+<th>Feature</th>
+<th>Purpose</th>
+</tr>
+</thead><tbody><tr>
+<td><code>profit-loss</code></td>
+<td>Profit &amp; loss</td>
+<td>finance</td>
+<td>reports.financial</td>
+<td>Revenue, costs and net profit for the period (Collected / Billed basis).</td>
+</tr>
+<tr>
+<td><code>cash-book</code></td>
+<td>Daily cash book</td>
+<td>finance</td>
+<td>reports.financial</td>
+<td>Per day: clinic and lab receipts, refunds, expenses, paid to labs, salaries paid, net cash.</td>
+</tr>
+<tr>
+<td><code>collections</code></td>
+<td>Payments received</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Every receipt, clinic and lab, with patient and account.</td>
+</tr>
+<tr>
+<td><code>collections-by-account</code></td>
+<td>Collections by account</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Cash, bank and wallet totals: what should be in each account.</td>
+</tr>
+<tr>
+<td><code>invoices</code></td>
+<td>Invoice register</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Issued invoices (clinic and lab) with paid and balance.</td>
+</tr>
+<tr>
+<td><code>outstanding</code></td>
+<td>Outstanding balances</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Who owes money, aged by due date (as of today).</td>
+</tr>
+<tr>
+<td><code>doctor-revenue</code></td>
+<td>Doctor performance</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Billed, collected and commission per doctor.</td>
+</tr>
+<tr>
+<td><code>service-revenue</code></td>
+<td>Revenue by service</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Which treatments earn the most, with discounts given.</td>
+</tr>
+<tr>
+<td><code>discounts</code></td>
+<td>Discounts given</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Every discount on issued invoices and who gave it.</td>
+</tr>
+<tr>
+<td><code>refunds</code></td>
+<td>Refunds</td>
+<td>revenue</td>
+<td>reports.financial</td>
+<td>Money returned to patients, with the reason.</td>
+</tr>
+<tr>
+<td><code>expenses</code></td>
+<td>Expense register</td>
+<td>expenses</td>
+<td>reports.financial</td>
+<td>Every expense with category, method and who recorded it (category filter).</td>
+</tr>
+<tr>
+<td><code>expense-summary</code></td>
+<td>Expenses by category</td>
+<td>expenses</td>
+<td>reports.financial</td>
+<td>Where operating money goes, with each category&#39;s share.</td>
+</tr>
+<tr>
+<td><code>payroll</code></td>
+<td>Payroll register</td>
+<td>staff</td>
+<td>reports.financial</td>
+<td>Salary and commission paid out per employee per month.</td>
+</tr>
+<tr>
+<td><code>commissions</code></td>
+<td>Doctor commissions</td>
+<td>staff</td>
+<td>reports.financial</td>
+<td>Commission earned on collections, settled and pending (doctor filter).</td>
+</tr>
+<tr>
+<td><code>lab-bills</code></td>
+<td>Lab bills</td>
+<td>lab</td>
+<td>reports.financial</td>
+<td>What labs billed the clinic, what is paid and what is still owed.</td>
+</tr>
+<tr>
+<td><code>new-patients</code></td>
+<td>New patients</td>
+<td>patients</td>
+<td>reports.clinical</td>
+<td>Everyone registered in the period, with source, age and city.</td>
+</tr>
+<tr>
+<td><code>patient-sources</code></td>
+<td>Where patients come from</td>
+<td>patients</td>
+<td>reports.clinical</td>
+<td>New patients by source, and how many came and paid.</td>
+</tr>
+<tr>
+<td><code>patient-demographics</code></td>
+<td>Patient demographics</td>
+<td>patients</td>
+<td>reports.clinical</td>
+<td>Patients seen by visit type, gender, age group and city.</td>
+</tr>
+<tr>
+<td><code>lapsed-patients</code></td>
+<td>Patients who stopped coming</td>
+<td>patients</td>
+<td>reports.clinical</td>
+<td>Not seen for 6+ months, a call list, most valuable first (as of today).</td>
+</tr>
+<tr>
+<td><code>top-patients</code></td>
+<td>Top patients</td>
+<td>patients</td>
+<td>reports.clinical</td>
+<td>Patients with the most billing and visits in the period.</td>
+</tr>
+<tr>
+<td><code>appointments-daily</code></td>
+<td>Appointments by day</td>
+<td>appointments</td>
+<td>reports.clinical</td>
+<td>Booked, completed, cancelled and no-show appointments per day (doctor filter).</td>
+</tr>
+<tr>
+<td><code>appointments-by-doctor</code></td>
+<td>Appointments by doctor</td>
+<td>appointments</td>
+<td>reports.clinical</td>
+<td>Each doctor&#39;s bookings, completions and no-show rate.</td>
+</tr>
+<tr>
+<td><code>no-shows</code></td>
+<td>No-shows &amp; cancellations</td>
+<td>appointments</td>
+<td>reports.clinical</td>
+<td>Who missed or cancelled, why, and how often (doctor filter).</td>
+</tr>
+<tr>
+<td><code>visit-mix</code></td>
+<td>Walk-ins vs appointments</td>
+<td>appointments</td>
+<td>reports.clinical</td>
+<td>Arrivals with and without an appointment, per day (doctor filter).</td>
+</tr>
+<tr>
+<td><code>busy-hours</code></td>
+<td>Rush hours</td>
+<td>appointments</td>
+<td>reports.clinical</td>
+<td>Arrivals by hour and weekday (doctor filter).</td>
+</tr>
+<tr>
+<td><code>queue-by-doctor</code></td>
+<td>Waiting time by doctor</td>
+<td>operations</td>
+<td>reports.clinical</td>
+<td>How long patients wait for each doctor and how long consultations take.</td>
+</tr>
+<tr>
+<td><code>queue-daily</code></td>
+<td>Waiting time by day</td>
+<td>operations</td>
+<td>reports.clinical</td>
+<td>Arrivals, patients seen and waiting time per clinic day (doctor filter).</td>
+</tr>
+<tr>
+<td><code>left-unseen</code></td>
+<td>Left without being seen</td>
+<td>operations</td>
+<td>reports.clinical</td>
+<td>Patients who checked in but were skipped, cancelled or left (doctor filter).</td>
+</tr>
+<tr>
+<td><code>doctor-activity</code></td>
+<td>Doctor activity</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>Patients seen, treatments, prescriptions, plans and lab orders per doctor.</td>
+</tr>
+<tr>
+<td><code>treatment-plans</code></td>
+<td>Treatment plan conversion</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>Plans proposed per doctor, how many were accepted and finished.</td>
+</tr>
+<tr>
+<td><code>diagnoses</code></td>
+<td>Top diagnoses</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>The most common diagnoses doctors recorded.</td>
+</tr>
+<tr>
+<td><code>complaints</code></td>
+<td>Top complaints</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>The chief complaints recorded at visits.</td>
+</tr>
+<tr>
+<td><code>treatments-done</code></td>
+<td>Treatments done</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>How often each treatment was performed and for how many patients.</td>
+</tr>
+<tr>
+<td><code>medicines</code></td>
+<td>Most prescribed medicines</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>Medicines on finalized prescriptions (doctor filter).</td>
+</tr>
+<tr>
+<td><code>follow-ups</code></td>
+<td>Follow-ups</td>
+<td>clinical</td>
+<td>reports.clinical</td>
+<td>Follow-ups due in the period: who came back and whom to call (doctor filter).</td>
+</tr>
+<tr>
+<td><code>lab-turnaround</code></td>
+<td>Lab turnaround</td>
+<td>lab</td>
+<td>reports.clinical</td>
+<td>How fast each lab returns work, on-time rate, late orders and remakes.</td>
+</tr>
+<tr>
+<td><code>lab-delays</code></td>
+<td>Late lab orders</td>
+<td>lab</td>
+<td>reports.clinical</td>
+<td>Open orders past the lab&#39;s promised date (as of today).</td>
+</tr>
+</tbody></table></div><p>The table lists all 37 reports by their code key, the title users see, the category that groups them in the library, the feature (and therefore the permission) that gates them, and a one-line purpose taken from the report&#39;s own description. Fifteen reports are financial (<code>reports.financial</code> → permission <code>reports.financial.view</code>) and twenty-two are clinical or operational (<code>reports.clinical</code> → <code>reports.clinical.view</code>). The category and the feature are independent: &quot;Lab bills&quot; is a lab report gated as financial, while &quot;Lab turnaround&quot; and &quot;Late lab orders&quot; are lab reports gated as clinical. Three reports are snapshots &quot;as of today&quot; with no period: Outstanding balances, Patients who stopped coming and Late lab orders. Nine reports offer a doctor filter (the eight clinical ones marked plus Doctor commissions); only those can be run by an own-only user. The third feature, <code>reports.exports</code>, gates downloads of any report, not a report of its own.</p>
+<p><strong>How the user does it.</strong> Open the report from the library (36.3.5) and run it (36.3.6).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each report is one read-only query over the tables of the module it describes: billing, lab billing, lab payables, payroll, commissions, expenses, patients, appointments, the queue, encounters, treatments, prescriptions and plans.</p>
+<p><strong>Behind the scenes — technically.</strong> Definitions live in <code>definitions/finance.reports.ts</code> (2), <code>revenue.reports.ts</code> (8), <code>cost.reports.ts</code> (5), <code>patient.reports.ts</code> (5), <code>visit.reports.ts</code> (8) and <code>clinical.reports.ts</code> (9, two of them via <code>textFrequency</code>). <code>ReportsService</code> registers them in that order and indexes them by key. Free-text reports note that the same thing spelled differently shows as separate lines. Wide registers are marked landscape for PDF.</p>
+<p><strong>Rules and validations.</strong> &quot;Lapsed&quot; means not seen for 180 days. Free-text grouping ignores case and repeated spaces.</p>
+<p><strong>Who can do it.</strong> As 36.3.6.</p>
+<p><strong>Data read and written.</strong> Read-only, per report. Writes nothing.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> As 36.3.6.</p>
+<p><strong>Technical references:</strong> <code>backend/src/reports/definitions/</code> · <code>financeReports</code>, <code>revenueReports</code>, <code>costReports</code>, <code>patientReports</code>, <code>visitReports</code>, <code>clinicalReports</code>, <code>textFrequency</code> · <code>web-app/src/features/reports/lib/report-categories.ts</code></p>
+<h3 id="ch36-dashboard-and-reports-36-3-9-daily-financial-summary">36.3.9 Daily financial summary</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen calls it since <code>/financial-summary</code> was folded into the dashboard.</p>
+<p><strong>What it does.</strong> Returns one day&#39;s collections (net of refunds) per payment account, invoices issued that day, the outstanding amount and the overdue invoice count.</p>
+<p><strong>How the user does it.</strong> Not available in the web app. The address <code>/financial-summary</code> redirects to <code>/dashboard</code>. The day&#39;s takings per account are shown on the Payments page instead (Chapter 34).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A small summary query for one date at the active location.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /financial-summary/daily?date</code> → <code>FinancialSummaryService.getDailySummary</code>. With no date the server uses today&#39;s UTC date, not the location&#39;s. A web hook (<code>useDailySummary</code>) exists but no component uses it. The Payments page uses a different endpoint, <code>GET /payments/daily-collection</code> (permission <code>billing.desk.use</code>, clinic-local today), which belongs to Billing.</p>
+<p><strong>Rules and validations.</strong> Active location only.</p>
+<p><strong>Who can do it.</strong> <code>reports.financial.view</code>, feature <code>billing.financial_summary</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>payments</code>, <code>refunds</code>, <code>invoices</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 when the feature is off or the permission is missing.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/financial-summary.controller.ts</code> · <code>FinancialSummaryController.daily</code> · <code>web-app/src/routes/financial-summary.tsx</code></p>
+<h2 id="ch36-dashboard-and-reports-36-4-entities-and-data-model">36.4 Entities and data model</h2>
+<p>The Reports module owns no tables and has no entities. It reads, with raw SQL, the tables of other modules and writes only one row per download into the general audit log. Its &quot;model&quot; is in code:</p>
+<ul>
+<li><strong>Report definition</strong> (<code>ReportDefinition</code>): key, title, description, category, optional feature (default <code>reports.financial</code>), filter spec (<code>dates</code>: range or asOf; <code>doctor</code>; <code>expenseCategory</code>; <code>basis</code>), columns (type text, money, number, decimal, date or percent; a <code>total</code> flag; a PDF width weight), a landscape flag and a <code>run</code> function.</li>
+<li><strong>Report scope</strong> (<code>ReportScope</code>): organization, the list of location ids, a label such as &quot;Main location&quot; or &quot;All locations (3)&quot;, whether it is the whole organization, an optional doctor (for own-only users), the active location&#39;s timezone and the clinic-local today.</li>
+<li><strong>Report view</strong> (<code>ReportView</code>): what the API returns: columns, rows, totals, summary, notes, truncated flag and meta.</li>
+</ul>
+<p>The relationships to stored data, in words:</p>
+<ul>
+<li>Financial reports and the P&amp;L read billing (<code>payments</code>, <code>refunds</code>, <code>payment_allocations</code>, <code>charges</code>, <code>invoices</code>, <code>expenses</code>, <code>services</code>), lab billing (<code>lab_invoices</code>, <code>lab_payments</code>, <code>lab_refunds</code>), lab payables (<code>vendor_bills</code>, <code>vendor_payments</code>), commissions (<code>commission_entries</code>) and payroll (<code>payroll_records</code>). There are no foreign keys from reports to these tables; the link is the SQL.</li>
+<li>Clinical reports and the clinic overview read <code>patients</code>, <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>patient_encounters</code>, <code>treatments</code>, prescriptions, treatment plans and <code>lab_orders</code>.</li>
+<li>Every query filters by <code>organization_id</code> and the scope&#39;s location ids.</li>
+<li>Money: clinic billing columns are numeric rupees, lab, payroll and commission columns are integer paisa; the engine converts everything to paisa, sums, and returns rupees. &quot;PKR&quot; is the default currency, not a limit.</li>
+</ul>
+<h2 id="ch36-dashboard-and-reports-36-5-status-lifecycles">36.5 Status lifecycles</h2>
+<p>The module has no lifecycle of its own: reports and dashboards are computed on request and stored nowhere. The statuses it filters on belong to other modules and are described there: invoice status <code>ISSUED</code> versus <code>CANCELLED</code> (Chapter 34), lab bill status draft, approved, partially paid, paid (Chapter 42), appointment and queue statuses (Chapters 29 and 30) and lab order status (Chapter 40).</p>
+<h2 id="ch36-dashboard-and-reports-36-6-connections-to-other-modules">36.6 Connections to other modules</h2>
+<ul>
+<li><strong>Billing (Chapter 34).</strong> Source of clinic revenue, receipts, refunds, discounts, expenses and outstanding balances. Dashboard money tiles use the billing financial-summary endpoints.</li>
+<li><strong>Commissions (Chapter 35).</strong> Commission entries are a direct cost in the P&amp;L and feed &quot;Doctor commissions&quot; and &quot;Doctor performance&quot;. The &quot;Doctor revenue&quot; and &quot;Doctor earnings&quot; screens in the same sidebar group belong there.</li>
+<li><strong>Payroll (Chapter 38).</strong> Base salary by payroll month is an operating cost; salaries paid appear in the cash book on the paid date.</li>
+<li><strong>Lab chapters (Chapters 40–42).</strong> Lab invoices and lab receipts are revenue; vendor bills are a direct cost; lab orders feed turnaround and late-order reports.</li>
+<li><strong>Appointments, Queue, Consultation, Patients (Chapters 28–31).</strong> Source of every clinical and operational figure.</li>
+<li><strong>Access control (Chapter 57).</strong> Four permissions and three features decide what each user sees and how far it reaches.</li>
+<li><strong>Audit logging (Chapter 60).</strong> Each download writes an EXPORT audit row.</li>
+</ul>
+<h2 id="ch36-dashboard-and-reports-36-7-limitations-and-known-gaps">36.7 Limitations and known gaps</h2>
+<ul>
+<li>The dashboard&#39;s &quot;Net profit&quot; subtracts only recorded expenses, not payroll, lab bills or commissions, so it does not match the P&amp;L.</li>
+<li>Dashboard money tiles need the separate feature <code>billing.financial_summary</code>; an organization with <code>reports.financial</code> on but that feature off sees no money on the dashboard.</li>
+<li>The dashboard and the report period presets use the browser&#39;s date; the financial summary uses the server&#39;s UTC date when no date is given. The reports themselves use the location&#39;s timezone.</li>
+<li>A Doctor with the default role sees &quot;Clinic overview&quot; in the sidebar but gets an error on the page (own scope is refused there).</li>
+<li>The daily financial summary endpoint has no screen.</li>
+<li><code>features/dashboard/services/dashboard.api.ts</code> is a mock module, and about ten dashboard components are unused code.</li>
+<li>On-screen reports stop at 5,000 rows, Excel at 50,000, PDF refuses more than 5,000 rows; ranges are limited to 3 years.</li>
+<li>The clinic overview has no download; report filters are kept in memory only and reset on reload.</li>
+<li>&quot;Doctor performance&quot; and &quot;Revenue by service&quot; accept a doctor id in the API but offer no doctor filter on screen.</li>
+<li>Free-text reports (diagnoses, complaints) split spelling variants into separate lines.</li>
+</ul>
+<h2 id="ch36-dashboard-and-reports-36-8-owner-39-s-faq">36.8 Owner&#39;s FAQ</h2>
+<p><strong>Why does the dashboard show a different profit from the Finance overview?</strong> The dashboard subtracts only expenses from collected revenue. The P&amp;L also subtracts lab bills, doctor commissions and payroll salaries.</p>
+<p><strong>What is the difference between Collected and Billed?</strong> Collected counts money received in the period (net of refunds and without sales tax). Billed counts invoices issued in the period, paid or not. Costs are counted the same way under both.</p>
+<p><strong>Are salaries counted twice if I also enter them as expenses?</strong> They can be. The finance overview warns when a period has both payroll records and &quot;Salary&quot; expenses.</p>
+<p><strong>Can an Accountant see all branches together?</strong> Not with the default role: their financial permission has scope <code>location</code>. Give the role <code>org</code> scope in the role editor.</p>
+<p><strong>Can a doctor see other doctors&#39; figures?</strong> No. With scope <code>own</code> a doctor sees only the reports that can be narrowed to one doctor, and only their own rows.</p>
+<p><strong>Who downloaded our data?</strong> Every Excel or PDF download writes an audit entry with the user, report, format, period, scope and row count.</p>
+<p><strong>Why is a report cut off?</strong> More than 5,000 rows were found. Download Excel (up to 50,000 rows) or choose a shorter period.</p>
+<p><strong>Where are reports stored?</strong> Nowhere. Each one is calculated from live data when opened or downloaded.</p>
+</section></body></html>

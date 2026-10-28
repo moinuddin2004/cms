@@ -1,0 +1,711 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch30-queue"><h1 id="ch30-queue-chapter-30-queue">Chapter 30 — Queue</h1>
+<p>This chapter describes the Queue module of the Platform: the doctor-wise waiting line that starts when a patient arrives at the clinic and ends when the doctor finishes the visit. It is written for the product owner, who needs to understand every queue action, the rules that decide who is called next, and the safety mechanisms behind them. Booking itself is covered by the Appointments chapter (Chapter 29); the clinical work done during the visit is covered by the Consultation chapter (Chapter 31).</p>
+<h2 id="ch30-queue-30-1-what-this-module-is-for">30.1 What this module is for</h2>
+<p>Every doctor at a location has one <strong>queue session</strong> per clinic day: their own waiting line. When a patient arrives, either with a booking (check-in) or without one (<strong>walk-in</strong>), they get a <strong>queue entry</strong> in that doctor&#39;s session and a <strong>token</strong> such as &quot;A-007&quot;. The doctor calls patients one at a time, starts the consultation, and completes it. Reception watches all doctors&#39; lines at once, handles patients who did not come when called, patients sent for a test, transfers and emergencies. A TV screen in the waiting room shows which token is being served.</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Receptionist</strong>: checks patients in, registers walk-ins, skips, rejoins, removes and transfers patients, returns patients from tests, prints tickets.</li>
+<li><strong>Assistant</strong>: checks patients in, registers walk-ins and returns patients from tests.</li>
+<li><strong>Doctor</strong>: runs their own queue on the doctor screen: start, pause, call next, select, consult, send for a test, transfer, stop, complete, close the day.</li>
+<li><strong>Admin</strong> and the <strong>owner</strong>: everything, including running any doctor&#39;s queue, force-completing a visit, urgent priority, switching the queue order for the day, and editing queue settings.</li>
+<li>The <strong>waiting room</strong> itself: the public TV display, which needs no login.</li>
+</ul>
+<p>Where it appears:</p>
+<ul>
+<li>The reception board is the <strong>Queue</strong> tab of the <strong>Appointments</strong> page (sidebar item <strong>Appointments</strong>, <code>/appointments</code>). Users with <code>queue.board.view</code> land on this tab.</li>
+<li>The doctor screen is the sidebar item <strong>My Queue</strong> (key <code>nav.queue.doctor</code>, route <code>/queue/doctor</code>, needs <code>queue.doctor.own</code>). It is the Doctor role&#39;s home page.</li>
+<li>The TV display (<code>/display/$locationId</code>) has no sidebar entry; it opens from a button on the reception board.</li>
+<li>Queue settings are a card on the location settings page (<code>/locations/$id/settings</code>), which has no sidebar entry of its own.</li>
+</ul>
+<p>All queue permissions belong to the feature <strong><code>appointments.core</code></strong> (&quot;Appointments&quot;, enabled by default). If that feature is switched off, the queue disappears with it.</p>
+<h2 id="ch30-queue-30-2-screens">30.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/my-queue-picker.jpg" alt="Figure 30.1 — My queue, doctor picker"></p>
+<p><em>Figure 30.1 — The &quot;My queue&quot; page for a user who may run any doctor&#39;s queue but has no doctor profile at this location.</em></p>
+<p>The screenshot was taken on 2026-10-23 in the dark theme and shows the former working name &quot;MedTrackr&quot; in the top-left corner. The left sidebar lists Dashboard, a &quot;Clinic&quot; group (Clinic overview, Patients, Appointments, My Queue highlighted, My earnings, Prescriptions, Treatment Plans, Labs, Lab orders, Lab billing, Lab price list, Order templates, Lab payables), a &quot;Finance&quot; group (Finance overview, Billing) and Settings, with a signed-in owner account at the bottom. The top bar shows the location switcher set to the main location, a theme toggle and a notifications bell. The page itself shows only the title &quot;My queue&quot;, the subtitle &quot;Choose which doctor&#39;s queue to run&quot; and a dropdown &quot;Choose a doctor&#39;s queue&quot;. A green toast &quot;Visit completed&quot; in the top-right corner is left over from finishing a consultation. This picker appears when the user holds <code>queue.doctor.any</code> but is not an employee at the location; after a doctor is chosen, the full doctor screen of Figure 30.2 opens for that doctor.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-doctor-screen.svg" alt="Figure 30.2 — Doctor screen"></p>
+<p><em>Figure 30.2 — The doctor screen, &quot;My queue&quot; (screenshot pending).</em></p>
+<p>The header reads &quot;My queue&quot; with the doctor&#39;s name and the service date. On the right are a &quot;Live&quot; or &quot;Reconnecting&quot; indicator, a badge &quot;Smart queue&quot; or &quot;First come, first served&quot;, the session status badge (&quot;Doctor not started&quot;, &quot;Open&quot;, &quot;Paused&quot;, &quot;Closed&quot;), and the session buttons: <strong>Start my queue</strong>, <strong>Pause</strong> or <strong>Resume</strong>, and <strong>Close day</strong> (disabled while a patient is with the doctor). The left column has a &quot;Current patient&quot; card showing the token in large type, the patient&#39;s name and phone, the status, the call time, the reason for visit and badges. For a called patient it offers <strong>Patient is here — start</strong>, <strong>Call again</strong>, <strong>Didn&#39;t come</strong> and <strong>Undo call</strong>. For a patient in consultation it offers <strong>Open consultation</strong>, <strong>Complete</strong>, <strong>Send for test</strong>, <strong>Transfer</strong> and <strong>Stop consultation</strong>. Under the card is a large <strong>Call next</strong> button that shows the token and reason it would pick (for example &quot;A-007 · Appointment due&quot;), and a &quot;completed today&quot; count. The right column is the &quot;Waiting&quot; list, in the order Call next would pick them, each with badges and a <strong>Select</strong> button; the suggested patient is highlighted with &quot;Suggested · reason&quot;. A small card lists patients &quot;At a test — reception returns them&quot; and &quot;Skipped — reception can rejoin them&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-reception-board.svg" alt="Figure 30.3 — Reception board, card view"></p>
+<p><em>Figure 30.3 — The reception queue board, card view (screenshot pending).</em></p>
+<p>The board sits under the Appointments page header. Its filter bar has a search box (&quot;Search token, name or phone…&quot;), a doctor filter, a <strong>Clear filters</strong> button with a count when filters are active, a &quot;Live&quot;/&quot;Reconnecting&quot; indicator, a badge with the location&#39;s default queue order, a card/list switch, a refresh button, a button that opens the waiting-room TV display in a new tab, and <strong>Walk-in</strong>. In card view each doctor has a lane: the doctor&#39;s name, the token pattern (&quot;Tokens A-xxx&quot;), the number waiting and the queue order; the session status badge (with the pause reason); and, for users who may reprioritise, a settings menu &quot;Today only&quot; with &quot;Switch to smart queue&quot; or &quot;Switch to first come, first served&quot;. The lane body shows &quot;With doctor&quot; (token, name, status, a <strong>Force complete</strong> button for admins when the consultation is running), the numbered waiting list in call order with badges (Emergency, Appointment 10:00 or Walk-in, Back from test, Transferred, minutes waited), an &quot;At a test&quot; group with <strong>Back from test</strong>, a &quot;Skipped — didn&#39;t come when called&quot; group with <strong>Rejoin</strong>, and a collapsible &quot;Done today (n)&quot;. Each patient has an action menu: <strong>Print ticket</strong>, <strong>Transfer to another doctor</strong>, <strong>Urgent priority</strong>, <strong>Remove from queue</strong>. A called patient also has <strong>Didn&#39;t come</strong>. At the bottom is &quot;Add walk-in for Dr. …&quot;. Loading, error (&quot;Could not load the queue&quot; with retry), empty (&quot;No doctors at this location yet&quot;) and &quot;No patients match your filters&quot; states are handled.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-reception-board-list.svg" alt="Figure 30.4 — Reception board, list view"></p>
+<p><em>Figure 30.4 — The reception queue board, list view (screenshot pending).</em></p>
+<p>The list view shows every patient of every lane in one table with the columns Token, Patient, Doctor, Status, Arrived, an optional Billing column (for users with <code>billing.desk.use</code>, showing the patient&#39;s outstanding balance and a bill action once the visit is completed) and the same per-patient actions as the card view.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-check-in-dialog.svg" alt="Figure 30.5 — Check in patient dialog"></p>
+<p><em>Figure 30.5 — The &quot;Check in patient&quot; dialog (screenshot pending).</em></p>
+<p>The dialog shows the patient, the doctor and the booked time. If the booking is marked emergency, a note says that the emergency flag does not move the patient ahead on its own and that urgent priority can be given in this dialog. A checkbox <strong>Give urgent priority?</strong> reveals a required reason box. The buttons are <strong>Cancel</strong> and <strong>Check in &amp; get token</strong>. If the server answers that the patient is too late, the title changes to &quot;Too late for the appointment&quot;, an amber box explains that the booking becomes a no-show and the patient joins the same doctor&#39;s queue as a walk-in with a new token, and the button becomes <strong>Convert to walk-in</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-walk-in-sheet.svg" alt="Figure 30.6 — Add walk-in sheet"></p>
+<p><em>Figure 30.6 — The &quot;Add walk-in&quot; side sheet (screenshot pending).</em></p>
+<p>The sheet slides in from the side with the title &quot;Add walk-in&quot; and the line &quot;The patient gets the next token in the chosen doctor&#39;s queue.&quot; Two tabs choose <strong>Existing patient</strong> (search by name or phone, pick from results) or <strong>New patient</strong> (Patient name and Phone). Then come <strong>Doctor</strong> (required), <strong>Reason for visit</strong>, an <strong>Urgent priority?</strong> checkbox and, when ticked, a required <strong>Urgent reason</strong>. The button <strong>Add to queue</strong> is disabled until the form is valid. If the patient already has a token in this doctor&#39;s queue, an alert says so and nothing is added. If the patient is in another doctor&#39;s queue today, an alert lists those tokens and asks whether to add the patient to this doctor&#39;s queue as well, with an &quot;add anyway&quot; action.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-tv-display.svg" alt="Figure 30.7 — Waiting-room TV display"></p>
+<p><em>Figure 30.7 — The public waiting-room TV display (screenshot pending).</em></p>
+<p>A full-screen dark page with no menus. The header shows the location name, &quot;Please wait for your token&quot; and a large clock (with &quot;Reconnecting…&quot; when the live connection is down). Each doctor with a queue today that is not closed gets a panel: &quot;Dr.&quot; and the doctor&#39;s name, a badge &quot;On a break&quot; (paused) or &quot;Starting soon&quot; (not started), &quot;Now serving&quot; with the token in very large type (pulsing green with &quot;Please go to the doctor&quot; while the patient is being called), &quot;Next&quot; with up to five tokens, and &quot;n waiting&quot;. If no doctor has an open queue it shows &quot;No doctors are seeing patients right now.&quot; No patient names appear anywhere.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch30-queue-settings.svg" alt="Figure 30.8 — Queue settings card"></p>
+<p><em>Figure 30.8 — The &quot;Queue settings&quot; card on the location settings page (screenshot pending).</em></p>
+<p>The card says whether the location currently uses its own settings, the organization default or the built-in defaults. It holds the <strong>Smart queue</strong> switch, minute fields for the early window, late grace, maximum late and walk-in starvation limit, &quot;Skipped patient rejoins&quot; (end of line, original position, or manual), &quot;Auto-skip after a call (seconds)&quot; (empty means off), the &quot;reason required for manual select&quot; switch, &quot;Service day starts at&quot; (HH:MM), and &quot;Save as&quot; (<strong>This location only</strong> or <strong>Organization default (all locations)</strong>). A <strong>Use organization default</strong> button removes the location override. The card can be edited only while the location is the active one; otherwise it says &quot;Switch to this location (top bar) to edit its queue settings.&quot;</p>
+<h2 id="ch30-queue-30-3-features">30.3 Features</h2>
+<p>Every change to the queue in this section goes through one service, <code>QueueOrchestrator</code>, and follows the same pattern, so it is described once here and referred to as &quot;the standard queue transaction&quot;. In one database transaction: set a 3-second lock timeout and the tenant context; claim the request&#39;s <code>Idempotency-Key</code> (a replay returns the saved response); lock the doctor&#39;s <code>queue_sessions</code> row (<code>SELECT … FOR UPDATE</code>); check the transition map; compare the client&#39;s <code>If-Match</code> version when sent; update the rows (each update bumps the entry&#39;s <code>version</code>); write one <code>queue_events</code> audit row and three <code>outbox</code> rows (rooms <code>session:&lt;id&gt;</code>, <code>location:&lt;id&gt;:board</code>, <code>location:&lt;id&gt;:display</code>) plus a <code>pg_notify</code>; store the response under the key; commit. &quot;Now&quot; is the database clock of that transaction. Partial unique indexes on <code>queue_entries</code> (one active entry per appointment, one active entry per patient per session, at most one patient with the doctor per session) are the last line of defence.</p>
+<h3 id="ch30-queue-30-3-1-open-a-doctor-39-s-queue-for-the-day">30.3.1 Open a doctor&#39;s queue for the day</h3>
+<p><strong>Status:</strong> [Implemented] — <code>POST /queue/sessions</code> has no web-app caller.</p>
+<p><strong>What it does.</strong> Makes sure a doctor has a queue session for today. A session is created automatically by the first check-in or walk-in, or when the doctor opens &quot;My queue&quot;. A new session is in the state &quot;Doctor not started&quot; (<code>waiting_for_doctor</code>): reception can already add patients.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>A doctor opens <strong>My Queue</strong> in the sidebar; the session is created if missing.</li>
+<li>A user who runs any doctor&#39;s queue without being a doctor at the location picks a doctor in &quot;Choose a doctor&#39;s queue&quot; (Figure 30.1).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> One session per doctor, per location, per clinic day. The clinic day follows the location&#39;s timezone and the &quot;service day starts at&quot; setting, so a night clinic can keep 01:30 on the previous day.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/my-session[?doctorId=]</code> (<code>DoctorQueueController.mySession</code>) and <code>POST /queue/sessions</code> (<code>QueueController.ensureSession</code>, <code>@AnyMember</code>) call <code>QueueOrchestrator.ensureTodaySession</code>, then return a snapshot (<code>QueueQueryService.snapshot</code>). <code>TokenEngine.ensureSession</code> inserts into <code>queue_sessions</code> with <code>ON CONFLICT ON CONSTRAINT uq_queue_session_doctor_day DO NOTHING</code>, so concurrent requests are safe. It copies the token prefix and the current <code>smart_queue_enabled</code> value into the session. The service date is <code>QueuePoliciesService.serviceDate</code> (location-local date of the time minus the cutoff). This path uses no idempotency key. Note that <code>GET /queue/my-session</code> writes a row, so it also works in read-only mode, where other writes are refused.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The doctor must be active and actively assigned to the location.</li>
+<li>Reception (<code>queue.checkin</code>) may open any doctor&#39;s session; a doctor only their own unless they hold <code>queue.doctor.any</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>GET /queue/my-session</code>: <code>queue.doctor.own</code> (with <code>queue.doctor.any</code> to name another doctor). <code>POST /queue/sessions</code>: any member, then <code>queue.checkin</code> or the right to run that session. Feature <code>appointments.core</code>. Default: Doctor (own), Admin (any); Receptionist and Assistant through check-in.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>, <code>queue_policies</code>, <code>locations</code>. Writes <code>queue_sessions</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>FORBIDDEN</code> &quot;You can only open your own queue (needs queue.doctor.any)&quot;; 404 <code>NOT_FOUND</code> &quot;Doctor profile for this user at this location not found&quot; (the doctor screen then shows &quot;You are not set up as a doctor at this location&quot;); 404 &quot;Doctor at this location not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/doctor-queue.controller.ts</code> · <code>QueueOrchestrator.ensureTodaySession</code>, <code>TokenEngine.ensureSession</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-2-start-pause-and-resume-the-queue">30.3.2 Start, pause and resume the queue</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> The doctor starts their queue when ready, can pause it with a reason (break, prayer) and resume it. While a queue is not open, nobody can be called, but reception can keep checking patients in.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>My Queue</strong>, click <strong>Start my queue</strong>.</li>
+<li>Click <strong>Pause</strong>, type a reason in &quot;Pause your queue&quot; and confirm <strong>Pause</strong>.</li>
+<li>Click <strong>Resume</strong> to continue.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The session moves between &quot;Doctor not started&quot;, &quot;Open&quot; and &quot;Paused&quot;. The pause reason is shown on the reception board, and the TV shows &quot;On a break&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/sessions/:id/start</code>, <code>/pause</code> (body <code>{ reason }</code>), <code>/resume</code> → <code>QueueOrchestrator.startSession</code> / <code>pauseSession</code> / <code>resumeSession</code> → <code>sessionChange</code>: lock the session, check the actor may run it, <code>assertSessionTransition</code>, update status (start sets <code>started_at</code> the first time; pause stores <code>pause_reason</code>; resume clears it), emit <code>SESSION_STARTED</code> / <code>SESSION_PAUSED</code> / <code>SESSION_RESUMED</code>. Standard queue transaction.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Start only from <code>waiting_for_doctor</code>; pause only from <code>open</code>; resume only from <code>paused</code>.</li>
+<li>A pause reason is required (1–500 characters).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> in one&#39;s own session, or <code>queue.doctor.any</code> for any session; feature <code>appointments.core</code>. Default: Doctor (own), Admin (any).</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_sessions</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The TV display and reception board update live.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;Cannot move a open session to open&quot;; 403 <code>FORBIDDEN</code> &quot;Only this queue&#39;s doctor can do that&quot;; 400 on a missing pause reason.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/queue-transitions.ts</code> · <code>QueueOrchestrator.sessionChange</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-3-close-the-day">30.3.3 Close the day</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Ends the doctor&#39;s queue for the day. Every patient still waiting, skipped or at a test must get a decision first: cancel, or (for waiting patients) transfer to another doctor.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Finish or undo the current patient (the <strong>Close day</strong> button is disabled while someone is with the doctor).</li>
+<li>Click <strong>Close day</strong>. The &quot;Close today&#39;s queue&quot; dialog lists each remaining patient with a choice: <strong>Cancel</strong> (the default) or &quot;Transfer → Dr. …&quot;.</li>
+<li>Confirm. A toast says &quot;Queue closed for today&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each remaining patient is removed or moved, then the session is closed and accepts no more patients that day. A background job also closes past days&#39; empty sessions on its own (30.3.25).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/sessions/:id/close</code> with <code>{ decisions: [{ entryId, action: &#39;cancel&#39; | &#39;transfer&#39;, toDoctorId? }] }</code> → <code>QueueOrchestrator.closeSession</code>: lock, check the actor, <code>assertSessionTransition(→ closed)</code>, <code>assertDoctorFree</code>, load remaining entries (waiting, skipped, on hold), refuse if any has no decision, then cancel (reason &quot;Session closed&quot;) or transfer each one (target session ensured for the same service date), set <code>status = closed</code>, <code>closed_at</code>, emit <code>SESSION_CLOSED</code>. Standard queue transaction; everything succeeds or nothing does.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Nobody may be called or in consultation.</li>
+<li>Every remaining entry needs a decision (up to 500 decisions).</li>
+<li>Only waiting entries can be transferred; skipped or at-test patients must be cancelled or brought back first.</li>
+<li>Cancelling a booked patient also closes the appointment as cancelled (<code>patient_left</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> in one&#39;s own session, or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_sessions</code>, <code>queue_entries</code>, <code>appointments</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> Cancelled booked patients become cancelled appointments; transferred patients appear in another doctor&#39;s lane with new tokens.</p>
+<p><strong>Error cases.</strong> 409 <code>DOCTOR_BUSY</code> &quot;The doctor already has a patient. Finish or undo that call first.&quot;; 422 <code>INVALID_TRANSITION</code> &quot;Decide (cancel or transfer) for every remaining patient before closing&quot; (with the undecided ids); 422 &quot;Entry … is skipped; only waiting patients can be transferred&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/dto/queue.dto.ts</code> · <code>QueueOrchestrator.closeSession</code> · <code>web-app/src/features/queue/components/CloseSessionDialog.tsx</code></p>
+<h3 id="ch30-queue-30-3-4-switch-between-smart-queue-and-first-come-first-served-for-today">30.3.4 Switch between smart queue and first come, first served for today</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the calling order of one doctor&#39;s session for today only, without touching the clinic&#39;s settings.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the reception board, open the settings icon of a doctor&#39;s lane (&quot;Queue options for Dr. …&quot;).</li>
+<li>Choose &quot;Switch to smart queue&quot; or &quot;Switch to first come, first served&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Each session copies the clinic&#39;s queue order when it is created. This switch changes only that copy.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/sessions/:id/mode</code> with <code>{ smartQueueEnabled }</code> → <code>QueueOrchestrator.setMode</code>: lock, update <code>smart_queue_enabled</code>, emit <code>MODE_CHANGED</code>. No change if already in that mode.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Not offered for closed sessions in the web app.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.entry.reprioritize</code>; feature <code>appointments.core</code>. Default: Admin only.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_sessions</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None beyond the call order.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> / <code>FORBIDDEN</code> &quot;You cannot change the queue order&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/doctor-queue.controller.ts</code> · <code>QueueOrchestrator.setMode</code> · <code>web-app/src/features/queue/components/QueueLaneCard.tsx</code></p>
+<h3 id="ch30-queue-30-3-5-doctor-wise-tokens">30.3.5 Doctor-wise tokens</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Gives each arriving patient a short number that belongs to one doctor&#39;s queue for one day, such as &quot;A-007&quot;. Tokens are never reused and have no gaps.</p>
+<p><strong>How the user does it.</strong> Automatic at check-in, walk-in, convert-to-walk-in and transfer. The token appears in the toast, on the ticket, on the board, on the doctor screen and on the TV.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each session keeps its own counter. The next token is the counter plus one. Because the counter lives in the same row that every change locks, two desks can never get the same number, and a failed check-in gives its number back.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>TokenEngine.nextToken</code> runs <code>UPDATE queue_sessions SET last_token_number = last_token_number + 1 … WHERE id = $1 AND status &lt;&gt; &#39;closed&#39; RETURNING last_token_number</code> inside the caller&#39;s transaction (no database sequence, so a rollback leaves no gap). <code>TokenEngine.format</code> gives prefix + &quot;-&quot; + the number padded to three digits (four digits after 999). The prefix is the doctor&#39;s <code>employee_org_location_assignments.token_prefix</code> at that location, otherwise the first letter of the doctor&#39;s name without a leading &quot;Dr.&quot;, upper-cased, letters and digits only, at most 6 characters, else &quot;T&quot;. It is copied into the session at creation. <code>queue_entries</code> has a unique constraint on (session, token number).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>A closed session issues no tokens.</li>
+<li>Two doctors whose names start with the same letter get the same prefix unless a prefix is set on their assignment.</li>
+</ul>
+<p><strong>Who can do it.</strong> Follows the arrival action (<code>queue.checkin</code>).</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>. Writes <code>queue_sessions.last_token_number</code>.</p>
+<p><strong>Effects on other modules.</strong> The token is shown on the appointment (list and detail) and in the patient&#39;s visit history.</p>
+<p><strong>Error cases.</strong> 422 <code>SESSION_NOT_OPEN</code> &quot;This queue is closed for the day&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/token-engine.service.ts</code> · <code>TokenEngine</code> · <code>web-app/src/features/queue/utils/printTicket.ts</code></p>
+<h3 id="ch30-queue-30-3-6-check-in-a-booked-patient">30.3.6 Check in a booked patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Turns a booking into a queue entry with a token when the patient arrives. The Appointments chapter (Chapter 29, feature &quot;Check a patient in&quot;) describes the screen steps; this feature covers the queue side.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Check in</strong> on a booking (list row menu or detail dialog).</li>
+<li>In &quot;Check in patient&quot; (Figure 30.5), optionally tick <strong>Give urgent priority?</strong> with a reason, and click <strong>Check in &amp; get token</strong>.</li>
+<li>If the patient is too late, click <strong>Convert to walk-in</strong> instead.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient joins the booked doctor&#39;s queue for today. A booked patient is not automatically first: the selection rules (30.3.8) decide when their scheduled time makes them &quot;due&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /appointments/:id/check-in</code> → <code>QueueOrchestrator.checkInAppointment</code>, standard queue transaction. It locks the appointment row; returns 409 <code>ALREADY_CHECKED_IN</code> (with the existing entry) if an active entry exists; refuses a <code>no_show</code> booking with <code>LATE_LIMIT_EXCEEDED</code>; checks the appointment transition; checks the booking&#39;s service date is today (<code>NOT_TODAY</code>); checks <code>isBeyondMaxLate(start, now, max_late_min)</code>; opens and locks the session (<code>waiting_for_doctor</code>, <code>open</code> or <code>paused</code> accept arrivals); <code>issueToken</code> inserts the entry (<code>queue_type = appointment</code>, <code>waiting</code>, <code>checked_in_at = sort_anchor_at = now</code>, reason for visit copied from the booking) and emits <code>CHECKED_IN</code> (plus <code>PRIORITY_SET</code> if urgent); sets the appointment <code>checked_in</code>. <code>POST /appointments/:id/convert-to-walk-in</code> → <code>QueueOrchestrator.convertToWalkIn</code> is the late variant (Chapter 29).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Booking must be scheduled or confirmed, for today&#39;s service date, and not more than <code>max_late_min</code> late (default 45).</li>
+<li>The session must not be closed.</li>
+<li>Urgent reason up to 500 characters; urgent priority sets <code>priority_class = authorized_urgent</code> and <code>urgent_since</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.checkin</code> (implies <code>queue.board.view</code>); feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Writes <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The appointment becomes <code>checked_in</code> and locked for editing.</p>
+<p><strong>Error cases.</strong> 409 <code>ALREADY_CHECKED_IN</code>; 422 <code>LATE_LIMIT_EXCEEDED</code> &quot;More than 45 minutes late — convert to a walk-in or reschedule&quot;; 422 <code>NOT_TODAY</code>; 422 <code>SESSION_NOT_OPEN</code>; 503 <code>LOCK_TIMEOUT</code> &quot;The queue is busy, please retry&quot; (the web app retries automatically).</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/engines/check-in-rules.ts</code> · <code>QueueOrchestrator.checkInAppointment</code>, <code>issueToken</code> · <code>web-app/src/features/queue/components/CheckInDialog.tsx</code></p>
+<h3 id="ch30-queue-30-3-7-register-a-walk-in">30.3.7 Register a walk-in</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds a patient without a booking to a chosen doctor&#39;s queue, creating the patient record on the spot if needed.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the reception board click <strong>Walk-in</strong> (or &quot;Add walk-in for Dr. …&quot; in a lane).</li>
+<li>In &quot;Add walk-in&quot; (Figure 30.6), choose <strong>Existing patient</strong> and search, or <strong>New patient</strong> and enter name and phone.</li>
+<li>Choose the <strong>Doctor</strong>, optionally a <strong>Reason for visit</strong> and <strong>Urgent priority?</strong> with a reason.</li>
+<li>Click <strong>Add to queue</strong>. A toast shows &quot;Token A-008 — patient name&quot; with <strong>Print ticket</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> If the patient already waits for the same doctor, nothing is added and their token is shown. If they wait for another doctor today, the desk is warned and must confirm. A new patient gets the next patient number.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /queue/walk-ins</code> → <code>QueueOrchestrator.registerWalkIn</code>, standard queue transaction. <code>assertDoctorAtLocation</code>; <code>resolvePatient</code> either loads the patient (same organization) or creates one: it takes a transaction-level advisory lock per organization, computes the next number as <code>P-</code> plus five digits, saves the patient with the active location as primary location, and writes a patient audit record. It ensures and locks today&#39;s session, refuses a duplicate active entry in that session (<code>ALREADY_CHECKED_IN</code>), and unless <code>force</code> is true refuses when the patient has active entries in other sessions at the location today (<code>ACTIVE_WITH_OTHER_DOCTOR</code>, listing tokens and doctors). Then <code>issueToken</code> with <code>queue_type = walk_in</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Doctor required. Either <code>patientId</code>, or name (up to 150 characters) and phone (up to 20; the form accepts digits, spaces, <code>+</code>, <code>-</code> and parentheses, 7–20 characters).</li>
+<li>Reason for visit and urgent reason up to 500 characters; an urgent walk-in needs a reason.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.checkin</code>; feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant.</p>
+<p><strong>Data read and written.</strong> Reads <code>patients</code>, <code>employee_org_location_assignments</code>. Writes <code>patients</code> (new patient), patient audit log, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> A new patient appears in Patients (Chapter 28). Walk-ins appear in the appointments list, the KPI strip and the reports.</p>
+<p><strong>Error cases.</strong> 409 <code>ALREADY_CHECKED_IN</code> (sheet: &quot;Already in this doctor&#39;s queue with token … Nothing was added.&quot;); 409 <code>ACTIVE_WITH_OTHER_DOCTOR</code> &quot;This patient is already in another doctor&#39;s queue today&quot;; 404 &quot;Patient not found&quot;; 404 &quot;Doctor at this location not found&quot;; 422 <code>SESSION_NOT_OPEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/queue.controller.ts</code> · <code>QueueOrchestrator.registerWalkIn</code>, <code>resolvePatient</code> · <code>web-app/src/features/queue/components/WalkInSheet.tsx</code></p>
+<h3 id="ch30-queue-30-3-8-call-the-next-patient-smart-and-first-come-rules">30.3.8 Call the next patient (smart and first-come rules)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> With one button, the doctor calls whoever should be seen next. The patient&#39;s token starts flashing on the TV.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>My Queue</strong>, with the queue open and nobody with the doctor, click <strong>Call next</strong>. The button already shows which token and why, for example &quot;(A-007 · Appointment due)&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A small rule engine looks at everyone waiting and picks one. It has two modes.</p>
+<p>In <strong>first come, first served</strong> mode: an urgent patient goes first (earliest urgent first); otherwise the patient with the earliest place in line goes first. The place in line is the arrival time, or the rejoin time after a &quot;rejoin at end&quot;.</p>
+<p>In <strong>smart</strong> mode the order is:</p>
+<ol>
+<li><strong>Emergency</strong> — an urgent patient, earliest first.</li>
+<li><strong>Waited too long</strong> (starvation guard) — if an appointment patient is about to overtake, and the patient who has waited longest in the ordinary line has waited at least the starvation limit (45 minutes by default), that patient goes first. The guard never fires twice in a row, so the due appointment goes right after.</li>
+<li><strong>Appointment due</strong> — a booked patient whose time has come: it is no earlier than 15 minutes (early window) before the booked time, and the patient arrived no later than 10 minutes (late grace) after it. Earliest booked time first.</li>
+<li><strong>Back from test</strong> — a patient returning from a test, earliest return first.</li>
+<li><strong>Next in line</strong> — everyone else (walk-ins, appointment patients who came very early, and those who arrived after the grace period) by place in line.</li>
+</ol>
+<p>Ties are broken by the lower token number. &quot;Due&quot; depends on the clock, so priority is recalculated at every call; it is never stored.</p>
+<p>The specification&#39;s 14 scenarios, each tested in both modes, show the effect. A 10:00 appointment who arrived at 9:58 is called at 10:01 before a walk-in waiting since 9:40 (smart), but after him in first-come mode. An appointment patient who arrived at 9:20 for 10:00 is not yet due at 9:35, so he queues by arrival. A walk-in who has waited 50 minutes is called before a due appointment; on the very next call the appointment goes. An appointment patient who arrives 25 minutes late has lost the priority and queues behind a walk-in who arrived at 10:15. A patient back from a test goes ahead of walk-ins in smart mode only. An urgent patient goes first in both modes. Two patients with the same time are ordered by token. With nobody waiting, nothing is called. Scenario 7 tests the separate check-in rule: a 10:00 patient arriving at 10:50 is beyond the 45-minute maximum and cannot check in.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-selection-flow.png" alt="Figure 30.9 — How Call next decides"></p>
+<p><em>Figure 30.9 — The selection engine&#39;s decision path.</em></p>
+<p>The flowchart starts at &quot;Call next&quot; and asks &quot;Smart queue on?&quot;. On &quot;No&quot;, it asks &quot;Anyone urgent?&quot;: yes leads to &quot;Earliest urgent, URGENT&quot;; no leads to &quot;Earliest place in line, FIFO&quot;. On &quot;Yes&quot;, it asks &quot;Anyone urgent?&quot;: yes leads to &quot;Earliest urgent, URGENT&quot;. Otherwise it asks whether an appointment is due and the oldest pool patient has waited past the starvation limit and the last call was not a guard call: yes leads to &quot;Oldest pool patient, STARVATION_GUARD&quot;. Otherwise &quot;Appointment due?&quot;: yes leads to &quot;Earliest scheduled time, APPOINTMENT_DUE&quot;. Otherwise &quot;Back from a test?&quot;: yes leads to &quot;Earliest return, RETURNED_FROM_TEST&quot;; no leads to &quot;Earliest place in line, FIFO&quot;. The capitalised words are the reason codes stored with each call and shown to the doctor as Emergency, Waited too long, Appointment due, Back from test and Next in line.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /queue/sessions/:id/call-next</code> → <code>QueueOrchestrator.callNext</code>, standard queue transaction: lock, check the actor, <code>assertOpen</code>, <code>assertDoctorFree</code>, load waiting entries, call the pure function <code>selectNext</code> (<code>engines/selection-engine.ts</code>) with the transaction&#39;s <code>now</code>, the session&#39;s mode, the policy&#39;s <code>early_window_min</code>, <code>late_grace_min</code>, <code>walkin_starvation_min</code> and the session&#39;s <code>last_call_reason</code>. It stores the new <code>last_call_reason</code>, moves the entry to <code>called</code> with <code>called_at</code>, and emits <code>CALLED</code> with the reason code. With nobody eligible it returns <code>entry: null</code> and reason <code>NO_ELIGIBLE_PATIENT</code> (&quot;No patient is waiting&quot;). The snapshot the screens load contains <code>waitingOrder</code> (the engine applied repeatedly) and <code>suggestion</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The session must be <code>open</code>; nobody may already be called or in consultation (also guaranteed by the index <code>one_patient_with_doctor</code>).</li>
+<li>Only <code>waiting</code> entries are candidates; skipped and at-test patients are not.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> in one&#39;s own session, or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_entries</code>, <code>appointments</code> (booked time), <code>queue_policies</code>. Writes <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The TV shows the called token; the board moves the patient to &quot;With doctor&quot;.</p>
+<p><strong>Error cases.</strong> 422 <code>SESSION_NOT_OPEN</code> &quot;The doctor has paused this queue&quot; / &quot;The doctor has not started this queue yet&quot;; 409 <code>DOCTOR_BUSY</code>; 403 <code>FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/engines/selection-engine.ts</code> (+ <code>selection-engine.spec.ts</code>) · <code>selectNext</code>, <code>QueueOrchestrator.callNext</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-9-select-a-specific-patient">30.3.9 Select a specific patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the doctor call a patient out of the engine&#39;s order. The engine&#39;s own suggestion is recorded next to the choice.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the &quot;Waiting&quot; list, click <strong>Select</strong> next to a patient.</li>
+<li>If the patient is not the suggestion (or a reason is required by settings), the dialog &quot;Call A-009 now?&quot; explains whom the queue would have called and accepts a reason; confirm <strong>Call this patient</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The chosen patient is called, and the queue history notes who the engine would have picked.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/select</code> with <code>{ reason? }</code> and <code>If-Match</code> → <code>QueueOrchestrator.selectPatient</code>: lock via the entry, <code>assertOpen</code>, <code>assertDoctorFree</code>, enforce <code>manual_select_reason_required</code>, compute the engine&#39;s suggestion, set <code>last_call_reason = MANUAL_SELECT</code>, transition <code>waiting → called</code>, emit <code>CALLED</code> with <code>MANUAL_SELECT</code>, the reason text and <code>suggested_entry_id</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>As Call next, plus a reason when the location requires one.</li>
+<li>The entry must still be at the version the screen showed.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> As Call next.</p>
+<p><strong>Effects on other modules.</strong> None beyond the queue.</p>
+<p><strong>Error cases.</strong> 400 <code>REASON_REQUIRED</code> &quot;A reason is required to select a patient out of order&quot;; 409 <code>VERSION_CONFLICT</code> &quot;This was changed by someone else. The latest state is shown.&quot;; 409 <code>DOCTOR_BUSY</code>; 422 <code>INVALID_TRANSITION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.selectPatient</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-10-call-again-recall">30.3.10 Call again (recall)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Announces a called patient once more without changing anything.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>With a called patient, click <strong>Call again</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Only a history entry and a live nudge are written, so screens refresh.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/recall</code> → <code>QueueOrchestrator.recall</code>: the entry must be <code>called</code>; emits <code>RECALLED</code> (from and to <code>called</code>). No If-Match.</p>
+<p><strong>Rules and validations.</strong> Only for a <code>called</code> entry.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_sessions.event_seq</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None. The TV has no sound or extra animation for a recall; it refreshes.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;Only a called patient can be recalled&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/doctor-queue.controller.ts</code> · <code>QueueOrchestrator.recall</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-11-undo-a-call">30.3.11 Undo a call</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Reverses a wrong call: the patient goes back to waiting in the same place.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>With a called patient, click <strong>Undo call</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient&#39;s place in line is unchanged, so they are not penalised.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/undo-call</code> with <code>If-Match</code> → <code>QueueOrchestrator.undoCall</code>: transition <code>called → waiting</code>, clear <code>called_at</code>, emit <code>CALL_UNDONE</code>. <code>sort_anchor_at</code> is untouched.</p>
+<p><strong>Rules and validations.</strong> Only from <code>called</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/queue-transitions.ts</code> · <code>QueueOrchestrator.undoCall</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-12-skip-a-patient-who-did-not-come">30.3.12 Skip a patient who did not come</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Marks a called patient who did not come to the room as skipped. They leave the waiting list until reception rejoins them. The skip can also happen automatically after a set number of seconds (30.3.25).</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>The doctor clicks <strong>Didn&#39;t come</strong> on the current patient, or reception clicks <strong>Didn&#39;t come</strong> in the lane.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient moves to the &quot;Skipped&quot; group, and the doctor is free to call the next one.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/skip</code> with <code>If-Match</code> (<code>@AnyMember</code>) → <code>QueueOrchestrator.skip</code>: <code>assertHandleEntry</code> (entry managers anywhere, doctors in their own session), transition <code>called → skipped</code>, set <code>skipped_at</code>, emit <code>SKIPPED</code> (reason code <code>CALL_TIMEOUT</code> when the job did it).</p>
+<p><strong>Rules and validations.</strong> Only from <code>called</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.entry.manage</code>, or the session&#39;s doctor (<code>queue.doctor.own</code> / <code>queue.doctor.any</code>); feature <code>appointments.core</code>. Default: Receptionist, Admin, Doctor (own session).</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>FORBIDDEN</code> &quot;Only reception or this queue&#39;s doctor can do that&quot;; 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/queue-actor.ts</code> · <code>QueueOrchestrator.skip</code>, <code>canHandleEntry</code> · <code>web-app/src/features/queue/components/QueueEntryActions.tsx</code></p>
+<h3 id="ch30-queue-30-3-13-rejoin-a-skipped-patient">30.3.13 Rejoin a skipped patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Puts a skipped patient back into the waiting list, at a place set by the clinic&#39;s &quot;Skipped patient rejoins&quot; setting.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the lane&#39;s &quot;Skipped&quot; group, click <strong>Rejoin</strong>.</li>
+<li>If the setting is &quot;manual&quot; and others are waiting, first pick &quot;Place after…&quot; a token, then click <strong>Rejoin</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> &quot;End&quot; puts the patient at the back of the line (default). &quot;Original position&quot; keeps their original arrival place. &quot;Manual&quot; places them right after a chosen patient.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/rejoin</code> with <code>{ placeAfterEntryId? }</code> and <code>If-Match</code> → <code>QueueOrchestrator.rejoin</code>: <code>assertManageEntries</code>; compute the new <code>sort_anchor_at</code> (now for <code>end</code>; unchanged for <code>original_position</code>; the chosen entry&#39;s anchor plus one millisecond for <code>manual</code>); transition to <code>waiting</code>, clear <code>called_at</code>, emit <code>REJOINED</code> with the policy as reason code. The transition map also allows this from <code>called</code> and <code>on_hold</code>, but the web app offers it only for skipped patients.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Manual policy needs <code>placeAfterEntryId</code> when anyone else is waiting; the target must be a waiting entry of the same session.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.entry.manage</code>; feature <code>appointments.core</code>. Default: Receptionist, Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_policies</code>. Writes <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;Choose where to place the patient (placeAfterEntryId)&quot;; 404 &quot;Waiting entry to place after not found&quot;; 403 <code>FORBIDDEN</code> &quot;You cannot manage queue entries&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/enums/queue.enums.ts</code> (<code>RejoinPolicy</code>) · <code>QueueOrchestrator.rejoin</code> · <code>web-app/src/features/queue/components/QueueEntryActions.tsx</code></p>
+<h3 id="ch30-queue-30-3-14-send-for-a-test-and-return-from-the-test">30.3.14 Send for a test and return from the test</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> During a consultation the doctor can send the patient for a test (an X-ray, a blood test). The patient keeps their token. When they come back, reception returns them to the waiting list, where in smart mode they go ahead of walk-ins.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Doctor: with the patient in consultation, click <strong>Send for test</strong>, enter the test (for example &quot;X-ray&quot;) and confirm <strong>Send for test</strong>.</li>
+<li>Reception: in the lane&#39;s &quot;At a test&quot; group, click <strong>Back from test</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The doctor becomes free for the next patient while this one is away. On return the patient waits again, with a &quot;Back from test&quot; badge.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/send-for-test</code> with <code>{ reason? }</code> → <code>QueueOrchestrator.sendForTest</code>: transition <code>in_consultation → on_hold</code>, set <code>hold_started_at</code>, emit <code>SENT_FOR_TEST</code>. <code>PATCH /queue/entries/:id/return-from-test</code> → <code>QueueOrchestrator.returnFromTest</code>: transition <code>on_hold → waiting</code>, set <code>returned_from_hold_at</code>, emit <code>RETURNED_FROM_TEST</code>. The selection engine uses <code>returned_from_hold_at</code> for the &quot;Back from test&quot; rule. The encounter stays open throughout.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Send only from <code>in_consultation</code>; return only from <code>on_hold</code>.</li>
+<li>The return action has no per-session check beyond <code>queue.checkin</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> Send: <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>. Return: <code>queue.checkin</code>. Feature <code>appointments.core</code>. Default: send — Doctor (own), Admin; return — Receptionist, Assistant, Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/queue.controller.ts</code> · <code>QueueOrchestrator.sendForTest</code>, <code>returnFromTest</code> · <code>web-app/src/features/queue/components/QueueEntryActions.tsx</code></p>
+<h3 id="ch30-queue-30-3-15-transfer-a-patient-to-another-doctor">30.3.15 Transfer a patient to another doctor</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Moves a waiting patient, or a patient in consultation, to another doctor&#39;s queue at the same location. The patient gets a new token there but keeps their original place in line by arrival time.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Reception: in a waiting patient&#39;s menu choose <strong>Transfer to another doctor</strong>. Doctor: with the patient in consultation click <strong>Transfer</strong>.</li>
+<li>Pick the doctor, add an optional reason, confirm. A toast shows &quot;Transferred — new token B-004&quot;.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The old entry is closed as &quot;transferred&quot; and a new entry is created in the other doctor&#39;s queue for the same day, carrying the booking link, the urgent flag and the arrival time.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/transfer</code> with <code>{ toDoctorId, reason? }</code> and <code>If-Match</code> (<code>@AnyMember</code>) → <code>QueueOrchestrator.transfer</code> → <code>transferEntry</code>: <code>assertHandleEntry</code>; refuse the same doctor; check the target doctor is at the location; ensure the target session for the same service date; lock both sessions in id order (avoids deadlocks); refuse a closed target; transition the old entry to <code>transferred</code> (<code>TRANSFERRED_OUT</code> with the target session); allocate a token in the target; insert a new entry with <code>transferred_from_id</code>, the same <code>appointment_id</code>, <code>converted_from_appt_id</code>, priority, urgent fields, reason, <code>checked_in_at</code> and <code>sort_anchor_at</code>; emit <code>CHECKED_IN</code> with reason code <code>TRANSFERRED_IN</code> in the target session.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>From <code>waiting</code> or <code>in_consultation</code> only (transition map). The web app offers it to reception for waiting patients and to the doctor for the patient in consultation.</li>
+<li>An encounter already started stays with the old entry; the new doctor&#39;s consultation starts a new encounter.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.entry.manage</code>, or the doctor of the entry&#39;s session; feature <code>appointments.core</code>. Default: Receptionist, Admin, Doctor (own session).</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_sessions</code> (both), <code>queue_entries</code> (old and new), <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> A booked appointment stays <code>checked_in</code> and follows the new entry.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;The patient is already in this doctor&#39;s queue&quot;; 404 &quot;Doctor at this location not found&quot;; 422 <code>SESSION_NOT_OPEN</code>; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.transfer</code>, <code>transferEntry</code> · <code>web-app/src/features/queue/components/TransferDialog.tsx</code></p>
+<h3 id="ch30-queue-30-3-16-give-urgent-priority">30.3.16 Give urgent priority</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Moves a patient ahead of everyone else waiting for the same doctor, for a stated reason (for example &quot;Severe bleeding&quot;). It works in both queue modes.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In a patient&#39;s menu choose <strong>Urgent priority</strong>, enter the reason and click <strong>Give urgent priority</strong>.</li>
+<li>Or tick <strong>Give urgent priority?</strong> / <strong>Urgent priority?</strong> at check-in or walk-in.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient gets an &quot;Emergency&quot; badge and is called first. Several urgent patients are called in the order they were made urgent.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/priority</code> with <code>{ reason }</code> and <code>If-Match</code> → <code>QueueOrchestrator.setPriority</code>: <code>assertReprioritize</code>; entry must be <code>waiting</code>, <code>skipped</code> or <code>on_hold</code>; set <code>priority_class = authorized_urgent</code>, keep an existing <code>urgent_since</code> or set it to now, set <code>urgent_reason</code>, bump the version, emit <code>PRIORITY_SET</code>. A database check requires <code>urgent_since</code> and <code>urgent_reason</code> whenever the class is urgent. There is no endpoint to remove urgent priority.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Reason required, up to 500 characters.</li>
+<li>At check-in and walk-in the urgent option needs only <code>queue.checkin</code>; on an existing entry it needs <code>queue.entry.reprioritize</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>queue.entry.reprioritize</code>; feature <code>appointments.core</code>. Default: Admin only.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code> &quot;Priority can only be given to a patient who is still waiting&quot;; 403 &quot;You cannot change the queue order&quot;; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/entities/queue-entry.entity.ts</code> · <code>QueueOrchestrator.setPriority</code> · <code>web-app/src/features/queue/components/QueueBoard.tsx</code></p>
+<h3 id="ch30-queue-30-3-17-start-the-consultation">30.3.17 Start the consultation</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Confirms the called patient is in the room, starts the consultation and creates the <strong>encounter</strong> (the clinical record of this visit). The web app then opens the consultation workspace.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>With a called patient, click <strong>Patient is here — start</strong>. The consultation workspace opens.</li>
+<li>Later, <strong>Open consultation</strong> returns to the workspace.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The clinical record begins only when the doctor actually starts, never at booking or check-in.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/start-consultation</code> with <code>If-Match</code> → <code>QueueOrchestrator.startConsultation</code>: transition <code>called → in_consultation</code>, set <code>consultation_started_at</code>, emit <code>CONSULTATION_STARTED</code>, then <code>EncountersService.ensureForQueueEntry</code> in the same transaction creates a <code>patient_encounters</code> row (unique per queue entry; copies <code>appointment_id</code>, patient, organization, location and reason) or returns the existing one. The response includes <code>encounterId</code>; the web app navigates to <code>/consultation/$encounterId</code>.</p>
+<p><strong>Rules and validations.</strong> Only from <code>called</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>patient_encounters</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> Opens the consultation workspace (Chapter 31). <code>consultation_started_at</code> feeds the &quot;Avg wait&quot; figure.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>; 403 <code>FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/encounters/encounters.service.ts</code> · <code>QueueOrchestrator.startConsultation</code>, <code>EncountersService.ensureForQueueEntry</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-18-complete-the-visit-and-bill-it-automatically">30.3.18 Complete the visit (and bill it automatically)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Ends the consultation. A booked appointment becomes completed, and the visit&#39;s charges (consultation fee and recorded treatments) are created for billing at the same moment.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the doctor screen click <strong>Complete</strong>, or press complete in the consultation workspace (the toast says &quot;Visit completed&quot; and the doctor returns to <strong>My Queue</strong>).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The patient leaves the queue as completed. The billing module receives a consultation charge and one charge per treatment recorded in the encounter, priced from the price list, with the doctor&#39;s commission noted. Nothing about money is sent back to the doctor&#39;s screen.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/complete</code> with <code>If-Match</code> → <code>QueueOrchestrator.complete</code>: transition <code>in_consultation → completed</code>, set <code>finished_at</code>, emit <code>COMPLETED</code>; if booked, update the appointment to <code>completed</code> with <code>completed_at</code>; then <code>ChargeSourcesService.syncForEncounter</code> inside the same transaction. That service does nothing if the <code>billing.invoices</code> feature is off or if no encounter exists. Otherwise it adds a consultation charge if none is active, adds a treatment charge for each treatment of the encounter not yet billed, snapshots the doctor&#39;s commission in force on the clinic date, voids unbilled charges whose treatment was removed, and writes billing audit rows. Inserts use <code>ON CONFLICT DO NOTHING</code>, so a repeat never duplicates charges. The Billing chapter (Chapter 34) and the Commissions chapter (Chapter 35) cover the details.</p>
+<p><strong>Rules and validations.</strong> Only from <code>in_consultation</code>; the actor must run this session.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code> (charges also need <code>billing.invoices</code>). Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>appointments</code>, <code>charges</code>, <code>billing_audit_logs</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>; reads <code>patient_encounters</code>, <code>treatments</code>, prices and compensation plans.</p>
+<p><strong>Effects on other modules.</strong> Charges appear on the billing desk and as outstanding balance; commission entries follow; the visit counts as completed in reports.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>; 403 <code>FORBIDDEN</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charge-sources.service.ts</code> · <code>QueueOrchestrator.complete</code>, <code>ChargeSourcesService.syncForEncounter</code> · <code>web-app/src/features/consultation/pages/ConsultationPage.tsx</code></p>
+<h3 id="ch30-queue-30-3-19-stop-a-consultation-abort">30.3.19 Stop a consultation (abort)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Ends a consultation without completing it, for example when the patient has to leave. A booked appointment is closed as cancelled.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Stop consultation</strong>, optionally enter a reason, confirm <strong>Stop consultation</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The visit ends as &quot;Stopped&quot;. No charges are created by this action.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/abort</code> with <code>{ reason? }</code> and <code>If-Match</code> → <code>QueueOrchestrator.abort</code>: transition <code>in_consultation → aborted</code>, set <code>finished_at</code>, emit <code>ABORTED</code>; if booked, <code>closeAppointment</code> sets the appointment (only if still <code>checked_in</code>) to <code>cancelled</code> with code <code>other</code> and the reason or &quot;Consultation aborted&quot;.</p>
+<p><strong>Rules and validations.</strong> Only from <code>in_consultation</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.own</code> (own session) or <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Doctor (own), Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>appointments</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The encounter remains but is not billed by this action.</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-orchestrator.service.ts</code> · <code>QueueOrchestrator.abort</code>, <code>closeAppointment</code> · <code>web-app/src/features/queue/pages/DoctorQueuePage.tsx</code></p>
+<h3 id="ch30-queue-30-3-20-remove-a-patient-from-the-queue-cancel">30.3.20 Remove a patient from the queue (cancel)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Removes a patient who left before being seen. Their token is never given to anyone else. A booked appointment is closed as cancelled with the reason &quot;patient left&quot;.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the patient&#39;s menu choose <strong>Remove from queue</strong>.</li>
+<li>In &quot;Remove A-007 from the queue?&quot; optionally enter a reason (for example &quot;Left without being seen&quot;) and click <strong>Remove from queue</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The entry ends as cancelled and moves to &quot;Done today&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/cancel</code> with <code>{ reason? }</code> and <code>If-Match</code> → <code>QueueOrchestrator.cancel</code> → <code>cancelEntry</code>: <code>assertManageEntries</code>, transition to <code>cancelled</code>, set <code>finished_at</code>, emit <code>CANCELLED</code>; if booked, <code>closeAppointment</code> with code <code>patient_left</code>.</p>
+<p><strong>Rules and validations.</strong> From <code>waiting</code>, <code>skipped</code> or <code>on_hold</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.entry.manage</code>; feature <code>appointments.core</code>. Default: Receptionist, Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>queue_entries</code>, <code>appointments</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> The appointment becomes cancelled (&quot;Left&quot; in the appointment&#39;s queue label).</p>
+<p><strong>Error cases.</strong> 422 <code>INVALID_TRANSITION</code>; 403 <code>FORBIDDEN</code> &quot;You cannot manage queue entries&quot;; 409 <code>VERSION_CONFLICT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/queue.controller.ts</code> · <code>QueueOrchestrator.cancel</code>, <code>cancelEntry</code> · <code>web-app/src/features/queue/components/QueueBoard.tsx</code></p>
+<h3 id="ch30-queue-30-3-21-force-complete-a-visit-for-the-doctor">30.3.21 Force-complete a visit for the doctor</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets an admin complete a consultation the doctor forgot to close. It has exactly the same effects as Complete, including automatic charges, and is recorded separately in the history.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the reception board, in the lane&#39;s &quot;With doctor&quot; box, click <strong>Force complete</strong>.</li>
+<li>Confirm &quot;Complete A-007 for the doctor?&quot; with <strong>Mark completed</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Same as Complete, done by someone else.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /queue/entries/:id/force-complete</code> → <code>QueueOrchestrator.complete(…, force = true)</code>: requires <code>anyDoctor</code>, emits <code>FORCE_COMPLETED</code>, otherwise identical to 30.3.18.</p>
+<p><strong>Rules and validations.</strong> Only from <code>in_consultation</code>.</p>
+<p><strong>Who can do it.</strong> <code>queue.doctor.any</code>; feature <code>appointments.core</code>. Default: Admin only.</p>
+<p><strong>Data read and written.</strong> As Complete.</p>
+<p><strong>Effects on other modules.</strong> As Complete.</p>
+<p><strong>Error cases.</strong> 403 &quot;Only staff who run any doctor&#39;s queue can do that&quot;; 422 <code>INVALID_TRANSITION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/queue.controller.ts</code> · <code>QueueOrchestrator.complete</code> · <code>web-app/src/features/queue/components/QueueBoard.tsx</code></p>
+<h3 id="ch30-queue-30-3-22-print-a-token-ticket">30.3.22 Print a token ticket</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Prints a small ticket for the patient: clinic name, location, the token in large type, the doctor, the date, the patient&#39;s name, &quot;Appointment 10:00&quot; or &quot;Walk-in&quot;, and roughly how many people are ahead.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Print ticket</strong> in the success toast after check-in or walk-in, in a patient&#39;s menu on the board, or in the appointment detail dialog.</li>
+<li>The browser&#39;s print dialog opens in a small pop-up window.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> &quot;People ahead&quot; is how many waiting patients the engine would call first right now; it can change.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/entries/:id/ticket</code> (<code>@AnyMember</code>, then <code>queue.board.view</code> or <code>queue.doctor.own</code>) → <code>QueueQueryService.ticket</code>, limited to the active location. <code>printQueueTicket</code> opens the pop-up synchronously (to pass pop-up blockers), escapes all text, and calls <code>window.print()</code>.</p>
+<p><strong>Rules and validations.</strong> Pop-ups must be allowed (&quot;Allow pop-ups to print the ticket&quot;).</p>
+<p><strong>Who can do it.</strong> <code>queue.board.view</code> or <code>queue.doctor.own</code>; feature <code>appointments.core</code>. Default: Admin, Receptionist, Assistant, Doctor.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_entries</code>, <code>queue_sessions</code>, <code>patients</code>, <code>appointments</code>, <code>organizations</code>, <code>locations</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Queue entry not found&quot;; toast &quot;Could not load the ticket&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-query.service.ts</code> · <code>QueueQueryService.ticket</code> · <code>web-app/src/features/queue/utils/printTicket.ts</code></p>
+<h3 id="ch30-queue-30-3-23-reception-board-doctor-screen-and-tv-display-reads">30.3.23 Reception board, doctor screen and TV display (reads)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Provides the three live views: all lanes for reception, one session for the doctor, and the anonymous TV state.</p>
+<p><strong>How the user does it.</strong> Open the <strong>Queue</strong> tab of Appointments, <strong>My Queue</strong>, or the TV button on the board (which opens <code>/display/&lt;location id&gt;</code> in a new tab, to be shown full-screen on a waiting-room screen).</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each screen loads a full picture once and refreshes it whenever the server says something changed. The TV page needs no login and shows only tokens, doctor names, statuses and counts.</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<ul>
+<li><code>GET /queue/sessions?date=</code> (<code>queue.board.view</code>) → <code>QueueQueryService.lanes</code>: one lane per active staff member assigned to the location, with that doctor&#39;s snapshot for the service date (null before the first arrival), plus the effective policy.</li>
+<li><code>GET /queue/sessions/:id</code> (<code>@AnyMember</code>; board viewers or the session&#39;s doctor) → <code>snapshot</code>: session view, all entries, <code>waitingOrder</code> and <code>suggestion</code> (null while someone is with the doctor).</li>
+<li><code>GET /queue/displays/:locationId/state</code> (<code>@Public</code>, listed in the public routes) → <code>displayState</code>: for an active location, its name, service date and, per session of the day, the doctor&#39;s name, session status, the token being served and its status, the next five tokens in engine order, and the waiting count. No patient data. Anyone who knows a location&#39;s id can read it.</li>
+<li><code>GET /queue/me</code> (<code>@AnyMember</code>) returns legacy role names and the employee id; the web app does not call it and uses <code>/me/access</code> instead.</li>
+</ul>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The web app hides buttons the user may not use (<code>useQueuePermissions</code>); the API enforces the same rules.</li>
+<li>The TV page hides closed sessions.</li>
+</ul>
+<p><strong>Who can do it.</strong> Board: <code>queue.board.view</code> (Admin, Receptionist, Assistant). Doctor screen: <code>queue.doctor.own</code> (Doctor, Admin through <code>queue.doctor.any</code>). TV: anyone, no login. Feature <code>appointments.core</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_sessions</code>, <code>queue_entries</code>, <code>patients</code>, <code>appointments</code>, <code>employees</code>, <code>employee_org_location_assignments</code>, <code>queue_policies</code>, <code>locations</code>.</p>
+<p><strong>Effects on other modules.</strong> The list view shows billing status from Billing for users with <code>billing.desk.use</code>.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code> &quot;You can&#39;t see this doctor&#39;s queue&quot;; 404 &quot;Location not found&quot; (TV shows &quot;Display not available for this location&quot;).</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/display.controller.ts</code> · <code>QueueQueryService.lanes</code>, <code>snapshot</code>, <code>displayState</code> · <code>web-app/src/features/queue/pages/DisplayPage.tsx</code></p>
+<h3 id="ch30-queue-30-3-24-live-updates-on-every-screen">30.3.24 Live updates on every screen</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Every change appears on the board, the doctor screen and the TV within about a second, without reloading. If the live connection drops, screens refresh every 10 seconds and show &quot;Reconnecting&quot;.</p>
+<p><strong>How the user does it.</strong> Nothing to do. The green &quot;Live&quot; or amber &quot;Reconnecting&quot; label shows the state.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each change writes small notes to an &quot;outbox&quot; table in the same transaction. A background process reads the outbox and broadcasts the notes to the screens that listen. A screen that receives a note newer than what it shows reloads its picture. Notes carry ids, statuses and tokens, never patient names.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-realtime-flow.png" alt="Figure 30.10 — How queue changes reach the screens"></p>
+<p><em>Figure 30.10 — The realtime path from a queue change to the screens.</em></p>
+<p>The flowchart runs top to bottom. &quot;QueueOrchestrator transaction&quot; writes &quot;INSERT outbox rows + pg_notify&quot; into the &quot;outbox table&quot;. The &quot;Outbox relay worker process&quot; picks rows up by &quot;LISTEN or 1 s poll&quot; and &quot;publish&quot;es them to a &quot;Redis channel&quot;. The &quot;Socket.IO gateway /realtime on each API&quot; instance &quot;subscribe&quot;s to that channel. A dotted arrow from the relay straight to the gateway is labelled &quot;single-process mode: direct call&quot;. The gateway sends to three rooms: &quot;session:id, doctor screen&quot;, &quot;location:id:board, reception board&quot; and &quot;location:id:display, TV, no login&quot;. All three lead to &quot;Screen refetches snapshot when seq is newer&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>QueueTx.emit</code> bumps <code>queue_sessions.event_seq</code>, inserts the <code>queue_events</code> row and three <code>outbox</code> rows, and calls <code>pg_notify(&#39;queue_outbox&#39;)</code>, all in one statement inside the transaction, so screens never see a change that rolled back. <code>OutboxRelayService</code> (worker role) drains unpublished rows in batches of 100 with <code>FOR UPDATE SKIP LOCKED</code>, publishes them, and stamps <code>published_at</code> only after publishing succeeded (at-least-once delivery). In <code>api</code> + <code>worker</code> deployments it publishes to Redis and <code>RedisRealtimeSubscriber</code> on every API instance relays to its sockets; the gateway refuses sockets while Redis or the worker heartbeat is missing, so clients fall back to polling. In the single-process <code>all</code> role it calls the gateway directly. <code>QueueGateway</code> (namespace <code>/realtime</code>) accepts a JWT in the handshake; <code>subscribe</code> to <code>session:</code> and <code>location:…:board</code> rooms requires access to that organization and location; <code>location:…:display</code> needs no login. Clients (<code>useQueueSocket</code>, <code>useQueueData</code>) compare <code>seq</code> with the snapshot&#39;s <code>eventSeq</code>, coalesce refetches (120 ms) and poll every 10 s while disconnected. The worker process must run as exactly one instance.</p>
+<p><strong>Rules and validations.</strong> Payloads never contain patient names.</p>
+<p><strong>Who can do it.</strong> Any signed-in member with access to the location (board and session rooms); anyone (display room).</p>
+<p><strong>Data read and written.</strong> Writes <code>outbox</code>, <code>queue_events</code>, <code>queue_sessions.event_seq</code>; the relay updates <code>outbox.published_at</code>.</p>
+<p><strong>Effects on other modules.</strong> The same gateway also carries <code>access.changed</code> to the room <code>org:&lt;id&gt;</code> (Chapter 57).</p>
+<p><strong>Error cases.</strong> Subscribe answers &quot;Sign in required for this room&quot;, &quot;No access to this room&quot; or &quot;Unknown room&quot;; the screen then stays on polling.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/realtime/outbox-relay.service.ts</code> · <code>OutboxRelayService</code>, <code>QueueGateway</code>, <code>QueueTx.emit</code> · <code>web-app/src/features/queue/hooks/useQueueSocket.ts</code></p>
+<h3 id="ch30-queue-30-3-25-safe-retries-and-stale-screens-idempotency-key-and-if-match">30.3.25 Safe retries and stale screens (Idempotency-Key and If-Match)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Protects against double clicks, lost network replies and two people acting on the same patient at once. A retried check-in returns the same token, never a second one; an action on a patient someone else has already moved is refused and the screen refreshes.</p>
+<p><strong>How the user does it.</strong> Nothing to do. On a conflict the screen shows a warning toast that someone else changed this patient, and reloads the latest state.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each button press carries a unique key; the server remembers the answer for that key for 24 hours. Each patient row carries a version number; the screen sends the version it saw, and the server refuses if it changed.</p>
+<p><strong>Behind the scenes — technically.</strong> Every queue mutation (except opening a session) requires an <code>Idempotency-Key</code> header (1–200 characters). The <code>@Idempotency</code> decorator hashes method, path and body. <code>claimIdempotencyKey</code> inserts <code>(organization_id, key, request_hash)</code> with <code>ON CONFLICT DO NOTHING</code>; a later request with the same key gets the saved response, a different body gets 422 <code>IDEMPOTENCY_KEY_REUSED</code>, and one still running gets 409 <code>REQUEST_IN_FLIGHT</code>. Entry actions accept <code>If-Match: &lt;version&gt;</code>; a mismatch gives 409 <code>VERSION_CONFLICT</code> with the current state. The web app (<code>queue.api.ts</code>) creates one key per user action and retries the same key up to 5 times on 503 <code>LOCK_TIMEOUT</code> or a lost connection. Database errors are mapped: lock timeout → <code>LOCK_TIMEOUT</code>; <code>one_patient_with_doctor</code> → <code>DOCTOR_BUSY</code>; <code>one_active_entry_per_appt</code> / <code>one_active_entry_per_patient</code> → <code>ALREADY_CHECKED_IN</code>.</p>
+<p><strong>Rules and validations.</strong> Keys are per organization and kept 24 hours.</p>
+<p><strong>Who can do it.</strong> Applies to everyone.</p>
+<p><strong>Data read and written.</strong> <code>idempotency_keys</code>; <code>version</code> columns on <code>queue_entries</code> and <code>queue_sessions</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 <code>IDEMPOTENCY_KEY_REQUIRED</code>; 422 <code>IDEMPOTENCY_KEY_REUSED</code>; 409 <code>REQUEST_IN_FLIGHT</code>; 409 <code>VERSION_CONFLICT</code>; 503 <code>LOCK_TIMEOUT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/decorators/queue-request.decorators.ts</code> · <code>Idempotency</code>, <code>IfMatch</code>, <code>QueueOrchestrator.mutate</code> · <code>web-app/src/features/queue/services/queue.api.ts</code></p>
+<h3 id="ch30-queue-30-3-26-background-jobs">30.3.26 Background jobs</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Four jobs keep the queue tidy without anyone pressing a button: marking no-shows, auto-skipping patients who do not answer a call, closing yesterday&#39;s empty queues, and nightly clean-up.</p>
+<p><strong>How the user does it.</strong> Nothing to do; they run in the worker process.</p>
+<p><strong>Behind the scenes — in simple terms.</strong></p>
+<ul>
+<li><strong>No-show marker</strong>, every 60 seconds: bookings still scheduled or confirmed whose start plus &quot;maximum late&quot; minutes has passed become no-shows.</li>
+<li><strong>Call timeout</strong>, every 15 seconds: if the location has &quot;Auto-skip after a call&quot; set, a patient called longer ago than that is skipped.</li>
+<li><strong>Day-end close</strong>, every 5 minutes: sessions from a past service day are closed if nobody is left in them. Sessions that still have patients are only logged as an alert and are never cancelled automatically.</li>
+<li><strong>Clean-up</strong>, every day at 03:15 server time: idempotency keys older than 24 hours and published outbox rows older than 7 days are deleted.</li>
+</ul>
+<p><strong>Behind the scenes — technically.</strong> <code>QueueJobsService</code> (<code>@Interval(&#39;queue-no-show-marker&#39;, 60_000)</code>, <code>@Interval(&#39;queue-call-timeout&#39;, 15_000)</code>, <code>@Interval(&#39;queue-session-day-end&#39;, 300_000)</code>, <code>@Cron(&#39;15 3 * * *&#39;, { name: &#39;queue-cleanup&#39; })</code>, no timezone option, so server time). Each run is skipped if the previous run of the same job in this process is still busy. The call-timeout job selects entries called more than 30 seconds ago, reads each location&#39;s <code>call_timeout_sec</code>, and calls <code>QueueOrchestrator.timeoutCall</code>, which runs <code>skip</code> as the system actor with the expected version, ignoring the case where the state already moved on. The day-end job compares each open session&#39;s date with the location&#39;s current service date and calls <code>closeIfEmpty</code> (event <code>SESSION_CLOSED</code>, reason <code>DAY_END</code>). The no-show marker writes with plain SQL (no queue event, no realtime message). Jobs that go through the orchestrator re-check state under the session lock, so a double run is harmless.</p>
+<p><strong>Rules and validations.</strong> <code>call_timeout_sec</code> is null (off) by default and at least 30 when set.</p>
+<p><strong>Who can do it.</strong> The system (actor label <code>system</code>).</p>
+<p><strong>Data read and written.</strong> <code>appointments</code>, <code>queue_entries</code>, <code>queue_sessions</code>, <code>queue_policies</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>.</p>
+<p><strong>Effects on other modules.</strong> No-shows change appointment status and figures (Chapter 29).</p>
+<p><strong>Error cases.</strong> Failures are logged (&quot;Queue job … failed&quot;) and retried at the next tick.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/jobs/queue-jobs.service.ts</code> · <code>QueueJobsService</code> · none (no screen)</p>
+<h3 id="ch30-queue-30-3-27-queue-settings-organization-default-and-location-override">30.3.27 Queue settings (organization default and location override)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets an admin set how queues behave: smart or first-come order, the early window, late grace, maximum lateness, the walk-in starvation limit, how skipped patients rejoin, auto-skip after a call, whether a manual select needs a reason, and when the service day starts. Settings can be saved for the whole organization or for one location.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the location&#39;s settings page (from the locations admin) and find the <strong>Queue settings</strong> card (Figure 30.8). Make that location the active one first.</li>
+<li>Change the values, choose <strong>Save as</strong> &quot;This location only&quot; or &quot;Organization default (all locations)&quot;, and save. The message says &quot;Queue settings saved — they apply from tomorrow&#39;s queues&quot;.</li>
+<li>To go back to the organization default, click <strong>Use organization default</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The location&#39;s own settings win; otherwise the organization default applies; otherwise the built-in defaults: first come, first served; early window 15 min; late grace 10 min; maximum late 45 min; starvation 45 min; rejoin at the end; auto-skip off; no reason required for select; day starts at 00:00.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/policies</code> (<code>@AnyMember</code>) → <code>QueuePoliciesService.getForLocation</code> (organization default, location override, effective values with <code>source</code>). <code>PATCH /queue/policies</code> with <code>UpdateQueuePolicyDto</code> (<code>scope</code>, optional <code>version</code> for optimistic locking) → <code>upsert</code>; a new location override starts from the currently effective values. <code>DELETE /queue/policies/location</code> → <code>removeOverride</code>. <code>getEffective</code> is cached for 60 seconds per location in each API process; saving clears the cache in that process only. Only <code>smart_queue_enabled</code> is copied into a session at creation; every other value is read live at each action, so those changes take effect within about a minute, not only from the next day as the message says.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Early window 0–240; late grace 0–240; maximum late 0–480 and at least the late grace; starvation 1–480; auto-skip empty or 30–3600 seconds; service day start &quot;HH:MM&quot;. The same limits are database checks.</li>
+<li>One organization default and at most one override per location (partial unique indexes).</li>
+</ul>
+<p><strong>Who can do it.</strong> Read: any member. Save and remove: <code>admin.settings.manage</code>; the page itself needs <code>admin.locations.manage</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads and writes <code>queue_policies</code>; reads <code>locations.timezone</code>.</p>
+<p><strong>Effects on other modules.</strong> <code>max_late_min</code> drives the appointment no-show marker and check-in (Chapter 29).</p>
+<p><strong>Error cases.</strong> 409 <code>VERSION_CONFLICT</code> (someone saved in between); 422 <code>INVALID_TRANSITION</code> &quot;max_late_min must be at least late_grace_min&quot;; 400 on out-of-range values.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-policies.service.ts</code> · <code>QueuePoliciesService</code>, <code>POLICY_DEFAULTS</code> · <code>web-app/src/features/queue/components/QueueSettingsSection.tsx</code></p>
+<h3 id="ch30-queue-30-3-28-patient-visit-history">30.3.28 Patient visit history</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists a patient&#39;s queue visits, booked and walk-in, newest first, with token, doctor, date and outcome, on the patient record.</p>
+<p><strong>How the user does it.</strong> Open a patient and look at the appointments and visits tab.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every queue entry of the patient in the organization, up to 200.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/patients/:patientId/visits</code> (<code>patients.view</code>) → <code>QueueQueryService.patientVisits</code>. It is organization-wide and does not apply the scope of <code>patients.view</code> to the visits.</p>
+<p><strong>Rules and validations.</strong> At most 200 rows.</p>
+<p><strong>Who can do it.</strong> <code>patients.view</code>; feature <code>patients.core</code>. Default: Admin, Receptionist, Assistant, Doctor.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_entries</code>, <code>queue_sessions</code>, <code>employees</code>, <code>appointments</code>.</p>
+<p><strong>Effects on other modules.</strong> Shown in Patients (Chapter 28).</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/services/queue-query.service.ts</code> · <code>QueueQueryService.patientVisits</code> · <code>web-app/src/features/patients/components/tabs/AppointmentsTab.tsx</code></p>
+<h3 id="ch30-queue-30-3-29-next-patient-preview">30.3.29 Next-patient preview</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen calls it.</p>
+<p><strong>What it does.</strong> Returns whom Call next would pick right now and the full waiting order, without reserving anyone.</p>
+<p><strong>How the user does it.</strong> Not from a screen. The doctor screen shows the same suggestion from its snapshot instead.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> A read-only question to the selection engine.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/sessions/:id/next-preview</code> (<code>@AnyMember</code>; board viewers or the session&#39;s doctor) → snapshot&#39;s <code>suggestion</code>, <code>waitingOrder</code> and <code>eventSeq</code>.</p>
+<p><strong>Rules and validations.</strong> The suggestion is empty while someone is with the doctor.</p>
+<p><strong>Who can do it.</strong> <code>queue.board.view</code>, or the right to run that session; feature <code>appointments.core</code>.</p>
+<p><strong>Data read and written.</strong> Reads the session&#39;s entries and policy.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>; 404 &quot;Queue session not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/controllers/queue.controller.ts</code> · <code>QueueController.nextPreview</code> · no web-app caller</p>
+<h3 id="ch30-queue-30-3-30-queue-history-events-log">30.3.30 Queue history (events log)</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no screen shows it.</p>
+<p><strong>What it does.</strong> Returns the complete, append-only history of one session: every check-in, call (with the engine&#39;s reason and, for manual selects, its suggestion), skip, transfer, priority change, mode change, pause and close, with actor and time.</p>
+<p><strong>How the user does it.</strong> Not from a screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Every queue change writes one history row in the same transaction; rows are never edited.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /queue/sessions/:id/events?afterSeq=</code> (<code>admin.audit.view</code>) → <code>QueueQueryService.events</code>, ordered by <code>seq</code>. Rows hold <code>event_type</code>, <code>from_status</code>, <code>to_status</code>, <code>reason_code</code>, <code>reason_text</code>, <code>suggested_entry_id</code>, <code>actor_id</code>, <code>actor_role</code> (owner, super_admin, the role template keys, or <code>system</code>), <code>metadata</code> and <code>occurred_at</code>.</p>
+<p><strong>Rules and validations.</strong> Limited to the active location.</p>
+<p><strong>Who can do it.</strong> <code>admin.audit.view</code>; feature core. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>queue_events</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Queue session not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/queue/entities/queue-event.entity.ts</code> · <code>QueueQueryService.events</code> · no web-app caller</p>
+<h3 id="ch30-queue-30-3-31-manage-the-tv-display">30.3.31 Manage the TV display</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing. The permission <code>queue.display.manage</code> (&quot;Manage TV display&quot;) exists in the catalog and in the Receptionist template, but no endpoint or screen checks it. The TV display has no settings.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Any screen can show <code>/display/&lt;location id&gt;</code> without setup.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>queue.display.manage</code> appears only in <code>permissions.ts</code>, <code>templates.ts</code> and the catalog test.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/catalog/permissions.ts</code> · <code>queue.display.manage</code> · none</p>
+<h2 id="ch30-queue-30-4-entities-and-data-model">30.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-queue-erd.png" alt="Figure 30.11 — Queue data model"></p>
+<p><em>Figure 30.11 — The queue tables and their links. Dotted lines are logical links without a foreign key.</em></p>
+<p>The diagram centres on <code>queue_sessions</code> (<code>id</code>, <code>doctor_id</code>, <code>location_id</code>, <code>service_date</code>, <code>status</code>, <code>last_token_number</code>, <code>token_prefix</code>, <code>smart_queue_enabled</code>, <code>event_seq</code>). Solid lines: <code>employees</code> &quot;runs&quot; sessions; a session &quot;contains&quot; <code>queue_entries</code> (<code>id</code>, <code>queue_session_id</code>, <code>patient_id</code>, <code>appointment_id</code>, <code>token_number</code>, <code>queue_type</code>, <code>status</code>, <code>priority_class</code>, <code>sort_anchor_at</code>, <code>version</code>); <code>patients</code> &quot;waits as&quot; entries; <code>appointments</code> &quot;arrives as&quot; entries; an entry &quot;starts&quot; at most one <code>patient_encounters</code> row. Dotted lines: a session &quot;logs&quot; <code>queue_events</code>, and an entry is what an event is &quot;about&quot;; <code>queue_policies</code> are &quot;settings for&quot; sessions; <code>employee_org_location_assignments</code> supply the &quot;token prefix for&quot; sessions. Two tables stand alone, with no links: <code>outbox</code> (<code>id</code>, <code>organization_id</code>, <code>topic</code>, <code>published_at</code>) and <code>idempotency_keys</code> (<code>organization_id</code> and <code>key</code> as the composite key, <code>request_hash</code>, <code>response_body</code>).</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each queue session belongs to exactly one doctor (an employee). A doctor with sessions cannot be deleted (ON DELETE RESTRICT). There is one session per organization, location, doctor and service date (unique <code>uq_queue_session_doctor_day</code>). The session&#39;s <code>organization_id</code> and <code>location_id</code> have no foreign key.</li>
+<li>Each queue entry belongs to exactly one session; a session with entries cannot be deleted (RESTRICT). Token numbers are unique per session.</li>
+<li>Each entry belongs to one patient; deleting the patient deletes the entries (CASCADE).</li>
+<li>A booked entry points to its appointment, and a check constraint says <code>queue_type = &#39;appointment&#39;</code> exactly when <code>appointment_id</code> is set. Deleting the appointment deletes the entry (CASCADE). At most one active entry per appointment and per patient per session, and at most one entry with the doctor per session (partial unique indexes).</li>
+<li><code>converted_from_appt_id</code> (walk-in made from a late booking) and <code>transferred_from_id</code> (the entry a transfer replaced) are logical links without foreign keys.</li>
+<li>Each entry has at most one encounter (<code>patient_encounters.queue_entry_id</code> is unique); deleting the entry deletes the encounter (CASCADE).</li>
+<li><code>queue_events</code> rows refer to a session and optionally an entry by id only, with <code>seq</code> unique per session. They are append-only.</li>
+<li><code>queue_policies</code>: one row with <code>location_id</code> NULL per organization (the default) and at most one row per location (the override). No foreign keys.</li>
+<li><code>outbox</code> rows are realtime messages addressed to a room (<code>topic</code>); <code>idempotency_keys</code> store the saved response per organization and key. Neither has foreign keys.</li>
+</ul>
+<p>These tables come from the entities (TypeORM synchronize in development, a reviewed schema sync in production); none of the three migration files concerns the queue. The queue transaction sets <code>app.organization_id</code> and <code>app.location_id</code> for row-level security, but no row-level security policies exist, so tenant isolation is enforced in application code.</p>
+<h2 id="ch30-queue-30-5-status-lifecycles">30.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-session-lifecycle.png" alt="Figure 30.12 — Queue session lifecycle"></p>
+<p><em>Figure 30.12 — The queue session lifecycle from <code>SESSION_TRANSITIONS</code>.</em></p>
+<p>The diagram has four states. A session is created in <code>waiting_for_doctor</code> by the first check-in or walk-in, or when the doctor opens My queue. &quot;PATCH start&quot; leads to <code>open</code>. From <code>open</code>, &quot;PATCH pause with reason&quot; leads to <code>paused</code>, and &quot;PATCH resume&quot; leads back to <code>open</code>. From each of <code>waiting_for_doctor</code>, <code>open</code> and <code>paused</code>, &quot;PATCH close or day-end job&quot; leads to <code>closed</code>, the final state.</p>
+<ul>
+<li><strong>waiting_for_doctor</strong> (&quot;Doctor not started&quot;): patients can arrive and get tokens; nobody can be called. The TV shows &quot;Starting soon&quot;.</li>
+<li><strong>open</strong>: the doctor can call, select and consult.</li>
+<li><strong>paused</strong>: arrivals continue; calls are blocked; the TV shows &quot;On a break&quot; and the board shows the reason.</li>
+<li><strong>closed</strong>: no arrivals, no tokens, no calls. Closing by hand needs a decision for each remaining patient; the day-end job closes only empty sessions of past days.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-entry-lifecycle.png" alt="Figure 30.13 — Queue entry lifecycle"></p>
+<p><em>Figure 30.13 — The queue entry lifecycle from <code>ENTRY_TRANSITIONS</code>.</em></p>
+<p>The diagram has nine states. Entries start in <code>waiting</code> through check-in, walk-in, convert-to-walk-in or &quot;transfer in&quot;. From <code>waiting</code>: &quot;call-next or select&quot; to <code>called</code>; &quot;cancel or close day&quot; to <code>cancelled</code>; &quot;transfer or close day&quot; to <code>transferred</code>. From <code>called</code>: &quot;undo-call&quot; back to <code>waiting</code>; &quot;skip or call-timeout job&quot; to <code>skipped</code>; &quot;start-consultation&quot; to <code>in_consultation</code>. From <code>skipped</code>: &quot;rejoin&quot; back to <code>waiting</code>; &quot;cancel or close day&quot; to <code>cancelled</code>. From <code>in_consultation</code>: &quot;send-for-test&quot; to <code>on_hold</code>; &quot;complete or force-complete&quot; to <code>completed</code>; &quot;abort&quot; to <code>aborted</code>; &quot;transfer&quot; to <code>transferred</code>. From <code>on_hold</code>: &quot;return-from-test&quot; back to <code>waiting</code>; &quot;cancel or close day&quot; to <code>cancelled</code>. <code>completed</code>, <code>aborted</code>, <code>cancelled</code> and <code>transferred</code> are final.</p>
+<ul>
+<li><strong>waiting</strong> (&quot;Waiting&quot;): in line; the only state the engine picks from.</li>
+<li><strong>called</strong> (&quot;Called&quot;): the doctor called the token; it flashes on the TV. At most one entry per session is called or in consultation.</li>
+<li><strong>skipped</strong> (&quot;Skipped&quot;): did not come when called; waits for reception to rejoin or remove.</li>
+<li><strong>in_consultation</strong> (&quot;In room&quot;): with the doctor; the encounter exists.</li>
+<li><strong>on_hold</strong> (&quot;At test&quot;): sent for a test; keeps the token; the doctor is free.</li>
+<li><strong>completed</strong>: visit finished; the appointment is completed and charges are created.</li>
+<li><strong>aborted</strong> (&quot;Stopped&quot;): consultation stopped; the appointment is cancelled with code <code>other</code>.</li>
+<li><strong>cancelled</strong>: patient left or the day was closed; the appointment is cancelled with code <code>patient_left</code>.</li>
+<li><strong>transferred</strong>: replaced by a new entry in another doctor&#39;s queue.</li>
+</ul>
+<p>Any other change is refused with 422 <code>INVALID_TRANSITION</code>. The map also allows rejoin from <code>called</code> and <code>on_hold</code>, which the web app does not offer.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch30-visit-sequence.png" alt="Figure 30.14 — One visit from check-in to completion"></p>
+<p><em>Figure 30.14 — Check-in, call, consultation and completion of one booked patient.</em></p>
+<p>The sequence has seven participants: Receptionist, Doctor, Web app, API, QueueOrchestrator, PostgreSQL and Outbox relay, and 22 numbered steps. Steps 1–5: the receptionist clicks &quot;Check in &amp; get token&quot;; the web app sends <code>PATCH /appointments/:id/check-in</code> with an Idempotency-Key; the API calls <code>checkInAppointment</code>; the orchestrator locks the session, takes the next token, inserts the entry as waiting, sets the appointment to checked_in and writes the event and outbox rows; the web app receives token A-007. Steps 6–7: after commit PostgreSQL notifies the relay, which sends <code>queue.event</code> to the board and session rooms, and the screens refetch. Steps 8–12: the doctor clicks &quot;Call next&quot;; the web app sends <code>POST /queue/sessions/:id/call-next</code>; the orchestrator lets the SelectionEngine pick, sets the entry to called and writes the event and outbox; the screen shows &quot;Calling A-007&quot; and the TV shows the token. Steps 13–17: the doctor clicks &quot;Patient is here, start&quot;; the web app sends <code>PATCH /queue/entries/:id/start-consultation</code> with If-Match; the orchestrator sets the entry to in_consultation and creates the <code>patient_encounters</code> row; the encounter id comes back and the web app opens the consultation workspace. Steps 18–22: the doctor clicks &quot;Complete&quot;; the web app sends <code>PATCH /queue/entries/:id/complete</code> with If-Match; the orchestrator sets the entry and the appointment to completed and creates the charges through ChargeSourcesService; the screen shows &quot;Visit completed&quot;.</p>
+<h2 id="ch30-queue-30-6-connections-to-other-modules">30.6 Connections to other modules</h2>
+<ul>
+<li><strong>Appointments (Chapter 29).</strong> Check-in and convert-to-walk-in start here; the queue sets the appointment to completed or cancelled; the no-show marker and <code>max_late_min</code> live here.</li>
+<li><strong>Patients (Chapter 28).</strong> Walk-ins can create patients; the patient record shows visits; a doctor&#39;s <code>own</code> patient scope includes patients with a queue visit with that doctor.</li>
+<li><strong>Consultation (Chapter 31).</strong> Start consultation creates the encounter and opens the workspace; the workspace&#39;s complete button calls the queue&#39;s complete.</li>
+<li><strong>Billing and Commissions (Chapters 34 and 35).</strong> Completion creates charges and commission snapshots through <code>ChargeSourcesService</code>; the board&#39;s list view shows outstanding balances.</li>
+<li><strong>Employees (Chapter 37).</strong> Doctors and token prefixes come from assignments.</li>
+<li><strong>Access control (Chapter 57).</strong> All permissions are queue permissions of feature <code>appointments.core</code>; the realtime gateway also carries <code>access.changed</code>.</li>
+<li><strong>Realtime and jobs (Chapter 63).</strong> The outbox relay, Redis bus and jobs run in the single worker process.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> In read-only mode queue writes are refused with 402 <code>SUBSCRIPTION_EXPIRED</code>; opening &quot;My queue&quot; still works because it is a GET.</li>
+</ul>
+<h2 id="ch30-queue-30-7-limitations-and-known-gaps">30.7 Limitations and known gaps</h2>
+<ul>
+<li>Next-patient preview and the queue history log have no screen.</li>
+<li><code>queue.display.manage</code> is never checked; the TV display has no management.</li>
+<li>The TV state is public for any active location id and shows doctor names and tokens.</li>
+<li>Lanes, doctor pickers and transfer targets list every active staff member at the location, not only doctors.</li>
+<li>Urgent priority cannot be removed once set.</li>
+<li>The settings message says changes apply from tomorrow, but only the smart/FIFO choice is fixed per session; other values apply within about a minute (per-process 60-second cache).</li>
+<li>No row-level security policies exist, despite the tenant settings the transaction prepares.</li>
+<li>The no-show marker writes no queue event or realtime message.</li>
+<li><code>GET /queue/me</code> and <code>POST /queue/sessions</code> have no web-app caller.</li>
+<li>Sound announcements, SMS or WhatsApp calls, and waiting-time estimates are not implemented.</li>
+</ul>
+<h2 id="ch30-queue-30-8-owner-39-s-faq">30.8 Owner&#39;s FAQ</h2>
+<p><strong>Can two receptionists give out the same token?</strong> No. Tokens come from a counter in the locked session row; a failed check-in rolls the counter back, so there are no gaps and no duplicates.</p>
+<p><strong>What if the network drops right after &quot;Check in &amp; get token&quot;?</strong> The web app retries with the same Idempotency-Key and receives the same token. No second entry is created.</p>
+<p><strong>Does a booked patient always go before walk-ins?</strong> Only in smart mode and only when &quot;due&quot; (from 15 minutes before to 10 minutes after the booked time). A walk-in who has waited 45 minutes is called first once. In first-come mode, arrival order decides.</p>
+<p><strong>Can a receptionist call patients?</strong> Not with the default role. Calling and consulting need <code>queue.doctor.own</code> (own queue) or <code>queue.doctor.any</code> (Admin).</p>
+<p><strong>What happens to patients still waiting when the doctor leaves?</strong> The doctor must cancel or transfer each one to close the day. If nobody closes the day, the session stays open and the day-end job only logs an alert.</p>
+<p><strong>Can I see who skipped or reordered a patient?</strong> Yes in the database: every change is in <code>queue_events</code> with actor and reason. There is an API for it (<code>admin.audit.view</code>) but no screen yet.</p>
+<p><strong>Does the TV show patient names?</strong> No. Only tokens, doctor names, session status and counts.</p>
+<p><strong>Where are queue settings stored?</strong> In <code>queue_policies</code>: one organization default row and optional per-location override rows.</p>
+<p><strong>What does &quot;Complete&quot; do to billing?</strong> It creates the consultation and treatment charges in the same transaction, if the billing feature is enabled and an encounter exists.</p>
+</section></body></html>

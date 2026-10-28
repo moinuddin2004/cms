@@ -1,0 +1,4 @@
+- **Notification event** — named occurrence such as `order.submitted`.
+- **Audience** — patient, doctor, coordinator or lab.
+- **Quiet hours** — per audience window holding external messages.
+- **Outbox row** — `notification_outbox` record, one per person and channel.

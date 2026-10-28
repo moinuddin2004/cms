@@ -1,0 +1,49 @@
+erDiagram
+    employees ||--o{ employee_org_location_assignments : "works as"
+    organizations ||--o{ employee_org_location_assignments : employs
+    locations ||--o{ employee_org_location_assignments : "is staffed by"
+    employment_roles |o--o{ employee_org_location_assignments : "role of"
+    users |o--o{ employee_org_location_assignments : "staff login"
+    employees ||--o{ employee_schedules : "weekly hours"
+    employees ||--o{ doctor_availability_overrides : "day exceptions"
+    employees ||--o{ employee_leaves : takes
+    employee_org_location_assignments ||--o{ compensation_plans : "is paid by"
+    employees {
+        uuid id PK
+        varchar full_name
+        varchar phone UK
+        varchar cnic UK
+    }
+    employee_org_location_assignments {
+        uuid id PK
+        uuid employee_id FK
+        uuid organization_id FK
+        uuid location_id FK
+        uuid employment_role_id FK
+        uuid user_id FK
+        varchar employee_code
+        bool has_portal_access
+        bool is_active
+    }
+    employee_schedules {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        int day_of_week
+        bool is_working
+    }
+    doctor_availability_overrides {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        date date
+        bool is_available
+    }
+    employee_leaves {
+        uuid id PK
+        uuid employee_id FK
+        uuid location_id FK
+        enum leave_type
+        enum status
+        int total_days
+    }

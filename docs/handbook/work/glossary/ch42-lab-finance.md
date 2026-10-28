@@ -1,0 +1,8 @@
+- **Estimate** — a lab invoice in status draft: editable, no number, nothing owed (`lab_invoices.status = draft`).
+- **Credit note (lab)** — a reduction of an issued lab invoice; money already paid above the new total goes back to advance (`lab_credit_notes`).
+- **Advance (lab)** — a patient's unallocated lab payment money; `amount − allocated − refunded`.
+- **Payment reversal** — a mirror payment row with negative amount and `reversal_of_id`.
+- **Lab payable** — what the clinic owes a lab; journal account `LAB_PAYABLE`.
+- **Lab advance** — money paid to a lab but not yet allocated to bills; account `LAB_ADVANCES`.
+- **Missing in statement** — a clinic bill the lab's statement did not list (`missing_in_statement`).
+- **Case profit** — revenue − lab cost − case expenses − doctor commission per lab order.

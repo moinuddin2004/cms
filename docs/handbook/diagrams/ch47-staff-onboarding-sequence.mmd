@@ -1,0 +1,26 @@
+sequenceDiagram
+  participant Admin
+  participant Staff as Staff member
+  participant Web as Web app
+  participant API
+  participant PG as PostgreSQL
+  Admin->>Web: Employees, Add Employee, role, joining date, salary
+  Web->>API: POST /employees
+  API->>PG: refuse if the phone exists anywhere on the Platform
+  API->>PG: insert employee, EMP code, assignment with role, first compensation plan version
+  PG-->>API: access_version raised after commit
+  API-->>Web: Employee created
+  Admin->>Web: User Admin, Create User, Staff existing employee
+  Web->>API: POST /user with type employee
+  API->>PG: login limit check, user created, linked to every active assignment, portal access on
+  Admin->>Web: Schedule tab, Save
+  Web->>API: POST /employees/:employeeId/schedule
+  API->>PG: seven employee_schedules rows for this location
+  Admin->>Web: Compensation tab, Save version
+  Web->>API: POST /assignments/:assignmentId/compensation-plans
+  API->>PG: close the old version, insert the new one
+  Staff->>Web: Sign in with email and password
+  Web->>API: POST /auth/login, then POST /auth/select-location when asked
+  API-->>Web: access token and refresh cookie
+  Web->>API: GET /me/access
+  API-->>Web: permissions, features, home page

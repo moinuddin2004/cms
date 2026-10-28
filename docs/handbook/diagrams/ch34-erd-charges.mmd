@@ -1,0 +1,69 @@
+erDiagram
+  services ||--o{ service_prices : "overridden by"
+  employees |o--o{ service_prices : "doctor price"
+  patients ||--o{ charges : "is billed"
+  employees |o--o{ charges : "doctor of"
+  invoices |o--o{ charges : "groups"
+  discount_types |o..o{ charges : "snapshot, no FK"
+  services |o..o{ charges : "service_id, no FK"
+  patients ||--o{ invoices : "owes"
+  location_billing_settings |o..o| payment_accounts : "default account"
+  document_sequences }o..o{ invoices : "numbers"
+  services {
+    uuid id PK
+    uuid organization_id
+    varchar name "unique per org"
+    enum kind
+    numeric default_price
+  }
+  service_prices {
+    uuid id PK
+    uuid service_id FK
+    uuid location_id
+    uuid doctor_id FK "null = all doctors"
+    numeric price
+  }
+  charges {
+    uuid id PK
+    uuid patient_id FK
+    uuid invoice_id FK
+    enum source
+    uuid source_id
+    numeric net_amount
+    numeric tax_amount
+    enum status
+  }
+  invoices {
+    uuid id PK
+    uuid patient_id FK
+    varchar invoice_number
+    enum status
+    int revision
+    numeric tax_rate
+    date due_date
+  }
+  discount_types {
+    uuid id PK
+    varchar name
+    enum kind
+    numeric value
+    bool reception_editable
+  }
+  location_billing_settings {
+    uuid location_id PK
+    varchar document_code
+    int due_days
+    uuid default_payment_account_id
+  }
+  payment_accounts {
+    uuid id PK
+    uuid location_id
+    enum method
+    bool counted_in_cash_close
+  }
+  document_sequences {
+    uuid location_id PK
+    enum doc_type PK
+    int year PK
+    int last_value
+  }

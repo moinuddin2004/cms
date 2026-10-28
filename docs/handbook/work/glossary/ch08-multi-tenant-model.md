@@ -1,0 +1,4 @@
+- **Tenant context** — the active organization and location of a request, validated by `TenantContextGuard` and stored as `request.tenantContext`.
+- **Clinic time** — dates and times computed in the location's timezone through `ClockService`.
+- **Last accessed context** — the organization and location saved on the user (`users.last_accessed_*`) and pre-selected at the next sign-in.
+- **Portal access** — the assignment flag `has_portal_access`; without it a linked login cannot enter that location.

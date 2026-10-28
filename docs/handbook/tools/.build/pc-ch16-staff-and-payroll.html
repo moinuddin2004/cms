@@ -1,0 +1,114 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch16-staff-and-payroll"><h1 id="ch16-staff-and-payroll-chapter-16-staff-and-payroll">Chapter 16 — Staff and payroll</h1>
+<p>This chapter describes the tables that record the clinic&#39;s staff: the person, where and in which role they work, their weekly hours, leave and day-by-day availability, and the monthly payroll record. It is for the product owner who needs to know how one person can work at several clinics, where a doctor&#39;s working hours come from, and what a payroll row contains. The employee and payroll modules are described in Chapters 37 and 38; salary and commission plans are in Chapter 22.</p>
+<h2 id="ch16-staff-and-payroll-16-1-context">16.1 Context</h2>
+<p>The domain separates the <strong>person</strong> from the <strong>job</strong>. <code>employees</code> holds the person once for the whole Platform. Each place the person works — one organization and one location, with one role — is an <strong>assignment</strong> in <code>employee_org_location_assignments</code>. Schedules, leave, availability overrides and payroll all hang from the person and name the location they apply to. Six of the tables are owned by the <code>employees</code> module (it also owns <code>employment_roles</code>, which Chapter 15 describes) and <code>payroll_records</code> is owned by the <code>payroll</code> module. Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch16-staff-and-payroll-16-2-the-tables">16.2 The tables</h2>
+<h3 id="ch16-staff-and-payroll-16-2-1-employees-employee-the-person">16.2.1 <code>employees</code> — employee (the person)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per person who works at any clinic on the Platform. It holds only personal data: <code>full_name</code>, <code>phone</code>, an optional national identity number (<code>cnic</code>), <code>gender</code>, <code>dob</code>, <code>profile_picture_url</code> and <code>is_active</code>. There is no <code>organization_id</code>: the same person record is shared by every organization they work for. For that reason <code>phone</code> and <code>cnic</code> are <strong>unique across the whole Platform</strong>, not per clinic.</p>
+<h3 id="ch16-staff-and-payroll-16-2-2-employee-org-location-assignments-assignment">16.2.2 <code>employee_org_location_assignments</code> — assignment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per person per location they work at. This is where the job lives. Key columns:</p>
+<ul>
+<li><code>employee_id</code>, <code>organization_id</code>, <code>location_id</code> — who and where. (<code>employee_id</code>, <code>location_id</code>) is unique: a person has at most one assignment per location.</li>
+<li><code>employment_role_id</code> — the role at this location (Chapter 15); nullable.</li>
+<li><code>user_id</code> — the staff login used for this assignment; nullable, because not every employee logs in.</li>
+<li><code>has_portal_access</code> — whether this person may log in at this location.</li>
+<li><code>designation</code> and <code>employment_type</code> (<code>full_time</code>, <code>part_time</code>, <code>visiting</code>, <code>contract</code>).</li>
+<li><code>employee_code</code> — unique within the organization (<code>organization_id</code> + <code>employee_code</code>).</li>
+<li><code>joining_date</code>, <code>is_primary</code> and <code>is_active</code> (the soft-delete flag for this job).</li>
+<li><code>token_prefix</code> — the doctor&#39;s queue-token prefix at this location (for example &quot;A&quot; giving &quot;A-007&quot;); empty means the first letter of the doctor&#39;s name.</li>
+<li><code>gross_salary</code> — deprecated. Salary now lives in versioned compensation plans (Chapter 22); the column is kept for old rows and no longer written once a plan exists.</li>
+</ul>
+<p>Indexes support lookups by user, by location and active flag, and by employee and organization.</p>
+<h3 id="ch16-staff-and-payroll-16-2-3-employee-schedules-weekly-working-hours">16.2.3 <code>employee_schedules</code> — weekly working hours</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The regular week of a person at one location: one row per weekday (<code>day_of_week</code>), with <code>is_working</code>, <code>start_time</code>, <code>end_time</code> and <code>slot_duration</code> (default 30 minutes). (<code>employee_id</code>, <code>location_id</code>, <code>day_of_week</code>) is unique, so there is one row per weekday per location. The appointments service reads these rows when it works out a doctor&#39;s availability.</p>
+<h3 id="ch16-staff-and-payroll-16-2-4-employee-leaves-leave-request">16.2.4 <code>employee_leaves</code> — leave request</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per leave request: <code>leave_type</code> (<code>annual</code>, <code>sick</code>, <code>unpaid</code>, <code>maternity</code>, <code>paternity</code>, <code>other</code>), <code>start_date</code>, <code>end_date</code>, <code>total_days</code>, <code>status</code> (<code>pending</code>, <code>approved</code>, <code>rejected</code>, <code>cancelled</code>), the reason, a review note, <code>approved_by</code> and <code>reviewed_at</code>. Indexes support &quot;leave in this date range&quot;, &quot;pending leave at this location&quot; and &quot;this person&#39;s leave by status&quot;.</p>
+<h3 id="ch16-staff-and-payroll-16-2-5-doctor-availability-overrides-availability-exception">16.2.5 <code>doctor_availability_overrides</code> — availability exception</h3>
+<p><strong>Status:</strong> [Partial] — recorded and edited on the employee&#39;s availability tab; the appointments and queue services do not read it</p>
+<p>An exception to the weekly schedule for one date at one location: <code>date</code>, <code>is_available</code> (default false, meaning &quot;not available that day&quot;), a reason and optional <code>override_hours</code> (JSON) for different hours that day. (<code>employee_id</code>, <code>location_id</code>, <code>date</code>) is unique: one exception per person, location and day. Only the employees module reads this table; the appointments service builds availability from <code>employee_schedules</code> without consulting these exceptions.</p>
+<h3 id="ch16-staff-and-payroll-16-2-6-payroll-records-payroll-record">16.2.6 <code>payroll_records</code> — payroll record</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per person per location per month. (<code>employee_id</code>, <code>location_id</code>, <code>month</code>, <code>year</code>) is unique, so the same person can have a separate record at each location for the same month. Key columns:</p>
+<ul>
+<li><code>month</code>, <code>year</code> and <code>period_label</code>.</li>
+<li><code>base_salary_paisa</code>, <code>commission_paisa</code>, <code>total_paisa</code> — the breakdown in integer paisa, where total = base salary + commission.</li>
+<li><code>salary_amount</code> — the total in rupees (<code>numeric(10,2)</code>), kept for older screens.</li>
+<li><code>status</code> (<code>pending</code>, <code>paid</code>, <code>on_hold</code>), <code>paid_at</code>, <code>payment_method</code> (<code>cash</code>, <code>bank_transfer</code>, <code>cheque</code>), <code>payment_reference</code>, <code>paid_by</code>, <code>notes</code>.</li>
+</ul>
+<p>The unique key changed over time. The doctor-compensation migration drops the older key (<code>employee_id</code>, <code>month</code>, <code>year</code>) and adds the location-aware one; the entity matches the new key.</p>
+<h2 id="ch16-staff-and-payroll-16-3-entity-relationship-diagram">16.3 Entity-relationship diagram</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch16-staff-payroll-erd.png" alt="Figure 16.1 — Staff and payroll tables"></p>
+<p><em>Figure 16.1 — Staff and payroll tables.</em></p>
+<p>The diagram has <code>employees</code> at the top centre, showing <code>id</code>, <code>full_name</code>, <code>phone</code> and <code>cnic</code> (both marked unique) and <code>is_active</code>. Five solid lines fan out from it to its children, each &quot;one employee to zero or more rows&quot;: <code>employee_org_location_assignments</code> (&quot;works as&quot;), <code>employee_schedules</code> (&quot;weekly hours&quot;), <code>employee_leaves</code> (&quot;takes&quot;), <code>doctor_availability_overrides</code> (&quot;day exceptions&quot;) and <code>payroll_records</code> (&quot;is paid&quot;). The assignment box, on the left, lists <code>id</code>, <code>employee_id</code>, <code>organization_id</code>, <code>location_id</code>, <code>employment_role_id</code>, <code>user_id</code>, <code>employee_code</code> and <code>has_portal_access</code>; over it two context boxes, <code>employment_roles</code> and <code>users</code>, connect to it with optional lines labelled &quot;role of&quot; and &quot;staff login&quot;. Each child box shows its <code>employee_id</code> and <code>location_id</code> foreign keys plus its key business columns (<code>day_of_week</code> and <code>is_working</code>; <code>leave_type</code> and <code>status</code>; <code>date</code> and <code>is_available</code>; <code>month</code>, <code>year</code>, <code>total_paisa</code> and <code>status</code>). The links from these tables to <code>organizations</code> and <code>locations</code> are not drawn, to keep the picture readable; they are listed in the next section.</p>
+<h2 id="ch16-staff-and-payroll-16-4-relationships-explained">16.4 Relationships explained</h2>
+<p>Foreign-key relationships inside the domain:</p>
+<ul>
+<li><strong><code>employee_org_location_assignments.employee_id</code> → <code>employees</code>.</strong> Each assignment belongs to exactly one person; a person has zero or more assignments. Deleting the person deletes the assignments (CASCADE).</li>
+<li><strong><code>employee_org_location_assignments.employment_role_id</code> → <code>employment_roles</code>.</strong> Optional, zero or one role. Deleting the role sets it to null (SET NULL).</li>
+<li><strong><code>employee_org_location_assignments.user_id</code> → <code>users</code>.</strong> Optional, zero or one staff login; a user can be linked to several assignments. Deleting the user sets it to null (SET NULL).</li>
+<li><strong><code>employee_schedules.employee_id</code>, <code>employee_leaves.employee_id</code>, <code>doctor_availability_overrides.employee_id</code>, <code>payroll_records.employee_id</code> → <code>employees</code>.</strong> Each row belongs to exactly one person; a person has zero or more of each. Deleting the person deletes them all (CASCADE).</li>
+</ul>
+<p>Tenant foreign keys (not drawn in the figure):</p>
+<ul>
+<li><strong><code>organization_id</code> → <code>organizations</code></strong> on assignments, schedules, leaves, availability overrides and payroll records: mandatory, CASCADE.</li>
+<li><strong><code>location_id</code> → <code>locations</code></strong> on the same five tables: mandatory, CASCADE. Deactivating a location never triggers this, because the application only soft-deletes locations.</li>
+</ul>
+<p>Logical relationships (no foreign key): the actor columns <code>created_by</code> (on assignments, schedules, leaves, overrides and payroll), <code>approved_by</code> on leaves and <code>paid_by</code> on payroll hold a user id.</p>
+<p>Links into this domain from other domains:</p>
+<ul>
+<li><strong>Into <code>employees</code>:</strong> <code>appointments.doctor_id</code> and <code>queue_sessions.doctor_id</code> (RESTRICT), <code>charges.doctor_id</code>, <code>service_prices.doctor_id</code> and <code>lab_orders.doctor_id</code> (RESTRICT), <code>prescriptions.doctor_id</code> (SET NULL), <code>expenses.recorded_by</code> and <code>patient_credits.purchased_by</code> (SET NULL), and the inventory columns <code>patient_consumptions.performedBy</code>, <code>purchase_orders.createdBy</code> and <code>stock_movements.performedBy</code> (NO ACTION, which behaves like RESTRICT).</li>
+<li><strong>Into <code>employee_org_location_assignments</code>:</strong> <code>compensation_plans.assignment_id</code> (CASCADE), and <code>charges.performing_assignment_id</code>, <code>commission_entries.assignment_id</code> and <code>commission_settlements.assignment_id</code> (RESTRICT).</li>
+<li><strong>Into <code>payroll_records</code>:</strong> <code>commission_settlements.payroll_record_id</code>, one-to-one and RESTRICT: a payroll record that settled commissions cannot be deleted while the settlement exists.</li>
+</ul>
+<p>Because of these RESTRICT links, a person who is the doctor on any appointment, queue session, charge, special price or lab order, or who appears in inventory records, cannot be hard-deleted; the database refuses. The employee service catches that refusal and replies that the employee &quot;has linked inventory records&quot; and should be deactivated instead — the message names inventory even when the blocking row is an appointment or a charge.</p>
+<h2 id="ch16-staff-and-payroll-16-5-tenant-scope">16.5 Tenant scope</h2>
+<ul>
+<li><code>employees</code> is global: one person record for the whole Platform. The tenant link lives on the assignment.</li>
+<li><code>employee_org_location_assignments</code>, <code>employee_schedules</code>, <code>employee_leaves</code>, <code>doctor_availability_overrides</code> and <code>payroll_records</code> are organization + location scoped, with real foreign keys on both columns.</li>
+</ul>
+<h2 id="ch16-staff-and-payroll-16-6-ownership-and-ambiguities">16.6 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Platform-wide uniqueness of personal data.</strong> Because <code>employees.phone</code> and <code>employees.cnic</code> are unique across the Platform, the database refuses a second person record with the same phone or national identity number, even in a different clinic. The design intends one person record shared by many clinics; how the employee screens handle a person already known elsewhere is covered in Chapter 37.</li>
+<li><strong>Code comment versus schema.</strong> The comment on the employee delete method says that appointments and invoices keep their rows with the doctor set to null. The schema says otherwise: <code>appointments.doctor_id</code>, <code>queue_sessions.doctor_id</code> and <code>charges.doctor_id</code> are RESTRICT, so such a delete is refused.</li>
+<li><strong>Deprecated salary column.</strong> <code>employee_org_location_assignments.gross_salary</code> is superseded by <code>compensation_plans</code>.</li>
+<li><strong>Two money forms on one row.</strong> <code>payroll_records</code> keeps the total in paisa and in rupees; the paisa columns are authoritative for new code.</li>
+</ul>
+</section></body></html>

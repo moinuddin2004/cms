@@ -1,0 +1,2 @@
+- **Lab membership** — a lab_members row linking a user to a lab as lab admin or lab technician.
+- **Home page** — the route a role opens after login (`homeRoute`).

@@ -1,0 +1,5 @@
+- **Commission basis** — NET (after discount) or GROSS (before discount) on which the rate applies (`commission_basis`).
+- **Snapshot (commission snapshot)** — the doctor assignment, plan and rate or fixed amount stored on a charge or lab invoice line when it is created.
+- **Unsettled entry** — a commission entry with no settlement (`settlement_id` empty).
+- **Doctor share** — the commission a payment would record, shown to authorised users in the collect-payment preview (`doctorShare`).
+- **Basis points** — rates as integers, 4000 = 40.00% (`rate_bps`).

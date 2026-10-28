@@ -1,0 +1,3 @@
+- **Month-end job** — the scheduled generation of payroll for the previous month (`month-end-payroll`).
+- **Payroll status** — pending, paid or on hold (`PayrollStatus`: pending, paid, on_hold).
+- **No-salary list** — employees skipped during generation because base and commission are both zero (`noSalary`).

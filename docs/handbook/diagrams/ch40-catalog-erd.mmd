@@ -1,0 +1,53 @@
+erDiagram
+    labs ||--o{ lab_services : makes
+    service_categories ||--o{ lab_services : files
+    lab_services ||--o{ lab_service_options : "offers option"
+    lab_services ||--o{ lab_service_prices : "priced by"
+    organizations |o--o{ lab_service_prices : "negotiated for"
+    lab_services ||--o{ service_mappings : "billed as"
+    services ||--o{ service_mappings : "clinic treatment"
+    labs |o--o{ order_templates : "default lab"
+    organizations ||--o{ order_templates : owns
+    lab_services {
+        uuid id PK
+        uuid lab_id FK
+        uuid service_category_id FK
+        uuid form_schema_id FK
+        uuid workflow_template_id FK
+        uuid stage_template_id FK
+        varchar code
+        enum unit_type
+        int default_turnaround_days
+    }
+    lab_service_prices {
+        uuid id PK
+        uuid lab_service_id FK
+        uuid organization_id FK
+        bigint unit_price_paisa
+        bigint rush_surcharge_paisa
+        date effective_from
+        date effective_to
+        timestamptz voided_at
+    }
+    lab_service_options {
+        uuid id PK
+        uuid lab_service_id FK
+        varchar code
+        bigint extra_cost_paisa
+    }
+    service_mappings {
+        uuid id PK
+        uuid organization_id FK
+        uuid clinic_treatment_id FK
+        uuid lab_service_id FK
+        bool is_default
+        bool is_active
+    }
+    order_templates {
+        uuid id PK
+        uuid organization_id FK
+        uuid lab_id FK
+        uuid owner_user_id
+        jsonb template_json
+        int use_count
+    }

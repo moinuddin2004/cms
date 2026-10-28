@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch62-time-money-numbering"><h1 id="ch62-time-money-numbering-chapter-62-time-money-and-document-numbers">Chapter 62 — Time, money and document numbers</h1>
+<p>This chapter explains three rules that run through every module: how the Platform decides what time it is for a clinic, how it stores and calculates money, and how it numbers invoices, patients, orders and other documents. It is written for the product owner, because mistakes in these three areas, a wrong day, a wrong rupee or a duplicate number, are the ones that clinics notice first. The chapter states the rules, where they are followed strictly, and where the code still departs from them.</p>
+<h2 id="ch62-time-money-numbering-62-1-clinic-time">62.1 Clinic time</h2>
+<p><strong>Status:</strong> [Implemented] for the rule. [Partial] for coverage: some jobs and statistics still use the server clock.</p>
+<p><strong>The rule.</strong> Every clinic date and time follows the <strong>location&#39;s</strong> timezone (the <code>timezone</code> of the location, for example a Pakistan or a Gulf timezone). Working hours, appointment availability, the same-day duplicate check, the queue&#39;s day boundary, token days and quiet hours all use it. A clinic in one timezone and a server in another still agree on what &quot;today&quot; means for the clinic.</p>
+<p><strong>How it works.</strong> <code>ClockService</code> is the single source of &quot;now&quot; and &quot;today&quot; for clinic logic. Its main functions are:</p>
+<ul>
+<li><code>now()</code>: the current instant (tests can replace it).</li>
+<li><code>timezoneFor(locationId)</code>: the location&#39;s timezone name, defaulting to UTC when the stored name is not valid, cached for 60 seconds.</li>
+<li><code>today(timezone)</code>: the location-local date as <code>YYYY-MM-DD</code>.</li>
+<li><code>wallClock(timezone, instant)</code>: the local weekday and <code>HH:MM</code>.</li>
+<li><code>dayRange(timezone, date)</code>: the start and end instants (in UTC) of a local day.</li>
+<li><code>at(timezone, date, time)</code>: the instant when the clinic&#39;s wall clock reads a given date and time.</li>
+</ul>
+<p>The code rule is: never use <code>new Date()</code> together with <code>setHours()</code> for a clinic day or time, because those use the server&#39;s timezone. Appointments, queue and notifications follow it (Chapters 29, 30 and 59).</p>
+<p><strong>Where the server clock is still used.</strong> These places do not use the location&#39;s timezone:</p>
+<ul>
+<li><strong>Scheduled jobs.</strong> Daily and monthly jobs run on the worker&#39;s server timezone, for example the 01:00 credit expiry, the 02:30 billing check, the 08:00 inventory alert and the payroll run at 05:00 on the 1st (Chapter 63 and Appendix E). The queue&#39;s day-end job is an exception: it decides what a past clinic day is from each location&#39;s policy.</li>
+<li><strong>Credit expiry.</strong> The check works out &quot;today&quot; from the server&#39;s local date, so a prepaid credit can expire a few hours early or late for a clinic in another timezone.</li>
+<li><strong>Statistics.</strong> The financial summary takes its default date and its month list from the server date.</li>
+<li><strong>Numbering years.</strong> The year inside purchase order and prescription numbers is the server&#39;s year.</li>
+<li><strong>Leave balance year</strong> uses the server year.</li>
+<li><strong>The lab catalog calendar</strong> fixes its &quot;today&quot; to one specific timezone (Asia/Karachi) regardless of the location.</li>
+<li><strong>Exports</strong> that print a date (patient export file name) use the server date.</li>
+</ul>
+<p>For a clinic whose timezone differs from the server&#39;s by a few hours, the differences matter only near midnight or at month boundaries.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/clock/clock.service.ts</code> · <code>ClockService</code> · <code>backend/src/common/clock/tz.util.ts</code> · <code>backend/src/billing/patient-credits.service.ts</code> · <code>backend/src/billing/financial-summary.service.ts</code> · <code>web-app/src/features/lab-catalog/lib/money.ts</code> · <code>catalogToday</code></p>
+<h2 id="ch62-time-money-numbering-62-2-money">62.2 Money</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What is stored.</strong> Money has two storage styles, depending on the module:</p>
+<div class="tw"><table><thead><tr>
+<th>Style</th>
+<th>Where</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><code>numeric(12,2)</code> rupees</td>
+<td>Patient billing: charges, invoices, payments, refunds, ledger entries</td>
+<td>Exact decimal with two places</td>
+</tr>
+<tr>
+<td><code>bigint</code> paisa</td>
+<td>Commissions (rules, entries, settlements, compensation plans), the lab billing tables (invoice, credits, payments), and a few billing fields</td>
+<td>Whole number of the smallest unit</td>
+</tr>
+<tr>
+<td><code>decimal(10,2)</code></td>
+<td>Inventory prices and quantities, payroll records, employee salary on assignments</td>
+<td>Exact decimal</td>
+</tr>
+</tbody></table></div><p>The table shows the three styles. A <strong>paisa</strong> is one hundredth of a rupee; &quot;PKR&quot; is the default currency and not a limit. Amounts cross the API as numbers with at most two decimals in the billing module, and as integer paisa in the lab and commission modules.</p>
+<p><strong>How it is calculated.</strong> All billing math is done in <strong>integer paisa</strong> so that no floating-point error can creep in. <code>money.ts</code> holds the helpers: <code>toPaisa</code> and <code>fromPaisa</code>, <code>sumPaisa</code>, <code>percentOf</code> and <code>basisPointsOf</code>. A percentage with up to two decimals is turned into basis points (17.5 percent becomes 1750) and applied with exact big-integer arithmetic.</p>
+<ul>
+<li><strong>Rounding is half up</strong> (0.5 paisa rounds to the next whole paisa), the same everywhere, including tax.</li>
+<li><strong>Splitting.</strong> When an amount is shared in proportion (for example tax spread over charges), each share is rounded down and the leftover paisa go to the largest share, so the shares always add up exactly to the total.</li>
+<li><strong>Database columns</strong> are read through transformers: <code>numeric</code> comes back from the database as text and is rounded to two decimals; <code>bigint</code> comes back as text and is converted to a number, which is exact for any clinic amount.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch62-money-path.png" alt="Figure 62.1 — The path of an amount"></p>
+<p><em>Figure 62.1 — How an amount typed by a person travels to the database and back.</em></p>
+<p>The flowchart reads top to bottom. A user types 4500.50. The web app converts the text to 450050 paisa with integer-only code (no floating point). The API receives the amount as rupees or paisa depending on the field. Server code calculates in integer paisa with half-up rounding. The value is stored in the database as <code>numeric</code> or as <code>bigint</code> paisa. When the screen reads it back, the web app formats it with the organization&#39;s currency.</p>
+<p><strong>Tax is exclusive.</strong> Prices are before tax. Tax equals the taxable amount (the sum of active charge net amounts after discounts) times the rate, rounded half up once per invoice. The total is subtotal minus discount plus tax. The rate is copied onto the invoice when it is issued from the location&#39;s billing settings, and later edits use that copy, not the current setting. Tax is spread over the invoice&#39;s charges so that payments can be allocated charge by charge; tax is never revenue and never earns commission. Lab invoices use the same half-up rounding and keep tax in its own paisa column.</p>
+<p><strong>Currency.</strong> Each organization has a <code>currency</code> (default PKR). It is returned with the organization list after sign-in. The web app&#39;s <code>activeCurrency()</code> and <code>useCurrency()</code> read it, and <code>formatPaisa</code> writes amounts as &quot;PKR 4,500.50&quot;. Number grouping uses a Pakistani locale. The currency is a display label: there is no conversion and no multi-currency ledger.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/common/money.ts</code> · <code>money-column.ts</code> · <code>paisa-column.ts</code> · <code>backend/src/billing/tax/invoice-tax.ts</code> · <code>backend/src/organizations/entities/organization.entity.ts</code> · <code>web-app/src/lib/currency.ts</code> · <code>web-app/src/features/lab-catalog/lib/money.ts</code></p>
+<h2 id="ch62-time-money-numbering-62-3-document-numbering">62.3 Document numbering</h2>
+<p><strong>Status:</strong> [Partial]. Billing and lab documents are numbered safely; some older numbers are not.</p>
+<p>There are four numbering families.</p>
+<div class="tw"><table><thead><tr>
+<th>Family</th>
+<th>Documents</th>
+<th>Format</th>
+<th>How it counts</th>
+</tr>
+</thead><tbody><tr>
+<td>Per location, per type, per year</td>
+<td>Patient invoices (<code>INV</code>), receipts (<code>REC</code>), refunds (<code>RFD</code>)</td>
+<td>location code, type, year, five digits, for example <code>MAIN-INV-2026-00001</code></td>
+<td>Table <code>document_sequences</code></td>
+</tr>
+<tr>
+<td>Per organization sequence</td>
+<td>Lab order (<code>LAB</code>), shipment (<code>SHP</code>), lab invoice (<code>LINV</code>), lab receipt (<code>LRC</code>), payment reversal (<code>LRV</code>), credit note (<code>LCN</code>), lab refund (<code>LRF</code>), vendor bill (<code>VB</code>), vendor payment (<code>VP</code>)</td>
+<td>prefix and at least four digits, for example <code>LAB-0001</code></td>
+<td>Table <code>number_sequences</code></td>
+</tr>
+<tr>
+<td>Count plus one in application code</td>
+<td>Patient number, treatment plan number, patient-page prescription number</td>
+<td><code>P-00001</code>, <code>TP-00001</code>, <code>RX-00001</code></td>
+<td>Number of existing rows plus one</td>
+</tr>
+<tr>
+<td>Last number plus one in application code</td>
+<td>Purchase order number, prescription number from the prescriptions module</td>
+<td><code>PO-2026-00001</code>, <code>RX-2026-00001</code></td>
+<td>Reads the latest row and adds one</td>
+</tr>
+</tbody></table></div><p>The table lists the four families with their formats. Invoices, receipts and refunds need the location&#39;s <strong>document code</strong> (2 to 6 letters or digits, set in billing settings and locked after the first invoice); without it the Platform refuses to issue the document.</p>
+<p><strong>The safe families.</strong> The first two families use a database counter row that is locked until the surrounding transaction ends. Concurrent requests wait their turn, no number repeats, and a rollback gives the number back, so numbers have no gaps. The service refuses to run outside a transaction. Invoice sequences restart each year, per location. Lab sequences never restart.</p>
+<p><strong>The risky families.</strong></p>
+<ul>
+<li><strong>Patient, plan and prescription numbers (count plus one).</strong> The next number is the count of rows for the organization plus one. Two registrations at the same moment can compute the same number, and the second save fails on the unique index. Patients are deleted permanently, so after a deletion the count drops and the next number can repeat one that is still in use (the patient count includes soft-deleted rows but not permanently deleted ones). The result in either case is a failed save that the user sees as a generic error, not a wrong document.</li>
+<li><strong>Purchase order and prescription numbers (last plus one).</strong> The next number reads the most recent row of the organization and adds one, with the year taken from the server clock. Two simultaneous requests can read the same row. In addition, the unique index on the purchase order number and on the prescription number covers all organizations together, so two clinics that both reach the same sequence in the same year would collide.</li>
+</ul>
+<p>These are reliability risks, not security ones. A collision stops the save; it does not issue a duplicate.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/numbering/document-sequence.service.ts</code> · <code>DocumentSequenceService</code> · <code>backend/src/common/sequences/number-sequence.service.ts</code> · <code>NumberSequenceService</code> · <code>backend/src/patients/patients.service.ts</code> · <code>generatePatientNumber</code> · <code>backend/src/inventory/services/purchase-order.service.ts</code> · <code>generatePoNumber</code> · <code>backend/src/prescriptions/services/prescription.service.ts</code> · <code>generatePrescriptionNumber</code></p>
+<h2 id="ch62-time-money-numbering-62-4-limitations-and-known-gaps">62.4 Limitations and known gaps</h2>
+<ul>
+<li>Several jobs and statistics use the server timezone, not the clinic&#39;s.</li>
+<li>Two storage styles for money (decimal rupees and integer paisa) exist side by side; conversion happens at module boundaries.</li>
+<li>Count-based and last-number-based document numbers can collide under concurrency, and purchase order and prescription numbers are unique across all clinics together.</li>
+<li>No multi-currency support or conversion.</li>
+<li>Tax is exclusive only; there is no tax-inclusive pricing.</li>
+</ul>
+<h2 id="ch62-time-money-numbering-62-5-owner-39-s-faq">62.5 Owner&#39;s FAQ</h2>
+<p><strong>What time does &quot;today&quot; mean for my branch?</strong> The branch&#39;s own timezone, set on the location.</p>
+<p><strong>Why can a daily job run at an odd hour for my clinic?</strong> Jobs follow the server&#39;s timezone. A job set for 01:00 runs at 01:00 server time.</p>
+<p><strong>Can an invoice number repeat?</strong> No. Invoice, receipt and refund numbers come from a locked counter per branch and year.</p>
+<p><strong>Can two patients get the same patient number?</strong> The database refuses a duplicate, so the second save fails and must be tried again.</p>
+<p><strong>Are my prices with or without tax?</strong> Without. Tax is added on top at the rate set for the branch when the invoice is issued.</p>
+<p><strong>Can I invoice in another currency?</strong> You can set the organization&#39;s currency label, but there is no conversion.</p>
+</section></body></html>

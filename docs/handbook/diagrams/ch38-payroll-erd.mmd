@@ -1,0 +1,39 @@
+erDiagram
+    employees ||--o{ payroll_records : "is paid"
+    organizations ||--o{ payroll_records : owns
+    locations ||--o{ payroll_records : "pays at"
+    payroll_records |o--o| commission_settlements : "pays out"
+    commission_settlements |o--o{ commission_entries : settles
+    employee_org_location_assignments ||--o{ compensation_plans : "is paid by"
+    employee_org_location_assignments ||--o{ commission_settlements : "is settled"
+    payroll_records {
+        uuid id PK
+        uuid employee_id FK
+        uuid organization_id FK
+        uuid location_id FK
+        int month
+        int year
+        bigint base_salary_paisa
+        bigint commission_paisa
+        bigint total_paisa
+        enum status
+    }
+    commission_settlements {
+        uuid id PK
+        uuid assignment_id FK
+        uuid payroll_record_id FK
+        bigint total_paisa
+        enum status
+    }
+    commission_entries {
+        uuid id PK
+        uuid assignment_id FK
+        uuid settlement_id FK
+        bigint amount_paisa
+    }
+    compensation_plans {
+        uuid id PK
+        uuid assignment_id FK
+        enum type
+        bigint base_salary_paisa
+    }

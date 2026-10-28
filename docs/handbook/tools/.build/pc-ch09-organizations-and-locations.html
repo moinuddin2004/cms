@@ -1,0 +1,258 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch09-organizations-and-locations"><h1 id="ch09-organizations-and-locations-chapter-9-organizations-and-locations">Chapter 9 — Organizations and locations</h1>
+<p>This chapter describes the two records that frame every clinic on the Platform: the <strong>organization</strong> (the clinic business, the tenant) and its <strong>locations</strong> (the branches). It covers their fields, who can create and change them, their settings, and how they are switched off. It is written for the product owner; subscriptions, trials and plan limits get their own chapter (Chapter 45), and only read-only mode is summarised here.</p>
+<h2 id="ch09-organizations-and-locations-9-1-what-these-records-are-for">9.1 What these records are for</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li>An <strong>organization</strong> answers &quot;who is the clinic?&quot;: name, contact details, default timezone and currency, specialties, plan and subscription dates.</li>
+<li>A <strong>location</strong> answers &quot;where does it operate?&quot;: address, a short branch code, its own timezone (which defines &quot;today&quot; for queues and reports), its own currency, and per-branch settings such as the tax rate.</li>
+</ul>
+<p>The <strong>super admin</strong> manages organizations. Locations are managed by anyone holding the permission <code>admin.locations.manage</code> in that organization: owners and super admins always hold it, the system <strong>Admin</strong> role holds it, and a custom role can be given it. The owner&#39;s one-time setup wizard (<code>/setup</code>, Chapter 45) also edits the organization and its main location.</p>
+<p><strong>Sidebar:</strong> &quot;Organizations&quot; (super admin only, <code>/organizations</code>) and &quot;Locations&quot; (<code>/locations</code>, needs <code>admin.locations.manage</code>).</p>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/</code> · <code>backend/src/locations/</code> · <code>web-app/src/features/organizations/</code> · <code>web-app/src/features/locations/</code> · <code>backend/docs/modules/01-organizations-locations.md</code></p>
+<h2 id="ch09-organizations-and-locations-9-2-organization-fields">9.2 Organization fields</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><code>name</code>, <code>slug</code></td>
+<td>Display name; <code>slug</code> is unique, generated from the name on creation and never regenerated.</td>
+</tr>
+<tr>
+<td><code>email</code>, <code>phone</code>, <code>website</code></td>
+<td>Contact details.</td>
+</tr>
+<tr>
+<td><code>subscription_plan</code></td>
+<td><code>free</code>, <code>starter</code>, <code>professional</code> or <code>enterprise</code>. Default <code>free</code>. The plan limits are defined in code (<code>subscriptions/plans.ts</code>).</td>
+</tr>
+<tr>
+<td><code>clinic_type</code></td>
+<td>Free text. No API writes it.</td>
+</tr>
+<tr>
+<td><code>specialty_tags</code></td>
+<td>List of <code>general</code>, <code>dental</code>, <code>skin</code>, <code>ortho</code>, <code>physio</code>, <code>eye</code>. Default <code>general</code>. Written by the setup wizard; the web app uses it to show specialty-specific screens.</td>
+</tr>
+<tr>
+<td><code>timezone</code>, <code>currency</code></td>
+<td>Organization defaults: <code>Asia/Karachi</code> and <code>PKR</code>. The setup wizard copies them to every location.</td>
+</tr>
+<tr>
+<td><code>max_locations</code>, <code>max_users</code></td>
+<td>Per-organization overrides of the plan limits; empty means &quot;use the plan&#39;s limit&quot;.</td>
+</tr>
+<tr>
+<td><code>trial_ends_at</code>, <code>paid_until</code></td>
+<td>Subscription period. Both empty means an <strong>unmanaged</strong> clinic: no expiry and no limits.</td>
+</tr>
+<tr>
+<td><code>onboarding_pending</code></td>
+<td>True for self-signup clinics until the owner finishes <code>/setup</code>.</td>
+</tr>
+<tr>
+<td><code>access_version</code></td>
+<td>Counter raised on every access change (roles, assignments, features, ownership); used to invalidate access caches (Chapter 11). Never written by normal saves.</td>
+</tr>
+<tr>
+<td><code>is_active</code></td>
+<td>Soft switch-off.</td>
+</tr>
+</tbody></table></div><p>The table explains each column of <code>organizations</code> in business terms. Three related tables hang off an organization: <code>organization_ownership</code> (its owners), <code>organization_settings</code> (legacy settings, section 9.4) and <code>subscription_payments</code> (Chapter 45).</p>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/entities/organization.entity.ts</code> · <code>Organization</code></p>
+<h2 id="ch09-organizations-and-locations-9-3-managing-organizations-super-admin">9.3 Managing organizations (super admin)</h2>
+<p>All endpoints are in <code>OrganizationsController</code> and carry <code>@RequireSuperAdmin()</code>, so only the super admin can call them, for any organization.</p>
+<h3 id="ch09-organizations-and-locations-9-3-1-create-an-organization">9.3.1 Create an organization</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint works; the screen&#39;s form has fields the API refuses.</p>
+<p><strong>What it does.</strong> Creates a clinic with a name and optional contact details and plan.</p>
+<p><strong>How the user does it.</strong> On the Organizations page, click <strong>Create</strong>, fill the form and save.</p>
+<p><strong>Behind the scenes.</strong> <code>POST /organizations</code> saves the row, then seeds the organization&#39;s feature flags from the catalog defaults (Chapter 10) and the 5 system roles (Chapter 11). The two steps are not one transaction. No owner, no location and no subscription dates are created: the clinic is &quot;unmanaged&quot; until the super admin sets dates or records a payment.</p>
+<p><strong>Rules.</strong> Name is required (at most 255 characters); email must be valid; phone at most 20, website at most 500 characters; plan must be one of the four enum values. Duplicate slug gives 409.</p>
+<p><strong>Known problems (by reading the code, not executed).</strong> The form also offers Clinic Type, Timezone and Currency, which the create DTO does not accept, so filling them makes the request fail with 400. The plan selector offers &quot;FREE&quot;, &quot;BASIC&quot;, &quot;PREMIUM&quot; and &quot;ENTERPRISE&quot;, which do not match the API&#39;s lower-case values, so choosing a plan also fails with 400. No audit row is written.</p>
+<p><strong>Technical references:</strong> <code>OrganizationsController.create</code> · <code>OrganizationsService.create</code> · <code>CreateOrganizationDto</code> · <code>web-app/src/features/organizations/OrganizationManagementView.tsx</code></p>
+<h3 id="ch09-organizations-and-locations-9-3-2-list-and-view-organizations">9.3.2 List and view organizations</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><code>GET /organizations</code> lists active organizations by name; <code>GET /organizations/:id</code> returns one. Deactivated organizations do not appear in the list.</p>
+<p><strong>Technical references:</strong> <code>OrganizationsController.findAll</code> · <code>OrganizationsController.findOne</code></p>
+<h3 id="ch09-organizations-and-locations-9-3-3-edit-an-organization">9.3.3 Edit an organization</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint works; the screen sends fields the API refuses.</p>
+<p><code>PATCH /organizations/:id</code> accepts name, email, phone, website, plan and <code>isActive</code>. The edit dialog sends the whole organization row (including <code>id</code>, <code>slug</code> and timestamps), which the strict validation pipe refuses with 400 (by reading the code, not executed). A plan change made here is not audited and does not touch the subscription dates.</p>
+<p><strong>Technical references:</strong> <code>OrganizationsController.update</code> · <code>UpdateOrganizationDto</code></p>
+<h3 id="ch09-organizations-and-locations-9-3-4-deactivate-an-organization">9.3.4 Deactivate an organization</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The trash action asks &quot;Deactivate organization?&quot; and calls <code>DELETE /organizations/:id</code>, which sets <code>is_active = false</code>. Data is kept. The organization disappears from sign-in and selection lists. Sessions that are already working in it are not ended. There is no screen to reactivate it; only <code>PATCH /organizations/:id</code> with <code>isActive: true</code> does that.</p>
+<p><strong>Technical references:</strong> <code>OrganizationsController.deactivate</code> · <code>OrganizationsService.deactivate</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch09-organizations.svg" alt="Figure 9.1 — Organizations page"></p>
+<p><em>Figure 9.1 — Organizations (screenshot pending).</em></p>
+<p>The page is titled &quot;Organizations&quot; with the subtitle &quot;Manage clinic organizations and their settings&quot; and a <strong>Create</strong> button at the top right. A table lists active organizations with the columns Name, Slug, Plan and Status, and an actions column with four icon buttons, each with a tooltip: &quot;Manage features&quot; (opens the feature entitlement page, Chapter 10), &quot;Organization settings&quot;, &quot;Edit organization&quot; and &quot;Deactivate organization&quot;. The create and edit dialog contains Name, a read-only Slug, Clinic Type, Timezone, Currency and Subscription Plan. Non-super-admins who open the URL are sent to the dashboard.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch09-organization-active.png" alt="Figure 9.2 — Organization status"></p>
+<p><em>Figure 9.2 — The two states of an organization&#39;s <code>is_active</code> flag.</em></p>
+<p>The diagram reads left to right. From the start point an organization becomes <strong>Active</strong>, either by <code>POST /organizations</code> or by self-signup. <code>DELETE /organizations/id</code> moves it to <strong>Inactive</strong>. <code>PATCH /organizations/id</code> with <code>isActive true</code>, which only the API offers, moves it back to Active. There is no final state: the API never hard-deletes an organization.</p>
+<h2 id="ch09-organizations-and-locations-9-4-organization-settings-legacy">9.4 Organization settings (legacy)</h2>
+<p><strong>Status:</strong> [Not implemented] — the settings are stored and editable, but no backend code reads them.</p>
+<p><code>organization_settings</code> has one row per organization, created on first read. It holds old feature switches (<code>feature_appointments</code>, <code>feature_inventory</code>, <code>feature_finance</code>, <code>feature_reminders</code>, <code>feature_whatsapp</code>, <code>feature_patient_portal</code>), <code>allow_location_override</code>, and booking defaults (<code>default_slot_duration</code>, <code>advance_booking_days</code>, <code>cancellation_notice_hours</code>).</p>
+<ul>
+<li><code>GET /organizations/:id/settings</code> is allowed to the super admin and to owners of that organization.</li>
+<li><code>PATCH /organizations/:id/settings</code> is super-admin only. Limits: slot duration 5–480 minutes, advance booking 1–365 days, notice 0–168 hours.</li>
+<li><strong>No backend code reads any of these values.</strong> Real feature gating is the feature system (Chapter 10). The web app uses <code>allow_location_override</code> only to grey out three inputs on the location settings page.</li>
+<li>The settings screen sends the whole row, which the API should refuse with 400 (by reading the code).</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch09-org-settings.svg" alt="Figure 9.3 — Organization settings page"></p>
+<p><em>Figure 9.3 — Organization settings (screenshot pending).</em></p>
+<p>The page has a back button to Organizations and two cards. &quot;Global Overrides&quot; holds one switch, <strong>Allow Location Override</strong>. &quot;Booking Defaults&quot; holds three number inputs: Default Slot Duration (mins), Advance Booking Days and Cancellation Notice (hours). A Save button stores the card values. None of these values changes how bookings behave.</p>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/entities/organization-settings.entity.ts</code> · <code>OrganizationsController.getSettings</code> · <code>OrganizationsController.updateSettings</code> · <code>web-app/src/features/organizations/OrganizationSettingsFeature.tsx</code></p>
+<h2 id="ch09-organizations-and-locations-9-5-location-fields">9.5 Location fields</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td><code>name</code></td>
+<td>Branch name, for example &quot;Main location&quot;.</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td>Short branch code, unique within the organization. Cannot be changed after creation.</td>
+</tr>
+<tr>
+<td><code>token_prefix</code></td>
+<td>Prefix of the daily queue tokens; falls back to <code>code</code>. Read by the queue&#39;s token engine; no API writes it.</td>
+</tr>
+<tr>
+<td><code>address</code>, <code>city</code>, <code>state</code>, <code>postal_code</code>, <code>country</code>, <code>phone</code>, <code>email</code></td>
+<td>Contact details.</td>
+</tr>
+<tr>
+<td><code>timezone</code>, <code>currency</code></td>
+<td>Defaults <code>UTC</code> and <code>USD</code> (different from the organization defaults). <code>ClockService</code> uses <code>timezone</code> for every clinic &quot;today&quot;.</td>
+</tr>
+<tr>
+<td><code>is_main_branch</code></td>
+<td>A flag; several locations can carry it. The setup wizard treats the first active main branch as &quot;the&quot; main location.</td>
+</tr>
+<tr>
+<td><code>total_chairs</code>, <code>capacity_per_day</code>, <code>operating_hours</code>, <code>manager_id</code>, <code>business_model</code></td>
+<td>Stored, but no backend code reads them.</td>
+</tr>
+<tr>
+<td><code>is_active</code></td>
+<td>Soft switch-off.</td>
+</tr>
+</tbody></table></div><p>The table explains each column of <code>locations</code>. Note the timezone default: a location created from the Locations screen gets <code>UTC</code>, because that form has no timezone or currency field; only the setup wizard sets the clinic&#39;s timezone and currency on locations.</p>
+<p><strong>Technical references:</strong> <code>backend/src/locations/entities/location.entity.ts</code> · <code>Location</code></p>
+<h2 id="ch09-organizations-and-locations-9-6-managing-locations">9.6 Managing locations</h2>
+<p>All location endpoints are in <code>LocationsController</code>. The controller is <code>@ContextFree()</code>, because an owner manages locations before choosing one; each handler therefore checks <code>admin.locations.manage</code> itself, in the organization of the location being acted on (or, for create and list, the organization in the body or the <code>x-organization-id</code> header). An invalid organization gives 400 &quot;Select an organization first&quot;; a missing permission gives 403 <code>NO_PERMISSION</code>.</p>
+<h3 id="ch09-organizations-and-locations-9-6-1-add-a-location">9.6.1 Add a location</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>How the user does it.</strong> On the Locations page, click <strong>Create Location</strong> and fill Name, Code, Address, City, Country, Phone and Email. A super admin also picks the organization (&quot;Organization (Required)&quot;).</p>
+<p><strong>Behind the scenes.</strong> <code>POST /locations</code> first checks the plan&#39;s location limit (<code>SubscriptionsService.assertCanAddLocation</code>, skipped for super admins), then saves the location and a default settings row as two separate saves (not one transaction). No audit row is written.</p>
+<p><strong>Rules and errors.</strong> Name and code are required; code at most 50 characters and unique in the organization (409 on duplicates). Plan limit reached gives 403 <code>PLAN_LIMIT</code>; an expired subscription gives 402 <code>SUBSCRIPTION_EXPIRED</code>.</p>
+<p><strong>Technical references:</strong> <code>LocationsController.create</code> · <code>LocationsService.create</code> · <code>CreateLocationDto</code></p>
+<h3 id="ch09-organizations-and-locations-9-6-2-list-view-and-edit-locations">9.6.2 List, view and edit locations</h3>
+<p><strong>Status:</strong> [Partial] — list and view work; the edit screen sends fields the API refuses.</p>
+<p><code>GET /locations</code> returns, for a super admin, every active location of every organization; otherwise the active locations of the active organization (or of every organization where the user holds the permission organization-wide). <code>GET /locations/:id</code> returns one. <code>PATCH /locations/:id</code> accepts the create fields except <code>code</code> and the organization, plus <code>isActive</code>. The edit dialog sends the whole row, which the API should refuse with 400 (by reading the code). Setting <code>isActive: true</code> reactivates a location <strong>without</strong> the plan-limit check.</p>
+<p><strong>Technical references:</strong> <code>LocationsController.findAll</code> · <code>LocationsController.findOne</code> · <code>LocationsController.update</code> · <code>UpdateLocationDto</code></p>
+<h3 id="ch09-organizations-and-locations-9-6-3-deactivate-a-location">9.6.3 Deactivate a location</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The trash action asks &quot;Deactivate location?&quot; and calls <code>DELETE /locations/:id</code> (<code>is_active = false</code>). Nothing stops deactivating the last location or the main one. Staff assignments, appointments and queue sessions at that location are left as they are; the location stops being offered at sign-in and in the switcher. The list hides inactive locations, so the screen cannot reactivate one.</p>
+<p><strong>Technical references:</strong> <code>LocationsController.deactivate</code> · <code>LocationsService.deactivate</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch09-locations.svg" alt="Figure 9.4 — Locations page"></p>
+<p><em>Figure 9.4 — Locations (screenshot pending).</em></p>
+<p>The page is titled &quot;Locations&quot; with the subtitle &quot;Manage clinic locations and their settings&quot; and a <strong>Create Location</strong> button. A table lists active locations with the columns Name, Organization, City, Phone and Status, and three icon actions with tooltips: &quot;Location settings&quot;, &quot;Edit location&quot; and &quot;Deactivate location&quot;. The create and edit dialog holds the fields listed in section 9.6.1; its code field shows the example &quot;e.g. NYC-01&quot;. Toasts confirm &quot;Location created successfully&quot;, &quot;Location updated successfully&quot; and &quot;Location deactivated&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch09-location-active.png" alt="Figure 9.5 — Location status"></p>
+<p><em>Figure 9.5 — The two states of a location&#39;s <code>is_active</code> flag.</em></p>
+<p>The diagram reads left to right. A location becomes <strong>Active</strong> through <code>POST /locations</code> or self-signup. <code>DELETE /locations/id</code> moves it to <strong>Inactive</strong>. <code>PATCH /locations/id</code> with <code>isActive true</code> moves it back to Active, and the label notes that this path does not check the plan&#39;s location limit. There is no final state.</p>
+<h2 id="ch09-organizations-and-locations-9-7-location-settings">9.7 Location settings</h2>
+<p><strong>Status:</strong> [Partial] — the tax rate and a few other values are used; the edit screen&#39;s save is expected to fail, and several stored values do nothing.</p>
+<p>Each location has one <code>location_settings</code> row, created with the location or on first read.</p>
+<div class="tw"><table><thead><tr>
+<th>Setting</th>
+<th>Used by</th>
+</tr>
+</thead><tbody><tr>
+<td><code>tax_rate</code> (percent, two decimals, default 0)</td>
+<td><strong>Used.</strong> Sales tax applied when an invoice is issued (tax is added on top of prices), and by lab billing and purchase orders.</td>
+</tr>
+<tr>
+<td><code>max_appointments_per_day</code> (default 50; 0 means no cap)</td>
+<td><strong>Used.</strong> Daily booking cap for the location.</td>
+</tr>
+<tr>
+<td><code>logo_url</code></td>
+<td><strong>Used.</strong> Fallback logo for printed invoices when the clinic theme has none.</td>
+</tr>
+<tr>
+<td><code>appointment_slot_duration</code> (default 30)</td>
+<td>Read only by the web app, as the default length in the booking form.</td>
+</tr>
+<tr>
+<td><code>advance_booking_days</code>, <code>cancellation_notice_hours</code>, <code>reminder_enabled</code>, <code>reminder_days_before</code>, <code>reminder_hours_before</code>, <code>reminder_channels</code>, <code>payment_gateway</code>, <code>late_fee_percentage</code>, <code>primary_color</code>, <code>theme</code></td>
+<td>Stored; no code reads them.</td>
+</tr>
+</tbody></table></div><p>The table lists each setting and whether anything uses it.</p>
+<ul>
+<li><code>GET /locations/:id/settings</code> and <code>PATCH /locations/:id/settings</code> both need <code>admin.locations.manage</code>. Staff without it (receptionists, doctors) cannot read the slot duration, so their booking form falls back to 30 minutes.</li>
+<li><strong>Field-name mismatch.</strong> The update DTO names several fields differently from the stored columns (for example <code>defaultSlotDuration</code> against <code>appointmentSlotDuration</code>, <code>maxDailyAppointments</code> against <code>maxAppointmentsPerDay</code>). The screen sends the stored names plus <code>id</code> and timestamps, so its save should fail with 400; a client sending the DTO names would get success but nothing stored for those fields. In practice, the daily cap and slot duration cannot be changed through the API (by reading the code, not executed). The tax rate has the same name on both sides.</li>
+<li>The tax rate can also be set in the setup wizard&#39;s location step (0–100).</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch09-location-settings.svg" alt="Figure 9.6 — Location settings page"></p>
+<p><em>Figure 9.6 — Location settings (screenshot pending).</em></p>
+<p>The page has a back button to Locations. An &quot;Appointment Settings&quot; card holds Slot Duration (mins), Max Appointments / Day, Advance Booking Days and Cancellation Notice (hours); the organization&#39;s legacy &quot;Allow Location Override&quot; switch can grey out three of these. A &quot;Payment &amp; Billing&quot; card holds Tax Rate (%) and Late Fee (%). The page also embeds the queue settings section for this location (the Queue chapter, Chapter 30, covers it). A &quot;Reminder Settings&quot; card exists in the code but is hidden until message delivery exists. Users without the permission see &quot;No access — You don&#39;t have permission to manage this location&#39;s settings.&quot; On success a toast says &quot;Location settings updated successfully&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/locations/entities/location-settings.entity.ts</code> · <code>UpdateLocationSettingsDto</code> · <code>LocationsController.getSettings</code> · <code>LocationsController.updateSettings</code> · <code>backend/src/billing/tax/location-tax-rate.ts</code> · <code>web-app/src/features/locations/LocationSettingsFeature.tsx</code></p>
+<h2 id="ch09-organizations-and-locations-9-8-subscriptions-and-read-only-mode-summary">9.8 Subscriptions and read-only mode (summary)</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>An organization with subscription dates is &quot;managed&quot;: it is on a trial (self-signup gives 14 days with Professional limits) or paid until a date, and after that date it gets 3 grace days. When the grace days have passed, the clinic is in <strong>read-only mode</strong>: the fifth global guard, <code>SubscriptionGuard</code>, refuses every write with 402 <code>SUBSCRIPTION_EXPIRED</code>, while reads, sign-in, the account and setup pages and the super admin keep working. Recording a subscription payment (a manual super-admin action) lifts read-only mode at once; the status is computed on each request and cached for 30 seconds per process. Chapter 45 covers plans, limits, payments and the setup wizard in full.</p>
+<p><strong>Technical references:</strong> <code>backend/src/subscriptions/subscription.guard.ts</code> · <code>backend/src/subscriptions/plans.ts</code> · <code>SubscriptionsService.isReadOnly</code></p>
+<h2 id="ch09-organizations-and-locations-9-9-limitations-and-known-gaps">9.9 Limitations and known gaps</h2>
+<ul>
+<li>Several edit screens (organization edit, organization settings, location edit, location settings) send whole rows and are expected to fail with 400 under the strict validation pipe; this was found by reading the code and not executed.</li>
+<li>Organizations and locations cannot be reactivated from any screen.</li>
+<li>New locations default to <code>UTC</code> and <code>USD</code>; timezone and currency are not validated.</li>
+<li><code>is_main_branch</code> is not exclusive, and the last or main location can be deactivated.</li>
+<li>Organization and location create, edit and deactivate write no audit rows; only subscription changes are audited.</li>
+<li><code>organization_settings</code> and most location settings are stored but unused.</li>
+</ul>
+<h2 id="ch09-organizations-and-locations-9-10-owner-39-s-faq">9.10 Owner&#39;s FAQ</h2>
+<p><strong>Can an owner create a new organization?</strong> No. Only the super admin can, or a new owner through self-signup, which creates a separate clinic.</p>
+<p><strong>Can an owner add a branch?</strong> Yes, from Locations, as long as the plan&#39;s location limit allows it and the subscription has not expired.</p>
+<p><strong>Can a branch code be changed?</strong> No. The code is fixed at creation; the token prefix falls back to it.</p>
+<p><strong>Where is the sales tax rate set?</strong> In the location&#39;s settings (Tax Rate %) or in the setup wizard&#39;s location step. Each branch has its own rate.</p>
+<p><strong>What happens to patients and staff when a branch is deactivated?</strong> Nothing is deleted or moved. The branch is no longer offered at sign-in and in the location switcher.</p>
+<p><strong>What does &quot;unmanaged&quot; mean?</strong> An organization with neither trial end nor paid-until date. It never expires and has no plan limits. Organizations created by the super admin start this way.</p>
+</section></body></html>

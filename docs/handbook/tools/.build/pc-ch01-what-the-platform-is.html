@@ -1,0 +1,286 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch01-what-the-platform-is"><h1 id="ch01-what-the-platform-is-chapter-1-what-the-platform-is">Chapter 1 — What the Platform is</h1>
+<p>This chapter explains what the Platform is, who it serves and which parts are built today. It is the first chapter of the System Owner&#39;s Handbook and is written for the product owner, who is a software engineer and needs a clear picture before reading the detailed chapters. It ends with a map of the 18 module chapters, so a reader can find any topic.</p>
+<h2 id="ch01-what-the-platform-is-1-1-one-paragraph-summary">1.1 One paragraph summary</h2>
+<p>The Platform is a <strong>multi-tenant</strong> web application that runs the daily work of clinics. &quot;Multi-tenant&quot; means one running system serves many separate clinic businesses, and each business sees only its own data. One clinic business is an <strong>organization</strong>. An organization has one or more <strong>locations</strong> (branches). Staff log in, and what they see depends on their <strong>role</strong> and on the <strong>features</strong> the organization has switched on. The backend is a NestJS API with a PostgreSQL database. The front end is a React web app. Chapter 4 describes the stack, and Chapter 8 describes how tenants are kept apart.</p>
+<h2 id="ch01-what-the-platform-is-1-2-what-a-clinic-gets">1.2 What a clinic gets</h2>
+<p>A clinic uses the Platform to do these jobs:</p>
+<ul>
+<li>keep a <strong>patient</strong> record, including clinical history, vitals, documents and signed consents (Chapter 28);</li>
+<li>book <strong>appointments</strong> and manage the calendar (Chapter 29);</li>
+<li>run a doctor-wise waiting line with <strong>tokens</strong> after the patient arrives (Chapter 30);</li>
+<li>let the doctor work from one screen, the <strong>consultation workspace</strong> (Chapter 31);</li>
+<li>write and print <strong>prescriptions</strong> (Chapter 32);</li>
+<li>plan treatment in steps with a <strong>treatment plan</strong> (Chapter 33);</li>
+<li>bill patients, take <strong>payments</strong>, issue <strong>invoices</strong> and close the cash counter (Chapter 34);</li>
+<li>calculate doctor <strong>commission</strong> (Chapter 35), run reports (Chapter 36), manage <strong>employees</strong> (Chapter 37), <strong>payroll</strong> (Chapter 38) and <strong>inventory</strong> (Chapter 39);</li>
+<li>send work to a dental <strong>lab</strong> and track it, including a separate <strong>lab portal</strong> for the lab (Chapters 40 to 42);</li>
+<li>manage subscription and sign-up (Chapter 45).</li>
+</ul>
+<h2 id="ch01-what-the-platform-is-1-3-specialties-general-dental-and-others">1.3 Specialties: general, dental and others</h2>
+<p>An organization carries one or more <strong>specialty tags</strong>. The code lists six: general, dental, skin, ortho, physio and eye. The sign-up form offers them as choices, for example &quot;Skin / dermatology&quot;, &quot;Orthopaedics&quot;, &quot;Physiotherapy&quot; and &quot;Eye care&quot;. The tags describe which <strong>features</strong> are relevant to a clinic.</p>
+<p><strong>What is general.</strong> Patients, appointments, the queue, consultation, prescriptions, treatment plans, billing, commissions, reports, employees, payroll and inventory work for any clinic type. Their feature keys carry the tag &quot;general&quot;.</p>
+<p><strong>What is dental-specific.</strong> Two parts are built for dental clinics:</p>
+<ul>
+<li>the <strong>teeth chart</strong> (FDI tooth numbering), whose feature <code>patients.teeth_chart</code> is tagged dental and ortho, and the &quot;dental info&quot; record of a patient;</li>
+<li>the <strong>dental lab</strong> ordering and production flow, whose feature is <code>dental.lab_orders</code>, tagged dental and ortho. The Platform ships dental lab workflows (for example &quot;Try-in stage&quot; and &quot;Complete denture&quot; stage lists) as seed data for the workflow engine.</li>
+</ul>
+<p><strong>Honest summary.</strong> Dental is the most developed specialty. A clinic of another type can use every general module today. The tags for skin, ortho, physio and eye exist as labels, but this chapter found no screens or rules written only for skin, physio or eye care <strong>[Partial]</strong>. The workflow engine (Chapter 43) is designed so a new specialty can be added as data, not code, but only dental data is seeded.</p>
+<h2 id="ch01-what-the-platform-is-1-4-market-defaults-visible-in-the-code">1.4 Market defaults visible in the code</h2>
+<p>The first customers are clinics in Pakistan. Several defaults show this. They are <strong>defaults, not limits</strong>.</p>
+<div class="tw"><table><thead><tr>
+<th>Default</th>
+<th>What the code does</th>
+<th>Can it change?</th>
+</tr>
+</thead><tbody><tr>
+<td>Currency</td>
+<td>An organization&#39;s currency column defaults to PKR. Billing screens show &quot;Rs&quot;.</td>
+<td>It is a column per organization (and one per location), so it can be set.</td>
+</tr>
+<tr>
+<td>Timezone</td>
+<td>Every location has its own timezone. Clinic dates and times (queue day, &quot;today&quot;, no-show times) follow the location&#39;s timezone.</td>
+<td>Yes, per location.</td>
+</tr>
+<tr>
+<td>Urdu on prescriptions</td>
+<td>A prescription PDF prints Urdu text in Nastaliq script, right to left.</td>
+<td>It applies to typed text; printed labels stay English.</td>
+</tr>
+<tr>
+<td>Tax</td>
+<td>Sales tax is <strong>exclusive</strong>: it is added on top of the price.</td>
+<td>Tax is configured in billing settings.</td>
+</tr>
+<tr>
+<td>Roman-Urdu text</td>
+<td>The &quot;No access&quot; page shows the headline &quot;Aapke paas is page ki permission nahi&quot;, with English text under it.</td>
+<td>It is fixed text in the web app.</td>
+</tr>
+</tbody></table></div><p>The table lists the visible regional choices. They show the product is built first for Pakistani clinics, but nothing in them blocks another market. One point is <strong>[Unverified]</strong>: the location record has its own currency column whose database default is USD, while the organization default is PKR, and this chapter did not trace which one each billing screen reads.</p>
+<h2 id="ch01-what-the-platform-is-1-5-what-is-and-is-not-built">1.5 What is and is not built</h2>
+<p>Every feature in this handbook carries one of four labels: <strong>[Implemented]</strong> (built end to end), <strong>[Partial]</strong> (some of it exists), <strong>[Not implemented]</strong> (planned or only mentioned) and <strong>[Unverified]</strong> (not confirmed from code). The table is the one-page summary of the largest items.</p>
+<div class="tw"><table><thead><tr>
+<th>Area</th>
+<th>Status</th>
+<th>Note</th>
+</tr>
+</thead><tbody><tr>
+<td>Patients, appointments, queue, consultation, prescriptions</td>
+<td>[Implemented]</td>
+<td>Some sub-features are backend only; each module chapter lists them.</td>
+</tr>
+<tr>
+<td>Billing, payments, invoices, cash close, refunds</td>
+<td>[Implemented]</td>
+<td>The invoice is issued when payment is collected.</td>
+</tr>
+<tr>
+<td>Commissions, payroll, employees</td>
+<td>[Implemented]</td>
+<td>Payroll records are generated by a monthly job.</td>
+</tr>
+<tr>
+<td>Dental lab, lab portal, lab finance</td>
+<td>[Implemented]</td>
+<td>A lab order is not linked to a consultation.</td>
+</tr>
+<tr>
+<td>Reports and dashboards</td>
+<td>[Implemented]</td>
+<td>Reports can be exported.</td>
+</tr>
+<tr>
+<td>Inventory</td>
+<td>[Partial]</td>
+<td>The screen exists but has no sidebar entry; the daily alert job only writes a server log.</td>
+</tr>
+<tr>
+<td>Patient portal</td>
+<td>[Not implemented]</td>
+<td>Patients cannot log in.</td>
+</tr>
+<tr>
+<td>SMS, email and WhatsApp messages to patients</td>
+<td>[Not implemented]</td>
+<td>SMS and email feature keys are retired. A WhatsApp key exists in the feature catalog, but no patient messaging is built.</td>
+</tr>
+<tr>
+<td>Online booking</td>
+<td>[Not implemented]</td>
+<td>Retired feature key.</td>
+</tr>
+<tr>
+<td>Recurring appointments</td>
+<td>[Not implemented]</td>
+<td>Retired feature key.</td>
+</tr>
+<tr>
+<td>Appointment reminders</td>
+<td>[Not implemented]</td>
+<td>Retired feature key.</td>
+</tr>
+<tr>
+<td>Sign-in with Google or GitHub (OAuth)</td>
+<td>[Not implemented]</td>
+<td>The sign-in is disabled.</td>
+</tr>
+<tr>
+<td>Notifications</td>
+<td>[Partial]</td>
+<td>In-app only.</td>
+</tr>
+<tr>
+<td>Chairs</td>
+<td>[Not implemented]</td>
+<td>A database entity only; no screen or API.</td>
+</tr>
+<tr>
+<td>Insurance claims and online payments</td>
+<td>[Not implemented]</td>
+<td>Retired feature keys.</td>
+</tr>
+</tbody></table></div><p>The table shows that the core clinic workflow from booking to payment is built, while everything that reaches out to the patient (portal, messages, online booking) is not. Self-sign-up with a 14-day trial of the Professional plan exists in the backend and a register page exists in the web app; subscription payments are recorded by a super admin by hand (Chapter 45).</p>
+<h2 id="ch01-what-the-platform-is-1-6-how-a-patient-flows-through-the-platform">1.6 How a patient flows through the Platform</h2>
+<p>Figure 1.1 shows the main modules and the usual path of a patient.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch01-patient-flow.png" alt="Figure 1.1 — Main modules and the patient flow"></p>
+<p><em>Figure 1.1 — Main modules and the usual flow of a patient, with chapter numbers.</em></p>
+<p>The flowchart reads from left to right. The box &quot;Patients (Ch 28)&quot; has three arrows out of it. One goes to &quot;Appointments (Ch 29)&quot;, and an arrow labelled &quot;check-in&quot; leads from Appointments to &quot;Queue (Ch 30)&quot;. A second arrow, labelled &quot;walk-in&quot;, goes straight from Patients to Queue, because a patient without a booking joins the queue directly. The third goes down to &quot;Dental lab (Ch 40)&quot;. From Queue, an arrow labelled &quot;start consultation&quot; leads to &quot;Consultation (Ch 31)&quot;. Consultation has two arrows out: one to &quot;Prescriptions (Ch 32)&quot;, and one labelled &quot;complete visit&quot; to &quot;Billing (Ch 34)&quot;. Billing has two arrows out: one to &quot;Commissions (Ch 35)&quot;, which continues to &quot;Payroll (Ch 38)&quot;, and one to &quot;Dashboard and reports (Ch 36)&quot;. The Dental lab box has a two-way arrow with &quot;Lab portal (Ch 41)&quot;, since the clinic and the lab both act on the same order, and a one-way arrow to &quot;Lab finance (Ch 42)&quot;.</p>
+<h2 id="ch01-what-the-platform-is-1-7-map-of-the-18-module-chapters">1.7 Map of the 18 module chapters</h2>
+<div class="tw"><table><thead><tr>
+<th>Chapter</th>
+<th>Module</th>
+<th>One line</th>
+</tr>
+</thead><tbody><tr>
+<td>28</td>
+<td>Patients</td>
+<td>The patient record and everything attached to it.</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Appointments</td>
+<td>Booking, rescheduling, check-in.</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Queue</td>
+<td>Doctor-wise live waiting line with tokens and a TV display.</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Consultation</td>
+<td>The doctor&#39;s one-screen workspace for a visit.</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Prescriptions</td>
+<td>Writing, signing and printing prescriptions, with Urdu.</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Treatment plans</td>
+<td>Planned work per patient and reusable plan templates.</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Billing</td>
+<td>Charges, payments, invoices, refunds, cash close.</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Commissions</td>
+<td>Doctor compensation plans and earnings.</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Dashboard and reports</td>
+<td>The home dashboard, finance overview and reports.</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Employees</td>
+<td>Staff records, assignments, schedules, leave.</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Payroll</td>
+<td>Monthly payroll records and payments.</td>
+</tr>
+<tr>
+<td>39</td>
+<td>Inventory</td>
+<td>Stock, suppliers and purchase orders.</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Dental lab</td>
+<td>The clinic side of lab orders and production.</td>
+</tr>
+<tr>
+<td>41</td>
+<td>Lab portal</td>
+<td>The lab&#39;s own login and screens.</td>
+</tr>
+<tr>
+<td>42</td>
+<td>Lab finance</td>
+<td>Lab pricing, bills, statements and payables.</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Workflow engine</td>
+<td>Configurable forms and stages behind lab orders.</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Notifications</td>
+<td>In-app notifications and their rules.</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Subscriptions and onboarding</td>
+<td>Sign-up, trial, plans and subscription status.</td>
+</tr>
+</tbody></table></div><p>The table gives the whole module list in chapter order. The roles that use these modules are described in Chapter 2, and a sample clinic day that touches most of them is told in Chapter 3. Chapters 4 to 27 explain the architecture, tenancy and data model that every module relies on.</p>
+<h2 id="ch01-what-the-platform-is-1-8-limitations-and-known-gaps">1.8 Limitations and known gaps</h2>
+<ul>
+<li>The product name is not final. The Platform is the name used in this handbook, and each clinic sets its own display name; the default is &quot;Clinic Portal&quot;.</li>
+<li>Non-dental specialties have tags but no specialty-specific screens.</li>
+<li>Everything that reaches the patient directly is missing: no portal, no messages, no online booking.</li>
+</ul>
+</section></body></html>

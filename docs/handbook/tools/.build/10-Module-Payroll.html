@@ -1,0 +1,312 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Payroll</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch38-payroll">Chapter 38 — Payroll</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch38-payroll"><h1 id="ch38-payroll-chapter-38-payroll">Chapter 38 — Payroll</h1>
+<p>This chapter describes the Payroll module of the Platform: how a clinic turns each staff member&#39;s pay terms into one monthly payroll record, tracks it until it is paid, and exports it as a payslip or a spreadsheet. It is written for the product owner, who needs to know exactly how base salary and doctor commission are combined and which gaps remain. Payroll reads pay terms from the Employees module (Chapter 37) and commission from the Commissions module (Chapter 35).</p>
+<h2 id="ch38-payroll-38-1-what-this-module-is-for">38.1 What this module is for</h2>
+<p>A <strong>payroll record</strong> is one month&#39;s pay for one employee at one location. It stores a base salary, a commission amount and their total, all in integer paisa, plus a status (pending, paid, on hold), the payment method and reference once paid, and notes. There is at most one record per employee, location and month.</p>
+<p>Records come from three sources: the automatic month-end job, the <strong>Generate Payroll</strong> action (all employees of the active location for a chosen month), and <strong>Create Payroll</strong> (one record typed in by hand).</p>
+<p>Who uses it: the <strong>Admin</strong> and the <strong>owner</strong>. No other system role (Doctor, Receptionist, Assistant, Accountant) holds the permission by default. The permission <code>payroll.manage</code> is marked high-risk in the role editor.</p>
+<p>Where it appears: the sidebar item <strong>Payroll</strong> (key <code>nav.payroll</code>, route <code>/payroll</code>, needs <code>payroll.manage</code>) in the <strong>Team</strong> section. The employee detail page also has a <strong>Payroll</strong> tab for the same permission. The whole module sits behind the feature <strong><code>hr.payroll</code></strong> (&quot;Payroll&quot;, enabled by default).</p>
+<h2 id="ch38-payroll-38-2-screens">38.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch38-payroll-page.svg" alt="Figure 38.1 — Location Payroll page"></p>
+<p><em>Figure 38.1 — The Location Payroll page (screenshot pending).</em></p>
+<p>The page title is &quot;Location Payroll&quot; with the subtitle &quot;Manage monthly payroll for this location&quot;. In the header are a month selector, a year selector (current year minus two to plus two), a <strong>Create Payroll</strong> button and a <strong>Generate Payroll</strong> button. Under the header, four cards summarise the chosen month: Total Payroll (amount and &quot;N employees&quot;), Paid Amount (&quot;N paid records&quot;), Pending Amount (&quot;N pending records&quot;) and On Hold (&quot;Records on hold&quot;). A heading &quot;Records for October 2026&quot; introduces a paged table with the columns Employee, Period, Amount (with a small &quot;commission …&quot; line when the record includes commission), Status (Pending, Paid or On Hold badge), Paid On, Method and an actions column. Actions are <strong>Mark as Paid</strong> (hidden once paid), an edit icon button (&quot;Edit payroll&quot;) and a delete icon button (&quot;Delete payroll&quot;). An empty month shows &quot;No payroll records found.&quot;</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch38-generate-dialog.svg" alt="Figure 38.2 — Generate Payroll dialog"></p>
+<p><em>Figure 38.2 — The Generate Payroll dialog (screenshot pending).</em></p>
+<p>The dialog says &quot;Generate payroll records for all active employees at this location&quot; and offers a Month and a Year selector and a note that existing records for the same month are skipped. After it runs, a toast lists how many records were created, how many already existed and the names of employees with no salary set.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch38-payroll-record-dialog.svg" alt="Figure 38.3 — Create or edit payroll record"></p>
+<p><em>Figure 38.3 — The dialog for one payroll record (screenshot pending).</em></p>
+<p>The dialog has Employee (a searchable list when creating, read-only when editing), Month, Year, Amount, Status (Pending, Paid, On Hold) and Notes (&quot;Reason for this payroll (e.g. mid-month joiner, bonus adjustment)…&quot;). Choosing an employee pre-fills the amount with their current salary.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch38-mark-paid.svg" alt="Figure 38.4 — Mark Salary as Paid dialog"></p>
+<p><em>Figure 38.4 — The Mark Salary as Paid dialog (screenshot pending).</em></p>
+<p>The dialog &quot;Mark Salary as Paid&quot; asks for Payment Method (cash, bank transfer or cheque), Reference Number (&quot;Transaction ID or reference&quot;) and Notes (optional). On success a toast confirms the payment.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch38-employee-payroll-tab.svg" alt="Figure 38.5 — Employee detail, Payroll tab"></p>
+<p><em>Figure 38.5 — The Payroll tab of an employee (screenshot pending).</em></p>
+<p>The tab shows &quot;Payroll History&quot; with a <strong>Generate This Month</strong> button (when this month has no record and the person has a salary or a commission plan), the same table without the Employee column, or an empty state &quot;No payroll records yet — Generate payroll to track monthly salaries&quot; with a <strong>Generate Payroll</strong> button. Its Generate button opens the same dialog as the main page, which generates for the whole location, not only this person.</p>
+<h2 id="ch38-payroll-38-3-features">38.3 Features</h2>
+<h3 id="ch38-payroll-38-3-1-generate-payroll-for-a-month">38.3.1 Generate payroll for a month</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates one pending payroll record for every active employee of the active location who has something to be paid for the chosen month, and settles that employee&#39;s unsettled commission into it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Payroll</strong> and choose the month and year.</li>
+<li>Click <strong>Generate Payroll</strong>, check the month and year, and confirm.</li>
+<li>Read the toast: records created, records skipped, employees with no salary.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> For each active employee the Platform skips anyone who already has a record that month. Otherwise it takes the base salary from the pay plan in force at the end of the month, adds all the doctor&#39;s commission earned but not yet paid out, and saves one record. An employee with neither salary nor commission is listed as &quot;no salary&quot;.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /payroll/generate</code> with <code>{ month, year }</code> → <code>PayrollService.generate</code> → <code>generateForLocation</code>. The month may not be in the future in the location&#39;s clinic calendar (400 &quot;Cannot generate payroll for future months&quot;). All work for the location runs in one transaction on a query runner; any error rolls back the whole location. Per active assignment (<code>EmployeesService.getActiveAssignmentsByLocation</code>) the steps are the same as in the month-end job drawn in Figure 38.6 and described in 38.3.2.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Month 1–12, year at least 2020 (body); not in the future.</li>
+<li>Unique per employee, location and month (database constraint and a prior read).</li>
+<li>Base salary = <code>base_salary_paisa</code> of the compensation plan in force on the last day of the month, else on the first day; if the assignment has no plan at all, the deprecated <code>gross_salary</code> is used.</li>
+<li>Commission = sum of the assignment&#39;s unsettled <code>commission_entries</code> created before the end of the month&#39;s last clinic day (location timezone), locked <code>FOR UPDATE</code>. A net-negative sum is not settled and is carried to a later month; the record then has commission 0.</li>
+<li>Total = base + commission; <code>salary_amount</code> (rupees) mirrors the total.</li>
+<li>Nothing to pay (both zero) → no record; the name goes into <code>noSalary</code>.</li>
+<li>Records are created <code>pending</code>, with <code>created_by</code> = the user.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>, <code>compensation_plans</code>, <code>commission_entries</code>. Writes <code>payroll_records</code>, <code>commission_settlements</code>, <code>commission_entries.settlement_id</code>.</p>
+<p><strong>Effects on other modules.</strong> Commission becomes &quot;settled&quot; on the earnings pages (Chapter 35).</p>
+<p><strong>Error cases.</strong> 400 &quot;Cannot generate payroll for future months&quot;; 400 validation messages for month or year; 403 <code>NO_PERMISSION</code>; 402 <code>SUBSCRIPTION_EXPIRED</code> in read-only mode.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.generate</code>, <code>generateForLocation</code> · <code>web-app/src/features/employees/components/GeneratePayrollModal.tsx</code></p>
+<h3 id="ch38-payroll-38-3-2-month-end-automatic-generation">38.3.2 Month-end automatic generation</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> On the first day of every month the Platform generates payroll for the month that just ended, for every active location of every organization.</p>
+<p><strong>How the user does it.</strong> Nothing to do. Open Payroll afterwards and select the previous month. Records made this way have no <code>created_by</code>.</p>
+<p>Figure 38.6 shows the job, including the commission settlement.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch38-month-end-sequence.png" alt="Figure 38.6 — Month-end payroll generation"></p>
+<p><em>Figure 38.6 — The month-end job, with commission settlement, per location and per assignment.</em></p>
+<p>The diagram has six participants: Scheduler, PayrollService, EmployeesService, CompensationPlanVersions, CommissionSettlements and PostgreSQL. In step 1 the scheduler calls <code>runMonthEndPayroll</code> at 05:00 server time on the 1st. In step 2 the service loads every active location. A first box, &quot;loop: each active location, in its own transaction&quot;, contains the rest. Step 3 asks EmployeesService for the active assignments of the location and step 4 returns them with their employees. A second box, &quot;loop: each assignment&quot;, opens with step 5, a check whether a record for this employee, location and month exists. An &quot;alt&quot; box has two branches. If a record exists (step 6) it is counted as skipped. Otherwise step 7 asks CompensationPlanVersions for the plan in force on the last day of the month, else the first day, and step 8 returns the plan with <code>base_salary_paisa</code>. Step 9 calls <code>lockUnsettled</code> on CommissionSettlements for entries before the period end with a row lock and step 10 returns the entry ids and their total. A nested &quot;alt&quot; box then decides: if base and commission are both zero (step 11) the name is added to the no-salary list; otherwise step 12 inserts a PENDING payroll record whose total is base plus commission, and an optional step 13, taken only when entries were found and their total is not negative, creates a PENDING settlement and sets <code>settlement_id</code> on the entries. Step 14, after the loops, commits the location, or rolls back only that location.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> It is the same work as manual generation, run for every clinic in one go. If one clinic fails, the others still run. Running it twice, or after a manual generation, is safe because existing records are skipped.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PayrollService.runMonthEndPayroll</code>, decorated <code>@Cron(&#39;0 5 1 * *&#39;, { name: &#39;month-end-payroll&#39; })</code> with no timezone option, so it fires at 05:00 server time on the 1st. The code comment above it says &quot;00:05&quot;, which is wrong; the expression means 05:00 (the same conflict is noted in the scheduled-jobs appendix). The month is computed from the server&#39;s own <code>new Date()</code> (previous month, December of the previous year in January), not from each location&#39;s timezone. It loads <code>locations</code> with <code>is_active = true</code> (without checking that the organization is active or that <code>hr.payroll</code> is enabled), calls <code>generateForLocation(…, userId = null)</code> for each in a try/catch, and logs totals generated and skipped. It runs where scheduled jobs run (the worker or all-in-one process).</p>
+<p><strong>Rules and validations.</strong> Same as 38.3.1, except there is no future-month check and no user.</p>
+<p><strong>Who can do it.</strong> The scheduler; no permission.</p>
+<p><strong>Data read and written.</strong> As in 38.3.1.</p>
+<p><strong>Effects on other modules.</strong> As in 38.3.1.</p>
+<p><strong>Error cases.</strong> A location error is logged (&quot;Month-end payroll failed for location …&quot;) and skipped; there is no in-app notification.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.runMonthEndPayroll</code> · no web-app use</p>
+<h3 id="ch38-payroll-38-3-3-create-a-payroll-record-by-hand">38.3.3 Create a payroll record by hand</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds one record for a chosen employee and month, for example for a mid-month joiner or a bonus.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click <strong>Create Payroll</strong>.</li>
+<li>Pick the employee, month, year, amount, status and notes; submit.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The amount you type is stored as the base salary with zero commission. This record does not settle any commission.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /payroll</code> → <code>PayrollService.createManual</code>: refuses a duplicate (400 &quot;A payroll record already exists for this employee and period&quot;), then inserts with <code>base_salary_paisa = total_paisa</code> = rupee amount converted to paisa (at most 2 decimals), <code>commission_paisa = 0</code>, status from the request (default pending) and the notes.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Month 1–12, year at least 2020, amount at least 0.</li>
+<li>The server does not check that the employee has an assignment at this location, nor that the month is not in the future.</li>
+<li>Choosing status &quot;Paid&quot; here records no payment method, no paid date and no settlement change.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>payroll_records</code>. Writes <code>payroll_records</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;A payroll record already exists for this employee and period&quot;; 400 &quot;Amount must have at most 2 decimals&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.createManual</code> · <code>web-app/src/features/employees/components/CreateEditPayrollModal.tsx</code></p>
+<h3 id="ch38-payroll-38-3-4-view-payroll-for-a-month-or-for-one-employee">38.3.4 View payroll for a month or for one employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists the month&#39;s records of the location with a summary, or all records of one employee.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Payroll</strong> and pick a month and year, or open an employee&#39;s <strong>Payroll</strong> tab.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The four summary cards add up the month&#39;s records by status.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /payroll/location?month&amp;year</code> → <code>PayrollService.findByLocation</code> returns the records (with the employee) and a summary: total employees, total amount, paid, pending and on-hold counts, paid and pending amounts and the paisa split into base and commission. A month outside 1–12 or a year outside 2000–2100, or a non-number, returns 400 &quot;month must be 1–12&quot; / &quot;year must be a four-digit year&quot;. <code>GET /payroll/employee/:id</code> → <code>findByEmployee</code> returns the person&#39;s records in the organization, newest first.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The summary uses the rupee amounts; records created before the paisa breakdown fall back to those.</li>
+<li>The location list is scoped to the active location; the per-employee list covers every location of the organization.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>payroll_records</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;month must be 1–12&quot;; 400 &quot;year must be a four-digit year&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.controller.ts</code> · <code>payrollPeriod</code>, <code>PayrollService.findByLocation</code> · <code>web-app/src/features/employees/pages/PayrollPage.tsx</code></p>
+<h3 id="ch38-payroll-38-3-5-mark-a-record-as-paid">38.3.5 Mark a record as paid</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Records that the salary was paid, how, and with what reference, and marks the linked commission settlement as paid.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>In the table, click <strong>Mark as Paid</strong>.</li>
+<li>Choose Payment Method, enter a Reference Number and optional Notes, and confirm.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The record becomes paid with the time, the method and who paid it. In the same step the commission that was bundled into it is marked paid, so it can never be released again.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /payroll/:id/mark-paid</code> → <code>PayrollService.markPaid</code>, one transaction: loads the record in the organization, refuses a paid one (400 &quot;Payroll already marked as paid&quot;), sets status <code>paid</code>, <code>paid_at</code> = now, <code>payment_method</code> (cash, bank_transfer or cheque), <code>payment_reference</code>, <code>paid_by</code> and <code>notes</code> (the notes field is replaced, also by empty), then <code>CommissionSettlements.markPaid</code> sets the settlement to <code>PAID</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Payment method is required and must be one of the three values; reference and notes are optional text.</li>
+<li>An on-hold record can be paid.</li>
+<li>No money moves: the Platform records the payout, it does not make it, and it posts nothing to the general ledger or expenses.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>payroll_records</code>, <code>commission_settlements</code>.</p>
+<p><strong>Effects on other modules.</strong> Settled commission appears as settled on the earnings pages (Chapter 35). The payroll cost report counts records by month (Chapter 36).</p>
+<p><strong>Error cases.</strong> 400 &quot;Payroll already marked as paid&quot;; 404 &quot;Payroll record not found&quot;; toast &quot;Failed to mark as paid&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.markPaid</code> · <code>web-app/src/features/employees/components/MarkPaidModal.tsx</code></p>
+<h3 id="ch38-payroll-38-3-6-put-a-record-on-hold">38.3.6 Put a record on hold</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint and the edit dialog&#39;s status field work, but no button calls <code>mark-on-hold</code>.</p>
+<p><strong>What it does.</strong> Marks a record as on hold, for example while a dispute is resolved.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click the edit icon on a record, set Status to <strong>On Hold</strong> and save.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> On hold changes only the label and the summary counts. The commission stays tied to the record.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /payroll/:id/mark-on-hold</code> → <code>PayrollService.markOnHold</code> refuses a paid record (400 &quot;Cannot put a paid payroll record on hold&quot;). A client function for it exists in <code>payroll.api.ts</code>, but no hook or screen uses it. The edit dialog uses <code>PATCH /payroll/:id</code> (38.3.7).</p>
+<p><strong>Rules and validations.</strong> Not allowed on paid records.</p>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>payroll_records</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;Cannot put a paid payroll record on hold&quot;; 404.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.markOnHold</code> · <code>web-app/src/features/employees/services/payroll.api.ts</code></p>
+<h3 id="ch38-payroll-38-3-7-edit-a-payroll-record">38.3.7 Edit a payroll record</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes the amount, month, year, status or notes of a record.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click the edit icon (&quot;Edit payroll&quot;), change fields and save.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The amount you edit is the total. Commission already inside the record stays as it is, and the difference is treated as base salary.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /payroll/:id</code> → <code>PayrollService.update</code>: for a new amount, total = paisa(amount); the amount may not be below <code>commission_paisa</code>; <code>base_salary_paisa = total − commission</code>. Month and year changes rebuild the period label. The save maps a unique-key clash (23505) to 400.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Amount at least 0, at most 2 decimals; month 1–12; year at least 2020.</li>
+<li>Editing is allowed in any status, including paid.</li>
+<li>Setting the status to &quot;paid&quot; here does not set the paid date, method or reference and does not mark the settlement paid (see 38.7).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>payroll_records</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;The amount cannot be below the commission already in this payroll&quot;; 400 &quot;A payroll record already exists for this employee and period&quot;; 404 &quot;Payroll record not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.update</code> · <code>web-app/src/features/employees/components/CreateEditPayrollModal.tsx</code></p>
+<h3 id="ch38-payroll-38-3-8-delete-a-payroll-record">38.3.8 Delete a payroll record</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Deletes a record and returns its commission to the unsettled pool, unless commission was already paid out.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Click the delete icon (&quot;Delete payroll&quot;) and accept the browser confirmation &quot;Delete the payroll record for … ? This cannot be undone.&quot;</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Deleting an unpaid record frees its commission so the next generation picks it up again. A record that paid out commission cannot be deleted.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>DELETE /payroll/:id</code> → <code>PayrollService.remove</code>, one transaction: <code>CommissionSettlements.release</code> locks the settlement; <code>PENDING</code> → clears <code>settlement_id</code> on its entries and deletes the settlement; <code>PAID</code> → 400; none → nothing. Then the record is removed. The confirmation uses the browser&#39;s <code>window.confirm</code>, not the project&#39;s confirmation dialog.</p>
+<p><strong>Rules and validations.</strong> A paid record with no commission settlement (zero commission) can be deleted.</p>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Deletes <code>payroll_records</code>, <code>commission_settlements</code>; updates <code>commission_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> The commission appears as pending again on the earnings pages.</p>
+<p><strong>Error cases.</strong> 400 &quot;This payroll paid out commission and cannot be deleted&quot;; 404 &quot;Payroll record not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll.service.ts</code> · <code>PayrollService.remove</code> · <code>web-app/src/features/employees/components/PayrollTable.tsx</code></p>
+<h3 id="ch38-payroll-38-3-9-export-a-month-as-csv">38.3.9 Export a month as CSV</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint works; no button in the web app calls it.</p>
+<p><strong>What it does.</strong> Returns a CSV file for one month at the active location.</p>
+<p><strong>How the user does it.</strong> Not available in the web app. The API can be called directly.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> One row per record with base salary, commission, gross, deductions, net, status, method and paid date.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /payroll/export?month&amp;year</code> → <code>PayrollExportService.generatePayrollSummaryCsv</code> with the same month and year validation (400). Columns: Employee Name, Designation, Base Salary, Commission, Gross Pay, Deductions, Net Pay, Status, Payment Method, Paid Date. Deductions are always 0.00 and net equals gross. Designation reads a field the employee record does not have, so the column is empty. Response type <code>text/csv</code>, file name <code>payroll-&lt;year&gt;-&lt;month&gt;.csv</code>.</p>
+<p><strong>Rules and validations.</strong> Active location only. Amounts come from paisa.</p>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>payroll_records</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 400 &quot;month must be 1–12&quot; / &quot;year must be a four-digit year&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll-export.service.ts</code> · <code>PayrollExportService.generatePayrollSummaryCsv</code> · none</p>
+<h3 id="ch38-payroll-38-3-10-payslip-pdf">38.3.10 Payslip PDF</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint works; no button in the web app calls it.</p>
+<p><strong>What it does.</strong> Returns a one-page A4 PDF payslip for one record.</p>
+<p><strong>How the user does it.</strong> Not available in the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The slip shows the period, the employee, base salary, commission, gross pay, deductions (always zero), net pay, status, payment method and paid date.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /payroll/:id/payslip-pdf</code> → <code>PayrollExportService.generatePayslipPdf</code>, built with <code>pdf-lib</code> and Helvetica (Latin text only). Returned inline as <code>application/pdf</code>, file name <code>payslip-&lt;period&gt;.pdf</code>. Records from before the paisa breakdown show their whole amount as base salary. The designation line is skipped because the employee record has none.</p>
+<p><strong>Rules and validations.</strong> The record must belong to the organization.</p>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>payroll_records</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Payroll record not found&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll-export.service.ts</code> · <code>PayrollExportService.generatePayslipPdf</code> · none</p>
+<h3 id="ch38-payroll-38-3-11-deductions-tax-and-bank-files">38.3.11 Deductions, tax and bank files</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing. There are no deductions, advances, loans, taxes, overtime or bank payment files; the &quot;Deductions&quot; column is a fixed zero, and unpaid leave does not reduce pay.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Pay is base salary plus commission, nothing else.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PayrollRecord</code> has no deduction columns; the export functions print <code>0.00</code>.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/payroll/payroll-export.service.ts</code> · <code>PayrollExportService</code> · none</p>
+<h2 id="ch38-payroll-38-4-entities-and-data-model">38.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch38-payroll-erd.png" alt="Figure 38.7 — Payroll data model"></p>
+<p><em>Figure 38.7 — The payroll record and the tables that feed it.</em></p>
+<p>The diagram has <code>payroll_records</code> at the top, showing <code>id</code>, <code>employee_id</code>, <code>organization_id</code>, <code>location_id</code>, <code>month</code>, <code>year</code>, <code>base_salary_paisa</code>, <code>commission_paisa</code>, <code>total_paisa</code> and <code>status</code>. Three lines come into it from <code>employees</code> (&quot;is paid&quot;), <code>organizations</code> (&quot;owns&quot;) and <code>locations</code> (&quot;pays at&quot;). A one-to-one optional line labelled &quot;pays out&quot; connects it to <code>commission_settlements</code> (<code>assignment_id</code>, <code>payroll_record_id</code>, <code>total_paisa</code>, <code>status</code>). <code>commission_settlements</code> has an optional one-to-many line &quot;settles&quot; to <code>commission_entries</code> (<code>assignment_id</code>, <code>settlement_id</code>, <code>amount_paisa</code>), and a line &quot;is settled&quot; from <code>employee_org_location_assignments</code> (shown only as a relationship). The same assignment has a line &quot;is paid by&quot; to <code>compensation_plans</code> (<code>type</code>, <code>base_salary_paisa</code>).</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each payroll record belongs to one employee, one organization and one location. Deleting any of them deletes the record (ON DELETE CASCADE).</li>
+<li>A record is unique per employee, location, month and year.</li>
+<li>A record has at most one commission settlement; the settlement&#39;s link to the record is ON DELETE RESTRICT, so a record that has one cannot be removed by a plain database delete. The service releases and deletes the settlement first.</li>
+<li>A settlement groups entries of one assignment; entries only point to it and are never changed otherwise.</li>
+<li>The base salary is copied from the compensation plan at generation time. Later plan changes do not change existing records.</li>
+<li>Columns: <code>period_label</code> (for example &quot;October 2026&quot;), <code>salary_amount</code> (rupee decimal mirror of the total), the three paisa columns, <code>status</code>, <code>paid_at</code>, <code>payment_method</code>, <code>payment_reference</code>, <code>paid_by</code>, <code>notes</code>, <code>created_by</code> (empty for the job).</li>
+</ul>
+<h2 id="ch38-payroll-38-5-status-lifecycles">38.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch38-payroll-status.png" alt="Figure 38.8 — Payroll record status"></p>
+<p><em>Figure 38.8 — The states of a payroll record.</em></p>
+<p>The diagram has three stored states and a &quot;deleted&quot; end state. A record enters <strong>pending</strong> through <code>POST /payroll/generate</code>, the month-end job or <code>POST /payroll</code>. From pending, <code>PATCH …/mark-paid</code> leads to <strong>paid</strong>, and <code>PATCH …/mark-on-hold</code> or a <code>PATCH /payroll/:id</code> with a status change leads to <strong>on_hold</strong>. From on_hold, <code>PATCH …/mark-paid</code> leads to paid, and a status edit leads back to pending. Pending and on_hold lead to deleted through <code>DELETE /payroll/:id</code>; paid leads to deleted only when no commission was paid out. Deleted leads to the end marker.</p>
+<ul>
+<li><strong>pending</strong> — generated and waiting for payment; its commission settlement, if any, is <code>PENDING</code>.</li>
+<li><strong>on_hold</strong> — set aside; nothing else changes.</li>
+<li><strong>paid</strong> — payment method, reference, date and payer recorded; the settlement is <code>PAID</code>. Editing is still possible.</li>
+</ul>
+<h2 id="ch38-payroll-38-6-connections-to-other-modules">38.6 Connections to other modules</h2>
+<ul>
+<li><strong>Employees (Chapter 37).</strong> Payroll runs over active assignments and reads their plans; the employee page has a Payroll tab.</li>
+<li><strong>Commissions (Chapter 35).</strong> Settlement lock, mark paid and release.</li>
+<li><strong>Dashboard and reports (Chapter 36).</strong> The payroll and staff-cost reports and the finance overview read <code>payroll_records</code> by month.</li>
+<li><strong>Subscriptions (Chapter 45).</strong> Read-only mode refuses generation, edits and payments with 402.</li>
+<li><strong>Scheduled jobs (Chapter 63).</strong> The month-end job is one of the timed jobs.</li>
+</ul>
+<h2 id="ch38-payroll-38-7-limitations-and-known-gaps">38.7 Limitations and known gaps</h2>
+<ul>
+<li>The month-end job&#39;s code comment says 00:05; the schedule is 05:00 server time, and the month is taken from server time, not from each location&#39;s timezone.</li>
+<li>The job does not check that the organization is active or that <code>hr.payroll</code> is on.</li>
+<li>Marking a record paid through the edit dialog&#39;s Status field does not pay the commission settlement; a later delete would then release the commission back to the pool.</li>
+<li>Manual creation does not check the assignment or the month, and a hand-made record carries no commission.</li>
+<li>Payslip PDF and CSV export have no button.</li>
+<li>On-hold has no button; the delete confirmation is a browser dialog.</li>
+<li>Designation is empty on exports.</li>
+<li>No deductions, tax, overtime or unpaid-leave handling; no general-ledger posting for salary payment.</li>
+<li>Payroll changes are not written to the general audit log.</li>
+</ul>
+<h2 id="ch38-payroll-38-8-owner-39-s-faq">38.8 Owner&#39;s FAQ</h2>
+<p><strong>When does payroll run by itself?</strong> At 05:00 server time on the 1st of each month, for the month that just ended, at every active location.</p>
+<p><strong>What if I generate manually first?</strong> Safe: existing records are skipped, so the job and manual runs never double up.</p>
+<p><strong>A doctor is paid only commission. Will they get a record?</strong> Yes, if they have unsettled commission of zero or more. A commission-only doctor with no earnings gets none and appears in the &quot;no salary&quot; list.</p>
+<p><strong>What happens to commission reversed after payroll was paid?</strong> It becomes a negative entry that is settled with the next payroll, reducing it.</p>
+<p><strong>Can I delete a paid record?</strong> Only if it paid out no commission.</p>
+<p><strong>Can I change the amount after generating?</strong> Yes, with the edit icon; it may not go below the commission in the record.</p>
+<p><strong>Can I get a payslip?</strong> The endpoint exists, but the web app has no button yet.</p>
+<p><strong>Is the unique rule per person or per branch?</strong> Per person per branch per month: a doctor at two branches gets two records.</p>
+</section></body></html>

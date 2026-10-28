@@ -1,0 +1,487 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">End-to-End Workflows (Part 6)</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 6 — End-to-end workflows</div><div class="r"><a href="#ch46-clinic-onboarding">Chapter 46 — Workflow: Onboarding a New Clinic</a><span class="d"></span><span>4</span></div><div class="r"><a href="#ch47-staff-onboarding">Chapter 47 — Workflow: Onboarding a Staff Member</a><span class="d"></span><span>9</span></div><div class="r"><a href="#ch48-patient-journey">Chapter 48 — Workflow: The Patient Journey</a><span class="d"></span><span>13</span></div><div class="r"><a href="#ch49-dental-lab-case">Chapter 49 — Workflow: A Dental Lab Case</a><span class="d"></span><span>17</span></div><div class="r"><a href="#ch50-daily-clinic-closing">Chapter 50 — Workflow: Closing the Clinic Day</a><span class="d"></span><span>21</span></div><div class="r"><a href="#ch51-month-end-payroll">Chapter 51 — Workflow: Month-End Payroll</a><span class="d"></span><span>24</span></div><div class="r"><a href="#ch52-invoice-correction-and-refund">Chapter 52 — Workflow: Correcting an Invoice and Refunding Money</a><span class="d"></span><span>27</span></div><div class="r"><a href="#ch53-subscription-expiry-and-recovery">Chapter 53 — Workflow: Subscription Expiry and Recovery</a><span class="d"></span><span>31</span></div><div class="r"><a href="#ch54-access-change-propagation">Chapter 54 — Workflow: How an Access Change Reaches Every Screen</a><span class="d"></span><span>35</span></div><div class="r"><a href="#ch55-purchase-to-consumption">Chapter 55 — Workflow: From Purchase Order to Consumption</a><span class="d"></span><span>38</span></div></section><section class="chapter" id="ch46-clinic-onboarding"><h1 id="ch46-clinic-onboarding-chapter-46-workflow-onboarding-a-new-clinic">Chapter 46 — Workflow: Onboarding a New Clinic</h1>
+<p>This chapter follows one new clinic from nothing to a clinic that is ready to receive patients. There are two ways in: the owner signs up alone, or a super admin creates the organization by hand. It is written for the product owner, who needs to know which steps are automatic, which need a super admin, and where the two paths differ. Each step names the module, its status and the chapter that explains it in full.</p>
+<h2 id="ch46-clinic-onboarding-46-1-who-is-involved">46.1 Who is involved</h2>
+<ul>
+<li><strong>Owner</strong>: the person who runs the clinic business. On the self-signup path this person creates the clinic. On the other path an owner login is created for them.</li>
+<li><strong>Super admin</strong>: the Platform operator. Creates organizations by hand, entitles features, records payments and can act inside any clinic.</li>
+<li><strong>Example Clinic</strong>: the fictional organization used in this chapter, with a Main location.</li>
+<li><strong>Sample staff</strong>: employees added at the end (Chapter 47 covers staff onboarding).</li>
+</ul>
+<h2 id="ch46-clinic-onboarding-46-2-the-steps">46.2 The steps</h2>
+<p>Figure 46.1 shows both paths and the shared steps that follow them.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch46-onboarding-sequence.png" alt="Figure 46.1 — Clinic onboarding"></p>
+<p><em>Figure 46.1 — Two ways to create a clinic, then the shared set-up steps.</em></p>
+<p>The diagram has six participants from left to right: Owner, Super admin, Web app, API, PostgreSQL and SMTP mail. It has 22 numbered messages. A box labelled &quot;alt&quot; holds the two paths. In Path A (messages 1 to 7) the Owner fills the &quot;Create your clinic&quot; form, the Web app posts to <code>POST /auth/register</code>, and the API writes the user, the organization, the MAIN location, the ownership row, the feature rows, the system roles and a 14-day trial to PostgreSQL. The API sends a verification link through SMTP mail (a failure is only logged) and returns a signed-in 30-day session. The Owner then goes through the three-step setup wizard, and the Web app saves it with two PATCH calls and one POST that completes setup. In Path B (messages 8 to 15) the Super admin creates the organization from the Organizations screen; the API stores the organization, its feature rows and system roles but no owner, no location and no dates. The Super admin then creates a location, selects the organization and location, and creates a user of type Owner in User Admin, which writes the user and an ownership row. After the box, both paths continue: the Super admin entitles features (messages 16 to 18), the Owner switches features on (19 and 20), and the Owner sets up roles, locations, theme, navigation and employees (21 and 22).</p>
+<h3 id="ch46-clinic-onboarding-step-1a-self-signup-path-a">Step 1a — Self-signup (Path A)</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The visitor opens <code>/register</code>, enters clinic name, full name, email, an optional phone and a password. The Platform creates the owner login, the organization, one location with code <code>MAIN</code>, the ownership link, a 14-day trial on the Professional plan, the feature rows and the five system roles, then signs the owner in. Chapter 45 describes this in full: a visitor registers, and a trial starts at once.</p>
+<h3 id="ch46-clinic-onboarding-step-1b-verify-the-email-address">Step 1b — Verify the email address</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Partial]. The owner receives a link that is valid for 48 hours and opens <code>/verify-email</code>. Verification is informational: nothing is blocked while the address is unverified, and a failed email send is only logged. Chapter 45 and the Authentication chapter (Chapter 56) cover it.</p>
+<h3 id="ch46-clinic-onboarding-step-1c-setup-wizard">Step 1c — Setup wizard</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. An owner whose setup is pending is sent to <code>/setup</code> from any other page. Step &quot;Clinic&quot; collects name, clinic types, phone, email, timezone and currency. Step &quot;Location &amp; tax&quot; collects the main location&#39;s details and the sales tax percentage. Step &quot;Your team&quot; only explains that staff are added later; its finish button clears the pending flag without checking that the first two steps were saved. Saving the clinic step copies timezone and currency to every location of the clinic (Chapter 45).</p>
+<h3 id="ch46-clinic-onboarding-step-2-super-admin-creates-the-organization-path-b">Step 2 — Super admin creates the organization (Path B)</h3>
+<p><strong>Module:</strong> Organizations and locations. <strong>Status:</strong> [Partial]. <code>POST /organizations</code> works, and it seeds the feature rows and the five system roles. The Organizations screen&#39;s form offers plan, clinic type, timezone and currency values that the API rejects, so a form filled with those fields fails with HTTP 400 (found by reading both files, not by running the app). The result is an unmanaged clinic: no owner, no location, no trial and no plan limits (Chapter 9 and Chapter 45).</p>
+<h3 id="ch46-clinic-onboarding-step-3-give-the-clinic-a-location-and-an-owner-path-b">Step 3 — Give the clinic a location and an owner (Path B)</h3>
+<p><strong>Module:</strong> Organizations and locations, and User Admin. <strong>Status:</strong> [Partial]. A super admin adds a location from the Locations screen by choosing the organization. There is no field on the organization screen to name an owner. The code creates an owner login through User Admin with the account type &quot;Owner&quot;, which uses the active organization from the request header. A super admin therefore has to select that organization and a location before creating the owner. This sequence is deduced from the code and was not run. Chapter 8 explains ownership; Chapter 56 explains User Admin.</p>
+<h3 id="ch46-clinic-onboarding-step-4-entitle-features">Step 4 — Entitle features</h3>
+<p><strong>Module:</strong> Features. <strong>Status:</strong> [Implemented]. A super admin opens &quot;Manage features&quot; for the clinic. Every feature has an <strong>Entitled</strong> switch, an optional trial end date and an <strong>Enabled</strong> switch; &quot;Entitle module&quot; acts on a whole module. The seeding at clinic creation sets entitled and enabled equal to each feature&#39;s default. Several features that clinics rely on are off by default and need this step: among them <code>billing.invoices</code>, <code>billing.commissions</code>, <code>inventory.core</code>, <code>dental.lab_orders</code>, <code>reports.financial</code> and <code>reports.clinical</code>. Without <code>billing.invoices</code>, completing a consultation creates no charges (Chapter 31). Chapter 10 covers the three switches.</p>
+<h3 id="ch46-clinic-onboarding-step-5-owner-enables-features">Step 5 — Owner enables features</h3>
+<p><strong>Module:</strong> Features. <strong>Status:</strong> [Implemented]. The owner opens <strong>Features</strong> (<code>/admin/features</code>) and switches on the features in the plan. A locked feature, which is not entitled or whose trial ended, cannot be switched on. Turning a feature off shows an impact list of the permissions and roles affected, and a location can switch a feature off for itself only (Chapter 10).</p>
+<h3 id="ch46-clinic-onboarding-step-6-roles">Step 6 — Roles</h3>
+<p><strong>Module:</strong> Roles and permissions. <strong>Status:</strong> [Implemented]. The five system roles (Admin, Doctor, Receptionist, Assistant, Accountant) already exist. The owner may clone one or build a custom role at <strong>Roles &amp; permissions</strong> (<code>/admin/roles</code>) with None, Basic or Full per module. System roles are read-only (Chapter 11).</p>
+<h3 id="ch46-clinic-onboarding-step-7-locations">Step 7 — Locations</h3>
+<p><strong>Module:</strong> Organizations and locations. <strong>Status:</strong> [Implemented]. The owner adds further branches from Locations. The plan&#39;s location limit applies (Professional allows 3) and an expired subscription refuses the write. The edit screen for locations sends fields the API refuses, so changing a location afterwards may fail [Partial] (Chapter 9).</p>
+<h3 id="ch46-clinic-onboarding-step-8-theme-and-navigation">Step 8 — Theme and navigation</h3>
+<p><strong>Module:</strong> Customization. <strong>Status:</strong> [Implemented]. At <code>/admin/theme</code> the owner sets the display name (default &quot;Clinic Portal&quot;), logos, favicon, brand colour (default a blue), sidebar style and default light, dark or system mode. A location may override the name and logos. At <code>/admin/navigation</code> the owner arranges the sidebar for the whole clinic. Both need their own permission (<code>admin.theme.manage</code>, <code>admin.nav.manage</code>). Changing the sidebar layout raises the access version; the theme save does not appear to (Chapter 58 covers customization; Chapter 54 describes how access changes spread).</p>
+<h3 id="ch46-clinic-onboarding-step-9-staff">Step 9 — Staff</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. The owner or an Admin adds employees with roles and logins. Chapter 47 follows that workflow.</p>
+<h2 id="ch46-clinic-onboarding-46-3-what-can-go-wrong">46.3 What can go wrong</h2>
+<ul>
+<li><strong>Duplicate email at sign-up.</strong> User creation rejects it. If clinic creation fails after the user is created, the new user is deleted so no orphan account remains.</li>
+<li><strong>Rate limit.</strong> Registration is limited to 5 per hour, verification to 10 per 15 minutes and resend to 3 per hour.</li>
+<li><strong>Feature set after signup is smaller than expected.</strong> Features that are off by default must be entitled by a super admin. Clinics that have not been entitled for billing see no automatic charges.</li>
+<li><strong>Seeding failure.</strong> After the clinic is committed, seeding the feature rows and roles can fail; the failure is only logged, so a clinic can exist with no roles (Chapter 45).</li>
+<li><strong>Plan limit.</strong> Adding a fourth location on Professional gives <code>PLAN_LIMIT</code>.</li>
+<li><strong>Super admin path cannot be finished in one screen.</strong> Owner creation needs an organization context, which needs a location first.</li>
+<li><strong>Expired trial.</strong> After the trial and 3 grace days the clinic is read-only; setup and account paths stay writable (Chapter 53).</li>
+</ul>
+<h2 id="ch46-clinic-onboarding-46-4-data-left-behind">46.4 Data left behind</h2>
+<ul>
+<li><code>users</code>: the owner login, with the email verification columns.</li>
+<li><code>organizations</code>: plan, <code>trial_ends_at</code>, <code>onboarding_pending</code>, <code>access_version</code>.</li>
+<li><code>organization_ownership</code>: one primary owner on Path A; one non-primary owner on Path B.</li>
+<li><code>locations</code> and <code>location_settings</code>: at least one location with the tax rate.</li>
+<li><code>org_feature_flags</code> (entitled and enabled per feature) and <code>employment_roles</code> (the five system roles).</li>
+<li><code>config_values</code>: theme settings. <code>nav_layouts</code>: the sidebar layout, if the owner saved one.</li>
+<li><code>audit_logs</code>: feature entitlement changes and nav layout changes.</li>
+<li>Employees and assignments after Step 9.</li>
+</ul>
+</section><section class="chapter" id="ch47-staff-onboarding"><h1 id="ch47-staff-onboarding-chapter-47-workflow-onboarding-a-staff-member">Chapter 47 — Workflow: Onboarding a Staff Member</h1>
+<p>This chapter follows one new staff member, Dr. Example One, from the first employee record to the first sign-in. It is written for the product owner, who needs to know how a person, a role, a login, working hours and pay terms fit together, and what the Platform cannot do. The workflow touches Employees, Roles, User Admin, Authentication and Commissions.</p>
+<h2 id="ch47-staff-onboarding-47-1-who-is-involved">47.1 Who is involved</h2>
+<ul>
+<li><strong>Admin</strong> (or the owner): holds <code>employees.manage</code>, <code>admin.users.manage</code> and <code>compensation.manage</code>. Only the Admin system role holds them by default.</li>
+<li><strong>Dr. Example One</strong>: the new employee. Becomes a <strong>staff login</strong> once a user account is linked.</li>
+<li><strong>Example Clinic</strong>, Main location.</li>
+</ul>
+<h2 id="ch47-staff-onboarding-47-2-the-steps">47.2 The steps</h2>
+<p>Figure 47.1 shows the whole flow.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch47-staff-onboarding-sequence.png" alt="Figure 47.1 — Staff onboarding"></p>
+<p><em>Figure 47.1 — From the Add Employee form to the first sign-in.</em></p>
+<p>The diagram has five participants: Admin, Staff member, Web app, API and PostgreSQL, and 20 messages. The Admin fills the Add Employee form and the Web app calls <code>POST /employees</code>. The API first refuses the request if the phone number exists anywhere on the Platform, then inserts the employee, an <code>EMP-</code> code, the assignment with its role and the first compensation plan version. PostgreSQL raises the organization&#39;s access version after the commit, and the API answers &quot;Employee created&quot;. Next the Admin opens User Admin and creates a staff login (<code>POST /user</code> with type employee); the API checks the login limit, creates the user and links it to every active assignment with portal access on. The Admin saves the weekly schedule (<code>POST /employees/:employeeId/schedule</code>, seven rows for this location) and, if needed, a new compensation plan version (<code>POST /assignments/:assignmentId/compensation-plans</code>). Finally the Staff member signs in, the Web app calls <code>POST /auth/login</code> and, when asked, <code>POST /auth/select-location</code>, and then <code>GET /me/access</code>, which returns permissions, features and the home page.</p>
+<h3 id="ch47-staff-onboarding-step-1-employee-record-assignment-and-role">Step 1 — Employee record, assignment and role</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. On <strong>Employees</strong>, <strong>Add Employee</strong> asks for Full Name, Phone, Designation, Role, Employment Type and Joining Date. The server rejects a phone that already exists on the Platform (the employee record is shared across clinics). It generates the employee code (<code>EMP-001</code> style, counting the organization&#39;s assignments), inserts the assignment at the active location with the chosen role, and adds the first compensation plan version starting on the joining date: salaried with the entered salary, unless a commission plan was chosen (Chapter 37, Chapter 35). The role decides what the person may do at that location; a login alone grants nothing.</p>
+<h3 id="ch47-staff-onboarding-step-2-staff-login">Step 2 — Staff login</h3>
+<p><strong>Module:</strong> Employees and User Admin. <strong>Status:</strong> [Implemented]. There are two routes. The <strong>Portal Access</strong> switch on the employee form creates a login with an email and a password of at least 6 characters, linked only to the active location&#39;s assignment. <strong>User Admin → Create User → Staff (existing employee)</strong> needs a password of at least 8 characters, checks the plan&#39;s login limit and links the login to all the person&#39;s active assignments in the organization. Only the second route checks the limit (Chapter 37). The user receives no verification email when created by an administrator (Chapter 56).</p>
+<h3 id="ch47-staff-onboarding-step-3-weekly-schedule">Step 3 — Weekly schedule</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. On the <strong>Schedule</strong> tab the Admin switches days on or off, sets start and end times and a slot length of 15, 30, 45 or 60 minutes, and saves seven rows. Booking checks these hours: a doctor with no working block that day cannot be booked (Chapter 29). The Save button is visible to people without <code>employees.manage</code>, but the server refuses them. Availability overrides and approved leave are stored but do not affect booking [Partial] (Chapter 37).</p>
+<h3 id="ch47-staff-onboarding-step-4-compensation-plan">Step 4 — Compensation plan</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented]. On the <strong>Compensation</strong> tab the Admin picks Salaried, Commission or Both and an effective date. A new version closes the old one on the previous day. Commission is allowed only for roles that can conduct consultations, and the feature <code>billing.commissions</code> must be on. A second change on the same day replaces the first only if no charge used it (Chapter 35).</p>
+<h3 id="ch47-staff-onboarding-step-5-first-sign-in">Step 5 — First sign-in</h3>
+<p><strong>Module:</strong> Authentication and Access control. <strong>Status:</strong> [Implemented]. The staff member signs in with the email and password. If they have one location, it becomes active at once; otherwise the app shows the location picker. <code>GET /me/access</code> returns what they can do and the role&#39;s home page, for example <code>/queue/doctor</code> for a Doctor (Chapter 8, Chapter 11, Chapter 56).</p>
+<h3 id="ch47-staff-onboarding-what-is-not-possible-a-second-location">What is not possible: a second location</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Not implemented]. There is no endpoint that assigns an existing employee to another location or organization. <code>CreateAssignmentDto</code> exists but nothing uses it. Add Employee at a second location fails because the phone number is already taken. A doctor who works at two locations therefore cannot be set up through the Platform (Chapter 37).</p>
+<h2 id="ch47-staff-onboarding-47-3-what-can-go-wrong">47.3 What can go wrong</h2>
+<ul>
+<li><strong>Duplicate phone</strong> gives 409 &quot;An employee with this phone number already exists&quot;. A duplicate CNIC is caught only by a database index and returns a generic 500 error.</li>
+<li><strong>Duplicate login email</strong> gives 409.</li>
+<li><strong>Commission plan refused</strong>: 403 <code>COMMISSIONS_DISABLED</code> when the feature is off, 422 <code>COMMISSION_ROLE_CANNOT_CONSULT</code> for a non-consulting role.</li>
+<li><strong>Login limit</strong> reached gives <code>PLAN_LIMIT</code> on the User Admin route.</li>
+<li><strong>Wrong or missing role</strong>: the person signs in but sees a restricted sidebar or the no-access page.</li>
+<li><strong>Read-only mode</strong>: every step is refused with 402.</li>
+<li>The person is saved before the login and the assignment, outside the final transaction, so a failure part-way can leave a person record with no assignment.</li>
+</ul>
+<h2 id="ch47-staff-onboarding-47-4-data-left-behind">47.4 Data left behind</h2>
+<ul>
+<li><code>employees</code> (person), <code>employee_org_location_assignments</code> (role, location, <code>user_id</code>, <code>has_portal_access</code>).</li>
+<li><code>users</code> (login), <code>employee_schedules</code> (seven rows per location).</li>
+<li><code>compensation_plans</code> and <code>commission_rules</code>.</li>
+<li><code>organizations.access_version</code> raised by the assignment save.</li>
+</ul>
+</section><section class="chapter" id="ch48-patient-journey"><h1 id="ch48-patient-journey-chapter-48-workflow-the-patient-journey">Chapter 48 — Workflow: The Patient Journey</h1>
+<p>This chapter follows Sample Patient A through one visit at Example Clinic, from registration to a printed receipt. It is written for the product owner. It follows the order the code really uses, which differs from a naive reading in two places: the invoice is created when payment is collected, and a lab case is a separate flow that is billed separately.</p>
+<h2 id="ch48-patient-journey-48-1-who-is-involved">48.1 Who is involved</h2>
+<ul>
+<li><strong>Receptionist R1</strong>: registers, books, checks in and collects payment.</li>
+<li><strong>Dr. Example One</strong>: calls the patient, consults, prescribes, completes the visit.</li>
+<li><strong>Sample Patient A</strong>: the patient.</li>
+<li><strong>Accountant</strong> and <strong>Admin</strong>: may also collect payments and correct invoices.</li>
+</ul>
+<h2 id="ch48-patient-journey-48-2-the-steps">48.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch48-patient-journey-sequence.png" alt="Figure 48.1 — The patient journey"></p>
+<p><em>Figure 48.1 — One visit from registration to receipt.</em></p>
+<p>The diagram has seven participants: Receptionist R1, Dr. Example One, Web app, API, QueueOrchestrator, PaymentsService and PostgreSQL, and 24 messages. R1 creates the patient (<code>POST /patients</code>) and the API stores the patient with the next <code>P-</code> number and an audit row. R1 books an appointment (<code>POST /appointments</code>); it is saved as scheduled and the database blocks a doctor overlap. On arrival R1 clicks &quot;Check in and get token&quot; (<code>PATCH /appointments/:id/check-in</code>), the API hands over to QueueOrchestrator, which writes the session, the token, a queue entry in state waiting and sets the appointment to checked in. Dr. Example One calls the next patient and presses &quot;Patient is here, start&quot; (<code>PATCH /queue/entries/:id/start-consultation</code>); the entry becomes in consultation and the encounter is created. The doctor records notes and treatments, signs the prescription (<code>POST /encounters/:id/treatments</code>, <code>POST /prescriptions</code>, <code>POST /prescriptions/:id/finalize</code>) and presses &quot;Complete visit&quot; (<code>PATCH /queue/entries/:id/complete</code>); in one transaction the entry and appointment become completed and the consultation and treatment charges are created with the commission snapshot. R1 then opens the billing desk, presses Bill and Receive (<code>POST /payments</code>); PaymentsService runs one transaction that issues the invoice, records the receipt, allocates the money, writes commission entries and the ledger row. The API returns the receipt and invoice numbers and R1 prints them.</p>
+<h3 id="ch48-patient-journey-step-1-registration">Step 1 — Registration</h3>
+<p><strong>Module:</strong> Patients. <strong>Status:</strong> [Implemented]. <strong>Create</strong> on <code>/patients</code> takes Full Name and Phone. The phone must be unique inside the organization. The server assigns <code>P-</code> plus a five-digit number and writes an audit row. The check-before-save endpoint exists, but no screen calls it [Partial] (Chapter 28).</p>
+<h3 id="ch48-patient-journey-step-2-appointment">Step 2 — Appointment</h3>
+<p><strong>Module:</strong> Appointments. <strong>Status:</strong> [Implemented]. The booking checks the doctor works at that location, that the slot fits a working block, that the doctor has no overlapping booking and the daily limit. A booking has no token yet. A walk-in skips this step (Chapter 29).</p>
+<h3 id="ch48-patient-journey-step-3-check-in">Step 3 — Check-in</h3>
+<p><strong>Module:</strong> Appointments and Queue. <strong>Status:</strong> [Implemented]. Check-in is allowed only on the booking&#39;s own day and up to the location&#39;s maximum lateness (45 minutes by default). It opens the doctor&#39;s queue session if needed and issues a token such as A-007. A patient who is too late is offered &quot;Convert to walk-in&quot; (Chapter 29, Chapter 30).</p>
+<h3 id="ch48-patient-journey-step-4-queue">Step 4 — Queue</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. The doctor starts the queue, then <strong>Call next</strong> picks the next patient by the smart or first-come rules. Reception and the TV display update live (Chapter 30).</p>
+<h3 id="ch48-patient-journey-step-5-consultation">Step 5 — Consultation</h3>
+<p><strong>Module:</strong> Consultation. <strong>Status:</strong> [Implemented]. Starting the consultation creates the encounter, the clinical record of this visit, in the same transaction. The workspace shows the patient summary and allergy strip, and auto-saves notes (Chapter 31).</p>
+<h3 id="ch48-patient-journey-step-6-treatment">Step 6 — Treatment</h3>
+<p><strong>Module:</strong> Consultation. <strong>Status:</strong> [Implemented]. The doctor taps procedure chips from the service catalog. Each becomes a treatment. The doctor never sees prices. A treatment typed by name has no price and is later priced by reception (Chapter 31).</p>
+<h3 id="ch48-patient-journey-step-7-prescription">Step 7 — Prescription</h3>
+<p><strong>Module:</strong> Prescriptions. <strong>Status:</strong> [Implemented]. In the workspace panel the doctor adds medicines and presses &quot;Sign &amp; print&quot;. The prescription is optional and has no effect on billing (Chapter 32).</p>
+<h3 id="ch48-patient-journey-step-8-lab-case-separate-flow">Step 8 — Lab case (separate flow)</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Not implemented] from the consultation workspace. The workspace has no lab-order button, and a lab order has no link to an encounter in the data model (Chapter 31). A lab order is actually created from the sidebar: <strong>Lab orders → New lab order</strong>, where the user picks the patient, the lab, the ordering doctor and the items, then presses <strong>Submit to lab</strong>. The API accepts an optional appointment and treatment on the order, but the order form in the web app does not appear to send them [Unverified]. Chapter 49 follows the lab case. Lab work is billed by its own invoice, not by the clinic&#39;s charges.</p>
+<h3 id="ch48-patient-journey-step-9-automatic-charges">Step 9 — Automatic charges</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented] with a condition. When the doctor completes the visit, the Platform creates one consultation charge and one charge per treatment, priced from the service catalog with any doctor-specific price. This runs only when the feature <code>billing.invoices</code> is enabled; that feature is off by default (Chapter 31, Chapter 34). A charge with no price is marked &quot;needs pricing&quot; and blocks invoicing until someone sets a price. Each charge stores a snapshot of the doctor&#39;s commission terms (Chapter 35).</p>
+<h3 id="ch48-patient-journey-step-10-payment-and-invoice">Step 10 — Payment and invoice</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On the <strong>Billing desk</strong>, &quot;ready to bill&quot; lists patients with unbilled charges. <strong>Collect payment</strong> previews the split and then saves. The invoice is issued at this moment, taking the next <code>INV</code> number, with the location&#39;s sales tax added on top. Surplus money becomes the patient&#39;s advance. A patient who leaves without paying can still be invoiced with <strong>Issue invoice</strong> from the patient&#39;s Billing tab (Chapter 34).</p>
+<h3 id="ch48-patient-journey-step-11-receipt">Step 11 — Receipt</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. The payment takes the next <code>REC</code> number. The result screen prints the receipt and the invoice in A4 or 80 mm thermal layout. There is no server-generated PDF receipt [Not implemented] (Chapter 34).</p>
+<h2 id="ch48-patient-journey-48-3-what-can-go-wrong">48.3 What can go wrong</h2>
+<ul>
+<li>Duplicate phone on registration gives 409.</li>
+<li>Booking conflicts: <code>DOCTOR_DOUBLE_BOOKED</code>, <code>DAILY_LIMIT_REACHED</code>, outside working hours.</li>
+<li>Check-in too late (<code>LATE_LIMIT_EXCEEDED</code>), wrong day (<code>NOT_TODAY</code>), queue closed (<code>SESSION_NOT_OPEN</code>).</li>
+<li>A stale queue screen gives 409 <code>VERSION_CONFLICT</code>.</li>
+<li>With <code>billing.invoices</code> off, completion succeeds and no charge appears.</li>
+<li>A charge needing a price blocks the invoice (&quot;Set a price for ...&quot;).</li>
+<li>Payment errors: missing reference for an account that requires one, allocation above balance.</li>
+<li>In read-only mode every write gives 402.</li>
+</ul>
+<h2 id="ch48-patient-journey-48-4-data-left-behind">48.4 Data left behind</h2>
+<p><code>patients</code>, <code>audit_logs</code>, <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>, <code>patient_encounters</code>, <code>treatments</code>, <code>prescriptions</code> and children, <code>charges</code>, <code>billing_audit_logs</code>, <code>invoices</code>, <code>payments</code>, <code>payment_allocations</code>, <code>document_sequences</code>, <code>ledger_entries</code>, <code>commission_entries</code>.</p>
+</section><section class="chapter" id="ch49-dental-lab-case"><h1 id="ch49-dental-lab-case-chapter-49-workflow-a-dental-lab-case">Chapter 49 — Workflow: A Dental Lab Case</h1>
+<p>This chapter follows one lab case, a zirconia crown for Sample Patient A, from the order to the delivered work, and then follows the money: what the patient is billed, what the clinic owes the lab and what the doctor earns. It is written for the product owner. The case involves three modules (Dental Lab, Lab Finance, Commissions) and two sides: the clinic and the lab, which is not a tenant of the Platform. The lab feature <code>dental.lab_orders</code> is off by default; a super admin entitles it and the owner switches it on.</p>
+<h2 id="ch49-dental-lab-case-49-1-who-is-involved">49.1 Who is involved</h2>
+<ul>
+<li><strong>Dr. Example One</strong>: creates and submits the order, decides try-ins, approves and delivers.</li>
+<li><strong>Receptionist R1</strong>: receives shipments at the front desk.</li>
+<li><strong>Accountant</strong>: bills the patient for lab work, approves vendor bills, pays the lab.</li>
+<li><strong>Example Dental Lab</strong>: the <strong>lab</strong>. Its people are <strong>lab members</strong> (lab admin, lab technician) who use the <strong>lab portal</strong>, or a contact who acts through a <strong>magic link</strong>.</li>
+<li><strong>Admin</strong>: may act on behalf of a lab that does not answer.</li>
+</ul>
+<h2 id="ch49-dental-lab-case-49-2-the-steps">49.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch49-lab-case-sequence.png" alt="Figure 49.1 — A dental lab case"></p>
+<p><em>Figure 49.1 — Order to delivery, then the money.</em></p>
+<p>The diagram has seven participants: Dr. Example One, Example Dental Lab, Receptionist R1, Accountant, Web app, API and PostgreSQL, and 23 messages. The doctor submits the order (<code>POST /lab-orders</code>, then <code>POST /lab-orders/:id/submit</code>); the API freezes the prices, assigns a LAB number, stores revision 1 and a magic link row. The doctor copies the link and pastes it into a chat. The lab accepts, through the link (<code>POST /lab-link/:token/accept</code>) or the portal (<code>POST /lab-portal/orders/:id/accept</code>), and the API marks the items accepted, creates the stages and drafts a vendor bill. The lab then works through the portal: start, finish and QC (<code>POST /lab-portal/production/items/:itemId/start</code> and the following actions) and dispatches a shipment (<code>POST /lab-portal/production/shipments</code>). The front desk receives it by scanning the QR code (<code>POST /lab-shipments/:id/receive</code>). The doctor records the try-in and approves or asks for correction (<code>.../stages/:stageId/tryin</code> and <code>/decision</code>). After the final shipment is received, the doctor approves and marks the work delivered (<code>.../items/:itemId/approve</code> and <code>/deliver</code>), which starts a 12-month warranty and completes the order. The Accountant bills the patient (<code>POST /lab-billing/invoices</code> and <code>/issue</code>), approves the vendor bill and pays the lab (<code>POST /lab-payables/bills/:id/approve</code>, <code>POST /lab-payables/payments</code>).</p>
+<h3 id="ch49-dental-lab-case-step-1-create-and-submit-the-order">Step 1 — Create and submit the order</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. <strong>Lab orders → New lab order</strong>: choose patient, lab, ordering doctor, priority and date needed; add items (service, options, quantity, teeth, form answers); <strong>Submit to lab</strong>. The lab must be an active <strong>lab link</strong> of the clinic. At submit the Platform checks the forms, freezes the lab and patient prices of every line, assigns a number such as LAB-0001 and queues a message for the lab members. Every line needs a lab price and a mapped clinic treatment on the submit day (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-2-reach-the-lab">Step 2 — Reach the lab</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Partial]. Three routes exist. The lab portal gives members the order in their own inbox [Implemented] (Chapter 41 covers the portal). A <strong>magic link</strong> opens one order without a login and allows view, accept, reject and ask a question only. <strong>Send link to lab</strong> queues a message, but the only registered provider for WhatsApp, SMS and email writes the message to the server log, so nothing reaches the lab; <strong>Copy link</strong> returns the link once and the doctor pastes it into a chat by hand (Chapter 40, Chapter 44). A coordinator holding both <code>lab.orders.create</code> and <code>lab.links.manage</code> can record the lab&#39;s answer on its behalf [Implemented].</p>
+<h3 id="ch49-dental-lab-case-step-3-lab-accepts">Step 3 — Lab accepts</h3>
+<p><strong>Module:</strong> Dental Lab and Lab Finance. <strong>Status:</strong> [Implemented]. Accept needs an expected date. Items move to accepted, the stage rows are copied from the item&#39;s stage template, and a draft <strong>vendor bill</strong> is created or updated at the frozen lab cost (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-4-production-stages">Step 4 — Production stages</h3>
+<p><strong>Module:</strong> Lab Portal. <strong>Status:</strong> [Implemented]. Production actions (start, assign a technician, finish, QC, dispatch a shipment) are lab portal endpoints for members. A lab that has only a magic link and no portal login cannot perform them, and the clinic&#39;s proxy actions cover only accept, reject, clarification and expected date. The clinic follows progress on the order&#39;s Production panel (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-5-try-in">Step 5 — Try-in</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. For items with try-in stages the doctor presses <strong>Record try-in</strong> after the patient visit, then <strong>Approve</strong> or <strong>Needs correction</strong> with notes. A correction closes the round and opens the same stage as the next round. No appointment is created or reminded automatically; the event for a due try-in is never emitted (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-6-shipment-and-receive">Step 6 — Shipment and receive</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. The front desk opens the incoming shipment or scans its QR code, sets condition and quantity per line and presses <strong>Receive</strong>. A parcel that never arrives can be marked lost with a reason.</p>
+<h3 id="ch49-dental-lab-case-step-7-approve-and-deliver">Step 7 — Approve and deliver</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. The doctor presses <strong>Approve work</strong>, then <strong>Fitted, mark delivered</strong>, which starts a 12-month warranty. Rejecting received work opens a remake request that the lab may dispute. When all items are approved or delivered the order is completed.</p>
+<h3 id="ch49-dental-lab-case-step-8-money-patient-lab-invoice">Step 8 — Money: patient lab invoice</h3>
+<p><strong>Module:</strong> Lab Finance. <strong>Status:</strong> [Implemented]. This is not the clinic&#39;s normal invoice: lab work is billed through its own tables and numbers (<code>LINV</code>). The Accountant opens the submitted order and presses <strong>Bill N item(s)</strong>, which starts an <strong>estimate</strong>; <strong>Issue invoice</strong> gives it a number and due date. The lines copy the patient prices frozen at submit. This can be done any time after the order is submitted, not only after delivery. Payments, advances and credit notes follow (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-9-money-vendor-bill-and-payment-to-the-lab">Step 9 — Money: vendor bill and payment to the lab</h3>
+<p><strong>Module:</strong> Lab Finance. <strong>Status:</strong> [Partial]. The draft vendor bill appears under <strong>Lab payables → Bills</strong>. The Accountant presses <strong>Approve</strong>, setting the lab&#39;s invoice number, due date and tax, which books the debt. <strong>Pay lab</strong> records a payment and splits it over approved bills. Editing the bill header and adding manual lines exist only in the API (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-10-money-lab-line-commission">Step 10 — Money: lab-line commission</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented] (backend only by design). When the lab invoice is issued, each line stores the doctor&#39;s plan and rate. As the patient pays, the doctor earns commission on the money collected minus the lab&#39;s cost, so the doctor is paid on the clinic&#39;s margin. Reversals and credit notes give it back. It needs <code>billing.commissions</code> on and feeds My earnings and payroll like any other commission (Chapter 35).</p>
+<h2 id="ch49-dental-lab-case-49-3-what-can-go-wrong">49.3 What can go wrong</h2>
+<ul>
+<li>Submit fails when a line has no lab price, no mapped treatment, a per-tooth service without teeth or answers that fail the form (<code>LAB_ORDER_INVALID</code>, <code>LAB_PRICE_MISSING</code>).</li>
+<li>The lab link is not active: <code>LAB_NOT_LINKED</code>.</li>
+<li>A magic link dies after 24 hours by default, on revoke, when the order closes or when the lab is suspended.</li>
+<li>A lab that never answers: use the proxy actions.</li>
+<li>Parcels may arrive damaged, short or not at all.</li>
+<li>A rejected final piece needs a remake; who pays is decided in the remake request.</li>
+<li>Double billing is blocked: an item can be on only one live lab invoice.</li>
+<li>A bill of 0 cannot be approved; approval is refused if the draft changed since it was read.</li>
+<li>Four seeded notification events are never emitted, including overdue orders.</li>
+</ul>
+<h2 id="ch49-dental-lab-case-49-4-data-left-behind">49.4 Data left behind</h2>
+<p><code>lab_orders</code>, <code>lab_order_items</code>, <code>order_revisions</code>, <code>magic_links</code>, <code>order_item_stages</code>, <code>shipments</code>, <code>item_warranties</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>, <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>vendor_payments</code> and allocations, <code>lab_invoices</code>, <code>lab_invoice_lines</code>, <code>commission_entries</code> with a lab invoice line, and journal rows in <code>ledger_journals</code>.</p>
+</section><section class="chapter" id="ch50-daily-clinic-closing"><h1 id="ch50-daily-clinic-closing-chapter-50-workflow-closing-the-clinic-day">Chapter 50 — Workflow: Closing the Clinic Day</h1>
+<p>This chapter describes how a clinic day ends at Example Clinic: the doctor closes the queue, late bookings become no-shows, reception reviews the day&#39;s collection, the accountant closes the counter, and the Platform&#39;s overnight jobs run. It is written for the product owner. Some of the work is done by people and some by background jobs in the worker process (Appendix E lists all jobs). Job times use the server clock, not each clinic&#39;s timezone.</p>
+<h2 id="ch50-daily-clinic-closing-50-1-who-is-involved">50.1 Who is involved</h2>
+<ul>
+<li><strong>Dr. Example One</strong>: closes the queue.</li>
+<li><strong>Receptionist R1</strong>: reads the day&#39;s collection.</li>
+<li><strong>Accountant</strong>: closes the counter. Admin may also do this.</li>
+<li><strong>Worker process</strong>: the one process that runs scheduled jobs.</li>
+</ul>
+<h2 id="ch50-daily-clinic-closing-50-2-the-steps">50.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch50-daily-closing-sequence.png" alt="Figure 50.1 — Closing the clinic day"></p>
+<p><em>Figure 50.1 — People first, then the jobs that run on their own.</em></p>
+<p>The diagram has seven participants: Dr. Example One, Receptionist R1, Accountant, Web app, API, Worker jobs and PostgreSQL, and 15 messages. The doctor closes the day and decides cancel or transfer for each waiting patient (<code>PATCH /queue/sessions/:id/close</code>); the API cancels or transfers them and closes the session. In parallel, the worker marks late bookings as no-shows every 60 seconds and closes empty sessions of past days every 5 minutes. Receptionist R1 opens Payments and picks the day (<code>GET /payments/daily-collection</code>) and the API returns receipts, refunds and net per account. The Accountant closes the counter with a counted amount per account (<code>POST /billing/cash-close</code>) and the API stores the close and its lines with an audit row. The worker then runs four overnight jobs: expire prepaid credits at 01:00, billing invariant check at 02:30, queue cleanup at 03:15 and inventory alert count at 08:00.</p>
+<h3 id="ch50-daily-clinic-closing-step-1-queue-day-end">Step 1 — Queue day-end</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. In <strong>My Queue</strong>, <strong>Close day</strong> is disabled while a patient is with the doctor. The &quot;Close today&#39;s queue&quot; dialog lists every remaining patient (waiting, skipped or at a test) with <strong>Cancel</strong> as the default or &quot;Transfer to Dr. ...&quot; for waiting patients only. Confirming cancels or moves them and closes the session. Cancelling a booked patient closes the appointment as cancelled. Everything succeeds or nothing does (Chapter 30).</p>
+<h3 id="ch50-daily-clinic-closing-step-2-automatic-day-end">Step 2 — Automatic day-end</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. Every 5 minutes the worker closes sessions of a past service day if they are empty. A session that still has patients is only logged as an alert and is never cancelled automatically, so someone must decide. The &quot;past day&quot; is judged by each location&#39;s timezone and day cut-off, not by the server date.</p>
+<h3 id="ch50-daily-clinic-closing-step-3-no-show-marking">Step 3 — No-show marking</h3>
+<p><strong>Module:</strong> Appointments and Queue. <strong>Status:</strong> [Implemented]. Staff can press <strong>No show</strong> on a scheduled or confirmed booking (<code>appointments.cancel</code>). Otherwise the worker does it every 60 seconds once start time plus maximum lateness (45 minutes by default) has passed. The job writes with plain SQL, so there is no queue event, no audit row and no realtime message. A no-show no longer shows Check in in the web app, so a late patient usually has to be added as an ordinary walk-in (Chapter 29).</p>
+<h3 id="ch50-daily-clinic-closing-step-4-daily-collection">Step 4 — Daily collection</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On <strong>Payments</strong>, the day picker (future days not allowed) shows receipts by their payment date and refunds by their refund date per payment account, with the net in hand (Chapter 34).</p>
+<h3 id="ch50-daily-clinic-closing-step-5-cash-close">Step 5 — Cash close</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. <strong>Close counter</strong> computes for each payment account the expected money since the previous close, asks for the counted amount on accounts marked &quot;Count physically at cash close&quot;, and requires a note when there is a difference. A close is a permanent record with a printable slip and a red &quot;Flagged&quot; badge when the difference exceeds the alert amount. Closing never blocks taking payments, and a close cannot be edited or deleted. It needs <code>billing.cash_close</code> (Admin, Accountant).</p>
+<h3 id="ch50-daily-clinic-closing-step-6-overnight-jobs">Step 6 — Overnight jobs</h3>
+<p><strong>Module:</strong> Several. Times are server time (Appendix E).</p>
+<div class="tw"><table><thead><tr>
+<th>Time</th>
+<th>Job</th>
+<th>Status</th>
+</tr>
+</thead><tbody><tr>
+<td>01:00</td>
+<td>Patient credit expiry: marks credits past their expiry date as expired</td>
+<td>[Implemented] (credit packages have no screen, so little to expire in practice)</td>
+</tr>
+<tr>
+<td>02:30</td>
+<td>Billing invariant check: re-checks ten money rules and logs any break</td>
+<td>[Implemented], log only</td>
+</tr>
+<tr>
+<td>03:15</td>
+<td>Queue cleanup: deletes idempotency keys older than 24 hours and published outbox rows older than 7 days</td>
+<td>[Implemented]</td>
+</tr>
+<tr>
+<td>08:00</td>
+<td>Inventory alerts: counts low and expiring items per location</td>
+<td>[Partial], server log only</td>
+</tr>
+</tbody></table></div><p>The table lists the four daily jobs with what each does and its status. The credit job reads the server date rather than the location&#39;s, so a credit can expire a few hours early or late for a clinic in another timezone. Nobody is notified by the invariant check or the inventory alert; an operator must read the logs (Chapter 34, Chapter 39).</p>
+<h2 id="ch50-daily-clinic-closing-50-3-what-can-go-wrong">50.3 What can go wrong</h2>
+<ul>
+<li>Closing the queue while someone is with the doctor: 409 <code>DOCTOR_BUSY</code>.</li>
+<li>A remaining patient without a decision: 422 <code>INVALID_TRANSITION</code>.</li>
+<li>A skipped or at-test patient cannot be transferred, only cancelled or brought back.</li>
+<li>Counter close: 422 when a count or a note is missing, or when the close period is stale.</li>
+<li>Overnight times differ from clinic local time when the server is in another timezone.</li>
+<li>Jobs run only in a worker (or all-in-one) process; if no worker runs, none of the jobs run. Exactly one worker must run.</li>
+<li>The invariant check only logs; a violation is not repaired or announced.</li>
+</ul>
+<h2 id="ch50-daily-clinic-closing-50-4-data-left-behind">50.4 Data left behind</h2>
+<p><code>queue_sessions</code> (closed), <code>queue_entries</code>, <code>queue_events</code> and <code>outbox</code> (for closes done by users), <code>appointments</code> (cancelled or no-show), <code>cash_closes</code>, <code>cash_close_lines</code>, <code>billing_audit_logs</code>, <code>patient_credits</code> (expired), and server log lines for the invariant check and the inventory alerts.</p>
+</section><section class="chapter" id="ch51-month-end-payroll"><h1 id="ch51-month-end-payroll-chapter-51-workflow-month-end-payroll">Chapter 51 — Workflow: Month-End Payroll</h1>
+<p>This chapter follows payroll for one month at Example Clinic, from the automatic run on the 1st to the payment record. It is written for the product owner. Payroll combines two things: the base salary from each employee&#39;s compensation plan and the doctor commission earned but not yet paid out. The Platform records the payout; it does not move money.</p>
+<h2 id="ch51-month-end-payroll-51-1-who-is-involved">51.1 Who is involved</h2>
+<ul>
+<li><strong>Scheduler</strong> (the worker process): runs the job.</li>
+<li><strong>Admin</strong>: holds <code>payroll.manage</code> (feature <code>hr.payroll</code>, on by default). No other system role holds it.</li>
+<li><strong>Dr. Example One</strong>: an employee with a salary and commission.</li>
+</ul>
+<h2 id="ch51-month-end-payroll-51-2-the-steps">51.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch51-month-end-payroll-sequence.png" alt="Figure 51.1 — Month-end payroll"></p>
+<p><em>Figure 51.1 — The automatic run, the optional manual run and the payment.</em></p>
+<p>The diagram has six participants: Scheduler, Admin, Web app, API, PayrollService and PostgreSQL, and 16 messages. At 05:00 on the 1st the Scheduler calls the month-end run on PayrollService, which loads the active locations. For each assignment it reads the base salary from the plan in force on the last day of the month, locks the unsettled commission entries up to month end, and inserts a pending payroll record and a pending settlement. The Admin opens Payroll for the month (<code>GET /payroll</code>) and sees records with base, commission and total. If the job missed a location, the Admin presses Generate Payroll (<code>POST /payroll/generate</code>) and existing records are skipped. The Admin presses Mark as Paid with a method and reference (<code>PATCH /payroll/:id/mark-paid</code>); the service sets the record and the settlement to paid. The last message shows the CSV export and payslip PDF endpoints, which no button calls.</p>
+<h3 id="ch51-month-end-payroll-step-1-automatic-generation">Step 1 — Automatic generation</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. The cron expression is <code>0 5 1 * *</code> with no timezone option, so it fires at 05:00 on the 1st in the server&#39;s timezone. A code comment says 00:05; the code wins. The month is taken from the server&#39;s own date (the previous month), not from each location&#39;s timezone. The job covers every active location of every organization, each in its own transaction, so one failing location does not stop the others. It does not check that the organization is active or that <code>hr.payroll</code> is on. It runs without a request, so the subscription read-only guard, which acts on web requests, does not apply to it (deduced from the guard being an HTTP guard) (Chapter 38, Appendix E).</p>
+<h3 id="ch51-month-end-payroll-step-2-base-plus-commission">Step 2 — Base plus commission</h3>
+<p><strong>Module:</strong> Payroll and Commissions. <strong>Status:</strong> [Implemented]. For each active assignment: skip if a record already exists for that employee, location and month; otherwise base salary = the plan version in force on the month&#39;s last day (else the first day); commission = the sum of unsettled commission entries created before the end of the month&#39;s last clinic day. A net-negative sum is not settled and waits for a later month. Total = base + commission. An employee with neither is listed as &quot;no salary&quot; and gets no record (Chapter 38, Chapter 35).</p>
+<h3 id="ch51-month-end-payroll-step-3-settlement-lock">Step 3 — Settlement lock</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented]. The entries are row-locked and tied to a <strong>settlement</strong> so they cannot be paid twice. Entries are never edited; a reversal after settlement lands as a negative entry in a later month&#39;s settlement (Chapter 35).</p>
+<h3 id="ch51-month-end-payroll-step-4-manual-generation">Step 4 — Manual generation</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. <strong>Generate Payroll</strong> on <code>/payroll</code> takes a month and year, refuses future months and generates for the whole active location, even when pressed from an employee tab. It is safe to run after the automatic job.</p>
+<h3 id="ch51-month-end-payroll-step-5-review-and-edit">Step 5 — Review and edit</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. Records start as pending. Edit, delete and create-by-hand exist. A record that paid out commission cannot be deleted. Deleting an unpaid record releases its commission back to the pool. Putting a record on hold has an endpoint but no button; the edit dialog&#39;s status field can set it [Partial].</p>
+<h3 id="ch51-month-end-payroll-step-6-mark-paid">Step 6 — Mark paid</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Implemented]. <strong>Mark as Paid</strong> needs a method (cash, bank transfer or cheque) and optional reference and notes. The record becomes paid with time and payer, and the settlement becomes paid in the same transaction. No money moves and nothing is posted to the general ledger or expenses. Setting status to paid through the edit dialog does not pay the settlement, which is a trap: a later delete would release the commission.</p>
+<h3 id="ch51-month-end-payroll-step-7-payslip-and-export">Step 7 — Payslip and export</h3>
+<p><strong>Module:</strong> Payroll. <strong>Status:</strong> [Partial]. <code>GET /payroll/:id/payslip-pdf</code> returns an A4 PDF (Latin text only) and <code>GET /payroll/export?month&amp;year</code> returns a CSV. Neither has a button in the web app, so they can be called only through the API. Deductions are always 0.00, net equals gross, and the designation column is empty.</p>
+<h2 id="ch51-month-end-payroll-51-3-what-can-go-wrong">51.3 What can go wrong</h2>
+<ul>
+<li>Server timezone differs from the clinic&#39;s, so &quot;the 1st at 05:00&quot; falls at another local time, and the month boundary can shift near midnight.</li>
+<li>No worker process is running: nothing is generated.</li>
+<li>A location error is logged and skipped; no in-app notification tells anyone.</li>
+<li>Future month: 400 &quot;Cannot generate payroll for future months&quot;.</li>
+<li>&quot;Payroll already marked as paid&quot; on a second payment.</li>
+<li>Paying through the edit dialog leaves the commission unpaid.</li>
+<li>No deductions, tax, overtime or unpaid-leave handling exist [Not implemented].</li>
+<li>Payroll changes are not written to the general audit log.</li>
+</ul>
+<h2 id="ch51-month-end-payroll-51-4-data-left-behind">51.4 Data left behind</h2>
+<p><code>payroll_records</code> (pending, then paid with <code>paid_at</code>, method, reference), <code>commission_settlements</code> (period, total, payroll record id, status), <code>commission_entries.settlement_id</code>. Records made by the job have no <code>created_by</code>.</p>
+</section><section class="chapter" id="ch52-invoice-correction-and-refund"><h1 id="ch52-invoice-correction-and-refund-chapter-52-workflow-correcting-an-invoice-and-refunding-money">Chapter 52 — Workflow: Correcting an Invoice and Refunding Money</h1>
+<p>This chapter follows what the Accountant does when an issued invoice turns out to be wrong: preview and save an edit that creates a new revision, cancel an unpaid invoice, refund money, or undo a payment first. It is written for the product owner, who needs to know what stays on record and how doctor commission follows each change. Invoices are never deleted; every change adds to the history.</p>
+<h2 id="ch52-invoice-correction-and-refund-52-1-who-is-involved">52.1 Who is involved</h2>
+<ul>
+<li><strong>Accountant</strong> (or Admin): holds <code>billing.invoice.edit</code>, <code>billing.invoice.void</code> and <code>billing.refund.issue</code>. The last two are marked high risk.</li>
+<li><strong>Sample Patient A</strong>: the patient whose invoice is corrected.</li>
+<li><strong>Dr. Example One</strong>: the doctor whose commission adjusts.</li>
+</ul>
+<h2 id="ch52-invoice-correction-and-refund-52-2-the-steps">52.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch52-invoice-correction-sequence.png" alt="Figure 52.1 — Invoice correction and refund"></p>
+<p><em>Figure 52.1 — Edit with preview, then refund or cancel.</em></p>
+<p>The diagram has five participants: Accountant, Web app, API, CommissionService and PostgreSQL, and 18 messages. The Accountant opens the invoice, presses Edit, changes lines and types a reason; the Web app calls <code>POST /invoices/:id/edit/preview</code>, the API applies the edit inside a transaction and rolls it back, and returns the preview. The Accountant presses Save changes (<code>POST /invoices/:id/edit</code> with the expected revision); the API raises the revision, releases allocations, posts an adjustment to the ledger and writes an audit row, then asks CommissionService to record the signed commission entries. An &quot;alt&quot; box has three outcomes. To give freed money back, the Accountant presses Refund or Save and refund (<code>POST /invoices/:id/refund</code>) and the API writes the refund, its sources, a ledger row and an audit row. To cancel an unpaid invoice, the Accountant presses Cancel with a reason (<code>POST /invoices/:id/cancel</code>), and the invoice becomes cancelled with its charges back to not invoiced. To cancel a paid invoice, an API client must first unapply the payment (<code>POST /payments/:id/unapply</code>), which writes negative allocations and reverses commission.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-1-preview-the-edit">Step 1 — Preview the edit</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On the invoice detail, <strong>Edit</strong> lets the Accountant change quantities, prices and discounts, void lines, add unbilled charges or add a manual line, with a reason of 5 to 300 characters. The preview really runs the edit in a transaction and discards it, so the numbers match what saving will do (Chapter 34).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-2-save-a-revision">Step 2 — Save a revision</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. Saving raises the revision number; the invoice number never changes. If a line&#39;s payable shrinks, the allocation above the new amount is released, newest first, and moves to the patient&#39;s advance. Older revisions can be printed from audit snapshots. If two people edit at once, the second gets <code>BILLING_INVOICE_REVISION_CONFLICT</code>. Voiding a line needs <code>billing.invoice.void</code>; changing a catalog price needs <code>billing.price.override</code>.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-3-commission-follows">Step 3 — Commission follows</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented] (backend only). On every edit the Platform recomputes the doctor&#39;s commission target per charge and inserts only the difference as a signed entry. A voided charge brings its commission to zero. Entries already settled in payroll are never changed; the correction lands in the next settlement (Chapter 35).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-4-cancel-an-unpaid-invoice">Step 4 — Cancel an unpaid invoice</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. <strong>Cancel</strong> needs a reason and is shown only when nothing is paid. The invoice keeps its totals and prints with a CANCELLED watermark, the number stays used, the charges return to Ready to bill, and the patient&#39;s statement gets a credit. Cancelled is final.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-5-unapply-a-payment-backend-only">Step 5 — Unapply a payment (backend only)</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Partial]. <code>POST /payments/:paymentId/unapply</code> takes back all or part of a payment&#39;s allocations and sends the money to advance. It adds negative rows and deletes nothing, and the receipt stays. No screen calls it, so cancelling an invoice that has payments cannot be done from the web app (<code>BILLING_INVOICE_HAS_PAYMENTS</code>: &quot;Unapply its payments before cancelling this invoice&quot;).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-6-refund">Step 6 — Refund</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. A refund always comes out of the patient&#39;s advance. An <strong>advance refund</strong> returns unused money from the patient&#39;s Billing tab. An <strong>invoice refund</strong> returns money released from an invoice, optionally in the same step as the edit that released it. The accountant chooses the account under &quot;Paid out from&quot;; it is not forced to be the account that received the payment. Sources are chosen automatically: payments released from that invoice first, latest first, then other advance, newest first. A refund takes the next <code>RFD</code> number, needs a reason of 5 to 300 characters, and cannot be undone. Cash close subtracts refunds per account (Chapter 34, Chapter 50).</p>
+<h2 id="ch52-invoice-correction-and-refund-52-3-what-can-go-wrong">52.3 What can go wrong</h2>
+<ul>
+<li><code>BILLING_INVOICE_REVISION_CONFLICT</code>: someone else changed the invoice; reload.</li>
+<li><code>BILLING_INVOICE_CANCELLED</code>: a cancelled invoice is read-only.</li>
+<li><code>BILLING_REFUND_EXCEEDS_ADVANCE</code> and <code>BILLING_REFUND_EXCEEDS_INVOICE_REFUNDABLE</code>: the amount is above what can be returned.</li>
+<li><code>BILLING_REFERENCE_REQUIRED</code> for an account that needs a reference.</li>
+<li><code>BILLING_UNAPPLY_EXCEEDS_ALLOCATION</code>: more than was applied.</li>
+<li>Wrong refunds cannot be reversed; the only remedy is a new payment.</li>
+<li>Read-only mode refuses all of these with 402.</li>
+</ul>
+<h2 id="ch52-invoice-correction-and-refund-52-4-data-left-behind">52.4 Data left behind</h2>
+<p><code>invoices</code> (revision, status), <code>charges</code>, <code>payment_allocations</code> (including negative and release rows), <code>payments</code>, <code>refunds</code>, <code>refund_sources</code>, <code>ledger_entries</code> (INVOICE_ADJUSTED, INVOICE_CANCELLED, REFUND), <code>billing_audit_logs</code> (EDITED, CANCELLED, REFUNDED, UNAPPLIED with snapshots), <code>commission_entries</code> (signed differences), <code>document_sequences</code>.</p>
+</section><section class="chapter" id="ch53-subscription-expiry-and-recovery"><h1 id="ch53-subscription-expiry-and-recovery-chapter-53-workflow-subscription-expiry-and-recovery">Chapter 53 — Workflow: Subscription Expiry and Recovery</h1>
+<p>This chapter follows Example Clinic when its trial runs out and the clinic is brought back by a manual payment. It is written for the product owner. The Platform never charges anyone: the clinic pays outside the Platform and a super admin records the payment, which extends the period. The subscription status is never stored; it is worked out from two dates every time it is read.</p>
+<h2 id="ch53-subscription-expiry-and-recovery-53-1-who-is-involved">53.1 Who is involved</h2>
+<ul>
+<li><strong>Owner</strong>: sees the banners and pays.</li>
+<li><strong>Other staff</strong>: see warning banners and rejected saves.</li>
+<li><strong>Super admin</strong>: records the payment and may change plan, dates and limits.</li>
+</ul>
+<h2 id="ch53-subscription-expiry-and-recovery-53-2-the-steps">53.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch53-subscription-expiry-sequence.png" alt="Figure 53.1 — Expiry and recovery"></p>
+<p><em>Figure 53.1 — Trial, grace, read-only, payment, back to active.</em></p>
+<p>The diagram has five participants: Owner, Super admin, Web app, API and SubscriptionGuard (drawn as one box), and PostgreSQL, and 17 messages plus two notes. During the trial the Owner opens a page, the Web app calls <code>GET /account</code>, and the API answers status trialing with the banner &quot;Free trial, N days left&quot;. A first note says that after the trial end passes there are 3 grace days in which writes still work and a banner warns everyone; a save in that period is accepted. A second note says that once the trial end plus 3 days has passed, the status is expired. A save then returns 402 <code>SUBSCRIPTION_EXPIRED</code>, while reads still work. The Owner pays outside the Platform and sends the reference to the Super admin, who opens Subscriptions, Manage subscription, Record payment (<code>POST /admin/subscriptions/:orgId/payments</code>). The API locks the organization, writes the payment row, sets <code>paid_until</code> and the plan and writes an audit entry, then clears the read-only cache of its own process. The Owner saves again and the write is accepted; other server processes may take up to 30 seconds to notice.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-1-trial">Step 1 — Trial</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. Self-signup gives 14 days on the Professional plan (3 locations, 15 logins). Owners see &quot;Free trial, N days left&quot; with a <strong>See plans</strong> link. A clinic with no trial date and no paid date is &quot;unmanaged&quot;: no limits, never expires (Chapter 45).</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-2-grace-period">Step 2 — Grace period</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The period end is the later of the trial end and the paid-until date. For 3 days after it (<code>GRACE_DAYS</code>) the clinic works normally; everyone sees a warning that the clinic turns read-only in N days. A plan close to its end shows owners &quot;Your plan renews in N days&quot;.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-3-read-only-mode-402">Step 3 — Read-only mode (402)</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. After the grace days, the last global guard refuses every write with HTTP 402 and code <code>SUBSCRIPTION_EXPIRED</code>. Reads (GET, HEAD, OPTIONS) pass, public routes pass, super admins pass, and paths starting with <code>/auth/</code>, <code>/account</code>, <code>/me/</code> and <code>/admin/subscriptions</code> stay writable. The banner says &quot;Subscription expired. The clinic is read-only&quot; to owners and &quot;read-only until the owner renews the plan&quot; to others. Everything is affected, including the queue and billing. Jobs in the worker are not requests, so they keep running; this is deduced from the guard being an HTTP guard [Unverified].</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-4-pay-outside-the-platform">Step 4 — Pay outside the Platform</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. The owner opens <strong>Settings → Plan &amp; billing</strong> and reads the &quot;How to pay&quot; text, which the super admin edits on the Subscriptions page (up to 2,000 characters). Methods recorded are bank transfer, JazzCash, EasyPaisa, cash, cheque and other.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-5-super-admin-records-the-payment">Step 5 — Super admin records the payment</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. On <strong>Subscriptions</strong>, <strong>Manage subscription → Record payment</strong> takes plan, months (1 to 36), amount, method, date, reference and notes. The new period starts where the current trial or paid period ends, or now if that is over, so early payment loses no days. The plan on the clinic becomes the plan paid for, so paying for Starter during a Professional trial lowers the limits at once.</p>
+<h3 id="ch53-subscription-expiry-and-recovery-step-6-active-again">Step 6 — Active again</h3>
+<p><strong>Module:</strong> Subscriptions and Onboarding. <strong>Status:</strong> [Implemented]. With <code>paid_until</code> in the future the status is active and writes resume. The decision is cached for 30 seconds per server process, so a renewal can take up to 30 seconds to be seen by a process other than the one that took the payment. A super admin can also set a future trial end or clear both dates to make the clinic unmanaged from the <strong>Plan &amp; limits</strong> tab.</p>
+<h2 id="ch53-subscription-expiry-and-recovery-53-3-what-can-go-wrong">53.3 What can go wrong</h2>
+<ul>
+<li>The owner never sees a renewal reminder email; none is sent.</li>
+<li>The grace period is only 3 days.</li>
+<li>Recording a payment overwrites the plan and can lower the limits.</li>
+<li>Staff cannot read the cause of a rejected save unless the banner is visible; the API message is &quot;Your subscription has expired. The clinic is read-only until it is renewed.&quot;</li>
+<li>The Organizations screen&#39;s plan selector sends values the API rejects, so use the Subscriptions screen for plan changes (Chapter 45).</li>
+<li>Nothing charges the clinic, so a payment the super admin forgets to record keeps the clinic read-only.</li>
+</ul>
+<h2 id="ch53-subscription-expiry-and-recovery-53-4-data-left-behind">53.4 Data left behind</h2>
+<p><code>subscription_payments</code> (plan, months, amount, method, reference, period start and end, <code>recorded_by</code>), <code>organizations</code> (<code>paid_until</code>, <code>subscription_plan</code>, limits), <code>audit_logs</code> (before and after values). The status itself is not stored.</p>
+</section><section class="chapter" id="ch54-access-change-propagation"><h1 id="ch54-access-change-propagation-chapter-54-workflow-how-an-access-change-reaches-every-screen">Chapter 54 — Workflow: How an Access Change Reaches Every Screen</h1>
+<p>This chapter follows what happens after an owner edits a role, a feature switch or the sidebar layout: how the change reaches the server&#39;s caches and the staff members&#39; open browser tabs without anyone signing out. It is written for the product owner. The key idea is the <strong>access version</strong>, a counter on the organization that goes up by one on every change to who can do what.</p>
+<h2 id="ch54-access-change-propagation-54-1-who-is-involved">54.1 Who is involved</h2>
+<ul>
+<li><strong>Owner</strong> (or an Admin with <code>admin.roles.manage</code>): makes the change.</li>
+<li><strong>Staff member</strong>: has the Platform open in a browser tab.</li>
+<li><strong>API and worker processes</strong>: keep a cache of each user&#39;s access.</li>
+</ul>
+<h2 id="ch54-access-change-propagation-54-2-the-steps">54.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch54-access-change-sequence.png" alt="Figure 54.1 — Access change propagation"></p>
+<p><em>Figure 54.1 — From Save changes to a re-drawn sidebar.</em></p>
+<p>The diagram has seven participants: Owner, Web app, API, PostgreSQL, Redis, Realtime gateway and Staff browser tab, and 12 messages plus one note. The Owner presses Save changes on the role (<code>PATCH /admin/roles/:id</code>). The API updates <code>employment_roles</code> and commits, then raises <code>access_version</code> by one after the commit. It publishes &quot;access changed&quot; with the organization and version to Redis, and every API and worker process drops its cached contexts. The API tells the realtime gateway to emit <code>access.changed</code> to the room for the organization, and the gateway sends it to the Staff browser tab with the new version. The tab calls <code>GET /me/access</code>; the API reads the version, resolves a fresh context and returns new permissions, features, navigation and home page, and the sidebar and buttons re-render. The note says that if the socket is down, the tab refetches on window focus once its data is 30 seconds old, and the backend still enforces the new version within 15 seconds.</p>
+<h3 id="ch54-access-change-propagation-step-1-the-owner-edits">Step 1 — The owner edits</h3>
+<p><strong>Module:</strong> Roles and permissions, Features, Customization. <strong>Status:</strong> [Implemented]. Three kinds of edit start the chain: a role at <strong>Roles &amp; permissions</strong>, a feature switch at <strong>Features</strong> or the entitlement page, and the clinic sidebar layout at <strong>Navigation</strong>. Granting a high-risk permission asks for a reason (Chapter 11, Chapter 10).</p>
+<h3 id="ch54-access-change-propagation-step-2-the-version-goes-up">Step 2 — The version goes up</h3>
+<p><strong>Module:</strong> Access control. <strong>Status:</strong> [Implemented]. <code>organizations.access_version</code> increases after any committed change to employment roles, assignments (role, location, active flag, portal access, login), organization feature flags or ownership. A database event subscriber does this automatically once per transaction, after the commit. Location feature overrides and nav layout changes bump it explicitly; saving the same nav layout again does not. The theme save has no bump in the code, so theme changes do not trigger this chain (Chapter 57).</p>
+<h3 id="ch54-access-change-propagation-step-3-server-caches-drop">Step 3 — Server caches drop</h3>
+<p><strong>Module:</strong> Access control. <strong>Status:</strong> [Implemented]. The new version goes over Redis to every API and worker process, which drop cached contexts and feature sets. The resolver&#39;s cache is keyed on user, organization, location and access version, holds up to 10,000 entries and lasts 5 minutes; the version itself is trusted for 15 seconds without a bus message. If Redis is down, other processes catch up within 15 seconds. Because the key includes the version, a stale entry is never matched after a bump.</p>
+<h3 id="ch54-access-change-propagation-step-4-the-browser-is-told">Step 4 — The browser is told</h3>
+<p><strong>Module:</strong> Realtime. <strong>Status:</strong> [Implemented]. The gateway emits <code>access.changed</code> to the organization&#39;s room. The web app joins that room through the same socket used for the queue. A message whose version is not newer than the one the tab already has is ignored. After a reconnect the tab refetches in case messages were missed.</p>
+<h3 id="ch54-access-change-propagation-step-5-the-tab-refetches-and-redraws">Step 5 — The tab refetches and redraws</h3>
+<p><strong>Module:</strong> Access control (web app). <strong>Status:</strong> [Implemented]. The tab invalidates its access query, loads <code>GET /me/access</code> and redraws the sidebar, buttons and home page from <code>can(...)</code>. Route permission checks happen when the user navigates. If the room is refused or the socket is down, the fallback is refetch on window focus with a 30-second freshness window (Chapter 57).</p>
+<h3 id="ch54-access-change-propagation-step-6-enforcement-is-already-updated">Step 6 — Enforcement is already updated</h3>
+<p><strong>Module:</strong> Access control (backend). <strong>Status:</strong> [Implemented]. The backend never trusts the screen. The access guard resolves access again on each request using the current version, so a removed permission is refused as soon as the version bump is visible to that process, even if the tab has not redrawn. A missing key means no access (fail-closed).</p>
+<h2 id="ch54-access-change-propagation-54-3-what-can-go-wrong">54.3 What can go wrong</h2>
+<ul>
+<li>Redis is down: other server processes may take up to 15 seconds; tabs rely on window focus.</li>
+<li>Socket blocked or offline: the tab keeps old buttons until focus or the next reload, but the server still refuses actions.</li>
+<li>Raw SQL edits to roles do not bump the version unless done explicitly.</li>
+<li>A bump failure after commit is logged and the change itself stays saved, so caches may age out only on their own timers.</li>
+<li>Escalation protection: granting more than the editor holds is refused (<code>ESCALATION</code>).</li>
+<li>Super admin acting in the clinic is recorded as a platform action.</li>
+</ul>
+<h2 id="ch54-access-change-propagation-54-4-data-left-behind">54.4 Data left behind</h2>
+<p><code>organizations.access_version</code>, <code>employment_roles</code> (or <code>org_feature_flags</code>, <code>location_feature_overrides</code>, <code>nav_layouts</code>), <code>audit_logs</code> entries for the edit, and short-lived in-memory caches that hold no lasting data.</p>
+</section><section class="chapter" id="ch55-purchase-to-consumption"><h1 id="ch55-purchase-to-consumption-chapter-55-workflow-from-purchase-order-to-consumption">Chapter 55 — Workflow: From Purchase Order to Consumption</h1>
+<p>This chapter follows a box of gloves from a purchase order to stock, then to use on a patient and to a low-stock alert. It is written for the product owner. The honest summary is that the chain is only partly connected: the pieces exist in the backend, several have no screen, two steps carry a database risk that could not be tested, and the final alert reaches nobody. Each link in the chain carries its own label.</p>
+<h2 id="ch55-purchase-to-consumption-55-1-who-is-involved">55.1 Who is involved</h2>
+<ul>
+<li><strong>Admin</strong>: the only system role with inventory write permissions (<code>inventory.po.manage</code>, <code>inventory.stock.adjust</code>). The Assistant role can only view.</li>
+<li><strong>Worker process</strong>: runs the alert job.</li>
+<li>Features: <code>inventory.core</code> and <code>inventory.alerts</code>, both off by default.</li>
+</ul>
+<h2 id="ch55-purchase-to-consumption-55-2-the-steps">55.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch55-purchase-consumption-sequence.png" alt="Figure 55.1 — Purchase to consumption"></p>
+<p><em>Figure 55.1 — The inventory chain and where it breaks.</em></p>
+<p>The diagram has eight participants: Admin, Web app, API, PurchaseOrderService, applyMovement, PostgreSQL, Alert job and Server log, and 16 messages. The Admin opens <code>/inventory</code> by typing the address and creates a purchase order (<code>POST /purchase-orders</code>); the service stores the order number, lines, totals and status draft, with the Unverified note that the creator column points to employees. The Admin marks it ordered (<code>PATCH /purchase-orders/:id/status</code>), then receives items with batch and expiry (<code>POST /purchase-orders/:id/receive</code>). The service calls applyMovement with PURCHASE_IN per line, which writes a stock movement row and updates the item&#39;s stock, nearest expiry and cost price, again marked Unverified. A call to <code>POST /patient-consumptions</code> has no screen; it lowers stock per line and saves the consumption. At 08:00 the alert job counts low and expiring items and writes only a warning line to the server log.</p>
+<h3 id="ch55-purchase-to-consumption-link-1-reach-the-page">Link 1 — Reach the page</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Partial]. The page <code>/inventory</code> works and needs <code>inventory.view</code>, but there is no sidebar entry and no screen links to it. Users must type the address. The feature <code>inventory.core</code> must be entitled and enabled first (Chapter 39).</p>
+<h3 id="ch55-purchase-to-consumption-link-2-purchase-order">Link 2 — Purchase order</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. Screens and logic exist: <strong>Create PO</strong> with supplier, lines, quantity, unit price and tax; the server numbers it like <code>PO-2026-00001</code> and computes totals; status goes Draft then Ordered (<strong>Mark as Ordered</strong>), and only a draft can be cancelled. The risk: creation stores the signed-in user&#39;s id in <code>purchase_orders.createdBy</code>, which has a foreign key to <code>employees</code>. A user id and an employee id are different records, so the insert is expected to fail. Reading the entity and the controller confirms that the user id is passed to that column; it was not run. PO numbers are also unique across the whole database but counted per organization, so a second organization&#39;s first order of a year can collide (deduced from code). Purchase orders are not linked to expenses or lab payables (Chapter 39).</p>
+<h3 id="ch55-purchase-to-consumption-link-3-receive-goods">Link 3 — Receive goods</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. <strong>Receive Items</strong> on an Ordered or Partially received PO takes quantities, batch and expiry per line; over-receiving is refused; the status becomes Partially received or Received. Each line adds a &quot;purchase in&quot; stock movement through the single <code>applyMovement</code> path, sets the item&#39;s cost price to the line price and moves the item&#39;s expiry date earlier if the batch expires sooner. It carries the same kind of foreign-key risk as the purchase order, through <code>stock_movements.performedBy</code>.</p>
+<h3 id="ch55-purchase-to-consumption-link-4-stock-movement-and-manual-adjustment">Link 4 — Stock movement and manual adjustment</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Unverified]. Every quantity change is a row in <code>stock_movements</code> with previous and new stock; stock cannot go below zero. The Adjust stock dialog offers manual adjustment, wastage, return to supplier and transfers (notes required for wastage and manual). A transfer is recorded at one location only; nothing is added at the other. The item row is read without a row lock, so two simultaneous adjustments could start from the same number.</p>
+<h3 id="ch55-purchase-to-consumption-link-5-patient-consumption">Link 5 — Patient consumption</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Not implemented] in the web app. <code>POST /patient-consumptions</code> exists and prices each line at the item&#39;s current cost, then lowers stock in one transaction, but the component that would call it (<code>ConsumptionRecorder</code>) is placed on no screen, including the consultation workspace. Consumption templates (kits) can be created but nothing uses them. Consumed materials are not billed and do not show on the encounter (Chapter 39, Chapter 31).</p>
+<h3 id="ch55-purchase-to-consumption-link-6-low-stock-alert">Link 6 — Low-stock alert</h3>
+<p><strong>Module:</strong> Inventory. <strong>Status:</strong> [Partial]. At 08:00 server time, for every location where both features are on, the job counts low-stock items and items expiring within 30 days and writes one warning line to the server log. No user is notified, no inbox entry is created and nothing appears on a screen; a code comment says notifications are planned (Chapter 44, Appendix E).</p>
+<h2 id="ch55-purchase-to-consumption-55-3-what-can-go-wrong">55.3 What can go wrong</h2>
+<ul>
+<li>The first purchase order, receive or adjustment may fail with a database foreign-key error, which would stop the whole chain [Unverified].</li>
+<li>The page is not discoverable without a sidebar entry.</li>
+<li>&quot;Insufficient stock&quot; when an outgoing movement would go below zero.</li>
+<li>&quot;Cannot receive more than ordered&quot;.</li>
+<li>Alerts are visible only to whoever reads server logs.</li>
+<li>Stock movement history is the only audit trail; no separate log exists.</li>
+<li>With <code>inventory.core</code> off, nothing in the module is permitted.</li>
+</ul>
+<h2 id="ch55-purchase-to-consumption-55-4-data-left-behind">55.4 Data left behind</h2>
+<p><code>purchase_orders</code>, <code>purchase_order_items</code>, <code>stock_movements</code>, <code>inventory_items</code> (stock, expiry, cost), <code>patient_consumptions</code> and <code>patient_consumption_items</code> (API only), and server log lines from the alert job. No billing, ledger or notification rows are written by any step.</p>
+</section></body></html>

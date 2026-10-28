@@ -1,0 +1,5 @@
+stateDiagram-v2
+  direction LR
+  [*] --> unread: in-app provider inserts user_notifications row
+  unread --> read: POST /me/notifications/:id/read
+  unread --> read: POST /me/notifications/read-all

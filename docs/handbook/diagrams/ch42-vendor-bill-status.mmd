@@ -1,0 +1,14 @@
+stateDiagram-v2
+    direction LR
+    [*] --> draft: lab accepts an item, sync creates draft
+    draft --> draft: sync, PATCH, add line
+    draft --> approved: POST bills/id/approve
+    draft --> void: POST bills/id/void
+    approved --> partially_paid: vendor payment allocated
+    approved --> paid: allocation covers total
+    partially_paid --> paid: allocation covers total
+    partially_paid --> approved: payment reversed
+    paid --> partially_paid: payment reversed
+    paid --> approved: payment reversed
+    approved --> void: POST bills/id/void, nothing paid
+    void --> [*]

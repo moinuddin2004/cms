@@ -1,0 +1,171 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch18-appointments-queue-encounters"><h1 id="ch18-appointments-queue-encounters-chapter-18-appointments-queue-and-encounters">Chapter 18 — Appointments, queue and encounters</h1>
+<p>This chapter describes the tables that follow a patient through one visit: the booking, the place in a doctor&#39;s queue, the realtime and safety tables the queue needs, the clinical record of the consultation, and the treatments performed. It is for the product owner who needs to know how a visit is stored at each step and which database rules stop double bookings or two patients being with one doctor at once. The behaviour is described in Chapters 29 (appointments), 30 (queue) and 31 (consultation); this chapter covers the data.</p>
+<h2 id="ch18-appointments-queue-encounters-18-1-context">18.1 Context</h2>
+<p>Nine tables belong to this domain, owned by four modules: <code>appointments</code> owns <code>appointments</code>; <code>queue</code> owns <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>queue_policies</code>, <code>outbox</code> and <code>idempotency_keys</code>; <code>encounters</code> owns <code>patient_encounters</code>; and <code>treatments</code> owns <code>treatments</code>. A visit moves through them in order: an appointment is booked, at check-in (or walk-in registration) a queue entry is created in the doctor&#39;s queue session for that day, when the doctor starts the consultation an encounter is created, and treatments performed are recorded against the encounter. All queue changes go through one service, the <code>QueueOrchestrator</code>, which writes the queue tables, an event and an outbox message in one transaction. Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch18-appointments-queue-encounters-18-2-the-tables">18.2 The tables</h2>
+<h3 id="ch18-appointments-queue-encounters-18-2-1-appointments-appointment">18.2.1 <code>appointments</code> — appointment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per booking. Key columns:</p>
+<ul>
+<li><code>organization_id</code>, <code>location_id</code>, <code>patient_id</code>, <code>doctor_id</code> (an employee).</li>
+<li><code>type</code> (<code>consultation</code>, <code>follow_up</code>, <code>treatment</code>, <code>checkup</code>, <code>emergency</code>, <code>cleaning</code>) and <code>is_emergency</code>.</li>
+<li><code>status</code> — <code>scheduled</code>, <code>confirmed</code>, <code>checked_in</code>, <code>completed</code>, <code>cancelled</code> or <code>no_show</code>.</li>
+<li><code>start_time</code>, <code>end_time</code> (with time zone) and <code>duration_minutes</code>.</li>
+<li><code>reason_for_visit</code> (shown in the queue row) and <code>notes</code>.</li>
+<li><code>cancel_reason_code</code> (<code>no_show</code>, <code>patient_left</code>, <code>other</code>) and a free-text <code>cancel_reason</code>.</li>
+<li>Moment columns: <code>checked_in_at</code>, <code>completed_at</code>, <code>cancelled_at</code>, <code>no_show_at</code>.</li>
+</ul>
+<p>The key database rule is the EXCLUDE constraint <code>no_doctor_overlap</code>: for the same <code>doctor_id</code>, no two appointments may have overlapping time ranges <code>[start_time, end_time)</code>, unless the appointment is <code>cancelled</code> or <code>no_show</code>. It needs the <code>btree_gist</code> extension. This is why a doctor can never be double-booked, even if two receptionists book at the same moment. Indexes support the doctor&#39;s calendar (<code>doctor_id</code>, <code>start_time</code>, <code>end_time</code>), the location&#39;s day (<code>location_id</code>, <code>start_time</code>), and filters by status, patient and organization.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-2-queue-sessions-queue-session">18.2.2 <code>queue_sessions</code> — queue session</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One doctor&#39;s queue for one service day at one location. Key columns:</p>
+<ul>
+<li><code>organization_id</code>, <code>location_id</code>, <code>doctor_id</code>.</li>
+<li><code>service_date</code> — the location-local date of the service day.</li>
+<li><code>status</code> — <code>waiting_for_doctor</code>, <code>open</code>, <code>paused</code>, <code>closed</code>, with <code>pause_reason</code>, <code>started_at</code> and <code>closed_at</code>.</li>
+<li><code>last_token_number</code> — the token counter (CHECK: never negative). Because every queue change first locks this row, tokens are gap-free and never duplicated.</li>
+<li><code>token_prefix</code> — the doctor&#39;s token prefix, copied when the session is created.</li>
+<li><code>smart_queue_enabled</code> — copied from the queue policy when the session is created; afterwards it changes only through the mode endpoint.</li>
+<li><code>last_call_reason</code>, <code>event_seq</code> (the counter that numbers <code>queue_events</code>) and <code>version</code> (for optimistic checks).</li>
+</ul>
+<p>(<code>organization_id</code>, <code>location_id</code>, <code>doctor_id</code>, <code>service_date</code>) is unique: one session per doctor per location per day.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-3-queue-entries-queue-entry">18.2.3 <code>queue_entries</code> — queue entry</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A patient&#39;s place in one queue session. It is created only at check-in of a booked appointment or at walk-in registration — never at booking. Key columns:</p>
+<ul>
+<li><code>queue_session_id</code>, <code>patient_id</code>, and <code>appointment_id</code> (set for booked visits, null for walk-ins).</li>
+<li><code>token_number</code> and <code>queue_type</code> (<code>appointment</code> or <code>walk_in</code>).</li>
+<li><code>status</code> — <code>waiting</code>, <code>called</code>, <code>in_consultation</code>, <code>on_hold</code>, <code>skipped</code>, <code>completed</code>, <code>cancelled</code>, <code>transferred</code>, <code>aborted</code>.</li>
+<li><code>priority_class</code> (<code>normal</code> or <code>authorized_urgent</code>) with <code>urgent_since</code> and <code>urgent_reason</code>.</li>
+<li><code>checked_in_at</code> and <code>sort_anchor_at</code> (the first-in-first-out position: the check-in time, or the rejoin time after a rejoin at the end).</li>
+<li>Moment columns: <code>called_at</code>, <code>consultation_started_at</code>, <code>hold_started_at</code>, <code>returned_from_hold_at</code>, <code>skipped_at</code>, <code>finished_at</code>.</li>
+<li><code>converted_from_appt_id</code> (the appointment a walk-in was converted from) and <code>transferred_from_id</code> (the entry this one replaced on a transfer to another doctor).</li>
+<li><code>version</code> for optimistic checks.</li>
+</ul>
+<p>The database rules on this table are the strongest in the Platform:</p>
+<ul>
+<li><strong>Unique token per session</strong> — (<code>queue_session_id</code>, <code>token_number</code>).</li>
+<li><strong>One active entry per appointment</strong> — a partial unique index on <code>appointment_id</code> where the status is waiting, called, in consultation, on hold or skipped.</li>
+<li><strong>One active entry per patient per session</strong> — a partial unique index on (<code>queue_session_id</code>, <code>patient_id</code>) for the same statuses.</li>
+<li><strong>At most one patient with the doctor</strong> — a partial unique index on <code>queue_session_id</code> where the status is <code>called</code> or <code>in_consultation</code>.</li>
+<li><strong>CHECK: token number greater than zero.</strong></li>
+<li><strong>CHECK: type matches appointment</strong> — <code>queue_type = &#39;appointment&#39;</code> exactly when <code>appointment_id</code> is set.</li>
+<li><strong>CHECK: urgent needs a reason</strong> — <code>priority_class</code> is <code>normal</code>, or both <code>urgent_since</code> and <code>urgent_reason</code> are set.</li>
+</ul>
+<p>A partial index on (<code>queue_session_id</code>, <code>sort_anchor_at</code>) for waiting entries makes &quot;who is next&quot; fast.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-4-queue-events-queue-event">18.2.4 <code>queue_events</code> — queue event</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>An audit log of every queue change, written in the same transaction as the change. Key columns: <code>queue_session_id</code>, <code>queue_entry_id</code>, <code>seq</code> (from the session&#39;s <code>event_seq</code>, unique per session, so screens can apply events in order and notice gaps), <code>event_type</code> (for example <code>CHECKED_IN</code>, <code>CALLED</code>, <code>SKIPPED</code>, <code>MODE_CHANGED</code>), <code>from_status</code>, <code>to_status</code>, reason code and text, <code>suggested_entry_id</code> (when staff selected a patient manually, the entry the selection engine would have called), <code>actor_id</code>, <code>actor_role</code>, <code>metadata</code> and <code>occurred_at</code>. The primary key is a bigint identity. The entity comment calls the table append-only (corrections are new events); the database does not enforce it.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-5-queue-policies-queue-policy">18.2.5 <code>queue_policies</code> — queue policy</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Queue settings. A row with <code>location_id</code> null is the organization default; a row with a location overrides it for that location. Two partial unique indexes keep one default per organization and one override per location. Columns and their CHECK rules:</p>
+<ul>
+<li><code>smart_queue_enabled</code> — smart or manual selection for new sessions.</li>
+<li><code>early_window_min</code> (CHECK 0 to 240), <code>late_grace_min</code> (CHECK at least 0), <code>max_late_min</code> (CHECK at least <code>late_grace_min</code>) — how early and how late a booked patient may check in.</li>
+<li><code>walkin_starvation_min</code> (CHECK greater than 0) — the walk-in waiting threshold, in minutes, used by the selection engine (Chapter 30 explains the rule).</li>
+<li><code>skipped_rejoin_policy</code> — <code>end</code>, <code>original_position</code> or <code>manual</code>.</li>
+<li><code>call_timeout_sec</code> — null turns automatic skip-after-call off; otherwise at least 30 seconds.</li>
+<li><code>manual_select_reason_required</code>.</li>
+<li><code>service_day_cutoff</code> — the local time a service day starts, for example &quot;04:00&quot; for a clinic that works past midnight.</li>
+</ul>
+<p>The timezone is not stored here; it is always the location&#39;s own <code>locations.timezone</code>.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-6-outbox-realtime-outbox">18.2.6 <code>outbox</code> — realtime outbox</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The transactional outbox for realtime screens. A queue change writes its realtime message here in the same transaction; a relay later publishes it to the socket room named in <code>topic</code> (for example a session room or a location&#39;s display room) and sets <code>published_at</code>. Screens therefore never see a change that rolled back and never miss one that committed. A partial index on <code>id</code> where <code>published_at</code> is null lets the relay find unpublished rows quickly. A cleanup job deletes published rows older than 7 days, every day at 03:15 server time. This table is separate from <code>notification_outbox</code> (Chapter 24).</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-7-idempotency-keys-idempotency-record">18.2.7 <code>idempotency_keys</code> — idempotency record</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Stores the result of a mutation keyed by the client&#39;s <code>Idempotency-Key</code> header, so a retried request returns the saved answer instead of doing the work twice (for example, a check-in whose reply was lost returns the same token). The primary key is (<code>organization_id</code>, <code>key</code>); other columns are <code>request_hash</code>, <code>response_status</code>, <code>response_body</code> and <code>created_at</code>. The queue writes it, and the shared idempotency service used by the lab modules and the workflow engine writes to the same table with keys namespaced as <code>scope:key</code>. The same daily 03:15 cleanup job deletes every row older than 24 hours.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-8-patient-encounters-encounter">18.2.8 <code>patient_encounters</code> — encounter</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The clinical record of one consultation, created when the doctor starts the consultation on a queue entry. <code>queue_entry_id</code> is unique: exactly one encounter per queue entry. <code>appointment_id</code> is set for booked visits and null for walk-ins. Other key columns: <code>patient_id</code>, <code>organization_id</code>, <code>location_id</code>, <code>encounter_date</code>, <code>reason</code> (why the patient actually came, which can differ from the booking), <code>chief_complaint</code>, <code>examination</code>, <code>diagnosis</code>, <code>advice</code> and <code>follow_up_date</code>.</p>
+<h3 id="ch18-appointments-queue-encounters-18-2-9-treatments-treatment-work-performed">18.2.9 <code>treatments</code> — treatment (work performed)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A treatment actually carried out. It always belongs to a patient and may be linked to the encounter it was performed in. Key columns: <code>patient_id</code>, <code>encounter_id</code>, <code>plan_template_id</code> (the plan template it was based on), <code>treatment_name</code>, <code>notes</code>, <code>date</code>, <code>service_id</code> (the catalog service billing uses to price the charge) and <code>cost</code> (a legacy fee in numeric rupees, used by billing only when no service is set). Planned work lives in <code>patient_treatment_plans</code> (Chapter 17), not here.</p>
+<h2 id="ch18-appointments-queue-encounters-18-3-entity-relationship-diagrams">18.3 Entity-relationship diagrams</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch18-visit-flow-erd.png" alt="Figure 18.1 — From booking to treatment"></p>
+<p><em>Figure 18.1 — From booking to treatment.</em></p>
+<p>The diagram has two context boxes at the top, <code>employees</code> on the left and <code>patients</code> on the right, each showing only <code>id</code>. From <code>employees</code>, two solid lines labelled &quot;doctor, RESTRICT&quot; go to <code>appointments</code> and <code>queue_sessions</code>. From <code>patients</code>, solid lines go to <code>appointments</code> (&quot;books&quot;; this label is hidden behind the <code>queue_sessions</code> box in the rendered image), <code>queue_entries</code> (&quot;waits as&quot;), <code>patient_encounters</code> (&quot;seen in&quot;) and <code>treatments</code> (&quot;receives&quot;). <code>appointments</code> (<code>id</code>, <code>patient_id</code>, <code>doctor_id</code>, <code>status</code>, <code>start_time</code>, <code>end_time</code>) has optional solid lines to <code>queue_entries</code> (&quot;checked in as&quot;) and to <code>patient_encounters</code> (&quot;booked visit&quot;). <code>queue_sessions</code> (<code>id</code>, <code>doctor_id</code>, <code>location_id</code>, <code>service_date</code>, <code>status</code>, <code>last_token_number</code>) has a solid line labelled &quot;holds, RESTRICT&quot; to <code>queue_entries</code> (<code>id</code>, <code>queue_session_id</code>, <code>patient_id</code>, <code>appointment_id</code>, <code>token_number</code>, <code>status</code>). <code>queue_entries</code> has a solid line labelled &quot;consulted in&quot; to <code>patient_encounters</code> (at most one encounter per entry). <code>queue_events</code> (<code>id</code>, <code>queue_session_id</code>, <code>queue_entry_id</code>, <code>seq</code>, <code>event_type</code>) is joined by two dashed lines, &quot;queue_session_id, no FK&quot; from <code>queue_sessions</code> and &quot;queue_entry_id, no FK&quot; from <code>queue_entries</code>. At the bottom, <code>treatments</code> (<code>id</code>, <code>patient_id</code>, <code>encounter_id</code>, <code>plan_template_id</code>, <code>service_id</code>) has optional solid lines from <code>patient_encounters</code> (&quot;performed in&quot;) and from a <code>plan_templates</code> context box (&quot;based on&quot;). Tenant links are not drawn.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch18-queue-support-erd.png" alt="Figure 18.2 — Queue support tables"></p>
+<p><em>Figure 18.2 — Queue support tables.</em></p>
+<p>The second diagram shows the three queue tables that have no foreign key at all. <code>organizations</code> (with <code>id</code>) is joined by dashed lines to <code>queue_policies</code> (&quot;org default, no FK&quot;), <code>outbox</code> (&quot;organization_id, no FK&quot;) and <code>idempotency_keys</code> (&quot;organization_id, no FK&quot;). <code>locations</code> (with <code>id</code> and <code>timezone</code>) is joined by a dashed line to <code>queue_policies</code> labelled &quot;location override, no FK&quot;. The boxes show <code>queue_policies</code> with <code>organization_id</code>, <code>location_id</code>, <code>smart_queue_enabled</code>, <code>skipped_rejoin_policy</code> and <code>service_day_cutoff</code>; <code>outbox</code> with a bigint <code>id</code>, <code>organization_id</code>, <code>topic</code>, <code>payload</code> and <code>published_at</code>; and <code>idempotency_keys</code> with its two-part key <code>organization_id</code> + <code>key</code>, <code>request_hash</code> and <code>response_body</code>.</p>
+<h2 id="ch18-appointments-queue-encounters-18-4-relationships-explained">18.4 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong><code>appointments.patient_id</code> → <code>patients</code>.</strong> Each appointment has exactly one patient; a patient has zero or more. Deleting the patient deletes the appointments (CASCADE).</li>
+<li><strong><code>appointments.doctor_id</code> → <code>employees</code>.</strong> Each appointment has exactly one doctor. A doctor with appointments cannot be deleted (RESTRICT).</li>
+<li><strong><code>appointments.organization_id</code> → <code>organizations</code></strong> and <strong><code>appointments.location_id</code> → <code>locations</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>queue_sessions.doctor_id</code> → <code>employees</code>.</strong> Each session has exactly one doctor. RESTRICT.</li>
+<li><strong><code>queue_entries.queue_session_id</code> → <code>queue_sessions</code>.</strong> Each entry belongs to exactly one session; a session has zero or more entries. A session with entries cannot be deleted (RESTRICT).</li>
+<li><strong><code>queue_entries.patient_id</code> → <code>patients</code>.</strong> Mandatory. CASCADE.</li>
+<li><strong><code>queue_entries.appointment_id</code> → <code>appointments</code>.</strong> Optional; an appointment has zero or more entries over time (only one active, by the partial unique index). Deleting the appointment deletes its entries (CASCADE).</li>
+<li><strong><code>patient_encounters.queue_entry_id</code> → <code>queue_entries</code>.</strong> Each encounter has exactly one queue entry; an entry has zero or one encounter (unique). Deleting the entry deletes the encounter (CASCADE).</li>
+<li><strong><code>patient_encounters.appointment_id</code> → <code>appointments</code>.</strong> Optional. Deleting the appointment keeps the encounter and sets the link to null (SET NULL).</li>
+<li><strong><code>patient_encounters.patient_id</code> → <code>patients</code></strong>, <strong><code>organization_id</code> → <code>organizations</code></strong>, <strong><code>location_id</code> → <code>locations</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>treatments.patient_id</code> → <code>patients</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>treatments.encounter_id</code> → <code>patient_encounters</code>.</strong> Optional; an encounter has zero or more treatments. Deleting the encounter keeps the treatments with the link set to null (SET NULL).</li>
+<li><strong><code>treatments.plan_template_id</code> → <code>plan_templates</code>.</strong> Optional. SET NULL.</li>
+<li><strong><code>treatments.organization_id</code> → <code>organizations</code></strong> and <strong><code>location_id</code> → <code>locations</code>.</strong> Mandatory, CASCADE.</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><strong><code>queue_events.queue_session_id</code> → <code>queue_sessions</code></strong>, <strong><code>queue_entry_id</code> → <code>queue_entries</code></strong>, <strong><code>suggested_entry_id</code> → <code>queue_entries</code></strong>, <strong><code>actor_id</code> → <code>users</code>.</strong></li>
+<li><strong><code>queue_entries.converted_from_appt_id</code> → <code>appointments</code></strong> and <strong><code>transferred_from_id</code> → <code>queue_entries</code></strong> (a link to another entry of the same table).</li>
+<li><strong><code>treatments.service_id</code> → <code>services</code></strong> (billing&#39;s catalog, Chapter 20).</li>
+<li><strong>Tenant columns without a foreign key:</strong> <code>organization_id</code> on <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>queue_policies</code> and <code>outbox</code>; <code>location_id</code> on <code>queue_sessions</code> and <code>queue_policies</code>. <code>idempotency_keys.organization_id</code> is part of its primary key, also without a foreign key.</li>
+<li><strong>Actor columns</strong> — <code>created_by</code> and <code>updated_by</code> on appointments and encounters, <code>created_by</code> on treatments.</li>
+</ul>
+<p>Links into this domain from other domains:</p>
+<ul>
+<li><code>prescriptions.appointment_id</code> and <code>prescriptions.encounter_id</code> (SET NULL) — Chapter 19.</li>
+<li><code>patient_consumptions.appointmentId</code> (SET NULL) — Chapter 23.</li>
+<li>Logical only: <code>charges.encounter_id</code> and <code>charges.appointment_id</code>, <code>lab_orders.appointment_id</code> and <code>lab_orders.treatment_id</code>, <code>order_item_stages.appointment_id</code>, and the <code>appointment_id</code> columns of the patient sub-records.</li>
+</ul>
+<h2 id="ch18-appointments-queue-encounters-18-5-tenant-scope">18.5 Tenant scope</h2>
+<ul>
+<li><code>appointments</code>, <code>queue_sessions</code>, <code>queue_policies</code>, <code>patient_encounters</code> and <code>treatments</code> are organization + location scoped.</li>
+<li><code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code> and <code>idempotency_keys</code> carry only <code>organization_id</code>; an entry&#39;s location is the location of its session.</li>
+<li>The queue tables keep their tenant columns without foreign keys; the orchestrator writes them.</li>
+</ul>
+<h2 id="ch18-appointments-queue-encounters-18-6-ownership-and-ambiguities">18.6 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Four &quot;visit&quot; tables.</strong> An appointment is the booking, a queue entry is a place in line, an encounter is the clinical record, and <code>patient_visits</code> is an unused summary (Chapter 17). Chapter 27 compares them.</li>
+<li><strong>Two outboxes.</strong> <code>outbox</code> carries realtime screen updates; <code>notification_outbox</code> carries notifications.</li>
+<li><strong>Shared idempotency table.</strong> <code>idempotency_keys</code> lives in the queue module, but the shared idempotency service used by labs and the workflow engine writes to it too, and the queue&#39;s daily cleanup removes those rows after 24 hours as well.</li>
+<li><strong>Append-only by convention.</strong> <code>queue_events</code> is declared append-only only in a comment.</li>
+<li><strong>RESTRICT on the doctor.</strong> Because sessions and appointments block deletion of their doctor, a doctor who has worked cannot be hard-deleted; deactivation is the only option (Chapter 16).</li>
+</ul>
+</section></body></html>

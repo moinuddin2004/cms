@@ -1,0 +1,32 @@
+sequenceDiagram
+  participant R as Receptionist R1
+  participant Dr as Dr. Example One
+  participant Web as Web app
+  participant API
+  participant Q as QueueOrchestrator
+  participant Pay as PaymentsService
+  participant PG as PostgreSQL
+  R->>Web: Create Sample Patient A
+  Web->>API: POST /patients
+  API->>PG: patient with next P- number, audit row
+  R->>Web: Book appointment
+  Web->>API: POST /appointments
+  API->>PG: appointment scheduled, database blocks doctor overlap
+  R->>Web: Check in and get token
+  Web->>API: PATCH /appointments/:id/check-in
+  API->>Q: checkInAppointment
+  Q->>PG: session, token, queue entry waiting, appointment checked_in
+  Dr->>Web: Call next, then Patient is here start
+  Web->>API: PATCH /queue/entries/:id/start-consultation
+  Q->>PG: entry in_consultation, encounter created
+  Dr->>Web: Notes, treatments done, Sign and print prescription
+  Web->>API: POST /encounters/:id/treatments, POST /prescriptions, POST /prescriptions/:id/finalize
+  Dr->>Web: Complete visit
+  Web->>API: PATCH /queue/entries/:id/complete
+  Q->>PG: entry and appointment completed, consultation and treatment charges with commission snapshot
+  R->>Web: Billing desk, Bill, Receive
+  Web->>API: POST /payments
+  API->>Pay: collect
+  Pay->>PG: one transaction - invoice INV, receipt REC, allocations, commission entries, ledger
+  API-->>Web: receipt and invoice numbers
+  R->>Web: Print receipt and invoice

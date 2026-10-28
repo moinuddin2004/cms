@@ -1,0 +1,1426 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="appB-entity-index"><h1 id="appB-entity-index-appendix-b-entity-index">Appendix B — Entity Index</h1>
+<p>This appendix lists all 153 database tables of the Platform, with the entity class, the owning backend module, the business purpose and the chapters that explain each table. It is for engineers and owners who meet a table name and need to find out what it is. The list was built from the generated entity catalog and checked against the data-model chapters (Chapters 12 to 27).</p>
+<h2 id="appB-entity-index-b-1-how-to-read-the-index">B.1 How to read the index</h2>
+<p>The owning module is the backend folder whose entities directory defines the class. The chapter columns give the data-model chapter that describes the table&#39;s structure (Part 4) and the module or cross-cutting chapter that explains its behaviour. Some class names differ from the table name; for example the class <code>CatalogService</code> is the table <code>services</code>. Table names are shown exactly as in the database.</p>
+<div class="tw"><table><thead><tr>
+<th>#</th>
+<th>Table</th>
+<th>Entity class</th>
+<th>Owning module</th>
+<th>Business purpose</th>
+<th>Data-model chapter</th>
+<th>Behaviour chapter</th>
+</tr>
+</thead><tbody><tr>
+<td>1</td>
+<td><code>users</code></td>
+<td><code>User</code></td>
+<td>user</td>
+<td>One login account for the whole Platform (staff, owner, super admin, lab member).</td>
+<td>13</td>
+<td>56</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>oauth_providers</code></td>
+<td><code>OAuthProvider</code></td>
+<td>auth</td>
+<td>Linked external sign-in identity; unused because OAuth is disabled.</td>
+<td>13</td>
+<td>56</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>security_logs</code></td>
+<td><code>SecurityLog</code></td>
+<td>auth</td>
+<td>Write-only log of login, logout, password and session events.</td>
+<td>13</td>
+<td>56</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>user_sessions</code></td>
+<td><code>UserSession</code></td>
+<td>session</td>
+<td>One signed-in device with its hashed refresh token.</td>
+<td>13</td>
+<td>56</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>organization_ownership</code></td>
+<td><code>OrganizationOwnership</code></td>
+<td>organizations</td>
+<td>Links a user to an organization as its owner.</td>
+<td>14</td>
+<td>9</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>organization_settings</code></td>
+<td><code>OrganizationSettings</code></td>
+<td>organizations</td>
+<td>Legacy organization-wide booking defaults and feature switches that no backend rule reads.</td>
+<td>14</td>
+<td>9</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>organizations</code></td>
+<td><code>Organization</code></td>
+<td>organizations</td>
+<td>The tenant: one clinic business, with plan, trial and paid-until dates.</td>
+<td>14</td>
+<td>9</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>location_settings</code></td>
+<td><code>LocationSettings</code></td>
+<td>locations</td>
+<td>Per-location booking, tax, reminder and branding settings.</td>
+<td>14</td>
+<td>9</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>locations</code></td>
+<td><code>Location</code></td>
+<td>locations</td>
+<td>One branch of an organization, with time zone and currency.</td>
+<td>14</td>
+<td>9</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>nav_layouts</code></td>
+<td><code>NavLayout</code></td>
+<td>access</td>
+<td>A clinic&#39;s arrangement of sidebar items.</td>
+<td>15</td>
+<td>58</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>feature_catalog</code></td>
+<td><code>FeatureCatalog</code></td>
+<td>feature-flags</td>
+<td>Every feature key the Platform offers, with defaults.</td>
+<td>15</td>
+<td>10</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>location_feature_overrides</code></td>
+<td><code>LocationFeatureOverride</code></td>
+<td>feature-flags</td>
+<td>Switches an enabled feature off at one location.</td>
+<td>15</td>
+<td>10</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>org_feature_flags</code></td>
+<td><code>OrgFeatureFlag</code></td>
+<td>feature-flags</td>
+<td>Per-organization entitled and enabled state of each feature.</td>
+<td>15</td>
+<td>10</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>config_values</code></td>
+<td><code>ConfigValue</code></td>
+<td>settings-registry</td>
+<td>Cascading settings store (platform, organization, location) with locks; holds theme values.</td>
+<td>14</td>
+<td>58</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>subscription_payments</code></td>
+<td><code>SubscriptionPayment</code></td>
+<td>subscriptions</td>
+<td>Manual subscription payments recorded by a super admin.</td>
+<td>14</td>
+<td>45</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>doctor_availability_overrides</code></td>
+<td><code>DoctorAvailabilityOverride</code></td>
+<td>employees</td>
+<td>One-date exceptions to a doctor&#39;s weekly schedule (not read by booking).</td>
+<td>16</td>
+<td>37</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>employee_leaves</code></td>
+<td><code>EmployeeLeave</code></td>
+<td>employees</td>
+<td>Leave requests of employees (not read by booking or payroll).</td>
+<td>16</td>
+<td>37</td>
+</tr>
+<tr>
+<td>18</td>
+<td><code>employee_org_location_assignments</code></td>
+<td><code>EmployeeOrgLocationAssignment</code></td>
+<td>employees</td>
+<td>An employee&#39;s job at one organization and location, with role, code and staff login.</td>
+<td>16</td>
+<td>37</td>
+</tr>
+<tr>
+<td>19</td>
+<td><code>employee_schedules</code></td>
+<td><code>EmployeeSchedule</code></td>
+<td>employees</td>
+<td>Weekly working hours of an employee at a location.</td>
+<td>16</td>
+<td>37</td>
+</tr>
+<tr>
+<td>20</td>
+<td><code>employees</code></td>
+<td><code>Employee</code></td>
+<td>employees</td>
+<td>The person record of a staff member, shared across organizations.</td>
+<td>16</td>
+<td>37</td>
+</tr>
+<tr>
+<td>21</td>
+<td><code>employment_roles</code></td>
+<td><code>EmploymentRole</code></td>
+<td>employees</td>
+<td>System and custom roles with their permissions and home page.</td>
+<td>15</td>
+<td>11</td>
+</tr>
+<tr>
+<td>22</td>
+<td><code>payroll_records</code></td>
+<td><code>PayrollRecord</code></td>
+<td>payroll</td>
+<td>One employee&#39;s pay for one month at one location.</td>
+<td>16</td>
+<td>38</td>
+</tr>
+<tr>
+<td>23</td>
+<td><code>patient_communications</code></td>
+<td><code>PatientCommunication</code></td>
+<td>patients</td>
+<td>Manual log of calls and messages with a patient.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>24</td>
+<td><code>patient_consents</code></td>
+<td><code>PatientConsent</code></td>
+<td>patients</td>
+<td>Signed consent forms with the signature image.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>25</td>
+<td><code>patient_dental_info</code></td>
+<td><code>PatientDentalInfo</code></td>
+<td>patients</td>
+<td>One dental health and habits sheet per patient.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>26</td>
+<td><code>patient_documents</code></td>
+<td><code>PatientDocument</code></td>
+<td>patients</td>
+<td>Uploaded files attached to a patient.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>27</td>
+<td><code>patient_feedback</code></td>
+<td><code>PatientFeedback</code></td>
+<td>patients</td>
+<td>Patient rating and staff response (backend only).</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>28</td>
+<td><code>patient_insurance</code></td>
+<td><code>PatientInsurance</code></td>
+<td>patients</td>
+<td>Insurance policy details of a patient (backend only).</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>29</td>
+<td><code>patient_prescriptions</code></td>
+<td><code>PatientPrescription</code></td>
+<td>patients</td>
+<td>Legacy quick prescriptions kept beside the newer prescriptions module.</td>
+<td>17</td>
+<td>32</td>
+</tr>
+<tr>
+<td>30</td>
+<td><code>patient_recalls</code></td>
+<td><code>PatientRecall</code></td>
+<td>patients</td>
+<td>Planned future check-ups (backend only).</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>31</td>
+<td><code>patient_referrals</code></td>
+<td><code>PatientReferral</code></td>
+<td>patients</td>
+<td>One patient referring another (backend only).</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>32</td>
+<td><code>patient_teeth_chart</code></td>
+<td><code>PatientTeethChart</code></td>
+<td>patients</td>
+<td>Append-only teeth chart snapshots in FDI notation.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>33</td>
+<td><code>patient_treatment_plans</code></td>
+<td><code>PatientTreatmentPlan</code></td>
+<td>patients</td>
+<td>Planned treatment for a patient (backend only).</td>
+<td>17</td>
+<td>33</td>
+</tr>
+<tr>
+<td>34</td>
+<td><code>patient_visits</code></td>
+<td><code>PatientVisit</code></td>
+<td>patients</td>
+<td>Per-location visit summary; nothing writes it.</td>
+<td>17</td>
+<td>27</td>
+</tr>
+<tr>
+<td>35</td>
+<td><code>patient_vitals</code></td>
+<td><code>PatientVitals</code></td>
+<td>patients</td>
+<td>Append-only vital sign readings.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>36</td>
+<td><code>patients</code></td>
+<td><code>Patient</code></td>
+<td>patients</td>
+<td>The patient record, one per patient per organization.</td>
+<td>17</td>
+<td>28</td>
+</tr>
+<tr>
+<td>37</td>
+<td><code>treatment_plan_items</code></td>
+<td><code>TreatmentPlanItem</code></td>
+<td>patients</td>
+<td>One planned procedure inside a patient treatment plan.</td>
+<td>17</td>
+<td>33</td>
+</tr>
+<tr>
+<td>38</td>
+<td><code>appointments</code></td>
+<td><code>Appointment</code></td>
+<td>appointments</td>
+<td>A booking: one patient, one doctor, one start time and duration.</td>
+<td>18</td>
+<td>29</td>
+</tr>
+<tr>
+<td>39</td>
+<td><code>idempotency_keys</code></td>
+<td><code>IdempotencyKey</code></td>
+<td>queue</td>
+<td>Saved results of retried requests, kept 24 hours.</td>
+<td>18</td>
+<td>61</td>
+</tr>
+<tr>
+<td>40</td>
+<td><code>outbox</code></td>
+<td><code>OutboxMessage</code></td>
+<td>queue</td>
+<td>Realtime messages written with a queue change and published to socket rooms.</td>
+<td>18</td>
+<td>63</td>
+</tr>
+<tr>
+<td>41</td>
+<td><code>queue_entries</code></td>
+<td><code>QueueEntry</code></td>
+<td>queue</td>
+<td>A patient&#39;s place in a doctor&#39;s queue for a day.</td>
+<td>18</td>
+<td>30</td>
+</tr>
+<tr>
+<td>42</td>
+<td><code>queue_events</code></td>
+<td><code>QueueEvent</code></td>
+<td>queue</td>
+<td>Audit record of every queue change.</td>
+<td>18</td>
+<td>30</td>
+</tr>
+<tr>
+<td>43</td>
+<td><code>queue_policies</code></td>
+<td><code>QueuePolicy</code></td>
+<td>queue</td>
+<td>Queue settings at organization level with location overrides.</td>
+<td>18</td>
+<td>30</td>
+</tr>
+<tr>
+<td>44</td>
+<td><code>queue_sessions</code></td>
+<td><code>QueueSession</code></td>
+<td>queue</td>
+<td>One doctor&#39;s queue for one clinic day at one location.</td>
+<td>18</td>
+<td>30</td>
+</tr>
+<tr>
+<td>45</td>
+<td><code>patient_encounters</code></td>
+<td><code>PatientEncounter</code></td>
+<td>encounters</td>
+<td>The clinical record of one consultation, with visit notes.</td>
+<td>18</td>
+<td>31</td>
+</tr>
+<tr>
+<td>46</td>
+<td><code>treatments</code></td>
+<td><code>Treatment</code></td>
+<td>treatments</td>
+<td>Work actually performed on a patient.</td>
+<td>18</td>
+<td>31</td>
+</tr>
+<tr>
+<td>47</td>
+<td><code>plan_templates</code></td>
+<td><code>PlanTemplate</code></td>
+<td>plan-templates</td>
+<td>Predefined treatment plans offered when recording treatment.</td>
+<td>19</td>
+<td>33</td>
+</tr>
+<tr>
+<td>48</td>
+<td><code>doctor_signatures</code></td>
+<td><code>DoctorSignature</code></td>
+<td>prescriptions</td>
+<td>A saved signature image per login, placed on prescriptions.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>49</td>
+<td><code>medicine_directory</code></td>
+<td><code>MedicineDirectory</code></td>
+<td>prescriptions</td>
+<td>The clinic&#39;s list of medicines used for prescribing.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>50</td>
+<td><code>prescription_history</code></td>
+<td><code>PrescriptionHistory</code></td>
+<td>prescriptions</td>
+<td>Change history with before-snapshots for prescriptions.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>51</td>
+<td><code>prescription_medicines</code></td>
+<td><code>PrescriptionMedicine</code></td>
+<td>prescriptions</td>
+<td>One medicine line on a prescription.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>52</td>
+<td><code>prescription_templates</code></td>
+<td><code>PrescriptionTemplate</code></td>
+<td>prescriptions</td>
+<td>Print layouts for prescriptions.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>53</td>
+<td><code>prescriptions</code></td>
+<td><code>Prescription</code></td>
+<td>prescriptions</td>
+<td>A prescription with status, version and signing details.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>54</td>
+<td><code>treatment_plan_template_medicines</code></td>
+<td><code>TreatmentPlanTemplateMedicine</code></td>
+<td>prescriptions</td>
+<td>One medicine line inside a prescription preset.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>55</td>
+<td><code>treatment_plan_templates</code></td>
+<td><code>TreatmentPlanTemplate</code></td>
+<td>prescriptions</td>
+<td>Prescription presets (ready-made medicine sets); not treatment plans.</td>
+<td>19</td>
+<td>32</td>
+</tr>
+<tr>
+<td>56</td>
+<td><code>form_schema_versions</code></td>
+<td><code>FormSchemaVersion</code></td>
+<td>engine</td>
+<td>Versioned content of a lab order form.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>57</td>
+<td><code>form_schemas</code></td>
+<td><code>FormSchema</code></td>
+<td>engine</td>
+<td>Stable identity of a lab order form.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>58</td>
+<td><code>organization_specialties</code></td>
+<td><code>OrganizationSpecialty</code></td>
+<td>engine</td>
+<td>Whether an organization works in a given specialty.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>59</td>
+<td><code>specialties</code></td>
+<td><code>Specialty</code></td>
+<td>engine</td>
+<td>Clinical specialties the engine is configured for.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>60</td>
+<td><code>stage_template_steps</code></td>
+<td><code>StageTemplateStep</code></td>
+<td>engine</td>
+<td>One try-in round inside a stage template.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>61</td>
+<td><code>stage_templates</code></td>
+<td><code>StageTemplate</code></td>
+<td>engine</td>
+<td>The rounds a kind of lab work goes through.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>62</td>
+<td><code>transition_effects</code></td>
+<td><code>TransitionEffect</code></td>
+<td>engine</td>
+<td>Which effects a workflow transition runs, in order.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>63</td>
+<td><code>workflow_effects</code></td>
+<td><code>WorkflowEffect</code></td>
+<td>engine</td>
+<td>Registry of code handlers a transition may run.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>64</td>
+<td><code>workflow_states</code></td>
+<td><code>WorkflowState</code></td>
+<td>engine</td>
+<td>States of a published workflow version.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>65</td>
+<td><code>workflow_template_versions</code></td>
+<td><code>WorkflowTemplateVersion</code></td>
+<td>engine</td>
+<td>Draft, published or retired versions of a workflow.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>66</td>
+<td><code>workflow_templates</code></td>
+<td><code>WorkflowTemplate</code></td>
+<td>engine</td>
+<td>State machines for lab orders, items and stages.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>67</td>
+<td><code>workflow_transitions</code></td>
+<td><code>WorkflowTransition</code></td>
+<td>engine</td>
+<td>Allowed moves between workflow states.</td>
+<td>26</td>
+<td>43</td>
+</tr>
+<tr>
+<td>68</td>
+<td><code>billing_audit_logs</code></td>
+<td><code>BillingAuditLog</code></td>
+<td>billing</td>
+<td>Billing&#39;s own audit trail with before and after snapshots.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>69</td>
+<td><code>cash_close_lines</code></td>
+<td><code>CashCloseLine</code></td>
+<td>billing</td>
+<td>Expected, counted and variance figures per payment account in a cash close.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>70</td>
+<td><code>cash_closes</code></td>
+<td><code>CashClose</code></td>
+<td>billing</td>
+<td>Immutable end-of-period count of a location&#39;s counter.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>71</td>
+<td><code>charges</code></td>
+<td><code>Charge</code></td>
+<td>billing</td>
+<td>One billable line for a patient; the atomic unit of billing.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>72</td>
+<td><code>commission_entries</code></td>
+<td><code>CommissionEntry</code></td>
+<td>billing</td>
+<td>Append-only signed commission earned per charge or lab invoice line.</td>
+<td>22</td>
+<td>35</td>
+</tr>
+<tr>
+<td>73</td>
+<td><code>commission_rules</code></td>
+<td><code>CommissionRule</code></td>
+<td>billing</td>
+<td>Per-service or per-category overrides of a compensation plan.</td>
+<td>22</td>
+<td>35</td>
+</tr>
+<tr>
+<td>74</td>
+<td><code>commission_settlements</code></td>
+<td><code>CommissionSettlement</code></td>
+<td>billing</td>
+<td>A batch of commission entries paid through one payroll record.</td>
+<td>22</td>
+<td>35</td>
+</tr>
+<tr>
+<td>75</td>
+<td><code>compensation_plans</code></td>
+<td><code>CompensationPlan</code></td>
+<td>billing</td>
+<td>Dated versions of how an assignment is paid: salary, commission or both.</td>
+<td>22</td>
+<td>35</td>
+</tr>
+<tr>
+<td>76</td>
+<td><code>credit_packages</code></td>
+<td><code>CreditPackage</code></td>
+<td>billing</td>
+<td>Prepaid credit offers (backend only).</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>77</td>
+<td><code>discount_types</code></td>
+<td><code>DiscountType</code></td>
+<td>billing</td>
+<td>Owner-defined discount presets.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>78</td>
+<td><code>document_sequences</code></td>
+<td><code>DocumentSequence</code></td>
+<td>billing</td>
+<td>Per-location, per-type, per-year counters behind invoice, receipt and refund numbers.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>79</td>
+<td><code>expenses</code></td>
+<td><code>Expense</code></td>
+<td>billing</td>
+<td>A clinic running cost at a location.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>80</td>
+<td><code>invoices</code></td>
+<td><code>Invoice</code></td>
+<td>billing</td>
+<td>An issued document grouping a patient&#39;s charges.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>81</td>
+<td><code>ledger_entries</code></td>
+<td><code>LedgerEntry</code></td>
+<td>billing</td>
+<td>One-sided per-patient statement rows.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>82</td>
+<td><code>ledger_journal_lines</code></td>
+<td><code>LedgerJournalLine</code></td>
+<td>billing</td>
+<td>Debit or credit sides of general ledger journals.</td>
+<td>21</td>
+<td>42</td>
+</tr>
+<tr>
+<td>83</td>
+<td><code>ledger_journals</code></td>
+<td><code>LedgerJournal</code></td>
+<td>billing</td>
+<td>Balanced double-entry postings (lab money only).</td>
+<td>21</td>
+<td>42</td>
+</tr>
+<tr>
+<td>84</td>
+<td><code>location_billing_settings</code></td>
+<td><code>LocationBillingSettings</code></td>
+<td>billing</td>
+<td>Per-location billing settings, including the document code.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>85</td>
+<td><code>patient_credits</code></td>
+<td><code>PatientCredit</code></td>
+<td>billing</td>
+<td>A patient&#39;s purchase of a credit package.</td>
+<td>21</td>
+<td>34</td>
+</tr>
+<tr>
+<td>86</td>
+<td><code>payment_accounts</code></td>
+<td><code>PaymentAccount</code></td>
+<td>billing</td>
+<td>Ways a location receives money: cash, bank, wallet.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>87</td>
+<td><code>payment_allocations</code></td>
+<td><code>PaymentAllocation</code></td>
+<td>billing</td>
+<td>Signed records of how a payment was applied to charges.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>88</td>
+<td><code>payments</code></td>
+<td><code>Payment</code></td>
+<td>billing</td>
+<td>Money received from a patient.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>89</td>
+<td><code>refund_sources</code></td>
+<td><code>RefundSource</code></td>
+<td>billing</td>
+<td>Which payment funded which refund.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>90</td>
+<td><code>refunds</code></td>
+<td><code>Refund</code></td>
+<td>billing</td>
+<td>Money returned to a patient.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>91</td>
+<td><code>service_prices</code></td>
+<td><code>ServicePrice</code></td>
+<td>billing</td>
+<td>Location or doctor price overrides for a service.</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>92</td>
+<td><code>services</code></td>
+<td><code>CatalogService</code></td>
+<td>billing</td>
+<td>The clinic&#39;s billable service catalog (class CatalogService).</td>
+<td>20</td>
+<td>34</td>
+</tr>
+<tr>
+<td>93</td>
+<td><code>consumption_template_items</code></td>
+<td><code>ConsumptionTemplateItem</code></td>
+<td>inventory</td>
+<td>One item and default quantity in a consumption kit.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>94</td>
+<td><code>consumption_templates</code></td>
+<td><code>ConsumptionTemplate</code></td>
+<td>inventory</td>
+<td>Standard kits of materials for a procedure.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>95</td>
+<td><code>inventory</code></td>
+<td><code>Inventory</code></td>
+<td>inventory</td>
+<td>Legacy single-table item list; not registered by any module.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>96</td>
+<td><code>inventory_categories</code></td>
+<td><code>InventoryCategory</code></td>
+<td>inventory</td>
+<td>Groupings of stock items.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>97</td>
+<td><code>inventory_items</code></td>
+<td><code>InventoryItem</code></td>
+<td>inventory</td>
+<td>A stocked item at a location with current stock.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>98</td>
+<td><code>patient_consumption_items</code></td>
+<td><code>PatientConsumptionItem</code></td>
+<td>inventory</td>
+<td>One item used on a patient, with price snapshot.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>99</td>
+<td><code>patient_consumptions</code></td>
+<td><code>PatientConsumption</code></td>
+<td>inventory</td>
+<td>Materials used on one patient.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>100</td>
+<td><code>purchase_order_items</code></td>
+<td><code>PurchaseOrderItem</code></td>
+<td>inventory</td>
+<td>One item line on a purchase order.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>101</td>
+<td><code>purchase_orders</code></td>
+<td><code>PurchaseOrder</code></td>
+<td>inventory</td>
+<td>An order to one supplier for one location.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>102</td>
+<td><code>stock_movements</code></td>
+<td><code>StockMovement</code></td>
+<td>inventory</td>
+<td>Signed change to an item&#39;s stock with before and after.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>103</td>
+<td><code>suppliers</code></td>
+<td><code>Supplier</code></td>
+<td>inventory</td>
+<td>Vendors of stock.</td>
+<td>23</td>
+<td>39</td>
+</tr>
+<tr>
+<td>104</td>
+<td><code>chairs</code></td>
+<td><code>Chair</code></td>
+<td>chairs</td>
+<td>Treatment chairs of a location; entity only.</td>
+<td>12</td>
+<td>65</td>
+</tr>
+<tr>
+<td>105</td>
+<td><code>notification_audience_settings</code></td>
+<td><code>NotificationAudienceSetting</code></td>
+<td>notifications</td>
+<td>A clinic&#39;s master switch and quiet hours per audience.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>106</td>
+<td><code>notification_events</code></td>
+<td><code>NotificationEvent</code></td>
+<td>notifications</td>
+<td>Platform-defined kinds of notification event.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>107</td>
+<td><code>notification_outbox</code></td>
+<td><code>NotificationOutbox</code></td>
+<td>notifications</td>
+<td>One message to one recipient on one channel.</td>
+<td>24</td>
+<td>59</td>
+</tr>
+<tr>
+<td>108</td>
+<td><code>notification_rules</code></td>
+<td><code>NotificationRule</code></td>
+<td>notifications</td>
+<td>A clinic&#39;s on/off switch per event, audience and channel.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>109</td>
+<td><code>notification_templates</code></td>
+<td><code>NotificationTemplate</code></td>
+<td>notifications</td>
+<td>Message wording per event, channel and language.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>110</td>
+<td><code>patient_comm_prefs</code></td>
+<td><code>PatientCommPref</code></td>
+<td>notifications</td>
+<td>A patient&#39;s channel opt-outs and language.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>111</td>
+<td><code>user_notifications</code></td>
+<td><code>UserNotification</code></td>
+<td>notifications</td>
+<td>A user&#39;s in-app inbox rows behind the bell.</td>
+<td>24</td>
+<td>44</td>
+</tr>
+<tr>
+<td>112</td>
+<td><code>lab_clinic_links</code></td>
+<td><code>LabClinicLink</code></td>
+<td>labs</td>
+<td>A clinic&#39;s connection to a lab, with status and terms.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>113</td>
+<td><code>lab_members</code></td>
+<td><code>LabMember</code></td>
+<td>labs</td>
+<td>Users who work at a lab as lab admin or technician.</td>
+<td>25</td>
+<td>41</td>
+</tr>
+<tr>
+<td>114</td>
+<td><code>labs</code></td>
+<td><code>Lab</code></td>
+<td>labs</td>
+<td>A dental laboratory, external or in-house.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>115</td>
+<td><code>magic_links</code></td>
+<td><code>MagicLink</code></td>
+<td>lab-access</td>
+<td>No-login links for a lab to one order; token hash only.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>116</td>
+<td><code>lab_service_options</code></td>
+<td><code>LabServiceOption</code></td>
+<td>lab-catalog</td>
+<td>Materials or variants of a lab service with extra cost.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>117</td>
+<td><code>lab_service_prices</code></td>
+<td><code>LabServicePrice</code></td>
+<td>lab-catalog</td>
+<td>List or negotiated price windows of a lab service.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>118</td>
+<td><code>lab_services</code></td>
+<td><code>LabService</code></td>
+<td>lab-catalog</td>
+<td>Products a lab makes.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>119</td>
+<td><code>order_templates</code></td>
+<td><code>OrderTemplate</code></td>
+<td>lab-catalog</td>
+<td>Saved starting points for lab orders.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>120</td>
+<td><code>service_categories</code></td>
+<td><code>ServiceCategory</code></td>
+<td>lab-catalog</td>
+<td>Platform-level grouping of lab services.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>121</td>
+<td><code>service_mappings</code></td>
+<td><code>ServiceMapping</code></td>
+<td>lab-catalog</td>
+<td>Which lab service fulfils which clinic billing service.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>122</td>
+<td><code>attachments</code></td>
+<td><code>Attachment</code></td>
+<td>lab-orders</td>
+<td>Files on a lab order or item.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>123</td>
+<td><code>dental_item_details</code></td>
+<td><code>DentalItemDetails</code></td>
+<td>lab-orders</td>
+<td>Typed dental columns promoted from form answers.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>124</td>
+<td><code>item_form_responses</code></td>
+<td><code>ItemFormResponse</code></td>
+<td>lab-orders</td>
+<td>An item&#39;s form answers against its pinned form version.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>125</td>
+<td><code>item_teeth</code></td>
+<td><code>ItemTooth</code></td>
+<td>lab-orders</td>
+<td>The teeth an order item applies to.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>126</td>
+<td><code>lab_order_items</code></td>
+<td><code>LabOrderItem</code></td>
+<td>lab-orders</td>
+<td>One piece of lab work with frozen price snapshots.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>127</td>
+<td><code>lab_orders</code></td>
+<td><code>LabOrder</code></td>
+<td>lab-orders</td>
+<td>A lab case for one patient, doctor and lab.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>128</td>
+<td><code>order_charge_requests</code></td>
+<td><code>OrderChargeRequest</code></td>
+<td>lab-orders</td>
+<td>Extra charges a lab asks for after submit.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>129</td>
+<td><code>order_messages</code></td>
+<td><code>OrderMessage</code></td>
+<td>lab-orders</td>
+<td>Conversation between clinic and lab on an order.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>130</td>
+<td><code>order_revisions</code></td>
+<td><code>OrderRevision</code></td>
+<td>lab-orders</td>
+<td>Full snapshots of what the lab was asked to make, per revision.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>131</td>
+<td><code>item_assignments</code></td>
+<td><code>ItemAssignment</code></td>
+<td>lab-production</td>
+<td>Which lab technician works on an item.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>132</td>
+<td><code>item_warranties</code></td>
+<td><code>ItemWarranty</code></td>
+<td>lab-production</td>
+<td>Warranty that starts at delivery.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>133</td>
+<td><code>order_item_stages</code></td>
+<td><code>OrderItemStage</code></td>
+<td>lab-production</td>
+<td>One try-in round of one item stage.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>134</td>
+<td><code>remake_requests</code></td>
+<td><code>RemakeRequest</code></td>
+<td>lab-production</td>
+<td>Requests to redo an item, with the responsible party.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>135</td>
+<td><code>shipment_items</code></td>
+<td><code>ShipmentItem</code></td>
+<td>lab-production</td>
+<td>One item inside a shipment.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>136</td>
+<td><code>shipments</code></td>
+<td><code>Shipment</code></td>
+<td>lab-production</td>
+<td>A parcel between clinic and lab with a QR token.</td>
+<td>25</td>
+<td>40</td>
+</tr>
+<tr>
+<td>137</td>
+<td><code>lab_billing_settings</code></td>
+<td><code>LabBillingSettings</code></td>
+<td>lab-billing</td>
+<td>Per-organization lab tax rate and due days.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>138</td>
+<td><code>lab_credit_notes</code></td>
+<td><code>LabCreditNote</code></td>
+<td>lab-billing</td>
+<td>Downward corrections of issued patient lab invoices.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>139</td>
+<td><code>lab_invoice_lines</code></td>
+<td><code>LabInvoiceLine</code></td>
+<td>lab-billing</td>
+<td>Lines of a patient lab invoice with frozen prices.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>140</td>
+<td><code>lab_invoices</code></td>
+<td><code>LabInvoice</code></td>
+<td>lab-billing</td>
+<td>Patient invoices for lab work; drafts are estimates.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>141</td>
+<td><code>lab_payment_allocations</code></td>
+<td><code>LabPaymentAllocation</code></td>
+<td>lab-billing</td>
+<td>How lab payments were applied to lab invoices.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>142</td>
+<td><code>lab_payments</code></td>
+<td><code>LabPayment</code></td>
+<td>lab-billing</td>
+<td>Money from a patient for lab work.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>143</td>
+<td><code>lab_refund_sources</code></td>
+<td><code>LabRefundSource</code></td>
+<td>lab-billing</td>
+<td>Which lab payment funded which lab refund.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>144</td>
+<td><code>lab_refunds</code></td>
+<td><code>LabRefund</code></td>
+<td>lab-billing</td>
+<td>Money paid back to a patient for lab work.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>145</td>
+<td><code>lab_statement_lines</code></td>
+<td><code>LabStatementLine</code></td>
+<td>lab-payables</td>
+<td>Lines of a lab&#39;s monthly statement.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>146</td>
+<td><code>lab_statements</code></td>
+<td><code>LabStatement</code></td>
+<td>lab-payables</td>
+<td>A lab&#39;s monthly statement reconciled against bills.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>147</td>
+<td><code>vendor_bill_lines</code></td>
+<td><code>VendorBillLine</code></td>
+<td>lab-payables</td>
+<td>Lines of a bill from a lab.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>148</td>
+<td><code>vendor_bills</code></td>
+<td><code>VendorBill</code></td>
+<td>lab-payables</td>
+<td>What the clinic owes a lab for an order.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>149</td>
+<td><code>vendor_payment_allocations</code></td>
+<td><code>VendorPaymentAllocation</code></td>
+<td>lab-payables</td>
+<td>How payments to a lab were applied to bills.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>150</td>
+<td><code>vendor_payments</code></td>
+<td><code>VendorPayment</code></td>
+<td>lab-payables</td>
+<td>Money the clinic paid a lab.</td>
+<td>25</td>
+<td>42</td>
+</tr>
+<tr>
+<td>151</td>
+<td><code>audit_logs</code></td>
+<td><code>AuditLog</code></td>
+<td>common</td>
+<td>Generic append-only change history.</td>
+<td>26</td>
+<td>60</td>
+</tr>
+<tr>
+<td>152</td>
+<td><code>number_sequences</code></td>
+<td><code>NumberSequence</code></td>
+<td>common</td>
+<td>Per-organization counters such as LAB-0001.</td>
+<td>26</td>
+<td>62</td>
+</tr>
+<tr>
+<td>153</td>
+<td><code>status_history</code></td>
+<td><code>StatusHistory</code></td>
+<td>common</td>
+<td>Append-only log of status changes.</td>
+<td>26</td>
+<td>60</td>
+</tr>
+</tbody></table></div><p>The index holds 153 rows, one per table, matching the count in the entity catalog. Two tables are not registered by any Nest module (<code>chairs</code> and the legacy <code>inventory</code> table), so a development database built by the running application does not contain them, while a database built from the command-line data source does. Chapter 65 lists the tables that are never written or never read by any screen.</p>
+</section></body></html>

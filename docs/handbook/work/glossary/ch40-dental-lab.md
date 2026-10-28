@@ -1,0 +1,17 @@
+- **Lab directory** — the platform list of dental labs kept by the super admin (`labs`, route `/lab-directory`).
+- **In-house lab** — a lab owned by one clinic and serving only it (`lab_type = internal`, shown as "In-house" in the UI).
+- **External lab** — a lab that serves many clinics (`lab_type = external`).
+- **Patient data level** — per lab link, whether the lab sees the patient's full name or only the patient code (`patient_data_level`: `full_name` / `code_only`).
+- **Lab service** — one product a lab makes, such as a zirconia crown (`lab_services`).
+- **List price / negotiated price** — a lab's price for all clinics versus a price agreed with one clinic (`lab_service_prices.organization_id` empty or set).
+- **Treatment mapping** — the link saying which clinic treatment is billed to the patient when a lab service is ordered (`service_mappings`, UI "Treatment mapping").
+- **Order template** — a saved lab order starting point, private or shared (`order_templates`).
+- **Work order** — the printable sheet with QR code and instructions, without prices, that travels with the case.
+- **Revision** — a numbered change of a submitted order that the lab must acknowledge (`order_revisions`).
+- **Extra charge request** — a lab's request for an added charge after submit (`order_charge_requests`).
+- **Proxy update** — clinic staff recording a lab's answer for a lab that does not respond (`via = proxy`).
+- **Lab coordinator** — a clinic user holding both `lab.orders.create` and `lab.links.manage`, the permissions needed for proxy updates.
+- **Stage / try-in round** — one step of an item's stage template, repeated as a new round after a correction (`order_item_stages`).
+- **Shipment** — one parcel between lab and clinic with a QR token (`shipments`, number prefix SHP).
+- **Remake request** — a request to make an item again, with a responsible party deciding prices (`remake_requests`).
+- **Warranty** — a period after delivery, 12 months by default (`item_warranties`).

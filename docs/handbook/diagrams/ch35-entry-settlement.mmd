@@ -1,0 +1,7 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Unsettled : entry inserted on collect, unapply, invoice edit, void or lab payment
+    Unsettled --> Pending : payroll generate or month-end job links it to a PENDING settlement
+    Pending --> Unsettled : payroll record deleted before payment - settlement released
+    Pending --> Paid : PATCH payroll mark-paid
+    Paid --> [*]

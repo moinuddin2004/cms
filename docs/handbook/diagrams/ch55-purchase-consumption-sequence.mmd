@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant Admin
+  participant Web as Web app
+  participant API
+  participant PO as PurchaseOrderService
+  participant ST as applyMovement
+  participant PG as PostgreSQL
+  participant J as Alert job
+  participant Log as Server log
+  Admin->>Web: Open /inventory by typing the address, Create PO
+  Web->>API: POST /purchase-orders
+  API->>PO: create
+  PO->>PG: PO number, lines, totals, status draft - Unverified, createdBy points to employees
+  Admin->>Web: Mark as Ordered
+  Web->>API: PATCH /purchase-orders/:id/status
+  Admin->>Web: Receive Items, batch and expiry
+  Web->>API: POST /purchase-orders/:id/receive
+  API->>PO: receiveItems
+  PO->>ST: PURCHASE_IN per line
+  ST->>PG: stock_movements row, item stock, nearest expiry, cost price - Unverified
+  Admin->>API: POST /patient-consumptions - API only, no screen
+  API->>ST: CONSUMPTION per line
+  ST->>PG: stock lowered, patient_consumptions saved
+  J->>PG: 08:00, count low stock and expiring items
+  J->>Log: warning line only, nobody is notified

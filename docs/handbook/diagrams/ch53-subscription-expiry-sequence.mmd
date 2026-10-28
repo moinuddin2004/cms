@@ -1,0 +1,25 @@
+sequenceDiagram
+  participant Owner
+  participant SA as Super admin
+  participant Web as Web app
+  participant API as API and SubscriptionGuard
+  participant PG as PostgreSQL
+  Owner->>Web: Open any page during the trial
+  Web->>API: GET /account
+  API-->>Web: status trialing, banner Free trial N days left
+  Note over Owner,PG: Trial end passes. 3 grace days follow. Writes still work and a banner warns everyone
+  Owner->>Web: Save something in the grace period
+  Web->>API: any write request
+  API-->>Web: accepted
+  Note over Owner,PG: Trial end plus 3 days passes. Status is expired
+  Owner->>Web: Save something
+  Web->>API: any write request
+  API-->>Web: 402 SUBSCRIPTION_EXPIRED, reads still work
+  Owner->>SA: Pays outside the Platform and sends the reference
+  SA->>Web: Subscriptions, Manage subscription, Record payment
+  Web->>API: POST /admin/subscriptions/:orgId/payments
+  API->>PG: lock organization, payment row, paid_until, plan, audit
+  API->>API: clear the read-only cache of this process
+  Owner->>Web: Save again
+  Web->>API: any write request
+  API-->>Web: accepted, other processes may take up to 30 seconds

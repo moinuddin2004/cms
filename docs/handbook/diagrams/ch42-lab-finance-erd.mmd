@@ -1,0 +1,46 @@
+erDiagram
+    lab_orders ||--o{ lab_invoices : "billed on"
+    patients ||--o{ lab_invoices : "owes"
+    lab_invoices ||--|{ lab_invoice_lines : "has"
+    lab_order_items |o--o{ lab_invoice_lines : "priced from"
+    patients ||--o{ lab_payments : "pays"
+    lab_payments ||--o{ lab_payment_allocations : "split into"
+    lab_invoices ||--o{ lab_payment_allocations : "settled by"
+    lab_invoices ||--o{ lab_credit_notes : "lowered by"
+    lab_refunds ||--|{ lab_refund_sources : "drawn from"
+    lab_payments ||--o{ lab_refund_sources : "source"
+    lab_invoice_lines ||..o{ commission_entries : "earns"
+    lab_invoices {
+        uuid id PK
+        uuid patient_id FK
+        uuid order_id FK
+        string invoice_no
+        string status
+        bigint balance_paisa
+    }
+    lab_invoice_lines {
+        uuid id PK
+        uuid invoice_id FK
+        uuid lab_order_item_id FK
+        string line_kind
+        bigint line_total_paisa
+    }
+    lab_payments {
+        uuid id PK
+        uuid patient_id FK
+        uuid reversal_of_id FK
+        string receipt_no
+        string status
+    }
+    lab_payment_allocations {
+        uuid id PK
+        uuid payment_id FK
+        uuid invoice_id FK
+        bigint amount_paisa
+    }
+    lab_credit_notes {
+        uuid id PK
+        uuid invoice_id FK
+        bigint amount_paisa
+        string status
+    }

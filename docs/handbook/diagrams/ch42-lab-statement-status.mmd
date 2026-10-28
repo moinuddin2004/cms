@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> reconciled: POST statements, every line matched
+    [*] --> reconciling: POST statements, any difference
+    reconciling --> reconciled: Mark reconciled
+    reconciling --> disputed: Dispute
+    reconciled --> disputed: Dispute
+    disputed --> reconciled: Mark reconciled

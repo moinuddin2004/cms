@@ -79,7 +79,7 @@ The change-history panel is titled "<patient name> — change history" with the 
 **Rules and validations.**
 - Full name: required, at most 150 characters. Phone: required, at most 20 characters; the form also checks 7–20 digits and the characters `+ - ( )` and space.
 - Phone must be unique inside the organization (server rule, exact text match).
-- Email must be a valid address; CNIC must look like `42101-1234567-1` (form rule); date of birth cannot be in the future (form rule).
+- Email must be a valid address; CNIC must look like `12345-0000000-0` (form rule); date of birth cannot be in the future (form rule).
 - A minor needs a guardian name (form rule).
 - Gender, blood group, marital status, language, communication preference and source must be values from fixed lists. Defaults: language Urdu, communication preference WhatsApp, source walk-in.
 - Tags are free text chosen in a multi-select that can create new tags.
@@ -345,7 +345,7 @@ Parsing uses `parseImportFile` (first non-empty worksheet of an `.xlsx`, or RFC-
 - "Could not read the Excel file. Is it a valid .xlsx?", "The workbook has no sheets", "The file is empty", "The file has no patient rows", "The file has more than 5,000 patient rows. Split it into smaller files." → unreadable or oversized file.
 - "Send at most 1000 rows per import request" → oversized real-import request.
 - "Another patient import is running for this clinic. Try again when it finishes." (409) → parallel import.
-- Per-row reasons such as "Phone number "…" looks invalid (7–20 digits)", "CNIC "…" must have 13 digits (e.g. 42101-1234567-1)", "Date of birth cannot be in the future", "Same phone number as P-00012 (…)".
+- Per-row reasons such as "Phone number "…" looks invalid (7–20 digits)", "CNIC "…" must have 13 digits (e.g. 12345-0000000-0)", "Date of birth cannot be in the future", "Same phone number as P-00012 (…)".
 - "The server could not import this batch" → a batch request failed; all its rows are reported as errors and the import continues with the next batch.
 
 **Technical references:** `backend/src/patients/import/patient-import.service.ts`, `patient-import.ts` · `PatientImportService.import`, `parseImportFile`, `mapImportRow`, `findDuplicate` · `web-app/src/features/patients/components/ImportPatientsSheet.tsx`, `hooks/usePatientImport.ts`, `utils/patientImport.ts`
@@ -986,7 +986,7 @@ Other status-like columns in the module have no transitions: referrals are alway
 - **Blacklisting has no screen** and does not block booking, queueing or billing. Inactive patients are not blocked either.
 - **Deleting a patient with billing or lab records fails** with a generic error, although the confirmation text says invoices and payments will be deleted.
 - **Patient, plan and legacy prescription numbers come from a row count.** After a permanent deletion the count drops, so the next number can repeat an existing one; the unique index then makes the save fail with a server error. Two registrations at the same moment can also collide. Import guards against parallel imports only inside one server process.
-- **The live phone check is not wired**, and phone uniqueness at registration is an exact text match, while import compares normalised phones. "0300 1234567" and "03001234567" are different to manual registration.
+- **The live phone check is not wired**, and phone uniqueness at registration is an exact text match, while import compares normalised phones. "0300 0000000" and "03000000000" are different to manual registration.
 - **`patient_visits` is never filled**, so `GET /patients/:id/visits` is always empty.
 - **No edit or delete for vitals, charts, consents, documents or legacy prescriptions** (by design for consents and charts; a mistaken upload cannot be removed from the screen).
 - **The list screen exposes only search, gender and status filters**; card view has no paging; column sorting applies to the current page only.

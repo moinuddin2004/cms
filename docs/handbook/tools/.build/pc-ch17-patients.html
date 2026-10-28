@@ -1,0 +1,155 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch17-patients"><h1 id="ch17-patients-chapter-17-patients">Chapter 17 — Patients</h1>
+<p>This chapter describes the patient record and the fourteen sub-record tables that hang from it: clinical history, charts, vitals, plans, documents, consents, contacts, recalls, referrals, feedback, insurance and the per-location visit summary. It is for the product owner who needs to know where a given piece of patient information is stored and what happens to it when a patient is deactivated or deleted. The patient module itself — screens, import, export and permissions — is described in Chapter 28.</p>
+<h2 id="ch17-patients-17-1-context">17.1 Context</h2>
+<p>All fifteen tables are owned by the <code>patients</code> module. The patient is an organization-level record: one clinic business has one record per patient, shared by all of its locations. Most sub-records also remember the location where they were created. One of the fourteen sub-record tables, <code>patient_prescriptions</code>, is the legacy prescription table; it is summarised here and described in full in Chapter 19 next to the current prescription tables. Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch17-patients-17-2-the-patient-record">17.2 The patient record</h2>
+<h3 id="ch17-patients-17-2-1-patients-patient">17.2.1 <code>patients</code> — patient</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per patient per organization. Key columns:</p>
+<ul>
+<li><code>organization_id</code> — the owning organization.</li>
+<li><code>patient_number</code> — the clinic&#39;s own patient number, unique within the organization (<code>organization_id</code> + <code>patient_number</code>).</li>
+<li><code>full_name</code>, <code>dob</code>, <code>gender</code>, <code>blood_group</code>, <code>marital_status</code>, <code>occupation</code>.</li>
+<li>Contact fields: <code>phone</code> (required, <strong>not</strong> unique — two patients can share a family phone), a WhatsApp number, email, address and city. A national identity number column also exists. These hold personal data and are never reproduced in this handbook.</li>
+<li><code>preferred_language</code> (<code>urdu</code> or <code>english</code>, default <code>urdu</code>) and <code>communication_pref</code> (<code>whatsapp</code>, <code>sms</code>, <code>call</code>, <code>email</code>, default <code>whatsapp</code>).</li>
+<li><code>primary_location_id</code> — the patient&#39;s home branch; nullable.</li>
+<li><code>source</code> (<code>walk_in</code>, <code>referral</code>, <code>online</code>, <code>social_media</code>, <code>google</code>, <code>other</code>) and a free-text <code>referred_by_text</code>.</li>
+<li>Minor and guardian fields, <code>medical_history</code> and <code>allergies</code> as free text, emergency-contact fields, <code>internal_notes</code> and <code>tags</code> (a JSON list).</li>
+<li><code>is_active</code> — the activate/deactivate switch used by the patient screens.</li>
+<li><code>is_blacklisted</code> and <code>blacklist_reason</code>.</li>
+<li><code>deleted_at</code> — a TypeORM soft-delete column. The permanent-delete action does not use it; it removes the row.</li>
+<li><code>user_id</code> — a reference to a user account for the patient, with no foreign key. The code does not say what fills it.</li>
+</ul>
+<p>Indexes support search by name, phone and national identity number, the active list (<code>organization_id</code> + <code>is_active</code>), the blacklist filter (<code>organization_id</code> + <code>is_blacklisted</code>) and lookups by primary location.</p>
+<h2 id="ch17-patients-17-3-clinical-sub-records">17.3 Clinical sub-records</h2>
+<h3 id="ch17-patients-17-3-1-patient-dental-info-dental-profile">17.3.1 <code>patient_dental_info</code> — dental profile</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>At most one row per patient (<code>patient_id</code> is unique): last check-up date, gum condition, sensitivity, brushing and flossing habits, smoking and tobacco chewing, orthodontic history, prosthetics, previous extractions and surgeries, X-ray notes and dentist notes. It carries <code>organization_id</code> but no location: the profile belongs to the patient, not to a branch.</p>
+<h3 id="ch17-patients-17-3-2-patient-teeth-chart-teeth-chart-snapshot">17.3.2 <code>patient_teeth_chart</code> — teeth chart snapshot</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per charting. <code>chart_data</code> is JSON keyed by tooth number in FDI notation (for example <code>&quot;11&quot;</code>), each holding condition, treatment, surface and notes; <code>periodontal_chart</code> is optional JSON. <code>is_initial_chart</code> marks the first chart, <code>recorded_at</code> the moment. <code>dentist_id</code> records who charted (target table not stated in the code) and <code>appointment_id</code> the visit, both without a foreign key.</p>
+<h3 id="ch17-patients-17-3-3-patient-vitals-vitals-reading">17.3.3 <code>patient_vitals</code> — vitals reading</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per measurement: blood pressure (<code>bp_systolic</code>, <code>bp_diastolic</code>), pulse, temperature, oxygen saturation, weight, height, BMI, risk flags (diabetic, hypertensive, pregnant, on blood thinners, on antibiotics), anaesthesia type and dose, notes and <code>recorded_at</code>. <code>recorded_by</code> and <code>anesthesia_administered_by</code> are user ids without a foreign key; <code>appointment_id</code> links the visit without a foreign key.</p>
+<h3 id="ch17-patients-17-3-4-patient-treatment-plans-treatment-plan">17.3.4 <code>patient_treatment_plans</code> — treatment plan</h3>
+<p><strong>Status:</strong> [Partial] — backend endpoints exist and billing reads the table; no web screen calls the create or update endpoints</p>
+<p>A planned course of work for a patient: <code>plan_number</code> (unique within the organization), <code>plan_name</code>, description, <code>estimated_cost</code>, <code>discount_amount</code> and <code>final_estimated_cost</code> (numeric, rupees), <code>status</code> (<code>draft</code>, <code>active</code>, <code>completed</code>, <code>cancelled</code>, <code>on_hold</code>), start, expected end and actual end dates, <code>patient_accepted</code> and <code>patient_accepted_at</code>, notes, and <code>dentist_id</code> (no foreign key). It has a <code>deleted_at</code> soft-delete column. Planned work is different from performed work, which is stored in <code>treatments</code> (Chapter 18).</p>
+<h3 id="ch17-patients-17-3-5-treatment-plan-items-treatment-plan-item">17.3.5 <code>treatment_plan_items</code> — treatment plan item</h3>
+<p><strong>Status:</strong> [Partial] — as for its parent plan</p>
+<p>One procedure inside a plan: <code>procedure_name</code>, <code>procedure_code</code>, <code>tooth_number</code>, <code>tooth_surface</code>, <code>estimated_sessions</code> and <code>completed_sessions</code>, <code>estimated_cost</code>, <code>status</code> (<code>pending</code>, <code>in_progress</code>, <code>completed</code>, <code>skipped</code>, <code>postponed</code>), <code>sequence_order</code>, <code>assigned_to</code> (a user id, no foreign key) and notes. This table has <strong>no organization column</strong>; it is isolated only through its plan. An index on (<code>plan_id</code>, <code>sequence_order</code>) returns items in order.</p>
+<h3 id="ch17-patients-17-3-6-patient-documents-patient-document">17.3.6 <code>patient_documents</code> — patient document</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per uploaded file: <code>document_type</code> (X-ray, CBCT scan, report, prescription, consent form, insurance card, identity-card copy, before photo, after photo, other), file name, file URL, thumbnail URL, size, MIME type, <code>tooth_number</code>, <code>taken_date</code>, <code>is_visible_to_patient</code>, notes and <code>uploaded_by</code> (a user id, no foreign key). It has a <code>deleted_at</code> soft-delete column.</p>
+<h3 id="ch17-patients-17-3-7-patient-consents-signed-consent">17.3.7 <code>patient_consents</code> — signed consent</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per consent signed: <code>consent_type</code> (general treatment, extraction, implant, root canal, orthodontic, sedation, photo release), <code>consent_version</code>, the full <code>consent_text</code>, <code>is_agreed</code>, <code>agreed_at</code>, <code>signed_by_name</code>, <code>signed_by_type</code> (default <code>patient</code>), an optional signature image URL and <code>witnessed_by</code>. The entity comment declares the table immutable: a revoked consent is a new row with <code>is_agreed = false</code>, never an update. The database does not enforce this; it is an application rule.</p>
+<h3 id="ch17-patients-17-3-8-patient-prescriptions-legacy-quick-prescription">17.3.8 <code>patient_prescriptions</code> — legacy quick prescription</h3>
+<p><strong>Status:</strong> [Implemented] (legacy; still readable and writable from the patient&#39;s Clinical tab)</p>
+<p>The older, simpler prescription table, with medicines stored as a JSON list. The patient&#39;s Clinical tab shows it in a collapsed &quot;Legacy quick-Rx history&quot; section next to the current prescription list. Its columns and its relation to the current <code>prescriptions</code> table are described in Chapter 19.</p>
+<h2 id="ch17-patients-17-4-relationship-and-administrative-sub-records">17.4 Relationship and administrative sub-records</h2>
+<h3 id="ch17-patients-17-4-1-patient-visits-per-location-visit-summary">17.4.1 <code>patient_visits</code> — per-location visit summary</h3>
+<p><strong>Status:</strong> [Partial] — the table exists and a read endpoint returns it; no code writes it and no screen calls the endpoint</p>
+<p>Designed as one summary row per patient per location (<code>patient_id</code> + <code>location_id</code> unique): <code>first_visit_date</code>, <code>last_visit_date</code>, <code>visit_count</code>, <code>total_spent</code> (numeric, rupees) and <code>is_preferred_location</code>. The encounter entity&#39;s comment calls it a patient-to-location aggregate that is &quot;left untouched&quot;. No service inserts or updates rows, so on a new database it stays empty. The clinical record of each consultation is <code>patient_encounters</code> (Chapter 18), not this table.</p>
+<h3 id="ch17-patients-17-4-2-patient-communications-communication-log">17.4.2 <code>patient_communications</code> — communication log</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per contact with the patient: <code>type</code> (<code>sms</code>, <code>whatsapp</code>, <code>call</code>, <code>email</code>, <code>in_person</code>), <code>direction</code> (inbound or outbound), <code>purpose</code> (reminder, confirmation, cancellation, recall reminder, follow-up, billing, general, marketing, emergency), subject, message body, <code>status</code> (<code>pending</code>, <code>sent</code>, <code>delivered</code>, <code>read</code>, <code>failed</code>, <code>received</code>), sent, delivered and read times, <code>sent_by</code>, <code>is_automated</code>, <code>automation_trigger</code> and an external message id. Rows are written only through the patient module&#39;s create endpoint; nothing on the Platform sends these messages. Notifications on the Platform are in-app only and use their own tables (Chapter 24).</p>
+<h3 id="ch17-patients-17-4-3-patient-recalls-recall">17.4.3 <code>patient_recalls</code> — recall</h3>
+<p><strong>Status:</strong> [Partial] — backend endpoints exist; no web screen calls them</p>
+<p>A reminder that the patient is due back: <code>recall_type</code> (six-month check-up, annual cleaning, post-treatment follow-up, implant review, orthodontic review, custom), <code>custom_name</code>, <code>due_date</code>, up to three reminder-sent timestamps, <code>status</code> (<code>scheduled</code>, <code>reminder_sent</code>, <code>contacted</code>, <code>booked</code>, <code>completed</code>, <code>ignored</code>, <code>overdue</code>), notes, <code>dentist_id</code> and <code>appointment_id</code> (no foreign keys).</p>
+<h3 id="ch17-patients-17-4-4-patient-referrals-patient-referral">17.4.4 <code>patient_referrals</code> — patient referral</h3>
+<p><strong>Status:</strong> [Partial] — the patient screen lists referrals; no screen creates them</p>
+<p>Records that one patient referred another: <code>referring_patient_id</code> (required), <code>referred_patient_id</code> (set once the referred person is registered), the referred person&#39;s name and phone before registration, <code>referral_date</code>, reward fields (<code>reward_given</code>, <code>reward_amount</code> in numeric rupees, <code>reward_type</code>, <code>reward_given_at</code>) and <code>status</code> (<code>pending</code>, <code>registered</code>, <code>rewarded</code>, <code>cancelled</code>). It is organization-scoped with no location.</p>
+<h3 id="ch17-patients-17-4-5-patient-feedback-patient-feedback">17.4.5 <code>patient_feedback</code> — patient feedback</h3>
+<p><strong>Status:</strong> [Partial] — the patient screen lists feedback; no screen creates it</p>
+<p>One row per rating: <code>rating</code> (integer), <code>category</code> (doctor, service, facility, billing, waiting time, general), text, <code>is_anonymous</code>, <code>is_published</code>, a staff response with <code>responded_by</code> and <code>responded_at</code>, and <code>dentist_id</code> and <code>appointment_id</code> without foreign keys.</p>
+<h3 id="ch17-patients-17-4-6-patient-insurance-insurance-policy">17.4.6 <code>patient_insurance</code> — insurance policy</h3>
+<p><strong>Status:</strong> [Partial] — backend endpoints exist; no web screen calls them</p>
+<p>One row per policy: provider name, plan name, policy number, policy holder, group number, coverage details and percentage, <code>max_annual_benefit</code> and <code>used_benefit</code> (numeric, rupees), valid-from and valid-until dates, card images and <code>is_active</code>. It is organization-scoped with no location.</p>
+<h2 id="ch17-patients-17-5-entity-relationship-diagrams">17.5 Entity-relationship diagrams</h2>
+<p>The fifteen tables are drawn in two diagrams so that each stays readable.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch17-patients-clinical-erd.png" alt="Figure 17.1 — Patient clinical sub-records"></p>
+<p><em>Figure 17.1 — Patient clinical sub-records.</em></p>
+<p>The first diagram has <code>patients</code> at the top centre with <code>id</code>, <code>organization_id</code>, <code>patient_number</code>, <code>full_name</code>, <code>is_active</code> and <code>deleted_at</code>. Six solid lines go down from it to <code>patient_dental_info</code> (&quot;has profile&quot;, at most one per patient), <code>patient_teeth_chart</code> (&quot;charted&quot;), <code>patient_vitals</code> (&quot;measured&quot;), <code>patient_treatment_plans</code> (&quot;planned&quot;), <code>patient_documents</code> (&quot;files&quot;) and <code>patient_consents</code> (&quot;signs&quot;). Under <code>patient_treatment_plans</code>, a solid line labelled &quot;contains&quot; leads to <code>treatment_plan_items</code> (<code>id</code>, <code>plan_id</code>, <code>procedure_name</code>, <code>status</code>). A small <code>appointments</code> context box with only <code>id</code> sits to the right of <code>patients</code>; four dashed lines labelled &quot;appointment_id, no FK&quot; run from it to the teeth chart, vitals, documents and consents boxes. Each child box shows its <code>patient_id</code> foreign key and one to three business columns such as <code>chart_data</code>, <code>bp_systolic</code>, <code>plan_number</code>, <code>document_type</code> or <code>consent_type</code>. The legacy <code>patient_prescriptions</code> table is drawn in Figure 19.3, and the tenant links to <code>organizations</code> and <code>locations</code> are not drawn.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch17-patients-relationship-erd.png" alt="Figure 17.2 — Patient relationship and administrative sub-records"></p>
+<p><em>Figure 17.2 — Patient relationship and administrative sub-records.</em></p>
+<p>The second diagram again centres on <code>patients</code>, this time showing <code>primary_location_id</code>, <code>phone</code> and <code>is_blacklisted</code>. A <code>locations</code> context box at the top left has an optional solid line to <code>patients</code> labelled &quot;primary location&quot; and a solid line to <code>patient_visits</code> labelled &quot;at&quot;. From <code>patients</code>, solid lines go down to <code>patient_visits</code> (&quot;summarised per location&quot;, with <code>visit_count</code> and <code>total_spent</code>), <code>patient_communications</code> (&quot;contacted&quot;), <code>patient_recalls</code> (&quot;recalled&quot;), <code>patient_referrals</code> (two lines: &quot;refers&quot; for the referring patient and an optional &quot;is referred&quot; for the referred patient), <code>patient_feedback</code> (&quot;rates&quot;) and <code>patient_insurance</code> (&quot;insured by&quot;). An <code>appointments</code> context box connects with dashed &quot;appointment_id, no FK&quot; lines to communications, recalls and feedback.</p>
+<h2 id="ch17-patients-17-6-relationships-explained">17.6 Relationships explained</h2>
+<p>Foreign-key relationships inside the domain:</p>
+<ul>
+<li><strong><code>patient_dental_info.patient_id</code> → <code>patients</code>.</strong> One-to-one: a patient has zero or one dental profile. Deleting the patient deletes it (CASCADE).</li>
+<li><strong><code>patient_teeth_chart</code>, <code>patient_vitals</code>, <code>patient_treatment_plans</code>, <code>patient_documents</code>, <code>patient_consents</code>, <code>patient_prescriptions</code>, <code>patient_visits</code>, <code>patient_communications</code>, <code>patient_recalls</code>, <code>patient_feedback</code>, <code>patient_insurance</code> → <code>patients</code> (<code>patient_id</code>).</strong> Each row belongs to exactly one patient; a patient has zero or more rows in each. Deleting the patient deletes them all (CASCADE).</li>
+<li><strong><code>treatment_plan_items.plan_id</code> → <code>patient_treatment_plans</code>.</strong> Each item belongs to exactly one plan; a plan has zero or more items. Deleting the plan row deletes its items (CASCADE). A soft delete of the plan (<code>deleted_at</code>) does not touch the items.</li>
+<li><strong><code>patient_referrals.referring_patient_id</code> → <code>patients</code>.</strong> Mandatory. Deleting the referring patient deletes the referral (CASCADE).</li>
+<li><strong><code>patient_referrals.referred_patient_id</code> → <code>patients</code>.</strong> Optional. Deleting the referred patient keeps the referral and sets the link to null (SET NULL).</li>
+<li><strong><code>patients.primary_location_id</code> → <code>locations</code>.</strong> Optional. Deleting the location sets it to null (SET NULL).</li>
+<li><strong><code>patient_visits.location_id</code> → <code>locations</code>.</strong> Mandatory; deleting the location deletes its summary rows (CASCADE). The pair (<code>patient_id</code>, <code>location_id</code>) is unique.</li>
+</ul>
+<p>Tenant foreign keys (not drawn):</p>
+<ul>
+<li><strong><code>organization_id</code> → <code>organizations</code></strong> on every table except <code>treatment_plan_items</code>: mandatory, CASCADE.</li>
+<li><strong><code>location_id</code> → <code>locations</code></strong> on teeth charts, vitals, treatment plans, documents, consents, legacy prescriptions, visits, communications, recalls and feedback: mandatory, CASCADE. <code>patients</code>, <code>patient_dental_info</code>, <code>patient_referrals</code> and <code>patient_insurance</code> have no location column.</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><strong><code>appointment_id</code> → <code>appointments</code></strong> on communications, consents, documents, feedback, legacy prescriptions, recalls, teeth charts and vitals. The database accepts an appointment id that does not exist.</li>
+<li><strong><code>dentist_id</code></strong> on teeth charts, treatment plans, recalls and feedback. The code does not say whether it holds an employee id or a user id.</li>
+<li><strong><code>patients.user_id</code> → <code>users</code>.</strong></li>
+<li><strong>Actor columns</strong> — <code>created_by</code>, <code>sent_by</code>, <code>witnessed_by</code>, <code>uploaded_by</code>, <code>responded_by</code>, <code>prescribed_by</code>, <code>recorded_by</code>, <code>anesthesia_administered_by</code>, <code>assigned_to</code> — hold user ids.</li>
+</ul>
+<p>Links into <code>patients</code> from other domains:</p>
+<ul>
+<li><strong>CASCADE</strong> (deleted with the patient): <code>appointments</code>, <code>queue_entries</code>, <code>patient_encounters</code>, <code>treatments</code>, <code>prescriptions</code>, <code>patient_credits</code>, <code>patient_consumptions</code> (inventory) and <code>patient_comm_prefs</code> (notifications, one-to-one).</li>
+<li><strong>RESTRICT</strong> (block the delete): <code>charges</code>, <code>invoices</code>, <code>payments</code>, <code>refunds</code>, <code>lab_orders</code>, <code>lab_invoices</code>, <code>lab_payments</code> and <code>lab_refunds</code>.</li>
+<li><strong>No foreign key:</strong> <code>ledger_entries.patient_id</code>, <code>payment_allocations.patient_id</code>, <code>ledger_journal_lines.patient_id</code>, <code>lab_credit_notes.patient_id</code>, and the polymorphic history columns of <code>audit_logs</code> and <code>status_history</code>.</li>
+</ul>
+<p>What a permanent delete does. Deleting a patient removes the patient row and every cascading child listed in this section, inside one transaction that first writes an audit row with the patient&#39;s last state and a count of linked records. If the patient has any billing or lab-billing row, the RESTRICT links make the database refuse the delete. Deactivating (<code>is_active = false</code>) removes nothing.</p>
+<h2 id="ch17-patients-17-7-tenant-scope">17.7 Tenant scope</h2>
+<ul>
+<li><code>patients</code>, <code>patient_dental_info</code>, <code>patient_referrals</code> and <code>patient_insurance</code> are organization-scoped.</li>
+<li>The other ten sub-record tables are organization + location scoped.</li>
+<li><code>treatment_plan_items</code> has no tenant column and is scoped only through <code>patient_treatment_plans</code>; queries must join the plan.</li>
+</ul>
+<h2 id="ch17-patients-17-8-ownership-and-ambiguities">17.8 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Four &quot;visit&quot; concepts.</strong> <code>patient_visits</code> (an unused per-location summary), <code>appointments</code> (bookings), <code>queue_entries</code> (a place in the queue) and <code>patient_encounters</code> (the clinical record of a consultation) all describe visits. Chapter 27 compares them.</li>
+<li><strong>Three planning tables.</strong> <code>patient_treatment_plans</code> holds planned work, <code>treatments</code> holds performed work, and <code>plan_templates</code> holds reusable plans (Chapter 19).</li>
+<li><strong>Code comment versus schema.</strong> The comment on the patient delete method says invoices and payments are removed by cascade. In the schema, <code>invoices</code>, <code>charges</code>, <code>payments</code> and <code>refunds</code> reference the patient with RESTRICT, so a patient with billing history cannot be deleted. No code catches this refusal; what the user sees is [Unverified].</li>
+<li><strong>Uncertain targets.</strong> The <code>dentist_id</code> columns may hold employee ids or user ids.</li>
+<li><strong>Immutability by convention.</strong> <code>patient_consents</code> is declared immutable only in a comment.</li>
+<li><strong>Two soft-delete mechanisms on one table.</strong> <code>patients</code> has both <code>is_active</code> and <code>deleted_at</code>; the screens use <code>is_active</code>.</li>
+</ul>
+</section></body></html>

@@ -1,0 +1,633 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="appC-api-summary"><h1 id="appC-api-summary-appendix-c-api-endpoint-summary">Appendix C — API Endpoint Summary</h1>
+<p>This appendix maps the Platform&#39;s backend API, one line per controller file. A controller is a group of related endpoints that share a URL prefix. The backend has <strong>80 controller classes in 74 files, with 593 endpoints</strong> in total. Where one file holds two small controllers, they share a line. Four of those endpoints belong to the Google and GitHub sign-in controller, which exists in the code but is not registered, so those routes do not exist at runtime. The full method-by-method detail of each endpoint is described in the module chapter named in the last column.</p>
+<h2 id="appC-api-summary-c-1-how-every-endpoint-is-protected">C.1 How every endpoint is protected</h2>
+<p>Every request passes five global guards in this order:</p>
+<ol>
+<li><strong>JWT.</strong> Checks the sign-in token, except on routes listed as public.</li>
+<li><strong>Tenant context.</strong> Checks that the user belongs to the organization and location named in the request headers.</li>
+<li><strong>Feature flag.</strong> Checks features required by <code>@RequireFeature</code>.</li>
+<li><strong>Access.</strong> Checks <code>@Can</code> permissions.</li>
+<li><strong>Subscription.</strong> Blocks writes when a clinic&#39;s subscription has expired (read-only mode).</li>
+</ol>
+<p>Each endpoint also declares how access is decided:</p>
+<ul>
+<li><strong><code>@Can(…)</code>:</strong> needs specific permissions. This is the normal case.</li>
+<li><strong><code>@AnyMember</code>:</strong> any member of the organization may call it.</li>
+<li><strong><code>@Public</code>:</strong> no sign-in, such as the TV display or a lab magic link.</li>
+<li><strong><code>@ContextFree</code>:</strong> the handler checks access itself, because it runs before a location is chosen or outside a clinic.</li>
+<li><strong><code>@RequireSuperAdmin</code>:</strong> platform staff only.</li>
+<li><strong>Lab portal:</strong> routes under <code>/lab-portal/…</code> use a separate lab-member guard instead of clinic permissions.</li>
+</ul>
+<p>A test fails the build if any endpoint has none of these.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> (guard order) · <code>backend/src/access/access-coverage.spec.ts</code> · <code>backend/src/labs/portal/lab-actor.ts</code> · <code>LabPortalController</code></p>
+<h2 id="appC-api-summary-c-2-controllers">C.2 Controllers</h2>
+<div class="tw"><table><thead><tr>
+<th>Module</th>
+<th>Base path</th>
+<th>Endpoints</th>
+<th>Access</th>
+<th>What it is for</th>
+<th>Chapter</th>
+</tr>
+</thead><tbody><tr>
+<td>app</td>
+<td><code>/</code></td>
+<td>1</td>
+<td>none</td>
+<td>Root greeting / health response</td>
+<td>6</td>
+</tr>
+<tr>
+<td>auth</td>
+<td><code>/auth</code></td>
+<td>17</td>
+<td>Public + ContextFree</td>
+<td>Register, verify email, login, location selection and switching, token refresh, logout, sessions, passwords</td>
+<td>56</td>
+</tr>
+<tr>
+<td>auth (OAuth)</td>
+<td><code>/auth/google</code>, <code>/auth/github</code></td>
+<td>4</td>
+<td>Public</td>
+<td>Google / GitHub sign-in; <strong>not registered, routes do not exist</strong> [Not implemented]</td>
+<td>56</td>
+</tr>
+<tr>
+<td>user</td>
+<td><code>/user</code></td>
+<td>6</td>
+<td>ContextFree</td>
+<td>User administration, staff login candidates</td>
+<td>56</td>
+</tr>
+<tr>
+<td>access</td>
+<td><code>/me</code> (<code>/me/access</code>) and <code>/access/catalog</code></td>
+<td>2</td>
+<td>ContextFree / Can</td>
+<td>The signed-in user&#39;s resolved access; the permission catalog for the roles screen</td>
+<td>11, 57</td>
+</tr>
+<tr>
+<td>access (navigation)</td>
+<td><code>/admin/navigation</code></td>
+<td>3</td>
+<td>Can</td>
+<td>The clinic&#39;s sidebar layout: read, save, reset</td>
+<td>58</td>
+</tr>
+<tr>
+<td>organizations</td>
+<td><code>/organizations</code></td>
+<td>7</td>
+<td>SuperAdmin (settings read ContextFree)</td>
+<td>Create and manage organizations and their settings</td>
+<td>9</td>
+</tr>
+<tr>
+<td>locations</td>
+<td><code>/locations</code></td>
+<td>7</td>
+<td>ContextFree (checks <code>admin.locations.manage</code> itself)</td>
+<td>Create and manage locations and location settings</td>
+<td>9</td>
+</tr>
+<tr>
+<td>feature-flags (platform)</td>
+<td><code>/feature-flags</code></td>
+<td>10</td>
+<td>SuperAdmin (own list ContextFree)</td>
+<td>Feature catalog; entitle and enable features per organization; seed</td>
+<td>10</td>
+</tr>
+<tr>
+<td>feature-flags (clinic)</td>
+<td><code>/admin/features</code></td>
+<td>4</td>
+<td>Can</td>
+<td>Owner switches features on and off, previews impact, sets location overrides</td>
+<td>10, 58</td>
+</tr>
+<tr>
+<td>settings-registry (theme)</td>
+<td><code>/public/theme</code>, <code>/theme</code>, <code>/admin/theme</code>, <code>/platform/theme</code></td>
+<td>8</td>
+<td>Public / AnyMember / Can / SuperAdmin</td>
+<td>Clinic theme and branding at platform, organization and location level</td>
+<td>58</td>
+</tr>
+<tr>
+<td>subscriptions (clinic)</td>
+<td><code>/account</code></td>
+<td>5</td>
+<td>AnyMember</td>
+<td>Clinic account and the setup wizard</td>
+<td>45</td>
+</tr>
+<tr>
+<td>subscriptions (platform)</td>
+<td><code>/admin/subscriptions</code></td>
+<td>6</td>
+<td>SuperAdmin</td>
+<td>Subscription status, manual payments, payment instructions</td>
+<td>45</td>
+</tr>
+<tr>
+<td>employees</td>
+<td><code>/employees</code></td>
+<td>8</td>
+<td>Can</td>
+<td>Employee records, status, staff login access, salary</td>
+<td>37</td>
+</tr>
+<tr>
+<td>employees (schedule)</td>
+<td><code>/employees/:employeeId/schedule</code></td>
+<td>3</td>
+<td>Can</td>
+<td>Weekly working hours per location</td>
+<td>37</td>
+</tr>
+<tr>
+<td>employees (availability)</td>
+<td><code>/employees/:employeeId/availability-overrides</code></td>
+<td>4</td>
+<td>Can</td>
+<td>One-off changes to a doctor&#39;s availability</td>
+<td>37</td>
+</tr>
+<tr>
+<td>employees (leave)</td>
+<td><code>/leaves</code></td>
+<td>8</td>
+<td>Can</td>
+<td>Leave requests, approval, balance</td>
+<td>37</td>
+</tr>
+<tr>
+<td>employees (roles list)</td>
+<td><code>/employment-roles</code></td>
+<td>5</td>
+<td>Can</td>
+<td>Roles used when assigning employees</td>
+<td>11</td>
+</tr>
+<tr>
+<td>employees (roles admin)</td>
+<td><code>/admin/roles</code></td>
+<td>6</td>
+<td>Can</td>
+<td>Owner&#39;s role builder: create, clone, edit, delete roles</td>
+<td>11, 58</td>
+</tr>
+<tr>
+<td>payroll</td>
+<td><code>/payroll</code></td>
+<td>10</td>
+<td>Can</td>
+<td>Generate monthly payroll, mark paid / on hold, export, payslip PDF</td>
+<td>38</td>
+</tr>
+<tr>
+<td>patients</td>
+<td><code>/patients</code></td>
+<td>43</td>
+<td>Can</td>
+<td>Patient records, import and export, and all clinical and CRM sub-records</td>
+<td>28</td>
+</tr>
+<tr>
+<td>appointments</td>
+<td><code>/appointments</code></td>
+<td>13</td>
+<td>Can</td>
+<td>Booking, availability, validation, confirm, cancel, no-show, check-in</td>
+<td>29</td>
+</tr>
+<tr>
+<td>queue (reception)</td>
+<td><code>/queue</code></td>
+<td>18</td>
+<td>Can / AnyMember</td>
+<td>Queue sessions, walk-ins, check-in, skip, rejoin, transfer, priority, policies, tickets</td>
+<td>30</td>
+</tr>
+<tr>
+<td>queue (doctor)</td>
+<td><code>/queue</code></td>
+<td>15</td>
+<td>Can</td>
+<td>The doctor&#39;s own queue: call next, select, recall, start consultation, send for test, complete</td>
+<td>30</td>
+</tr>
+<tr>
+<td>queue (display)</td>
+<td><code>/queue/displays</code></td>
+<td>1</td>
+<td>Public</td>
+<td>Data for the waiting-room TV display</td>
+<td>30</td>
+</tr>
+<tr>
+<td>encounters</td>
+<td><code>/encounters</code></td>
+<td>5</td>
+<td>Can</td>
+<td>The consultation record and workspace; treatments added during a visit</td>
+<td>31</td>
+</tr>
+<tr>
+<td>treatments</td>
+<td><code>/treatments</code></td>
+<td>3</td>
+<td>Can</td>
+<td>Treatments performed and the treatment catalog</td>
+<td>31</td>
+</tr>
+<tr>
+<td>plan-templates</td>
+<td><code>/plan-templates</code></td>
+<td>4</td>
+<td>Can / AnyMember</td>
+<td>Reusable treatment plan templates</td>
+<td>33</td>
+</tr>
+<tr>
+<td>prescriptions</td>
+<td><code>/prescriptions</code></td>
+<td>15</td>
+<td>Can</td>
+<td>Prescriptions: build, medicines, finalize, duplicate, PDF, history</td>
+<td>32</td>
+</tr>
+<tr>
+<td>prescriptions (medicines)</td>
+<td><code>/medicine-directory</code></td>
+<td>6</td>
+<td>Can / AnyMember</td>
+<td>The clinic&#39;s medicine directory</td>
+<td>32</td>
+</tr>
+<tr>
+<td>prescriptions (templates)</td>
+<td><code>/prescription-templates</code></td>
+<td>6</td>
+<td>Can / AnyMember</td>
+<td>Prescription print templates and the default template</td>
+<td>32</td>
+</tr>
+<tr>
+<td>prescriptions (protocols)</td>
+<td><code>/treatment-plan-templates</code></td>
+<td>5</td>
+<td>Can / AnyMember</td>
+<td>Reusable medicine protocols for prescriptions</td>
+<td>32</td>
+</tr>
+<tr>
+<td>prescriptions (signatures)</td>
+<td><code>/doctor-signatures</code></td>
+<td>4</td>
+<td>Can / AnyMember</td>
+<td>Doctors&#39; signature images for printed prescriptions</td>
+<td>32</td>
+</tr>
+<tr>
+<td>billing (config)</td>
+<td><code>/billing</code></td>
+<td>16</td>
+<td>Can</td>
+<td>Service catalog, location prices, billing settings, payment accounts, discount types</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (charges)</td>
+<td><code>/patients/:id/charges</code>, <code>/charges</code>, <code>/billing/ready-to-bill</code></td>
+<td>9</td>
+<td>Can</td>
+<td>Charges: list, add, from a treatment plan, edit, discount, void; the ready-to-bill list</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (payments)</td>
+<td><code>/payments</code>, <code>/refunds</code>, <code>/patients/:id/advance</code></td>
+<td>10</td>
+<td>Can</td>
+<td>Collect payment (with preview), unapply, apply advance, refunds, daily collection</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (invoices)</td>
+<td><code>/invoices</code></td>
+<td>9</td>
+<td>Can</td>
+<td>Invoices: list, stats, revisions, edit with preview, cancel, refund</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (patient billing and closing)</td>
+<td><code>/patients/:id/billing</code>, <code>/billing/…</code>, <code>/treatment-plans/:id/billing-summary</code></td>
+<td>11</td>
+<td>Can</td>
+<td>Patient summary and statement, outstanding, cash close, doctor revenue, billing activity</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (print)</td>
+<td><code>/print</code></td>
+<td>5</td>
+<td>Can</td>
+<td>Print data for invoices, receipts, refunds, statements, cash close</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (expenses)</td>
+<td><code>/expenses</code></td>
+<td>5</td>
+<td>Can</td>
+<td>Clinic expenses and the expense summary</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (credit packages)</td>
+<td><code>/credit-packages</code></td>
+<td>7</td>
+<td>Can</td>
+<td>Prepaid credit packages and patient credits (no screen)</td>
+<td>34</td>
+</tr>
+<tr>
+<td>billing (financial summary)</td>
+<td><code>/financial-summary</code></td>
+<td>3</td>
+<td>Can</td>
+<td>Daily, monthly and trend figures for the dashboard</td>
+<td>36</td>
+</tr>
+<tr>
+<td>billing (commissions)</td>
+<td><code>/commissions</code>, <code>/reports/doctor-earnings</code>, <code>/me/earnings</code></td>
+<td>3</td>
+<td>Can</td>
+<td>Commission ledger, doctor earnings, a doctor&#39;s own earnings</td>
+<td>35</td>
+</tr>
+<tr>
+<td>billing (compensation)</td>
+<td><code>/assignments/:id/compensation-plans</code>, <code>/compensation-plans</code></td>
+<td>3</td>
+<td>Can</td>
+<td>Doctors&#39; compensation plans and commission rules</td>
+<td>35</td>
+</tr>
+<tr>
+<td>reports</td>
+<td><code>/reports</code></td>
+<td>5</td>
+<td>Can / AnyMember</td>
+<td>Report catalog, finance overview, clinic overview, run a report, export to Excel or PDF</td>
+<td>36</td>
+</tr>
+<tr>
+<td>inventory</td>
+<td><code>/inventory</code></td>
+<td>15</td>
+<td>Can</td>
+<td>Categories, items, stock levels, stock adjustments and movements</td>
+<td>39</td>
+</tr>
+<tr>
+<td>inventory (suppliers)</td>
+<td><code>/suppliers</code></td>
+<td>5</td>
+<td>Can</td>
+<td>Suppliers</td>
+<td>39</td>
+</tr>
+<tr>
+<td>inventory (purchase orders)</td>
+<td><code>/purchase-orders</code></td>
+<td>6</td>
+<td>Can</td>
+<td>Purchase orders: status, receive</td>
+<td>39</td>
+</tr>
+<tr>
+<td>inventory (consumption templates)</td>
+<td><code>/consumption-templates</code></td>
+<td>6</td>
+<td>Can</td>
+<td>Standard material lists per treatment type</td>
+<td>39</td>
+</tr>
+<tr>
+<td>inventory (patient consumption)</td>
+<td><code>/patient-consumptions</code></td>
+<td>4</td>
+<td>Can</td>
+<td>Materials used for a patient or appointment</td>
+<td>39</td>
+</tr>
+<tr>
+<td>notifications (inbox)</td>
+<td><code>/me/notifications</code></td>
+<td>4</td>
+<td>ContextFree</td>
+<td>The signed-in user&#39;s in-app notifications</td>
+<td>44</td>
+</tr>
+<tr>
+<td>notifications (settings)</td>
+<td><code>/notification-settings</code></td>
+<td>9</td>
+<td>Can</td>
+<td>Audiences, rules, templates, delivery log, patient preferences</td>
+<td>44</td>
+</tr>
+<tr>
+<td>uploads</td>
+<td><code>/uploads</code></td>
+<td>1</td>
+<td>AnyMember</td>
+<td>File upload to storage</td>
+<td>28</td>
+</tr>
+<tr>
+<td>labs (platform)</td>
+<td><code>/platform/labs</code></td>
+<td>10</td>
+<td>SuperAdmin</td>
+<td>The platform lab directory: labs, status, members, links</td>
+<td>40</td>
+</tr>
+<tr>
+<td>labs (clinic links)</td>
+<td><code>/lab-links</code></td>
+<td>7</td>
+<td>Can / AnyMember</td>
+<td>The clinic&#39;s connections to labs</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab catalog (platform)</td>
+<td><code>/platform/service-categories</code></td>
+<td>15</td>
+<td>SuperAdmin</td>
+<td>Lab service categories, services, options and prices</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab catalog (clinic)</td>
+<td><code>/lab-catalog</code></td>
+<td>13</td>
+<td>Can / AnyMember</td>
+<td>The clinic&#39;s lab price list, price quotes, service mappings, order templates</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab orders (clinic)</td>
+<td><code>/lab-orders</code></td>
+<td>14</td>
+<td>Can</td>
+<td>Lab orders: create, from template, submit, revise, repeat, messages, attachments, work order</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab access (clinic)</td>
+<td><code>/lab-orders/:id/magic-links</code>, <code>/lab-orders/:id/proxy</code></td>
+<td>8</td>
+<td>Can</td>
+<td>Send and revoke magic links; act for a lab that has no login</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab production (clinic)</td>
+<td><code>/lab-orders/…</code>, shipments</td>
+<td>15</td>
+<td>Can</td>
+<td>Clinic side of production: try-ins, stage decisions, approve / reject / deliver items, remakes, receive shipments</td>
+<td>40</td>
+</tr>
+<tr>
+<td>lab access (magic link)</td>
+<td><code>/lab-link/:token</code></td>
+<td>5</td>
+<td>Public</td>
+<td>What a lab can do through a magic link without a login</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab access (order link)</td>
+<td><code>/order-links</code></td>
+<td>1</td>
+<td>ContextFree</td>
+<td>Resolve a short order link to the right place</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab portal</td>
+<td><code>/lab-portal</code></td>
+<td>8</td>
+<td>Lab portal</td>
+<td>The lab&#39;s own profile, team (members) and clinic connections</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab portal (orders)</td>
+<td><code>/lab-portal/orders</code></td>
+<td>12</td>
+<td>Lab portal</td>
+<td>Lab side of orders: accept, reject, clarification, expected date, messages, revisions, charge requests, attachments</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab portal (production)</td>
+<td><code>/lab-portal/production</code></td>
+<td>15</td>
+<td>Lab portal</td>
+<td>Production board: start, assign, finish, QC; shipments; remake disputes</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab portal (payables)</td>
+<td><code>/lab-portal/payables</code></td>
+<td>5</td>
+<td>Lab portal</td>
+<td>The lab&#39;s view of the clinic&#39;s bills, payments and statements</td>
+<td>41</td>
+</tr>
+<tr>
+<td>lab billing</td>
+<td><code>/lab-billing</code></td>
+<td>18</td>
+<td>Can</td>
+<td>Patient lab invoices: draft, issue, void, advance, credit notes, reminders, payments, refunds, settings</td>
+<td>42</td>
+</tr>
+<tr>
+<td>lab payables</td>
+<td><code>/lab-payables</code></td>
+<td>19</td>
+<td>Can</td>
+<td>Vendor bills, vendor payments and allocations, lab statements, aging / monthly-cost / case-profit reports</td>
+<td>42</td>
+</tr>
+<tr>
+<td>engine (workflows)</td>
+<td><code>/platform/workflow-templates</code></td>
+<td>15</td>
+<td>SuperAdmin</td>
+<td>Versioned workflow templates, states, transitions; stage templates; specialties</td>
+<td>43</td>
+</tr>
+<tr>
+<td>engine (forms)</td>
+<td><code>/platform/form-schemas</code></td>
+<td>15</td>
+<td>SuperAdmin (reads AnyMember)</td>
+<td>Versioned form schemas with validation, publish and retire</td>
+<td>43</td>
+</tr>
+</tbody></table></div><p>The table maps each API area to its module chapter. Most controllers use <code>@Can</code>, so a specific permission decides who may call them. A few kinds use other access rules:</p>
+<ul>
+<li><strong>Platform administration</strong> (organizations, features, the lab directory, the lab catalog, Config Studio) is for the super admin only.</li>
+<li><strong>The lab portal controllers</strong> serve lab staff and use their own guard.</li>
+<li><strong>Three kinds are public:</strong> the TV display, magic links, and the public theme a clinic&#39;s login page needs before anyone signs in.</li>
+</ul>
+<p>The endpoint counts add up to 593 including the four unregistered sign-in routes, so 589 routes are live. The access column is a summary: inside one controller, individual endpoints can need different permissions, and the module chapters list them per feature.</p>
+</section></body></html>

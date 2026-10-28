@@ -1,5 +1,5 @@
 stateDiagram-v2
-    direction LR
+    direction TB
     [*] --> waiting_for_doctor : first check-in, walk-in, or doctor opens My queue
     waiting_for_doctor --> open : PATCH start
     open --> paused : PATCH pause with reason

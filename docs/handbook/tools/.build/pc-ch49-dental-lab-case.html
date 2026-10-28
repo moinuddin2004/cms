@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch49-dental-lab-case"><h1 id="ch49-dental-lab-case-chapter-49-workflow-a-dental-lab-case">Chapter 49 — Workflow: A Dental Lab Case</h1>
+<p>This chapter follows one lab case, a zirconia crown for Sample Patient A, from the order to the delivered work, and then follows the money: what the patient is billed, what the clinic owes the lab and what the doctor earns. It is written for the product owner. The case involves three modules (Dental Lab, Lab Finance, Commissions) and two sides: the clinic and the lab, which is not a tenant of the Platform. The lab feature <code>dental.lab_orders</code> is off by default; a super admin entitles it and the owner switches it on.</p>
+<h2 id="ch49-dental-lab-case-49-1-who-is-involved">49.1 Who is involved</h2>
+<ul>
+<li><strong>Dr. Example One</strong>: creates and submits the order, decides try-ins, approves and delivers.</li>
+<li><strong>Receptionist R1</strong>: receives shipments at the front desk.</li>
+<li><strong>Accountant</strong>: bills the patient for lab work, approves vendor bills, pays the lab.</li>
+<li><strong>Example Dental Lab</strong>: the <strong>lab</strong>. Its people are <strong>lab members</strong> (lab admin, lab technician) who use the <strong>lab portal</strong>, or a contact who acts through a <strong>magic link</strong>.</li>
+<li><strong>Admin</strong>: may act on behalf of a lab that does not answer.</li>
+</ul>
+<h2 id="ch49-dental-lab-case-49-2-the-steps">49.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch49-lab-case-sequence.png" alt="Figure 49.1 — A dental lab case"></p>
+<p><em>Figure 49.1 — Order to delivery, then the money.</em></p>
+<p>The diagram has seven participants: Dr. Example One, Example Dental Lab, Receptionist R1, Accountant, Web app, API and PostgreSQL, and 23 messages. The doctor submits the order (<code>POST /lab-orders</code>, then <code>POST /lab-orders/:id/submit</code>); the API freezes the prices, assigns a LAB number, stores revision 1 and a magic link row. The doctor copies the link and pastes it into a chat. The lab accepts, through the link (<code>POST /lab-link/:token/accept</code>) or the portal (<code>POST /lab-portal/orders/:id/accept</code>), and the API marks the items accepted, creates the stages and drafts a vendor bill. The lab then works through the portal: start, finish and QC (<code>POST /lab-portal/production/items/:itemId/start</code> and the following actions) and dispatches a shipment (<code>POST /lab-portal/production/shipments</code>). The front desk receives it by scanning the QR code (<code>POST /lab-shipments/:id/receive</code>). The doctor records the try-in and approves or asks for correction (<code>.../stages/:stageId/tryin</code> and <code>/decision</code>). After the final shipment is received, the doctor approves and marks the work delivered (<code>.../items/:itemId/approve</code> and <code>/deliver</code>), which starts a 12-month warranty and completes the order. The Accountant bills the patient (<code>POST /lab-billing/invoices</code> and <code>/issue</code>), approves the vendor bill and pays the lab (<code>POST /lab-payables/bills/:id/approve</code>, <code>POST /lab-payables/payments</code>).</p>
+<h3 id="ch49-dental-lab-case-step-1-create-and-submit-the-order">Step 1 — Create and submit the order</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. <strong>Lab orders → New lab order</strong>: choose patient, lab, ordering doctor, priority and date needed; add items (service, options, quantity, teeth, form answers); <strong>Submit to lab</strong>. The lab must be an active <strong>lab link</strong> of the clinic. At submit the Platform checks the forms, freezes the lab and patient prices of every line, assigns a number such as LAB-0001 and queues a message for the lab members. Every line needs a lab price and a mapped clinic treatment on the submit day (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-2-reach-the-lab">Step 2 — Reach the lab</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Partial]. Three routes exist. The lab portal gives members the order in their own inbox [Implemented] (Chapter 41 covers the portal). A <strong>magic link</strong> opens one order without a login and allows view, accept, reject and ask a question only. <strong>Send link to lab</strong> queues a message, but the only registered provider for WhatsApp, SMS and email writes the message to the server log, so nothing reaches the lab; <strong>Copy link</strong> returns the link once and the doctor pastes it into a chat by hand (Chapter 40, Chapter 44). A coordinator holding both <code>lab.orders.create</code> and <code>lab.links.manage</code> can record the lab&#39;s answer on its behalf [Implemented].</p>
+<h3 id="ch49-dental-lab-case-step-3-lab-accepts">Step 3 — Lab accepts</h3>
+<p><strong>Module:</strong> Dental Lab and Lab Finance. <strong>Status:</strong> [Implemented]. Accept needs an expected date. Items move to accepted, the stage rows are copied from the item&#39;s stage template, and a draft <strong>vendor bill</strong> is created or updated at the frozen lab cost (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-4-production-stages">Step 4 — Production stages</h3>
+<p><strong>Module:</strong> Lab Portal. <strong>Status:</strong> [Implemented]. Production actions (start, assign a technician, finish, QC, dispatch a shipment) are lab portal endpoints for members. A lab that has only a magic link and no portal login cannot perform them, and the clinic&#39;s proxy actions cover only accept, reject, clarification and expected date. The clinic follows progress on the order&#39;s Production panel (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-5-try-in">Step 5 — Try-in</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. For items with try-in stages the doctor presses <strong>Record try-in</strong> after the patient visit, then <strong>Approve</strong> or <strong>Needs correction</strong> with notes. A correction closes the round and opens the same stage as the next round. No appointment is created or reminded automatically; the event for a due try-in is never emitted (Chapter 40).</p>
+<h3 id="ch49-dental-lab-case-step-6-shipment-and-receive">Step 6 — Shipment and receive</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. The front desk opens the incoming shipment or scans its QR code, sets condition and quantity per line and presses <strong>Receive</strong>. A parcel that never arrives can be marked lost with a reason.</p>
+<h3 id="ch49-dental-lab-case-step-7-approve-and-deliver">Step 7 — Approve and deliver</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Implemented]. The doctor presses <strong>Approve work</strong>, then <strong>Fitted, mark delivered</strong>, which starts a 12-month warranty. Rejecting received work opens a remake request that the lab may dispute. When all items are approved or delivered the order is completed.</p>
+<h3 id="ch49-dental-lab-case-step-8-money-patient-lab-invoice">Step 8 — Money: patient lab invoice</h3>
+<p><strong>Module:</strong> Lab Finance. <strong>Status:</strong> [Implemented]. This is not the clinic&#39;s normal invoice: lab work is billed through its own tables and numbers (<code>LINV</code>). The Accountant opens the submitted order and presses <strong>Bill N item(s)</strong>, which starts an <strong>estimate</strong>; <strong>Issue invoice</strong> gives it a number and due date. The lines copy the patient prices frozen at submit. This can be done any time after the order is submitted, not only after delivery. Payments, advances and credit notes follow (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-9-money-vendor-bill-and-payment-to-the-lab">Step 9 — Money: vendor bill and payment to the lab</h3>
+<p><strong>Module:</strong> Lab Finance. <strong>Status:</strong> [Partial]. The draft vendor bill appears under <strong>Lab payables → Bills</strong>. The Accountant presses <strong>Approve</strong>, setting the lab&#39;s invoice number, due date and tax, which books the debt. <strong>Pay lab</strong> records a payment and splits it over approved bills. Editing the bill header and adding manual lines exist only in the API (Chapter 42).</p>
+<h3 id="ch49-dental-lab-case-step-10-money-lab-line-commission">Step 10 — Money: lab-line commission</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented] (backend only by design). When the lab invoice is issued, each line stores the doctor&#39;s plan and rate. As the patient pays, the doctor earns commission on the money collected minus the lab&#39;s cost, so the doctor is paid on the clinic&#39;s margin. Reversals and credit notes give it back. It needs <code>billing.commissions</code> on and feeds My earnings and payroll like any other commission (Chapter 35).</p>
+<h2 id="ch49-dental-lab-case-49-3-what-can-go-wrong">49.3 What can go wrong</h2>
+<ul>
+<li>Submit fails when a line has no lab price, no mapped treatment, a per-tooth service without teeth or answers that fail the form (<code>LAB_ORDER_INVALID</code>, <code>LAB_PRICE_MISSING</code>).</li>
+<li>The lab link is not active: <code>LAB_NOT_LINKED</code>.</li>
+<li>A magic link dies after 24 hours by default, on revoke, when the order closes or when the lab is suspended.</li>
+<li>A lab that never answers: use the proxy actions.</li>
+<li>Parcels may arrive damaged, short or not at all.</li>
+<li>A rejected final piece needs a remake; who pays is decided in the remake request.</li>
+<li>Double billing is blocked: an item can be on only one live lab invoice.</li>
+<li>A bill of 0 cannot be approved; approval is refused if the draft changed since it was read.</li>
+<li>Four seeded notification events are never emitted, including overdue orders.</li>
+</ul>
+<h2 id="ch49-dental-lab-case-49-4-data-left-behind">49.4 Data left behind</h2>
+<p><code>lab_orders</code>, <code>lab_order_items</code>, <code>order_revisions</code>, <code>magic_links</code>, <code>order_item_stages</code>, <code>shipments</code>, <code>item_warranties</code>, <code>status_history</code>, <code>audit_logs</code>, <code>notification_outbox</code>, <code>vendor_bills</code>, <code>vendor_bill_lines</code>, <code>vendor_payments</code> and allocations, <code>lab_invoices</code>, <code>lab_invoice_lines</code>, <code>commission_entries</code> with a lab invoice line, and journal rows in <code>ledger_journals</code>.</p>
+</section></body></html>

@@ -1,0 +1,77 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch47-staff-onboarding"><h1 id="ch47-staff-onboarding-chapter-47-workflow-onboarding-a-staff-member">Chapter 47 — Workflow: Onboarding a Staff Member</h1>
+<p>This chapter follows one new staff member, Dr. Example One, from the first employee record to the first sign-in. It is written for the product owner, who needs to know how a person, a role, a login, working hours and pay terms fit together, and what the Platform cannot do. The workflow touches Employees, Roles, User Admin, Authentication and Commissions.</p>
+<h2 id="ch47-staff-onboarding-47-1-who-is-involved">47.1 Who is involved</h2>
+<ul>
+<li><strong>Admin</strong> (or the owner): holds <code>employees.manage</code>, <code>admin.users.manage</code> and <code>compensation.manage</code>. Only the Admin system role holds them by default.</li>
+<li><strong>Dr. Example One</strong>: the new employee. Becomes a <strong>staff login</strong> once a user account is linked.</li>
+<li><strong>Example Clinic</strong>, Main location.</li>
+</ul>
+<h2 id="ch47-staff-onboarding-47-2-the-steps">47.2 The steps</h2>
+<p>Figure 47.1 shows the whole flow.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch47-staff-onboarding-sequence.png" alt="Figure 47.1 — Staff onboarding"></p>
+<p><em>Figure 47.1 — From the Add Employee form to the first sign-in.</em></p>
+<p>The diagram has five participants: Admin, Staff member, Web app, API and PostgreSQL, and 20 messages. The Admin fills the Add Employee form and the Web app calls <code>POST /employees</code>. The API first refuses the request if the phone number exists anywhere on the Platform, then inserts the employee, an <code>EMP-</code> code, the assignment with its role and the first compensation plan version. PostgreSQL raises the organization&#39;s access version after the commit, and the API answers &quot;Employee created&quot;. Next the Admin opens User Admin and creates a staff login (<code>POST /user</code> with type employee); the API checks the login limit, creates the user and links it to every active assignment with portal access on. The Admin saves the weekly schedule (<code>POST /employees/:employeeId/schedule</code>, seven rows for this location) and, if needed, a new compensation plan version (<code>POST /assignments/:assignmentId/compensation-plans</code>). Finally the Staff member signs in, the Web app calls <code>POST /auth/login</code> and, when asked, <code>POST /auth/select-location</code>, and then <code>GET /me/access</code>, which returns permissions, features and the home page.</p>
+<h3 id="ch47-staff-onboarding-step-1-employee-record-assignment-and-role">Step 1 — Employee record, assignment and role</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. On <strong>Employees</strong>, <strong>Add Employee</strong> asks for Full Name, Phone, Designation, Role, Employment Type and Joining Date. The server rejects a phone that already exists on the Platform (the employee record is shared across clinics). It generates the employee code (<code>EMP-001</code> style, counting the organization&#39;s assignments), inserts the assignment at the active location with the chosen role, and adds the first compensation plan version starting on the joining date: salaried with the entered salary, unless a commission plan was chosen (Chapter 37, Chapter 35). The role decides what the person may do at that location; a login alone grants nothing.</p>
+<h3 id="ch47-staff-onboarding-step-2-staff-login">Step 2 — Staff login</h3>
+<p><strong>Module:</strong> Employees and User Admin. <strong>Status:</strong> [Implemented]. There are two routes. The <strong>Portal Access</strong> switch on the employee form creates a login with an email and a password of at least 6 characters, linked only to the active location&#39;s assignment. <strong>User Admin → Create User → Staff (existing employee)</strong> needs a password of at least 8 characters, checks the plan&#39;s login limit and links the login to all the person&#39;s active assignments in the organization. Only the second route checks the limit (Chapter 37). The user receives no verification email when created by an administrator (Chapter 56).</p>
+<h3 id="ch47-staff-onboarding-step-3-weekly-schedule">Step 3 — Weekly schedule</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Implemented]. On the <strong>Schedule</strong> tab the Admin switches days on or off, sets start and end times and a slot length of 15, 30, 45 or 60 minutes, and saves seven rows. Booking checks these hours: a doctor with no working block that day cannot be booked (Chapter 29). The Save button is visible to people without <code>employees.manage</code>, but the server refuses them. Availability overrides and approved leave are stored but do not affect booking [Partial] (Chapter 37).</p>
+<h3 id="ch47-staff-onboarding-step-4-compensation-plan">Step 4 — Compensation plan</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented]. On the <strong>Compensation</strong> tab the Admin picks Salaried, Commission or Both and an effective date. A new version closes the old one on the previous day. Commission is allowed only for roles that can conduct consultations, and the feature <code>billing.commissions</code> must be on. A second change on the same day replaces the first only if no charge used it (Chapter 35).</p>
+<h3 id="ch47-staff-onboarding-step-5-first-sign-in">Step 5 — First sign-in</h3>
+<p><strong>Module:</strong> Authentication and Access control. <strong>Status:</strong> [Implemented]. The staff member signs in with the email and password. If they have one location, it becomes active at once; otherwise the app shows the location picker. <code>GET /me/access</code> returns what they can do and the role&#39;s home page, for example <code>/queue/doctor</code> for a Doctor (Chapter 8, Chapter 11, Chapter 56).</p>
+<h3 id="ch47-staff-onboarding-what-is-not-possible-a-second-location">What is not possible: a second location</h3>
+<p><strong>Module:</strong> Employees. <strong>Status:</strong> [Not implemented]. There is no endpoint that assigns an existing employee to another location or organization. <code>CreateAssignmentDto</code> exists but nothing uses it. Add Employee at a second location fails because the phone number is already taken. A doctor who works at two locations therefore cannot be set up through the Platform (Chapter 37).</p>
+<h2 id="ch47-staff-onboarding-47-3-what-can-go-wrong">47.3 What can go wrong</h2>
+<ul>
+<li><strong>Duplicate phone</strong> gives 409 &quot;An employee with this phone number already exists&quot;. A duplicate CNIC is caught only by a database index and returns a generic 500 error.</li>
+<li><strong>Duplicate login email</strong> gives 409.</li>
+<li><strong>Commission plan refused</strong>: 403 <code>COMMISSIONS_DISABLED</code> when the feature is off, 422 <code>COMMISSION_ROLE_CANNOT_CONSULT</code> for a non-consulting role.</li>
+<li><strong>Login limit</strong> reached gives <code>PLAN_LIMIT</code> on the User Admin route.</li>
+<li><strong>Wrong or missing role</strong>: the person signs in but sees a restricted sidebar or the no-access page.</li>
+<li><strong>Read-only mode</strong>: every step is refused with 402.</li>
+<li>The person is saved before the login and the assignment, outside the final transaction, so a failure part-way can leave a person record with no assignment.</li>
+</ul>
+<h2 id="ch47-staff-onboarding-47-4-data-left-behind">47.4 Data left behind</h2>
+<ul>
+<li><code>employees</code> (person), <code>employee_org_location_assignments</code> (role, location, <code>user_id</code>, <code>has_portal_access</code>).</li>
+<li><code>users</code> (login), <code>employee_schedules</code> (seven rows per location).</li>
+<li><code>compensation_plans</code> and <code>commission_rules</code>.</li>
+<li><code>organizations.access_version</code> raised by the assignment save.</li>
+</ul>
+</section></body></html>

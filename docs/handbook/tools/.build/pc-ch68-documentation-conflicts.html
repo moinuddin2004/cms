@@ -1,0 +1,370 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch68-documentation-conflicts"><h1 id="ch68-documentation-conflicts-chapter-68-documentation-conflicts">Chapter 68 — Documentation Conflicts</h1>
+<p>This chapter records where existing documents, code comments and screen texts disagree with the code. In every case the handbook follows the code. It is for the owner and for new developers, who need to know which documents can be trusted and which should not be used. The table merges the document inventory made before the handbook was written with the conflicts that each chapter found.</p>
+<h2 id="ch68-documentation-conflicts-68-1-conflicts-table">68.1 Conflicts table</h2>
+<div class="tw"><table><thead><tr>
+<th>Document</th>
+<th>Claim</th>
+<th>Code reality</th>
+<th>Evidence</th>
+</tr>
+</thead><tbody><tr>
+<td>Root project instructions</td>
+<td>The frontend uses <code>app</code>, <code>shared</code> and feature <code>api</code> folders</td>
+<td>The code uses <code>routes</code>, <code>components</code>, <code>lib</code>, <code>store</code> and feature <code>services</code></td>
+<td>Chapter 4</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>There are four global guards</td>
+<td>There are five; the subscription guard comes last</td>
+<td>Chapters 5, 11</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>The tenant guard skips path prefixes, and the JWT guard skips public markers</td>
+<td>There are no prefixes; the guard uses decorators only, and the JWT guard checks a list of public routes</td>
+<td>Chapters 5, 8</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Tokens carry organization context</td>
+<td>Tokens carry user id, email, global role and session id only</td>
+<td>Chapter 8</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Inventory, invoices, reports and notifications are stubs</td>
+<td>They are implemented; only chairs is entity-only</td>
+<td>Chapters 4, 12, 20, 23</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Soft deletes by an active flag in most modules</td>
+<td>Patient delete is a hard delete</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Some dashboard widgets use mock data</td>
+<td>The live dashboard uses real data; the mock widgets are not imported</td>
+<td>Chapter 36</td>
+</tr>
+<tr>
+<td>Root project instructions</td>
+<td>Organizations own employee role definitions</td>
+<td>The role entity lives in employees, with logic in access</td>
+<td>Chapter 15</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td>Bull queue and Google and GitHub sign-in are part of the stack</td>
+<td>The queue has no producer or consumer, and OAuth is not registered</td>
+<td>Chapter 4</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td>The architecture diagram shows four guards</td>
+<td>Five guards</td>
+<td>Chapter 5</td>
+</tr>
+<tr>
+<td>Root readme</td>
+<td><code>/register</code> creates your account</td>
+<td>It also creates a trial clinic, main location and ownership</td>
+<td>Chapter 7</td>
+</tr>
+<tr>
+<td>Root readme and backend readme</td>
+<td>The start script runs <code>dist/main</code></td>
+<td>The build emits the entry file one folder deeper</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Environment example</td>
+<td>Refresh, email and reset secrets are required</td>
+<td>No code reads them; several variables the code reads are missing</td>
+<td>Chapter 6</td>
+</tr>
+<tr>
+<td>Access-control guide</td>
+<td><code>GET /me/catalog</code></td>
+<td>The endpoint is <code>GET /access/catalog</code></td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>Access-control guide</td>
+<td>Assistant template summary</td>
+<td>The Assistant also holds the lab orders view permission at location scope</td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>Access-control test cases</td>
+<td>FEAT-08 expects &quot;refused&quot;</td>
+<td>The code returns a successful no-op</td>
+<td>Chapter 10</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>No migration files; production must still switch from synchronize</td>
+<td>There are three migrations, and production already runs with synchronize off plus a reviewed schema sync</td>
+<td>Chapters 6, 12, 29, 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>The worker runs one or more instances</td>
+<td>Exactly one worker may run</td>
+<td>Chapters 6, 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>Realtime fan-out uses the Socket.IO Redis adapter</td>
+<td>It uses its own Redis publish and subscribe with a worker heartbeat</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>Validate runs the same rules as create; overlap gives a coded conflict</td>
+<td>Validate skips the past-time check and the override flag; the read-time overlap has no code, only the database path does</td>
+<td>Chapter 29</td>
+</tr>
+<tr>
+<td>Appointments and queue guide</td>
+<td>API list is complete</td>
+<td>It omits the session creation endpoint</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>Target is the smaller of allocations and net</td>
+<td>The pre-tax part is pro-rated and capped, and a lab-cost basis reduces the base</td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>One method writes commission entries</td>
+<td>A lab commission service also writes entries for lab lines</td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Commissions guide</td>
+<td>Access by role</td>
+<td>Access by the permissions <code>compensation.manage</code>, <code>earnings.all.view</code>, <code>earnings.own.view</code></td>
+<td>Chapter 35</td>
+</tr>
+<tr>
+<td>Billing test cases</td>
+<td>Truncate a coupons table; amounts assume no tax; role-based error texts</td>
+<td>Coupons do not exist; exclusive tax applies; permission-based messages</td>
+<td>Chapter 34</td>
+</tr>
+<tr>
+<td>Old billing context pack</td>
+<td>Describes pre-version-two billing</td>
+<td>Outdated throughout</td>
+<td>Chapter 34</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>billing.discounts</code> &quot;Discounts &amp; Coupons&quot;; <code>reports.exports</code> as CSV and PDF</td>
+<td>Coupons were removed; exports are Excel and PDF</td>
+<td>Chapters 10, 36</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>comms.in_app</code>, <code>comms.whatsapp</code>, <code>hr.commissions</code> are active features</td>
+<td>Nothing checks them</td>
+<td>Chapter 10</td>
+</tr>
+<tr>
+<td>Feature catalog seed</td>
+<td><code>inventory.alerts</code> gives low-stock and expiry alerts</td>
+<td>The job only writes a log line</td>
+<td>Chapters 10, 39</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Notes for ten inventory tables</td>
+<td>Shifted one row down</td>
+<td>Chapter 23</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>A trigger protects published form versions</td>
+<td>No such trigger; the service enforces it</td>
+<td>Chapter 26</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td><code>charges.source_id</code> is discriminated by <code>source_type</code></td>
+<td>The column is named <code>source</code></td>
+<td>Chapter 20</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Only the queue writes the idempotency table</td>
+<td>Workflow, lab billing, lab orders and vendor payments also write it, and the queue clean-up deletes all rows older than a day</td>
+<td>Chapter 18</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td><code>patient_visits</code> is a per-location summary</td>
+<td>Nothing writes it</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Append-only list is complete</td>
+<td>The allocation and journal-line tables are also called append-only without triggers</td>
+<td>Chapter 27</td>
+</tr>
+<tr>
+<td>Entity catalog</td>
+<td>Migration creates the audit tables completely</td>
+<td>It lacks the subject column and index present in the entity</td>
+<td>Chapter 26</td>
+</tr>
+<tr>
+<td>Migration for compensation</td>
+<td><code>charge_id</code> is not null</td>
+<td>The entity allows null and adds a lab-line column and a check</td>
+<td>Chapter 22</td>
+</tr>
+<tr>
+<td>Code comment on patient delete</td>
+<td>Related rows cascade</td>
+<td>Billing and lab rows block the delete with RESTRICT keys</td>
+<td>Chapter 17</td>
+</tr>
+<tr>
+<td>Code comment on employee delete</td>
+<td>Related rows keep the row with the doctor set to null</td>
+<td>They are RESTRICT, and the message names inventory even when an appointment blocks it</td>
+<td>Chapter 16</td>
+</tr>
+<tr>
+<td>Code comment on prescription numbers</td>
+<td>Sequential per organization</td>
+<td>Unique across the Platform</td>
+<td>Chapter 19</td>
+</tr>
+<tr>
+<td>Code comment on plan templates and screen text</td>
+<td>Procedures are copied into a patient&#39;s plan</td>
+<td>Nothing creates a patient plan from a template</td>
+<td>Chapter 33</td>
+</tr>
+<tr>
+<td>Code comment in billing audit entity</td>
+<td>The repo has no general audit module</td>
+<td>A general audit table exists</td>
+<td>Chapter 21</td>
+</tr>
+<tr>
+<td>Code comment on journal source</td>
+<td>Expenses post journals</td>
+<td>Only lab finance posts journals</td>
+<td>Chapter 21</td>
+</tr>
+<tr>
+<td>Code comment in payroll</td>
+<td>Runs at 00:05 on the first</td>
+<td>The schedule is 05:00 server time</td>
+<td>Chapter 38</td>
+</tr>
+<tr>
+<td>Code comments in lab modules</td>
+<td>The portal will manage the lab catalog; the clinic activates labs until the portal ships</td>
+<td>The portal ships and lets a lab admin act on links, but only a super admin manages the catalog</td>
+<td>Chapter 40</td>
+</tr>
+<tr>
+<td>Queue settings screen text</td>
+<td>Changes apply from tomorrow</td>
+<td>Only the smart-queue switch is fixed per day</td>
+<td>Chapter 30</td>
+</tr>
+<tr>
+<td>Access guard comment</td>
+<td>A missing marker becomes a boot error</td>
+<td>Only a unit test enforces markers</td>
+<td>Chapter 11</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Recall, feedback and referral are implemented through a CRM tab</td>
+<td>The tab is never mounted; recalls have no component</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Leave and availability overrides are implemented</td>
+<td>They can be recorded but are never read by booking or payroll</td>
+<td>Chapter 37</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Inventory is implemented</td>
+<td>The module works through the API but has no sidebar entry and some writes are unverified</td>
+<td>Chapter 39</td>
+</tr>
+<tr>
+<td>First inventory document</td>
+<td>Digital consent signing is unverified</td>
+<td>It is implemented with a signature pad</td>
+<td>Chapter 28</td>
+</tr>
+<tr>
+<td>Outline</td>
+<td>The booking form is a sheet; lab order comes before automatic charges</td>
+<td>It is a dialog; lab work never creates clinic charges</td>
+<td>Chapters 29, 48</td>
+</tr>
+<tr>
+<td>Patients visit tab text</td>
+<td>A visit is recorded at check-in</td>
+<td>The encounter is created at start of consultation</td>
+<td>Chapter 28</td>
+</tr>
+</tbody></table></div><p>The table shows that most drift is in descriptions of structure (folders, guards, stubs) and in comments written before a redesign. The numbers and behaviours in the code are more stable than the words around them.</p>
+<h2 id="ch68-documentation-conflicts-68-2-documents-and-how-far-they-can-be-trusted">68.2 Documents and how far they can be trusted</h2>
+<p>The following documents are current or mostly current and may be used, with the corrections in the table: the generated entity catalog and the organizations and locations chapter, the access-control guide, the database migrations guide, the root readme (for the process split and counts) and the appointments and queue guide.</p>
+<p>The following are outdated and should not be used for decisions: the hand-off note (it mentions an appointment token that no longer exists and fixed problems), the project overview (it predates access control, billing version two and the lab modules), the audit file (seven of its ten most serious findings are fixed), the plan file (its checklist is stale) and the old billing context pack (it describes replaced code). The two stock starter readmes carry no project information. The design mock-up file in the repository root uses a former name and does not describe the current screens. The root project instructions are partly outdated and need an update before they are given to a new developer or an assistant.</p>
+<h2 id="ch68-documentation-conflicts-68-3-the-crm-tab-correction">68.3 The CRM tab correction</h2>
+<p>The first document inventory marked recall, feedback and referral as implemented through a CRM tab on the patient page. The code shows that backend endpoints exist but the tab component is never mounted in the patient detail page, so those features cannot be reached by a user, and recalls have no component at all. The handbook therefore labels them Partial. Any plan or sales material that repeated the earlier claim should be corrected.</p>
+<h2 id="ch68-documentation-conflicts-68-4-using-this-chapter">68.4 Using this chapter</h2>
+<p>Treat the handbook as the source of truth and the code as the final authority. When a document in the table is edited, update the row, so it does not return as a source of confusion. Chapter 65 lists the same drift among the known gaps, and Chapter 67 asks which documents the owner wants archived.</p>
+</section></body></html>

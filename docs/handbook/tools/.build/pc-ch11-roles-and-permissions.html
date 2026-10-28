@@ -1,0 +1,317 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch11-roles-and-permissions"><h1 id="ch11-roles-and-permissions-chapter-11-roles-and-permissions">Chapter 11 — Roles and permissions</h1>
+<p>This chapter explains who may do what inside a clinic on the Platform. It covers the fixed list of 70 permissions, how they are grouped into roles, the five system roles every clinic starts with, how a clinic builds its own roles safely, and how the backend and the web app check permissions on every request and every screen. It is written for the product owner; the deeper customization screens (sidebar builder, theme, the owner&#39;s Features page) are covered in the Customization chapter, Chapter 58.</p>
+<h2 id="ch11-roles-and-permissions-11-1-the-model-in-one-paragraph">11.1 The model in one paragraph</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The Platform never checks role names. It checks <strong>permissions</strong>, such as <code>billing.invoice.void</code>. A <strong>role</strong> is a clinic-owned bundle of permissions, stored as a map <code>{ permission: scope or true }</code> in <code>employment_roles.permissions</code>. An employee gets a role through an <strong>assignment</strong> at one location (Chapter 8), so the same person can have different roles at different branches. <strong>Owners and super admins</strong> have no role: they always get every permission at its widest scope. A permission whose <strong>feature</strong> is not active (Chapter 10) is dropped at resolution time. Anything not granted is denied (<strong>fail-closed</strong>).</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/</code> · <code>backend/src/access/catalog/permissions.ts</code> · <code>docs/access-control/README.md</code></p>
+<h2 id="ch11-roles-and-permissions-11-2-the-70-permissions">11.2 The 70 permissions</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The catalog is fixed in code; clinics combine its keys into roles but can never invent new ones. Each permission has a label, a module group, a feature, optionally a list of permissions it <strong>implies</strong>, optionally a set of <strong>scopes</strong>, and optionally a <strong>high-risk</strong> mark.</p>
+<div class="tw"><table><thead><tr>
+<th>Module (group)</th>
+<th>Permissions</th>
+<th>Feature</th>
+</tr>
+</thead><tbody><tr>
+<td>Patients (12)</td>
+<td><code>patients.view</code>*, <code>patients.create</code>, <code>patients.edit</code>, <code>patients.delete</code>!, <code>patients.export</code>!, <code>patients.price.view</code>, <code>patients.clinical.view</code>, <code>patients.clinical.edit</code>, <code>patients.documents.manage</code>, <code>patients.chart.edit</code>, <code>plans.manage</code>, <code>plans.templates.manage</code></td>
+<td><code>patients.core</code>; documents → <code>patients.documents</code>; chart → <code>patients.teeth_chart</code>; plans → <code>patients.treatment_plans</code></td>
+</tr>
+<tr>
+<td>Appointments (5)</td>
+<td><code>appointments.view</code>*, <code>appointments.book</code>, <code>appointments.reschedule</code>, <code>appointments.cancel</code>, <code>appointments.override_rules</code>!</td>
+<td><code>appointments.core</code></td>
+</tr>
+<tr>
+<td>Queue (7)</td>
+<td><code>queue.board.view</code>, <code>queue.checkin</code>, <code>queue.entry.manage</code>, <code>queue.entry.reprioritize</code>, <code>queue.doctor.own</code>, <code>queue.doctor.any</code>, <code>queue.display.manage</code></td>
+<td><code>appointments.core</code></td>
+</tr>
+<tr>
+<td>Consultation (3)</td>
+<td><code>consultation.conduct</code>*, <code>prescriptions.create</code>, <code>prescriptions.library.manage</code></td>
+<td><code>patients.core</code>; prescriptions → <code>patients.prescriptions</code></td>
+</tr>
+<tr>
+<td>Billing (9)</td>
+<td><code>billing.desk.use</code>, <code>billing.invoice.view</code>*, <code>billing.invoice.edit</code>, <code>billing.invoice.void</code>!, <code>billing.payment.collect</code>, <code>billing.refund.issue</code>!, <code>billing.price.override</code>!, <code>billing.cash_close</code>, <code>billing.activity.view</code></td>
+<td><code>billing.invoices</code></td>
+</tr>
+<tr>
+<td>Discounts (2)</td>
+<td><code>billing.discount.apply</code>, <code>billing.discount.custom</code>!</td>
+<td><code>billing.discounts</code></td>
+</tr>
+<tr>
+<td>Expenses (2)</td>
+<td><code>expenses.view</code>, <code>expenses.manage</code></td>
+<td><code>billing.expenses</code></td>
+</tr>
+<tr>
+<td>Commissions (3)</td>
+<td><code>earnings.own.view</code>, <code>earnings.all.view</code>, <code>compensation.manage</code>!</td>
+<td><code>billing.commissions</code></td>
+</tr>
+<tr>
+<td>Lab (7)</td>
+<td><code>lab.orders.view</code>*, <code>lab.orders.create</code>, <code>lab.billing.manage</code>, <code>lab.catalog.manage</code>, <code>lab.payables.manage</code>, <code>lab.links.manage</code>, <code>lab.templates.share</code></td>
+<td><code>dental.lab_orders</code></td>
+</tr>
+<tr>
+<td>Inventory (3)</td>
+<td><code>inventory.view</code>, <code>inventory.stock.adjust</code>, <code>inventory.po.manage</code></td>
+<td><code>inventory.core</code></td>
+</tr>
+<tr>
+<td>Team (4)</td>
+<td><code>employees.view</code>, <code>employees.manage</code>, <code>payroll.manage</code>!, <code>leave.approve</code></td>
+<td>core; payroll → <code>hr.payroll</code>; leave → <code>hr.leave</code></td>
+</tr>
+<tr>
+<td>Reports (4)</td>
+<td><code>reports.clinical.view</code><em>, <code>reports.financial.view</code></em>, <code>reports.export</code>!, <code>finance.overview.view</code></td>
+<td><code>reports.clinical</code>, <code>reports.financial</code>, <code>reports.exports</code></td>
+</tr>
+<tr>
+<td>Admin (9)</td>
+<td><code>admin.features.manage</code>!, <code>admin.roles.manage</code>!, <code>admin.users.manage</code>!, <code>admin.nav.manage</code>, <code>admin.settings.manage</code>, <code>admin.locations.manage</code>, <code>admin.audit.view</code>, <code>admin.theme.manage</code>, <code>notifications.settings.manage</code></td>
+<td>core (always on)</td>
+</tr>
+</tbody></table></div><p>The table lists every permission by module, with its feature. An asterisk (*) marks the 7 <strong>scoped</strong> permissions; an exclamation mark (!) marks the 13 <strong>high-risk</strong> permissions. &quot;Core&quot; permissions belong to no feature and can never be switched off.</p>
+<p><strong>Scopes.</strong> A scoped permission is granted with how far it reaches:</p>
+<ul>
+<li><code>own</code> — only records tied to the user as an employee (for example patients the doctor has seen through an appointment or the queue);</li>
+<li><code>location</code> — records of the active location;</li>
+<li><code>org</code> — every record of the organization.</li>
+</ul>
+<p>A wider scope includes the narrower ones. Unscoped permissions are stored as <code>true</code> and reach the whole organization.</p>
+<p><strong>Implies.</strong> Granting a permission also grants what it implies, transitively. Examples: <code>patients.create</code> implies <code>patients.view</code>; <code>consultation.conduct</code> implies <code>patients.clinical.edit</code>, which implies <code>patients.clinical.view</code>; <code>queue.doctor.any</code> implies <code>queue.doctor.own</code>; <code>compensation.manage</code> implies <code>earnings.all.view</code>, which implies <code>earnings.own.view</code>; <code>appointments.override_rules</code> implies <code>appointments.book</code>. An implied scoped permission takes the granting permission&#39;s scope when it supports it, otherwise its narrowest scope.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/catalog/permissions.ts</code> · <code>PERMISSIONS</code> · <code>expandImplies</code> · <code>normalizeGrants</code> · <code>filterByFeatures</code></p>
+<h2 id="ch11-roles-and-permissions-11-3-bundles-none-basic-and-full-and-advanced-mode">11.3 Bundles: None, Basic and Full, and Advanced mode</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>So that owners do not tick 70 boxes, the roles screen offers three ready levels per module:</p>
+<ul>
+<li><strong>None</strong> — nothing from the module.</li>
+<li><strong>Basic</strong> — a sensible everyday set. For example: Patients Basic = view at location, register, edit, manage documents; Appointments Basic = view at location, book, reschedule, cancel; Queue Basic = board, check-in, manage entries; Consultation Basic = conduct at <code>own</code>, write prescriptions; Billing Basic = desk, view invoices at location, collect payments; Reports Basic = clinical reports at location; Admin Basic = clinic settings and audit log.</li>
+<li><strong>Full</strong> — every permission of the module at its widest scope.</li>
+</ul>
+<p><strong>Advanced</strong> opens the module&#39;s full list of permissions, each with a checkbox and, for scoped ones, a scope selector. When a role&#39;s grants in a module match no level exactly, the module shows <strong>Custom</strong>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/catalog/bundles.ts</code> · <code>BUNDLES</code> · <code>matchBundle</code> · <code>web-app/src/features/roles/components/ModuleBundleRow.tsx</code></p>
+<h2 id="ch11-roles-and-permissions-11-4-the-five-system-roles">11.4 The five system roles</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Every organization gets five <strong>system roles</strong> (templates). They are inserted when the organization is created and checked again on every start, insert-missing only: an existing system role is never changed, and one that is missing is recreated. System roles are <strong>read-only</strong>; to customise one, clone it.</p>
+<div class="tw"><table><thead><tr>
+<th>Role</th>
+<th>Home page</th>
+<th>What it can do by default</th>
+</tr>
+</thead><tbody><tr>
+<td><strong>Admin</strong></td>
+<td><code>/dashboard</code></td>
+<td>Runs the clinic: the Full bundle of every module, minus the clinical acts <code>consultation.conduct</code>, <code>prescriptions.create</code> and <code>queue.doctor.own</code> and minus <code>earnings.own.view</code> (it still gets <code>queue.doctor.own</code> and <code>earnings.own.view</code> back through <code>queue.doctor.any</code> and <code>earnings.all.view</code>). It can run and force-complete any doctor&#39;s queue, manage roles, users, features, locations, the sidebar and the theme.</td>
+</tr>
+<tr>
+<td><strong>Doctor</strong></td>
+<td><code>/queue/doctor</code></td>
+<td>Own patients (<code>patients.view</code> own), clinical records view and edit, dental chart, documents, treatment plans; own appointments; own queue; conduct consultations (own); write prescriptions; own earnings; lab orders (view own, create); clinical reports (own).</td>
+</tr>
+<tr>
+<td><strong>Receptionist</strong></td>
+<td><code>/appointments</code></td>
+<td>Patients at the location (view, register, edit, see prices, documents); appointments at the location (view, book, reschedule, cancel); queue board, check-in, manage entries, TV display; billing desk, invoices at the location, collect payments, apply preset discounts; view lab orders at the location.</td>
+</tr>
+<tr>
+<td><strong>Assistant</strong></td>
+<td><code>/appointments</code></td>
+<td>Patients at the location with clinical view and dental chart editing; appointments view and booking; queue board and check-in; inventory view; lab orders view at the location.</td>
+</tr>
+<tr>
+<td><strong>Accountant</strong></td>
+<td><code>/billing</code></td>
+<td>Treatment prices; billing desk; invoices at the location (view, edit, void); payments, refunds, cash close, billing activity; expenses view and manage; every doctor&#39;s earnings; financial reports at the location, finance overview, report export; lab billing and lab payables.</td>
+</tr>
+</tbody></table></div><p>The table lists the five templates with their home page and default powers. The <strong>home page</strong> is where a member of that role lands after sign-in; the web app only uses it if the user may open that page, otherwise it falls back to <code>/dashboard</code>. Owners and super admins are not shown here because they have no role.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/catalog/templates.ts</code> · <code>ROLE_TEMPLATES</code> · <code>AccessTemplatesService</code></p>
+<h2 id="ch11-roles-and-permissions-11-5-custom-roles-and-the-roles-screen">11.5 Custom roles and the roles screen</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the clinic create its own roles (for example &quot;Hygienist&quot;), copy a system role and change it, set its home page and see who has it.</p>
+<p><strong>How the user does it.</strong> Open <strong>Roles &amp; permissions</strong> (<code>/admin/roles</code>). The list shows system roles first, then custom ones, each with a &quot;System&quot; or &quot;Custom&quot; badge and its member count; a search box (&quot;Search roles…&quot;) and a type filter narrow it. <strong>New role</strong> asks for a name (&quot;e.g. Hygienist&quot;) and a description and starts empty. Opening a role shows three tabs:</p>
+<ul>
+<li><strong>Permissions</strong> — one row per module with None / Basic / Full and <strong>Advanced</strong>;</li>
+<li><strong>Home page</strong> — the page members land on (&quot;Default (dashboard)&quot; when empty);</li>
+<li><strong>Members</strong> — everyone with this role, per location (&quot;Nobody has this role yet&quot; when empty; roles are assigned on each employee&#39;s page).</li>
+</ul>
+<p>The header offers <strong>Delete</strong>, <strong>Clone</strong>, <strong>Discard</strong> and <strong>Save changes</strong>. Leaving with unsaved changes asks &quot;Leave without saving?&quot;. Granting a high-risk permission opens a &quot;Grant high-risk&quot; dialog that requires a <strong>Reason</strong>.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/roles-editor.jpg" alt="Figure 11.1 — The role editor"></p>
+<p><em>Figure 11.1 — The role editor for a custom role, showing None / Basic / Full per module.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name &quot;MedTrackr&quot; in the corner; the product is now called the Platform and each clinic sets its own name. The left sidebar shows the full owner menu (Dashboard, the Clinic section with Clinic overview, Patients, Appointments, My Queue, My earnings, Prescriptions, Treatment Plans, Labs, Lab orders, Lab billing, Lab price list, Order templates, Lab payables, and the Finance section with Finance overview and Billing), with Settings and the signed-in test owner at the bottom. The top bar shows the notification bell, the theme toggle and the active location. The main area shows a custom role named &quot;Hygienist&quot; with a back arrow, a &quot;Custom&quot; badge and &quot;0 active members&quot;, and the buttons Delete, Clone, Discard and Save changes. Under the header are the tabs Permissions (selected), Home page and Members (0). Each module (Patients, Appointments, Queue, Consultation, Billing, Discounts, Expenses, Commissions, Lab, Inventory, Team) has a None / Basic / Full selector and an &quot;Advanced&quot; expander; in this role Patients, Appointments and Queue are set to Basic and the other modules to None.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch11-roles-list.svg" alt="Figure 11.2 — Roles list"></p>
+<p><em>Figure 11.2 — Roles (screenshot pending).</em></p>
+<p>The page is titled &quot;Roles&quot; with the subtitle &quot;What each role can see and do. System roles are templates — clone one to customise it.&quot; A <strong>New role</strong> button sits at the top right, and a filter row holds the search box and the &quot;All roles / System / Custom&quot; type filter. Roles appear as cards or table rows with name, badge, description and member count, and row actions for opening, cloning and deleting. Empty state: &quot;No roles yet — Create a role and pick what it can do, module by module.&quot;</p>
+<p><strong>Behind the scenes — technically.</strong></p>
+<div class="tw"><table><thead><tr>
+<th>Action</th>
+<th>Endpoint</th>
+</tr>
+</thead><tbody><tr>
+<td>List roles with bundle summary and member counts</td>
+<td><code>GET /admin/roles</code></td>
+</tr>
+<tr>
+<td>One role with its members</td>
+<td><code>GET /admin/roles/:id</code></td>
+</tr>
+<tr>
+<td>Create</td>
+<td><code>POST /admin/roles</code></td>
+</tr>
+<tr>
+<td>Clone (any role, including system roles)</td>
+<td><code>POST /admin/roles/:id/clone</code></td>
+</tr>
+<tr>
+<td>Edit name, description, permissions, home page, active flag</td>
+<td><code>PATCH /admin/roles/:id</code></td>
+</tr>
+<tr>
+<td>Delete</td>
+<td><code>DELETE /admin/roles/:id</code></td>
+</tr>
+<tr>
+<td>Catalog, bundles and templates for the editor</td>
+<td><code>GET /access/catalog</code></td>
+</tr>
+</tbody></table></div><p>The table maps each action to its endpoint. All need <code>admin.roles.manage</code>. Each write runs in one transaction with an <code>audit_logs</code> row (entity type <code>employment_role</code>) holding before and after values and the reason. A legacy <code>/employment-roles</code> controller serves the employee form&#39;s role picker (<code>employees.view</code>) and applies the same rules to writes.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><strong>Escalation protection.</strong> A user who is not an owner or super admin cannot grant a permission they do not hold, or a wider scope than they hold. Only newly added or widened grants are checked, implies included. Refusal: 403 <code>ESCALATION</code> listing the permissions.</li>
+<li><strong>Reason for high-risk grants.</strong> Newly granted high-risk permissions need a reason, or 400 <code>REASON_REQUIRED</code>.</li>
+<li><strong>Valid maps only.</strong> Unknown keys, a missing scope on a scoped permission, or a scope on an unscoped one give 400 <code>INVALID_PERMISSIONS</code>.</li>
+<li><strong>System roles are read-only</strong> (403 <code>SYSTEM_ROLE_READ_ONLY</code>) and cannot be deleted.</li>
+<li><strong>Unique names</strong> per organization (409 <code>ROLE_NAME_TAKEN</code>). A clone without a name becomes &quot;<name> (copy)&quot;, &quot;(copy 2)&quot; and so on.</li>
+<li><strong>No delete while in use.</strong> A role with active members cannot be deleted (409 <code>ROLE_HAS_MEMBERS</code>). Deletion is permanent.</li>
+<li><strong>Home page</strong> must be an in-app path starting with a single <code>/</code>.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employment-roles.admin.controller.ts</code> · <code>EmploymentRolesService</code> · <code>backend/src/employees/employment-roles.rules.ts</code> · <code>findEscalations</code> · <code>highRiskAdded</code> · <code>AccessCatalogController</code> · <code>web-app/src/features/roles/</code></p>
+<h2 id="ch11-roles-and-permissions-11-6-resolving-access-accessresolver-cache-and-access-version">11.6 Resolving access: AccessResolver, cache and access version</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> For each user, clinic and branch, the Platform works out once what the user may do, remembers the answer, and throws the answer away as soon as anything relevant changes.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch11-access-resolution.png" alt="Figure 11.3 — How access is resolved"></p>
+<p><em>Figure 11.3 — The access resolution path from a request to the permission checks in the backend and the web app.</em></p>
+<p>The flowchart reads top to bottom. A request brings a user, an organization and a location. The resolver first reads the organization&#39;s <code>access_version</code> (cached for 15 seconds). It then asks whether a cached context exists for this user, organization, location and version that is less than 5 minutes old; if yes, it goes straight to the AccessContext. If not, it asks &quot;Super admin or owner?&quot;. If yes, the user gets every permission at its widest scope. If no, it asks whether the user has an active assignment at this location with portal access and an active role. If no, the user gets no permissions; if yes, the role&#39;s grants are normalized and expanded with everything they imply. All three branches meet at &quot;Drop permissions whose feature is not active here&quot;, which produces the AccessContext, offering <code>can</code>, <code>scope</code>, <code>applyScope</code> and <code>decide</code>. The context feeds two final boxes: the backend (<code>@Can</code> on handlers, <code>applyScope</code> on queries, <code>@VisibleIf</code> on fields) and the web app (<code>GET /me/access</code>, <code>useAccess().can</code>, the route gate, the sidebar and the buttons).</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li><code>AccessResolver.resolve(user, organization, location)</code> builds an <code>AccessContext</code> holding: the user, organization, location, version, <code>isSuperAdmin</code>, <code>isOwner</code>, <code>isMember</code> (super admin, owner or portal-enabled assignment), the employee id, active features, granted permissions, the role and its home page.</li>
+<li>The cache lives in process memory: at most 10,000 entries, 5 minutes each, keyed on user, organization, location and <strong>access version</strong>.</li>
+<li><code>organizations.access_version</code> is raised by one after any committed change to employment roles, assignments (role, location, organization, active flag, portal access, login), organization feature flags or ownership. An entity subscriber does this automatically for TypeORM writes, once per transaction after commit; location overrides and raw SQL bump it explicitly.</li>
+<li>A bump is broadcast over Redis to every process, which drop their cached contexts and feature sets, and the Socket.IO gateway emits <code>access.changed</code> to the room <code>org:&lt;id&gt;</code>; open browser tabs refetch their access. If Redis is down, other processes catch up within 15 seconds (the version cache).</li>
+<li><strong>Fail-closed.</strong> A missing key is no access. Roles with only old-style boolean flags give nothing. A role that is inactive, or belongs to another organization, gives nothing. A location header that is not a valid id means no location, so staff get no role permissions.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.resolver.ts</code> · <code>AccessResolver</code> · <code>backend/src/access/access-context.ts</code> · <code>AccessContext</code> · <code>backend/src/access/version/</code> · <code>AccessVersionService</code> · <code>AccessVersionSubscriber</code> · <code>AccessChangeBus</code></p>
+<h2 id="ch11-roles-and-permissions-11-7-checking-access-in-the-backend">11.7 Checking access in the backend</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Every HTTP handler must say who may call it, with exactly one of these markers (on the method or its controller):</p>
+<div class="tw"><table><thead><tr>
+<th>Marker</th>
+<th>Meaning</th>
+<th>Checked by</th>
+</tr>
+</thead><tbody><tr>
+<td><code>@Can(&#39;perm&#39;, ...)</code></td>
+<td>All listed permissions are required; class and method lists merge.</td>
+<td><code>AccessGuard</code> (403 <code>NO_PERMISSION</code> with the missing keys)</td>
+</tr>
+<tr>
+<td><code>@AnyMember()</code></td>
+<td>Any active member of the location (owners and super admins too).</td>
+<td><code>AccessGuard</code></td>
+</tr>
+<tr>
+<td><code>@Public()</code></td>
+<td>No sign-in (the route must also be in <code>PUBLIC_ROUTES</code>).</td>
+<td><code>JwtAuthGuard</code> list, all guards skip</td>
+</tr>
+<tr>
+<td><code>@RequireSuperAdmin()</code></td>
+<td>Super admin only.</td>
+<td><code>TenantContextGuard</code></td>
+</tr>
+<tr>
+<td><code>@ContextFree()</code></td>
+<td>The handler checks access itself (for example <code>/locations</code>, <code>GET /me/access</code>).</td>
+<td>the handler</td>
+</tr>
+</tbody></table></div><p>The table lists the five markers, what they mean and which component enforces them. A controller protected by its own <code>@UseGuards(...)</code> (lab portal, magic links) also counts.</p>
+<ul>
+<li><strong>The coverage test.</strong> <code>access-coverage.spec.ts</code> loads every controller and fails if any handler outside the auth and session controllers has none of the markers, or still uses the removed <code>@Roles()</code>. At runtime, a handler without a marker would pass the access guard, so this test is the safety net.</li>
+<li><strong>Row scope.</strong> Handlers that list data take <code>@Access() access</code> and call <code>access.applyScope(queryBuilder, &#39;patients.view&#39;, columns)</code>. For <code>own</code> it adds the caller&#39;s employee condition, for <code>location</code> the active location condition, for <code>org</code> nothing extra; with no grant it adds a condition that matches no rows. Patients, for example, are &quot;own&quot; when the doctor has an appointment or queue entry with them, and &quot;location&quot; when their primary location or an appointment or queue entry is at the active location.</li>
+<li><strong>Field hiding.</strong> A response property marked <code>@VisibleIf(&#39;perm&#39;)</code> is removed by a global interceptor when the caller lacks the permission; with no access context every guarded field is removed. It is used today for treatment and treatment-plan prices (<code>patients.price.view</code>).</li>
+<li><strong>Range decisions.</strong> <code>access.decide(perm, { value, min, max })</code> returns allow, deny or &quot;needs approval&quot;. It is used for discounts: changing a preset discount outside its range needs <code>billing.discount.custom</code>.</li>
+<li><strong>Rule for developers.</strong> Code never checks role names; it asks <code>can(...)</code>.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.guard.ts</code> · <code>AccessGuard</code> · <code>backend/src/access/decorators/access.decorators.ts</code> · <code>backend/src/access/access-coverage.spec.ts</code> · <code>backend/src/access/visible-if/visible-if.ts</code> · <code>backend/src/patients/access/patient-scope.ts</code></p>
+<h2 id="ch11-roles-and-permissions-11-8-checking-access-in-the-web-app">11.8 Checking access in the web app</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong><code>GET /me/access</code></strong> returns, for the active organization and location: the version, owner and super-admin flags, active features, granted permissions with scopes, the role, the employee id, the home page and the clinic&#39;s sidebar layout. <code>AccessProvider</code> loads it (fresh for 30 seconds, refetched on window focus and on every <code>access.changed</code> event) and serves it through <code>useAccess()</code>.</li>
+<li><strong>Buttons and widgets</strong> ask <code>useAccess().can(&#39;perm&#39;)</code> or wrap content in <code>&lt;Can perm=&quot;...&quot;&gt;</code>.</li>
+<li><strong>Routes</strong> declare <code>staticData: { can: ... }</code> (one permission, or an array meaning any of them). One gate in the root route, <code>RouteAccessGate</code>, checks every matched route and shows the <strong>No access</strong> page instead of the screen when the check fails.</li>
+<li><strong>The sidebar</strong> is built from a developer-owned registry of 39 items, each with its own requirement (a permission, super admin only, owner or super admin, or lab member). Items the user may not open are hidden. The clinic&#39;s saved sidebar layout only arranges items; it never grants access.</li>
+<li><strong>The permission list in the web app</strong> is a generated copy of the backend catalog (<code>features/access/generated/catalog.ts</code>), refreshed with <code>npm run access:export</code>.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/no-access-page.jpg" alt="Figure 11.4 — The No access page"></p>
+<p><em>Figure 11.4 — The page shown when a role lacks a page&#39;s permission.</em></p>
+<p>The screenshot was taken on 2026-10-23 in dark theme and shows the former working name of the product in the corner. A test user in a custom role opened a page their role does not allow. The sidebar is short: Dashboard, and under &quot;Clinic&quot; only Patients and Appointments, with Settings and the user at the bottom. The main area is titled &quot;No access&quot; and shows a shield icon, the Roman-Urdu headline &quot;Aapke paas is page ki permission nahi&quot; (&quot;You do not have permission for this page&quot;), the English text &quot;You don&#39;t have permission to open this page. Ask your clinic owner to add it to your role.&quot; and a button &quot;Go to my home page&quot;, which opens the role&#39;s home page, or the dashboard when none is set.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/hygienist-dashboard.jpg" alt="Figure 11.5 — A restricted sidebar"></p>
+<p><em>Figure 11.5 — The sidebar of a user in a restricted custom role.</em></p>
+<p>This screenshot from 2026-10-23 (dark theme, former working name in the corner) is used only to show the sidebar; the dashboard content in it predates the dashboard redesign of 2026-10-23. The user holds a custom &quot;Hygienist&quot; role with the Basic level for Patients, Appointments and Queue. The sidebar therefore shows only Dashboard and, under &quot;Clinic&quot;, Patients and Appointments, plus Settings at the bottom. Every other menu item is hidden because the role lacks its permission or the item needs an owner or super admin.</p>
+<p><strong>Technical references:</strong> <code>backend/src/access/access.controller.ts</code> · <code>MeAccessController</code> · <code>web-app/src/features/access/components/AccessProvider.tsx</code> · <code>RouteAccessGate</code> · <code>web-app/src/features/access/components/NoAccess.tsx</code> · <code>web-app/src/features/access/nav/nav.registry.ts</code> · <code>web-app/src/features/access/nav/resolveNav.ts</code> · <code>useAccess</code></p>
+<h2 id="ch11-roles-and-permissions-11-9-limitations-and-known-gaps">11.9 Limitations and known gaps</h2>
+<ul>
+<li>A system role deleted directly in the database is recreated on the next start; a clinic cannot permanently remove a system role (the API refuses to delete one anyway).</li>
+<li>Missing markers are caught by a unit test, not at runtime.</li>
+<li><code>POST /auth/switch-location</code> still returns eight old permission flags derived from the new permissions; the web app ignores them.</li>
+<li>Permissions follow the assignment&#39;s location: a staff member with no assignment at the active location gets no role permissions there.</li>
+</ul>
+<h2 id="ch11-roles-and-permissions-11-10-owner-39-s-faq">11.10 Owner&#39;s FAQ</h2>
+<p><strong>Can a receptionist see treatment prices?</strong> Yes with the default Receptionist role, which holds <code>patients.price.view</code>. Without it, prices are removed from the API responses, not only hidden on screen.</p>
+<p><strong>Can I give my manager the right to edit roles without making them all-powerful?</strong> Yes: grant <code>admin.roles.manage</code>. They still cannot grant anything they do not hold themselves.</p>
+<p><strong>Why can&#39;t I edit the Doctor role?</strong> System roles are read-only templates. Clone it and edit the copy, then assign the copy.</p>
+<p><strong>How quickly does a role change take effect?</strong> On the next request: the change raises the access version, every server drops its cached answer, and open screens refetch their access.</p>
+<p><strong>What does a doctor see with <code>patients.view</code> at scope own?</strong> Only patients they have an appointment or queue entry with.</p>
+<p><strong>Where is the history of role changes?</strong> In the audit log, as <code>employment_role</code> entries with before and after values and the reason given for high-risk grants.</p>
+</section></body></html>

@@ -1,0 +1,424 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Commissions</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch35-commissions">Chapter 35 — Commissions</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch35-commissions"><h1 id="ch35-commissions-chapter-35-commissions">Chapter 35 — Commissions</h1>
+<p>This chapter describes the Commissions module of the Platform: how a clinic decides how each staff member is paid (a monthly salary, a share of what patients pay for that person&#39;s work, or both), how the Platform works out that share automatically from billing, and how the share is paid out through payroll. It is written for the product owner, who needs to know exactly which rules the code enforces, where the money figures are stored and what is still missing. Commissions sit between Billing (Chapter 34), which produces the patient money, and Payroll (Chapter 38), which pays the staff.</p>
+<h2 id="ch35-commissions-35-1-what-this-module-is-for">35.1 What this module is for</h2>
+<p>A <strong>compensation plan</strong> says how one <strong>assignment</strong> (one employee at one location) is paid. It has one of three types: <code>SALARY</code> (shown as &quot;Salaried&quot;), <code>COMMISSION</code> (&quot;Commission&quot;) or <code>SALARY_PLUS_COMMISSION</code> (&quot;Both&quot;). A plan with commission has a default rate and may have <strong>commission rules</strong>: overrides for one catalog service or one service category. Plans are versioned by date, so a change never alters what was already earned.</p>
+<p>Commission is earned <strong>on collection</strong>, not on billing. When patient money is applied to a doctor&#39;s charge, the Platform writes a <strong>commission entry</strong> in an append-only ledger. At month end, payroll gathers the unsettled entries into a <strong>settlement</strong> and adds them to the payroll record. Commission is an internal clinic cost: it never appears on invoices, receipts or prints.</p>
+<p>Who uses it:</p>
+<ul>
+<li><strong>Admin</strong> and the <strong>owner</strong>: set and change compensation plans and overrides, see every doctor&#39;s earnings and the &quot;Doctor share&quot; line when collecting payment.</li>
+<li><strong>Accountant</strong>: sees every doctor&#39;s earnings and the doctor share line, but cannot change plans.</li>
+<li><strong>Doctor</strong>: sees only their own earnings on &quot;My earnings&quot;.</li>
+<li><strong>Receptionist</strong> and <strong>Assistant</strong>: no access by default. A receptionist collecting payment does not see the doctor share line.</li>
+</ul>
+<p>Where it appears in the sidebar (labels from <code>nav.registry.ts</code>):</p>
+<ul>
+<li><strong>My earnings</strong> (<code>nav.my_earnings</code>, route <code>/my-earnings</code>, needs <code>earnings.own.view</code>) in the Clinic section.</li>
+<li><strong>Doctor earnings</strong> (<code>nav.reports.doctor_earnings</code>, route <code>/billing/doctor-earnings</code>, needs <code>earnings.all.view</code>) in Finance → Reports.</li>
+<li><strong>Doctor revenue</strong> (<code>nav.reports.doctor_revenue</code>, route <code>/billing/doctor-revenue</code>, needs <code>reports.financial.view</code>) in Finance → Reports. This report is about billed and collected money per doctor, not commission, but it sits next to the earnings report and owners read them together.</li>
+<li>The compensation screens have no sidebar entry: they are the <strong>Compensation</strong> tab inside the employee detail page (<code>/employees/$employeeId</code>).</li>
+</ul>
+<p>The module is controlled by the feature <strong><code>billing.commissions</code></strong> (&quot;Doctor Commissions&quot;, off by default). All three commission permissions belong to it, so with the feature off nobody holds them. A second feature key, <strong><code>hr.commissions</code></strong> (&quot;Commissions&quot;, off by default), exists in the feature catalog, but no permission, route or code checks it: it gates nothing. Salaries keep working with the feature off, because a salary is stored as a salary-only compensation plan.</p>
+<h2 id="ch35-commissions-35-2-screens">35.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch35-compensation-tab.svg" alt="Figure 35.1 — Employee detail, Compensation tab"></p>
+<p><em>Figure 35.1 — Employee detail, Compensation tab (screenshot pending).</em></p>
+<p>The tab is shown on the employee detail page to users who hold <code>compensation.manage</code>. It has two cards. The first card, &quot;Current compensation&quot;, shows the plan in force today at the location: Type (Salaried, Commission or Both), Monthly salary, Default commission as a percentage, &quot;Commission on&quot; (&quot;Amount after discount&quot; or &quot;Amount before discount&quot;) and &quot;Since&quot; (the start date). Under these it lists &quot;Service-wise overrides&quot; as small badges such as &quot;All procedures: 35%&quot; or &quot;Root canal: Rs 500 per charge&quot;, or the line &quot;None — every service earns the default rate.&quot;. The card header has an <strong>Edit overrides</strong> button (only when the current plan earns commission) and a <strong>Change plan</strong> button (labelled <strong>Set up compensation</strong> when no plan is in force). With no plan in force, the card shows an empty state &quot;No compensation in force&quot;. The second card, &quot;Version history&quot;, is a table of every version, newest first, with columns Period (for example &quot;1 Oct 2026 – now&quot;, with a &quot;Current&quot; badge), Type, Salary, Commission (for example &quot;40% (net)&quot;) and Overrides (a count or &quot;None&quot;).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch35-compensation-sheet.svg" alt="Figure 35.2 — Change compensation sheet"></p>
+<p><em>Figure 35.2 — The &quot;Change compensation&quot; slide-over sheet (screenshot pending).</em></p>
+<p>The sheet opens from the right with the title &quot;Change compensation&quot; and the explanation &quot;Saves a new version from the chosen date. Charges already created keep the rate they were made with.&quot; It contains: &quot;How is this person paid?&quot; as a three-way switch (Salaried, Commission, Both; the two commission options are disabled with the hint &quot;Commission needs a role that can consult patients.&quot; when the person&#39;s role cannot consult); &quot;Monthly salary (Rs)&quot; (hidden for Commission); &quot;Default commission (%)&quot; and &quot;Commission on&quot; (&quot;After discount&quot; / &quot;Before discount&quot;), both hidden for Salaried; &quot;Service-wise overrides&quot;, an editor of rows where each row picks a service or one of &quot;All consultations&quot;, &quot;All procedures&quot;, &quot;All other services&quot;, a percent-or-fixed switch and a value, with the hint &quot;A service rule beats a category rule, which beats the default.&quot;; and &quot;Effective from&quot;, a date picker that defaults to today at the location and cannot go before the current version&#39;s start. The footer shows &quot;Unsaved changes&quot; when the form is dirty, <strong>Cancel</strong> and <strong>Save version</strong> (disabled while invalid or saving). A second, smaller sheet, &quot;Commission overrides&quot;, edits only the overrides of the current version and has a <strong>Save overrides</strong> button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch35-doctor-earnings.svg" alt="Figure 35.3 — Doctor earnings"></p>
+<p><em>Figure 35.3 — Doctor earnings report (screenshot pending).</em></p>
+<p>The page title is &quot;Doctor earnings&quot; with the subtitle &quot;Commission is earned when patient money is applied to the doctor&#39;s charges. Internal — never shown to patients.&quot; A strip of five tiles shows Doctors, Collected, Commission earned, Settled and Pending for the chosen period. A toolbar offers the date presets Today, This month, Last month, Past 30 days and a custom range, shows the range as &quot;from → to&quot; and a small live dot while refreshing. The table has one row per doctor with the columns Doctor (&quot;Dr.&quot; and the name), Plan (a badge), Collected, Earned, Settled and Pending. Negative amounts are shown in red. With no data the table says &quot;No commission-earning doctors in this period.&quot;; a failed load shows an error state with a retry button.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch35-my-earnings.svg" alt="Figure 35.4 — My earnings"></p>
+<p><em>Figure 35.4 — A doctor&#39;s own earnings page (screenshot pending).</em></p>
+<p>&quot;My earnings&quot; has the subtitle &quot;Your commission from patient payments on your work.&quot; It uses the same four money tiles (without the doctor count) and the same date presets. Its first table has one row per location where the doctor works, with the columns Location, Plan, Collected, Earned, Settled and Pending (empty message &quot;You have no commission plan yet.&quot;). Under the heading &quot;Commission lines&quot; a second, paged table lists every ledger line in the period: Date, Patient (with the charge description and invoice number under the name), Why (&quot;Payment&quot;, &quot;Unapplied&quot;, &quot;Invoice edited&quot;, &quot;Charge voided&quot; or &quot;Adjustment&quot;), Rate (a percentage or &quot;Fixed&quot;), Amount and Status (&quot;Settled&quot; or &quot;Pending&quot;).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch35-doctor-revenue.svg" alt="Figure 35.5 — Doctor revenue"></p>
+<p><em>Figure 35.5 — Doctor revenue report (screenshot pending).</em></p>
+<p>The page title is &quot;Doctor revenue&quot; with the subtitle &quot;Billed by invoice date; collected by payment date (releases subtract).&quot; Five tiles show Doctors, Billed, Discounts, Collected and Collected %. The same date toolbar is used. The table has the columns Doctor (or &quot;No doctor&quot; in italics for charges without a doctor), Billed, Discounts, Collected and Collected % (a coloured pill: green from 90%, amber from 50%, red below).</p>
+<p>A sixth place shows commission without a screen of its own: in the billing desk&#39;s <strong>Collect payment</strong> panel, users who hold <code>earnings.all.view</code> see a &quot;Doctor share&quot; line with the commission this payment would record, split per doctor when more than one doctor is involved. The Billing chapter (Chapter 34) describes that panel.</p>
+<h2 id="ch35-commissions-35-3-features">35.3 Features</h2>
+<h3 id="ch35-commissions-35-3-1-set-up-or-change-a-compensation-plan">35.3.1 Set up or change a compensation plan</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Creates a new version of how one assignment is paid, starting on a chosen clinic date. The version in force until then is closed on the day before.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Employees</strong>, click an employee, and choose the <strong>Compensation</strong> tab.</li>
+<li>Click <strong>Change plan</strong> (or <strong>Set up compensation</strong>).</li>
+<li>Pick Salaried, Commission or Both; fill in the salary and/or default commission, the basis and any overrides.</li>
+<li>Choose <strong>Effective from</strong> and click <strong>Save version</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Plans are kept as a dated history per assignment. A new version starts on its date and the old one ends the day before, so charges made under the old version keep the old rate. If the new version starts on the same day as the latest one, it replaces it, but only if no charge has used that version yet. Commission is allowed only for staff whose role can consult patients.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /assignments/:assignmentId/compensation-plans</code> → <code>CompensationPlansService.create</code> → <code>CompensationPlanVersions.add</code>, in one transaction. The service loads the assignment for the active organization and location (with its role), runs <code>validateFields</code> (type/field combination, rate 0–10000 basis points, salary whole paisa, date <code>YYYY-MM-DD</code>), checks <code>canConsult</code> (the role&#39;s permissions, expanded through implies, contain <code>consultation.conduct</code>) for commission types, and <code>validateRules</code>. It then locks the assignment row (<code>SELECT … FOR UPDATE</code>), reads the latest version and either refuses, deletes it (same start day, unused), or sets its <code>effective_to</code> to the day before. The new row is inserted with <code>created_by</code>; the PostgreSQL error 23P01 from the exclusion constraint <code>excl_compensation_plans_overlap</code> (GiST over <code>assignment_id</code> and <code>daterange(effective_from, effective_to, &#39;[]&#39;)</code>) is mapped to <code>COMPENSATION_PLAN_OVERLAP</code>. The default start date is the location&#39;s clinic date (<code>BillingClock</code>). The response is the full overview (<code>GET</code> shape).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Salaried: salary required, no rate, no overrides. Commission: rate required, no salary. Both: salary and rate required. The database repeats this rule as a check constraint.</li>
+<li>Rates are integer basis points (4000 = 40.00%), 0 to 10000. The web form accepts percentages with at most two decimals and converts them with integer maths.</li>
+<li>Money is integer paisa; the form accepts rupees with at most two decimals.</li>
+<li>The basis defaults to <code>NET</code> (after discount).</li>
+<li>A new version must start on or after the latest version&#39;s start. Same day replaces only an unused version.</li>
+<li>At most 200 overrides per version.</li>
+<li>The web app opens the Compensation tab only when the employee record carries an assignment at the active location.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>compensation.manage</code> (marked high-risk in the role editor; it implies <code>earnings.all.view</code>), feature <code>billing.commissions</code>. Default: Admin only.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employment_roles</code>, <code>services</code>, <code>charges</code> (to test whether a version was used). Writes <code>compensation_plans</code>, <code>commission_rules</code>.</p>
+<p><strong>Effects on other modules.</strong> Charges created after the start date take their snapshot from the new version (35.3.4). Payroll reads the salary from the version in force at month end (Chapter 38). The employee list and detail show the salary from the current version.</p>
+<p><strong>Error cases.</strong></p>
+<ul>
+<li>422 <code>COMPENSATION_PLAN_INVALID</code> → wrong field combination, for example &quot;A commission plan needs a default rate and no salary&quot;.</li>
+<li>422 <code>COMMISSION_ROLE_CANNOT_CONSULT</code> → &quot;Commission is only for staff whose role can consult patients&quot;.</li>
+<li>422 <code>COMMISSION_RULE_INVALID</code> → a rule with no target or two targets, both or neither amount, a duplicate target, or &quot;Unknown service in rules&quot;.</li>
+<li>409 <code>COMPENSATION_PLAN_OVERLAP</code> → &quot;A new version must start after the current one (2026-10-01)&quot;.</li>
+<li>409 <code>COMPENSATION_PLAN_IN_USE</code> → &quot;The current version already priced charges; start the new one on a later date&quot;.</li>
+<li>404 <code>BILLING_NOT_FOUND</code> &quot;Assignment not found&quot; → the assignment is not at the active location.</li>
+<li>403 <code>NO_PERMISSION</code>; 402 <code>SUBSCRIPTION_EXPIRED</code> in read-only mode.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/compensation-plan-versions.ts</code> · <code>CompensationPlanVersions.add</code>, <code>CompensationPlansService.create</code> · <code>web-app/src/features/billing/components/compensation/CompensationSheet.tsx</code></p>
+<h3 id="ch35-commissions-35-3-2-see-the-current-plan-and-its-version-history">35.3.2 See the current plan and its version history</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows the plan in force today, all earlier and future versions, and whether the person&#39;s role allows commission.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open the employee and choose the <strong>Compensation</strong> tab.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server returns every version of the assignment, marks the one whose dates include today at the location as current, and adds service names to the overrides.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /assignments/:assignmentId/compensation-plans</code> → <code>CompensationPlansService.list</code>. Returns <code>today</code> (the location&#39;s clinic date), <code>canConsult</code>, <code>current</code> and <code>versions</code> (newest first, with rules and service names).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>isCurrent</code> = <code>effective_from ≤ today</code> and (<code>effective_to</code> is empty or <code>≥ today</code>).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>compensation.manage</code>, feature <code>billing.commissions</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employment_roles</code>, <code>compensation_plans</code>, <code>commission_rules</code>, <code>services</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Assignment not found&quot;; 403 <code>NO_PERMISSION</code>. The tab shows &quot;Could not load compensation.&quot; with a retry button.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/compensation-plans.controller.ts</code> · <code>CompensationPlansService.list</code> · <code>web-app/src/features/billing/components/compensation/CompensationTab.tsx</code></p>
+<h3 id="ch35-commissions-35-3-3-edit-service-wise-overrides-commission-rules">35.3.3 Edit service-wise overrides (commission rules)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Replaces the overrides of one version without starting a new version. Each override names one catalog service or one service category (<code>CONSULTATION</code>, <code>PROCEDURE</code>, <code>OTHER</code>) and gives either a percentage or a fixed amount per charge.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the Compensation tab click <strong>Edit overrides</strong>.</li>
+<li>Add, change or remove rows in &quot;Commission overrides&quot;.</li>
+<li>Click <strong>Save overrides</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The overrides decide the rate for each service: a rule for the exact service wins, then a rule for its category, then the plan&#39;s default rate. New overrides apply only to charges created from now on; charges already made keep their stored rate.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PUT /compensation-plans/:planId/rules</code> → <code>CompensationPlansService.replaceRules</code>: in one transaction it locks the plan row (<code>FOR UPDATE</code>, scoped to the organization), checks the assignment belongs to the active location, refuses salary-only plans and versions that ended before today, validates the rules, deletes all rules of the plan and inserts the new list.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Exactly one target per rule (service or category) and exactly one amount (rate or fixed); database check constraints enforce both.</li>
+<li>One rule per service and one per category within a plan (partial unique indexes).</li>
+<li>Fixed amounts are paisa ≥ 0; rates 0–10000 basis points.</li>
+<li>A fixed amount is earned in full only when the charge is fully paid; partial payment earns the same fraction.</li>
+<li>Services must belong to the organization.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>compensation.manage</code>, feature <code>billing.commissions</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>compensation_plans</code>, <code>services</code>. Writes <code>commission_rules</code> (delete + insert).</p>
+<p><strong>Effects on other modules.</strong> Only later charges&#39; snapshots.</p>
+<p><strong>Error cases.</strong> 404 &quot;Compensation plan not found&quot;; 422 <code>COMPENSATION_PLAN_INVALID</code> &quot;A salaried plan cannot have commission rules&quot;; 409 <code>COMPENSATION_PLAN_CLOSED</code> &quot;This version has ended; add a new version instead&quot;; 422 <code>COMMISSION_RULE_INVALID</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/compensation-plans.service.ts</code> · <code>CompensationPlansService.replaceRules</code>, <code>resolveCommissionRate</code> · <code>web-app/src/features/billing/components/compensation/CommissionRulesEditor.tsx</code></p>
+<h3 id="ch35-commissions-35-3-4-snapshot-the-rate-on-each-visit-charge">35.3.4 Snapshot the rate on each visit charge</h3>
+<p><strong>Status:</strong> [Implemented] (backend only by design; no screen)</p>
+<p><strong>What it does.</strong> When a visit produces charges, each consultation or treatment charge records which doctor assignment performed it, which plan was in force on the visit&#39;s clinic date and the resolved rate or fixed amount. Later plan changes do not touch these stored values.</p>
+<p><strong>How the user does it.</strong> Nothing to do. The snapshot is taken automatically when the visit&#39;s charges are created at the end of the consultation, and again when an unbilled charge is moved to a different doctor.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The Platform writes the doctor&#39;s deal onto the charge at the moment the charge is born, like a price tag. Manual charges and charges without a doctor carry no deal and never earn.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CommissionService.snapshot</code> runs inside the charge-creation transaction of <code>ChargeSourcesService</code> (visit charges) and inside <code>ChargesService</code> when the doctor of an unbilled charge changes. It returns empty snapshots when there is no doctor or when <code>billing.commissions</code> is not enabled for the organization. Otherwise it finds the doctor&#39;s assignment at the active location, loads the version in force on the charge&#39;s clinic date (<code>CompensationPlanVersions.activeOn</code>) and resolves per charge with <code>resolveCommissionRate</code> (service → category → default; a <code>SALARY</code> plan resolves to nothing). Only charges whose source is <code>CONSULTATION</code> or <code>TREATMENT</code> get a snapshot. It sets four columns on <code>charges</code>: <code>performing_assignment_id</code>, <code>commission_plan_id</code>, <code>commission_rate_bps</code>, <code>commission_fixed_paisa</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Charges with a salary-only plan keep <code>performing_assignment_id</code> and <code>commission_plan_id</code> but no rate, so they never earn.</li>
+<li>If the doctor has no assignment at the location, or no version covers the date, the charge has no plan and never earns.</li>
+<li>Turning the feature off stops new snapshots; charges that already carry one keep recording commission when paid.</li>
+</ul>
+<p><strong>Who can do it.</strong> Whoever creates the charges (the consultation and billing flows); no commission permission is needed.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>compensation_plans</code>, <code>commission_rules</code>, <code>org_feature_flags</code> (through the feature service). Writes the four snapshot columns of <code>charges</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing (Chapter 34) carries the columns but never shows them on invoices; audit snapshots strip them.</p>
+<p><strong>Error cases.</strong> None of its own.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission.service.ts</code> · <code>CommissionService.snapshot</code> · no web-app use</p>
+<h3 id="ch35-commissions-35-3-5-earn-commission-when-patient-money-is-applied">35.3.5 Earn commission when patient money is applied</h3>
+<p><strong>Status:</strong> [Implemented] (backend only by design)</p>
+<p><strong>What it does.</strong> Every time money on a doctor&#39;s charge changes, the Platform brings the charge&#39;s total commission up (or down) to the correct amount by inserting one signed entry in <code>commission_entries</code>.</p>
+<p><strong>How the user does it.</strong> Nothing to do. It happens when staff collect a payment, apply a patient&#39;s advance, unapply a payment, or edit or void an invoice.</p>
+<p>Figure 35.6 shows the main path, a payment collection.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch35-earning-sequence.png" alt="Figure 35.6 — Commission earned on collection"></p>
+<p><em>Figure 35.6 — How collecting a payment writes commission entries.</em></p>
+<p>The diagram has six participants: Receptionist, Web app, API, PaymentsService, CommissionService and PostgreSQL. A note at the top says that, at visit completion, each visit charge received a snapshot with the doctor&#39;s assignment, plan and rate or fixed amount. In steps 1 to 5 the receptionist opens Collect payment and picks charges; the web app calls <code>POST /payments/preview</code>; the API asks CommissionService for <code>previewForAllocations</code>, which returns a doctor share per doctor only when the user holds <code>earnings.all.view</code> and <code>billing.commissions</code> is on; the web app shows the preview with or without the Doctor share line. In steps 6 to 9 the receptionist confirms, the web app calls <code>POST /payments</code>, the API runs <code>runCollect</code> in one transaction and PaymentsService inserts the payment and allocations and recomputes totals. In steps 10 to 13 PaymentsService calls <code>recordForCharges</code> with source <code>ALLOCATION</code>; CommissionService reads net, tax, allocated and already-recorded amounts for each charge, computes the target as the rate on the pre-tax collected amount capped at net, and inserts one entry per charge equal to the target minus what is already recorded. Step 14 returns the saved payment and receipt to the web app.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> For each charge the Platform asks: &quot;Given everything collected so far, how much commission should this charge have earned in total?&quot; It then writes only the difference. That makes the ledger self-correcting: a second instalment adds a little more, an unapplied payment or a discount added later produces a negative entry, a voided charge brings the total back to zero, and running the same operation twice writes nothing the second time. Tax is never doctor revenue, so only the pre-tax part of what was paid counts.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CommissionService.recordForCharges(manager, chargeIds, source)</code> runs in the caller&#39;s money transaction under the caller&#39;s charge locks. It loads, per charge with a snapshot, <code>gross</code>, <code>net</code>, <code>tax</code> (all as paisa from <code>numeric(12,2)</code> columns), the plan&#39;s basis, the sum of <code>payment_allocations</code> and the sum of existing entries. The target comes from the pure function <code>commissionTarget</code> in <code>commission-math.ts</code>, using BigInt and half-away-from-zero rounding:</p>
+<ul>
+<li>collected = allocated (no tax) or round(allocated × net ÷ (net + tax)), capped at net; a <code>VOID</code> charge has net 0.</li>
+<li>Rate, <code>NET</code> basis: round(collected × rate ÷ 10000).</li>
+<li>Rate, <code>GROSS</code> basis: round(collected × gross × rate ÷ (net × 10000)), so the clinic absorbs the discount.</li>
+<li>Fixed amount: round(fixed × collected ÷ net).</li>
+</ul>
+<p>The callers and source types are: <code>PaymentsService</code> collect and apply-advance (<code>ALLOCATION</code>, source id = the new payment, else an operation id), <code>PaymentsService.unapply</code> (<code>UNAPPLY</code>), and <code>InvoicesService.runEdit</code> (<code>CHARGE_ADJUST</code>, turned into <code>VOID</code> for a voided charge). Each entry stores <code>base_paisa</code> (collected so far), <code>rate_bps</code> and the signed <code>amount_paisa</code>. Invoice cancel needs no call because it is refused while the invoice has payments.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>One entry per (source type, source id, charge) (unique index <code>uq_commission_entries_source</code>).</li>
+<li>Commission is never added to charge or invoice totals.</li>
+<li>Entries already settled are never changed: a reversal after settlement simply lands, as a negative entry, in the next settlement.</li>
+<li>Overpayment beyond net goes to the patient&#39;s advance and never counts as collected.</li>
+<li>The <code>labCostPaisa</code> input of <code>commissionTarget</code> is not used for ordinary charges; only lab invoice lines use it (35.3.6).</li>
+</ul>
+<p><strong>Who can do it.</strong> Whoever performs the money operation (<code>billing.payment.collect</code>, <code>billing.invoice.edit</code>, and so on); the ledger itself needs no permission.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>compensation_plans</code>, <code>payment_allocations</code>, <code>commission_entries</code>. Writes <code>commission_entries</code> (insert only).</p>
+<p><strong>Effects on other modules.</strong> Feeds the earnings reports, the &quot;Doctor commissions&quot; report and the commission columns of other reports (Chapter 36), the finance overview, and payroll settlement (Chapter 38).</p>
+<p><strong>Error cases.</strong> None user-visible; an error rolls back the whole money operation.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission-math.ts</code> · <code>CommissionService.recordForCharges</code>, <code>commissionTarget</code> · no web-app use</p>
+<h3 id="ch35-commissions-35-3-6-earn-commission-on-lab-work-lab-line-commissions">35.3.6 Earn commission on lab work (lab-line commissions)</h3>
+<p><strong>Status:</strong> [Implemented] (backend only by design)</p>
+<p><strong>What it does.</strong> When lab work is billed to a patient on a <strong>patient lab invoice</strong>, the doctor named on each lab invoice line earns commission on what the patient pays for it, minus what the lab charged the clinic.</p>
+<p><strong>How the user does it.</strong> Nothing to do. It happens when a patient lab invoice is issued, paid, has advance applied, has a payment reversed, or receives a credit note.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> For lab work, the doctor&#39;s share is calculated on the clinic&#39;s margin, not on the full price: if the patient pays for a crown and the lab charged the clinic part of that, only the remainder earns commission. The same &quot;write only the difference&quot; rule applies, so instalments and reversals correct themselves.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>LabFinanceListeners</code> subscribe to lab-billing events inside the money transaction. On <code>invoiceIssued</code>, <code>LabCommissionService.snapshot</code> sets the same four snapshot columns on each non-void <code>lab_invoice_lines</code> row that has a doctor (plan in force on the issue date; a line without a mapped service counts as a <code>PROCEDURE</code>). On payment collected and advance applied (<code>ALLOCATION</code>), payment reversed (<code>UNAPPLY</code>) and credit note issued (<code>CHARGE_ADJUST</code>), <code>recordForInvoices</code> computes per line with <code>labLineCommissionTarget</code>: the invoice&#39;s net is its total minus credit notes (0 if void); each line&#39;s share of net and of collected money is proportional to its pre-tax amount; then <code>commissionTarget</code> runs with <code>labCostPaisa</code>. The lab cost is the item&#39;s cost from approved vendor bill lines (else its frozen snapshot) for a lab item line, the charge amount for an order-level charge passed on to the patient, and 0 for manual lines. With a lab cost, the rate applies to max(net − lab cost, 0) (or gross − lab cost on the <code>GROSS</code> basis); a fixed amount is not reduced. Entries go into the same <code>commission_entries</code> table with <code>lab_invoice_line_id</code> instead of <code>charge_id</code>, and the lab receivables ledger posts a journal &quot;Doctor commission on lab work&quot; (Commission Expense / Commission Payable).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Each entry targets exactly one of a charge or a lab invoice line (check constraint <code>chk_commission_entries_target</code>).</li>
+<li>One entry per (source type, source id, lab line) (partial unique index).</li>
+<li>Nothing is snapshotted while <code>billing.commissions</code> is off; such lines never earn.</li>
+</ul>
+<p><strong>Who can do it.</strong> Whoever runs the lab billing operation (<code>lab.billing.manage</code> and related permissions, Chapter 42).</p>
+<p><strong>Data read and written.</strong> Reads <code>lab_invoice_lines</code>, <code>lab_invoices</code>, <code>lab_payment_allocations</code>, <code>order_charge_requests</code>, vendor bill and lab order item costs, <code>compensation_plans</code>. Writes <code>lab_invoice_lines</code> (snapshot), <code>commission_entries</code>, lab ledger journal rows.</p>
+<p><strong>Effects on other modules.</strong> Lab commission appears on My earnings, in settlements and payroll exactly like charge commission. The &quot;Collected&quot; column of the earnings reports counts only ordinary charges, not lab invoices.</p>
+<p><strong>Error cases.</strong> None user-visible.</p>
+<p><strong>Technical references:</strong> <code>backend/src/lab-finance/lab-commission.service.ts</code> · <code>LabCommissionService.recordForInvoices</code>, <code>labLineCommissionTarget</code> · no web-app use</p>
+<h3 id="ch35-commissions-35-3-7-preview-the-doctor-share-while-collecting-payment">35.3.7 Preview the doctor share while collecting payment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows, before a payment is saved, how much commission it would record, per doctor.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On the billing desk, open <strong>Collect payment</strong> for a patient and choose what to pay.</li>
+<li>Read the &quot;Doctor share&quot; line in the summary (only for users who may see earnings).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server runs the same calculation as the real recording, on a &quot;what if&quot; basis, without saving anything.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /payments/preview</code> fills <code>doctorShare</code> only when the caller&#39;s access context can <code>earnings.all.view</code> and <code>billing.commissions</code> is enabled; otherwise <code>doctorShare</code> is <code>null</code>. <code>CommissionService.previewForAllocations</code> adds the planned allocation amounts to each charge, uses the tax share of charges that will be invoiced by this payment, and groups the differences per assignment with the doctor&#39;s name.</p>
+<p><strong>Rules and validations.</strong> Read-only; the frontend never computes commission itself.</p>
+<p><strong>Who can do it.</strong> <code>earnings.all.view</code>, feature <code>billing.commissions</code>. Default: Admin, Accountant. A Receptionist collects payment without seeing it.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>compensation_plans</code>, <code>payment_allocations</code>, <code>commission_entries</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None of its own.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/payments/payments.service.ts</code> · <code>CommissionService.previewForAllocations</code> · <code>web-app/src/features/billing/components/collect-payment/CollectSummary.tsx</code></p>
+<h3 id="ch35-commissions-35-3-8-see-every-doctor-39-s-earnings">35.3.8 See every doctor&#39;s earnings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists, per doctor at a location, the money collected on their charges, the commission earned, the part already settled and the part pending, for a date range.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Finance → Reports → Doctor earnings</strong>.</li>
+<li>Pick a date preset or a custom range.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> For each assignment that has a commission plan or any commission entry, the server adds up collections and ledger entries written in the period, and splits the earned total into settled and pending.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /reports/doctor-earnings?from&amp;to&amp;locationId</code> → <code>CommissionReportsService.doctorEarnings</code>. The range is clinic dates at the location, converted to UTC instants; the default is the first of the current month to today. <em>Collected</em> = sum of <code>payment_allocations</code> created in the range on charges whose <code>performing_assignment_id</code> is the assignment; <em>earned</em> = sum of entries created in the range; <em>settled</em> = the part with a <code>settlement_id</code>; <em>pending</em> = earned − settled. The plan type shown is the version in force today. Another location of the organization can be requested with <code>locationId</code>, but only if the caller also holds <code>earnings.all.view</code> there (resolved like any request at that location). <code>GET /commissions?assignmentId&amp;locationId&amp;from&amp;to</code> returns the raw ledger lines of a location (at most 1000, newest first); no screen calls it.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Only assignments with a non-salary plan or with entries are listed.</li>
+<li>The web page does not offer the location switch.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>earnings.all.view</code>, feature <code>billing.commissions</code>. Default: Admin, Accountant.</p>
+<p><strong>Data read and written.</strong> Reads <code>employee_org_location_assignments</code>, <code>employees</code>, <code>locations</code>, <code>compensation_plans</code>, <code>payment_allocations</code>, <code>charges</code>, <code>commission_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 404 &quot;Location not found&quot; (another organization&#39;s location); 403 <code>NO_PERMISSION</code> &quot;You cannot see earnings at that location&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission-reports.service.ts</code> · <code>CommissionReportsService.doctorEarnings</code>, <code>entries</code> · <code>web-app/src/features/billing/pages/CommissionPages.tsx</code></p>
+<h3 id="ch35-commissions-35-3-9-see-my-own-earnings">35.3.9 See my own earnings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows a doctor their own collected, earned, settled and pending amounts per location in the organization, and every ledger line behind them.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>My earnings</strong> in the sidebar.</li>
+<li>Pick a date preset or a custom range.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The server filters by the signed-in user&#39;s own assignments. A doctor can never see another doctor&#39;s figures through this page.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /me/earnings?from&amp;to&amp;locationId</code> → <code>CommissionReportsService.myEarnings</code>: the same earnings query filtered on <code>a.user_id = signed-in user</code> across the organization, plus up to 1000 ledger lines (<code>entryRows</code>), which join both charges and lab invoice lines to show description, patient and invoice number. The date range uses the active location&#39;s timezone.</p>
+<p><strong>Rules and validations.</strong> Only the caller&#39;s assignments; optional filter by location.</p>
+<p><strong>Who can do it.</strong> <code>earnings.own.view</code>, feature <code>billing.commissions</code>. Default: Doctor; Admin and Accountant also hold it through <code>earnings.all.view</code>.</p>
+<p><strong>Data read and written.</strong> Reads the same tables as 35.3.8 plus <code>patients</code>, <code>invoices</code>, <code>lab_invoice_lines</code>, <code>lab_invoices</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commissions.controller.ts</code> · <code>CommissionReportsService.myEarnings</code> · <code>web-app/src/features/billing/pages/CommissionPages.tsx</code></p>
+<h3 id="ch35-commissions-35-3-10-see-doctor-revenue-billed-and-collected-per-doctor">35.3.10 See doctor revenue (billed and collected per doctor)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Shows, per doctor, the net amount billed on issued invoices, the discounts given and the pre-tax money collected in a period.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Finance → Reports → Doctor revenue</strong> and pick a period.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Billed counts invoices by their issue date; collected counts payments by payment date, and money released back to advance subtracts.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /billing/reports/doctor-revenue?from&amp;to</code> → <code>BillingReportsService.doctorRevenue</code>: one SQL with a <code>billed</code> part (active charges on <code>ISSUED</code> invoices, <code>issue_date</code> in range, grouped by <code>charges.doctor_id</code>) and a <code>collected</code> part (pre-tax share of <code>payment_allocations</code> created in the range), joined to <code>employees</code>. It does not read commission tables.</p>
+<p><strong>Rules and validations.</strong> Active location only; amounts in rupees (numeric columns).</p>
+<p><strong>Who can do it.</strong> <code>reports.financial.view</code>, feature <code>reports.financial</code> (off by default). Default: Accountant (scope <code>location</code>), Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>invoices</code>, <code>payment_allocations</code>, <code>employees</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> 403 <code>NO_PERMISSION</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/reports/billing-reports.service.ts</code> · <code>BillingReportsService.doctorRevenue</code> · <code>web-app/src/features/billing/pages/BillingReportsPages.tsx</code></p>
+<h3 id="ch35-commissions-35-3-11-settle-commission-through-payroll">35.3.11 Settle commission through payroll</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> At payroll generation, collects all unsettled commission entries of an assignment up to the end of the month into one settlement linked to that month&#39;s payroll record. Paying the payroll record pays the settlement; deleting an unpaid payroll record releases the entries.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Generate payroll (on <strong>Payroll</strong>, or automatically on the 1st of the month).</li>
+<li>Mark the payroll record as paid with <strong>Mark as Paid</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Payroll locks the doctor&#39;s unsettled ledger lines so they cannot be paid twice, adds their total to the payroll record and ties them to a settlement. If the doctor&#39;s unsettled lines add up to a negative number (only reversals), nothing is settled; the negative amount waits and reduces the next month&#39;s commission.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CommissionSettlements.lockUnsettled</code> selects entries of the assignment with <code>settlement_id IS NULL</code> and <code>created_at</code> before the end of the month&#39;s last clinic day (location timezone), <code>FOR UPDATE</code>. If at least one entry exists and the total is ≥ 0, <code>CommissionSettlements.create</code> inserts a <code>PENDING</code> row in <code>commission_settlements</code> (period start and end, total, payroll record id) and sets <code>settlement_id</code> on the entries. <code>PayrollService.markPaid</code> calls <code>CommissionSettlements.markPaid</code> in the same transaction (status <code>PAID</code>, <code>paid_at</code>, <code>paid_by</code>). <code>PayrollService.remove</code> calls <code>CommissionSettlements.release</code>: for a <code>PENDING</code> settlement it clears <code>settlement_id</code> on its entries and deletes the settlement; for a <code>PAID</code> one deletion of the payroll record is refused. The month-end flow is drawn in Chapter 38 (Figure 38.6).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>An entry can be in only one settlement (row locks plus <code>settlement_id IS NULL</code> on update).</li>
+<li>Settlement amounts are signed paisa; entries keep their amounts.</li>
+<li>Only active assignments at the location are processed by payroll.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>payroll.manage</code>, feature <code>hr.payroll</code>. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>commission_settlements</code>, <code>commission_entries.settlement_id</code>, <code>payroll_records</code>.</p>
+<p><strong>Effects on other modules.</strong> Settled and Pending columns of the earnings pages; payroll record commission amount, payslip and CSV.</p>
+<p><strong>Error cases.</strong> 400 &quot;This payroll paid out commission and cannot be deleted&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission-settlements.ts</code> · <code>CommissionSettlements.lockUnsettled</code>, <code>create</code>, <code>markPaid</code>, <code>release</code> · <code>web-app/src/features/employees/pages/PayrollPage.tsx</code></p>
+<h3 id="ch35-commissions-35-3-12-protect-the-ledger-append-only-trigger-and-invariant-i10">35.3.12 Protect the ledger (append-only trigger and invariant I10)</h3>
+<p><strong>Status:</strong> [Implemented] (backend only by design)</p>
+<p><strong>What it does.</strong> Makes sure commission history cannot be rewritten and that the ledger always matches the money.</p>
+<p><strong>How the user does it.</strong> Nothing to do. Violations appear only in the server logs.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The database itself refuses to delete commission lines or change their amounts. Every night a separate check recomputes, for every charge with a snapshot, what the commission should be and compares it with the sum in the ledger.</p>
+<p><strong>Behind the scenes — technically.</strong> The migration <code>DoctorCompensation1792403456699</code> creates the function <code>commission_entries_append_only()</code> and the trigger <code>trg_commission_entries_append_only</code> (BEFORE UPDATE OR DELETE): deletes raise &quot;commission_entries is append-only: delete refused&quot;; any change to the listed columns raises &quot;only settlement_id may change&quot;; <code>settlement_id</code> may move from a value back to NULL only while that settlement is <code>PENDING</code>. Invariant <strong>I10</strong> in <code>BillingInvariantChecker</code> recomputes the target in SQL numeric (deliberately not reusing <code>commission-math.ts</code>) and reports each charge whose recorded sum differs. <code>BillingInvariantJob</code> runs all invariants (I1–I10) every day at 02:30 server time, where scheduled jobs run, and only logs; nothing is repaired automatically. The same check is part of the per-patient invariant run.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>I10 covers charges only, not lab invoice lines.</li>
+</ul>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> Reads <code>charges</code>, <code>compensation_plans</code>, <code>payment_allocations</code>, <code>commission_entries</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> A refused update raises a database error inside the operation, which rolls back.</p>
+<p><strong>Technical references:</strong> <code>backend/src/migrations/1792403456699-doctor-compensation.ts</code> · <code>BillingInvariantChecker.checkCommissions</code>, <code>BillingInvariantJob.run</code> · no web-app use</p>
+<h3 id="ch35-commissions-35-3-13-choose-a-commission-plan-when-adding-an-employee">35.3.13 Choose a commission plan when adding an employee</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets the first compensation version of a new employee be a commission or salary-plus-commission plan, instead of the default salaried plan.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On <strong>Employees</strong>, click <strong>Add Employee</strong>.</li>
+<li>In the &quot;Compensation&quot; section (shown only to users with <code>compensation.manage</code>), pick Salaried, Commission or Both and enter the rate and basis.</li>
+<li>Save the employee.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Every new assignment gets a first plan version starting on the joining date. Without the compensation step it is a salaried plan with the entered salary (or zero).</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /employees</code> with an optional <code>compensation</code> object; <code>EmployeesService.initialPlan</code> validates it before anything is saved, refuses commission types with 403 <code>COMMISSIONS_DISABLED</code> when <code>billing.commissions</code> is off and checks the role can consult. The plan is added in the same transaction as the assignment. The Employees chapter (Chapter 37) covers the rest of the create flow.</p>
+<p><strong>Rules and validations.</strong> As in 35.3.1; Both requires a salary.</p>
+<p><strong>Who can do it.</strong> <code>employees.manage</code> plus <code>compensation.manage</code> for the commission options. Default: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>compensation_plans</code>, <code>commission_rules</code>.</p>
+<p><strong>Effects on other modules.</strong> As in 35.3.1.</p>
+<p><strong>Error cases.</strong> 403 <code>COMMISSIONS_DISABLED</code> &quot;Doctor commissions are not enabled&quot;; 422 <code>COMMISSION_ROLE_CANNOT_CONSULT</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/employees/employees.service.ts</code> · <code>EmployeesService.initialPlan</code> · <code>web-app/src/features/employees/components/EmployeeForm.tsx</code></p>
+<h3 id="ch35-commissions-35-3-14-manual-commission-adjustments">35.3.14 Manual commission adjustments</h3>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p><strong>What it does.</strong> Nothing today. The source type <code>MANUAL</code> (&quot;Reserved for an admin correction&quot;) exists in the enum and the web app has a label &quot;Adjustment&quot; for it, but no endpoint or service writes a <code>MANUAL</code> entry.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Corrections happen only through the money operations themselves.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>CommissionSourceType.MANUAL</code> is never used as a write source.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Not applicable.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/commissions/commission.enums.ts</code> · <code>CommissionSourceType.MANUAL</code> · <code>web-app/src/features/billing/pages/CommissionPages.tsx</code></p>
+<h2 id="ch35-commissions-35-4-entities-and-data-model">35.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch35-commission-erd.png" alt="Figure 35.7 — Commission data model"></p>
+<p><em>Figure 35.7 — Compensation plans, rules, the commission ledger and settlements.</em></p>
+<p>The diagram has <code>employee_org_location_assignments</code> at the top. From it, solid lines go to <code>compensation_plans</code> (&quot;is paid by&quot;), <code>charges</code> (&quot;performs&quot;, optional), <code>commission_entries</code> (&quot;earns&quot;) and <code>commission_settlements</code> (&quot;is settled&quot;). <code>compensation_plans</code> shows <code>id</code>, <code>assignment_id</code>, <code>type</code>, <code>base_salary_paisa</code>, <code>default_rate_bps</code>, <code>commission_basis</code>, <code>effective_from</code> and <code>effective_to</code>; it links to <code>commission_rules</code> (&quot;overrides&quot;) and, optionally, to <code>charges</code> (&quot;snapshotted on&quot;). <code>services</code> links optionally to <code>commission_rules</code> (&quot;targets&quot;). <code>commission_rules</code> shows <code>plan_id</code>, <code>service_id</code>, <code>service_category</code>, <code>rate_bps</code> and <code>fixed_amount_paisa</code>. <code>charges</code> shows its four snapshot columns. At the bottom, <code>commission_entries</code> shows <code>assignment_id</code>, <code>charge_id</code>, <code>lab_invoice_line_id</code>, <code>settlement_id</code>, <code>source_type</code> and <code>amount_paisa</code>, and receives optional links from <code>charges</code> and <code>lab_invoice_lines</code> (both &quot;earns on&quot;) and from <code>commission_settlements</code> (&quot;settles&quot;). On the right, <code>payroll_records</code> (with <code>commission_paisa</code>) is linked one-to-one, optionally, with <code>commission_settlements</code> (&quot;pays out&quot;), which shows <code>assignment_id</code>, <code>payroll_record_id</code>, <code>period_end</code>, <code>total_paisa</code> and <code>status</code>.</p>
+<p>The relationships in words:</p>
+<ul>
+<li>Each compensation plan belongs to exactly one assignment. Deleting the assignment deletes its plans (ON DELETE CASCADE). Versions of one assignment never overlap (GiST exclusion constraint, which needs the <code>btree_gist</code> extension the migration creates).</li>
+<li>Each commission rule belongs to one plan (CASCADE) and targets either one service (CASCADE when the service is deleted) or one category.</li>
+<li>A charge points to the performing assignment and the plan it was snapshotted with. These are plain columns on <code>charges</code>; the snapshot does not change when the plan changes.</li>
+<li>Each commission entry belongs to one assignment and earns on exactly one charge or one lab invoice line. The assignment, charge, lab line and settlement links are ON DELETE RESTRICT, so none of them can be deleted while entries point to them.</li>
+<li>Each settlement belongs to one assignment (RESTRICT) and to at most one payroll record (one-to-one, RESTRICT); a payroll record has at most one settlement.</li>
+<li>Money columns are integer paisa (<code>bigint</code>): <code>base_salary_paisa</code>, <code>fixed_amount_paisa</code>, <code>amount_paisa</code>, <code>base_paisa</code>, <code>total_paisa</code>. Rates are integer basis points. <code>charges</code> amounts themselves are numeric rupee columns, converted exactly to paisa in SQL.</li>
+<li>Indexes: plans by assignment and start; entries by assignment and time, by charge, by lab line, and a partial index on unsettled entries per assignment; settlements by assignment and period end.</li>
+</ul>
+<p>The migration also backfilled one <code>SALARY</code> plan per existing assignment from the deprecated <code>gross_salary</code> column, effective from the joining date.</p>
+<h2 id="ch35-commissions-35-5-status-lifecycles">35.5 Status lifecycles</h2>
+<h3 id="ch35-commissions-35-5-1-commission-entry-and-settlement">35.5.1 Commission entry and settlement</h3>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch35-entry-settlement.png" alt="Figure 35.8 — Commission entry to settlement"></p>
+<p><em>Figure 35.8 — The life of a commission entry, from earning to payout.</em></p>
+<p>The diagram has three states. An entry starts as <strong>Unsettled</strong> when it is inserted on a collection, unapply, invoice edit, void or lab payment. It moves to <strong>Pending</strong> when payroll generation or the month-end job links it to a <code>PENDING</code> settlement. From Pending, two arrows leave: back to Unsettled when the payroll record is deleted before payment and the settlement is released, and forward to <strong>Paid</strong> through <code>PATCH /payroll/:id/mark-paid</code>. Paid leads to the end marker.</p>
+<p>Walking through each state:</p>
+<ul>
+<li><strong>Unsettled</strong> — <code>settlement_id</code> is NULL. The entry counts as &quot;Pending&quot; on the earnings pages. A net-negative group of unsettled entries stays here and offsets the next month.</li>
+<li><strong>Pending</strong> — the entry points to a settlement whose status is <code>PENDING</code>; the earnings pages count it as &quot;Settled&quot; already, although the money is not yet paid.</li>
+<li><strong>Paid</strong> — the settlement is <code>PAID</code>; the entry can never be released again (the trigger refuses).</li>
+</ul>
+<p>The entry&#39;s amount never changes in any state. The two stored settlement statuses are <code>PENDING</code> and <code>PAID</code>.</p>
+<h3 id="ch35-commissions-35-5-2-compensation-plan-versions">35.5.2 Compensation plan versions</h3>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch35-plan-versions.png" alt="Figure 35.9 — Compensation plan versions"></p>
+<p><em>Figure 35.9 — How a compensation plan version is created, becomes current, and ends.</em></p>
+<p>The diagram shows four states. A version enters as <strong>Future</strong> when it is created with a later start date, or as <strong>Current</strong> when it starts today (from the Compensation tab, from employee creation, or from a salary update). Future becomes Current when the clinic date reaches <code>effective_from</code>. Current becomes <strong>Closed</strong> when a newer version is added and its <code>effective_to</code> is set to the day before. Future or Current becomes <strong>Replaced</strong> when a new version with the same start day is saved and no charge has used it; the replaced row is deleted. Closed and Replaced lead to the end marker.</p>
+<p>These states are not stored: the code derives &quot;current&quot; from the dates and the clinic date (<code>isCurrent</code>). Overrides of a Closed version cannot be edited (<code>COMPENSATION_PLAN_CLOSED</code>).</p>
+<h2 id="ch35-commissions-35-6-connections-to-other-modules">35.6 Connections to other modules</h2>
+<ul>
+<li><strong>Employees (Chapter 37).</strong> Plans hang from assignments. Creating an employee creates the first version; &quot;Update Salary&quot; on the employee page adds a new version from today and carries over the commission settings. The role decides whether commission is allowed (<code>consultation.conduct</code>).</li>
+<li><strong>Consultation (Chapter 31) and Billing (Chapter 34).</strong> Visit charges take the snapshot when created; collect, apply advance, unapply and invoice edit write ledger entries in the same transaction. The billing desk shows the doctor share to authorised users.</li>
+<li><strong>Lab finance (Chapter 42).</strong> Patient lab invoice lines earn commission on the margin over lab cost and post a commission journal.</li>
+<li><strong>Payroll (Chapter 38).</strong> Settles entries monthly, pays settlements, releases them on delete.</li>
+<li><strong>Dashboard and reports (Chapter 36).</strong> The &quot;Doctor commissions&quot; report (staff category) and commission columns in revenue and cost reports and the finance overview read <code>commission_entries</code>.</li>
+<li><strong>Features and roles (Chapters 10 and 11).</strong> <code>billing.commissions</code> must be entitled and enabled; the three permissions are dropped when it is off.</li>
+</ul>
+<h2 id="ch35-commissions-35-7-limitations-and-known-gaps">35.7 Limitations and known gaps</h2>
+<ul>
+<li><code>hr.commissions</code> is a feature key that gates nothing; only <code>billing.commissions</code> matters.</li>
+<li>No <code>MANUAL</code> adjustment path exists, although the enum and UI label do.</li>
+<li><code>GET /commissions</code> (raw ledger of a location) has no screen; an admin can see per-doctor totals on &quot;Doctor earnings&quot; but not the individual ledger lines of other doctors.</li>
+<li>The earnings reports&#39; &quot;Collected&quot; column counts ordinary charges only; lab invoice collections are not included, while lab commission is.</li>
+<li>Invariant I10 checks ordinary charges only; lab-line commission has no nightly check.</li>
+<li>The append-only trigger was written before lab lines existed; its list of frozen columns does not include <code>lab_invoice_line_id</code>.</li>
+<li>Settlement covers only active assignments: commission of a deactivated doctor stays unsettled until the assignment is reactivated.</li>
+<li>Turning <code>billing.commissions</code> off stops new snapshots, but charges that already have one keep earning.</li>
+<li>The Compensation tab trigger is shown whenever the user holds <code>compensation.manage</code>, but its content appears only if the employee record has an assignment at the active location.</li>
+<li>Plan and rule changes are not written to the general audit log; versions keep <code>created_by</code> only.</li>
+</ul>
+<h2 id="ch35-commissions-35-8-owner-39-s-faq">35.8 Owner&#39;s FAQ</h2>
+<p><strong>If I raise a doctor&#39;s rate today, does last month&#39;s commission change?</strong> No. Each charge keeps the rate stored when it was created. Only charges created after the new version starts use the new rate.</p>
+<p><strong>When exactly does a doctor earn?</strong> When patient money is applied to the doctor&#39;s charge, not when the invoice is issued. Half paid means half the commission.</p>
+<p><strong>What happens if a payment is reversed after the commission was paid out in payroll?</strong> The reversal writes a negative entry. It is settled with next month&#39;s payroll and reduces that month&#39;s commission. If the doctor has only negative entries, nothing is settled and the balance waits.</p>
+<p><strong>Does tax count towards commission?</strong> No. Only the pre-tax part of what the patient paid counts.</p>
+<p><strong>Can a receptionist see how much the doctor gets from a payment?</strong> Not with the default role. The doctor share appears only to users with <code>earnings.all.view</code> (Admin, Accountant by default).</p>
+<p><strong>Can a doctor see another doctor&#39;s earnings?</strong> No. &quot;My earnings&quot; is filtered on the signed-in user&#39;s own assignments on the server.</p>
+<p><strong>Can an assistant or hygienist be on commission?</strong> Only if their role holds <code>consultation.conduct</code>. Otherwise the commission options are disabled and the server refuses with <code>COMMISSION_ROLE_CANNOT_CONSULT</code>.</p>
+<p><strong>Where is commission stored?</strong> In <code>commission_entries</code>, one signed row per change, in paisa. The database refuses deletes and amount changes.</p>
+<p><strong>What is the difference between &quot;after discount&quot; and &quot;before discount&quot;?</strong> After discount (<code>NET</code>) means the doctor shares the discount. Before discount (<code>GROSS</code>) means the clinic absorbs it and the doctor earns as if no discount had been given.</p>
+</section></body></html>

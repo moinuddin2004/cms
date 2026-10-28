@@ -1,0 +1,134 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch03-a-day-in-the-clinic"><h1 id="ch03-a-day-in-the-clinic-chapter-3-a-day-in-the-clinic">Chapter 3 — A day in the clinic</h1>
+<p>This chapter tells the story of one working day at a clinic that uses the Platform, from opening the queue in the morning to the jobs that run overnight. It is written for the product owner, so that the modules described one by one in later chapters can be seen working together. Every person in the story is fictional, and every step names the module, its status and the chapter that explains it.</p>
+<p><strong>The cast.</strong> Receptionist R1 works the front desk. Dr. Example One is the doctor. Sample Patient A is a patient. The Accountant closes the cash. Example Dental Lab is an outside lab. The clinic is Example Clinic, with a Main location.</p>
+<p>Figure 3.1 summarises the whole day before the narrative starts.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch03-day-sequence.png" alt="Figure 3.1 — The sequence of one clinic day"></p>
+<p><em>Figure 3.1 — One clinic day from opening the queue to the overnight jobs.</em></p>
+<p>The sequence diagram has seven participants from left to right: Receptionist R1, Dr. Example One, the Accountant, the Web app, the API, Example Dental Lab and Worker jobs. It has 26 numbered messages. In messages 1 and 2 the doctor opens My Queue and starts the queue, and the web app calls the API. Messages 3 and 4 show R1 booking Sample Patient A with a call to create an appointment. Messages 5 to 7 show the check-in: R1 clicks Check in and get token, the web app sends the check-in call, and the API returns a token and a printable ticket to R1. Messages 8 and 9 are the doctor&#39;s Call next. Messages 10 to 12 are the doctor starting the consultation, after which the API creates the encounter and the workspace opens. Messages 13 and 14 are notes, treatments and the signed, printed prescription. Messages 15 to 17 are Complete visit, after which charges become ready to bill for R1. Messages 18 to 20 are the lab order: the doctor creates and submits it, and the lab accepts it in the lab portal. Messages 21 to 23 are R1 using the Billing desk to receive the payment, after which the API returns a receipt and issues the invoice. Message 24 is the Accountant closing the counter, message 25 is the doctor closing the day, and message 26 is the worker jobs running overnight checks and cleanup.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-1-opening-sign-in-and-start-the-queue">3.1 Opening: sign in and start the queue</h2>
+<p>Receptionist R1 signs in. If R1 may work at more than one location, the app first asks which location to use (Chapter 8, the multi-tenant model). R1&#39;s role is Receptionist, so the home page is <strong>Appointments</strong> (Chapter 11, roles and permissions).</p>
+<p>Dr. Example One signs in and lands on <strong>My Queue</strong>, the Doctor home page. Opening that page creates the doctor&#39;s <strong>queue session</strong> for today if it does not exist yet. A queue session is one doctor&#39;s waiting line for one clinic day at one location, and the clinic day follows the Main location&#39;s timezone, not the server&#39;s. The doctor clicks <strong>Start my queue</strong>. A new session begins in the state &quot;Doctor not started&quot;: reception can already add patients, but nobody can be called until the doctor starts. The Queue chapter (Chapter 30) describes the states Doctor not started, Open and Paused.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Queue.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-2-a-booking-is-made">3.2 A booking is made</h2>
+<p>Earlier, R1 opened <strong>Appointments</strong> and booked Sample Patient A with Dr. Example One. The booking form checks the chosen time slot live and suggests another time when the slot is taken. The booking is saved as an <strong>appointment</strong>. Booking is only about reserving a time; it does not create a queue entry. The Appointments chapter (Chapter 29) covers booking, rescheduling and the status changes of a booking. Reminders to the patient and online booking are <strong>[Not implemented]</strong>.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Appointments.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-3-arrival-check-in-and-token">3.3 Arrival: check-in and token</h2>
+<p>Sample Patient A arrives. R1 finds the booking and clicks <strong>Check in</strong>, then <strong>Check in &amp; get token</strong>. The Queue chapter (Chapter 30) explains that check-in is the moment the patient joins the doctor&#39;s line. The patient gets a <strong>token</strong> that belongs to Dr. Example One&#39;s queue for the day. A token is the short number printed on the ticket, such as &quot;E-001&quot;: a letter prefix that comes from the doctor&#39;s name (or a prefix set on the doctor&#39;s assignment), then a three-digit counter. R1 clicks <strong>Print ticket</strong> in the success message, and the browser prints a small slip with the token, the doctor and roughly how many people are ahead.</p>
+<p>If the patient has unpaid dues, a red &quot;Rs … due&quot; badge appears next to the patient in the queue, so R1 can ask about it (Billing, Chapter 34, feature &quot;Show dues at check-in&quot;). A person who arrives without a booking is a <strong>walk-in</strong>: R1 clicks <strong>Walk-in</strong> on the reception queue board, picks the doctor, and the patient gets a token the same way.</p>
+<p>In the waiting room, the TV display shows the token being served and the next few tokens for each doctor. It needs no login and shows no patient names. The Platform pushes every change to the reception board, the doctor&#39;s screen and the TV live, through a realtime connection (Chapter 63).</p>
+<p>Status: <strong>[Implemented]</strong>. Modules: Appointments (check-in) and Queue (token, board, TV).</p>
+<h2 id="ch03-a-day-in-the-clinic-3-4-the-doctor-39-s-queue">3.4 The doctor&#39;s queue</h2>
+<p>Dr. Example One is on <strong>My Queue</strong>. The doctor clicks <strong>Call next</strong>. The button shows who will be called and why, for example &quot;(E-001 · Appointment due)&quot;. The Queue chapter (Chapter 30) explains that a rule engine picks the next patient, either by smart rules or by first come, first served, depending on the clinic&#39;s setting (urgent patients go first in both modes). The called token flashes on the TV. When the patient walks in, the doctor clicks <strong>Patient is here — start</strong>.</p>
+<p>If a called patient does not come, the receptionist or doctor can skip them, and they can rejoin later. A patient can also be sent for a test and return, or be transferred to another doctor. These actions are described in Chapter 30.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Queue.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-5-the-consultation-workspace">3.5 The consultation workspace</h2>
+<p>Starting the consultation creates the <strong>encounter</strong>, the clinical record of this one visit, and opens the <strong>consultation workspace</strong> at the consultation page. The Consultation chapter (Chapter 31) explains that the clinical record begins only when the doctor really starts, never at booking or check-in. In the workspace the doctor sees the patient at a glance, with allergy and medical alerts built from free-text fields (a structured allergy list is <strong>[Partial]</strong>), writes visit notes that auto-save, and records the <strong>treatments</strong> done today. The doctor can open the patient record without leaving the page.</p>
+<p>The doctor does not see treatment prices unless the doctor&#39;s role holds the price permission; the default Doctor role does not.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Consultation.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-6-prescription-and-printing">3.6 Prescription and printing</h2>
+<p>In the same workspace the <strong>Prescription</strong> panel lets the doctor search a medicine, set dose, frequency and duration, or choose a preset. The Prescriptions chapter (Chapter 32) explains the full module. The doctor clicks <strong>Sign &amp; print</strong>. The Platform signs the prescription and shows a PDF preview on the clinic&#39;s print layout, with a <strong>Print</strong> button. Urdu text typed by the doctor is printed in Nastaliq script, right to left; the labels stay in English.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Prescriptions.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-7-completing-the-visit">3.7 Completing the visit</h2>
+<p>The doctor clicks <strong>Complete</strong>. The toast says &quot;Visit completed&quot; and the doctor returns to My Queue. At the same moment, in the same database transaction, the booked appointment becomes completed and the Platform creates <strong>charges</strong> for the visit: a consultation charge, plus one charge per treatment recorded in the encounter, priced from the clinic&#39;s price list. This happens only when the organization has the feature <code>billing.invoices</code> enabled. The Consultation chapter (Chapter 31) and the Billing chapter (Chapter 34) describe the automatic charges. No invoice exists yet: the charges wait on the Billing desk.</p>
+<p>Status: <strong>[Implemented]</strong>. Modules: Queue (complete), Consultation, Billing (automatic charges).</p>
+<h2 id="ch03-a-day-in-the-clinic-3-8-a-lab-order">3.8 A lab order</h2>
+<p>Sample Patient A needs a crown, so Dr. Example One orders it from Example Dental Lab. The doctor opens <strong>Lab orders</strong>, creates a <strong>lab order</strong> with an item (for example a zirconia crown), and submits it, so its status becomes Submitted. The Dental lab chapter (Chapter 40) covers the clinic side. In this version a lab order is <strong>not</strong> created from inside the consultation workspace and is not linked to an encounter <strong>[Not implemented]</strong>, so the doctor orders it from the separate Lab orders page.</p>
+<p>The lab sees the order in its own <strong>lab portal</strong> (Chapter 41). A lab admin there can accept it with an expected date, reject it with a reason or ask a question. Instead of an account, the lab can also receive a <strong>magic link</strong> for the single order: a link that opens one page where the person can accept, reject or ask a clarification without logging in. The clinic can copy that link. The code can also queue the link for delivery through the notification outbox when the lab has a contact number or email (Chapter 44); whether a WhatsApp message actually leaves the Platform is <strong>[Unverified]</strong>, since notifications are in-app only. When the lab accepts, the order moves on, and its later stages are tracked through the workflow engine (Chapter 43).</p>
+<p>Status: <strong>[Implemented]</strong>, except that a lab order has no link to the consultation. Modules: Dental lab, Lab portal.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-9-collecting-payment-and-the-invoice">3.9 Collecting payment and the invoice</h2>
+<p>Sample Patient A goes to the front desk. R1 opens the <strong>Billing desk</strong>. The first section, <strong>Ready to bill</strong>, lists Sample Patient A with the count of charges and the unbilled amount. R1 clicks <strong>Bill</strong>, and the <strong>Collect payment</strong> sheet slides in. R1 can give a discount (the Receptionist role holds the permission for preset discount types only), confirm the amount, choose the <strong>Received in</strong> payment account (for example cash) and click <strong>Receive Rs …</strong>.</p>
+<p>The Billing chapter (Chapter 34) explains that the <strong>invoice is issued at this moment</strong>: when payment is collected for charges that have no invoice yet, the Platform numbers and issues the invoice in the same transaction as the receipt. The result shows the receipt number and the invoice number, with <strong>Print receipt</strong> and <strong>Print invoice</strong> buttons. Exclusive tax, if configured, is added on top of the price. If the patient pays more than the charges, the extra money is held as <strong>advance</strong>. The same transaction records the doctor&#39;s <strong>commission entries</strong> (Chapter 35), which the doctor later sees under My earnings.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Billing.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-10-cash-close">3.10 Cash close</h2>
+<p>At the end of the shift the cash is closed by someone who holds the cash-close permission. The default Receptionist role does not hold it; the Accountant and Admin roles do. In this story the Accountant opens <strong>Payments</strong> and clicks <strong>Close counter</strong>. The Platform shows the expected amount (payments minus refunds since the previous close). For a cash account the Accountant types the counted amount, adds a note if there is a difference, and clicks the close button. The close is an immutable record with a printable slip, and a difference above the alert amount shows a &quot;Flagged&quot; badge. Each close starts where the previous one ended, so no payment is counted twice. Closing never blocks taking payments (Billing, Chapter 34).</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Billing.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-11-closing-the-day">3.11 Closing the day</h2>
+<p>The doctor clicks <strong>Close day</strong> on My Queue. The button is disabled while a patient is still with the doctor. A dialog lists every patient still waiting, skipped or at a test, and for each one the doctor chooses to cancel them or transfer them to another doctor. When the list is settled the session closes and no more tokens are issued (Chapter 30). A session that is left open with patients still waiting is not cancelled automatically; the system logs an alert for an admin.</p>
+<p>Status: <strong>[Implemented]</strong>. Module: Queue.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-12-overnight-jobs-that-run-by-themselves">3.12 Overnight: jobs that run by themselves</h2>
+<p>When the clinic is closed, scheduled jobs run in the one <strong>worker</strong> process (Appendix E lists them and Chapter 6 explains the process roles). Their schedules are in server time, not in the clinic&#39;s timezone. The ones that matter to this day:</p>
+<div class="tw"><table><thead><tr>
+<th>Job</th>
+<th>When</th>
+<th>What it does for the clinic</th>
+</tr>
+</thead><tbody><tr>
+<td>Queue session day-end</td>
+<td>Every 5 minutes</td>
+<td>Closes the previous day&#39;s queue sessions that are empty. Sessions with waiting patients stay open and log an alert.</td>
+</tr>
+<tr>
+<td>Patient credit expiry</td>
+<td>Every day at 01:00</td>
+<td>Marks prepaid patient credits past their expiry date as expired.</td>
+</tr>
+<tr>
+<td>Billing invariant check</td>
+<td>Every day at 02:30</td>
+<td>Recomputes billing totals, checks the money rules and logs any break. It only logs.</td>
+</tr>
+<tr>
+<td>Queue cleanup</td>
+<td>Every day at 03:15</td>
+<td>Deletes old idempotency keys and published realtime events.</td>
+</tr>
+<tr>
+<td>Inventory alerts</td>
+<td>Every day at 08:00</td>
+<td>Counts low-stock and soon-expiring items and writes to the server log. Nobody is notified <strong>[Partial]</strong>.</td>
+</tr>
+<tr>
+<td>Month-end payroll</td>
+<td>05:00 on the 1st of each month</td>
+<td>Generates payroll records for the month that ended (Chapter 38).</td>
+</tr>
+<tr>
+<td>Queue no-show marker</td>
+<td>Every 60 seconds, all day</td>
+<td>Marks a booked patient as a no-show once they are too late to check in.</td>
+</tr>
+</tbody></table></div><p>The table shows that the Platform does its housekeeping without any user clicking anything. Realtime delivery of queue changes and in-app notifications also runs continuously in the worker, as loops rather than scheduled jobs (Chapter 63).</p>
+<p>Status: <strong>[Implemented]</strong>, except inventory alerts, which are <strong>[Partial]</strong>.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-13-what-the-day-did-not-include">3.13 What the day did not include</h2>
+<p>Some things a reader may expect are not built. The patient received no reminder message, and cannot book online or see anything in a portal. Notifications reach only logged-in staff, in the app. Insurance claims and online payments are not built. These gaps are listed in Chapter 1.</p>
+<h2 id="ch03-a-day-in-the-clinic-3-14-limitations-and-known-gaps">3.14 Limitations and known gaps</h2>
+<ul>
+<li>This chapter follows the default flow. A clinic with fewer features enabled, for example without <code>billing.invoices</code>, would not get the automatic charges at the end of the visit.</li>
+<li>The ticket prefix example &quot;E-001&quot; is deduced from the token rule (first letter of the doctor&#39;s name unless a prefix is set); the actual prefix depends on clinic data.</li>
+<li>The lab order stages after acceptance are described in Chapters 40 to 43, not here.</li>
+</ul>
+</section></body></html>

@@ -1,0 +1,9 @@
+- **Lab admin** — lab member with full portal rights for one lab (`lab_members.role = lab_admin`).
+- **Lab technician** — lab member who works the queue but cannot answer orders or manage the team (`lab_technician`).
+- **Lab switcher** — the portal selector that sets the active lab (`x-lab-id` header).
+- **Lab-only user** — a user with lab memberships and no clinic access, kept inside `/lab-portal` (`isLabOnlyUser`).
+- **Work queue** — the Production tab list of items with their next lab step.
+- **QC (quality check)** — the lab's own inspection step between finishing and ready (`qc_pass`, `qc_fail`).
+- **Shipment slip** — the printed sheet with a QR code that opens the clinic's receive page.
+- **Magic link state** — active, expired, revoked or used up; computed from columns (`linkState`).
+- **Lab-safe view** — the lab mapper's response with no patient price, clinic treatment or internal files (`toLabOrder`).

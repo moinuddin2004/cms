@@ -1,0 +1,28 @@
+sequenceDiagram
+  participant Acc as Accountant
+  participant Web as Web app
+  participant API
+  participant C as CommissionService
+  participant PG as PostgreSQL
+  Acc->>Web: Invoice detail, Edit, change lines, type a reason
+  Web->>API: POST /invoices/:id/edit/preview
+  API->>PG: apply the edit in a transaction, then roll it back
+  API-->>Web: preview of totals and money released
+  Acc->>Web: Save changes
+  Web->>API: POST /invoices/:id/edit with expectedRevision
+  API->>PG: revision plus 1, allocations released, ledger INVOICE_ADJUSTED, audit EDITED
+  API->>C: recordForCharges, source CHARGE_ADJUST
+  C->>PG: signed commission entries
+  alt Give the freed money back
+    Acc->>Web: Refund, or Save and refund
+    Web->>API: POST /invoices/:id/refund
+    API->>PG: refund RFD, refund sources, ledger REFUND, audit REFUNDED
+  else Cancel an unpaid invoice
+    Acc->>Web: Cancel, type a reason
+    Web->>API: POST /invoices/:id/cancel
+    API->>PG: status CANCELLED, charges back to not invoiced, ledger INVOICE_CANCELLED
+  else Cancel a paid invoice - API only
+    Acc->>API: POST /payments/:id/unapply
+    API->>PG: negative allocations, money back to advance
+    API->>C: recordForCharges, source UNAPPLY
+  end

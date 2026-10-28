@@ -1,0 +1,114 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch23-inventory"><h1 id="ch23-inventory-chapter-23-inventory">Chapter 23 — Inventory</h1>
+<p>This chapter describes the eleven tables of the inventory module: stock items and their categories, stock movements, suppliers, purchase orders, consumption templates and the record of materials used on a patient. It is for the product owner who wants to know how stock is tracked and where the module is incomplete. The module lives in <code>backend/src/inventory/</code> and is reached in the web app at <code>/inventory</code>. The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference.</p>
+<h2 id="ch23-inventory-23-1-two-things-to-know-first">23.1 Two things to know first</h2>
+<p><strong>camelCase column names.</strong> Unlike every other module, the inventory tables use camelCase column names in the database, for example <code>organizationId</code>, <code>locationId</code>, <code>currentStock</code> and <code>treatmentPlanId</code>. In SQL these names must be written in double quotes. The legacy <code>inventory</code> table is the only exception: it uses snake_case.</p>
+<p><strong>A note on the catalog.</strong> In the entity catalog, the &quot;Notes&quot; column of the inventory tables is shifted one row down: the comment shown next to a column belongs to the column listed above it. For example, the comment &quot;NEVER update directly — always through StockMovement&quot; belongs to <code>currentStock</code>, not to <code>unit</code>. This chapter was checked against the entity files in <code>backend/src/inventory/entities/</code>.</p>
+<p><strong>Money convention.</strong> Prices and totals are <code>numeric(10,2)</code> in rupees. Quantities are <code>numeric(10,2)</code>, so fractional quantities such as 1.5 ml are allowed. Timestamps are stored without time zone.</p>
+<p><strong>Status overview:</strong></p>
+<ul>
+<li>Stock items, categories, suppliers, purchase orders, stock movements and consumption templates: [Partial]. The backend and the <code>/inventory</code> page (tabs for items, suppliers, purchase orders and templates) exist and are permission-gated, but <code>/inventory</code> has no sidebar entry, so users reach it only by URL.</li>
+<li>Recording materials used on a patient (<code>patient_consumptions</code>): [Partial]. The backend endpoints (<code>POST /patient-consumptions</code> and its read endpoints) exist, and the web app has a <code>ConsumptionRecorder</code> component, but no page renders that component.</li>
+<li>The legacy <code>inventory</code> table: [Not implemented]. It is not registered by any module.</li>
+</ul>
+<h2 id="ch23-inventory-23-2-stock-and-purchasing">23.2 Stock and purchasing</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch23-stock-purchasing-erd.png" alt="Figure 23.1 — Stock and purchasing tables"></p>
+<p><em>Figure 23.1 — Items, categories, stock movements, suppliers, purchase orders and the legacy inventory table.</em></p>
+<p>The figure shows <code>organizations</code> connected to <code>inventory_categories</code> and <code>suppliers</code> (both CASCADE). <code>inventory_categories</code> connects to <code>inventory_items</code> with &quot;groups, SET NULL&quot;, and <code>locations</code> connects to <code>inventory_items</code> with &quot;stocked at, CASCADE&quot;. <code>inventory_items</code> connects to <code>stock_movements</code> (&quot;moved by, CASCADE&quot;) and to <code>purchase_order_items</code> (NO ACTION). <code>employees</code> connects to <code>stock_movements</code> (&quot;performed by&quot;) and to <code>purchase_orders</code> (&quot;created by&quot;), both NO ACTION. <code>suppliers</code> connects to <code>purchase_orders</code> (NO ACTION), <code>locations</code> to <code>purchase_orders</code> (CASCADE), and <code>purchase_orders</code> to <code>purchase_order_items</code> (CASCADE). A separate box, <code>inventory</code>, hangs from <code>locations</code> with &quot;legacy, CASCADE&quot;. The <code>poNumber</code> column on <code>purchase_orders</code> carries the note &quot;unique platform-wide&quot;.</p>
+<h3 id="ch23-inventory-inventory-categories-item-groups"><code>inventory_categories</code> — item groups</h3>
+<p>An organization&#39;s grouping of items, such as disposables, dental materials, medicines, instruments or office supplies. Key columns: <code>name</code>, <code>description</code>, <code>sortOrder</code>, and <code>isActive</code> as a soft delete.</p>
+<h3 id="ch23-inventory-inventory-items-one-stocked-item-at-one-location"><code>inventory_items</code> — one stocked item at one location</h3>
+<p>One row is one item kept at one location, with its current stock. Key columns:</p>
+<ul>
+<li>Identity: <code>name</code>, optional <code>sku</code> (an internal stock code) and <code>barcode</code> (kept for a future scanning feature).</li>
+<li>Stock: <code>currentStock</code> and <code>unit</code> (pieces, boxes, pairs, rolls, bottles, packets, cartridges, tubes, ml, gm, kg or liters). The code comment says <code>currentStock</code> must never be updated directly, only through a stock movement.</li>
+<li>Price: <code>unitPrice</code> is the last purchase cost per unit and is updated when purchase-order items are received; <code>sellingPrice</code> is used when the item is billed to a patient.</li>
+<li>Reorder: <code>reorderLevel</code> (alert when stock falls to or below it, default 10), <code>reorderQuantity</code> (suggested order quantity, default 50) and optional <code>maxStock</code>.</li>
+<li>Expiry: <code>expiryDate</code> (the nearest expiry among current batches) and <code>expiryAlertDays</code> (alert this many days before, default 30).</li>
+<li>Flags: <code>isBillable</code> (the item may be added to a patient invoice) and <code>isActive</code>.</li>
+</ul>
+<p>There is no unique constraint on the SKU. The code comment says SKU uniqueness per organization is enforced in the service, not in the database.</p>
+<h3 id="ch23-inventory-stock-movements-the-stock-history"><code>stock_movements</code> — the stock history</h3>
+<p>One row is one change to one item&#39;s stock. <code>movementType</code> is PURCHASE_IN, MANUAL_ADJUSTMENT, CONSUMPTION, WASTAGE, TRANSFER_IN, TRANSFER_OUT, RETURN_TO_SUPPLIER or INITIAL_STOCK. <code>quantity</code> is signed: positive for stock coming in, negative for stock going out. <code>previousStock</code> and <code>newStock</code> snapshot the item&#39;s stock before and after, so <code>newStock = previousStock + quantity</code>. <code>referenceType</code> names what triggered the movement (&#39;purchase_order&#39;, &#39;appointment&#39;, &#39;treatment_plan&#39;, &#39;manual&#39; or &#39;transfer&#39;) and <code>referenceId</code> holds that record&#39;s id. <code>batchNumber</code> and <code>expiryDate</code> describe the batch.</p>
+<p>Two oddities: <code>organizationId</code> and <code>locationId</code> here are <code>varchar</code>, not <code>uuid</code>, and have no foreign key; <code>referenceId</code> is also <code>varchar</code>.</p>
+<h3 id="ch23-inventory-suppliers-vendors-of-stock"><code>suppliers</code> — vendors of stock</h3>
+<p>An organization&#39;s supplier: name, contact person, phone, email, address, city, website, notes, and <code>isActive</code>.</p>
+<h3 id="ch23-inventory-purchase-orders-and-purchase-order-items-buying-stock"><code>purchase_orders</code> and <code>purchase_order_items</code> — buying stock</h3>
+<p>A purchase order is one order from one supplier for one location. <code>status</code> is DRAFT, ORDERED, PARTIALLY_RECEIVED, RECEIVED or CANCELLED. Money columns are <code>subtotal</code>, <code>taxRate</code>, <code>taxAmount</code> and <code>totalAmount</code>; dates are <code>orderDate</code>, <code>expectedDeliveryDate</code> and <code>receivedDate</code>. Each purchase-order item is one inventory item on the order, with <code>orderedQuantity</code>, <code>receivedQuantity</code>, <code>unitPrice</code>, <code>totalPrice</code>, and optional <code>batchNumber</code> and <code>expiryDate</code>.</p>
+<p><strong>Constraint that matters, and a risk.</strong> <code>poNumber</code> has a unique constraint on its own, across the whole Platform. The service generates numbers per organization in the form <code>PO-&lt;year&gt;-&lt;five digits&gt;</code>, starting from the organization&#39;s last order. Two organizations will therefore both try to create <code>PO-&lt;year&gt;-00001</code>, and the second insert will fail on the unique constraint. This is recorded as a defect for the owner; the module chapter for inventory (Chapter 39) covers its user impact.</p>
+<h3 id="ch23-inventory-inventory-legacy-single-table"><code>inventory</code> — legacy single table</h3>
+<p><strong>Status:</strong> [Not implemented]. A simple item table (<code>item_name</code>, <code>quantity</code>, <code>unit_price</code>, <code>expiry_date</code>) for an organization and location. No module registers it, so the running application never creates or uses it in development. It exists only because the command-line schema tools load every entity file, so a production schema built with <code>schema:sync:prod</code> may contain it while a development database does not. It looks superseded by <code>inventory_items</code> and <code>stock_movements</code>.</p>
+<h2 id="ch23-inventory-23-3-consumption">23.3 Consumption</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch23-consumption-erd.png" alt="Figure 23.2 — Consumption tables"></p>
+<p><em>Figure 23.2 — Consumption templates and the record of materials used on a patient.</em></p>
+<p>The figure shows <code>organizations</code> connected to <code>consumption_templates</code> (CASCADE). <code>consumption_templates</code> connects to <code>consumption_template_items</code> (CASCADE) and to <code>patient_consumptions</code> (&quot;started from, SET NULL&quot;). <code>inventory_items</code> connects to both <code>consumption_template_items</code> and <code>patient_consumption_items</code> with NO ACTION. <code>patients</code> and <code>locations</code> connect to <code>patient_consumptions</code> with CASCADE, <code>appointments</code> with SET NULL, and <code>employees</code> with &quot;performed by, NO ACTION&quot;. <code>patient_consumptions</code> connects to <code>patient_consumption_items</code> (CASCADE). A dotted line from <code>patient_treatment_plans</code> to <code>patient_consumptions</code> is labelled &quot;treatmentPlanId, no FK&quot;. The <code>unitPrice</code> column on the consumption item is marked &quot;snapshot&quot;.</p>
+<h3 id="ch23-inventory-consumption-templates-and-consumption-template-items-standard-kits"><code>consumption_templates</code> and <code>consumption_template_items</code> — standard kits</h3>
+<p>A consumption template is an organization&#39;s standard kit for a procedure, for example a root canal kit. Key columns: <code>name</code>, <code>procedureName</code>, optional <code>appointmentType</code> (used to suggest the template automatically when that type of visit starts) and <code>isActive</code>. Each template item names one inventory item and a default <code>quantity</code>, with optional <code>notes</code> as hints for the doctor and a <code>sortOrder</code>.</p>
+<h3 id="ch23-inventory-patient-consumptions-and-patient-consumption-items-what-was-used-on-a-patient"><code>patient_consumptions</code> and <code>patient_consumption_items</code> — what was used on a patient</h3>
+<p>A patient consumption records the materials used on one patient at one location, optionally for one appointment, and optionally based on a template. <code>performedBy</code> is the doctor (an employee). <code>totalCost</code> is the sum of the item totals, calculated by the service. Each consumption item records one inventory item, the <code>quantity</code> actually used, <code>unitPrice</code> copied from the item at the time of use, <code>totalPrice</code> (quantity × unit price, calculated by the service) and <code>wasFromTemplate</code> (true if the item was suggested by the template, false if added by hand).</p>
+<p><code>treatmentPlanId</code> has no foreign key. The code comment says this was done &quot;to avoid circular&quot; imports. The intended target is probably <code>patient_treatment_plans</code>, but the code does not say so.</p>
+<h2 id="ch23-inventory-23-4-relationships-explained">23.4 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong>Organization → categories, items, suppliers, purchase orders, consumption templates, patient consumptions.</strong> Each belongs to one organization; deleting the organization deletes them (CASCADE).</li>
+<li><strong>Location → items, purchase orders, patient consumptions.</strong> Each belongs to one location; deleting the location deletes them (CASCADE).</li>
+<li><strong>Category → items.</strong> An item belongs to zero or one category; deleting the category keeps the items and clears the link (SET NULL).</li>
+<li><strong>Item → stock movements.</strong> Each movement belongs to exactly one item; deleting the item deletes its whole stock history (CASCADE).</li>
+<li><strong>Employee → stock movements, purchase orders, patient consumptions.</strong> Each names the employee who did it. Deleting that employee is blocked while such rows exist (NO ACTION, which behaves like RESTRICT at the end of the statement).</li>
+<li><strong>Supplier → purchase orders.</strong> Each order belongs to exactly one supplier; a supplier with orders cannot be deleted (NO ACTION). Suppliers are deactivated with <code>isActive</code>.</li>
+<li><strong>Purchase order → purchase-order items.</strong> Deleting an order deletes its items (CASCADE).</li>
+<li><strong>Item → purchase-order items, template items, consumption items.</strong> Each refers to exactly one inventory item; an item used on any of these cannot be deleted (NO ACTION). Note the asymmetry: deleting an item would cascade its stock movements, but the delete is blocked first if the item appears on any order, template or consumption.</li>
+<li><strong>Template → template items.</strong> Deleting a template deletes its items (CASCADE).</li>
+<li><strong>Template → patient consumptions.</strong> A consumption may have started from one template; deleting the template keeps the consumption and clears the link (SET NULL).</li>
+<li><strong>Patient → patient consumptions.</strong> Deleting the patient deletes the consumption records (CASCADE).</li>
+<li><strong>Appointment → patient consumptions.</strong> Deleting the appointment keeps the consumption and clears the link (SET NULL).</li>
+<li><strong>Patient consumption → consumption items.</strong> Deleting a consumption deletes its items (CASCADE).</li>
+<li><strong>Legacy <code>inventory</code>.</strong> Belongs to one location and optionally one organization; both CASCADE.</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><code>patient_consumptions.treatmentPlanId</code> → probably <code>patient_treatment_plans</code> (not verified in the code).</li>
+<li><code>stock_movements.referenceId</code> is polymorphic, discriminated by <code>referenceType</code>.</li>
+<li><code>stock_movements.organizationId</code> and <code>locationId</code> → <code>organizations</code> and <code>locations</code>.</li>
+</ul>
+<h2 id="ch23-inventory-23-5-tenant-scope">23.5 Tenant scope</h2>
+<ul>
+<li><strong>Organization and location:</strong> <code>inventory_items</code>, <code>stock_movements</code>, <code>purchase_orders</code>, <code>patient_consumptions</code>, and the legacy <code>inventory</code>.</li>
+<li><strong>Organization only:</strong> <code>inventory_categories</code>, <code>suppliers</code>, <code>consumption_templates</code>.</li>
+<li><strong>No tenant column:</strong> <code>purchase_order_items</code>, <code>consumption_template_items</code> and <code>patient_consumption_items</code>, scoped only through their parent order, template or consumption. Queries must join the parent to enforce isolation.</li>
+<li>Unlike the billing tables, most inventory tenant columns do have foreign keys. The exception is <code>stock_movements</code>, whose tenant columns are unconstrained <code>varchar</code>.</li>
+</ul>
+</section></body></html>

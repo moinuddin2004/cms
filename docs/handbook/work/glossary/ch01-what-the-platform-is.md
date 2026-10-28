@@ -1,0 +1,2 @@
+- **Specialty tag** — a label on an organization (general, dental, skin, ortho, physio, eye) used to judge feature relevance (`specialtyTags`).
+- **Retired feature key** — a feature key whose catalog seed is commented out and deactivated because no code exists behind it (`RETIRED_FEATURE_KEYS`).

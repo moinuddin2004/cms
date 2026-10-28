@@ -1,0 +1,12 @@
+flowchart LR
+    S["Service change<br/>patients, roles, features, theme, sidebar, subscriptions"] --> T["Same database transaction"]
+    T --> A[("audit_logs<br/>before and after of changed fields")]
+    T --> H[("status_history<br/>state changes")]
+    B["Billing services"] --> BA[("billing_audit_logs")]
+    Q["Queue orchestrator"] --> QE[("queue_events")]
+    RX["Prescription service"] --> RH[("prescription_history")]
+    A --> V["Readers<br/>patient audit trail, billing activity, queue history"]
+    H --> V
+    BA --> V
+    QE --> V
+    RH --> V

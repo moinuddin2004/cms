@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> requested : reject work or request remake
+    requested --> disputed : lab disputes
+    requested --> agreed : clinic agrees - new item created
+    disputed --> agreed : clinic agrees - new item created
+    requested --> closed : clinic closes - no remake
+    disputed --> closed : clinic closes - no remake
+    agreed --> [*]
+    closed --> [*]

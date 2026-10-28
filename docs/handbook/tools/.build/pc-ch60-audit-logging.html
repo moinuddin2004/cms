@@ -1,0 +1,236 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch60-audit-logging"><h1 id="ch60-audit-logging-chapter-60-audit-logging">Chapter 60 — Audit logging</h1>
+<p>This chapter explains how the Platform records who changed what and when: the history tables, the modules that write to them today, who may read them and what is kept for how long. It is written for the product owner, who must be able to answer an auditor&#39;s question honestly. The most important message is that audit coverage is <strong>uneven</strong>: patients and several administration areas are recorded in detail, while appointments, employees, payroll and organizations are not yet recorded in the general audit log.</p>
+<h2 id="ch60-audit-logging-60-1-the-history-tables">60.1 The history tables</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The Platform has several history tables, written by different modules at different times.</p>
+<div class="tw"><table><thead><tr>
+<th>Table</th>
+<th>Written by</th>
+<th>What a row says</th>
+</tr>
+</thead><tbody><tr>
+<td><code>audit_logs</code></td>
+<td>the shared audit service</td>
+<td>One change: entity type and id, action (create, update, void, delete, export, view_sensitive), the <strong>changed fields</strong> before and after, actor, actor side (clinic, lab, platform, system), IP address and request id</td>
+</tr>
+<tr>
+<td><code>status_history</code></td>
+<td>the shared audit service</td>
+<td>One state change: from state, to state, action code, actor, channel (app, portal, magic link, proxy, QR), reason</td>
+</tr>
+<tr>
+<td><code>billing_audit_logs</code></td>
+<td>billing services</td>
+<td>One billing event with before and after, reason, amount, actor and the actor&#39;s role</td>
+</tr>
+<tr>
+<td><code>queue_events</code></td>
+<td>the queue orchestrator</td>
+<td>One queue event with a running sequence number, status before and after</td>
+</tr>
+<tr>
+<td><code>prescription_history</code></td>
+<td>the prescription service</td>
+<td>One prescription event: created, amended (with a full snapshot of the earlier version), finalized, printed, shared</td>
+</tr>
+</tbody></table></div><p>The table lists the five history tables and what each row records. <code>audit_logs</code> and <code>status_history</code> are the general tables. The other three are older, module-specific histories that stay as they are.</p>
+<p><strong>Append only.</strong> <code>audit_logs</code> and <code>status_history</code> are protected by database triggers that reject any update or delete, so a row, once written, cannot be changed through the application or by accident. <code>commission_entries</code> has a similar trigger (Chapter 35). <code>billing_audit_logs</code>, <code>queue_events</code> and <code>prescription_history</code> are append-only by convention: the code only inserts, but no trigger enforces it.</p>
+<p><strong>Written in the same transaction.</strong> The shared service always writes in the caller&#39;s transaction, so the history commits or rolls back together with the change. An update that changed nothing writes no row.</p>
+<p><strong>Subject.</strong> Each general row can carry a <code>subject_id</code>, the record whose history it joins. For example, a patient&#39;s vitals row carries the patient as subject, so one query returns the patient&#39;s whole history.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/audit/audit.service.ts</code> · <code>AuditService</code> · <code>backend/src/common/audit/entities/</code> · <code>backend/src/migrations/1792490000000-lab-management-foundation.ts</code> · <code>backend/src/billing/audit/billing-audit.service.ts</code> · <code>backend/src/queue/entities/queue-event.entity.ts</code> · <code>backend/src/prescriptions/entities/prescription-history.entity.ts</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch60-audit-flow.png" alt="Figure 60.1 — Where history is written and read"></p>
+<p><em>Figure 60.1 — Writers, history tables and readers.</em></p>
+<p>The flowchart reads left to right. A box &quot;Service change&quot; (patients, roles, features, theme, sidebar, subscriptions) leads to &quot;Same database transaction&quot;, which writes two tables: <code>audit_logs</code> (before and after of changed fields) and <code>status_history</code> (state changes). Three other writers stand alone: &quot;Billing services&quot; write <code>billing_audit_logs</code>, the &quot;Queue orchestrator&quot; writes <code>queue_events</code> and the &quot;Prescription service&quot; writes <code>prescription_history</code>. All five tables feed a single box, &quot;Readers&quot;, which names the patient audit trail, the billing activity feed and the queue history.</p>
+<h2 id="ch60-audit-logging-60-2-what-is-recorded-today">60.2 What is recorded today</h2>
+<p><strong>Status:</strong> [Partial] — coverage differs by module. The table states what the code does now.</p>
+<div class="tw"><table><thead><tr>
+<th>Area</th>
+<th>Written to the general audit log?</th>
+<th>Detail</th>
+</tr>
+</thead><tbody><tr>
+<td>Patients</td>
+<td>Yes, [Implemented]</td>
+<td>Create, update and delete of the patient; activate and deactivate (as status history); 13 kinds of patient records (dental info, tooth chart, vitals, treatment plans and plan items, prescriptions as listed on the patient, documents, consents, communications, recalls, referrals, feedback and insurance). Delete rows keep the last snapshot and the counts of linked records. Patient import and queue walk-in patient creation are audited the same way. File addresses and signatures are never stored in the log.</td>
+</tr>
+<tr>
+<td>Patient exports</td>
+<td>Yes</td>
+<td>Every patient CSV export writes an <code>export</code> row with the number of rows and the filters used</td>
+</tr>
+<tr>
+<td>Report exports</td>
+<td>Yes</td>
+<td>Every Excel or PDF report export writes an <code>export</code> row with the report, format and period</td>
+</tr>
+<tr>
+<td>Employment roles</td>
+<td>Yes</td>
+<td>Each create, edit, clone and delete, with before and after values and the reason for high-risk grants</td>
+</tr>
+<tr>
+<td>Organization features and location overrides</td>
+<td>Yes</td>
+<td>Each switch, with the platform recorded as actor when a super admin acts</td>
+</tr>
+<tr>
+<td>Subscriptions and subscription payments</td>
+<td>Yes</td>
+<td>Payments and status changes</td>
+</tr>
+<tr>
+<td>Theme and registry settings</td>
+<td>Yes</td>
+<td>One row per changed key</td>
+</tr>
+<tr>
+<td>Sidebar layout</td>
+<td>Yes</td>
+<td>Save and reset</td>
+</tr>
+<tr>
+<td>Billing</td>
+<td>Own table</td>
+<td><code>billing_audit_logs</code> for charges, invoices, payments, refunds, discounts, cash close and settings</td>
+</tr>
+<tr>
+<td>Lab modules</td>
+<td>Yes</td>
+<td>Lab orders, items, attachments, shipments, production, links, members, catalog, patient lab invoices, credits, vendor bills, statements and payments</td>
+</tr>
+<tr>
+<td>Workflow engine</td>
+<td>Yes</td>
+<td>Transitions write status history; form schemas, workflow and stage templates write audit rows</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>Own table</td>
+<td><code>queue_events</code>, written for every queue change</td>
+</tr>
+<tr>
+<td>Prescriptions</td>
+<td>Own table</td>
+<td><code>prescription_history</code></td>
+</tr>
+<tr>
+<td><strong>Appointments</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>No audit row is written for booking, rescheduling, cancelling or status changes</td>
+</tr>
+<tr>
+<td><strong>Employees (staff records, salary, schedules)</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Only role definitions are audited, not employee data</td>
+</tr>
+<tr>
+<td><strong>Payroll</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>No audit rows for payroll records or payments</td>
+</tr>
+<tr>
+<td><strong>Organizations and locations</strong></td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Settings and details of organizations and locations are not audited, apart from features, theme and subscriptions</td>
+</tr>
+<tr>
+<td>Encounters, treatments, inventory</td>
+<td><strong>No</strong> [Not implemented]</td>
+<td>Not audited</td>
+</tr>
+<tr>
+<td>Sign-in events</td>
+<td>Separate</td>
+<td><code>security_logs</code> (Chapter 56)</td>
+</tr>
+</tbody></table></div><p>The table lists each area, whether it writes to the general audit log and what is recorded. It was built by searching the code for every writer of the audit service. The audit rollout plan names appointments, staff, payroll and organizations as later phases; their code is not written yet.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patient-audit.ts</code> · <code>recordPatientChange</code> · <code>backend/src/patients/patients.service.ts</code> · <code>backend/src/reports/reports.controller.ts</code> · <code>backend/src/employees/employment-roles.service.ts</code> · <code>backend/src/feature-flags/feature-admin.service.ts</code> · <code>backend/src/settings-registry/settings-registry.service.ts</code> · <code>backend/src/subscriptions/subscriptions.service.ts</code></p>
+<h2 id="ch60-audit-logging-60-3-reading-the-history">60.3 Reading the history</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<div class="tw"><table><thead><tr>
+<th>Reader</th>
+<th>Endpoint</th>
+<th>Permission</th>
+<th>Screen</th>
+</tr>
+</thead><tbody><tr>
+<td>Patient audit trail</td>
+<td><code>GET /patients/:id/audit-trail</code></td>
+<td><code>admin.audit.view</code></td>
+<td>A history sheet on the patient page, shown only to holders of the permission</td>
+</tr>
+<tr>
+<td>Queue history of a session</td>
+<td><code>GET /queue/sessions/:id/events</code></td>
+<td><code>admin.audit.view</code></td>
+<td>Queue history</td>
+</tr>
+<tr>
+<td>Billing activity feed</td>
+<td><code>GET /billing/activity</code></td>
+<td><code>billing.activity.view</code></td>
+<td>Billing activity page</td>
+</tr>
+<tr>
+<td>Entity timelines for labs</td>
+<td>lab endpoints</td>
+<td>lab permissions</td>
+<td>Activity timelines on lab pages</td>
+</tr>
+</tbody></table></div><p>The table lists the readers. The patient audit trail merges <code>audit_logs</code> and <code>status_history</code> for the patient and every record under them, newest first (up to 200 entries), and the values are redacted for readers who lack the clinical or document permissions. The permission <code>admin.audit.view</code> is &quot;View the audit log&quot; in the Admin group; the owner and super admin hold it, and the Admin system role holds the whole Admin group by default (Chapter 11).</p>
+<p>There is <strong>no organization-wide audit page</strong>: no screen or endpoint lists all changes of a clinic, searches by user or date, or exports the log. The general tables can be read only through the entity or subject timelines in the table and, for developers, in the database.</p>
+<h2 id="ch60-audit-logging-60-4-retention">60.4 Retention</h2>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>The Platform has no retention or purge policy for audit data. The audit tables are append-only, so nothing deletes them. The only clean-up job in the area removes queue idempotency keys older than 24 hours and published realtime outbox rows older than 7 days (Chapter 63), which are technical records, not history. <code>security_logs</code> and session rows are also never purged. A clinic with a legal retention limit has no built-in way to apply it.</p>
+<h2 id="ch60-audit-logging-60-5-who-is-the-actor">60.5 Who is the actor</h2>
+<p>Each general row stores the user id, the <strong>actor side</strong> and, when available, the IP address and a request id taken from an <code>x-request-id</code> header if the caller sent one. The side is clinic for clinic staff, lab for lab members, platform for a super admin and system for background jobs. A super admin acting inside a clinic is recorded as platform.</p>
+<h2 id="ch60-audit-logging-60-6-limitations-and-known-gaps">60.6 Limitations and known gaps</h2>
+<ul>
+<li>Appointments, staff data, payroll and organization settings have no audit history.</li>
+<li>No organization-wide audit viewer, filter or export.</li>
+<li>No retention policy.</li>
+<li>Three of the five history tables are append-only by convention only.</li>
+<li>Reading sensitive patient data is not logged; the action <code>view_sensitive</code> exists but is not written by any reader.</li>
+<li>Encounter notes in progress are not audited; the plan is one snapshot at completion (not built).</li>
+</ul>
+<h2 id="ch60-audit-logging-60-7-owner-39-s-faq">60.7 Owner&#39;s FAQ</h2>
+<p><strong>Can I see who edited a patient&#39;s phone number?</strong> Yes, if you hold <code>admin.audit.view</code>: open the patient and the audit history. It shows the old and new value, who and when.</p>
+<p><strong>Can I see who cancelled an appointment?</strong> Not from an audit log today. Appointments are not audited. The appointment row itself shows its status and cancellation reason.</p>
+<p><strong>Can someone delete a history row to hide a change?</strong> Not through the application. For <code>audit_logs</code> and <code>status_history</code> the database itself rejects updates and deletes.</p>
+<p><strong>Who is told when patient data is exported?</strong> Nobody is notified, but each export writes a record with who, when, how many rows and the filters.</p>
+<p><strong>How long are audit records kept?</strong> Forever, because nothing deletes them.</p>
+</section></body></html>

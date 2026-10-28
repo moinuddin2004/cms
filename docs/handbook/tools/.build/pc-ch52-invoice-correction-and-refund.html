@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch52-invoice-correction-and-refund"><h1 id="ch52-invoice-correction-and-refund-chapter-52-workflow-correcting-an-invoice-and-refunding-money">Chapter 52 — Workflow: Correcting an Invoice and Refunding Money</h1>
+<p>This chapter follows what the Accountant does when an issued invoice turns out to be wrong: preview and save an edit that creates a new revision, cancel an unpaid invoice, refund money, or undo a payment first. It is written for the product owner, who needs to know what stays on record and how doctor commission follows each change. Invoices are never deleted; every change adds to the history.</p>
+<h2 id="ch52-invoice-correction-and-refund-52-1-who-is-involved">52.1 Who is involved</h2>
+<ul>
+<li><strong>Accountant</strong> (or Admin): holds <code>billing.invoice.edit</code>, <code>billing.invoice.void</code> and <code>billing.refund.issue</code>. The last two are marked high risk.</li>
+<li><strong>Sample Patient A</strong>: the patient whose invoice is corrected.</li>
+<li><strong>Dr. Example One</strong>: the doctor whose commission adjusts.</li>
+</ul>
+<h2 id="ch52-invoice-correction-and-refund-52-2-the-steps">52.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch52-invoice-correction-sequence.png" alt="Figure 52.1 — Invoice correction and refund"></p>
+<p><em>Figure 52.1 — Edit with preview, then refund or cancel.</em></p>
+<p>The diagram has five participants: Accountant, Web app, API, CommissionService and PostgreSQL, and 18 messages. The Accountant opens the invoice, presses Edit, changes lines and types a reason; the Web app calls <code>POST /invoices/:id/edit/preview</code>, the API applies the edit inside a transaction and rolls it back, and returns the preview. The Accountant presses Save changes (<code>POST /invoices/:id/edit</code> with the expected revision); the API raises the revision, releases allocations, posts an adjustment to the ledger and writes an audit row, then asks CommissionService to record the signed commission entries. An &quot;alt&quot; box has three outcomes. To give freed money back, the Accountant presses Refund or Save and refund (<code>POST /invoices/:id/refund</code>) and the API writes the refund, its sources, a ledger row and an audit row. To cancel an unpaid invoice, the Accountant presses Cancel with a reason (<code>POST /invoices/:id/cancel</code>), and the invoice becomes cancelled with its charges back to not invoiced. To cancel a paid invoice, an API client must first unapply the payment (<code>POST /payments/:id/unapply</code>), which writes negative allocations and reverses commission.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-1-preview-the-edit">Step 1 — Preview the edit</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On the invoice detail, <strong>Edit</strong> lets the Accountant change quantities, prices and discounts, void lines, add unbilled charges or add a manual line, with a reason of 5 to 300 characters. The preview really runs the edit in a transaction and discards it, so the numbers match what saving will do (Chapter 34).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-2-save-a-revision">Step 2 — Save a revision</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. Saving raises the revision number; the invoice number never changes. If a line&#39;s payable shrinks, the allocation above the new amount is released, newest first, and moves to the patient&#39;s advance. Older revisions can be printed from audit snapshots. If two people edit at once, the second gets <code>BILLING_INVOICE_REVISION_CONFLICT</code>. Voiding a line needs <code>billing.invoice.void</code>; changing a catalog price needs <code>billing.price.override</code>.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-3-commission-follows">Step 3 — Commission follows</h3>
+<p><strong>Module:</strong> Commissions. <strong>Status:</strong> [Implemented] (backend only). On every edit the Platform recomputes the doctor&#39;s commission target per charge and inserts only the difference as a signed entry. A voided charge brings its commission to zero. Entries already settled in payroll are never changed; the correction lands in the next settlement (Chapter 35).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-4-cancel-an-unpaid-invoice">Step 4 — Cancel an unpaid invoice</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. <strong>Cancel</strong> needs a reason and is shown only when nothing is paid. The invoice keeps its totals and prints with a CANCELLED watermark, the number stays used, the charges return to Ready to bill, and the patient&#39;s statement gets a credit. Cancelled is final.</p>
+<h3 id="ch52-invoice-correction-and-refund-step-5-unapply-a-payment-backend-only">Step 5 — Unapply a payment (backend only)</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Partial]. <code>POST /payments/:paymentId/unapply</code> takes back all or part of a payment&#39;s allocations and sends the money to advance. It adds negative rows and deletes nothing, and the receipt stays. No screen calls it, so cancelling an invoice that has payments cannot be done from the web app (<code>BILLING_INVOICE_HAS_PAYMENTS</code>: &quot;Unapply its payments before cancelling this invoice&quot;).</p>
+<h3 id="ch52-invoice-correction-and-refund-step-6-refund">Step 6 — Refund</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. A refund always comes out of the patient&#39;s advance. An <strong>advance refund</strong> returns unused money from the patient&#39;s Billing tab. An <strong>invoice refund</strong> returns money released from an invoice, optionally in the same step as the edit that released it. The accountant chooses the account under &quot;Paid out from&quot;; it is not forced to be the account that received the payment. Sources are chosen automatically: payments released from that invoice first, latest first, then other advance, newest first. A refund takes the next <code>RFD</code> number, needs a reason of 5 to 300 characters, and cannot be undone. Cash close subtracts refunds per account (Chapter 34, Chapter 50).</p>
+<h2 id="ch52-invoice-correction-and-refund-52-3-what-can-go-wrong">52.3 What can go wrong</h2>
+<ul>
+<li><code>BILLING_INVOICE_REVISION_CONFLICT</code>: someone else changed the invoice; reload.</li>
+<li><code>BILLING_INVOICE_CANCELLED</code>: a cancelled invoice is read-only.</li>
+<li><code>BILLING_REFUND_EXCEEDS_ADVANCE</code> and <code>BILLING_REFUND_EXCEEDS_INVOICE_REFUNDABLE</code>: the amount is above what can be returned.</li>
+<li><code>BILLING_REFERENCE_REQUIRED</code> for an account that needs a reference.</li>
+<li><code>BILLING_UNAPPLY_EXCEEDS_ALLOCATION</code>: more than was applied.</li>
+<li>Wrong refunds cannot be reversed; the only remedy is a new payment.</li>
+<li>Read-only mode refuses all of these with 402.</li>
+</ul>
+<h2 id="ch52-invoice-correction-and-refund-52-4-data-left-behind">52.4 Data left behind</h2>
+<p><code>invoices</code> (revision, status), <code>charges</code>, <code>payment_allocations</code> (including negative and release rows), <code>payments</code>, <code>refunds</code>, <code>refund_sources</code>, <code>ledger_entries</code> (INVOICE_ADJUSTED, INVOICE_CANCELLED, REFUND), <code>billing_audit_logs</code> (EDITED, CANCELLED, REFUNDED, UNAPPLIED with snapshots), <code>commission_entries</code> (signed differences), <code>document_sequences</code>.</p>
+</section></body></html>

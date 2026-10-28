@@ -1,0 +1,132 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch19-prescriptions-and-plans"><h1 id="ch19-prescriptions-and-plans-chapter-19-prescriptions-and-plans">Chapter 19 — Prescriptions and plans</h1>
+<p>This chapter describes the tables behind prescriptions and the clinic&#39;s reusable libraries: the prescription itself with its medicine lines and version history, the medicine directory, prescription presets, print layouts, doctors&#39; saved signatures, plan templates, and the older prescription table that still exists. It is for the product owner who needs to know where a printed prescription&#39;s data comes from and why several tables have &quot;plan&quot; or &quot;template&quot; in their name. The prescription module is described in Chapter 32 and treatment plans in Chapter 33.</p>
+<h2 id="ch19-prescriptions-and-plans-19-1-context">19.1 Context</h2>
+<p>Ten tables are covered here. Eight are owned by the <code>prescriptions</code> module: <code>prescriptions</code>, <code>prescription_medicines</code>, <code>prescription_history</code>, <code>prescription_templates</code>, <code>doctor_signatures</code>, <code>medicine_directory</code>, <code>treatment_plan_templates</code> and <code>treatment_plan_template_medicines</code>. <code>plan_templates</code> is owned by the <code>plan-templates</code> module. The legacy <code>patient_prescriptions</code> table is owned by the <code>patients</code> module. The patient&#39;s own planned work, <code>patient_treatment_plans</code> and <code>treatment_plan_items</code>, also belongs to the patients domain and is described in Chapter 17.</p>
+<p>The names are easy to confuse, so here is the mapping from screen to table. In the web app&#39;s prescription library, <strong>Medicines</strong> is <code>medicine_directory</code>, <strong>Presets</strong> (ready-made medicine sets) is <code>treatment_plan_templates</code> despite its name, and <strong>Print layouts</strong> is <code>prescription_templates</code>. The sidebar entry <strong>Treatment Plans</strong> opens the plan template library, which is <code>plan_templates</code>. Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch19-prescriptions-and-plans-19-2-the-prescription-record">19.2 The prescription record</h2>
+<h3 id="ch19-prescriptions-and-plans-19-2-1-prescriptions-prescription">19.2.1 <code>prescriptions</code> — prescription</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The prescription a doctor writes, signs and shares. Key columns:</p>
+<ul>
+<li><code>prescription_number</code> — formatted <code>RX-&lt;year&gt;-&lt;5 digits&gt;</code>, for example <code>RX-2026-00001</code>.</li>
+<li><code>organization_id</code>, <code>location_id</code>, <code>patient_id</code> (all required).</li>
+<li><code>appointment_id</code>, <code>encounter_id</code>, <code>doctor_id</code> — the visit and the doctor; all optional.</li>
+<li><code>prescription_template_id</code> (the print layout) and <code>treatment_plan_template_id</code> (the preset it was pre-filled from); both optional.</li>
+<li>Clinical text: <code>diagnosis</code>, <code>chief_complaint</code>, <code>further_plan</code>, and instructions in English and in Urdu.</li>
+<li><code>vitals</code> — a JSON copy of the readings (blood pressure, pulse, temperature, oxygen, weight, height, BMI, respiratory rate).</li>
+<li><code>signature_image_url</code> and <code>signed_at</code>.</li>
+<li><code>status</code> — <code>DRAFT</code>, <code>FINALIZED</code> or <code>AMENDED</code>; <code>version</code> starts at 1.</li>
+<li><code>pdf_url</code> — a cached generated PDF, cleared when the record is amended.</li>
+</ul>
+<p><code>prescription_number</code> is unique across the whole Platform, while the number generator counts per organization (it reads the organization&#39;s latest number and adds one). Indexes support lookups by patient, appointment, encounter, doctor and by (<code>organization_id</code>, <code>location_id</code>).</p>
+<h3 id="ch19-prescriptions-and-plans-19-2-2-prescription-medicines-prescription-medicine-line">19.2.2 <code>prescription_medicines</code> — prescription medicine line</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One line per medicine on a prescription: <code>medicine_name</code> and its Urdu name, <code>type</code>, <code>dosage</code>, <code>frequency</code>, <code>frequency_timing</code> (a JSON list such as <code>[&quot;morning&quot;,&quot;evening&quot;]</code>), <code>meal_relation</code> (before, after or with a meal, empty stomach, none), <code>duration</code>, special instructions in English and Urdu, and <code>sort_order</code>. <code>medicine_directory_id</code> keeps a link to the directory entry it came from, but the name and every other value are copied onto the line, so a finalized prescription stays a faithful record even if the directory entry is renamed or switched off later. This table has no tenant column; it is isolated through its prescription.</p>
+<h3 id="ch19-prescriptions-and-plans-19-2-3-prescription-history-prescription-change-history">19.2.3 <code>prescription_history</code> — prescription change history</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per change event: <code>version</code>, <code>change_type</code> (<code>CREATED</code>, <code>AMENDED</code>, <code>FINALIZED</code>, <code>PRINTED</code>, <code>SHARED</code>), <code>changed_by</code> (a user id), <code>change_notes</code>, and <code>previous_data</code> — a full JSON snapshot of the prescription and its medicines before the change (null for <code>CREATED</code>). Any past version can be shown from this table alone. The entity comment calls it immutable; the database does not enforce that. It has no tenant column and is isolated through its prescription.</p>
+<h2 id="ch19-prescriptions-and-plans-19-3-the-libraries">19.3 The libraries</h2>
+<h3 id="ch19-prescriptions-and-plans-19-3-1-medicine-directory-medicine-directory">19.3.1 <code>medicine_directory</code> — medicine directory</h3>
+<p><strong>Status:</strong> [Implemented] (screen label &quot;Medicines&quot;)</p>
+<p>The clinic&#39;s own medicine catalogue, which powers the search while writing a prescription. Each row: <code>name</code>, <code>generic_name</code>, <code>name_urdu</code>, <code>type</code> (tablet, capsule, syrup, injection, cream, drops and others), <code>strength</code>, <code>manufacturer</code>, default dosage, frequency, duration and meal relation, Urdu instructions, and <code>is_active</code>. Entries are switched off with <code>is_active</code>, never hard-deleted, so old prescriptions still resolve. Indexes cover (<code>organization_id</code>, <code>name</code>) and (<code>organization_id</code>, <code>is_active</code>).</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-2-treatment-plan-templates-prescription-preset">19.3.2 <code>treatment_plan_templates</code> — prescription preset</h3>
+<p><strong>Status:</strong> [Implemented] (screen label &quot;Presets&quot;)</p>
+<p>A reusable prescription protocol, for example &quot;Root canal aftercare&quot;: <code>name</code>, <code>description</code>, <code>category</code> (forty categories such as pain relief, post-extraction, implant, pregnancy-safe), <code>specialty_tags</code>, <code>further_plan</code>, instructions in English and Urdu, and <code>is_active</code>. Choosing a preset in the prescription builder pre-fills the medicines and texts; the doctor can still edit before finalizing. Despite the name, it is not a treatment plan.</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-3-treatment-plan-template-medicines-preset-medicine-line">19.3.3 <code>treatment_plan_template_medicines</code> — preset medicine line</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The medicine lines of a preset, with the same columns as <code>prescription_medicines</code> and the same denormalized copy of the directory values. It has no tenant column and is isolated through its preset.</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-4-prescription-templates-print-layout">19.3.4 <code>prescription_templates</code> — print layout</h3>
+<p><strong>Status:</strong> [Implemented] (screen label &quot;Print layouts&quot;)</p>
+<p>The look of the printed prescription: <code>name</code>, <code>is_default</code>, <code>page_size</code> (<code>A4</code>, <code>A5</code>, <code>LETTER</code>, <code>CUSTOM</code>), <code>orientation</code>, custom width and height in millimetres, and JSON blocks for <code>header</code> (logo, clinic and doctor names in English and Urdu, qualifications, registration number), <code>footer</code> (address, timings, disclaimer) and <code>styling</code> (colours, fonts, toggles, margins). <code>location_id</code> null means an organization-wide layout usable at any location; a location can also have its own default, and several layouts per location are allowed. Nothing in the database limits a location to one default; an index on (<code>location_id</code>, <code>is_default</code>) only speeds the lookup.</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-5-doctor-signatures-saved-doctor-signature">19.3.5 <code>doctor_signatures</code> — saved doctor signature</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A doctor&#39;s saved signature image (<code>signature_image_url</code>, optional <code>signature_data</code>), attached to prescriptions they finalize unless they draw a new one. <code>employee_id</code> is unique: one signature per owner, and saving again updates the row in place. Despite its name, the column holds the signed-in <strong>user&#39;s</strong> id, not an employee id — the controller passes the user id from the login token. Because the uniqueness is on that id alone, a user who works for two organizations has one signature row, stored with the organization where it was first saved, and the read path does not filter by organization.</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-6-plan-templates-plan-template">19.3.6 <code>plan_templates</code> — plan template</h3>
+<p><strong>Status:</strong> [Implemented] (sidebar label &quot;Treatment Plans&quot;)</p>
+<p>A predefined treatment plan a doctor can pick, for example a root canal with its usual steps: <code>name</code>, <code>category</code> (seventeen dental categories such as endodontics, prosthodontics, orthodontics, emergency), <code>description</code>, <code>items</code> (a JSON list of procedures) and <code>is_active</code> (inactive templates are hidden from the picker but kept). When a treatment is recorded from the patient screen, the chosen template is saved in <code>treatments.plan_template_id</code>. <code>organization_id</code> has no foreign key.</p>
+<h3 id="ch19-prescriptions-and-plans-19-3-7-patient-prescriptions-legacy-quick-prescription">19.3.7 <code>patient_prescriptions</code> — legacy quick prescription</h3>
+<p><strong>Status:</strong> [Implemented] (legacy; shown and still creatable in the &quot;Legacy quick-Rx history&quot; section of the patient&#39;s Clinical tab)</p>
+<p>The older prescription table, which coexists with <code>prescriptions</code> while consumers move to the newer schema. Each row has <code>prescription_number</code> (unique within the organization), <code>prescription_date</code>, chief complaint, diagnosis, <code>medications</code> as one JSON list, special instructions, <code>follow_up_date</code>, print tracking (<code>is_printed</code>, <code>printed_at</code>, <code>print_count</code>), <code>prescribed_by</code> (a user id) and <code>appointment_id</code>, both without foreign keys. It is organization + location scoped with foreign keys to <code>patients</code>, <code>organizations</code> and <code>locations</code>, all CASCADE.</p>
+<h2 id="ch19-prescriptions-and-plans-19-4-entity-relationship-diagrams">19.4 Entity-relationship diagrams</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch19-prescription-record-erd.png" alt="Figure 19.1 — The prescription record"></p>
+<p><em>Figure 19.1 — The prescription record.</em></p>
+<p>The diagram centres on <code>prescriptions</code>, showing <code>id</code>, the unique <code>prescription_number</code>, <code>patient_id</code>, <code>encounter_id</code>, <code>doctor_id</code>, <code>status</code> and <code>version</code>. Six context boxes sit in a row over it, each with an optional or mandatory solid line into <code>prescriptions</code>: <code>patients</code> (&quot;receives&quot;, mandatory), <code>appointments</code> (&quot;from appointment&quot;), <code>patient_encounters</code> (&quot;written in&quot;), <code>employees</code> (&quot;doctor&quot;), <code>prescription_templates</code> (&quot;printed with&quot;, shown with <code>organization_id</code>, <code>location_id</code>, <code>is_default</code> and <code>page_size</code>) and <code>treatment_plan_templates</code> (&quot;pre-filled from&quot;). Under <code>prescriptions</code>, two solid lines lead to its children: <code>prescription_medicines</code> (&quot;lists&quot;, with <code>prescription_id</code>, <code>medicine_directory_id</code>, <code>medicine_name</code> and <code>dosage</code>) and <code>prescription_history</code> (&quot;versioned in&quot;, with <code>prescription_id</code>, <code>version</code>, <code>change_type</code> and <code>previous_data</code>).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch19-prescription-library-erd.png" alt="Figure 19.2 — Prescription libraries"></p>
+<p><em>Figure 19.2 — Prescription libraries.</em></p>
+<p>The second diagram shows the libraries. <code>organizations</code> has solid lines to <code>medicine_directory</code> (&quot;catalogues&quot;), <code>treatment_plan_templates</code> (&quot;keeps&quot;) and <code>doctor_signatures</code> (&quot;scopes&quot;). <code>medicine_directory</code> (<code>id</code>, <code>organization_id</code>, <code>name</code>, <code>type</code>, <code>is_active</code>) has two optional solid lines labelled &quot;source of&quot;, one to <code>prescription_medicines</code> and one to <code>treatment_plan_template_medicines</code>. <code>treatment_plan_templates</code> has a solid line labelled &quot;lists&quot; to <code>treatment_plan_template_medicines</code>. A <code>users</code> box is joined to <code>doctor_signatures</code> (<code>id</code>, the unique <code>employee_id</code>, <code>organization_id</code>, <code>is_active</code>) by a dashed line labelled &quot;employee_id holds user id, no FK&quot;.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch19-plans-legacy-erd.png" alt="Figure 19.3 — Plan templates and the legacy prescription table"></p>
+<p><em>Figure 19.3 — Plan templates and the legacy prescription table.</em></p>
+<p>The third diagram groups the remaining tables. <code>organizations</code> is joined to <code>plan_templates</code> (<code>id</code>, <code>organization_id</code>, <code>name</code>, <code>category</code>, <code>items</code>, <code>is_active</code>) by a dashed line labelled &quot;organization_id, no FK&quot;. <code>plan_templates</code> has an optional solid line labelled &quot;used for&quot; to <code>treatments</code>. <code>patients</code> has solid lines to <code>treatments</code> (&quot;receives&quot;), to <code>patient_treatment_plans</code> (&quot;planned&quot;) and to <code>patient_prescriptions</code> (&quot;legacy Rx&quot;, showing <code>prescription_number</code>, <code>medications</code> and <code>prescribed_by</code>). <code>patient_treatment_plans</code> has a solid line labelled &quot;contains&quot; to <code>treatment_plan_items</code>. <code>appointments</code> is joined to <code>patient_prescriptions</code> by a dashed line labelled &quot;appointment_id, no FK&quot;.</p>
+<h2 id="ch19-prescriptions-and-plans-19-5-relationships-explained">19.5 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong><code>prescriptions.patient_id</code> → <code>patients</code>.</strong> Each prescription has exactly one patient; deleting the patient deletes the prescriptions (CASCADE).</li>
+<li><strong><code>prescriptions.organization_id</code> → <code>organizations</code></strong> and <strong><code>location_id</code> → <code>locations</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>prescriptions.appointment_id</code> → <code>appointments</code></strong>, <strong><code>encounter_id</code> → <code>patient_encounters</code></strong>, <strong><code>doctor_id</code> → <code>employees</code></strong>, <strong><code>prescription_template_id</code> → <code>prescription_templates</code></strong>, <strong><code>treatment_plan_template_id</code> → <code>treatment_plan_templates</code>.</strong> All optional (zero or one); deleting the referenced row keeps the prescription and sets the link to null (SET NULL).</li>
+<li><strong><code>prescription_medicines.prescription_id</code> → <code>prescriptions</code>.</strong> Each line belongs to exactly one prescription; deleting the prescription deletes its lines (CASCADE).</li>
+<li><strong><code>prescription_medicines.medicine_directory_id</code> → <code>medicine_directory</code>.</strong> Optional; deleting the directory entry keeps the line with the link set to null (SET NULL). The copied name keeps the line readable.</li>
+<li><strong><code>prescription_history.prescription_id</code> → <code>prescriptions</code>.</strong> Mandatory; deleting the prescription deletes its history (CASCADE).</li>
+<li><strong><code>medicine_directory.organization_id</code></strong>, <strong><code>treatment_plan_templates.organization_id</code></strong>, <strong><code>doctor_signatures.organization_id</code> → <code>organizations</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>treatment_plan_template_medicines.template_id</code> → <code>treatment_plan_templates</code>.</strong> Mandatory, CASCADE.</li>
+<li><strong><code>treatment_plan_template_medicines.medicine_directory_id</code> → <code>medicine_directory</code>.</strong> Optional, SET NULL.</li>
+<li><strong><code>prescription_templates.organization_id</code> → <code>organizations</code></strong> (mandatory, CASCADE) and <strong><code>location_id</code> → <code>locations</code></strong> (optional; deleting the location deletes its layouts, CASCADE).</li>
+<li><strong><code>treatments.plan_template_id</code> → <code>plan_templates</code>.</strong> Optional, SET NULL.</li>
+<li><strong><code>patient_prescriptions.patient_id</code> → <code>patients</code></strong>, <strong><code>organization_id</code> → <code>organizations</code></strong>, <strong><code>location_id</code> → <code>locations</code>.</strong> Mandatory, CASCADE.</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><strong><code>doctor_signatures.employee_id</code> → <code>users</code></strong> (holds the user id despite the column name).</li>
+<li><strong><code>plan_templates.organization_id</code> → <code>organizations</code>.</strong></li>
+<li><strong><code>patient_prescriptions.prescribed_by</code> → <code>users</code></strong> and <strong><code>appointment_id</code> → <code>appointments</code>.</strong></li>
+<li><strong>Actor columns:</strong> <code>prescription_history.changed_by</code>, <code>created_by</code> on <code>prescription_templates</code>, <code>treatment_plan_templates</code> and <code>plan_templates</code>.</li>
+</ul>
+<h2 id="ch19-prescriptions-and-plans-19-6-tenant-scope">19.6 Tenant scope</h2>
+<ul>
+<li><code>prescriptions</code>, <code>prescription_templates</code> and <code>patient_prescriptions</code> are organization + location scoped.</li>
+<li><code>medicine_directory</code>, <code>treatment_plan_templates</code>, <code>doctor_signatures</code> and <code>plan_templates</code> are organization-scoped.</li>
+<li><code>prescription_medicines</code>, <code>prescription_history</code> and <code>treatment_plan_template_medicines</code> have no tenant column and are isolated through their parent; queries must join it.</li>
+</ul>
+<h2 id="ch19-prescriptions-and-plans-19-7-ownership-and-ambiguities">19.7 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Two prescription tables.</strong> <code>prescriptions</code> is current; <code>patient_prescriptions</code> is legacy but still writable from the patient screen. Their numbers come from two different generators, and a prescription can exist in either.</li>
+<li><strong>Number uniqueness mismatch.</strong> <code>prescriptions.prescription_number</code> is unique Platform-wide while numbering restarts in each organization, so the second organization to issue a given number would hit the unique key. The legacy table&#39;s number is unique per organization and does not have this problem. The runtime effect has not been tested and is [Unverified].</li>
+<li><strong>Names that mislead.</strong> <code>treatment_plan_templates</code> are prescription presets, not treatment plans; <code>plan_templates</code> are treatment plan templates; <code>prescription_templates</code> are print layouts.</li>
+<li><strong>Plan template use differs from its comment.</strong> The <code>plan_templates</code> entity comment says using a template copies its procedures into the patient&#39;s own plan. In the code, the link that is written is <code>treatments.plan_template_id</code>; no screen creates <code>patient_treatment_plans</code> rows (Chapter 17).</li>
+<li><strong>Signature owner.</strong> <code>doctor_signatures.employee_id</code> holds a user id, is unique across organizations, and is read without an organization filter.</li>
+<li><strong>Immutability by convention.</strong> <code>prescription_history</code> is declared immutable only in a comment.</li>
+</ul>
+</section></body></html>

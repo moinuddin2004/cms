@@ -1,0 +1,18 @@
+file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:89
+    #error = new ProtocolError();
+             ^
+
+ProtocolError: Page.printToPDF timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.
+    at <instance_members_initializer> (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:89:14)
+    at new Callback (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:93:16)
+    at CallbackRegistry.create (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:19:26)
+    at Connection._rawSend (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Connection.js:86:26)
+    at CdpCDPSession.send (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/CDPSession.js:63:33)
+    at CdpPage.createPDFStream (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Page.js:773:63)
+    at async CdpPage.pdf (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Page.js:801:26)
+    at async toPdf (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/build-pdf.mjs:155:3)
+    at async buildGroup (file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/build-pdf.mjs:229:15)
+    at async file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/tools/build-pdf.mjs:242:5
+
+Node.js v22.16.0
+done

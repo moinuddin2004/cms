@@ -1,0 +1,3 @@
+- **Heartbeat** — worker message every 5 s proving the bus is alive.
+- **Watchdog** — API check that refuses sockets when no heartbeat for 15 s.
+- **Display room** — public socket room for the waiting-room TV.

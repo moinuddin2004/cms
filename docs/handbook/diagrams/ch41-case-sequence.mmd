@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor Doctor as Doctor
+    participant Web as Web app
+    participant API
+    participant PG as PostgreSQL
+    participant Outbox as Notification outbox
+    actor Lab as Lab member or contact
+    actor Desk as Receptionist
+    Doctor->>Web: Submit to lab
+    Web->>API: POST /lab-orders/:id/submit with Idempotency-Key
+    API->>PG: one transaction - status, order_no, price snapshot, revision 1, magic link
+    API->>Outbox: order.submitted and order.magic_link rows
+    Outbox-->>Lab: in-app alert for lab members, link message for the lab contact
+    Lab->>API: GET /lab-link/:token or portal order
+    Lab->>API: POST accept with expected date
+    API->>PG: items accepted, order derived to accepted, vendor bill draft, stages created
+    API->>Outbox: order.accepted to the doctor
+    Lab->>API: POST /lab-portal/production start, finish, QC pass
+    API->>Outbox: item.ready to the doctor
+    Lab->>API: POST /lab-portal/production/shipments
+    API->>PG: shipment SHP-n with QR token, item dispatched
+    API->>Outbox: stage.sent_to_clinic to the doctor
+    Desk->>Web: Scan the slip QR
+    Web->>API: POST /lab-shipments/:id/receive
+    API->>PG: lines received, item received, order derived
+    API->>Outbox: shipment.received to the lab
+    Doctor->>API: approve work, then deliver
+    API->>PG: item delivered, warranty starts, order completed when all done

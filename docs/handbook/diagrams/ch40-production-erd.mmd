@@ -1,0 +1,60 @@
+erDiagram
+    lab_orders ||--|{ lab_order_items : contains
+    lab_order_items ||--o{ order_item_stages : "try-in rounds"
+    stage_template_steps |o--o{ order_item_stages : "copied from"
+    lab_order_items ||--o{ item_assignments : "worked on"
+    lab_members ||--o{ item_assignments : assigned
+    shipments ||--|{ shipment_items : carries
+    lab_order_items ||--o{ shipment_items : "shipped as"
+    order_item_stages |o--o{ shipment_items : "round shipped"
+    lab_order_items ||--o{ remake_requests : "original item"
+    lab_order_items |o--o| remake_requests : "new item"
+    lab_order_items ||--o| item_warranties : "covered by"
+    order_item_stages {
+        uuid id PK
+        uuid item_id FK
+        int seq
+        int round_no
+        varchar status_code
+        bool is_final
+        bool is_active
+        enum outcome
+    }
+    shipments {
+        uuid id PK
+        uuid organization_id
+        uuid lab_id
+        varchar shipment_no
+        enum direction
+        enum status
+        varchar qr_token
+    }
+    shipment_items {
+        uuid id PK
+        uuid shipment_id FK
+        uuid order_item_id FK
+        uuid item_stage_id FK
+        enum contents
+        int received_qty
+        enum condition
+    }
+    remake_requests {
+        uuid id PK
+        uuid original_item_id FK
+        uuid new_item_id FK
+        enum reason_code
+        enum responsible_party
+        enum status
+    }
+    item_warranties {
+        uuid id PK
+        uuid item_id FK
+        date starts_on
+        date ends_on
+    }
+    item_assignments {
+        uuid id PK
+        uuid item_id FK
+        uuid lab_member_id FK
+        timestamptz unassigned_at
+    }

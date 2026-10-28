@@ -1,0 +1,22 @@
+stateDiagram-v2
+    direction TB
+    [*] --> pending_acceptance : submit or remake agreed
+    pending_acceptance --> accepted : accept
+    pending_acceptance --> rejected : reject - no endpoint calls it
+    accepted --> in_production : start
+    accepted --> cancelled : cancel
+    in_production --> cancelled : cancel
+    in_production --> at_clinic_tryin : send_tryin - try-in shipped
+    at_clinic_tryin --> in_production : resume - stage decided
+    in_production --> qc : finish
+    qc --> in_production : qc_fail
+    qc --> ready : qc_pass
+    ready --> dispatched : dispatch - final work shipped
+    dispatched --> received : receive
+    received --> approved : approve
+    received --> remake_required : reject_work
+    approved --> delivered : deliver
+    delivered --> [*]
+    cancelled --> [*]
+    rejected --> [*]
+    remake_required --> [*]

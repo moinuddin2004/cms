@@ -1,0 +1,94 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch67-open-questions"><h1 id="ch67-open-questions-chapter-67-open-questions">Chapter 67 — Open Questions</h1>
+<p>This chapter lists the decisions and facts that only the product owner can supply. They come from the notes of every handbook chapter, from the questions in the generated organizations and locations chapter, from the ambiguities in the generated entity catalog and from items the code could not settle. Each question has the context and the reason the answer matters, so the answers can steer what is built, fixed or removed next.</p>
+<h2 id="ch67-open-questions-67-1-product-direction">67.1 Product direction</h2>
+<ol>
+<li><strong>Which patient channels will the Platform use, and who pays for them?</strong> Context: the message pipeline is built, but only the in-app channel for staff and lab members is active. WhatsApp, SMS and email to patients are commented out, and a log stand-in takes their place. Why it matters: reminders, receipts and lab-delay messages all wait on this choice, and it also decides the privacy and logging work needed (Chapter 66).</li>
+<li><strong>Should owners get trial-ending and expiry messages, and how many days ahead?</strong> Context: only an in-app banner warns today; no renewal email is sent. Why it matters: expiry puts a clinic in read-only mode, so a missed warning is a lost day of work and a support call.</li>
+<li><strong>Should the Platform have a patient portal, online booking and recurring appointments?</strong> Context: all three were planned and their feature keys were retired. Why it matters: it decides whether the retired keys are deleted or the work is scheduled.</li>
+<li><strong>Are insurance claims and an online payment gateway required for target clinics?</strong> Context: insurance details can be stored (backend only) and no claim or gateway exists. Why it matters: these are large features, and the answer avoids building them early or promising them.</li>
+<li><strong>Is attendance wanted, and should payroll have deductions, tax and bank files?</strong> Context: payroll is salary plus commission; deductions are always zero; leave is recorded but not read. Why it matters: payroll is the most legally sensitive money flow, and clinics will ask.</li>
+<li><strong>What should a blacklisted or inactive patient be prevented from doing?</strong> Context: both flags are informational and block nothing. Why it matters: staff may rely on them, and the answer defines the rule to enforce at booking, check-in and billing.</li>
+<li><strong>Should the product name be fixed?</strong> Context: the handbook calls it &quot;the Platform&quot; and each clinic sets its display name; the default is &quot;Clinic Portal&quot;. Older documents and some stored keys carry a former working name. Why it matters: it decides what is cleaned out of the code and which documents can be reused.</li>
+</ol>
+<h2 id="ch67-open-questions-67-2-clinics-locations-and-subscriptions">67.2 Clinics, locations and subscriptions</h2>
+<p>These come from the generated organizations and locations chapter.</p>
+<ol start="8">
+<li><strong>Should a clinic created by a super admin start on a trial, or stay unmanaged?</strong> Context: unmanaged clinics have no expiry and no plan limits. Why it matters: it decides whether all clinics are subject to billing.</li>
+<li><strong>When a clinic pays for a lower plan during a higher-plan trial, should the payment downgrade it at once?</strong> Context: recording a payment overwrites the plan with the paid plan. Why it matters: it can silently remove features during a trial.</li>
+<li><strong>Should deactivating a clinic also make it read-only and end sessions?</strong> Context: today deactivation only hides the clinic at login. Why it matters: owners may still hold working sessions, and the subscription guard is not involved.</li>
+<li><strong>Can a clinic have more than one main branch, and which becomes main when one is deactivated?</strong> Context: the main-branch flag is not exclusive. Why it matters: reports and defaults may pick the wrong branch.</li>
+<li><strong>Should new branches inherit the clinic&#39;s time zone and currency, and should changing the clinic&#39;s time zone update existing branches?</strong> Context: locations default to UTC and USD while organizations default to Asia/Karachi and PKR; the setup wizard updates branches but later changes do not. Why it matters: it controls every date and amount a branch shows.</li>
+<li><strong>Should the legacy organization settings be removed or wired?</strong> Context: booking defaults, advance booking days, cancellation notice, late fee percentage and old feature switches are saved but read by no backend rule. Why it matters: owners may think these rules are in force.</li>
+<li><strong>Who is the location manager meant to be, an employee or a login, and what powers should a manager have?</strong> Context: the column&#39;s target is not stated anywhere. Why it matters: a branch-manager role needs a definite owner.</li>
+<li><strong>Should staff without the locations permission read booking-related location settings?</strong> Context: slot length and daily cap sit on a screen that needs the manage permission. Why it matters: receptionists may need to see the limits.</li>
+<li><strong>Which account type should be created for a person who works only for a lab, and what is the exact sequence to create an owner login for a clinic made by a super admin?</strong> Context: both were deduced, not run. Why it matters: onboarding instructions must be correct.</li>
+</ol>
+<h2 id="ch67-open-questions-67-3-data-model-and-numbering">67.3 Data model and numbering</h2>
+<ol start="17">
+<li><strong>Which id should the <code>dentist_id</code> columns hold (employee or login)?</strong> Context: the teeth chart, plans, recalls and feedback store a value with no foreign key and no stated target. Why it matters: reports that join to the person need a defined meaning.</li>
+<li><strong>Which id should doctor signatures, inventory movements and purchase orders store?</strong> Context: code passes a login id into columns that are, or look like, employee links. Why it matters: the inventory writes may fail, and signatures are keyed per login across clinics.</li>
+<li><strong>Should prescriptions and purchase orders be numbered per organization or across the Platform?</strong> Context: the numbers restart per organization but are unique everywhere. Why it matters: it decides which side of the conflict to change.</li>
+<li><strong>Should patients ever be permanently deleted?</strong> Context: deletion breaks numbering and fails when billing exists. Why it matters: it decides between soft delete and a clear refusal.</li>
+<li><strong>Is the missing foreign key on tenant columns deliberate?</strong> Context: most billing, queue and lab tables omit it without comment. Why it matters: it decides whether to add keys or document the choice.</li>
+<li><strong>Which duplicate concepts should be merged?</strong> Context: legacy and new prescriptions, two audit mechanisms, two sequence mechanisms, per-visit tables with unclear roles. Why it matters: each duplicate doubles the work for every change.</li>
+<li><strong>Should the append-only money tables get triggers like the commission ledger?</strong> Context: three tables are protected; others are promised by comments. Why it matters: it is the cheapest strong guard for financial records.</li>
+<li><strong>Should the unused tables and columns be dropped (linked sign-ins, per-visit summary, deprecated refresh token, chairs, legacy inventory table)?</strong> Why it matters: they mislead readers and the generated catalog.</li>
+</ol>
+<h2 id="ch67-open-questions-67-4-operations-and-security">67.4 Operations and security</h2>
+<ol start="25">
+<li><strong>Where and how is the Platform deployed, and who supervises the single worker?</strong> Context: no deploy configuration exists. Why it matters: exactly one worker must run, and nothing here shows how that is ensured.</li>
+<li><strong>Should the scheduled jobs use each location&#39;s time zone?</strong> Context: jobs follow the server clock. Why it matters: payroll month, credit expiry and day-end alerts depend on it.</li>
+<li><strong>What is the data retention policy for sessions, security logs, audit rows, messages and consent signatures?</strong> Why it matters: it is the first question a regulator or clinic will ask.</li>
+<li><strong>Is the calendar library licence suitable for a commercial product?</strong> Why it matters: it is a legal exposure that can be solved by buying the licence or changing the component.</li>
+<li><strong>Should audit extend to appointments, employees, payroll, organizations and locations, with one viewer?</strong> Why it matters: owners cannot otherwise answer who changed a record.</li>
+<li><strong>What should be done about the committed test credentials?</strong> Why it matters: rotating them and cleaning history should be scheduled, not assumed.</li>
+<li><strong>Should public lab links and the TV display remain unauthenticated by design?</strong> Why it matters: it defines the acceptable exposure and the expiry rules.</li>
+</ol>
+<h2 id="ch67-open-questions-67-5-behaviour-to-confirm-by-running">67.5 Behaviour to confirm by running</h2>
+<ol start="32">
+<li><strong>Do inventory writes fail because of the id mismatch?</strong> Why it matters: it decides whether inventory can be opened to clinics at all.</li>
+<li><strong>Do the prescription change history and duplicate actions fail?</strong> Why it matters: they are small fixes if confirmed.</li>
+<li><strong>Do background jobs continue while a clinic is read-only?</strong> Why it matters: payroll and invariants could be skipped or not.</li>
+<li><strong>Are uploaded patient documents and PDFs publicly readable by address?</strong> Why it matters: it depends on the storage settings, not on the code.</li>
+<li><strong>Which currency column do billing screens read, the location&#39;s or the organization&#39;s?</strong> Why it matters: a mismatch shows the wrong currency label.</li>
+<li><strong>Does the lab ever receive a magic-link message in practice?</strong> Why it matters: today the contact channel is a stand-in, so links must be copied by hand.</li>
+<li><strong>Should lab orders link to the appointment and treatment?</strong> Context: the API accepts both, the web app never sends them. Why it matters: try-in scheduling and case reporting depend on it.</li>
+<li><strong>Is a printable lab invoice or receipt needed?</strong> Context: none was found. Why it matters: lab patient invoices cannot be handed to patients otherwise.</li>
+</ol>
+<h2 id="ch67-open-questions-67-6-how-the-answers-are-used">67.6 How the answers are used</h2>
+<p>The product questions (Section 67.1) set the roadmap. The clinic and numbering questions (Sections 67.2 and 67.3) decide small fixes that remove the High and Medium gaps in Chapter 65. The operations and security questions (Section 67.4) decide the order in Chapter 66. The questions in Section 67.5 need someone to run the application and watch, and they should be answered before the related work is planned.</p>
+</section></body></html>

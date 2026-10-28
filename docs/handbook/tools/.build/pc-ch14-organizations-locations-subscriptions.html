@@ -1,0 +1,143 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch14-organizations-locations-subscriptions"><h1 id="ch14-organizations-locations-subscriptions-chapter-14-organizations-locations-subscriptions-and-settings">Chapter 14 — Organizations, locations, subscriptions and settings</h1>
+<p>This chapter describes the tables that define a tenant: the organization (one clinic business), its locations (branches), who owns it, how it pays for the Platform, and where its settings are stored. It is for the product owner who needs to know what a &quot;clinic&quot; is in the database and which table to look at for a given setting. Almost every other table in the Platform points back to <code>organizations</code>, and most point to <code>locations</code> as well.</p>
+<h2 id="ch14-organizations-locations-subscriptions-14-1-context">14.1 Context</h2>
+<p>Seven tables belong to this domain. <code>organizations</code>, <code>organization_ownership</code> and <code>organization_settings</code> are owned by the <code>organizations</code> module; <code>locations</code> and <code>location_settings</code> by the <code>locations</code> module; <code>subscription_payments</code> by the <code>subscriptions</code> module; and <code>config_values</code> by the <code>settings-registry</code> module. The business behaviour of organizations and locations is covered in Chapter 9 and subscriptions in Chapter 45; this chapter covers only the data. Every column is listed in the entity catalog, <code>backend/docs/data-model/ENTITY_CATALOG.md</code>.</p>
+<h2 id="ch14-organizations-locations-subscriptions-14-2-the-tables">14.2 The tables</h2>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-1-organizations-organization-the-tenant">14.2.1 <code>organizations</code> — organization (the tenant)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per clinic business. This is the root of tenancy: no other table sits over it. Key columns:</p>
+<ul>
+<li><code>name</code> and <code>slug</code> — the display name and a short machine name. <code>slug</code> is unique across the Platform.</li>
+<li><code>clinic_type</code> and <code>specialty_tags</code> — what kind of clinic this is. <code>specialty_tags</code> is a JSON list such as <code>[&quot;general&quot;]</code> or <code>[&quot;dental&quot;]</code> and is used to decide which features are relevant.</li>
+<li><code>timezone</code> (default <code>Asia/Karachi</code>) and <code>currency</code> (default <code>PKR</code>) — the organization-wide defaults.</li>
+<li><code>subscription_plan</code> — <code>free</code>, <code>starter</code>, <code>professional</code> or <code>enterprise</code>.</li>
+<li><code>trial_ends_at</code> and <code>paid_until</code> — the subscription window. When both are null the clinic is &quot;unmanaged&quot; (created by a super admin before subscriptions existed) and has no expiry.</li>
+<li><code>max_locations</code> and <code>max_users</code> — optional limits.</li>
+<li><code>onboarding_pending</code> — true for a self-signup clinic that has not yet finished the setup wizard.</li>
+<li><code>access_version</code> — a counter increased by one on every access change in the organization (roles, assignments, feature flags, ownership). Access caches use it as their key; it is written only by the access-version service.</li>
+<li><code>is_active</code> — the soft-delete flag. Deactivating an organization sets it to false; the application does not hard-delete organizations.</li>
+</ul>
+<p>Indexes: unique <code>slug</code>, and an index on <code>is_active</code>.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-2-organization-ownership-owner-link">14.2.2 <code>organization_ownership</code> — owner link</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Links a user account to an organization it owns: <code>user_id</code>, <code>organization_id</code> and <code>is_primary_owner</code>. The pair (<code>user_id</code>, <code>organization_id</code>) is unique, so a user is listed at most once per organization. An owner holds every permission in the organization (Chapter 11). An organization can have more than one owner row; <code>is_primary_owner</code> marks the main one.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-3-organization-settings-organization-wide-settings">14.2.3 <code>organization_settings</code> — organization-wide settings</h3>
+<p><strong>Status:</strong> [Partial] — stored and editable; the feature switches only hide sections on the location settings screen</p>
+<p>One row per organization at most (<code>organization_id</code> is unique). It holds:</p>
+<ul>
+<li>Booking defaults: <code>default_slot_duration</code> (30 minutes), <code>advance_booking_days</code> (30), <code>cancellation_notice_hours</code> (24).</li>
+<li><code>allow_location_override</code> — whether locations may set their own booking values. The location settings screen shows the organization&#39;s values instead when this is false.</li>
+<li>Six older feature switches: <code>feature_appointments</code>, <code>feature_inventory</code>, <code>feature_finance</code>, <code>feature_reminders</code> (all default true), <code>feature_whatsapp</code> and <code>feature_patient_portal</code> (default false).</li>
+</ul>
+<p>The feature switches predate the feature-flag system. Today the location settings screen reads them only to hide its appointments, reminders and finance sections. The guards that actually allow or block a feature read <code>org_feature_flags</code> (Chapter 15), not these columns. The row is created with defaults the first time the settings are read.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-4-locations-location-branch">14.2.4 <code>locations</code> — location (branch)</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per branch of an organization. Key columns:</p>
+<ul>
+<li><code>organization_id</code> — the owning organization.</li>
+<li><code>name</code> and <code>code</code> — the code is unique within the organization (<code>organization_id</code> + <code>code</code>).</li>
+<li><code>token_prefix</code> — a short prefix for daily tokens (for example &quot;MAIN&quot; giving &quot;MAIN-007&quot;); falls back to <code>code</code> when empty.</li>
+<li><code>timezone</code> (default <code>UTC</code>) and <code>currency</code> (default <code>USD</code>). The location&#39;s timezone is the one the Platform uses to decide what &quot;today&quot; is for appointments, queues and reports at that branch.</li>
+<li>Address fields, contact fields, <code>operating_hours</code> (JSON), <code>capacity_per_day</code>, <code>total_chairs</code>, <code>business_model</code>.</li>
+<li><code>is_main_branch</code> — marks the main branch.</li>
+<li><code>manager_id</code> — a reference to the branch manager with no foreign key; the code does not say whether it holds an employee id or a user id.</li>
+<li><code>is_active</code> — the soft-delete flag; deactivating a location sets it to false.</li>
+</ul>
+<p>Indexes: unique (<code>organization_id</code>, <code>code</code>) and (<code>organization_id</code>, <code>is_active</code>).</p>
+<p>Note that the column defaults for a new location (<code>UTC</code>, <code>USD</code>) differ from the defaults of a new organization (<code>Asia/Karachi</code>, <code>PKR</code>). Whatever the creating screen sends overrides the default.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-5-location-settings-per-location-settings">14.2.5 <code>location_settings</code> — per-location settings</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>One row per location at most (<code>location_id</code> is unique). It holds booking values (<code>appointment_slot_duration</code>, <code>max_appointments_per_day</code>, <code>advance_booking_days</code>, <code>cancellation_notice_hours</code>), reminder values (<code>reminder_enabled</code>, <code>reminder_days_before</code>, <code>reminder_hours_before</code>, <code>reminder_channels</code>), money values (<code>tax_rate</code> and <code>late_fee_percentage</code> as <code>numeric(5,2)</code> percentages, <code>payment_gateway</code>) and branding (<code>logo_url</code>, <code>primary_color</code>, <code>theme</code>). Billing reads <code>tax_rate</code> as the sales-tax rate of the active location, and the appointments service reads the booking values. The row is created with defaults the first time the settings are read. <code>organization_id</code> is nullable here, unlike most tenant tables, and the auto-create path in the locations service sets only <code>location_id</code>, so rows created that way have no organization.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-6-subscription-payments-subscription-payment">14.2.6 <code>subscription_payments</code> — subscription payment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>A clinic pays for the Platform outside the app; a super admin then records the payment here. One row per recorded payment: <code>organization_id</code>, <code>plan</code>, <code>months</code>, <code>amount</code> (numeric, in rupees), <code>method</code>, an optional <code>reference</code>, <code>paid_at</code>, the covered period <code>period_start</code> and <code>period_end</code>, <code>notes</code>, and <code>recorded_by</code> (the super admin&#39;s user id, no foreign key). In the same transaction the service sets <code>organizations.paid_until</code> to the period end and <code>organizations.subscription_plan</code> to the paid plan. An index on (<code>organization_id</code>, <code>paid_at</code>) supports the payment history list.</p>
+<h3 id="ch14-organizations-locations-subscriptions-14-2-7-config-values-settings-registry-value">14.2.7 <code>config_values</code> — settings registry value</h3>
+<p><strong>Status:</strong> [Implemented] for the keys the code registers</p>
+<p>A generic store for settings that cascade from the Platform to an organization to a location. Each row is one setting key at one scope:</p>
+<ul>
+<li><code>scope_type</code> — <code>platform</code>, <code>org</code> or <code>location</code>.</li>
+<li><code>scope_id</code> — the organization id or location id; null for the platform.</li>
+<li><code>key</code> — the setting name, for example <code>theme.brand_color</code>.</li>
+<li><code>value</code> — JSON; null means &quot;nothing set here, inherit from the wider scope&quot;. A row can therefore exist only to carry a lock.</li>
+<li><code>is_locked</code> — freezes the effective value at this scope so lower scopes cannot override it.</li>
+<li><code>version</code> — increased on every write.</li>
+</ul>
+<p>Two unique indexes keep one row per scope and key: (<code>scope_type</code>, <code>scope_id</code>, <code>key</code>), and a partial unique index on <code>key</code> where <code>scope_type = &#39;platform&#39;</code>. The partial index is needed because PostgreSQL treats nulls as distinct, so two platform rows with a null <code>scope_id</code> would otherwise both be allowed. The keys registered in code today are the theme keys (<code>theme.app_name</code>, <code>theme.brand_color</code>, <code>theme.sidebar_style</code>, <code>theme.default_mode</code>, <code>theme.logo_url</code>, <code>theme.logo_dark_url</code>, <code>theme.favicon_url</code>) and <code>subscription.payment_instructions</code>. The default of <code>theme.app_name</code> is &quot;Clinic Portal&quot;. The primary key uses the time-ordered <code>uuid_generate_v7()</code> default.</p>
+<h2 id="ch14-organizations-locations-subscriptions-14-3-entity-relationship-diagram">14.3 Entity-relationship diagram</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch14-org-locations-erd.png" alt="Figure 14.1 — Organizations, locations, ownership, subscriptions and settings"></p>
+<p><em>Figure 14.1 — Organizations, locations, ownership, subscriptions and settings.</em></p>
+<p>The diagram places <code>organizations</code> at the top, showing <code>id</code>, the unique <code>slug</code>, <code>subscription_plan</code>, <code>trial_ends_at</code>, <code>paid_until</code> and <code>access_version</code>. A small <code>users</code> box with only its <code>uuid</code> key sits to its left. Solid lines run from <code>organizations</code> to five children: <code>organization_settings</code> (&quot;configured by&quot;, at most one per organization), <code>organization_ownership</code> (&quot;owned via&quot;), <code>subscription_payments</code> (&quot;pays&quot;), <code>locations</code> (&quot;has&quot;) and <code>location_settings</code> (&quot;scopes&quot;, optional on the settings side). <code>users</code> also has a solid line to <code>organization_ownership</code> labelled &quot;owns&quot;. <code>locations</code> has a solid line to <code>location_settings</code> labelled &quot;configured by&quot;, at most one per location. At the bottom right, <code>config_values</code> (<code>id</code>, <code>scope_type</code>, <code>scope_id</code>, <code>key</code>, <code>is_locked</code>) is connected by two dashed lines, one from <code>organizations</code> labelled &quot;scope_id when org&quot; and one from <code>locations</code> labelled &quot;scope_id when location&quot;. Dashed lines mean there is no foreign key.</p>
+<h2 id="ch14-organizations-locations-subscriptions-14-4-relationships-explained">14.4 Relationships explained</h2>
+<p>Foreign-key relationships:</p>
+<ul>
+<li><strong><code>locations.organization_id</code> → <code>organizations</code>.</strong> Every location belongs to exactly one organization; an organization has zero or more locations. Deleting the organization deletes its locations (CASCADE).</li>
+<li><strong><code>organization_ownership.organization_id</code> → <code>organizations</code></strong> and <strong><code>organization_ownership.user_id</code> → <code>users</code>.</strong> Each ownership row joins exactly one user to exactly one organization; a user can own several organizations and an organization can have several owners. Deleting either side deletes the ownership row (CASCADE).</li>
+<li><strong><code>organization_settings.organization_id</code> → <code>organizations</code>.</strong> One-to-one: each organization has zero or one settings row, and each settings row belongs to exactly one organization. Deleting the organization deletes the row (CASCADE).</li>
+<li><strong><code>location_settings.location_id</code> → <code>locations</code>.</strong> One-to-one: each location has zero or one settings row. Deleting the location deletes it (CASCADE).</li>
+<li><strong><code>location_settings.organization_id</code> → <code>organizations</code>.</strong> Optional: a settings row may carry its organization. Deleting the organization deletes the row (CASCADE).</li>
+<li><strong><code>subscription_payments.organization_id</code> → <code>organizations</code>.</strong> Each payment belongs to exactly one organization; an organization has zero or more payments. Deleting the organization deletes its payment history (CASCADE).</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><strong><code>config_values.scope_id</code> → <code>organizations</code> or <code>locations</code>.</strong> Polymorphic: <code>scope_type</code> says which table the id belongs to, so no single foreign key is possible. Deleting an organization or location leaves its <code>config_values</code> rows behind.</li>
+<li><strong><code>locations.manager_id</code> → <code>employees</code> or <code>users</code></strong> (the target is not stated in the code).</li>
+<li><strong>Actor columns</strong> — <code>locations.created_by</code>, <code>locations.updated_by</code>, <code>subscription_payments.recorded_by</code> and <code>config_values.updated_by</code> — hold a user id without a foreign key.</li>
+<li><strong><code>users.last_accessed_organization_id</code> / <code>last_accessed_location_id</code></strong> point into this domain without a foreign key (Chapter 13).</li>
+</ul>
+<p>Links into <code>organizations</code> and <code>locations</code> from other domains:</p>
+<ul>
+<li>Almost every tenant table in the older modules has <code>organization_id</code> → <code>organizations</code> with CASCADE, and often <code>location_id</code> → <code>locations</code> with CASCADE.</li>
+<li>Some newer links use RESTRICT instead: <code>lab_clinic_links</code>, <code>lab_orders</code> (organization and location), <code>magic_links</code>, <code>order_templates</code>, <code>service_mappings</code>, <code>lab_service_prices</code>, <code>notification_outbox</code>, and the clinic-specific rows of <code>form_schemas</code>, <code>workflow_templates</code> and <code>stage_templates</code>. An internal lab also points to its owner organization with RESTRICT.</li>
+<li>The queue, billing v2 and lab tables mostly keep <code>organization_id</code> with no foreign key at all (Chapter 12).</li>
+</ul>
+<p>Because of the RESTRICT links, a hard delete of an organization that has lab, notification or engine rows would be refused by the database; a hard delete of one without them would cascade into most of its data. The application never hard-deletes an organization or a location: it only sets <code>is_active</code> to false.</p>
+<h2 id="ch14-organizations-locations-subscriptions-14-5-tenant-scope">14.5 Tenant scope</h2>
+<ul>
+<li><code>organizations</code> is the tenant root and has no tenant column itself.</li>
+<li><code>organization_ownership</code>, <code>organization_settings</code>, <code>locations</code> and <code>subscription_payments</code> are organization-scoped.</li>
+<li><code>location_settings</code> is organization + location scoped.</li>
+<li><code>config_values</code> uses its own cascading scope (<code>scope_type</code> + <code>scope_id</code>) and is classified as global in the catalog, because platform rows belong to no tenant.</li>
+</ul>
+<h2 id="ch14-organizations-locations-subscriptions-14-6-ownership-and-ambiguities">14.6 Ownership and ambiguities</h2>
+<ul>
+<li><strong>Two kinds of feature switch.</strong> <code>organization_settings.feature_*</code> columns and <code>org_feature_flags</code> rows both describe &quot;is this feature on&quot;. Only <code>org_feature_flags</code> is enforced (Chapter 15).</li>
+<li><strong>Two kinds of settings storage.</strong> Typed settings tables (<code>organization_settings</code>, <code>location_settings</code>, <code>queue_policies</code>, <code>location_billing_settings</code>) coexist with the generic <code>config_values</code> registry. The project&#39;s rule is that typed tables stay as they are and new long-tail settings go into the registry.</li>
+<li><strong>Default mismatch.</strong> A new location defaults to <code>UTC</code> and <code>USD</code>, while a new organization defaults to <code>Asia/Karachi</code> and <code>PKR</code>.</li>
+<li><strong>Specialties stored twice.</strong> <code>organizations.specialty_tags</code> and <code>organizations.clinic_type</code> describe the clinic&#39;s specialties, and the engine&#39;s <code>organization_specialties</code> table does too (Chapter 26).</li>
+<li><strong>Legacy baseline.</strong> The never-executed baseline migration describes <code>organization_admins</code> and <code>user_locations</code> tables that no longer exist; they were replaced by <code>organization_ownership</code> and by assignments.</li>
+</ul>
+</section></body></html>

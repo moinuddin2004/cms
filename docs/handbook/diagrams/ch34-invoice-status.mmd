@@ -1,0 +1,6 @@
+stateDiagram-v2
+    direction LR
+    [*] --> ISSUED : collect payment, apply advance, POST invoices
+    ISSUED --> ISSUED : POST edit, revision + 1
+    ISSUED --> CANCELLED : POST cancel, nothing paid
+    CANCELLED --> [*]

@@ -1,0 +1,3 @@
+- **Impact preview** — dialog listing permissions and roles lost when a feature is turned off.
+- **Settings registry** — `config_values` store with platform, organization, location cascade and locks.
+- **Lock** — flag freezing a setting's value for lower scopes.

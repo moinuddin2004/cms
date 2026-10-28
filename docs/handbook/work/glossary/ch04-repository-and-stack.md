@@ -1,0 +1,4 @@
+- **Monorepo** — the single Git repository holding both `backend/` and `web-app/`, each with its own `package.json`.
+- **Modular monolith** — one NestJS application split into domain modules (one folder per module under `backend/src/`).
+- **Route file** — a thin file in `web-app/src/routes/` that declares a URL, an optional `staticData.can` and the feature page to render.
+- **Feature folder** — `web-app/src/features/<name>/`, holding a feature's pages, components, hooks and services.

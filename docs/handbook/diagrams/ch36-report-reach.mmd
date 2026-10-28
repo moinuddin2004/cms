@@ -1,0 +1,14 @@
+flowchart LR
+    REQ["Report request"] --> P{"Holds the report's<br/>permission?"}
+    P -- "no" --> E403["403 NO_PERMISSION"]
+    P -- "yes" --> S{"Scope of<br/>the grant"}
+    S -- "org" --> ORG["Active location, or<br/>all active locations if asked"]
+    S -- "location" --> LOC["Active location only"]
+    S -- "own" --> D{"Report has a<br/>doctor filter?"}
+    D -- "no" --> E403B["403 - no per-doctor view"]
+    D -- "yes" --> OWN["Active location,<br/>own rows only"]
+    LOC --> ALL{"All locations asked?"}
+    ALL -- "yes" --> E403C["403 - access does not<br/>cover all locations"]
+    ALL -- "no" --> RUN["Run the report"]
+    ORG --> RUN
+    OWN --> RUN

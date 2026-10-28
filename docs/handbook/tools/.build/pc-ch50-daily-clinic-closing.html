@@ -1,0 +1,98 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch50-daily-clinic-closing"><h1 id="ch50-daily-clinic-closing-chapter-50-workflow-closing-the-clinic-day">Chapter 50 — Workflow: Closing the Clinic Day</h1>
+<p>This chapter describes how a clinic day ends at Example Clinic: the doctor closes the queue, late bookings become no-shows, reception reviews the day&#39;s collection, the accountant closes the counter, and the Platform&#39;s overnight jobs run. It is written for the product owner. Some of the work is done by people and some by background jobs in the worker process (Appendix E lists all jobs). Job times use the server clock, not each clinic&#39;s timezone.</p>
+<h2 id="ch50-daily-clinic-closing-50-1-who-is-involved">50.1 Who is involved</h2>
+<ul>
+<li><strong>Dr. Example One</strong>: closes the queue.</li>
+<li><strong>Receptionist R1</strong>: reads the day&#39;s collection.</li>
+<li><strong>Accountant</strong>: closes the counter. Admin may also do this.</li>
+<li><strong>Worker process</strong>: the one process that runs scheduled jobs.</li>
+</ul>
+<h2 id="ch50-daily-clinic-closing-50-2-the-steps">50.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch50-daily-closing-sequence.png" alt="Figure 50.1 — Closing the clinic day"></p>
+<p><em>Figure 50.1 — People first, then the jobs that run on their own.</em></p>
+<p>The diagram has seven participants: Dr. Example One, Receptionist R1, Accountant, Web app, API, Worker jobs and PostgreSQL, and 15 messages. The doctor closes the day and decides cancel or transfer for each waiting patient (<code>PATCH /queue/sessions/:id/close</code>); the API cancels or transfers them and closes the session. In parallel, the worker marks late bookings as no-shows every 60 seconds and closes empty sessions of past days every 5 minutes. Receptionist R1 opens Payments and picks the day (<code>GET /payments/daily-collection</code>) and the API returns receipts, refunds and net per account. The Accountant closes the counter with a counted amount per account (<code>POST /billing/cash-close</code>) and the API stores the close and its lines with an audit row. The worker then runs four overnight jobs: expire prepaid credits at 01:00, billing invariant check at 02:30, queue cleanup at 03:15 and inventory alert count at 08:00.</p>
+<h3 id="ch50-daily-clinic-closing-step-1-queue-day-end">Step 1 — Queue day-end</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. In <strong>My Queue</strong>, <strong>Close day</strong> is disabled while a patient is with the doctor. The &quot;Close today&#39;s queue&quot; dialog lists every remaining patient (waiting, skipped or at a test) with <strong>Cancel</strong> as the default or &quot;Transfer to Dr. ...&quot; for waiting patients only. Confirming cancels or moves them and closes the session. Cancelling a booked patient closes the appointment as cancelled. Everything succeeds or nothing does (Chapter 30).</p>
+<h3 id="ch50-daily-clinic-closing-step-2-automatic-day-end">Step 2 — Automatic day-end</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. Every 5 minutes the worker closes sessions of a past service day if they are empty. A session that still has patients is only logged as an alert and is never cancelled automatically, so someone must decide. The &quot;past day&quot; is judged by each location&#39;s timezone and day cut-off, not by the server date.</p>
+<h3 id="ch50-daily-clinic-closing-step-3-no-show-marking">Step 3 — No-show marking</h3>
+<p><strong>Module:</strong> Appointments and Queue. <strong>Status:</strong> [Implemented]. Staff can press <strong>No show</strong> on a scheduled or confirmed booking (<code>appointments.cancel</code>). Otherwise the worker does it every 60 seconds once start time plus maximum lateness (45 minutes by default) has passed. The job writes with plain SQL, so there is no queue event, no audit row and no realtime message. A no-show no longer shows Check in in the web app, so a late patient usually has to be added as an ordinary walk-in (Chapter 29).</p>
+<h3 id="ch50-daily-clinic-closing-step-4-daily-collection">Step 4 — Daily collection</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On <strong>Payments</strong>, the day picker (future days not allowed) shows receipts by their payment date and refunds by their refund date per payment account, with the net in hand (Chapter 34).</p>
+<h3 id="ch50-daily-clinic-closing-step-5-cash-close">Step 5 — Cash close</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. <strong>Close counter</strong> computes for each payment account the expected money since the previous close, asks for the counted amount on accounts marked &quot;Count physically at cash close&quot;, and requires a note when there is a difference. A close is a permanent record with a printable slip and a red &quot;Flagged&quot; badge when the difference exceeds the alert amount. Closing never blocks taking payments, and a close cannot be edited or deleted. It needs <code>billing.cash_close</code> (Admin, Accountant).</p>
+<h3 id="ch50-daily-clinic-closing-step-6-overnight-jobs">Step 6 — Overnight jobs</h3>
+<p><strong>Module:</strong> Several. Times are server time (Appendix E).</p>
+<div class="tw"><table><thead><tr>
+<th>Time</th>
+<th>Job</th>
+<th>Status</th>
+</tr>
+</thead><tbody><tr>
+<td>01:00</td>
+<td>Patient credit expiry: marks credits past their expiry date as expired</td>
+<td>[Implemented] (credit packages have no screen, so little to expire in practice)</td>
+</tr>
+<tr>
+<td>02:30</td>
+<td>Billing invariant check: re-checks ten money rules and logs any break</td>
+<td>[Implemented], log only</td>
+</tr>
+<tr>
+<td>03:15</td>
+<td>Queue cleanup: deletes idempotency keys older than 24 hours and published outbox rows older than 7 days</td>
+<td>[Implemented]</td>
+</tr>
+<tr>
+<td>08:00</td>
+<td>Inventory alerts: counts low and expiring items per location</td>
+<td>[Partial], server log only</td>
+</tr>
+</tbody></table></div><p>The table lists the four daily jobs with what each does and its status. The credit job reads the server date rather than the location&#39;s, so a credit can expire a few hours early or late for a clinic in another timezone. Nobody is notified by the invariant check or the inventory alert; an operator must read the logs (Chapter 34, Chapter 39).</p>
+<h2 id="ch50-daily-clinic-closing-50-3-what-can-go-wrong">50.3 What can go wrong</h2>
+<ul>
+<li>Closing the queue while someone is with the doctor: 409 <code>DOCTOR_BUSY</code>.</li>
+<li>A remaining patient without a decision: 422 <code>INVALID_TRANSITION</code>.</li>
+<li>A skipped or at-test patient cannot be transferred, only cancelled or brought back.</li>
+<li>Counter close: 422 when a count or a note is missing, or when the close period is stale.</li>
+<li>Overnight times differ from clinic local time when the server is in another timezone.</li>
+<li>Jobs run only in a worker (or all-in-one) process; if no worker runs, none of the jobs run. Exactly one worker must run.</li>
+<li>The invariant check only logs; a violation is not repaired or announced.</li>
+</ul>
+<h2 id="ch50-daily-clinic-closing-50-4-data-left-behind">50.4 Data left behind</h2>
+<p><code>queue_sessions</code> (closed), <code>queue_entries</code>, <code>queue_events</code> and <code>outbox</code> (for closes done by users), <code>appointments</code> (cancelled or no-show), <code>cash_closes</code>, <code>cash_close_lines</code>, <code>billing_audit_logs</code>, <code>patient_credits</code> (expired), and server log lines for the invariant check and the inventory alerts.</p>
+</section></body></html>

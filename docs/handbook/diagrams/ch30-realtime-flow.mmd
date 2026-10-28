@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TB
     O["QueueOrchestrator<br/>transaction"] -->|"INSERT outbox rows<br/>+ pg_notify"| OB[("outbox table")]
     OB -->|"LISTEN or 1 s poll"| R["Outbox relay<br/>worker process"]
     R -->|"publish"| RD["Redis channel"]

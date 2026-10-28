@@ -1,0 +1,110 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch24-notifications"><h1 id="ch24-notifications-chapter-24-notifications">Chapter 24 — Notifications</h1>
+<p>This chapter describes the seven tables of the notification system: the platform catalog of events, each clinic&#39;s on/off rules and wording, the outbox of messages to send, the in-app inbox (the bell), and each patient&#39;s messaging preferences. It is for the product owner who needs to know what is stored when &quot;something notifies someone&quot; and which channels really work today. The module lives in <code>backend/src/notifications/</code>; the sending mechanics are covered in the Notification mechanics chapter (Chapter 59). The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference.</p>
+<h2 id="ch24-notifications-24-1-the-idea-in-one-paragraph">24.1 The idea in one paragraph</h2>
+<p>The Platform defines a fixed list of <strong>notification events</strong> in code, such as an order being submitted or an item being ready. Each event can reach one or more <strong>audiences</strong>: patient, doctor, coordinator or lab. A clinic decides per event, audience and channel whether to send (<strong>notification rules</strong>), can switch a whole audience off or set quiet hours (<strong>audience settings</strong>), and can replace the default wording (<strong>templates</strong>). When something happens, the Platform writes one <strong>outbox</strong> row per recipient and channel in the same database transaction as the change itself, including rows it decided to skip, so the log can show why a message never went. A background relay then sends the queued rows. An in-app send also creates a row in the recipient&#39;s <strong>bell</strong>.</p>
+<p><strong>Channels in practice.</strong> The tables allow four channels: <code>in_app</code>, <code>whatsapp</code>, <code>sms</code> and <code>email</code>. In the code, only <code>in_app</code> is switched on for the doctor, coordinator and lab audiences; WhatsApp, SMS and email are commented out because no real provider is connected. The patient audience has no channel at all, so patients currently receive nothing.</p>
+<p><strong>Status:</strong></p>
+<ul>
+<li>In-app notifications to staff and lab users (outbox, bell, settings, templates): [Implemented].</li>
+<li>WhatsApp, SMS and email delivery: [Not implemented]. The channel values exist in the tables and checks, but no provider sends them.</li>
+<li>Patient notifications: [Not implemented]. Patient preferences can be stored, but no channel reaches patients.</li>
+</ul>
+<p><strong>Keys.</strong> Every table here except <code>notification_events</code> and <code>patient_comm_prefs</code> uses a UUID version 7 primary key generated by the database function <code>uuid_generate_v7()</code>. Version 7 ids start with a timestamp, so they sort by creation time (the Labs chapter, Chapter 25, explains them in more detail).</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch24-notifications-erd.png" alt="Figure 24.1 — Notification tables"></p>
+<p><em>Figure 24.1 — The event catalog, clinic rules, templates, audience settings, the outbox, the bell and patient preferences.</em></p>
+<p>The figure shows <code>notification_events</code> at the centre, keyed by a text <code>code</code>. It connects with RESTRICT to <code>notification_rules</code>, <code>notification_templates</code> and <code>notification_outbox</code>. <code>organizations</code> connects to <code>notification_audience_settings</code> and <code>notification_rules</code> (CASCADE), to <code>notification_templates</code> (&quot;null = platform, CASCADE&quot;) and to <code>notification_outbox</code> (RESTRICT). <code>notification_templates</code> connects to <code>notification_rules</code> with &quot;custom wording, SET NULL&quot;. <code>notification_outbox</code> connects one-to-one to <code>user_notifications</code> (&quot;copied to bell, RESTRICT&quot;), and <code>users</code> connects to <code>user_notifications</code> (CASCADE). <code>patients</code> connects one-to-one to <code>patient_comm_prefs</code> (CASCADE). Two dotted lines run from <code>users</code> and from <code>patients</code> to <code>notification_outbox</code>, labelled &quot;recipient_id when user&quot; and &quot;recipient_id when patient&quot;, showing that the recipient column has no foreign key.</p>
+<h2 id="ch24-notifications-24-2-tables">24.2 Tables</h2>
+<h3 id="ch24-notifications-notification-events-the-platform-event-catalog"><code>notification_events</code> — the platform event catalog</h3>
+<p>One row is one kind of event that can notify someone. The primary key is a text <code>code</code>, for example <code>order.submitted</code> or <code>item.ready</code>. There is no organization column: this is a platform catalog, seeded from code on every start (missing rows are inserted, existing ones are kept). Key columns: <code>name</code>, <code>description</code>, <code>audiences</code> (the audiences it can reach), <code>is_mandatory_internal</code> (internal audiences always get it in-app and clinics cannot switch it off), <code>variables</code> (placeholders the event supplies) and <code>sort_order</code>.</p>
+<h3 id="ch24-notifications-notification-rules-per-clinic-on-off-switches"><code>notification_rules</code> — per-clinic on/off switches</h3>
+<p>One row says whether one event is sent to one audience on one channel for one organization, and optionally which template to use. Rows are created only when a clinic changes something. A missing row means the default from the code: on for an internal audience (doctor, coordinator, lab) on the in-app channel, off for everything else. The table has an optimistic <code>version</code> column, so two admins saving at once cannot silently overwrite each other.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li>Unique per organization, event, audience and channel.</li>
+<li>CHECKs limit <code>channel</code> to in_app, whatsapp, sms or email, and <code>audience</code> to patient, doctor, coordinator or lab.</li>
+</ul>
+<h3 id="ch24-notifications-notification-templates-wording"><code>notification_templates</code> — wording</h3>
+<p>One row is the wording of one event on one channel in one language (<code>en</code>, <code>ur</code> or <code>roman_ur</code>). If <code>organization_id</code> is empty, it is the platform default; a clinic&#39;s own row with the same event, channel and language overrides it. Key columns: <code>subject</code> (in-app title or email subject), <code>body</code> with <code>{placeholder}</code> markers, <code>variables</code> (computed on save) and <code>provider_template_ref</code> (for WhatsApp, the provider-approved template id).</p>
+<p>Constraints that matter: two partial unique indexes allow exactly one platform template and one clinic template per event, channel and language.</p>
+<h3 id="ch24-notifications-notification-audience-settings-master-switch-and-quiet-hours"><code>notification_audience_settings</code> — master switch and quiet hours</h3>
+<p>One row per organization and audience. <code>is_enabled</code> is the master switch for that audience. <code>quiet_start</code> and <code>quiet_end</code> define quiet hours as local wall-clock times, which may wrap past midnight (for example 22:00 to 08:00). <code>timezone</code> is the zone for quiet hours; if empty, the location&#39;s timezone is used. A missing row means the default: patients off, internal audiences on.</p>
+<p>Constraints that matter: unique per organization and audience; quiet start and end must both be set or both be empty.</p>
+<h3 id="ch24-notifications-notification-outbox-one-message-to-one-recipient-on-one-channel"><code>notification_outbox</code> — one message to one recipient on one channel</h3>
+<p>One row is one message. It is written in the same transaction as the change that caused it. Key columns:</p>
+<ul>
+<li>Who: <code>audience</code>, <code>recipient_type</code> (user, patient or lab) and <code>recipient_id</code>.</li>
+<li>What: <code>event_code</code>, <code>channel</code>, <code>payload</code> (the rendered data), and <code>entity_type</code> with <code>entity_id</code> (the record that caused it, so a screen can show &quot;messages about this order&quot;).</li>
+<li>State: <code>status</code>, <code>scheduled_for</code>, <code>attempts</code>, <code>provider_message_id</code>, <code>last_error</code> and <code>sent_at</code>.</li>
+</ul>
+<p><code>status</code> values: <code>queued</code>, <code>held_quiet_hours</code>, <code>sent</code>, <code>delivered</code>, <code>failed</code>, <code>skipped_disabled</code> and <code>skipped_opt_out</code>. The relay polls about every two seconds. When the worker claims a row, it increases <code>attempts</code> and moves <code>scheduled_for</code> five minutes ahead as a lease, so a crashed send is retried later.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li>CHECKs on <code>channel</code>, <code>audience</code> and <code>status</code>.</li>
+<li>A partial index over rows in <code>queued</code> or <code>held_quiet_hours</code>, which keeps the worker&#39;s search fast.</li>
+<li>The table is described as never deleted, but no database trigger enforces that.</li>
+</ul>
+<h3 id="ch24-notifications-user-notifications-the-bell"><code>user_notifications</code> — the bell</h3>
+<p>One row is a user&#39;s in-app copy of one sent <code>in_app</code> outbox row. Key columns: <code>title</code>, <code>body</code>, <code>link</code>, <code>event_code</code>, <code>organization_id</code> (so a user who works for several clinics can filter) and <code>read_at</code>.</p>
+<p>Constraints that matter: <code>outbox_id</code> is unique, so a re-delivered send never shows twice; a partial index over unread rows serves the unread count.</p>
+<h3 id="ch24-notifications-patient-comm-prefs-a-patient-39-s-opt-outs"><code>patient_comm_prefs</code> — a patient&#39;s opt-outs</h3>
+<p>The primary key is the patient id, so each patient has at most one row. Key columns: <code>whatsapp_opt_out</code>, <code>sms_opt_out</code>, <code>email_opt_out</code>, <code>preferred_language</code> and <code>opted_out_at</code>. It has an optimistic <code>version</code> column.</p>
+<h2 id="ch24-notifications-24-3-relationships-explained">24.3 Relationships explained</h2>
+<ul>
+<li><strong>Organization → audience settings, rules, templates.</strong> Each belongs to one organization (templates: zero or one, because platform defaults have none). Deleting the organization deletes them (CASCADE).</li>
+<li><strong>Organization → outbox.</strong> Each outbox row belongs to one organization. An organization with outbox rows cannot be deleted (RESTRICT), which keeps the message log.</li>
+<li><strong>Event → rules, templates, outbox.</strong> Each refers to exactly one event code. An event that is referenced cannot be deleted (RESTRICT). Events are seeded insert-if-missing and are never removed by the code.</li>
+<li><strong>Template → rules.</strong> A rule may point at one template; deleting the template keeps the rule and clears the link (SET NULL), so the default wording is used again.</li>
+<li><strong>Outbox → bell entry.</strong> One-to-one: a bell entry belongs to exactly one outbox row, and an outbox row has at most one bell entry. An outbox row with a bell entry cannot be deleted (RESTRICT).</li>
+<li><strong>User → bell entries.</strong> Each bell entry belongs to one user; deleting the user deletes their bell entries (CASCADE).</li>
+<li><strong>Patient → preferences.</strong> One-to-one; deleting the patient deletes the preferences (CASCADE).</li>
+</ul>
+<p>Logical relationships (no foreign key):</p>
+<ul>
+<li><code>notification_outbox.recipient_id</code> is polymorphic, discriminated by <code>recipient_type</code> (a user, a patient or a lab).</li>
+<li><code>notification_outbox.entity_id</code> is polymorphic, discriminated by <code>entity_type</code>.</li>
+<li><code>notification_outbox.location_id</code> → <code>locations</code>.</li>
+<li><code>user_notifications.organization_id</code> and <code>patient_comm_prefs.organization_id</code> → <code>organizations</code>.</li>
+<li>Actor columns (<code>created_by</code>, <code>updated_by</code>) hold a user id.</li>
+</ul>
+<h2 id="ch24-notifications-24-4-tenant-scope">24.4 Tenant scope</h2>
+<ul>
+<li><strong>Global (platform catalog):</strong> <code>notification_events</code>.</li>
+<li><strong>Organization and location:</strong> <code>notification_outbox</code> (location optional).</li>
+<li><strong>Organization only:</strong> <code>notification_audience_settings</code>, <code>notification_rules</code>, <code>notification_templates</code> (or platform-wide when empty), <code>user_notifications</code>, <code>patient_comm_prefs</code>.</li>
+<li><code>user_notifications</code> belongs to a user, not a clinic, but carries the organization id so the bell can be filtered per clinic.</li>
+</ul>
+</section></body></html>

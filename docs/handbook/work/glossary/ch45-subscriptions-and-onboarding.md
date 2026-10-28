@@ -1,0 +1,6 @@
+- **Trial** — 14-day period on the Professional plan given at self-signup (`trial_ends_at`).
+- **Grace period** — 3 days after the period ends, still writable with warnings (`GRACE_DAYS`).
+- **Unmanaged clinic** — an organization with neither trial nor paid date: no limits, no expiry.
+- **Setup wizard** — the three-step owner onboarding at `/setup` (Clinic, Location & tax, Your team).
+- **Onboarding pending** — flag `organizations.onboarding_pending`, true from signup until the wizard is finished.
+- **Manual payment** — a subscription payment recorded by a super admin (`subscription_payments`).

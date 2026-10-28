@@ -1,0 +1,17 @@
+sequenceDiagram
+    actor Owner
+    participant API as API process
+    participant DB as PostgreSQL
+    participant Bus as AccessChangeBus
+    participant GW as QueueGateway
+    participant Web as Staff browser tab
+    Owner->>API: save a role change
+    API->>DB: commit the role row
+    API->>DB: UPDATE organizations SET access_version plus 1
+    API->>Bus: publish organization id and new version
+    Bus->>Bus: drop cached access contexts of that organization
+    Bus->>GW: notify listeners in this process and, through Redis, in the others
+    GW->>Web: emit access.changed to the org room
+    Web->>API: GET /me/access
+    API-->>Web: new permissions and features
+    Web->>Web: sidebar and buttons update, route gate re-checks

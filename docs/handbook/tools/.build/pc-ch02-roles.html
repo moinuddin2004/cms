@@ -1,0 +1,182 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch02-roles"><h1 id="ch02-roles-chapter-2-roles-who-uses-the-platform">Chapter 2 — Roles: who uses the Platform</h1>
+<p>This chapter lists every kind of person who touches the Platform, from the super admin who runs the whole system to the waiting-room TV that needs no login. It is written for the product owner and answers three questions for each audience: what they do day to day, which sidebar entries they use, and what they cannot do. The detailed permission model is in Chapter 11, and the access mechanics are in Chapter 57.</p>
+<h2 id="ch02-roles-2-1-the-audiences-at-a-glance">2.1 The audiences at a glance</h2>
+<p>The Platform checks <strong>permissions</strong>, never role names (Chapter 11). A <strong>role</strong> is only a named bundle of permissions. The audiences in this chapter are therefore described by what their default bundle allows.</p>
+<div class="tw"><table><thead><tr>
+<th>Audience</th>
+<th>Has a role?</th>
+<th>Home page</th>
+<th>Sidebar entries (labels)</th>
+<th>Cannot do</th>
+</tr>
+</thead><tbody><tr>
+<td>Super admin</td>
+<td>No, platform-wide</td>
+<td>Dashboard</td>
+<td>Organizations, Subscriptions, Lab Directory, Config Studio (Form schemas, Workflows, Stage templates), plus every clinic entry</td>
+<td>Nothing is blocked inside a clinic.</td>
+</tr>
+<tr>
+<td>Owner</td>
+<td>No, owns one organization</td>
+<td>Dashboard</td>
+<td>Every clinic entry, including Locations, User Admin and the four &quot;Clinic setup&quot; pages</td>
+<td>Platform-only pages: Organizations, Subscriptions, Lab Directory, Config Studio. Cannot enable a feature the super admin has not entitled.</td>
+</tr>
+<tr>
+<td>Admin (system role)</td>
+<td>Yes</td>
+<td>Dashboard</td>
+<td>Most clinic entries</td>
+<td>Doctor acts: conduct consultations, write prescriptions, own queue and own earnings.</td>
+</tr>
+<tr>
+<td>Doctor (system role)</td>
+<td>Yes</td>
+<td>My Queue</td>
+<td>My Queue, Patients (own), Appointments (own), Prescriptions, Lab orders, My earnings, Clinic overview (the page refuses the Doctor role&#39;s own scope; see Chapter 36)</td>
+<td>Billing, payments, employees, payroll, administration.</td>
+</tr>
+<tr>
+<td>Receptionist (system role)</td>
+<td>Yes</td>
+<td>Appointments</td>
+<td>Patients, Appointments, Billing desk, Invoices, Payments, Lab orders</td>
+<td>Clinical records, consultation, refunds, voiding invoices, reports.</td>
+</tr>
+<tr>
+<td>Assistant (system role)</td>
+<td>Yes</td>
+<td>Appointments</td>
+<td>Patients, Appointments, Lab orders</td>
+<td>Billing, prescriptions, consultation.</td>
+</tr>
+<tr>
+<td>Accountant (system role)</td>
+<td>Yes</td>
+<td>Billing desk</td>
+<td>Billing desk, Invoices, Payments, Expenses, Reports, Finance overview, Doctor earnings, Billing activity, Lab billing, Lab payables</td>
+<td>Patient records beyond prices, queue, booking.</td>
+</tr>
+<tr>
+<td>Custom role</td>
+<td>Yes, built by the owner</td>
+<td>Set per role</td>
+<td>Whatever the permissions allow</td>
+<td>Anything the owner did not tick; an owner cannot grant what they do not hold.</td>
+</tr>
+<tr>
+<td>Lab admin</td>
+<td>Lab membership</td>
+<td>Lab portal</td>
+<td>Lab portal</td>
+<td>Anything inside a clinic.</td>
+</tr>
+<tr>
+<td>Lab technician</td>
+<td>Lab membership</td>
+<td>Lab portal</td>
+<td>Lab portal</td>
+<td>Team management, accepting or rejecting orders.</td>
+</tr>
+<tr>
+<td>Magic-link contact</td>
+<td>No login</td>
+<td>One order page</td>
+<td>None</td>
+<td>Anything except the one order the link opens.</td>
+</tr>
+<tr>
+<td>TV display</td>
+<td>No login</td>
+<td>Display screen</td>
+<td>None</td>
+<td>Shows no patient names or phone numbers.</td>
+</tr>
+<tr>
+<td>Patient</td>
+<td>None</td>
+<td>None</td>
+<td>None</td>
+<td>Cannot log in <strong>[Not implemented]</strong>.</td>
+</tr>
+</tbody></table></div><p>The table puts every audience on one page. Doctor, Receptionist, Assistant and Accountant sidebars are deduced from each template&#39;s permissions and the sidebar registry, so a clinic that renames or hides entries (Chapter 58) sees a different sidebar. The sections that follow give the day-to-day view of each audience.</p>
+<p><strong>Sidebar labels.</strong> The sidebar items come from a registry in the web app. Each item appears only when the user holds its permission. The default layout has the groups Clinic, Finance (with Billing and Reports sub-groups), Team, Admin and Clinic setup. Settings is pinned at the bottom for everyone.</p>
+<h2 id="ch02-roles-2-2-super-admin">2.2 Super admin</h2>
+<p>The super admin is the person who operates the Platform itself, not a clinic. They are exempt from the tenant checks, the feature check and the permission check.</p>
+<p><strong>Day to day.</strong> They create and review <strong>organizations</strong>, set which <strong>features</strong> each organization is <strong>entitled</strong> to (optionally with a trial end date), record subscription payments by hand in <strong>Subscriptions</strong>, manage the shared <strong>Lab Directory</strong>, and edit forms, workflows and stage templates in <strong>Config Studio</strong>.</p>
+<p><strong>Sidebar.</strong> Organizations, Subscriptions, Lab Directory, and the Config Studio group with Form schemas, Workflows and Stage templates. These five entries are marked super admin only in the registry. They also see the clinic entries when they are working inside an organization.</p>
+<p><strong>Cannot do.</strong> Nothing is blocked by permission. In practice a super admin has no clinic role, so clinic-facing personal screens such as a doctor&#39;s own earnings have no staff record behind them.</p>
+<h2 id="ch02-roles-2-3-owner">2.3 Owner</h2>
+<p>The <strong>owner</strong> is the person who owns one organization. The owner has no role record: they get every permission at its widest scope, and permissions are still dropped when their feature is not active.</p>
+<p><strong>Day to day.</strong> Setting up the clinic and watching it: <strong>Locations</strong>, <strong>User Admin</strong> (staff logins), and the four setup pages <strong>Roles &amp; permissions</strong>, <strong>Features</strong> (switch features on or off within what the super admin granted), <strong>Sidebar</strong> and <strong>Theme</strong>. They can also use every clinic module.</p>
+<p><strong>Cannot do.</strong> The owner cannot reach the five platform-only pages, cannot enable a feature that is not entitled, and cannot create permissions that do not exist in the catalog.</p>
+<h2 id="ch02-roles-2-4-the-five-system-roles">2.4 The five system roles</h2>
+<p>Every organization is seeded with five <strong>system roles</strong>: Admin, Doctor, Receptionist, Assistant and Accountant. They are read-only templates; to change one, the owner clones it into a custom role.</p>
+<p><strong>Admin.</strong> Runs the clinic day to day. It holds the Full bundle of every module except four clinical acts (conducting consultations, creating prescriptions, own queue, own earnings), but it can run and force-complete any doctor&#39;s queue. Home page: Dashboard. Uses: Dashboard, Clinic overview, Patients, Appointments, Billing, Reports, Employees, Payroll, Locations, User Admin and setup pages. Cannot: write prescriptions or conduct a consultation unless the owner clones Doctor for them.</p>
+<p><strong>Doctor.</strong> Consults patients. Home page: My Queue. A doctor sees only their own patients (scope <code>own</code>: people they have an appointment or queue entry with) and their own appointments. Day to day: start the queue, call the next patient, work in the consultation workspace, write and print prescriptions, create lab orders, check My earnings. Uses: My Queue, Patients, Appointments, Prescriptions, Lab orders, Order templates, My earnings, Clinic overview. Cannot: collect payments, see invoices, manage employees, change settings.</p>
+<p><strong>Receptionist.</strong> The front desk. Home page: Appointments. Day to day: register patients, book and reschedule, check patients in, add walk-ins on the reception queue board, run the TV display, collect payments, apply preset discounts. Uses: Patients, Appointments, Billing desk, Invoices, Payments, Lab orders. Cannot: read clinical notes, issue refunds, void invoices, give custom discounts, run reports.</p>
+<p><strong>Assistant.</strong> Chairside help. Home page: Appointments. Day to day: view patients at this location including clinical records, edit the teeth chart, book appointments, check patients in, view stock. Uses: Patients, Appointments, Lab orders. Cannot: take payments, write prescriptions, edit patient details.</p>
+<p><strong>Accountant.</strong> Money. Home page: Billing desk. Day to day: view and edit invoices, void them, issue refunds, close the cash counter, record expenses, see every doctor&#39;s earnings, read financial reports, manage lab billing and payables. Uses: Billing desk, Invoices, Payments, Expenses, Finance overview, Reports, Doctor earnings, Billing activity, Lab billing, Lab payables. Cannot: open patient clinical records, run the queue, book appointments.</p>
+<p>The <strong>home page</strong> is where a user lands after login. If the user may not open it, the web app falls back to the Dashboard.</p>
+<h2 id="ch02-roles-2-5-custom-roles">2.5 Custom roles</h2>
+<p>An owner (or a staff member with the roles permission) builds a <strong>custom role</strong> on the Roles &amp; permissions screen. For each module the role gets None, Basic or Full, or an Advanced list of single permissions with a scope. A role also has a home page and members. Custom roles are the way to model a hygienist, a branch manager or a billing clerk. A holder of the roles permission cannot grant anything they do not hold themselves.</p>
+<p>Figure 2.1 shows what a restricted custom role looks like on the dashboard.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/screenshots/hygienist-dashboard.jpg" alt="Figure 2.1 — Dashboard as a restricted custom role"></p>
+<p><em>Figure 2.1 — The dashboard for a custom role with only Patients and Appointments.</em></p>
+<p>The screenshot was captured on 2026-10-23 in dark theme and shows the former working name &quot;MedTrackr&quot; in the corner. The dashboard layout predates the redesign of that same date, so it is used only to show the sidebar. The sidebar lists Dashboard, then under the group Clinic only Patients and Appointments, with Settings and the user at the bottom. Entries for billing, reports, employees and administration are absent because the role holds none of their permissions. If this user types the address of a hidden page, the web app shows a &quot;No access&quot; page instead (Chapter 11).</p>
+<h2 id="ch02-roles-2-6-lab-side-users">2.6 Lab-side users</h2>
+<p>Labs are separate from clinics. A <strong>lab</strong> has its own members, who sign in with a normal login but hold a <strong>lab membership</strong> instead of a clinic assignment. They see the <strong>Lab portal</strong> entry in the sidebar (marked for users with at least one lab membership).</p>
+<ul>
+<li><strong>Lab admin.</strong> Accepts or rejects a submitted order, asks the clinic a question (clarification), moves production steps, manages the lab team (add people, change roles, deactivate), and sees clinics, billing and profile.</li>
+<li><strong>Lab technician.</strong> Works the production steps (for example finishing an order into quality check and passing it). Cannot accept or reject orders in the seeded dental workflow, and cannot manage the team.</li>
+<li><strong>Magic-link contact.</strong> A person at the lab with no login. The clinic issues a <strong>magic link</strong> for one order. The link opens one page where the person can read the order, accept it, reject it with a reason or ask a clarification, within the link&#39;s expiry and use limit. Chapter 41 covers the lab portal in full.</li>
+</ul>
+<p>These users cannot see anything inside a clinic apart from what the order and the clinic-lab link show them. The clinic decides how much patient identity the lab sees: full name or a code only.</p>
+<h2 id="ch02-roles-2-7-public-and-unauthenticated-audiences">2.7 Public and unauthenticated audiences</h2>
+<ul>
+<li><strong>The TV display.</strong> A screen in the waiting room opens the display page for a location. It shows, per doctor, the token being served and the next few tokens. It needs no login and by design shows no patient names or phones. Managing the TV display from a screen is <strong>[Not implemented]</strong>: there is no admin page for it, and the receptionist role only holds the permission to manage it.</li>
+<li><strong>Visitors before login.</strong> Login, register, forgot password, reset password and verify email pages are public.</li>
+<li><strong>Patients.</strong> There is <strong>no patient portal [Not implemented]</strong>. Patients appear in the Platform only as records that staff create and as tokens on a ticket.</li>
+</ul>
+<h2 id="ch02-roles-2-8-limitations-and-known-gaps">2.8 Limitations and known gaps</h2>
+<ul>
+<li>Sidebar labels per role in the table were deduced from permissions and the registry, not observed in a running app.</li>
+<li>A staff member with no assignment at the active location gets no role permissions there, even if they hold a role elsewhere.</li>
+<li>Super admins have no staff record, so screens built on the employee record do not apply to them.</li>
+</ul>
+</section></body></html>

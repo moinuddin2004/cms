@@ -1,0 +1,406 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch04-repository-and-stack"><h1 id="ch04-repository-and-stack-chapter-4-repository-and-tech-stack">Chapter 4 — Repository and tech stack</h1>
+<p>This chapter explains how the source code of the Platform is organised and which technologies it is built on. It is written for the product owner, who is a software engineer and needs a map of the code before reading any module chapter. Everything here was read from the repository itself: the folder tree, the two <code>package.json</code> files and the module registrations in the backend.</p>
+<h2 id="ch04-repository-and-stack-4-1-one-repository-two-applications">4.1 One repository, two applications</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The Platform lives in a single Git repository (a &quot;monorepo&quot;). It holds two applications that are built and run separately:</p>
+<ul>
+<li><strong><code>backend/</code></strong> — the API server. It is a NestJS application written in TypeScript. It talks to a PostgreSQL database through TypeORM, and to Redis for cross-process messages.</li>
+<li><strong><code>web-app/</code></strong> — the web application that clinic staff, owners and super admins use in the browser. It is a React 19 application built with TanStack Start and Vite.</li>
+</ul>
+<p>Next to them, <code>docs/</code> holds feature documents, test plans and this handbook. The backend also has its own <code>backend/docs/</code> folder with the generated entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) and one generated module chapter.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch04-repo-overview.png" alt="Figure 4.1 — Repository layout"></p>
+<p><em>Figure 4.1 — The repository layout at the top level, and the main folders inside each application.</em></p>
+<p>The figure reads from left to right. A single box, &quot;Repository root, one monorepo&quot;, has three arrows to its three main folders: <code>backend/</code> (the NestJS API), <code>web-app/</code> (the React web app) and <code>docs/</code> (feature docs, test plans and the handbook). The backend box branches into three folders: <code>backend/src/</code> with one folder per domain module, <code>backend/test/</code> with the database integration and acceptance suites, and <code>backend/docs/</code> with the generated entity catalog. The web-app box branches into <code>src/routes/</code> (thin route files), <code>src/features/&lt;name&gt;/</code> (pages, components, hooks and services) and the shared folders <code>src/components</code>, <code>src/lib</code>, <code>src/store</code> and <code>src/hooks</code>. Two further arrows show the direction of dependencies in the web app: route files point to feature folders, and feature folders point to the shared folders.</p>
+<p>There is no workspace tool joining the two applications (no root <code>package.json</code>). Each one has its own <code>package.json</code>, its own <code>node_modules</code> and its own commands.</p>
+<p><strong>Technical references:</strong> <code>backend/package.json</code> · <code>web-app/package.json</code> · <code>README.md</code> (root)</p>
+<h2 id="ch04-repository-and-stack-4-2-the-web-application-39-s-real-folder-layout">4.2 The web application&#39;s real folder layout</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The web app keeps business logic out of route files. A route file only declares the URL, an optional permission requirement and which feature page to render. The real layout under <code>web-app/src/</code> is:</p>
+<div class="tw"><table><thead><tr>
+<th>Folder</th>
+<th>What it holds</th>
+</tr>
+</thead><tbody><tr>
+<td><code>routes/</code></td>
+<td>92 file-based route files for TanStack Router. Each one wraps a feature page in <code>DashboardLayout</code> and may declare <code>staticData: { can: … }</code>, the permission needed to open it (54 routes do). <code>__root.tsx</code> is the root route: it restores the session, redirects, and mounts the access providers.</td>
+</tr>
+<tr>
+<td><code>features/&lt;name&gt;/</code></td>
+<td>One folder per feature (about 30, for example <code>patients</code>, <code>appointments</code>, <code>queue</code>, <code>billing</code>, <code>roles</code>, <code>access</code>). Inside: <code>pages/</code>, <code>components/</code>, <code>hooks/</code> (TanStack Query and form hooks), <code>services/</code> (axios calls), and often <code>schemas/</code> (Zod), <code>types</code>, <code>lib/</code> and <code>utils/</code>. A feature&#39;s <code>index.ts</code> is its public barrel.</td>
+</tr>
+<tr>
+<td><code>components/</code></td>
+<td>Shared UI: <code>ui/</code> (shadcn/ui primitives), <code>layout/</code> (<code>DashboardLayout</code>, <code>Sidebar</code>, <code>Topbar</code>, <code>LocationSwitcher</code>), <code>shared/</code> (<code>DataTable</code>, <code>ConfirmDialog</code>, <code>TooltipButton</code>, <code>BackButton</code>, <code>DatePicker</code> and more), <code>feedback/</code> (<code>EmptyState</code>, <code>ErrorState</code>, <code>LoadingSkeleton</code>, <code>NoResultsState</code>), <code>forms/</code>, <code>data-display/</code>, <code>feature/</code>.</td>
+</tr>
+<tr>
+<td><code>lib/</code></td>
+<td><code>api.ts</code> (the configured axios instance), <code>query-client.ts</code> (TanStack Query defaults), <code>currency.ts</code>, <code>formatters.ts</code>, <code>utils.ts</code>.</td>
+</tr>
+<tr>
+<td><code>store/</code></td>
+<td>Zustand stores: <code>useAuthStore.ts</code> (token, active organization and location, kept in memory only), plus small UI stores for patients, appointments, employees, navigation history and general UI.</td>
+</tr>
+<tr>
+<td><code>hooks/</code></td>
+<td>Cross-feature hooks such as <code>useBackNavigation</code>, <code>useDebounce</code>, <code>useTheme</code>.</td>
+</tr>
+<tr>
+<td><code>context/</code></td>
+<td><code>FeatureFlagsContext.tsx</code> (the active features and the organization&#39;s specialty tags).</td>
+</tr>
+<tr>
+<td><code>test/</code></td>
+<td>Vitest setup.</td>
+</tr>
+</tbody></table></div><p>The table lists each top-level folder of <code>web-app/src/</code> and its role. The pattern to remember is: a route file is thin, a feature folder owns its screens and its API calls, and anything used by many features lives in <code>components/</code>, <code>lib/</code>, <code>store/</code> or <code>hooks/</code>.</p>
+<p><strong>Where the CLAUDE.md conventions file differs.</strong> The root <code>CLAUDE.md</code> describes a different, planned layout: route files under <code>src/app/</code>, shared code under <code>src/shared/</code>, and an <code>api/</code> folder in each feature. None of those folders exist. The code uses <code>src/routes/</code>, <code>src/components/</code>, <code>src/lib/</code>, <code>src/store/</code> and feature <code>services/</code> folders, as the table shows. Some feature folders also deviate from the planned shape (for example <code>organizations/</code> and <code>locations/</code> keep their views at the folder root, and a few components call the axios instance directly). This handbook always describes the real layout.</p>
+<p><strong>Technical references:</strong> <code>web-app/src/routes/__root.tsx</code> · <code>web-app/src/features/</code> · <code>web-app/src/lib/api.ts</code> · <code>web-app/src/store/useAuthStore.ts</code></p>
+<h2 id="ch04-repository-and-stack-4-3-backend-module-map">4.3 Backend module map</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The backend is a &quot;modular monolith&quot;: one NestJS application whose code is split into modules, one folder per business area under <code>backend/src/</code>. All modules are loaded by <code>AppModule</code> (<code>backend/src/app.module.ts</code>). Every folder is listed here with one line.</p>
+<div class="tw"><table><thead><tr>
+<th>Folder</th>
+<th>One-line purpose</th>
+</tr>
+</thead><tbody><tr>
+<td><code>access</code></td>
+<td>Permission catalog (70 permissions), bundles, the 5 system role templates, <code>AccessResolver</code>, <code>AccessGuard</code>, <code>GET /me/access</code>, sidebar layouts (<code>/admin/navigation</code>).</td>
+</tr>
+<tr>
+<td><code>appointments</code></td>
+<td>Booking: scheduling, validation, booking rules, doctor double-booking protection, appointment status changes.</td>
+</tr>
+<tr>
+<td><code>auth</code></td>
+<td>Sign-in, tokens, refresh, sessions endpoints, password reset, email verification, rate limiting, the JWT and tenant guards, <code>AuthorizationService</code>. OAuth code exists but is not registered.</td>
+</tr>
+<tr>
+<td><code>billing</code></td>
+<td>Charges, invoices, payments, allocations, refunds, discounts, expenses, cash close, ledgers, credit packages, doctor commissions.</td>
+</tr>
+<tr>
+<td><code>bootstrap</code></td>
+<td><code>http.ts</code>: starts an HTTP process (body limits, validation pipe, exception filter, CORS, cookies).</td>
+</tr>
+<tr>
+<td><code>chairs</code></td>
+<td>One entity file only. No module registers it, so it does nothing at runtime.</td>
+</tr>
+<tr>
+<td><code>common</code></td>
+<td>Shared building blocks: audit, clock (<code>ClockService</code>), database helpers and migrations runner, decorators, <code>ResponseWrapper</code>, exception filter, idempotency, Redis connection helper, number sequences, file storage, request context.</td>
+</tr>
+<tr>
+<td><code>employees</code></td>
+<td>The employee person record, assignments, employment roles (including the <code>/admin/roles</code> screen API), schedules, leave, doctor availability overrides.</td>
+</tr>
+<tr>
+<td><code>encounters</code></td>
+<td>Patient encounters: the clinical record of one consultation.</td>
+</tr>
+<tr>
+<td><code>engine</code></td>
+<td>Generic workflow engine: specialties, versioned form schemas, versioned workflows, stage templates (Config Studio).</td>
+</tr>
+<tr>
+<td><code>feature-flags</code></td>
+<td>Feature catalog, entitlement, owner switches, location overrides, <code>FeatureFlagGuard</code>.</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>Items, suppliers, purchase orders, stock movements, consumption, low-stock job.</td>
+</tr>
+<tr>
+<td><code>lab-access</code></td>
+<td>A lab&#39;s answers to orders through the lab portal, magic links or a clinic proxy; work-order QR.</td>
+</tr>
+<tr>
+<td><code>lab-billing</code></td>
+<td>Billing the patient for lab work.</td>
+</tr>
+<tr>
+<td><code>lab-catalog</code></td>
+<td>Lab services, price windows, clinic-to-lab service mappings, order templates.</td>
+</tr>
+<tr>
+<td><code>lab-finance</code></td>
+<td>Glue between lab billing, lab payables, commissions and the journals (no endpoints of its own).</td>
+</tr>
+<tr>
+<td><code>lab-orders</code></td>
+<td>Lab orders: drafts, submit, revisions, messages, attachments, work-order print.</td>
+</tr>
+<tr>
+<td><code>lab-payables</code></td>
+<td>Vendor bills from labs, lab payments, statements, payables reports.</td>
+</tr>
+<tr>
+<td><code>lab-production</code></td>
+<td>Production stages, technician assignments, shipments, remakes, warranties.</td>
+</tr>
+<tr>
+<td><code>labs</code></td>
+<td>Platform lab directory, lab staff, each clinic&#39;s lab list, lab portal foundation.</td>
+</tr>
+<tr>
+<td><code>locations</code></td>
+<td>Locations (branches) and location settings.</td>
+</tr>
+<tr>
+<td><code>migrations</code></td>
+<td>Three migration files; the first is a legacy baseline that never runs.</td>
+</tr>
+<tr>
+<td><code>notifications</code></td>
+<td>In-app notification rules, templates, outbox, quiet hours, the sending loop.</td>
+</tr>
+<tr>
+<td><code>organizations</code></td>
+<td>Organizations (clinics), ownership, legacy organization settings.</td>
+</tr>
+<tr>
+<td><code>patients</code></td>
+<td>The patient record and its sub-records (vitals, dental info, teeth chart, documents, consents, recalls, referrals, insurance, feedback, plans), import and export, patient audit trail.</td>
+</tr>
+<tr>
+<td><code>payroll</code></td>
+<td>Monthly payroll records and the month-end payroll job.</td>
+</tr>
+<tr>
+<td><code>plan-templates</code></td>
+<td>Treatment plan templates.</td>
+</tr>
+<tr>
+<td><code>prescriptions</code></td>
+<td>Prescriptions, medicine directory, templates, presets, doctor signatures, print layouts.</td>
+</tr>
+<tr>
+<td><code>queue</code></td>
+<td>Doctor-wise queue: sessions, entries, tokens, <code>QueueOrchestrator</code>, selection engine, policies, Socket.IO gateway, outbox relay, queue jobs.</td>
+</tr>
+<tr>
+<td><code>reports</code></td>
+<td>Finance dashboard, clinic overview and 37 report definitions with Excel and PDF export (owns no tables).</td>
+</tr>
+<tr>
+<td><code>session</code></td>
+<td>User session records (the refresh-token sessions).</td>
+</tr>
+<tr>
+<td><code>settings-registry</code></td>
+<td><code>config_values</code> cascade (platform, organization, location) used by the theme and newer settings.</td>
+</tr>
+<tr>
+<td><code>subscriptions</code></td>
+<td>Plans, trial, grace, read-only mode, manual subscription payments, self-signup and the setup wizard, <code>SubscriptionGuard</code>.</td>
+</tr>
+<tr>
+<td><code>treatments</code></td>
+<td>Treatments: clinical work performed.</td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td>User accounts (logins), user admin, staff logins, owner creation.</td>
+</tr>
+</tbody></table></div><p>The table names every folder in <code>backend/src/</code> and what it is responsible for. Besides the folders, <code>backend/src/</code> holds the entry points <code>main.ts</code>, <code>main.api.ts</code> and <code>main.worker.ts</code> (one per process role, explained in Chapter 6), <code>app.module.ts</code>, a placeholder <code>app.controller.ts</code> / <code>app.service.ts</code> (a hello endpoint) and <code>data-sourse.ts</code>, the TypeORM command-line data source (the misspelling is the real file name).</p>
+<p><strong>Note on CLAUDE.md.</strong> <code>CLAUDE.md</code> describes inventory, invoices, reports and notifications as stubs. In the code all four are built. Only <code>chairs</code> is an entity with no module.</p>
+<p><strong>Technical references:</strong> <code>backend/src/app.module.ts</code> · <code>AppModule</code> · <code>backend/src/*/*.module.ts</code></p>
+<h2 id="ch04-repository-and-stack-4-4-backend-technology">4.4 Backend technology</h2>
+<p><strong>Status:</strong> [Implemented] (with the exceptions noted in the table)</p>
+<div class="tw"><table><thead><tr>
+<th>Package (major version)</th>
+<th>Purpose in the Platform</th>
+</tr>
+</thead><tbody><tr>
+<td>NestJS 11 (<code>@nestjs/core</code>, <code>common</code>, <code>platform-express</code>)</td>
+<td>The application framework: modules, controllers, dependency injection, guards, pipes, interceptors, running on Express.</td>
+</tr>
+<tr>
+<td><code>@nestjs/typeorm</code> 11 + TypeORM 0.3 + <code>pg</code> 8</td>
+<td>Database access to PostgreSQL: entities, repositories, transactions, schema synchronize, migrations. <code>pg</code> is also used directly for <code>LISTEN</code> connections.</td>
+</tr>
+<tr>
+<td><code>@nestjs/config</code> 4</td>
+<td>Reads environment variables.</td>
+</tr>
+<tr>
+<td><code>@nestjs/jwt</code> 11, <code>@nestjs/passport</code> 11, <code>passport-jwt</code>, <code>passport-local</code></td>
+<td>Access tokens and the JWT strategy behind <code>JwtAuthGuard</code>.</td>
+</tr>
+<tr>
+<td><code>passport-google-oauth20</code>, <code>passport-github2</code></td>
+<td>OAuth strategies. Present but not registered, so OAuth sign-in is off [Not implemented].</td>
+</tr>
+<tr>
+<td><code>bcrypt</code> 6</td>
+<td>Password hashing.</td>
+</tr>
+<tr>
+<td><code>cookie-parser</code></td>
+<td>Reads the httpOnly refresh-token cookie.</td>
+</tr>
+<tr>
+<td><code>class-validator</code>, <code>class-transformer</code></td>
+<td>DTO validation and conversion in the global <code>ValidationPipe</code>.</td>
+</tr>
+<tr>
+<td><code>@nestjs/websockets</code> 11, <code>@nestjs/platform-socket.io</code>, <code>socket.io</code> 4</td>
+<td>The realtime gateway at <code>/realtime</code>.</td>
+</tr>
+<tr>
+<td><code>ioredis</code> 5</td>
+<td>Redis pub/sub for realtime events and cache invalidation across processes.</td>
+</tr>
+<tr>
+<td><code>@nestjs/bull</code> 11 + <code>bull</code> 4</td>
+<td>A Bull queue named <code>submissions</code> is registered, but no code processes or adds jobs to it [Partial: registered, unused].</td>
+</tr>
+<tr>
+<td><code>@nestjs/schedule</code> 6</td>
+<td>Scheduled jobs (<code>@Cron</code>, <code>@Interval</code>), loaded only in processes that run jobs.</td>
+</tr>
+<tr>
+<td><code>@nestjs/cache-manager</code>, <code>cache-manager</code></td>
+<td>Listed as dependencies; no source file imports them [Not implemented].</td>
+</tr>
+<tr>
+<td><code>@nestjs/mongoose</code>, <code>mongoose</code></td>
+<td>Listed as dependencies; no source file imports them [Not implemented].</td>
+</tr>
+<tr>
+<td><code>@nestjs/swagger</code></td>
+<td>Listed; no source file imports it, so there is no generated API documentation [Not implemented].</td>
+</tr>
+<tr>
+<td><code>cloudinary</code> 2, <code>multer</code> 2</td>
+<td>File uploads (logos, documents, attachments).</td>
+</tr>
+<tr>
+<td><code>nodemailer</code> 7</td>
+<td>Outgoing email (verification and password reset).</td>
+</tr>
+<tr>
+<td><code>exceljs</code> 4</td>
+<td>Excel export of reports.</td>
+</tr>
+<tr>
+<td><code>pdf-lib</code>, <code>pdfmake</code>, <code>fontkit</code>, <code>@fontsource/noto-nastaliq-urdu</code>, <code>@fontsource/noto-naskh-arabic</code></td>
+<td>PDF generation, including Urdu text.</td>
+</tr>
+<tr>
+<td><code>axios</code>, <code>slugify</code>, <code>useragent</code>, <code>rxjs</code>, <code>reflect-metadata</code></td>
+<td>HTTP client, slug generation, user-agent parsing for sessions, and NestJS runtime needs.</td>
+</tr>
+</tbody></table></div><p>The table lists the backend&#39;s runtime dependencies by name and what each is for. Development dependencies are the usual NestJS set: the Nest CLI, TypeScript 5, Jest 29 with <code>ts-jest</code>, Supertest, <code>socket.io-client</code> (for tests), ESLint 9 and Prettier 3.</p>
+<p><strong>Technical references:</strong> <code>backend/package.json</code> · <code>backend/src/app.module.ts</code></p>
+<h2 id="ch04-repository-and-stack-4-5-web-application-technology">4.5 Web application technology</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Package (major version)</th>
+<th>Purpose in the Platform</th>
+</tr>
+</thead><tbody><tr>
+<td>React 19, <code>react-dom</code> 19</td>
+<td>The UI library.</td>
+</tr>
+<tr>
+<td>TanStack Start 1 (<code>@tanstack/react-start</code>) with Vite 7 and the Nitro plugin</td>
+<td>The application framework and build. Vite builds the app; the TanStack Start and Nitro plugins produce the server bundle that serves it.</td>
+</tr>
+<tr>
+<td>TanStack Router 1 (<code>@tanstack/react-router</code>, <code>router-plugin</code>)</td>
+<td>File-based routing from <code>src/routes/</code>; the generated route tree is <code>routeTree.gen.ts</code>.</td>
+</tr>
+<tr>
+<td>TanStack Query 5</td>
+<td>Server-state cache: queries, mutations, invalidation.</td>
+</tr>
+<tr>
+<td>TanStack Form 1</td>
+<td>Forms.</td>
+</tr>
+<tr>
+<td>TanStack Table 8</td>
+<td>Tables in list views.</td>
+</tr>
+<tr>
+<td>Zustand 5</td>
+<td>Client state: the auth store and small UI stores.</td>
+</tr>
+<tr>
+<td>Zod 4</td>
+<td>Form schemas.</td>
+</tr>
+<tr>
+<td>axios 1</td>
+<td>HTTP client with interceptors (<code>src/lib/api.ts</code>).</td>
+</tr>
+<tr>
+<td><code>socket.io-client</code> 4</td>
+<td>Realtime connection to <code>/realtime</code>.</td>
+</tr>
+<tr>
+<td>Tailwind CSS 4, shadcn/ui (Radix UI primitives), <code>class-variance-authority</code>, <code>clsx</code>, <code>tailwind-merge</code>, <code>lucide-react</code></td>
+<td>Styling, components and icons.</td>
+</tr>
+<tr>
+<td>FullCalendar 6</td>
+<td>Appointment calendar views.</td>
+</tr>
+<tr>
+<td>Recharts 3</td>
+<td>Charts.</td>
+</tr>
+<tr>
+<td><code>@dnd-kit</code></td>
+<td>Drag and drop (for example the sidebar builder).</td>
+</tr>
+<tr>
+<td><code>date-fns</code> 4, <code>react-day-picker</code></td>
+<td>Dates and the date picker.</td>
+</tr>
+<tr>
+<td><code>sonner</code></td>
+<td>Toast messages.</td>
+</tr>
+</tbody></table></div><p>The table lists the web app&#39;s runtime dependencies and their roles. For tests the web app uses Vitest 3 with Testing Library and jsdom; formatting and linting use Prettier and ESLint.</p>
+<p><strong>Technical references:</strong> <code>web-app/package.json</code> · <code>web-app/vite.config.ts</code> · <code>web-app/vitest.config.ts</code></p>
+<h2 id="ch04-repository-and-stack-4-6-what-the-repository-does-not-contain">4.6 What the repository does not contain</h2>
+<p><strong>Status:</strong> [Not implemented]</p>
+<p>There is no Dockerfile, no container compose file, no CI pipeline configuration (no <code>.github/</code> folder) and no hosting configuration in the repository. How the Platform is deployed is therefore not described by code. Chapter 6 explains what the code expects from a deployment.</p>
+<p><strong>Technical references:</strong> repository root listing</p>
+</section></body></html>

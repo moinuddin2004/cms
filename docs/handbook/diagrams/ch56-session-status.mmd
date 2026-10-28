@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> active : login or register
+    active --> active : refresh
+    active --> revoked : logout or revoke
+    active --> revoked : password change or reset
+    active --> revoked : user deleted
+    active --> expired : expires_at passes
+    revoked --> [*]
+    expired --> [*]

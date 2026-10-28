@@ -1,0 +1,23 @@
+sequenceDiagram
+  participant Dr as Dr. Example One
+  participant R as Receptionist R1
+  participant Acc as Accountant
+  participant Web as Web app
+  participant API
+  participant W as Worker jobs
+  participant PG as PostgreSQL
+  Dr->>Web: Close day, decide cancel or transfer for each waiting patient
+  Web->>API: PATCH /queue/sessions/:id/close
+  API->>PG: patients cancelled or transferred, session closed
+  W->>PG: every 60 seconds, mark late bookings no_show
+  W->>PG: every 5 minutes, close empty sessions of past days
+  R->>Web: Payments, choose the day
+  Web->>API: GET /payments/daily-collection
+  API-->>Web: receipts, refunds, net per account
+  Acc->>Web: Close counter, counted amount per account
+  Web->>API: POST /billing/cash-close
+  API->>PG: cash_closes and cash_close_lines, audit row
+  W->>PG: 01:00 expire prepaid patient credits
+  W->>PG: 02:30 billing invariant check, log only
+  W->>PG: 03:15 queue cleanup of old keys and outbox rows
+  W->>PG: 08:00 inventory alert count, server log only

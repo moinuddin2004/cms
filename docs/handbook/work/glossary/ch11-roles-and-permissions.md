@@ -1,0 +1,8 @@
+- **Bundle** — a ready per-module level on the roles screen: None, Basic or Full.
+- **Advanced mode** — the per-permission checkbox and scope view of a module on the roles screen.
+- **Implies** — permissions automatically granted with another (for example `patients.create` implies `patients.view`).
+- **High-risk permission** — one of 13 permissions marked `risk: 'high'`; granting it needs a reason.
+- **Escalation protection** — the rule that a non-owner cannot grant a permission or scope they do not hold (error `ESCALATION`).
+- **Access context** — the resolved permissions of one user at one organization and location (code name `AccessContext`).
+- **Access marker** — one of `@Can`, `@AnyMember`, `@Public`, `@RequireSuperAdmin`, `@ContextFree` that every handler must carry.
+- **Home page** — the page a role's members land on after sign-in (`employment_roles.home_route`).

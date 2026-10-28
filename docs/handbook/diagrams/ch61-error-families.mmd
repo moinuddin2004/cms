@@ -1,0 +1,8 @@
+flowchart TB
+    E["Exception anywhere"] --> F["GlobalExceptionFilter"]
+    F --> H{"HttpException?"}
+    H -->|"yes"| S["Own status and body<br/>code, message, extra fields"]
+    H -->|"no"| U["500 Something went wrong"]
+    S --> W["Envelope<br/>isSuccess false, message, devMessage, error"]
+    U --> W
+    W --> C["Web app<br/>toast, ErrorState, or code map"]

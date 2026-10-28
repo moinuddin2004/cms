@@ -1,0 +1,1 @@
+- **Cash-close permission** — `billing.cash_close`, held by Accountant and Admin templates, not Receptionist.

@@ -1,0 +1,8 @@
+stateDiagram-v2
+    direction LR
+    [*] --> invited : clinic adds a lab
+    [*] --> active : super admin creates an internal lab
+    invited --> active : activate - clinic, lab or platform
+    invited --> suspended : suspend - reason required
+    active --> suspended : suspend - reason required
+    suspended --> active : reactivate - only the side that suspended

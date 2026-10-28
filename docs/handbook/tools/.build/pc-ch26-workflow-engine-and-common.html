@@ -1,0 +1,113 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch26-workflow-engine-and-common"><h1 id="ch26-workflow-engine-and-common-chapter-26-workflow-engine-and-common-tables">Chapter 26 — Workflow engine and common tables</h1>
+<p>This chapter describes two groups of tables. The first is the workflow engine: twelve tables that store specialties, versioned forms, try-in stage templates and versioned state machines, which the lab module runs on. The second is the shared infrastructure in <code>backend/src/common/</code>: the generic audit log, the status history and the per-organization number counters, plus the unused <code>chairs</code> table. It is written for the product owner who needs to know which behaviour is configured as data rather than code, and which history can never be changed. The entity catalog (<code>backend/docs/data-model/ENTITY_CATALOG.md</code>) remains the field-level reference.</p>
+<h2 id="ch26-workflow-engine-and-common-26-1-the-workflow-engine-in-one-paragraph">26.1 The workflow engine in one paragraph</h2>
+<p>A <strong>specialty</strong> (for example DENTAL) is the root. Under it, the Platform keeps <strong>form schemas</strong> (what the doctor fills in when ordering a lab item), <strong>stage templates</strong> (the try-in rounds a piece of work goes through) and <strong>workflow templates</strong> (state machines for lab orders, lab order items and stages). Forms and workflows are versioned: a version is a draft while it is edited, becomes published and then frozen, and is finally retired. Every lab order and item pins the exact version it started on, so editing a form or workflow never breaks work in progress. When a workflow version is published, its JSON definition is turned into rows of states, transitions and transition effects, which the runtime reads. Effects are code handlers listed in a registry; configuration can only choose among them, never add new code.</p>
+<p><strong>Status:</strong> [Implemented]. The super admin edits forms, workflows and stage templates in Config Studio (sidebar entries &quot;Form schemas&quot;, &quot;Workflows&quot; and &quot;Stage templates&quot;, super admin only). The lab order and production services run on the published versions.</p>
+<p><strong>Keys.</strong> All engine tables with an <code>id</code> use UUID version 7 keys (<code>uuid_generate_v7()</code>); the Labs chapter (Chapter 25) explains them. <code>organization_specialties</code>, <code>transition_effects</code> and <code>workflow_effects</code> have natural keys supplied by the application.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch26-workflow-engine-erd.png" alt="Figure 26.1 — Workflow engine tables"></p>
+<p><em>Figure 26.1 — Specialties, form schemas and versions, stage templates and steps, workflow templates, versions, states, transitions and effects.</em></p>
+<p>The figure shows <code>specialties</code> at the top with four lines down: to <code>organization_specialties</code> (&quot;switched on&quot;), <code>form_schemas</code>, <code>stage_templates</code> and <code>workflow_templates</code>, all RESTRICT. <code>form_schemas</code> connects to <code>form_schema_versions</code> (&quot;versions, RESTRICT&quot;). <code>stage_templates</code> connects to <code>stage_template_steps</code> (&quot;steps, CASCADE&quot;). <code>workflow_templates</code> connects to <code>workflow_template_versions</code> (&quot;versions, RESTRICT&quot;). <code>workflow_template_versions</code> connects to <code>workflow_states</code> and to <code>workflow_transitions</code>. <code>workflow_states</code> connects twice to <code>workflow_transitions</code>, labelled &quot;from state&quot; and &quot;to state&quot;. <code>workflow_transitions</code> and <code>workflow_effects</code> both connect to <code>transition_effects</code> (&quot;runs&quot; and &quot;handler&quot;). All lines except the stage steps are RESTRICT. The template boxes mark <code>organization_id</code> as &quot;null = platform&quot;.</p>
+<h2 id="ch26-workflow-engine-and-common-26-2-engine-tables">26.2 Engine tables</h2>
+<h3 id="ch26-workflow-engine-and-common-specialties-and-organization-specialties"><code>specialties</code> and <code>organization_specialties</code></h3>
+<p><code>specialties</code> is a platform catalog of clinical specialties, each with a unique upper-case <code>code</code>, a <code>name</code>, <code>is_active</code>, and <code>enabled_by_default</code> (new organizations get it switched on; DENTAL does). <code>organization_specialties</code> records which specialties one organization works in, with <code>is_enabled</code>. Its primary key is the pair (organization, specialty). Rows are created lazily from <code>enabled_by_default</code> the first time an organization is read.</p>
+<h3 id="ch26-workflow-engine-and-common-form-schemas-and-form-schema-versions-versioned-order-forms"><code>form_schemas</code> and <code>form_schema_versions</code> — versioned order forms</h3>
+<p>A form schema is the stable identity of a form, such as CROWN or BRIDGE, within a specialty. If <code>organization_id</code> is empty, it is the platform default; an organization&#39;s own schema with the same code overrides the default for that organization. Partial unique indexes allow one platform schema and one per organization for each specialty and code.</p>
+<p>A form schema version holds the content: <code>schema_json</code> (the field definitions), <code>ui_json</code> (layout, such as tooth-chart settings), <code>promotions</code> (which answers are copied into typed columns, for example into <code>dental_item_details</code>) and <code>status</code> (draft, published or retired) with <code>published_at</code> and <code>retired_at</code>.</p>
+<p>Constraints that matter:</p>
+<ul>
+<li><code>version_no</code> is unique per form and above zero.</li>
+<li>At most one draft and at most one published version per form (two partial unique indexes).</li>
+<li><code>chk_form_schema_versions_published_at</code>: a draft has no publish date, and every non-draft has one.</li>
+</ul>
+<p><strong>Correction to the catalog.</strong> The entity&#39;s code comment, repeated in the catalog, says a database trigger makes published versions immutable. No such trigger exists. The rule is enforced by the form schemas service, which allows content changes only on drafts.</p>
+<h3 id="ch26-workflow-engine-and-common-stage-templates-and-stage-template-steps-try-in-rounds"><code>stage_templates</code> and <code>stage_template_steps</code> — try-in rounds</h3>
+<p>A stage template lists the try-in rounds a kind of work goes through, for example metal, then bisque, then final for a porcelain-fused-to-metal crown. It follows the same platform-or-organization pattern as forms. Each step has a <code>seq</code> (1-based, unique per template), a <code>code</code> (unique per template), a <code>name</code>, <code>requires_patient_visit</code>, <code>requires_doctor_approval</code> and <code>default_lab_days</code> (0–365). Lab orders copy step names into their own stage rows, so editing a template never changes work in progress.</p>
+<h3 id="ch26-workflow-engine-and-common-workflow-templates-workflow-template-versions-workflow-states-workflow-transitions"><code>workflow_templates</code>, <code>workflow_template_versions</code>, <code>workflow_states</code>, <code>workflow_transitions</code></h3>
+<p>A workflow template is a state machine for one kind of record: <code>entity_type</code> is order, item or stage. It follows the platform-or-organization pattern. A workflow template version holds the draft definition as JSON (<code>definition_json</code>) and a <code>status</code> of draft, published or retired; as with forms, at most one draft and one published version exist per template, and <code>version_no</code> is unique and above zero. Published versions never change; this is enforced by the service, not the database.</p>
+<p>Publishing a version writes its rows once:</p>
+<ul>
+<li><code>workflow_states</code>: one row per state, with a <code>code</code> unique per version, a <code>name</code>, a <code>category</code> (initial, active, waiting, done or cancelled), <code>is_terminal</code> and <code>sort_order</code>.</li>
+<li><code>workflow_transitions</code>: one row per allowed move from one state to another under an <code>action_code</code>, unique per version, from-state, action and to-state. <code>allowed_sides</code> and <code>allowed_roles</code> say who may perform it (an empty role list means any role of an allowed side), <code>required_fields</code> lists data that must be present and <code>requires_reason</code> forces a reason.</li>
+</ul>
+<h3 id="ch26-workflow-engine-and-common-workflow-effects-and-transition-effects"><code>workflow_effects</code> and <code>transition_effects</code></h3>
+<p><code>workflow_effects</code> is a registry of effect handlers that exist in code, keyed by <code>code</code>. It is synced from the in-memory registry on every start. <code>is_financial</code> marks effects that validate money themselves; <code>is_available</code> is false when a handler was removed from code but old versions still mention it. <code>transition_effects</code> lists which effects a transition runs, in <code>seq</code> order (unique per transition), with optional JSON <code>params</code>; its primary key is the pair (transition, effect code). Effects run inside the transition&#39;s transaction.</p>
+<h2 id="ch26-workflow-engine-and-common-26-3-common-tables">26.3 Common tables</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch26-common-erd.png" alt="Figure 26.2 — Common tables"></p>
+<p><em>Figure 26.2 — The audit log, status history, number sequences and the unused chairs table.</em></p>
+<p>The figure shows four main boxes. <code>audit_logs</code> receives dotted lines from <code>organizations</code> (organization_id) and <code>users</code> (actor_user_id). <code>status_history</code> receives dotted lines from <code>organizations</code>, <code>users</code> and <code>labs</code> (on_behalf_of_lab_id). <code>number_sequences</code> receives a dotted line from <code>organizations</code>. All dotted lines mean &quot;no FK&quot;. <code>chairs</code> is the only box with a solid line, from <code>locations</code>, labelled CASCADE. <code>audit_logs</code> and <code>status_history</code> both show <code>entity_type</code> and an <code>entity_id</code> marked &quot;polymorphic&quot;.</p>
+<h3 id="ch26-workflow-engine-and-common-audit-logs-the-generic-audit-trail"><code>audit_logs</code> — the generic audit trail</h3>
+<p><strong>Status:</strong> [Implemented]. Used by about eighteen modules, including patients, appointments, staff, payroll, organizations, the engine and every lab module.</p>
+<p>One row records who changed what. <code>entity_type</code> and <code>entity_id</code> name the changed record. <code>subject_id</code> names the record whose history this row joins when that is different, for example a patient for a change to the patient&#39;s vitals. <code>action</code> is create, update, void, delete, export or view_sensitive. <code>changes</code> holds <code>{ before, after }</code> for the changed fields only. <code>actor_user_id</code> and <code>actor_side</code> (clinic, lab, platform or system) say who did it, and <code>ip</code> and <code>request_id</code> record where it came from. <code>organization_id</code> is empty for platform-level records, such as a lab edited by a super admin.</p>
+<p><strong>Append-only trigger.</strong> The hand-written migration <code>1792490000000-lab-management-foundation</code> installs <code>trg_audit_logs_append_only</code>, which calls <code>reject_append_only_mutation()</code> before any UPDATE or DELETE and raises an error. Rows can only be inserted.</p>
+<h3 id="ch26-workflow-engine-and-common-status-history-every-status-change"><code>status_history</code> — every status change</h3>
+<p><strong>Status:</strong> [Implemented].</p>
+<p>One row records one status change: <code>from_state</code> (empty for the creating transition), <code>to_state</code>, <code>action_code</code>, who did it (<code>actor_user_id</code>, <code>actor_side</code>), how (<code>via</code>: app, portal, magic_link, proxy or qr), an optional <code>reason</code> and <code>metadata</code>. <code>on_behalf_of_lab_id</code> is set when clinic staff updated something on the lab&#39;s behalf (<code>via = proxy</code>). States are free text, because workflow states are data, not code enums. The same migration installs <code>trg_status_history_append_only</code>, so rows cannot be updated or deleted.</p>
+<h3 id="ch26-workflow-engine-and-common-number-sequences-human-readable-numbers-per-organization"><code>number_sequences</code> — human-readable numbers per organization</h3>
+<p><strong>Status:</strong> [Implemented].</p>
+<p>One row is a gapless counter for one organization and one <code>sequence_key</code>, with a <code>prefix</code> and <code>next_value</code> (CHECK: above zero). The primary key is the pair (organization, sequence key), supplied by the application. It is only touched through the numbering service inside a transaction, which increments the counter in a single statement. It produces numbers such as LAB-0001 for lab orders and SHP-0001 for shipments, and also numbers patient lab invoices, lab receipts, credit notes, lab refunds, vendor bills and vendor payments. Clinic invoice, receipt and refund numbers use a different mechanism, <code>document_sequences</code> (the Billing ledgers chapter, Chapter 21).</p>
+<h3 id="ch26-workflow-engine-and-common-chairs-dental-chairs"><code>chairs</code> — dental chairs</h3>
+<p><strong>Status:</strong> [Not implemented]. Entity only.</p>
+<p>The table would list the treatment chairs of a location: <code>name</code>, <code>code</code>, <code>description</code> and <code>is_active</code>. There is no module, service, controller or screen, and no module registers the entity, so the running application never creates the table in development. A production schema built with the command-line schema tools may contain it. An early link from appointments to chairs no longer exists.</p>
+<h2 id="ch26-workflow-engine-and-common-26-4-relationships-explained">26.4 Relationships explained</h2>
+<p>Engine:</p>
+<ul>
+<li><strong>Specialty → organization specialties, form schemas, stage templates, workflow templates.</strong> Each belongs to exactly one specialty; a specialty in use cannot be deleted (RESTRICT).</li>
+<li><strong>Organization → organization specialties.</strong> Deleting the organization deletes its specialty switches (CASCADE).</li>
+<li><strong>Organization → form schemas, stage templates, workflow templates.</strong> Each belongs to zero or one organization (empty = platform default). An organization with its own definitions cannot be deleted (RESTRICT).</li>
+<li><strong>Form schema → versions.</strong> Each version belongs to exactly one form; a form with versions cannot be deleted (RESTRICT).</li>
+<li><strong>Stage template → steps.</strong> Each step belongs to exactly one template; deleting the template deletes its steps (CASCADE). Lab stage rows that point at a step block that delete in practice (RESTRICT from <code>order_item_stages</code>).</li>
+<li><strong>Workflow template → versions.</strong> RESTRICT.</li>
+<li><strong>Workflow version → states and transitions.</strong> Each belongs to exactly one version (RESTRICT).</li>
+<li><strong>State → transitions.</strong> Each transition has exactly one from-state and one to-state (RESTRICT on both).</li>
+<li><strong>Transition → transition effects</strong> and <strong>effect → transition effects.</strong> Each transition effect belongs to exactly one transition and one effect (RESTRICT on both).</li>
+<li><strong>Links from the lab tables.</strong> Lab services point at form schemas, workflow templates and stage templates; lab orders, items and stages pin workflow versions; items and form responses pin form versions. All are RESTRICT (the Labs chapter, Chapter 25, lists them).</li>
+</ul>
+<p>Common:</p>
+<ul>
+<li><strong>Location → chairs.</strong> Each chair belongs to one location; deleting the location deletes its chairs (CASCADE).</li>
+<li><code>audit_logs</code> and <code>status_history</code> have no foreign keys at all. <code>entity_id</code> and <code>subject_id</code> are polymorphic; <code>organization_id</code>, <code>actor_user_id</code> and <code>on_behalf_of_lab_id</code> are logical references. This is deliberate for an audit table: history must survive even if the record it describes is gone.</li>
+<li><code>number_sequences.organization_id</code> has no foreign key.</li>
+<li>Actor columns in the engine (<code>created_by</code>, <code>updated_by</code>, <code>published_by</code>) hold a user id with no foreign key.</li>
+</ul>
+<h2 id="ch26-workflow-engine-and-common-26-5-tenant-scope">26.5 Tenant scope</h2>
+<ul>
+<li><strong>Global, platform catalog:</strong> <code>specialties</code>, <code>workflow_effects</code>.</li>
+<li><strong>Platform or organization:</strong> <code>form_schemas</code>, <code>stage_templates</code>, <code>workflow_templates</code> (empty organization = platform default). Their child tables (<code>form_schema_versions</code>, <code>stage_template_steps</code>, <code>workflow_template_versions</code>, <code>workflow_states</code>, <code>workflow_transitions</code>, <code>transition_effects</code>) have no organization column and inherit the parent&#39;s scope.</li>
+<li><strong>Organization only:</strong> <code>organization_specialties</code>, <code>audit_logs</code> (empty for platform records), <code>status_history</code>, <code>number_sequences</code>.</li>
+<li><strong>Location only:</strong> <code>chairs</code> (the organization is reachable through <code>locations</code>).</li>
+</ul>
+</section></body></html>

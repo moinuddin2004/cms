@@ -1,0 +1,83 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch48-patient-journey"><h1 id="ch48-patient-journey-chapter-48-workflow-the-patient-journey">Chapter 48 — Workflow: The Patient Journey</h1>
+<p>This chapter follows Sample Patient A through one visit at Example Clinic, from registration to a printed receipt. It is written for the product owner. It follows the order the code really uses, which differs from a naive reading in two places: the invoice is created when payment is collected, and a lab case is a separate flow that is billed separately.</p>
+<h2 id="ch48-patient-journey-48-1-who-is-involved">48.1 Who is involved</h2>
+<ul>
+<li><strong>Receptionist R1</strong>: registers, books, checks in and collects payment.</li>
+<li><strong>Dr. Example One</strong>: calls the patient, consults, prescribes, completes the visit.</li>
+<li><strong>Sample Patient A</strong>: the patient.</li>
+<li><strong>Accountant</strong> and <strong>Admin</strong>: may also collect payments and correct invoices.</li>
+</ul>
+<h2 id="ch48-patient-journey-48-2-the-steps">48.2 The steps</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch48-patient-journey-sequence.png" alt="Figure 48.1 — The patient journey"></p>
+<p><em>Figure 48.1 — One visit from registration to receipt.</em></p>
+<p>The diagram has seven participants: Receptionist R1, Dr. Example One, Web app, API, QueueOrchestrator, PaymentsService and PostgreSQL, and 24 messages. R1 creates the patient (<code>POST /patients</code>) and the API stores the patient with the next <code>P-</code> number and an audit row. R1 books an appointment (<code>POST /appointments</code>); it is saved as scheduled and the database blocks a doctor overlap. On arrival R1 clicks &quot;Check in and get token&quot; (<code>PATCH /appointments/:id/check-in</code>), the API hands over to QueueOrchestrator, which writes the session, the token, a queue entry in state waiting and sets the appointment to checked in. Dr. Example One calls the next patient and presses &quot;Patient is here, start&quot; (<code>PATCH /queue/entries/:id/start-consultation</code>); the entry becomes in consultation and the encounter is created. The doctor records notes and treatments, signs the prescription (<code>POST /encounters/:id/treatments</code>, <code>POST /prescriptions</code>, <code>POST /prescriptions/:id/finalize</code>) and presses &quot;Complete visit&quot; (<code>PATCH /queue/entries/:id/complete</code>); in one transaction the entry and appointment become completed and the consultation and treatment charges are created with the commission snapshot. R1 then opens the billing desk, presses Bill and Receive (<code>POST /payments</code>); PaymentsService runs one transaction that issues the invoice, records the receipt, allocates the money, writes commission entries and the ledger row. The API returns the receipt and invoice numbers and R1 prints them.</p>
+<h3 id="ch48-patient-journey-step-1-registration">Step 1 — Registration</h3>
+<p><strong>Module:</strong> Patients. <strong>Status:</strong> [Implemented]. <strong>Create</strong> on <code>/patients</code> takes Full Name and Phone. The phone must be unique inside the organization. The server assigns <code>P-</code> plus a five-digit number and writes an audit row. The check-before-save endpoint exists, but no screen calls it [Partial] (Chapter 28).</p>
+<h3 id="ch48-patient-journey-step-2-appointment">Step 2 — Appointment</h3>
+<p><strong>Module:</strong> Appointments. <strong>Status:</strong> [Implemented]. The booking checks the doctor works at that location, that the slot fits a working block, that the doctor has no overlapping booking and the daily limit. A booking has no token yet. A walk-in skips this step (Chapter 29).</p>
+<h3 id="ch48-patient-journey-step-3-check-in">Step 3 — Check-in</h3>
+<p><strong>Module:</strong> Appointments and Queue. <strong>Status:</strong> [Implemented]. Check-in is allowed only on the booking&#39;s own day and up to the location&#39;s maximum lateness (45 minutes by default). It opens the doctor&#39;s queue session if needed and issues a token such as A-007. A patient who is too late is offered &quot;Convert to walk-in&quot; (Chapter 29, Chapter 30).</p>
+<h3 id="ch48-patient-journey-step-4-queue">Step 4 — Queue</h3>
+<p><strong>Module:</strong> Queue. <strong>Status:</strong> [Implemented]. The doctor starts the queue, then <strong>Call next</strong> picks the next patient by the smart or first-come rules. Reception and the TV display update live (Chapter 30).</p>
+<h3 id="ch48-patient-journey-step-5-consultation">Step 5 — Consultation</h3>
+<p><strong>Module:</strong> Consultation. <strong>Status:</strong> [Implemented]. Starting the consultation creates the encounter, the clinical record of this visit, in the same transaction. The workspace shows the patient summary and allergy strip, and auto-saves notes (Chapter 31).</p>
+<h3 id="ch48-patient-journey-step-6-treatment">Step 6 — Treatment</h3>
+<p><strong>Module:</strong> Consultation. <strong>Status:</strong> [Implemented]. The doctor taps procedure chips from the service catalog. Each becomes a treatment. The doctor never sees prices. A treatment typed by name has no price and is later priced by reception (Chapter 31).</p>
+<h3 id="ch48-patient-journey-step-7-prescription">Step 7 — Prescription</h3>
+<p><strong>Module:</strong> Prescriptions. <strong>Status:</strong> [Implemented]. In the workspace panel the doctor adds medicines and presses &quot;Sign &amp; print&quot;. The prescription is optional and has no effect on billing (Chapter 32).</p>
+<h3 id="ch48-patient-journey-step-8-lab-case-separate-flow">Step 8 — Lab case (separate flow)</h3>
+<p><strong>Module:</strong> Dental Lab. <strong>Status:</strong> [Not implemented] from the consultation workspace. The workspace has no lab-order button, and a lab order has no link to an encounter in the data model (Chapter 31). A lab order is actually created from the sidebar: <strong>Lab orders → New lab order</strong>, where the user picks the patient, the lab, the ordering doctor and the items, then presses <strong>Submit to lab</strong>. The API accepts an optional appointment and treatment on the order, but the order form in the web app does not appear to send them [Unverified]. Chapter 49 follows the lab case. Lab work is billed by its own invoice, not by the clinic&#39;s charges.</p>
+<h3 id="ch48-patient-journey-step-9-automatic-charges">Step 9 — Automatic charges</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented] with a condition. When the doctor completes the visit, the Platform creates one consultation charge and one charge per treatment, priced from the service catalog with any doctor-specific price. This runs only when the feature <code>billing.invoices</code> is enabled; that feature is off by default (Chapter 31, Chapter 34). A charge with no price is marked &quot;needs pricing&quot; and blocks invoicing until someone sets a price. Each charge stores a snapshot of the doctor&#39;s commission terms (Chapter 35).</p>
+<h3 id="ch48-patient-journey-step-10-payment-and-invoice">Step 10 — Payment and invoice</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. On the <strong>Billing desk</strong>, &quot;ready to bill&quot; lists patients with unbilled charges. <strong>Collect payment</strong> previews the split and then saves. The invoice is issued at this moment, taking the next <code>INV</code> number, with the location&#39;s sales tax added on top. Surplus money becomes the patient&#39;s advance. A patient who leaves without paying can still be invoiced with <strong>Issue invoice</strong> from the patient&#39;s Billing tab (Chapter 34).</p>
+<h3 id="ch48-patient-journey-step-11-receipt">Step 11 — Receipt</h3>
+<p><strong>Module:</strong> Billing. <strong>Status:</strong> [Implemented]. The payment takes the next <code>REC</code> number. The result screen prints the receipt and the invoice in A4 or 80 mm thermal layout. There is no server-generated PDF receipt [Not implemented] (Chapter 34).</p>
+<h2 id="ch48-patient-journey-48-3-what-can-go-wrong">48.3 What can go wrong</h2>
+<ul>
+<li>Duplicate phone on registration gives 409.</li>
+<li>Booking conflicts: <code>DOCTOR_DOUBLE_BOOKED</code>, <code>DAILY_LIMIT_REACHED</code>, outside working hours.</li>
+<li>Check-in too late (<code>LATE_LIMIT_EXCEEDED</code>), wrong day (<code>NOT_TODAY</code>), queue closed (<code>SESSION_NOT_OPEN</code>).</li>
+<li>A stale queue screen gives 409 <code>VERSION_CONFLICT</code>.</li>
+<li>With <code>billing.invoices</code> off, completion succeeds and no charge appears.</li>
+<li>A charge needing a price blocks the invoice (&quot;Set a price for ...&quot;).</li>
+<li>Payment errors: missing reference for an account that requires one, allocation above balance.</li>
+<li>In read-only mode every write gives 402.</li>
+</ul>
+<h2 id="ch48-patient-journey-48-4-data-left-behind">48.4 Data left behind</h2>
+<p><code>patients</code>, <code>audit_logs</code>, <code>appointments</code>, <code>queue_sessions</code>, <code>queue_entries</code>, <code>queue_events</code>, <code>outbox</code>, <code>idempotency_keys</code>, <code>patient_encounters</code>, <code>treatments</code>, <code>prescriptions</code> and children, <code>charges</code>, <code>billing_audit_logs</code>, <code>invoices</code>, <code>payments</code>, <code>payment_allocations</code>, <code>document_sequences</code>, <code>ledger_entries</code>, <code>commission_entries</code>.</p>
+</section></body></html>

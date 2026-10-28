@@ -1,0 +1,370 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="cover"><div class="k">System Owner's Handbook</div><div class="t">Module: Treatment Plans</div><div class="s">Multi-tenant clinic management platform</div><div class="m">Status as of 2026-10-28 · code is the source of truth · written for a software-engineer owner</div></section>
+<section class="howto"><h1>How to read this document</h1>
+<p>This is part of the <strong>System Owner's Handbook</strong> for a multi-tenant clinic management product, called "the Platform" throughout. It is written for the product owner, a software engineer, and every chapter can be read on its own.</p>
+<p><strong>Status labels.</strong> Every feature carries exactly one label, based on the code as of 2026-10-28:</p>
+<ul>
+<li><strong>[Implemented]</strong>: built end to end.</li>
+<li><strong>[Partial]</strong>: some of it exists; the text says exactly what is missing.</li>
+<li><strong>[Not implemented]</strong>: planned, seeded, disabled or only mentioned. It is never described as working.</li>
+<li><strong>[Unverified]</strong>: the code was read but the behaviour could not be confirmed; the text says what is unconfirmed.</li>
+</ul>
+<p><strong>Source of truth.</strong> The code is the source of truth. Where older documentation disagreed with the code, the handbook follows the code. Nothing was executed while writing: behaviour is described from reading the code.</p>
+<p><strong>Figures.</strong> Every figure has a number, a caption and a paragraph that describes it in words. Figures captioned "screenshot pending" are placeholders; the paragraph after them describes the screen from the code. The few real screenshots were taken on 2026-10-23 and show a former working name of the product.</p>
+<p><strong>Names.</strong> "Organization" is one clinic business (the tenant); "location" is one of its branches. File paths and code names appear in a short "Technical references" line at the end of each feature. Example people and places are fictional.</p>
+</section><section class="toc"><h1>Table of contents</h1><div class="p">Part 5 — Module chapters</div><div class="r"><a href="#ch33-treatment-plans">Chapter 33 — Treatment Plans</a><span class="d"></span><span>4</span></div></section><section class="chapter" id="ch33-treatment-plans"><h1 id="ch33-treatment-plans-chapter-33-treatment-plans">Chapter 33 — Treatment Plans</h1>
+<p>A <strong>treatment plan</strong> is the planned work for one patient, such as a root canal spread over several sessions, with its steps, estimated cost and progress. A <strong>plan template</strong> is a clinic&#39;s ready-made list of steps (Root Canal, Implant, Braces …) that staff reuse. This chapter is for the product owner who needs to know what the Platform already does with plans, what exists only in the backend, and how plans connect to treatments and billing.</p>
+<h2 id="ch33-treatment-plans-33-1-what-this-module-is-for">33.1 What this module is for</h2>
+<p>The module has two halves that are built to very different depths:</p>
+<ul>
+<li><strong>Plan templates</strong> are complete end to end. The clinic keeps its own list of templates on the <strong>Treatment Plans</strong> page (<code>/plan-templates</code>). Each template has a name, a category (endodontics, orthodontics …), a description and an ordered list of procedures with sessions and an optional usual fee. A new clinic receives twelve ready-made templates the first time anyone opens the list. Staff use a template when they record a treatment: picking it fills the treatment name and cost, and the treatment is tagged with the template.</li>
+<li><strong>Patient treatment plans</strong> (one plan per course of treatment, with items) are stored and audited by the backend, and Billing can read a plan&#39;s money position or turn its items into charges. No web screen shows, creates or edits a patient plan today, and nothing creates a patient plan from a template.</li>
+</ul>
+<p><strong>Who uses it</strong> (system roles, by default): the Admin manages templates (<code>plans.templates.manage</code> is in the Admin template only) and can record treatments from templates. The Doctor holds <code>plans.manage</code>, so a doctor could create and update patient plans through the API, but has no screen for it. Any member of the organization can read the template list when the feature is on.</p>
+<p><strong>Sidebar:</strong> the entry <strong>Treatment Plans</strong> (route <code>/plan-templates</code>, sidebar key <code>nav.plan_templates</code>) sits in the &quot;Clinic&quot; section of the default sidebar and is shown only to holders of <code>plans.templates.manage</code>. The page itself is titled &quot;Treatment Plan Templates&quot;. There is no sidebar entry or route for patient plans.</p>
+<p><strong>Feature key:</strong> everything in this chapter belongs to the feature <code>patients.treatment_plans</code> (&quot;Treatment Plans — multi-step treatment plans with cost estimates&quot;), which is enabled by default in the feature catalog. When the organization turns it off, the template page, the template list, the plan endpoints and the permissions <code>plans.manage</code> and <code>plans.templates.manage</code> all stop working.</p>
+<p><strong>Plan templates versus prescription presets.</strong> The prescriptions module has a table called <code>treatment_plan_templates</code>. Despite the name, those rows are not plan templates: each one is a set of <strong>medicines</strong> and instructions for a prescription (for example &quot;Root Canal Aftercare&quot;), shown in the web app as <strong>Prescription Presets</strong> at <code>/prescription-presets</code> and used by the prescription builder. Figure 33.1 shows the two side by side.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch33-template-kinds.png" alt="Figure 33.1 — Plan templates versus prescription presets"></p>
+<p><em>Figure 33.1 — The two kinds of &quot;template&quot; and where each one is used.</em></p>
+<p>The top row starts at &quot;Plan template&quot; (table <code>plan_templates</code>, page <code>/plan-templates</code>). An arrow labelled &quot;list of procedures, sessions and fees&quot; leads to the &quot;Record Treatment dialog&quot;, which pre-fills the treatment name and cost, and an arrow from there leads to a &quot;treatments row tagged with plan_template_id&quot;. The bottom row starts at &quot;Prescription preset&quot; (table <code>treatment_plan_templates</code>, page <code>/prescription-presets</code>). An arrow labelled &quot;list of medicines and instructions&quot; leads to the &quot;Prescription builder&quot;, which pre-fills the medicines, and then to a &quot;prescriptions row&quot;. The two rows never touch: a plan template has no medicines and a prescription preset has no procedures. The Prescriptions chapter (Chapter 32) covers presets.</p>
+<h2 id="ch33-treatment-plans-33-2-screens">33.2 Screens</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch33-plan-templates.svg" alt="Figure 33.2 — Treatment Plan Templates page"></p>
+<p><em>Figure 33.2 — Treatment Plan Templates page (screenshot pending).</em></p>
+<p>The page has the title &quot;Treatment Plan Templates&quot; and the subtitle &quot;Ready-made plans like Root Canal or Implant. Doctors pick one when starting a plan for a patient.&quot; A filled <strong>New template</strong> button sits top right. The filter row has a search box (&quot;Search templates or procedures…&quot;, debounced by 300 ms) that matches template names and procedure names, a category select (&quot;All categories&quot; plus every category), an active-filter count badge and <strong>Clear all filters</strong>. Templates appear as cards in a grid. Each card shows the template name and category, the description, the numbered list of procedures, a line such as &quot;6 procedures · 8 visits · PKR 45,000&quot; (the fee total adds up the procedures that have a fee and is left out when none has one), an Active/Hidden switch with an explanation, and two icon buttons with tooltips: &quot;Edit template&quot; and &quot;Delete template&quot;. Hidden templates are shown dimmed. When the clinic has no template the page shows &quot;No treatment plan templates&quot; with a <strong>New template</strong> button; when filters hide everything it shows a separate no-results state. There is no table view on this page.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch33-template-editor.svg" alt="Figure 33.3 — Template editor"></p>
+<p><em>Figure 33.3 — Template editor dialog (screenshot pending).</em></p>
+<p><strong>New template</strong> and &quot;Edit template&quot; open a dialog titled &quot;New treatment plan template&quot; or &quot;Edit template&quot;, with the note &quot;The procedures are copied into a patient&#39;s plan when a doctor uses this template.&quot; The form has a Name field (placeholder &quot;e.g. Root Canal Treatment (RCT)&quot;), a Category select, a Description field (&quot;What this plan covers&quot;) and a &quot;Procedures, in order&quot; list. Each procedure row has a Procedure name, a Sessions number (&quot;Sessions (visits)&quot;), a &quot;Fee (Rs.)&quot; number and three icon buttons: &quot;Move up&quot;, &quot;Move down&quot; and &quot;Remove procedure&quot;. <strong>Add procedure</strong> appends a row. The footer has <strong>Cancel</strong> and <strong>Create template</strong> or <strong>Save changes</strong>; the save button is disabled while the form is invalid or saving.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch33-record-treatment.svg" alt="Figure 33.4 — Record Treatment dialog"></p>
+<p><em>Figure 33.4 — Record Treatment dialog on the patient&#39;s Treatments tab (screenshot pending).</em></p>
+<p>The <strong>Add Treatment</strong> button on a patient&#39;s Treatments tab (and &quot;Add treatment&quot; inside a visit&#39;s details) opens &quot;Record Treatment&quot; (or &quot;Add Treatment to Visit&quot;). Its first row holds two selects: &quot;Treatment plan&quot; (No plan, or any active plan template) and &quot;Procedure&quot; (&quot;Whole plan&quot; or one procedure of the chosen template; disabled until a template is chosen). The following fields are Treatment Name (required), &quot;Cost (Rs.)&quot;, Date (required), an optional &quot;Link to Visit&quot; select listing the patient&#39;s visits, Notes, <strong>Cancel</strong> and <strong>Save Treatment</strong>.</p>
+<p>No screen exists for patient treatment plans, so no figure is shown for them.</p>
+<h2 id="ch33-treatment-plans-33-3-features">33.3 Features</h2>
+<h3 id="ch33-treatment-plans-33-3-1-browse-and-filter-plan-templates">33.3.1 Browse and filter plan templates</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lists all of the clinic&#39;s plan templates, active and hidden, with search and a category filter.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Open <strong>Treatment Plans</strong> in the sidebar.</li>
+<li>Type in &quot;Search templates or procedures…&quot; or pick a category; press <strong>Clear all filters</strong> to reset.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The list is loaded once and filtered in the browser. Fees are removed from the answer for anyone who may not see prices.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /plan-templates?includeInactive=true</code> → <code>PlanTemplatesService.findAll</code>, ordered by category then name. Because item fees live inside a JSON column, the controller deletes <code>estimatedCost</code> from each item itself when the caller lacks <code>patients.price.view</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Without <code>includeInactive=true</code> only active templates are returned (the Record Treatment dialog uses this).</li>
+<li>If the organization has no template rows at all, the twelve defaults are inserted first (Root Canal, Scaling &amp; Polishing, Dental Implant and nine more).</li>
+</ul>
+<p><strong>Who can do it.</strong> The endpoint is open to any member (<code>@AnyMember</code>) with the feature <code>patients.treatment_plans</code> active. The page requires <code>plans.templates.manage</code> (route <code>staticData.can</code>). Default page holder: Admin.</p>
+<p><strong>Data read and written.</strong> Reads <code>plan_templates</code> (writes it on first read for a new clinic).</p>
+<p><strong>Effects on other modules.</strong> The same list feeds the Record Treatment dialog.</p>
+<p><strong>Error cases.</strong> Error state with retry → request failed; feature-off error when the organization switched the feature off.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/plan-templates.controller.ts</code> · <code>PlanTemplatesController.findAll</code>, <code>PlanTemplatesService.findAll</code> · <code>web-app/src/features/plan-templates/pages/PlanTemplatesPage.tsx</code></p>
+<h3 id="ch33-treatment-plans-33-3-2-create-a-plan-template">33.3.2 Create a plan template</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Adds a new reusable plan with ordered procedures.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press <strong>New template</strong>.</li>
+<li>Enter Name, Category and Description; add procedures with <strong>Add procedure</strong>, set sessions and fees, reorder with &quot;Move up&quot; / &quot;Move down&quot;.</li>
+<li>Press <strong>Create template</strong>. A &quot;Template created&quot; toast confirms.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The template and its procedures are stored as one row; the procedures are kept in order inside it.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /plan-templates</code> → <code>PlanTemplatesService.create</code>. Names and notes are trimmed; empty notes become null; category defaults to <code>GENERAL</code>; <code>createdBy</code> is the user id. The web form drops rows with an empty procedure name before sending. No audit row is written.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Name required, at most 200 characters; description at most 1,000.</li>
+<li>At most 50 procedures. Each needs a name (at most 200), sessions as a whole number of at least 1, an optional fee of 0 or more, and optional notes (at most 500).</li>
+<li>Category must be one of: general, preventive, restorative, endodontics, periodontics, oral surgery, prosthodontics, implantology, orthodontics, pediatric, cosmetic, geriatric, oral medicine, TMJ and orofacial pain, full mouth rehabilitation, emergency, other.</li>
+<li>Names do not have to be unique.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.templates.manage</code>, feature <code>patients.treatment_plans</code>. Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> Writes <code>plan_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> The new template appears in the Record Treatment dialog when active.</p>
+<p><strong>Error cases.</strong> &quot;Failed to create template&quot; toast with the server message (for example a validation error).</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/plan-templates.service.ts</code> · <code>create</code>, <code>CreatePlanTemplateDto</code>, <code>PlanTemplateItemDto</code> · <code>web-app/src/features/plan-templates/components/PlanTemplateForm.tsx</code></p>
+<h3 id="ch33-treatment-plans-33-3-3-edit-a-plan-template">33.3.3 Edit a plan template</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Changes a template&#39;s name, category, description or procedures.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press the &quot;Edit template&quot; pencil on the card.</li>
+<li>Change fields and press <strong>Save changes</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Only the fields sent are changed; sending procedures replaces the whole list. Treatments already recorded from the template keep their own name and cost.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /plan-templates/:id</code> → <code>PlanTemplatesService.update</code>. No audit row.</p>
+<p><strong>Rules and validations.</strong> Same limits as creation; the template must belong to the organization.</p>
+<p><strong>Who can do it.</strong> <code>plans.templates.manage</code>, feature <code>patients.treatment_plans</code>. Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> <code>plan_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> None on existing treatments.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan template not found&quot; (404); &quot;Failed to update template&quot; toast.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/plan-templates.service.ts</code> · <code>update</code>, <code>UpdatePlanTemplateDto</code> · <code>web-app/src/features/plan-templates/hooks/usePlanTemplates.ts</code></p>
+<h3 id="ch33-treatment-plans-33-3-4-hide-or-show-a-plan-template">33.3.4 Hide or show a plan template</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Switches a template off so doctors no longer see it in the picker, without deleting it.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Flip the switch on the template card. The card then reads &quot;Hidden&quot; (or &quot;Active&quot;).</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> A hidden template stays on the management page but disappears from the Record Treatment dialog.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /plan-templates/:id</code> with <code>{ isActive }</code>.</p>
+<p><strong>Rules and validations.</strong> None beyond editing rules.</p>
+<p><strong>Who can do it.</strong> <code>plans.templates.manage</code>. Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> <code>plan_templates.is_active</code>.</p>
+<p><strong>Effects on other modules.</strong> Hidden templates are not offered when recording a treatment.</p>
+<p><strong>Error cases.</strong> &quot;Failed to update template&quot; toast.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/entities/plan-template.entity.ts</code> · <code>isActive</code> · <code>web-app/src/features/plan-templates/pages/PlanTemplatesPage.tsx</code> (<code>TemplateCard</code>)</p>
+<h3 id="ch33-treatment-plans-33-3-5-delete-a-plan-template">33.3.5 Delete a plan template</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Removes a template for good.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>Press the &quot;Delete template&quot; bin on the card.</li>
+<li>Read &quot;Delete this template?&quot; (&quot;… will be deleted for good. Plans already made from it are not affected. To just hide it from doctors, switch it off instead.&quot;) and press <strong>Delete</strong>.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> The template row is deleted. Treatments that were tagged with it lose the tag but keep their name and cost.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>DELETE /plan-templates/:id</code> → <code>PlanTemplatesService.remove</code> (hard delete). <code>treatments.plan_template_id</code> has <code>ON DELETE SET NULL</code>, so tagged treatments show &quot;—&quot; in the Plan column afterwards.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Always behind a confirmation dialog.</li>
+<li>If the clinic deletes every template, the next time anyone reads the list the twelve defaults are inserted again.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.templates.manage</code>. Default holder: Admin.</p>
+<p><strong>Data read and written.</strong> <code>plan_templates</code>; <code>treatments.plan_template_id</code> (cleared by the database).</p>
+<p><strong>Effects on other modules.</strong> Tagged treatments lose their plan tag.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan template not found&quot; (404); &quot;Failed to delete template&quot; toast.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/plan-templates.service.ts</code> · <code>remove</code> · <code>web-app/src/features/plan-templates/pages/PlanTemplatesPage.tsx</code></p>
+<h3 id="ch33-treatment-plans-33-3-6-starter-templates-for-a-new-clinic">33.3.6 Starter templates for a new clinic</h3>
+<p><strong>Status:</strong> [Implemented] (backend-only by design)</p>
+<p><strong>What it does.</strong> Gives every clinic a starting set so the picker is never empty.</p>
+<p><strong>How the user does it.</strong> Nothing to do; the templates appear the first time the list is opened.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Twelve common dental plans are added without fees, because fees belong to each clinic. The clinic sets fees once on the templates page.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PlanTemplatesService.findAll</code> counts the organization&#39;s templates (active or not); when the count is zero it inserts <code>DEFAULT_PLAN_TEMPLATES</code> with <code>estimatedCost: null</code> and <code>createdBy: null</code>. The defaults are: Root Canal Treatment (RCT), Scaling &amp; Polishing, Gum Treatment (Periodontal), Composite Filling, Simple Extraction, Wisdom Tooth Surgical Extraction, Crown / Bridge, Dental Implant, Complete / Partial Denture, Braces (Orthodontics), Teeth Whitening and Pulpotomy (Child). For example, Root Canal Treatment has six procedures: diagnosis and X-ray, access opening, cleaning and shaping (two sessions), obturation, post-endodontic restoration, and crown (two sessions).</p>
+<p><strong>Rules and validations.</strong> Seeding happens only when the organization has zero template rows.</p>
+<p><strong>Who can do it.</strong> Triggered by any read of the list.</p>
+<p><strong>Data read and written.</strong> <code>plan_templates</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None specific.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/default-plan-templates.ts</code> · <code>DEFAULT_PLAN_TEMPLATES</code>, <code>seedDefaults</code> · none in web-app</p>
+<h3 id="ch33-treatment-plans-33-3-7-use-a-template-when-recording-a-treatment">33.3.7 Use a template when recording a treatment</h3>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>What it does.</strong> Lets staff record a treatment by picking a template (the whole plan or one of its procedures), which fills the name and cost and tags the treatment with the template.</p>
+<p><strong>How the user does it.</strong></p>
+<ol>
+<li>On a patient&#39;s <strong>Treatments</strong> tab press <strong>Add Treatment</strong> (or, in a visit&#39;s details, <strong>Add treatment</strong>).</li>
+<li>Pick a &quot;Treatment plan&quot;; optionally pick a &quot;Procedure&quot;.</li>
+<li>Adjust Treatment Name, Cost and Date and press <strong>Save Treatment</strong>. The Treatments table shows the template name as a badge in its Plan column.</li>
+</ol>
+<p><strong>Behind the scenes — in simple terms.</strong> Choosing the whole plan fills the template name and the sum of the fees that are set (empty when no procedure has a fee). Choosing one procedure fills that procedure&#39;s name and fee. The template link is a label; it does not create or update a patient plan.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /treatments</code> with <code>planTemplateId</code> → <code>TreatmentsService.create</code> checks that the template belongs to the organization, then stores <code>treatments.plan_template_id</code>. The template list comes from <code>GET /plan-templates</code> (active only).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Treatment name and date required; cost cannot be negative.</li>
+<li>The button is shown only to users with both <code>patients.clinical.edit</code> and <code>patients.price.view</code>.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>patients.clinical.edit</code> (treatments endpoint) plus <code>patients.price.view</code> (button visibility). Default holder with both: Admin. The Doctor template lacks <code>patients.price.view</code>, so doctors do not see this button.</p>
+<p><strong>Data read and written.</strong> Reads <code>plan_templates</code>; writes <code>treatments</code>.</p>
+<p><strong>Effects on other modules.</strong> Treatments can produce charges (the Consultation and Billing chapters, Chapters 31 and 34).</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; (404) → the template was deleted meanwhile.</p>
+<p><strong>Technical references:</strong> <code>backend/src/treatments/treatments.service.ts</code> · <code>TreatmentsService.create</code>, <code>planTemplateId</code> · <code>web-app/src/features/patients/components/tabs/TreatmentFormDialog.tsx</code></p>
+<h3 id="ch33-treatment-plans-33-3-8-create-a-patient-treatment-plan">33.3.8 Create a patient treatment plan</h3>
+<p><strong>Status:</strong> [Partial] — backend only; web API functions and hooks exist but no component uses them.</p>
+<p><strong>What it does.</strong> Opens a plan for a patient with a name, the responsible dentist, estimated cost, discount, dates and notes.</p>
+<p><strong>How the user does it.</strong> No screen. An API client calls the endpoint.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> The plan gets the next plan number for the clinic (<code>TP-00001</code>, <code>TP-00002</code> …), starts as a draft unless another status is given, and its final estimate is the estimate minus the discount. A &quot;created&quot; entry goes into the patient&#39;s audit history.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients/:id/treatment-plans</code> → <code>PatientsService.createTreatmentPlan</code>. <code>generatePlanNumber</code> counts the organization&#39;s plans (including soft-deleted ones) plus one. <code>finalEstimatedCost = estimatedCost − discountAmount</code> when an estimate is given. <code>locationId</code> is the active location; <code>createdBy</code> the user id. Save and audit row (<code>patient_treatment_plan</code>, <code>create</code>) in one transaction via <code>saveAudited</code>. The patient must be inside the caller&#39;s <code>patients.view</code> scope (<code>PatientScopeGuard</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li><code>dentistId</code> (a UUID) and <code>planName</code> (at most 200) are required. The dentist id is not checked against employees.</li>
+<li>Optional <code>estimatedCost</code>, <code>discountAmount</code> (numbers), <code>status</code>, <code>startDate</code>, <code>expectedEndDate</code>, <code>notes</code>, <code>description</code>.</li>
+<li>The create request cannot carry items; items are added one by one with the items endpoint.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.manage</code>, feature <code>patients.treatment_plans</code>. Default holders: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_treatment_plans</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None until items are billed.</p>
+<p><strong>Error cases.</strong> &quot;Patient not found&quot; (404); validation errors (400); a duplicate plan number (possible after a patient with plans is deleted) fails with a server error.</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>createTreatmentPlan</code>, <code>CreateTreatmentPlanDto</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (<code>useCreateTreatmentPlan</code>, unused)</p>
+<h3 id="ch33-treatment-plans-33-3-9-update-a-plan-status-acceptance-and-costs">33.3.9 Update a plan: status, acceptance and costs</h3>
+<p><strong>Status:</strong> [Partial] — backend only.</p>
+<p><strong>What it does.</strong> Changes a plan&#39;s name, description, costs, status, dates, notes, and records that the patient accepted it.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> When the patient&#39;s acceptance is set for the first time, the time of acceptance is stamped. The final estimate is recalculated from the current estimate and discount.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /patients/:id/treatment-plans/:planId</code> → <code>updateTreatmentPlan</code>: loads the plan of this patient and organization; if <code>patientAccepted</code> turns true, sets <code>patientAcceptedAt</code> to now; recalculates <code>finalEstimatedCost</code>; saves with an audited diff.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Any status may be set from any status; there is no transition map (the intended paths are drawn in Figure 33.7).</li>
+<li><code>actualEndDate</code> is set only when sent; completing the plan does not set it.</li>
+<li>Turning <code>patientAccepted</code> back to false keeps the old acceptance time.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.manage</code>. Default holders: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>patient_treatment_plans</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>updateTreatmentPlan</code>, <code>UpdateTreatmentPlanDto</code> · <code>web-app/src/features/patients/services/patients.api.ts</code></p>
+<h3 id="ch33-treatment-plans-33-3-10-add-items-to-a-plan">33.3.10 Add items to a plan</h3>
+<p><strong>Status:</strong> [Partial] — backend only.</p>
+<p><strong>What it does.</strong> Adds one procedure step to a plan: name, optional code, tooth number and surface, estimated sessions, estimated cost, order, assigned doctor and notes.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Each item starts as pending with zero completed sessions.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients/:id/treatment-plans/:planId/items</code> → <code>createPlanItem</code> (checks the plan belongs to the patient and organization) → <code>saveAudited</code> (<code>treatment_plan_item</code>, <code>create</code>). <code>GET …/items</code> lists items by <code>sequence_order</code>.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Procedure name required (at most 200); code at most 20; tooth number at most 10; surface at most 50.</li>
+<li>Estimated sessions and sequence order are whole numbers of at least 1 (defaults 1).</li>
+<li>Item costs are not summed into the plan&#39;s estimate automatically.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.manage</code> to write; <code>patients.clinical.view</code> plus the feature to read. Default writers: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>treatment_plan_items</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> Billing can turn items into charges (backend only).</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>createPlanItem</code>, <code>CreatePlanItemDto</code> · <code>web-app/src/features/patients/hooks/usePatientSubEntities.ts</code> (<code>useCreateTreatmentPlanItem</code>, unused)</p>
+<h3 id="ch33-treatment-plans-33-3-11-track-progress-of-plan-items">33.3.11 Track progress of plan items</h3>
+<p><strong>Status:</strong> [Partial] — backend only; nothing updates progress automatically.</p>
+<p><strong>What it does.</strong> Updates an item&#39;s status, completed sessions and any other field.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Progress is entered by hand. Recording a treatment or completing a consultation does not move a plan item forward.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>PATCH /patients/:id/treatment-plans/:planId/items/:itemId</code> → <code>updatePlanItem</code>. After applying the change, completed sessions are capped at the estimated sessions. Audited diff.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>Completed sessions: whole number of 0 or more, never more than the estimate after saving.</li>
+<li>Any status may be set from any status.</li>
+<li>Marking every item completed does not complete the plan.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>plans.manage</code>. Default holders: Admin, Doctor.</p>
+<p><strong>Data read and written.</strong> <code>treatment_plan_items</code>, <code>audit_logs</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot;, &quot;Plan item not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/patients/patients.service.ts</code> · <code>updatePlanItem</code>, <code>UpdatePlanItemDto</code> · none used in web-app</p>
+<h3 id="ch33-treatment-plans-33-3-12-start-a-patient-plan-from-a-template">33.3.12 Start a patient plan from a template</h3>
+<p><strong>Status:</strong> [Not implemented] — mentioned in code comments and UI text only.</p>
+<p><strong>What it does.</strong> The template page says &quot;The procedures are copied into a patient&#39;s plan when a doctor uses this template&quot;, and the entity comment says the same. No endpoint, service method or screen does this: there is no &quot;create plan from template&quot; route, the create-plan request cannot carry items, and no screen creates a patient plan.</p>
+<p><strong>How the user does it.</strong> Not available.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Templates are used only to fill the Record Treatment form.</p>
+<p><strong>Behind the scenes — technically.</strong> None.</p>
+<p><strong>Rules and validations.</strong> None.</p>
+<p><strong>Who can do it.</strong> Nobody.</p>
+<p><strong>Data read and written.</strong> None.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> None.</p>
+<p><strong>Technical references:</strong> <code>backend/src/plan-templates/entities/plan-template.entity.ts</code> (comment) · <code>PlanTemplate</code> · <code>web-app/src/features/plan-templates/pages/PlanTemplatesPage.tsx</code> (dialog description)</p>
+<h3 id="ch33-treatment-plans-33-3-13-turn-plan-items-into-charges">33.3.13 Turn plan items into charges</h3>
+<p><strong>Status:</strong> [Partial] — backend only; no web code calls the endpoint.</p>
+<p><strong>What it does.</strong> Creates one unbilled <strong>charge</strong> per chosen plan item, ready for the billing desk.</p>
+<p><strong>How the user does it.</strong> No screen. An API client calls the endpoint.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> For each chosen item the Platform creates a charge for the item&#39;s procedure, priced at the item&#39;s estimate. If the item has no estimate, the charge is created at zero and flagged as needing a price. An item that already has an active charge is skipped silently, so the same step cannot be billed twice. Figure 33.5 shows the flow.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch33-plan-to-charges.png" alt="Figure 33.5 — Plan items to charges"></p>
+<p><em>Figure 33.5 — Sequence of turning plan items into charges.</em></p>
+<p>The diagram has five participants: API client, API, ChargesService, ChargeDraftFactory and PostgreSQL. (1) The client posts <code>POST /patients/patientId/charges/from-treatment-plan/planId</code> with a list of item ids. (2) The API, after checking <code>billing.desk.use</code>, calls <code>fromTreatmentPlan</code>. (3) The service opens a transaction and loads the plan, which must belong to this patient and organization. (4) It loads the listed items of that plan. (5) It asks the factory for one charge draft per item with source <code>TREATMENT_PLAN</code>. (6) The factory prices each draft at the item&#39;s estimate, or at zero with &quot;needs pricing&quot; set. (7) The service inserts the charges, skipping items that already have an active charge. (8) It writes billing audit rows for the charges actually created. (9) It returns the created charges.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>POST /patients/:patientId/charges/from-treatment-plan/:planId</code> → <code>ChargesService.fromTreatmentPlan</code> (one transaction). <code>ChargeDraftFactory.fromPlanItem</code> sets <code>source = TREATMENT_PLAN</code>, <code>sourceId = item id</code>, description = procedure name (at most 200 characters), quantity 1, <code>unitPrice</code> = item estimate when above zero else 0, <code>needsPricing</code> = true when there is no estimate, and the doctor = the item&#39;s <code>assignedTo</code>, else the plan&#39;s <code>dentistId</code>. The charge date is today in the location&#39;s timezone. Duplicates are prevented by the partial unique index <code>uq_charges_source</code> (organization, source, source id, for active charges) with <code>INSERT … ON CONFLICT DO NOTHING</code>. Each new charge gets a billing audit row (<code>CREATED</code>).</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>1 to 100 item ids, each a UUID; every id must belong to the plan, otherwise nothing is created.</li>
+<li>Plan and item statuses are not checked: cancelled plans and skipped items can be charged.</li>
+<li>The catalog price list is not consulted (the factory receives no catalog price).</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.desk.use</code> (feature <code>billing.invoices</code>). Default holders: Admin, Receptionist, Accountant. The endpoint does not require <code>plans.manage</code>.</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_treatment_plans</code>, <code>treatment_plan_items</code>; writes <code>charges</code> and the billing audit log.</p>
+<p><strong>Effects on other modules.</strong> The charges appear in the patient&#39;s open charges and on the billing desk (the Billing chapter, Chapter 34, covers what follows).</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; or &quot;Plan item not found&quot; (404); validation errors for the item list (400).</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/charges/charges.service.ts</code> · <code>fromTreatmentPlan</code>, <code>ChargeDraftFactory.fromPlanItem</code>, <code>ChargesFromPlanDto</code> · none in web-app</p>
+<h3 id="ch33-treatment-plans-33-3-14-see-a-plan-39-s-billing-summary">33.3.14 See a plan&#39;s billing summary</h3>
+<p><strong>Status:</strong> [Partial] — the endpoint, a web API function and a hook (<code>usePlanBillingSummary</code>) exist, but no component renders it.</p>
+<p><strong>What it does.</strong> Answers, for one plan: the estimate, how much has been billed on issued invoices, how much is charged but not yet invoiced, how much is not yet charged, how much has been paid, and the balance owed.</p>
+<p><strong>How the user does it.</strong> No screen.</p>
+<p><strong>Behind the scenes — in simple terms.</strong> Only charges created from the plan&#39;s items count; treatments recorded separately are not linked to plan items and do not count.</p>
+<p><strong>Behind the scenes — technically.</strong> <code>GET /treatment-plans/:planId/billing-summary</code> → <code>BillingReportsService.planSummary</code>. It sums active <code>TREATMENT_PLAN</code> charges whose source is one of the plan&#39;s items, at the active location only: billed (net amount on <code>ISSUED</code> invoices), tax on those, unbilled (no invoice yet) and paid (allocated amount). Estimate = the plan&#39;s final estimate, else its estimate, else the sum of item estimates. <code>notYetCharged = max(0, estimate − billed − unbilled)</code>; <code>balance = billed + tax − paid</code> (billed is before tax, what is owed includes tax). Arithmetic is done in paisa and returned in currency units.</p>
+<p><strong>Rules and validations.</strong></p>
+<ul>
+<li>The plan must belong to the organization; the patient&#39;s scope is not checked on this route.</li>
+<li>Charges made at another location of the same organization are left out.</li>
+</ul>
+<p><strong>Who can do it.</strong> <code>billing.invoice.view</code> (feature <code>billing.invoices</code>). Default holders: Admin (org), Receptionist and Accountant (location).</p>
+<p><strong>Data read and written.</strong> Reads <code>patient_treatment_plans</code>, <code>treatment_plan_items</code>, <code>charges</code>, <code>invoices</code>.</p>
+<p><strong>Effects on other modules.</strong> None.</p>
+<p><strong>Error cases.</strong> &quot;Treatment plan not found&quot; (404).</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/reports/billing-reports.service.ts</code> · <code>planSummary</code>, <code>PlanBillingSummary</code> · <code>web-app/src/features/billing/hooks/use-billing-queries.ts</code> (<code>usePlanBillingSummary</code>, unused)</p>
+<h2 id="ch33-treatment-plans-33-4-entities-and-data-model">33.4 Entities and data model</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch33-erd.png" alt="Figure 33.6 — Treatment plan data model"></p>
+<p><em>Figure 33.6 — Entity-relationship diagram of treatment plans, plan items, plan templates and their links to treatments and charges.</em></p>
+<p>The diagram shows seven tables. Each <code>patient_treatment_plans</code> row belongs to exactly one patient and one location; deleting the patient or the location deletes the plan (ON DELETE CASCADE). The plan also carries <code>organization_id</code> (cascading), <code>dentist_id</code> (a plain UUID with no foreign key), <code>plan_number</code> (unique per organization), <code>status</code> and the three cost columns <code>estimated_cost</code>, <code>discount_amount</code> and <code>final_estimated_cost</code> (decimal, currency units, hidden from users without <code>patients.price.view</code> by <code>@VisibleIf</code>). Each plan contains any number of <code>treatment_plan_items</code>; deleting a plan deletes its items. Items have no <code>organization_id</code> of their own; they reach the organization through their plan. Items carry <code>procedure_name</code>, <code>estimated_sessions</code>, <code>completed_sessions</code>, <code>estimated_cost</code> (decimal, also price-hidden), <code>status</code>, <code>sequence_order</code> and <code>assigned_to</code> (a plain UUID). The dotted line from an item to <code>charges</code> is a logical link without a foreign key: a charge created from an item stores the item id in <code>source_id</code> with <code>source = &#39;TREATMENT_PLAN&#39;</code>, and at most one active charge can exist per item. <code>plan_templates</code> belongs to an organization through <code>organization_id</code>, drawn dotted because there is no foreign key. Templates keep their procedures inside the JSON column <code>items</code> (each with <code>procedureName</code>, <code>estimatedSessions</code>, <code>estimatedCost</code>, <code>notes</code>), so template procedures are not rows. Each <code>treatments</code> row belongs to one patient (cascading) and may point to one plan template through <code>plan_template_id</code>; deleting the template clears that pointer (ON DELETE SET NULL). There is no link between a treatment and a plan item, and none between a patient plan and the template it might have come from.</p>
+<p>Plans and templates are separate from the prescriptions module&#39;s <code>treatment_plan_templates</code> and <code>treatment_plan_template_medicines</code> tables, which hold prescription presets.</p>
+<h2 id="ch33-treatment-plans-33-5-status-lifecycles">33.5 Status lifecycles</h2>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch33-plan-status.png" alt="Figure 33.7 — Treatment plan status"></p>
+<p><em>Figure 33.7 — Intended lifecycle of a patient treatment plan.</em></p>
+<p>A plan is created by <code>POST /patients/:id/treatment-plans</code> in <strong>draft</strong> by default, or directly in <strong>active</strong> (or any other status) when the request gives one. <code>PATCH /patients/:id/treatment-plans/:planId</code> moves it: draft to active when work starts; active to <strong>on_hold</strong> and on_hold back to active; active to <strong>completed</strong>; and draft, active or on_hold to <strong>cancelled</strong>. The diagram shows the intended paths only. The code accepts any status from any status, never changes the status by itself, and does not stamp <code>actual_end_date</code> on completion. No screen shows the status today.</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch33-item-status.png" alt="Figure 33.8 — Plan item status"></p>
+<p><em>Figure 33.8 — Intended lifecycle of a treatment plan item.</em></p>
+<p>An item is created by <code>POST …/items</code> in <strong>pending</strong>. <code>PATCH …/items/:itemId</code> moves it: pending to <strong>in_progress</strong>, in_progress to <strong>completed</strong>, pending or in_progress to <strong>postponed</strong>, postponed back to in_progress, and pending to <strong>skipped</strong>. As with plans, any status can be set from any status, and nothing changes item status automatically: recording a treatment, completing a consultation or billing the item leaves it as it is. Completed sessions are stored separately and capped at the estimated sessions.</p>
+<p>Plan templates have no status lifecycle; they only have the <code>is_active</code> switch (Active or Hidden).</p>
+<h2 id="ch33-treatment-plans-33-6-connections-to-other-modules">33.6 Connections to other modules</h2>
+<ul>
+<li><strong>Patients (Chapter 28):</strong> patient plans and items are stored and audited by the Patients module; plan writes appear in the patient&#39;s change history (values hidden from readers without <code>patients.clinical.view</code>). Deleting a patient deletes their plans.</li>
+<li><strong>Treatments and consultation (Chapter 31):</strong> the Record Treatment dialog, on the patient page and inside a visit, uses active plan templates and tags treatments with them.</li>
+<li><strong>Billing (Chapter 34):</strong> charges from plan items and the plan billing summary (both backend only); the billing desk then prices, invoices and collects those charges.</li>
+<li><strong>Prescriptions (Chapter 32):</strong> prescription presets are a different kind of template, stored in <code>treatment_plan_templates</code>.</li>
+<li><strong>Features and access (Chapters 10 and 11):</strong> feature <code>patients.treatment_plans</code>; permissions <code>plans.manage</code>, <code>plans.templates.manage</code>, <code>patients.clinical.view</code> and <code>patients.price.view</code>.</li>
+</ul>
+<h2 id="ch33-treatment-plans-33-7-limitations-and-known-gaps">33.7 Limitations and known gaps</h2>
+<ul>
+<li><strong>No screen for patient treatment plans.</strong> Plans and items can only be created, read and updated through the API; the web hooks exist but are unused.</li>
+<li><strong>Templates cannot start a patient plan</strong>, although the template page text says the procedures are copied into a patient&#39;s plan.</li>
+<li><strong>Plan billing exists only in the backend.</strong> Neither &quot;charges from plan&quot; nor the billing summary is called by any screen.</li>
+<li><strong>No automatic progress.</strong> Treatments are not linked to plan items, so completed sessions, item status, plan status and the actual end date are all manual.</li>
+<li><strong>Free status changes.</strong> There is no transition map for plan or item status.</li>
+<li><strong>Plan numbers come from a row count</strong> and can repeat after a patient with plans is deleted, which makes the next save fail.</li>
+<li><strong>No delete endpoints</strong> for plans or items; a mistaken plan can only be cancelled.</li>
+<li><strong>The plan estimate is entered by hand</strong>; item costs are not summed into it (the billing summary falls back to the item sum only when the plan has no estimate).</li>
+<li><strong>Template changes are not audited</strong>, unlike patient plans.</li>
+<li><strong>Deleting every template brings the twelve defaults back</strong> on the next read.</li>
+<li><strong>Doctors cannot use templates from the patient page by default</strong>, because the Add Treatment button also needs <code>patients.price.view</code>, which the Doctor template lacks.</li>
+</ul>
+<h2 id="ch33-treatment-plans-33-8-owner-39-s-faq">33.8 Owner&#39;s FAQ</h2>
+<p><strong>Is &quot;Treatment Plans&quot; in the sidebar the place where a doctor builds a patient&#39;s plan?</strong>
+No. That page (<code>/plan-templates</code>) manages the clinic&#39;s reusable templates. There is no screen for a patient&#39;s own plan today; patient plans exist only in the backend.</p>
+<p><strong>What is the difference between a plan template and a prescription preset?</strong>
+A plan template is a list of procedures with sessions and fees, used when recording treatments. A prescription preset is a list of medicines with instructions, used in the prescription builder. The preset table is confusingly named <code>treatment_plan_templates</code> in the database.</p>
+<p><strong>If I change a template&#39;s fee, do old treatments change?</strong>
+No. The Record Treatment dialog copies the name and cost into the treatment when it is saved; later template edits do not touch existing treatments.</p>
+<p><strong>What happens to treatments if I delete a template?</strong>
+They keep their name, cost and date; only the template badge in their Plan column disappears.</p>
+<p><strong>Who can edit templates?</strong>
+Holders of <code>plans.templates.manage</code>, which only the Admin system role has by default. Every member of the clinic can read the template list when the feature is on, but fees are removed for users without <code>patients.price.view</code>.</p>
+<p><strong>Can a plan item be billed twice?</strong>
+Not while its first charge is active: the database allows only one active charge per plan item, and a repeated request skips that item silently. If the first charge is voided, the item can be charged again.</p>
+<p><strong>Does completing a consultation update the patient&#39;s plan?</strong>
+No. Plans, items and treatments are not linked, so progress must be entered by hand through the API.</p>
+<p><strong>What happens if I switch off the Treatment Plans feature?</strong>
+The Treatment Plans page and sidebar entry disappear, the template list endpoint and all patient plan endpoints refuse requests, and the permissions <code>plans.manage</code> and <code>plans.templates.manage</code> are dropped for every role until the feature is switched back on. Treatments already tagged with a template keep the tag.</p>
+</section></body></html>

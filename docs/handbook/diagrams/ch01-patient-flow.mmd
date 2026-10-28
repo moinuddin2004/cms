@@ -1,0 +1,13 @@
+flowchart LR
+    P["Patients<br/>Ch 28"] --> A["Appointments<br/>Ch 29"]
+    A -->|"check-in"| Q["Queue<br/>Ch 30"]
+    P -->|"walk-in"| Q
+    Q -->|"start consultation"| C["Consultation<br/>Ch 31"]
+    C --> RX["Prescriptions<br/>Ch 32"]
+    C -->|"complete visit"| B["Billing<br/>Ch 34"]
+    B --> CM["Commissions<br/>Ch 35"]
+    CM --> PR["Payroll<br/>Ch 38"]
+    B --> R["Dashboard and reports<br/>Ch 36"]
+    P --> L["Dental lab<br/>Ch 40"]
+    L <--> LP["Lab portal<br/>Ch 41"]
+    L --> LF["Lab finance<br/>Ch 42"]

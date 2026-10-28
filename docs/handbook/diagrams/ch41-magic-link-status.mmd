@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> active : issued at submit or by the clinic
+    active --> expired : expires_at passes - 24 hours by default
+    active --> revoked : clinic revokes
+    active --> revoked : order closes or is rejected
+    active --> used_up : used_count reaches max_uses - never set today
+    expired --> [*]
+    revoked --> [*]
+    used_up --> [*]

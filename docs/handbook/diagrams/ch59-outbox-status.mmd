@@ -1,0 +1,15 @@
+stateDiagram-v2
+    direction LR
+    [*] --> queued : enqueue, decision allows
+    [*] --> held_quiet_hours : inside quiet hours
+    [*] --> skipped_disabled : audience or rule off
+    [*] --> skipped_opt_out : patient opted out
+    [*] --> failed : no address for the channel
+    held_quiet_hours --> queued : relay claims it once the window ends
+    queued --> sent : provider accepted
+    queued --> queued : send failed, retry with backoff
+    queued --> failed : permanent error or 5th attempt
+    sent --> [*]
+    failed --> [*]
+    skipped_disabled --> [*]
+    skipped_opt_out --> [*]

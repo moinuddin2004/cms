@@ -1,0 +1,170 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch61-error-handling"><h1 id="ch61-error-handling-chapter-61-error-handling">Chapter 61 — Error handling</h1>
+<p>This chapter describes how the Platform reports problems: the shape of every API answer, the families of error codes, how validation and database conflicts become messages, how retries stay safe, and what the web app shows the user. It is written for the product owner and for support staff who read an error message and need to know what it means. Chapter 5 traces one request through the system and shows the main status codes; this chapter goes into the error side in more detail.</p>
+<h2 id="ch61-error-handling-61-1-the-envelope">61.1 The envelope</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Every controller answers inside one JSON envelope built by <code>ResponseWrapper</code>. On success the fields are <code>data</code> (the payload), <code>message</code> (for example &quot;Patient created successfully&quot;), <code>isSuccess</code> (true) and <code>httpStatusCode</code> (always 200 in the envelope, even when the HTTP status is 201). On failure the global exception filter <code>GlobalExceptionFilter</code> builds the same envelope with <code>isSuccess</code> false, the real HTTP status in <code>httpStatusCode</code>, a short <code>message</code> for people, a <code>devMessage</code> with a technical text for developers and an <code>error</code> field holding the exception body. The web app reads <code>res.data.data</code> on success and <code>err.response.data.message</code> (or <code>error.code</code>) on failure.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/dtos/ResponseWrapper.ts</code> · <code>backend/src/common/exceptions/HttpExceptionHandler.ts</code></p>
+<h2 id="ch61-error-handling-61-2-what-the-filter-does-with-an-error">61.2 What the filter does with an error</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch61-error-families.png" alt="Figure 61.1 — From exception to screen"></p>
+<p><em>Figure 61.1 — How an exception becomes an envelope and a message on screen.</em></p>
+<p>The flowchart reads from top to bottom. An &quot;Exception anywhere&quot; in the request reaches <code>GlobalExceptionFilter</code>. The filter asks whether it is an HTTP exception. If yes, the request keeps its own status and body, with a code, a message and any extra fields. If no, which means an unexpected failure, the answer is 500 with the message &quot;Something went wrong&quot;. Both branches build the envelope: <code>isSuccess</code> false, <code>message</code>, <code>devMessage</code> and <code>error</code>. The web app then shows a toast, an <code>ErrorState</code> panel or a friendly text chosen by the error code.</p>
+<p>Categories of error:</p>
+<ul>
+<li><strong>Expected HTTP errors.</strong> Business rules and security refusals are thrown as typed exceptions with a status and, in most modules, a machine-readable <code>code</code>. The message is written for the user.</li>
+<li><strong>Validation errors.</strong> The global validation pipe rejects bad input (section 61.3). Several messages are possible; the envelope&#39;s <code>message</code> shows the first one.</li>
+<li><strong>Unexpected errors.</strong> Anything that is not an HTTP exception, such as an unhandled database failure, is logged with its stack on the server and answered as 500 &quot;Something went wrong&quot;. The user-facing text never contains internals.</li>
+<li><strong>Rate limit.</strong> A throttled request is answered 429 with &quot;Too many requests. Please try again later.&quot; and a number of seconds to wait (Chapter 56).</li>
+</ul>
+<p>Every error is logged by the application logger together with the request address.</p>
+<h2 id="ch61-error-handling-61-3-validation">61.3 Validation</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>The global validation pipe converts input to the types named in each request class and has <code>whitelist</code> and <code>forbidNonWhitelisted</code> on. A request that contains a field the API does not define is <strong>rejected</strong> with 400, not silently ignored, and a field with a wrong type or format is rejected with a message such as &quot;email must be an email&quot;. Request classes use validation decorators for lengths, formats, enumerations and nested objects. The same rules appear in the web app as form schemas, so most mistakes are caught before the request leaves the browser; the server rule is the one that counts.</p>
+<h2 id="ch61-error-handling-61-4-error-code-families">61.4 Error code families</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<div class="tw"><table><thead><tr>
+<th>Status</th>
+<th>Code or family</th>
+<th>Meaning</th>
+</tr>
+</thead><tbody><tr>
+<td>400</td>
+<td><code>IDEMPOTENCY_KEY_REQUIRED</code>, <code>REASON_REQUIRED</code>, <code>INVALID_PERMISSIONS</code>, validation messages</td>
+<td>The request is incomplete or malformed</td>
+</tr>
+<tr>
+<td>401</td>
+<td>(message only)</td>
+<td>No token, expired token or bad token; the web app tries to refresh</td>
+</tr>
+<tr>
+<td>402</td>
+<td><code>SUBSCRIPTION_EXPIRED</code></td>
+<td>The clinic is read-only because its subscription lapsed</td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NO_PERMISSION</code> with the missing permissions, <code>NOT_ENTITLED</code>, <code>ESCALATION</code>, <code>SYSTEM_ROLE_READ_ONLY</code>, <code>SETTING_LOCKED</code>, <code>FORBIDDEN</code>, <code>LAB_ACCESS_DENIED</code></td>
+<td>The caller is not allowed</td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code>, <code>BILLING_NOT_FOUND</code>, <code>LAB_NOT_FOUND</code>, and similar</td>
+<td>The record does not exist in this organization</td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>DOCTOR_DOUBLE_BOOKED</code>, <code>VERSION_CONFLICT</code>, <code>STALE_VERSION</code>, <code>ALREADY_CHECKED_IN</code>, <code>ACTIVE_WITH_OTHER_DOCTOR</code>, <code>DOCTOR_BUSY</code>, <code>ROLE_NAME_TAKEN</code>, <code>ROLE_HAS_MEMBERS</code>, <code>REQUEST_IN_FLIGHT</code>, <code>BILLING_DUPLICATE</code>, <code>PLAN_LIMIT</code> and similar</td>
+<td>The request conflicts with the current state or with another request</td>
+</tr>
+<tr>
+<td>422</td>
+<td><code>INVALID_TRANSITION</code>, <code>IDEMPOTENCY_KEY_REUSED</code>, <code>NOT_TODAY</code>, <code>LATE_LIMIT_EXCEEDED</code>, <code>SESSION_NOT_OPEN</code>, many <code>BILLING_*</code>, <code>FORM_*</code> and <code>WORKFLOW_*</code> codes</td>
+<td>The request is well formed but the rules refuse it</td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>MAGIC_LINK_RATE_LIMITED</code> and the login throttle</td>
+<td>Too many requests</td>
+</tr>
+<tr>
+<td>500</td>
+<td><code>BILLING_INVARIANT_VIOLATION</code>, <code>WORKFLOW_MISCONFIGURED</code>, anything unexpected</td>
+<td>A bug or a broken money rule</td>
+</tr>
+<tr>
+<td>503</td>
+<td><code>LOCK_TIMEOUT</code></td>
+<td>The queue was busy; retry</td>
+</tr>
+</tbody></table></div><p>The table groups the codes by HTTP status and shows what each family means. It lists examples, not every code. The codes are thrown by several module-specific error builders, each of which passes the code in <code>error.code</code>:</p>
+<ul>
+<li><strong>Billing</strong> (<code>billing-errors.ts</code>): about 40 <code>BILLING_*</code> codes plus <code>COMPENSATION_*</code> and <code>COMMISSION_*</code> for the commission rules. Each maps to a fixed status, for example allocation larger than the balance is 422 and a duplicate is 409.</li>
+<li><strong>Queue</strong> (<code>queue.errors.ts</code>): <code>NOT_FOUND</code>, <code>FORBIDDEN</code>, <code>INVALID_TRANSITION</code>, <code>SESSION_NOT_OPEN</code>, <code>DOCTOR_BUSY</code>, <code>VERSION_CONFLICT</code>, <code>ALREADY_CHECKED_IN</code>, <code>ACTIVE_WITH_OTHER_DOCTOR</code>, <code>LATE_LIMIT_EXCEEDED</code>, <code>NOT_TODAY</code>, <code>LOCK_TIMEOUT</code>, <code>IDEMPOTENCY_KEY_*</code>, <code>REQUEST_IN_FLIGHT</code>, <code>REASON_REQUIRED</code>.</li>
+<li><strong>Workflow engine</strong> (<code>engine-errors.ts</code>): form, workflow and stage template codes, <code>INVALID_TRANSITION</code>, <code>TRANSITION_FORBIDDEN</code>, <code>TRANSITION_INPUT_REQUIRED</code>, <code>TRANSITION_REASON_REQUIRED</code>.</li>
+<li><strong>Labs</strong> (<code>lab-errors.ts</code>, plus lab billing, catalog, orders and payables): <code>LAB_*</code> codes, including <code>LAB_PORTAL_CLINIC_CONTEXT</code> and <code>LAB_SELECTION_REQUIRED</code>.</li>
+<li><strong>Notifications</strong> (<code>notification-errors.ts</code>): <code>NOTIFICATION_*</code> codes and <code>PATIENT_NOT_FOUND</code>.</li>
+<li><strong>Access and features</strong>: <code>NO_PERMISSION</code>, <code>ESCALATION</code>, <code>INVALID_PERMISSIONS</code>, <code>NOT_ENTITLED</code>, <code>SETTING_LOCKED</code>, <code>PLAN_LIMIT</code>.</li>
+</ul>
+<p><code>DOCTOR_DOUBLE_BOOKED</code> is the appointment overlap error (Chapter 29): the database rejects two bookings of one doctor at overlapping times, and the service turns the failure into a 409 with that code.</p>
+<p><strong>Technical references:</strong> <code>backend/src/billing/common/billing-errors.ts</code> · <code>backend/src/queue/queue.errors.ts</code> · <code>backend/src/engine/common/engine-errors.ts</code> · <code>backend/src/labs/common/lab-errors.ts</code> · <code>backend/src/notifications/notification-errors.ts</code> · <code>backend/src/access/decorators/access.decorators.ts</code></p>
+<h2 id="ch61-error-handling-61-5-safe-retries-idempotency-keys-and-if-match">61.5 Safe retries: idempotency keys and If-Match</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>Two mechanisms protect against double clicks, flaky networks and two people editing the same record.</p>
+<p><strong>Idempotency-Key.</strong> A client sends a header <code>Idempotency-Key</code> (1 to 150 characters) on actions that must not run twice. The server stores the key, a hash of the request and, once finished, the response, inside the same transaction as the work. If the same key arrives again with the same request, the stored answer is replayed and nothing runs twice. The same key with a different request gives 422 <code>IDEMPOTENCY_KEY_REUSED</code>. The same key while the first request is still running gives 409 <code>REQUEST_IN_FLIGHT</code>. A missing key where one is required gives 400 <code>IDEMPOTENCY_KEY_REQUIRED</code>. The key is required on every queue change, on patient check-in from an appointment, on money-moving lab billing posts and on the workflow engine transitions; the web app creates a fresh key for each open sheet or action. Queue idempotency keys are deleted after 24 hours by a nightly job.</p>
+<p><strong>If-Match and versions.</strong> Records that two people may edit carry a version number. A client may send <code>If-Match: &lt;version&gt;</code> (queue entries, lab order actions) or the version in the body; the server checks it while holding a row lock and, if the record has moved on, answers 409 with <code>VERSION_CONFLICT</code> or <code>STALE_VERSION</code> and the current state or version. The web app reloads and asks the user to try again, with texts such as &quot;Someone else changed this just now. The latest version is loaded&quot;.</p>
+<p><strong>Technical references:</strong> <code>backend/src/common/idempotency/idempotency.service.ts</code> · <code>IdempotencyService</code> · <code>backend/src/common/errors/optimistic-lock.ts</code> · <code>assertVersion</code> · <code>backend/src/queue/decorators/queue-request.decorators.ts</code></p>
+<h2 id="ch61-error-handling-61-6-database-constraints-become-messages">61.6 Database constraints become messages</h2>
+<p><strong>Status:</strong> [Partial]</p>
+<p>The database enforces uniqueness and exclusion rules, and several services translate the database error into a clear conflict. The translation is per service; there is no global mapping.</p>
+<ul>
+<li><strong>Exclusion constraint on appointments</strong> (<code>no_doctor_overlap</code>): Postgres error 23P01 becomes 409 <code>DOCTOR_DOUBLE_BOOKED</code>. Compensation plan versions and lab prices use similar exclusion constraints with their own messages.</li>
+<li><strong>Unique violations</strong> (23505) are translated in billing, lab billing, lab orders, lab catalog and lab payables into codes such as <code>BILLING_DUPLICATE</code>.</li>
+<li><strong>Foreign key violations</strong> (23503) are translated when deleting an employee that is still referenced.</li>
+<li><strong>Lock timeouts</strong> in the queue become 503 <code>LOCK_TIMEOUT</code>.</li>
+</ul>
+<p>A database error that no service translates reaches the filter as an unexpected error and is answered as 500 &quot;Something went wrong&quot;. A duplicate patient number or purchase order number, for instance, would currently surface this way (Chapter 62).</p>
+<h2 id="ch61-error-handling-61-7-in-the-web-app">61.7 In the web app</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<ul>
+<li><strong>401 and refresh.</strong> The shared axios client refreshes the access token on a 401 and retries once (Chapter 56).</li>
+<li><strong>Toasts.</strong> Mutations report failures with a toast (the library <code>sonner</code>, at the top right, closable, 4 seconds). Many hooks have a helper that reads <code>err.response.data.message</code> and falls back to a text such as &quot;Failed to create item&quot;. About 180 places raise an error toast.</li>
+<li><strong>Friendly code maps.</strong> Billing, labs, lab orders, lab catalog, lab payables, lab billing and the engine studio each have a small map from an error code to a plain sentence, for example the billing code for a missing document code becomes &quot;Set a document code for this location in Billing settings first.&quot; If a code has no entry, the server&#39;s own message is shown, then a generic text.</li>
+<li><strong>Stale screens.</strong> The queue hook shows &quot;Someone else just changed this patient — showing the latest.&quot; as a warning on <code>VERSION_CONFLICT</code> and refreshes the screen.</li>
+<li><strong>Page states.</strong> Every list or detail screen uses <code>LoadingSkeleton</code> while loading (table, cards, stats or detail shape), <code>EmptyState</code> when there is nothing (icon, title, message and an optional action) and <code>ErrorState</code> when a request failed (title &quot;Something went wrong&quot;, a sentence and a <strong>Try again</strong> button). A route-level error boundary, <code>RouteError</code>, shows the error message with a retry button for render failures.</li>
+<li><strong>Access errors.</strong> A missing route permission shows the No access page, not an error (Chapter 57). The access gate shows &quot;Couldn&#39;t load your access&quot; if <code>/me/access</code> fails.</li>
+<li><strong>Query settings.</strong> Queries retry twice and mutations once, with 5 minutes of freshness.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>web-app/src/lib/api.ts</code> · <code>web-app/src/lib/query-client.ts</code> · <code>web-app/src/features/billing/lib/billing-errors.ts</code> · <code>web-app/src/features/engine-studio/lib/studio-errors.ts</code> · <code>web-app/src/features/queue/hooks/useQueueAction.ts</code> · <code>web-app/src/components/feedback/ErrorState.tsx</code> · <code>EmptyState.tsx</code> · <code>LoadingSkeleton.tsx</code> · <code>web-app/src/components/shared/RouteError.tsx</code></p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch61-refresh-sequence.png" alt="Figure 61.2 — The 401 refresh flow"></p>
+<p><em>Figure 61.2 — How an expired access token is replaced without the user noticing.</em></p>
+<p>The diagram has three participants: the Screen, the <code>apiClient</code> axios instance and the API. The screen sends request A. The client sends A with an expired access token. The API answers 401 &quot;Token has expired&quot;. The client marks A as retried and starts a refresh. It sends <code>POST /auth/refresh</code> with the cookie. The API answers with a new access token and a new cookie. The client stores the token and context, sends A again with the new token, gets a 200 envelope and returns the data to the screen. A note says that if the refresh fails, the stored login is cleared and the browser goes to <code>/login</code>. While one refresh is running, other requests that fail with 401 wait in a queue and are retried with the new token.</p>
+<h2 id="ch61-error-handling-61-8-limitations-and-known-gaps">61.8 Limitations and known gaps</h2>
+<ul>
+<li>Error messages are in English. Only the No access headline carries a Roman-Urdu line.</li>
+<li>Code-to-sentence maps exist for some modules only; others show the server&#39;s text.</li>
+<li>There is no central error-tracking service; errors are written to the server log.</li>
+<li>Database errors are translated service by service, so an untranslated one shows as a generic 500.</li>
+<li>The error body includes a developer message field in every failure.</li>
+</ul>
+<h2 id="ch61-error-handling-61-9-owner-39-s-faq">61.9 Owner&#39;s FAQ</h2>
+<p><strong>A user says &quot;Something went wrong&quot;. What now?</strong> It is an unexpected server error. Ask for the time and the page; the server log holds the cause. Other failures give a specific message.</p>
+<p><strong>What does 402 mean?</strong> The subscription expired; the clinic is read-only until a payment is recorded.</p>
+<p><strong>What does &quot;Someone else changed this&quot; mean?</strong> Another person saved the same record first. The latest data is loaded; redo the change.</p>
+<p><strong>What happens if the receptionist double-clicks &quot;Check in&quot;?</strong> The second click carries the same idempotency key, so the first result is returned and only one token is issued.</p>
+<p><strong>Does the API ignore fields it does not know?</strong> No. It rejects them with 400.</p>
+</section></body></html>

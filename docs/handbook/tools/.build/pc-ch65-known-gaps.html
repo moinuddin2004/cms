@@ -1,0 +1,583 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch65-known-gaps"><h1 id="ch65-known-gaps-chapter-65-known-gaps">Chapter 65 — Known Gaps</h1>
+<p>This chapter collects every gap found while the handbook was written: features that do not exist, features that exist in the backend but cannot be reached from the web app, settings that do nothing, data-integrity oddities and places where older documents describe something the code no longer does. It is for the owner who has to decide what to fix, build or promise before more clinics go live. Each gap states what it is, why it matters to an owner, which chapter holds the evidence, a severity and a suggested next step.</p>
+<h2 id="ch65-known-gaps-65-1-how-severity-is-judged">65.1 How severity is judged</h2>
+<p>Severity is judged by the effect on a live clinic, not by the effort to fix it.</p>
+<ul>
+<li><strong>High</strong>: the problem can stop daily work (registering a patient, writing a prescription) or put the business at risk, and it can happen in normal use.</li>
+<li><strong>Medium</strong>: a clinic would notice and need a workaround, or an expectation set by the product screens is not met, but daily work continues.</li>
+<li><strong>Low</strong>: a convenience, a cleanup or a feature most clinics can live without.</li>
+</ul>
+<p>No application was run while the handbook was written, so every gap was found by reading the code. Where a gap depends on behaviour that was deduced but not observed, the text says so.</p>
+<h2 id="ch65-known-gaps-65-2-features-that-are-not-built">65.2 Features that are not built</h2>
+<p>These features are absent. Some have a seeded feature key or a database table that suggests they exist; none of them works.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>No messages to patients by SMS, WhatsApp or email, and no appointment reminders</td>
+<td>Clinics cannot remind patients of visits, so no-shows are handled by phone calls only. The notification pipeline already exists, but the only active channel is the in-app inbox for staff and lab members.</td>
+<td>Chapters 44, 59</td>
+<td>Medium</td>
+<td>Decide on a provider (Question 3 in Chapter 67), then switch on the patient audience and add a reminder event and job.</td>
+</tr>
+<tr>
+<td>No renewal or trial-ending messages to clinic owners</td>
+<td>An owner learns of an expiring trial only from the banner inside the app. Expiry puts the clinic in read-only mode.</td>
+<td>Chapters 45, 53</td>
+<td>Medium</td>
+<td>Send an email to the owner at fixed days before expiry.</td>
+</tr>
+<tr>
+<td>No patient portal</td>
+<td>Patients cannot see their own records or invoices online. The feature key was retired.</td>
+<td>Chapters 1, 28</td>
+<td>Low</td>
+<td>Treat as a roadmap item; no work needed for current clinics.</td>
+</tr>
+<tr>
+<td>No online booking and no recurring appointments</td>
+<td>Every booking is made by staff, and a course of visits must be booked one by one.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Roadmap items.</td>
+</tr>
+<tr>
+<td>No insurance claims and no online payment gateway</td>
+<td>Insurance details can be stored (backend only) but no claim is created. Payments are recorded by staff, never collected online.</td>
+<td>Chapters 28, 34</td>
+<td>Low</td>
+<td>Roadmap items; confirm whether target clinics need them.</td>
+</tr>
+<tr>
+<td>No server-generated PDF receipts or invoices</td>
+<td>Receipts and invoices are printed from the browser (A4 and 80 mm). They cannot be emailed or stored as files.</td>
+<td>Chapters 34, 48</td>
+<td>Low</td>
+<td>Add a PDF generator only if sending receipts to patients becomes a requirement.</td>
+</tr>
+<tr>
+<td>No attendance tracking</td>
+<td>Payroll uses salary and commission only; there is no record of who came to work. Leave exists but is not read by payroll.</td>
+<td>Chapter 37</td>
+<td>Medium</td>
+<td>Decide whether attendance is wanted at all; if so, design it with payroll deductions.</td>
+</tr>
+<tr>
+<td>No payroll deductions, tax or bank files</td>
+<td>Net pay always equals gross pay, so deductions and withholding must be done outside the Platform.</td>
+<td>Chapters 38, 51</td>
+<td>Medium</td>
+<td>Define the deduction rules the target market needs, then add them to payroll generation.</td>
+</tr>
+<tr>
+<td>No deploy or continuous-integration configuration</td>
+<td>The repository holds no Dockerfile, pipeline or hosting configuration. How the Platform is deployed lives in people&#39;s heads.</td>
+<td>Chapter 6</td>
+<td>High</td>
+<td>Write down and automate the build, migration and process-role steps before more clinics depend on it.</td>
+</tr>
+<tr>
+<td>Chairs exist as a table only</td>
+<td>The <code>chairs</code> entity has no module, no endpoint and no screen.</td>
+<td>Chapters 12, 26</td>
+<td>Low</td>
+<td>Remove the entity or build the module; the rest of the Platform does not need it.</td>
+</tr>
+<tr>
+<td>No lab order can be started from the consultation workspace</td>
+<td>Doctors must leave the consultation and use the Lab orders page. Lab orders carry no link to the encounter.</td>
+<td>Chapters 31, 48</td>
+<td>Low</td>
+<td>Add a button that opens a lab order with the patient and doctor prefilled.</td>
+</tr>
+<tr>
+<td>No structured allergy list and no drug-interaction check</td>
+<td>Allergy alerts are text chips built from free-text fields. A doctor can prescribe a drug the patient is allergic to without any warning.</td>
+<td>Chapter 31</td>
+<td>Medium</td>
+<td>Add a structured allergy list first; a drug check can follow.</td>
+</tr>
+<tr>
+<td>No way to assign an existing employee to a second location</td>
+<td>The only way to create an assignment is to create a new employee, and a phone number that already exists is refused. A doctor who works at two locations cannot be set up.</td>
+<td>Chapters 37, 47</td>
+<td>Medium</td>
+<td>Add an endpoint and screen that create an assignment for an existing employee.</td>
+</tr>
+<tr>
+<td>No SOAP note entity or note templates</td>
+<td>Visit notes are four fixed text fields. Clinics that need structured notes cannot have them.</td>
+<td>Chapter 31</td>
+<td>Low</td>
+<td>Defer until a clinic asks.</td>
+</tr>
+<tr>
+<td>No manual commission adjustment</td>
+<td>The source type exists in the ledger but nothing writes it, so a one-off correction to a doctor&#39;s commission needs a database change.</td>
+<td>Chapter 35</td>
+<td>Low</td>
+<td>Add an adjustment screen with a reason and an audit row.</td>
+</tr>
+<tr>
+<td>No per-location patient visit statistics</td>
+<td>The <code>patient_visits</code> table is never written, so the endpoint always returns an empty list.</td>
+<td>Chapters 17, 27, 28</td>
+<td>Low</td>
+<td>Drop the table and endpoint, or fill it from encounters.</td>
+</tr>
+<tr>
+<td>No organization-wide audit viewer and no audit for appointments, employees, payroll, organizations or locations</td>
+<td>The owner cannot answer &quot;who changed this?&quot; for bookings, staff records or payroll. Only patient records have a history screen.</td>
+<td>Chapter 60</td>
+<td>Medium</td>
+<td>Extend the audit calls to the missing modules and add one viewer screen.</td>
+</tr>
+</tbody></table></div><p>The most important rows are the missing deploy configuration, which is an operational risk, and the missing second-location assignment, which blocks a normal multi-branch clinic. Everything else is either a feature a clinic would ask for later or a gap that staff can work around manually.</p>
+<h2 id="ch65-known-gaps-65-3-built-but-unreachable-from-the-web-app">65.3 Built but unreachable from the web app</h2>
+<p>In these cases the backend is finished, or nearly so, but no screen calls it, so the feature cannot be used by a clinic. Each one is usually a small piece of web work.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>The inventory page has no sidebar entry and nothing links to it</td>
+<td>Stock, suppliers and purchase orders work, but a user can only reach them by typing the address. Most staff will never find them.</td>
+<td>Chapters 39, 55</td>
+<td>Medium</td>
+<td>Add a sidebar entry; resolve the foreign-key question in Section 65.6 first.</td>
+</tr>
+<tr>
+<td>Unapply a payment has no screen</td>
+<td>An invoice that has any payment on it cannot be cancelled from the web app, because cancelling needs the payments released first. The workaround is a refund.</td>
+<td>Chapters 34, 52</td>
+<td>Medium</td>
+<td>Add an Unapply action to the payment detail.</td>
+</tr>
+<tr>
+<td>Patient treatment plans have no screen</td>
+<td>Creating, updating and tracking plans, turning plan items into charges and the plan billing summary exist only in the backend. Doctors cannot plan a course of treatment in the Platform.</td>
+<td>Chapters 28, 33</td>
+<td>Medium</td>
+<td>Build the plan screens, or remove the backend if plans are not wanted.</td>
+</tr>
+<tr>
+<td>Payroll: put on hold, CSV export and payslip PDF have no buttons</td>
+<td>An owner cannot give staff a payslip or export a month for an accountant from the Platform.</td>
+<td>Chapters 38, 51</td>
+<td>Medium</td>
+<td>Add the three buttons; the endpoints exist.</td>
+</tr>
+<tr>
+<td>Lab portal: charge requests and file upload have no portal control</td>
+<td>A lab cannot ask for an extra charge or attach a file from the portal, so these happen by message or phone.</td>
+<td>Chapters 40, 41</td>
+<td>Medium</td>
+<td>Add the two forms to the portal order page.</td>
+</tr>
+<tr>
+<td>Lab portal: no notification inbox</td>
+<td>Lab members receive in-app notifications that link into the portal, but the portal layout has no bell to show them.</td>
+<td>Chapters 40, 41</td>
+<td>Medium</td>
+<td>Add the bell to the portal header.</td>
+</tr>
+<tr>
+<td>Cancel one lab item has no screen</td>
+<td>Stopping one item of an order in progress is not possible from the web app.</td>
+<td>Chapter 40</td>
+<td>Low</td>
+<td>Add a Cancel item action on the order detail.</td>
+</tr>
+<tr>
+<td>Recalls, referrals, feedback, insurance and the communications log</td>
+<td>The component that shows them is never mounted, and recalls have no component at all. The data model is ready.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Mount the tab or drop the claim; update the older documents that call it implemented.</td>
+</tr>
+<tr>
+<td>Blacklist a patient</td>
+<td>The flag can only be set through the API, and it blocks nothing when set.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Decide what blacklisting should do (see Section 65.4), then add the control.</td>
+</tr>
+<tr>
+<td>Override booking rules</td>
+<td>The API flag and permission exist, but no booking screen sends it, so no one can book outside working hours or past the daily limit.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Add an override option for users who hold the permission.</td>
+</tr>
+<tr>
+<td>Cancel reasons</td>
+<td>The API stores a reason code and note; the screen sends neither and shows no confirmation.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Add the reason dialog.</td>
+</tr>
+<tr>
+<td>Phone pre-check at registration</td>
+<td>The endpoint and hook exist but no component calls them. The server rejects duplicates at save with a conflict message.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Call the hook on the phone field.</td>
+</tr>
+<tr>
+<td>Credit packages and patient credits</td>
+<td>Backend only, and credits are not a payment method.</td>
+<td>Chapter 34</td>
+<td>Low</td>
+<td>Decide whether prepaid packages are wanted.</td>
+</tr>
+<tr>
+<td>Plan billing summary, daily financial summary and several billing helpers</td>
+<td>Endpoints and client functions exist but no component renders them. <code>/financial-summary</code> redirects to the dashboard.</td>
+<td>Chapters 33, 34, 36</td>
+<td>Low</td>
+<td>Remove unused code or build the screens.</td>
+</tr>
+<tr>
+<td>About ten dashboard widgets that still use mock data</td>
+<td>They are not on the live dashboard but remain in the code and could be mistaken for real features.</td>
+<td>Chapter 36</td>
+<td>Low</td>
+<td>Delete the mock module.</td>
+</tr>
+<tr>
+<td>Queue: next-patient preview, queue history, the doctor&#39;s own session read and session creation</td>
+<td>Backend only. The queue works without them.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Add a history screen for supervisors if audit of the queue is needed.</td>
+</tr>
+<tr>
+<td>Prescriptions: edit one medicine line, duplicate, change history viewer, lookup by appointment</td>
+<td>Backend only. The history read and the duplicate action are also likely to fail (see Section 65.6).</td>
+<td>Chapter 32</td>
+<td>Low</td>
+<td>Fix the two defects, then add the screens.</td>
+</tr>
+<tr>
+<td>Employee portal-access switch and some schedule calls</td>
+<td>The endpoint exists, but the switch is set through the employee form instead. <code>/employees/create</code> exists but nothing links to it.</td>
+<td>Chapter 37</td>
+<td>Low</td>
+<td>Clean up.</td>
+</tr>
+<tr>
+<td>Lab: vendor bill header edit, manual bill lines, using lab advance on bills, impressions to the lab, service categories, specialty enablement</td>
+<td>Endpoints exist; no buttons call them.</td>
+<td>Chapters 40, 42, 43</td>
+<td>Low</td>
+<td>Build when the workflow is needed.</td>
+</tr>
+</tbody></table></div><p>The Medium rows share one theme: a flow is half-finished at the boundary between backend and web. Finishing the inventory entry, the unapply action and the payroll buttons would remove most of the daily friction an owner would see.</p>
+<h2 id="ch65-known-gaps-65-4-seeded-but-inert">65.4 Seeded but inert</h2>
+<p>These things look real in the catalog, a table or a setting, but nothing reads them or acts on them.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>Legacy organization settings (booking defaults, advance booking days, cancellation notice, late fee percentage and old feature switches)</td>
+<td>An owner can save these values and nothing changes. Only a location settings screen reads the old feature switches to hide sections.</td>
+<td>Chapters 9, 14</td>
+<td>Medium</td>
+<td>Remove the screen or wire the rules (Chapter 67, Question 5).</td>
+</tr>
+<tr>
+<td>Blacklisted and inactive patient flags</td>
+<td>A blacklisted or inactive patient can still be booked, queued and billed. Staff may assume the flag protects them.</td>
+<td>Chapter 28</td>
+<td>Medium</td>
+<td>Decide the intended rule and enforce it at booking and check-in.</td>
+</tr>
+<tr>
+<td>Availability overrides and approved leave</td>
+<td>They can be recorded and edited, but booking, validation, the calendar, the queue and payroll never read them. A doctor on approved leave can still be booked.</td>
+<td>Chapters 29, 37</td>
+<td>Medium</td>
+<td>Make booking and the calendar read them.</td>
+</tr>
+<tr>
+<td>Feature keys that gate nothing (<code>comms.in_app</code>, <code>comms.whatsapp</code>, <code>hr.commissions</code>)</td>
+<td>Switching these on or off has no effect. Twelve more keys for unbuilt features are deactivated at every start and are hidden.</td>
+<td>Chapters 10, 35, 44</td>
+<td>Low</td>
+<td>Retire the three keys or attach checks.</td>
+</tr>
+<tr>
+<td>Notification events that are never emitted (<code>order.overdue</code>, <code>shipment.dispatched</code>, <code>tryin.appointment_due</code>, <code>appointment.rescheduled_lab_delay</code>)</td>
+<td>Clinics can edit the wording of messages that will never be sent. There is no overdue job.</td>
+<td>Chapters 40, 44</td>
+<td>Low</td>
+<td>Add emitters or remove the events.</td>
+</tr>
+<tr>
+<td>Quiet hours, patient opt-outs and the delivered status</td>
+<td>Quiet hours are saved but never hold in-app messages. The outbox status <code>delivered</code> is never set. The opt-out screen is commented out.</td>
+<td>Chapters 44, 59</td>
+<td>Low</td>
+<td>Fix or remove.</td>
+</tr>
+<tr>
+<td>The <code>queue.display.manage</code> permission</td>
+<td>It is in the catalog and in the Receptionist template but nothing checks it.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Attach it to display management or drop it.</td>
+</tr>
+<tr>
+<td>Email verification</td>
+<td>The verification state is stored but nothing is gated by it.</td>
+<td>Chapters 45, 56</td>
+<td>Low</td>
+<td>Decide whether unverified owners should be limited.</td>
+</tr>
+<tr>
+<td>Dead schema and code (the table for linked external sign-ins, the deprecated refresh-token column, unused queue and database packages, per-role sidebar layouts that are never written, unused audit and history values, unused magic-link limits)</td>
+<td>They add noise for the next developer and imply features that are not there.</td>
+<td>Chapters 4, 13, 15, 32, 40, 58, 60</td>
+<td>Low</td>
+<td>Clean up in one pass.</td>
+</tr>
+<tr>
+<td>Settings registry beyond theme</td>
+<td>The generic cascading settings store holds only theme keys.</td>
+<td>Chapter 58</td>
+<td>Low</td>
+<td>Move new settings onto it or leave as is.</td>
+</tr>
+</tbody></table></div><p>The Medium rows are the ones that mislead: a screen or flag that implies protection or behaviour the Platform does not provide. Cleaning them up costs little and removes false assurance.</p>
+<h2 id="ch65-known-gaps-65-5-data-integrity-oddities">65.5 Data-integrity oddities</h2>
+<p>These are places where the data model can produce a wrong or failing result in normal use. Several were deduced from code and constraints and not reproduced.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>Patient numbers are &quot;count plus one&quot;, but patients can be permanently deleted</td>
+<td>After any patient is deleted, the next registration computes a number that already exists and fails on the unique index. Because the count does not change, every later registration fails the same way. This was confirmed by reading the code.</td>
+<td>Chapters 28, 62</td>
+<td>High</td>
+<td>Use the safe sequence mechanism that billing uses, and stop hard-deleting patients that have history.</td>
+</tr>
+<tr>
+<td>Prescription numbers are unique across the whole Platform, but are numbered per organization</td>
+<td>The first prescription of a second clinic in the same year is numbered like the first clinic&#39;s first one and violates the unique key. This was confirmed by reading the code, but not run.</td>
+<td>Chapters 19, 32, 62</td>
+<td>High</td>
+<td>Make the number unique per organization, or use a Platform-wide sequence.</td>
+</tr>
+<tr>
+<td>Purchase order numbers have the same flaw</td>
+<td>Same cause, in inventory. A second clinic&#39;s first purchase order collides.</td>
+<td>Chapters 23, 39, 62</td>
+<td>Medium</td>
+<td>Same fix.</td>
+</tr>
+<tr>
+<td>Other count-plus-one numbers (treatment plan, legacy prescription, employee code) and unlocked &quot;last plus one&quot; numbering</td>
+<td>They can repeat after a delete or when two people save at the same moment.</td>
+<td>Chapters 28, 33, 37, 62</td>
+<td>Medium</td>
+<td>Move to the sequence mechanism.</td>
+</tr>
+<tr>
+<td>Login id stored where an employee id is expected</td>
+<td>Several writes (inventory movements and purchase orders, prescription duplication, saved doctor signatures) put a login id into columns defined as links to employees. In some tables there is no foreign key, so the value is silently wrong; where there is one, the write may fail. Not run.</td>
+<td>Chapters 28, 32, 39, 55</td>
+<td>Medium</td>
+<td>Decide which id each column should hold and make the code consistent.</td>
+</tr>
+<tr>
+<td>Deleting a patient or an employee is blocked by <code>ON DELETE RESTRICT</code> rows and fails with a generic server error</td>
+<td>The user sees &quot;Something went wrong&quot; instead of a reason. A code comment claims the rows cascade, but they do not.</td>
+<td>Chapters 16, 17, 28, 37</td>
+<td>Medium</td>
+<td>Catch the foreign-key error and give a clear message, or soft-delete.</td>
+</tr>
+<tr>
+<td>Duplicate CNIC or phone number on employee edit</td>
+<td>Reaches the database unique index and returns a generic error.</td>
+<td>Chapter 37</td>
+<td>Low</td>
+<td>Check before saving.</td>
+</tr>
+<tr>
+<td>Employee phone and CNIC are unique across the whole Platform</td>
+<td>By design one person record can serve several clinics, but the only creation path refuses an existing phone (see Section 65.2). A second clinic cannot hire someone another clinic already registered.</td>
+<td>Chapters 8, 37</td>
+<td>Medium</td>
+<td>Add the assign-existing-employee flow.</td>
+</tr>
+<tr>
+<td>Tenant columns without foreign keys on most billing, queue and lab tables, and logical references to unknown targets (<code>dentist_id</code>, <code>manager_id</code>)</td>
+<td>The database does not stop a row pointing at a missing or wrong organization. Nothing in the code explains the choice.</td>
+<td>Chapters 12, 27</td>
+<td>Low</td>
+<td>Document the decision or add the keys.</td>
+</tr>
+<tr>
+<td>&quot;Append-only&quot; tables enforced by convention only</td>
+<td>Only three tables are protected by triggers. The billing audit log, the queue log and the ledgers can be changed by anyone with database access.</td>
+<td>Chapters 26, 27</td>
+<td>Low</td>
+<td>Add triggers to the money tables.</td>
+</tr>
+<tr>
+<td>Jobs and statistics that use the server clock</td>
+<td>The month-end payroll month, credit expiry, daily summary, &quot;this month&quot; prescription counts, the lab catalog price day (fixed to one time zone) and the leave year follow the server, not the location. Wrong around midnight for locations in other zones.</td>
+<td>Chapters 38, 62</td>
+<td>Medium</td>
+<td>Move jobs to the location clock or document the server zone.</td>
+</tr>
+<tr>
+<td>The web app computes some appointment ranges in the browser time zone</td>
+<td>The server uses the location time zone, so a user in another zone sees shifted times.</td>
+<td>Chapter 29</td>
+<td>Low</td>
+<td>Use the location zone in the web app.</td>
+</tr>
+<tr>
+<td>Location defaults of UTC and USD while organizations default to Asia/Karachi and PKR</td>
+<td>A new branch created without explicit values gets different defaults from its clinic.</td>
+<td>Chapters 1, 9, 14</td>
+<td>Low</td>
+<td>Make new locations inherit the clinic&#39;s values.</td>
+</tr>
+<tr>
+<td>Concurrent patient imports are blocked only inside one process</td>
+<td>With several API instances two imports can run at once.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Use a database lock.</td>
+</tr>
+<tr>
+<td>Registration compares phone numbers exactly, import compares normalised numbers</td>
+<td>The same number typed two ways can create two patients.</td>
+<td>Chapter 28</td>
+<td>Low</td>
+<td>Normalise in both.</td>
+</tr>
+<tr>
+<td>Queue policy values apply within about a minute, and per process</td>
+<td>The screen says changes apply tomorrow. Only the smart-queue switch is fixed per day. Another instance can use old values for up to a minute.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Correct the screen text.</td>
+</tr>
+<tr>
+<td>Check-in lookup and no-show job: write through GET and silent SQL</td>
+<td>One read endpoint creates a session. The no-show job writes no queue event.</td>
+<td>Chapter 30</td>
+<td>Low</td>
+<td>Log the event.</td>
+</tr>
+</tbody></table></div><p>The two High rows deserve attention first because they stop core work. The patient-number problem appears after the first deletion in any clinic. The prescription-number problem appears as soon as a second clinic writes a prescription in the same year.</p>
+<h2 id="ch65-known-gaps-65-6-unverified-behaviour">65.6 Unverified behaviour</h2>
+<p>These items could not be confirmed from code reading, and a real run is needed.</p>
+<ul>
+<li>Whether the foreign-key mismatches in inventory (Section 65.5) make stock movements, purchase orders and goods receipts fail at run time. Chapter 39 labels three features Unverified for this reason.</li>
+<li>Whether the prescription change-history read fails because it asks for a relation that is not declared, and whether duplicating a prescription fails on the doctor foreign key. Chapter 32.</li>
+<li>Whether background jobs keep running while a clinic is read-only. The read-only rule is an HTTP guard, so the answer is probably yes. Chapter 53.</li>
+<li>Whether a local PostgreSQL without SSL works with the connection settings. Chapter 7.</li>
+<li>Which account type to create in User Admin for a person who works only for a lab, and the exact sequence a super admin must follow to create an owner login for a clinic created from the Organizations screen. Chapters 41 and 46.</li>
+<li>Whether storage settings make uploaded patient documents and prescription PDFs publicly readable by address. Chapters 28 and 32.</li>
+</ul>
+<h2 id="ch65-known-gaps-65-7-documentation-drift">65.7 Documentation drift</h2>
+<p>Several older documents describe a Platform that no longer exists. The outdated ones should not be used. Chapter 68 lists each conflict with evidence. The gaps that matter for planning are these.</p>
+<div class="tw"><table><thead><tr>
+<th>Gap</th>
+<th>Why it matters to an owner</th>
+<th>Evidence</th>
+<th>Severity</th>
+<th>Suggested next step</th>
+</tr>
+</thead><tbody><tr>
+<td>The root project instructions describe a frontend layout, a four-guard chain, &quot;stub&quot; modules and path-prefix skips that the code does not have</td>
+<td>A new developer or an AI assistant that follows them will look in the wrong places.</td>
+<td>Chapters 4, 5, 8</td>
+<td>Medium</td>
+<td>Update the instructions file to match the code.</td>
+</tr>
+<tr>
+<td>Five historical documents (hand-off note, project overview, audit, plan and the old billing context pack) are outdated</td>
+<td>They list fixed problems as open and built features as missing.</td>
+<td>Chapter 68</td>
+<td>Medium</td>
+<td>Archive them or mark them superseded by this handbook.</td>
+</tr>
+<tr>
+<td>The first inventory of the documents marked recall, feedback and referral as implemented through a CRM tab</td>
+<td>The tab is never mounted. This handbook corrects that to Partial.</td>
+<td>Chapters 28, 68</td>
+<td>Low</td>
+<td>Use the handbook as the source of truth.</td>
+</tr>
+<tr>
+<td>Some screen texts claim behaviour that does not exist (starting a patient plan from a template, queue settings applying &quot;from tomorrow&quot;, a lab access panel saying a link expires after a day)</td>
+<td>Staff are told something false.</td>
+<td>Chapters 30, 33, 40</td>
+<td>Low</td>
+<td>Correct the texts.</td>
+</tr>
+<tr>
+<td>The generated data-model catalog has two known defects (shifted notes for ten inventory tables, a false trigger claim on form schema versions)</td>
+<td>Anyone reading the catalog directly can be misled.</td>
+<td>Chapters 23, 26</td>
+<td>Low</td>
+<td>Fix the generator.</td>
+</tr>
+</tbody></table></div><p>Documentation drift is Medium at worst, but it compounds: every wrong document is a future wrong decision.</p>
+<h2 id="ch65-known-gaps-65-8-what-to-do-first">65.8 What to do first</h2>
+<p>The gaps fall into a clear order. First fix the two High data-integrity gaps (patient numbers after deletion and per-organization prescription numbers), because they break core work and will appear in normal use. Second, write down the deploy procedure, because it is the only High gap that is not a code defect. Third, finish the half-built flows that cost clinics time: the inventory sidebar entry, the unapply action, the payroll buttons and the lab portal forms. Fourth, remove or wire the settings that imply protection, such as the legacy organization settings and the blacklist flag. Everything else is roadmap work that depends on the answers in Chapter 67.</p>
+</section></body></html>

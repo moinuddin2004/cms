@@ -1,0 +1,144 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+@page { size: A4; margin: 16mm 17mm 20mm 17mm; }
+* { box-sizing: border-box; }
+body { font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.45; color: #1e293b; margin: 0; }
+h1 { font-size: 21pt; line-height: 1.2; margin: 0 0 6mm; color: #0f172a; border-bottom: 2px solid #0f766e; padding-bottom: 3mm; }
+h2 { font-size: 14.5pt; margin: 8mm 0 3mm; color: #0f172a; break-after: avoid; }
+h3 { font-size: 12pt; margin: 6mm 0 2mm; color: #0f766e; break-after: avoid; }
+h4 { font-size: 10.5pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+p { margin: 0 0 2.5mm; orphans: 3; widows: 3; }
+ul, ol { margin: 0 0 3mm; padding-left: 6mm; } li { margin-bottom: 1mm; }
+code { font-family: Consolas, "Courier New", monospace; font-size: 8.6pt; background: #f1f5f9; padding: 0 1.2mm; border-radius: 1mm; overflow-wrap: anywhere; }
+pre { background: #f1f5f9; padding: 3mm; border-radius: 1.5mm; white-space: pre-wrap; overflow-wrap: anywhere; break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.tw { margin: 2mm 0 3mm; }
+table { border-collapse: collapse; width: 100%; font-size: 8.3pt; table-layout: auto; }
+th, td { border: 0.3mm solid #cbd5e1; padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+th { background: #e2f1ef; overflow-wrap: normal; word-break: normal; } tr { break-inside: avoid; } thead { display: table-header-group; }
+img { display: block; margin: 3mm auto 1.5mm; max-width: 100%; max-height: 225mm; width: auto; height: auto; object-fit: contain; }
+img + p, p:has(> em:only-child) { break-before: avoid; }
+em { color: #334155; }
+blockquote { margin: 2mm 0; padding-left: 3mm; border-left: 1mm solid #94a3b8; color: #475569; }
+.chapter { break-before: page; }
+.cover { height: 250mm; display: flex; flex-direction: column; justify-content: center; text-align: left; break-after: page; }
+.cover .k { font-size: 11pt; letter-spacing: .12em; text-transform: uppercase; color: #0f766e; margin-bottom: 6mm; }
+.cover .t { font-size: 32pt; font-weight: 700; line-height: 1.1; color: #0f172a; margin-bottom: 5mm; }
+.cover .s { font-size: 17pt; color: #334155; margin-bottom: 14mm; }
+.cover .m { font-size: 10pt; color: #64748b; }
+.howto { break-after: page; } .howto h1 { font-size: 18pt; }
+.part { height: 240mm; display: flex; align-items: center; break-before: page; break-after: page; font-size: 26pt; font-weight: 700; color: #0f766e; }
+.toc h1 { border: none; } .toc { break-after: page; }
+.toc .p { font-weight: 700; margin: 4mm 0 1mm; color: #0f766e; }
+.toc .r { display: flex; gap: 2mm; font-size: 9.5pt; padding: .4mm 0; }
+.toc .r .d { flex: 1; border-bottom: .25mm dotted #94a3b8; margin-bottom: 1.4mm; }
+.toc a { color: inherit; text-decoration: none; }
+</style></head><body><section class="chapter" id="ch08-multi-tenant-model"><h1 id="ch08-multi-tenant-model-chapter-8-the-multi-tenant-model">Chapter 8 — The multi-tenant model</h1>
+<p>The Platform serves many clinic businesses from one installation and one database, and each business can have several branches. This chapter explains how the data of one clinic is kept apart from another, how a person can work for clinics, how a signed-in user ends up &quot;inside&quot; one clinic and one branch, and how the Platform decides what &quot;today&quot; means for a clinic. It is written for the product owner, who needs this model to reason about every other chapter.</p>
+<h2 id="ch08-multi-tenant-model-8-1-organizations-locations-and-the-tenant-boundary">8.1 Organizations, locations and the tenant boundary</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> An <strong>organization</strong> is one clinic business; it is the tenant. A <strong>location</strong> is one branch of that business. A dental group with three branches is one organization with three locations. Almost every record in the Platform (patients, appointments, invoices, staff assignments, queue sessions) carries the organization it belongs to, and most also carry a location.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li><code>organizations</code> is the tenant table. <code>locations</code> belongs to exactly one organization (<code>organization_id</code>, deleted with it by <code>ON DELETE CASCADE</code>). Each location has one <code>location_settings</code> row.</li>
+<li>Tenant tables carry an <code>organization_id</code> column, and services always filter by the active organization. Data that differs per branch also carries <code>location_id</code>.</li>
+<li>All tenants share one database and one schema. Isolation is done in application code (guards plus <code>organization_id</code> filters in every query), not by separate databases or database row-level security.</li>
+<li>The <strong>super admin</strong> stands outside all tenants (<code>users.global_role = &#39;super_admin&#39;</code>) and can enter any active organization.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch08-tenancy-erd.png" alt="Figure 8.1 — The tenancy data model"></p>
+<p><em>Figure 8.1 — The tables that define who belongs to which organization and location.</em></p>
+<p>The diagram shows eight tables and their relationships. <code>organizations</code> (with <code>id</code>, <code>slug</code>, <code>access_version</code>, <code>is_active</code>) &quot;has&quot; zero or more <code>locations</code> (with <code>organization_id</code>, <code>code</code>, <code>timezone</code>, <code>is_active</code>). Each location is &quot;configured by&quot; at most one <code>location_settings</code> row (with <code>location_id</code> and <code>tax_rate</code>). <code>users</code> (with <code>uuid</code>, <code>email</code>, <code>global_role</code>) &quot;owns&quot; organizations through <code>organization_ownership</code> rows (with <code>user_id</code>, <code>organization_id</code>, <code>is_primary_owner</code>); an organization can have several owners and a user can own several organizations. An organization &quot;defines&quot; zero or more <code>employment_roles</code> (with <code>organization_id</code>, the <code>permissions</code> map and <code>template_key</code>). The <code>employees</code> table (with <code>id</code>, <code>full_name</code>, <code>phone</code>) has no organization column; a person &quot;works through&quot; zero or more <code>employee_org_location_assignments</code>. Each assignment links one employee to one organization (&quot;employs&quot;) and one location (&quot;staffs&quot;), optionally to one employment role (&quot;grants&quot;), and optionally to one user account (&quot;logs in as&quot;); it also holds <code>has_portal_access</code> and <code>is_active</code>.</p>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/entities/organization.entity.ts</code> · <code>backend/src/locations/entities/location.entity.ts</code> · <code>backend/src/auth/services/authorization.service.ts</code></p>
+<h2 id="ch08-multi-tenant-model-8-2-ownership">8.2 Ownership</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>An <strong>owner</strong> is a user linked to an organization through an <code>organization_ownership</code> row. Owners are not employees and have no role: the access resolver gives an owner <strong>every permission at its widest scope at every location</strong> of the organization (Chapter 11).</p>
+<ul>
+<li><strong>How owners are created.</strong> Self-signup creates the clinic and makes the new user its primary owner (<code>is_primary_owner = true</code>). Further owners are created from user administration with the &quot;owner&quot; account type and are stored with <code>is_primary_owner = false</code>.</li>
+<li><strong>Several owners, several clinics.</strong> A clinic can have several owners and one user can own several clinics; the pair (<code>user_id</code>, <code>organization_id</code>) is unique.</li>
+<li><strong>What an owner can enter.</strong> Every active location of every active organization the owner owns.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/organizations/entities/organization-ownership.entity.ts</code> · <code>backend/src/user/user.service.ts</code> · <code>AuthorizationService.isOwner</code></p>
+<h2 id="ch08-multi-tenant-model-8-3-the-employee-person-record-and-assignments">8.3 The employee person record and assignments</h2>
+<p><strong>Status:</strong> [Partial] — the data model supports one person at several locations and clinics, but the API only ever creates one assignment per employee.</p>
+<p><strong>In simple terms.</strong> The Platform separates the <strong>person</strong> from the <strong>job</strong>. The <strong>employee</strong> record holds who the person is (name, phone, national ID number, gender, date of birth, photo). Each <strong>assignment</strong> says where and how that person works: in which organization, at which location, in which role, with which salary, and whether the person may sign in there.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li><code>employees</code> has <strong>no</strong> <code>organization_id</code>. Phone is unique across the whole Platform, and so is the national ID number when given.</li>
+<li><code>employee_org_location_assignments</code> holds, per job: <code>organization_id</code>, <code>location_id</code>, <code>employment_role_id</code> (the <strong>role</strong>, may be empty), <code>designation</code>, <code>employee_code</code> (unique per organization), an optional queue <code>token_prefix</code>, salary fields, <code>has_portal_access</code>, <code>user_id</code> (the <strong>staff login</strong>, may be empty), <code>is_primary</code> and <code>is_active</code>. One person can have at most one assignment per location (unique on <code>employee_id</code>, <code>location_id</code>).</li>
+<li>Permissions are tied to the assignment, not to the person: the same person can be a Doctor at one location and have no role at another.</li>
+<li><strong>What the API does today.</strong> <code>POST /employees</code> creates the person and exactly one assignment, at the location the creator is working in. It refuses a phone number that already exists anywhere on the Platform (&quot;An employee with this phone number already exists&quot;). No endpoint adds a second location or a second clinic to an existing employee; the multi-location model can only be filled outside the API [Partial].</li>
+<li><strong>Staff logins.</strong> User administration can create a login for an existing employee; that login is linked to all of the person&#39;s active assignments in the organization. A login only grants entry where the assignment is active and <code>has_portal_access</code> is on.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/employees/entities/employee.entity.ts</code> · <code>backend/src/employees/entities/employee-org-location-assignment.entity.ts</code> · <code>EmployeesService.create</code> · <code>backend/src/user/user.service.ts</code></p>
+<h2 id="ch08-multi-tenant-model-8-4-who-can-enter-which-clinic-and-branch">8.4 Who can enter which clinic and branch</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p>At sign-in, and whenever a location is selected, the Platform works out the list of places a user may enter (<code>AuthorizationService.resolveUserAccess</code>):</p>
+<div class="tw"><table><thead><tr>
+<th>Kind of user</th>
+<th>Organizations offered</th>
+<th>Locations offered</th>
+</tr>
+</thead><tbody><tr>
+<td>Super admin</td>
+<td>Every active organization</td>
+<td>Every active location of each</td>
+</tr>
+<tr>
+<td>Owner</td>
+<td>Every active organization the user owns</td>
+<td>Every active location of each</td>
+</tr>
+<tr>
+<td>Employee with a staff login</td>
+<td>Organizations where the user has an active assignment with portal access, if the organization is active</td>
+<td>Exactly those assigned locations that are active</td>
+</tr>
+</tbody></table></div><p>The table shows the three ways to gain entry. When one user is both owner and employee in the same organization, the owner entry wins. Deactivated organizations and locations disappear from the list. The same rules are checked again on every request by <code>validateAccess</code> (section 8.5): an owner passes for any active location of the organization, an employee needs an active, portal-enabled assignment at exactly that location.</p>
+<p><strong>Technical references:</strong> <code>AuthorizationService.resolveUserAccess</code> · <code>AuthorizationService.validateAccess</code></p>
+<h2 id="ch08-multi-tenant-model-8-5-the-tenant-context-on-every-request">8.5 The tenant context on every request</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> The web app always tells the API which clinic and which branch the user is working in. The API checks that the user is allowed there before doing anything else.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li>The access token (a JWT, valid 15 minutes) carries only the user id, email, global role and session id. <strong>It does not carry the organization or location.</strong></li>
+<li>The web app&#39;s axios instance adds two headers to every request from the in-memory auth store: <code>x-organization-id</code> and <code>x-location-id</code> (lab portal requests carry <code>x-lab-id</code> instead).</li>
+<li><code>TenantContextGuard</code>, the second of the five global guards, reads the headers and calls <code>validateAccess</code>. Missing headers give 400 &quot;Missing tenant context. Please select an organization and location.&quot;; no access gives 403. On success it stores <code>request.tenantContext</code>.</li>
+<li>Controllers read the context with <code>@ActiveTenant()</code> and pass the organization id (and, where relevant, the location id) to the service, which filters every query by it.</li>
+<li>The guard steps aside for <code>@Public()</code> and <code>@ContextFree()</code> routes and for super admins, and checks the super-admin role for <code>@RequireSuperAdmin()</code> routes. It has <strong>no</strong> path-prefix exceptions.</li>
+<li>The organization and location in the headers also select the access context (Chapter 11) and the active features (Chapter 10).</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/auth/guards/tenant-context.guard.ts</code> · <code>TenantContextGuard</code> · <code>backend/src/common/decorators/active-tenant.decorator.ts</code> · <code>web-app/src/lib/api.ts</code></p>
+<h2 id="ch08-multi-tenant-model-8-6-sign-in-choosing-a-location-and-switching">8.6 Sign-in, choosing a location and switching</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/diagrams/ch08-login-sequence.png" alt="Figure 8.2 — Sign-in and location selection"></p>
+<p><em>Figure 8.2 — Sequence from sign-in to the first page, and a later location switch.</em></p>
+<p>The diagram has four participants: the Staff user, the Web app, the API and PostgreSQL. (1) The user enters email and password and signs in. (2) The web app calls <code>POST /auth/login</code>. (3) The API checks the password and account status and creates a session. (4) It resolves the user&#39;s access: ownerships, active portal assignments, active organizations and locations. (5) It returns an access token valid for 15 minutes, sets a refresh cookie valid for 1 day (30 days when the user ticks &quot;keep me signed in&quot;), and returns the list of organizations with two flags saying whether an organization or a location must still be chosen. An &quot;alt&quot; box shows two paths. If the user has exactly one organization with one location, the web app stores them as active. Otherwise, or for any super admin, the web app shows <code>/select-location</code> with &quot;Select Organization&quot; and then &quot;Select Location&quot;; the user picks a location and clicks Continue; the web app calls <code>POST /auth/select-location</code>; the API runs <code>validateAccess</code> and saves the last accessed organization and location; it returns the active ids. After the box, the web app calls <code>GET /me/access</code> with the two tenant headers and receives the permissions, features, roles and home page, then opens the role&#39;s home page. The last part shows a later switch: the user picks another location in the location switcher, the web app calls <code>POST /auth/switch-location</code>, the API checks access and saves the choice, returns the new ids, and the web app invalidates every cached query so all data and the access context are fetched again.</p>
+<p>Rules behind the figure:</p>
+<ul>
+<li><strong>Automatic choice.</strong> One organization with one location is selected automatically. A super admin always chooses an organization first. When a choice is needed, the API pre-fills the last organization and location the user worked in (<code>users.last_accessed_organization_id</code> / <code>last_accessed_location_id</code>), if they are still allowed.</li>
+<li><strong>Where the browser goes.</strong> The root route (<code>__root.tsx</code>) redirects: not signed in → <code>/login</code>; signed in but no location chosen → <code>/select-location</code>. Super admins may open the setup pages (Organizations, Locations, Lab Directory, Config Studio, Subscriptions) without a location. Users who only belong to a lab go to the lab portal.</li>
+<li><strong>Session restore.</strong> The auth store is in memory only. On page load the web app calls <code>POST /auth/refresh</code>; the refresh cookie returns a new token and the same selection data.</li>
+<li><strong>Switching.</strong> The location switcher in the top bar lists every organization and location the user may enter, grouped by organization. With only one location it shows the name without a menu.</li>
+</ul>
+<p><img src="file:///C:/Users/levo/Desktop/code/cms/cms/docs/handbook/assets/placeholders/ch08-select-location.svg" alt="Figure 8.3 — The select-location page"></p>
+<p><em>Figure 8.3 — Select organization and location (screenshot pending).</em></p>
+<p>The page appears after sign-in when a choice is needed. Its header reads &quot;Select Organization&quot; or &quot;Select Location&quot;, with a welcome line using the user&#39;s name (&quot;Choose an organization to continue&quot; or &quot;Choose where you&#39;d like to work today&quot;). The organization step shows one card per organization; picking an organization with a single location selects it at once. The location step shows one card per location of the chosen organization and a <strong>Continue</strong> button. If the organization has no locations yet, the page says &quot;No locations yet&quot; and offers <strong>Create First Location</strong>, which opens the Locations page. On success a toast says &quot;Location selected&quot; and the user lands on the home page. (The only existing screenshot of this page is excluded from the handbook because it shows compliance badges that the current code no longer displays.)</p>
+<p><strong>Technical references:</strong> <code>backend/src/auth/auth.service.ts</code> (<code>login</code>, <code>selectLocation</code>, <code>switchLocation</code>) · <code>web-app/src/routes/__root.tsx</code> · <code>web-app/src/features/auth/components/LocationSelector.tsx</code> · <code>web-app/src/components/layout/LocationSwitcher.tsx</code></p>
+<h2 id="ch08-multi-tenant-model-8-7-clinic-time-the-location-39-s-timezone">8.7 Clinic time: the location&#39;s timezone</h2>
+<p><strong>Status:</strong> [Implemented]</p>
+<p><strong>In simple terms.</strong> A clinic&#39;s day starts at midnight where the branch is, not where the server is. Each location stores its own timezone, and every &quot;today&quot;, &quot;now&quot; and opening-hours check uses it.</p>
+<p><strong>Technically.</strong></p>
+<ul>
+<li><code>locations.timezone</code> holds an IANA timezone name. New locations created through <code>POST /locations</code> default to <code>UTC</code>; the setup wizard copies the organization&#39;s timezone (default <code>Asia/Karachi</code>) to every location. The value is not validated; an unknown name falls back to UTC.</li>
+<li><code>ClockService</code> (<code>common/clock/</code>) is the single source of clinic time. <code>timezoneFor(locationId)</code> reads the timezone (cached for 60 seconds); <code>today(tz)</code> gives the local date; <code>dayRange(tz, date)</code> gives the UTC start and end of a local day; <code>at(tz, date, time)</code> converts a local wall-clock time; <code>wallClock(tz, instant)</code> gives the local weekday and time.</li>
+<li>It is used by appointments (working hours, availability, same-day checks), the queue (the queue day and token day), billing, payroll, reports, notifications, employees and the lab modules.</li>
+<li>Scheduled jobs are triggered by the <strong>server</strong> clock (Chapter 6); jobs that need a clinic day compute it through <code>ClockService</code>.</li>
+</ul>
+<p><strong>Technical references:</strong> <code>backend/src/common/clock/clock.service.ts</code> · <code>ClockService</code> · <code>backend/src/common/clock/tz.util.ts</code></p>
+<h2 id="ch08-multi-tenant-model-8-8-limitations-and-known-gaps">8.8 Limitations and known gaps</h2>
+<ul>
+<li>One person cannot be given a second location or clinic through the API (section 8.3) [Partial].</li>
+<li>Deactivating an organization or a location hides it at the next sign-in or selection, but does not end sessions that are already working there; requests keep passing the tenant guard for an owner of a deactivated organization, because <code>validateAccess</code> checks the location but not the organization&#39;s status for owners [Partial].</li>
+<li>Locations created from the Locations screen get timezone <code>UTC</code> and currency <code>USD</code> unless changed, because that form has no timezone or currency field (Chapter 9).</li>
+<li>Isolation relies on every service filtering by organization; there is no database-level row security.</li>
+</ul>
+</section></body></html>
