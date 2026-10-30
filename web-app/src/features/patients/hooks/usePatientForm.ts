@@ -175,7 +175,12 @@ export function usePatientForm({
         return
       }
     }
-    await form.handleSubmit()
+    try {
+      await form.handleSubmit()
+    } catch {
+      // The create/update mutation's onError already showed the toast; the
+      // sheet stays open with the user's input so they can fix and resend.
+    }
   }
 
   const cancel = () => {

@@ -113,11 +113,37 @@ export async function createPatient(
   return data.data
 }
 
+/** Patient columns the API stores as NOT NULL — never cleared by an update. */
+const REQUIRED_PATIENT_FIELDS = new Set<string>([
+  'fullName',
+  'phone',
+  'preferredLanguage',
+  'communicationPref',
+  'source',
+])
+
+/**
+ * A blank optional field in the edit form means "clear it", so it is sent as
+ * null (the API skips validation for null and stores it). Sending '' would be
+ * refused (`dob` IsDateString, `email` IsEmail); a blank required field is left
+ * out so the stored value stays.
+ */
+export function toPatientUpdateBody(
+  payload: Partial<PatientFormData>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(payload).flatMap<[string, unknown]>(([key, value]) => {
+      if (value !== '') return [[key, value]]
+      return REQUIRED_PATIENT_FIELDS.has(key) ? [] : [[key, null]]
+    }),
+  )
+}
+
 export async function updatePatient(
   id: string,
   payload: Partial<PatientFormData>,
 ): Promise<Patient> {
-  const { data } = await api.put(`/patients/${id}`, payload)
+  const { data } = await api.put(`/patients/${id}`, toPatientUpdateBody(payload))
   return data.data
 }
 

@@ -9,7 +9,9 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
     mutations: {
-      retry: 1,
+      // Never re-send a write on its own: a 4xx will fail the same way again,
+      // and re-sending a POST after a dropped response can create a duplicate.
+      retry: false,
     },
   },
 })
