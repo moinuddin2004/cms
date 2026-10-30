@@ -10,7 +10,7 @@ The backend is one NestJS application, but it can start in one of three **proces
 
 | Role | Entry file | Start command | What it runs | How many |
 |---|---|---|---|---|
-| `all` | `main.ts` | `npm run start:dev` (watch mode) | Everything: HTTP API, Socket.IO gateway, outbox relay, notification relay, scheduled jobs. The relay hands realtime events straight to the local gateway, so Redis is not needed for realtime. | One. The development default. |
+| `all` | `main.ts` | `npm run start:dev` (watch mode), `npm run start:prod` (after a build) | Everything: HTTP API, Socket.IO gateway, outbox relay, notification relay, scheduled jobs. The relay hands realtime events straight to the local gateway, so Redis is not needed at all. | One. The development default and the low-cost production setup. |
 | `api` | `main.api.ts` | `npm run start:api` (after a build) | HTTP API and the Socket.IO gateway. Receives realtime events from the worker through Redis. Runs no background jobs. | Two or more, each with its own port. |
 | `worker` | `main.worker.ts` | `npm run start:worker` (after a build) | Outbox relay, notification relay and every scheduled job. No HTTP server at all. | **Exactly one.** |
 
@@ -18,10 +18,7 @@ The table lists each role with its entry file, its npm script, what it runs and 
 
 How the role reaches the code: each entry file calls `AppModule.forRole(role)`. That method adds, per role, the TypeORM connection (with schema ownership only for HTTP roles), the `ScheduleModule` (only where jobs run), `QueueRuntimeModule.forRole(role)` (gateway, Redis subscriber, relay and queue jobs as needed) and `NotificationsRuntimeModule.forRole(role)` (the notification sending loop only where jobs run).
 
-Two oddities in the npm scripts:
-
-- `npm run start:prod` runs `node dist/main`, but the build writes `dist/src/main.js`. Use `start:api` and `start:worker` for built code [Partial].
-- The `start:api` and `start:worker` scripts run the compiled `dist/src/...` files, so `npm run build` must run first.
+The `start:prod`, `start:api` and `start:worker` scripts run the compiled `dist/src/...` files, so `npm run build` must run first. The `api` and `worker` roles refuse to start without `REDIS_URL`.
 
 **Technical references:** `backend/src/common/runtime/process-role.ts` · `ProcessRole` · `runsHttp` · `runsJobs` · `backend/src/main.ts` · `backend/src/main.api.ts` · `backend/src/main.worker.ts` · `AppModule.forRole`
 
@@ -45,7 +42,7 @@ The figure shows the web app in the browser on the left. It sends HTTPS REST req
 | Scheduled jobs (`@Cron`, `@Interval`) | yes | no | yes |
 | Postgres extensions, schema synchronize (dev), startup migrations | yes | yes | no |
 | Feature catalog seeding and role template seeding at boot | yes | yes | yes |
-| Access and settings cache invalidation bus (Redis) | yes | yes | yes |
+| Access and settings cache invalidation bus (Redis, only if `REDIS_URL` is set) | local only | yes | yes |
 
 The table shows, for each running component, in which role it is active. Seeding runs in every process because every process loads every domain module; both seeders insert only missing rows and ignore conflicts, so concurrent processes are safe.
 
@@ -79,9 +76,8 @@ Redis is used only for messages between processes. No business data is stored in
 | Realtime queue events | the queue realtime channel | Worker relay → every API instance; worker heartbeat every 5 s | In `all` mode not needed. In split mode the relay keeps rows unpublished and retries; API instances refuse sockets after 15 s without a heartbeat and clients poll. |
 | Access changes | the access-changed channel | Any process that bumps an organization's access version → every process (access cache, feature cache, socket `access.changed`) | Only the process that made the change hears it; others catch up through their cache lifetimes (15 s for the access version, 30 s for features). |
 | Settings cache invalidation | `settings-registry:invalidate` | Any process → every process | Other processes catch up through the settings cache lifetime. |
-| Bull queue `submissions` | Bull connection | Registered, but no producer or consumer exists | Nothing depends on it. |
 
-The table lists the four uses of Redis, the channel names, who talks to whom and what happens when Redis is unavailable. Redis connections are created to fail fast (no offline queue) and reconnect with back-off. The connection string is `REDIS_URL`; the default is a Redis on the local machine. The exact channel names are defined in `realtime-bus.ts` and `access-change-bus.ts`.
+The table lists the three uses of Redis, the channel names, who talks to whom and what happens when Redis is unavailable. Redis connections are created to fail fast (no offline queue) and reconnect with back-off. The connection string is `REDIS_URL`. When it is unset (single `all` process) no Redis connection is opened at all: the access and settings buses deliver only inside the process, which is the only one. The `api` and `worker` roles refuse to start without it. The exact channel names are defined in `realtime-bus.ts` and `access-change-bus.ts`.
 
 Login rate limiting does not use Redis: attempts are counted in each process's memory, so with several API instances each instance counts on its own.
 
@@ -123,7 +119,7 @@ Everything else is the same in every environment. There is no separate staging c
 - no CI pipeline (no `.github/` folder or other CI configuration);
 - no hosting, process-manager or load-balancer configuration.
 
-Whoever deploys the Platform must therefore provide, outside the repository: a PostgreSQL database, a Redis server (required as soon as `api` and `worker` run as separate processes), a way to run two or more `api` processes behind a load balancer and exactly one `worker`, HTTPS, and the web app build. The Socket.IO gateway allows both WebSocket and long-polling transports; the web app connects with WebSocket only, and a code comment notes that long-polling behind several API instances would need sticky sessions.
+Whoever deploys the Platform must therefore provide, outside the repository: a PostgreSQL database, either one `all` process (`npm run start:prod`, no Redis) or, to scale out, a Redis server plus two or more `api` processes behind a load balancer and exactly one `worker`, HTTPS, and the web app build. The Socket.IO gateway allows both WebSocket and long-polling transports; the web app connects with WebSocket only, and a code comment notes that long-polling behind several API instances would need sticky sessions.
 
 **Technical references:** `backend/src/app.module.ts` · `backend/src/auth/auth.service.ts` (`REFRESH_TOKEN_COOKIE_OPTIONS`) · `backend/src/queue/realtime/queue.gateway.ts`
 
@@ -141,7 +137,7 @@ Values are never shown in this handbook. The backend reads its variables through
 | `JWT_ACCESS_SECRET` | Signs and checks access tokens (also used by the Socket.IO gateway). | yes |
 | `JWT_REFRESH_SECRET` | Listed in the template, but no code reads it: refresh tokens are random values stored with the session, not JWTs. | yes |
 | `EMAIL_TOKEN_SECRET`, `RESET_TOKEN_SECRET` | Listed in the template, but no code reads them: verification and reset tokens are random values. | yes |
-| `REDIS_URL` | Redis for the realtime bus, the access and settings buses and Bull (default: local Redis). | no |
+| `REDIS_URL` | Redis for the realtime bus and the access and settings buses between split processes. Unset = no Redis (single `all` process); required by the `api` and `worker` roles. | no |
 | `CORS_ORIGIN` | The one web origin allowed by CORS and by the Socket.IO gateway (default `http://localhost:3000`). | no |
 | `FRONTEND_URL` | Base URL of the web app used in email links (default `http://localhost:3000`). | no |
 | `SMTP_USER`, `SMTP_PASS` | Credentials of the outgoing mail account. | yes |

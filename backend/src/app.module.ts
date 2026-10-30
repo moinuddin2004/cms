@@ -13,7 +13,6 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SubscriptionGuard } from './subscriptions/subscription.guard';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
 import { TenantContextGuard } from './auth/guards/tenant-context.guard';
-import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SessionModule } from './session/session.module';
 import { BillingModule } from './billing/billing.module';
@@ -54,7 +53,12 @@ import { LabPayablesModule } from './lab-payables/lab-payables.module';
 import { ReportsModule } from './reports/reports.module';
 import { LabFinanceModule } from './lab-finance/lab-finance.module';
 import { NotificationsRuntimeModule } from './notifications/notifications-runtime.module';
-import { ProcessRole, runsHttp, runsJobs } from './common/runtime/process-role';
+import {
+  assertRedisForRole,
+  ProcessRole,
+  runsHttp,
+  runsJobs,
+} from './common/runtime/process-role';
 import { AccessModule } from './access/access.module';
 import { AccessGuard } from './access/access.guard';
 import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
@@ -80,14 +84,6 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
       Employee,
       EmployeeOrgLocationAssignment,
     ]),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        redis: configService.get('REDIS_URL') || 'redis://localhost:6379',
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue({ name: 'submissions' }),
     ClockModule,
     AuditModule,
     SequencesModule,
@@ -164,6 +160,7 @@ export class AppModule {
    * second API instance never runs them twice.
    */
   static forRole(role: ProcessRole): DynamicModule {
+    assertRedisForRole(role);
     const ownsSchema = runsHttp(role);
     return {
       module: AppModule,

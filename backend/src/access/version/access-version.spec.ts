@@ -16,6 +16,14 @@ describe('AccessChangeBus', () => {
     expect(seen).toEqual([{ organizationId: 'o', version: 3 }]);
   });
 
+  it('opens no Redis connection without REDIS_URL', async () => {
+    const b = bus();
+    b.onModuleInit();
+    expect((b as unknown as { pub: unknown; sub: unknown }).pub).toBeNull();
+    expect((b as unknown as { pub: unknown; sub: unknown }).sub).toBeNull();
+    await b.onApplicationShutdown();
+  });
+
   it("delivers other instances' messages, ignores its own and junk", () => {
     const b = bus();
     const seen: AccessChange[] = [];

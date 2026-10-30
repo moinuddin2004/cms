@@ -319,7 +319,7 @@ Each domain is a self-contained NestJS module under `src/`:
 - `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times.
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
-- `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis.
+- `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis (only when `REDIS_URL` is set; single `all` process needs none).
 - `access/` — permission catalog, bundles, system role templates (seeded per org), resolver, guard, `/me/access`, roles admin (`/admin/roles`), nav layouts (`/admin/navigation`).
 - `settings-registry/` — `config_values` (platform → org → location cascade with locks) for theme (`theme.*`) and new long-tail settings; typed settings tables (`queue_policies`, `location_billing_settings`, …) stay as they are.
 - `chairs/`, `inventory/`, `invoices/` — entity-only stubs (no controller/service yet)
@@ -345,7 +345,7 @@ PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-s
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing |
-| `REDIS_URL` | Bull job queue |
+| `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |
 | `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` | OAuth2 |
 | `SMTP_USER` / `SMTP_PASS` | Email |

@@ -35,6 +35,7 @@ interface WireMessage extends AccessChange {
  *
  * Redis down → only this process hears about the change; the other caches
  * catch up through their TTLs (see AccessVersionService / FeatureFlagsService).
+ * No `REDIS_URL` (single `all` process) → local delivery only, no connection.
  */
 @Injectable()
 export class AccessChangeBus implements OnModuleInit, OnApplicationShutdown {
@@ -48,7 +49,8 @@ export class AccessChangeBus implements OnModuleInit, OnApplicationShutdown {
 
   onModuleInit() {
     const url = this.config.get<string>('REDIS_URL');
-    this.pub = createRedisConnection(url, 'access-bus-pub', this.logger);
+    if (!url) return;
+    this.pub =createRedisConnection(url, 'access-bus-pub', this.logger);
     this.sub = createRedisConnection(url, 'access-bus-sub', this.logger, {
       autoResubscribe: false, // resubscribed on every 'ready' below
     });

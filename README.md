@@ -178,7 +178,7 @@ flowchart LR
     end
 
     DB[("PostgreSQL<br/>(Neon)")]
-    REDIS[("Redis<br/>pub/sub · Bull")]
+    REDIS[("Redis<br/>pub/sub (split mode only)")]
     CLOUD["Cloudinary<br/>uploads"]
 
     UI -- "HTTPS + x-organization-id / x-location-id" --> GUARDS
@@ -222,7 +222,7 @@ Code never checks a role name. It asks `can('billing.invoice.void')`. Read the f
 
 | Layer | Technology |
 | --- | --- |
-| **Backend** | NestJS 11, TypeScript 5, TypeORM 0.3, PostgreSQL (Neon), Passport (JWT + Google / GitHub OAuth), Socket.IO, ioredis, Bull, `@nestjs/schedule`, class-validator, Cloudinary, ExcelJS, pdf-lib, Nodemailer |
+| **Backend** | NestJS 11, TypeScript 5, TypeORM 0.3, PostgreSQL (Neon), Passport (JWT + Google / GitHub OAuth), Socket.IO, ioredis, `@nestjs/schedule`, class-validator, Cloudinary, ExcelJS, pdf-lib, Nodemailer |
 | **Frontend** | React 19, TanStack Start · Router · Query · Form · Table, Zustand 5, shadcn/ui, Tailwind CSS 4, Zod 4, Recharts, FullCalendar, dnd-kit, socket.io-client, axios |
 | **Testing** | Jest (unit + DB integration suites on isolated schemas), Vitest + Testing Library |
 | **Tooling** | Vite 7, ESLint, Prettier |
@@ -235,7 +235,7 @@ Code never checks a role name. It asks `can('billing.invoice.void')`. Read the f
 
 - **Node.js 20+** (developed on Node 22)
 - **PostgreSQL 14+**, local or [Neon](https://neon.tech)
-- **Redis**: optional in development (single `all` process), required when running separate `api` and `worker` processes
+- **Redis**: not needed for a single `all` process (dev and `start:prod`); required only when running separate `api` and `worker` processes
 - A **Cloudinary** account for file uploads (logos, documents)
 
 ### 1. Clone and install
@@ -265,7 +265,7 @@ cp .env.example .env
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | ✅ | Token signing |
 | `MAGIC_LINK_SECRET` | | Signs lab magic links (falls back to `JWT_ACCESS_SECRET`) |
 | `CORS_ORIGIN` / `FRONTEND_URL` | | Web app origin (default `http://localhost:3000`) |
-| `REDIS_URL` | | Redis for pub/sub, cross-instance cache invalidation, Bull |
+| `REDIS_URL` | | Redis pub/sub between `api` and `worker` (realtime + cache invalidation). Leave unset for a single `all` process; required for `start:api` / `start:worker` |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | | File uploads |
 | `SMTP_USER` / `SMTP_PASS` | | Outgoing email |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | | OAuth sign-in |

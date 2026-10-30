@@ -26,7 +26,9 @@ export abstract class SettingsCacheBus {
 /**
  * Redis pub/sub implementation. Publishing is best effort: when Redis is
  * down the other instances fall back to the cache TTL in
- * `SettingsRegistryService`.
+ * `SettingsRegistryService`. Without `REDIS_URL` (single `all` process)
+ * there are no other instances, so it never connects and publish is a no-op
+ * (the service already dropped its own cache entry).
  */
 @Injectable()
 export class RedisSettingsCacheBus
@@ -34,8 +36,8 @@ export class RedisSettingsCacheBus
   implements OnModuleInit, OnApplicationShutdown
 {
   private readonly logger = new Logger(RedisSettingsCacheBus.name);
-  private pub: Redis;
-  private sub: Redis;
+  private pub: Redis | null = null;
+  private sub: Redis | null = null;
   private readonly handlers: ((scope: ScopeRef) => void)[] = [];
 
   constructor(private readonly config: ConfigService) {
@@ -44,13 +46,14 @@ export class RedisSettingsCacheBus
 
   onModuleInit() {
     const url = this.config.get<string>('REDIS_URL');
+    if (!url) return;
     this.pub = createRedisConnection(url, 'settings-pub', this.logger);
     this.sub = createRedisConnection(url, 'settings-sub', this.logger, {
       autoResubscribe: false, // resubscribed on every 'ready' below
     });
     this.sub.on('ready', () => {
       this.sub
-        .subscribe(SETTINGS_INVALIDATE_CHANNEL)
+        ?.subscribe(SETTINGS_INVALIDATE_CHANNEL)
         .catch((err: Error) =>
           this.logger.warn(`Settings SUBSCRIBE failed: ${err.message}`),
         );

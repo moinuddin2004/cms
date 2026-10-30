@@ -20,7 +20,7 @@ export class RedisRealtimePublisher implements RealtimePublisher, OnModuleInit, 
   constructor(private readonly config: ConfigService) {}
 
   onModuleInit() {
-    this.redis = createRedisConnection(this.config.get<string>('REDIS_URL'), 'queue-relay-pub', this.logger);
+    this.redis = createRedisConnection(this.config.getOrThrow<string>('REDIS_URL'), 'queue-relay-pub', this.logger);
     this.heartbeat = setInterval(() => void this.beat(), HEARTBEAT_EVERY_MS);
     this.redis.on('ready', () => void this.beat());
   }

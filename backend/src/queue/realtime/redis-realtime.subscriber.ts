@@ -30,7 +30,7 @@ export class RedisRealtimeSubscriber implements OnModuleInit, OnApplicationShutd
 
   onModuleInit() {
     this.gateway.setAvailable(false); // until the first heartbeat arrives
-    this.redis = createRedisConnection(this.config.get<string>('REDIS_URL'), 'queue-realtime-sub', this.logger, {
+    this.redis = createRedisConnection(this.config.getOrThrow<string>('REDIS_URL'), 'queue-realtime-sub', this.logger, {
       autoResubscribe: false, // we resubscribe on every 'ready' ourselves
     });
     this.redis.on('ready', () => void this.subscribe());

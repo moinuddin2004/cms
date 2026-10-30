@@ -8,7 +8,7 @@ This chapter explains how the source code of the Platform is organised and which
 
 The Platform lives in a single Git repository (a "monorepo"). It holds two applications that are built and run separately:
 
-- **`backend/`** — the API server. It is a NestJS application written in TypeScript. It talks to a PostgreSQL database through TypeORM, and to Redis for cross-process messages.
+- **`backend/`** — the API server. It is a NestJS application written in TypeScript. It talks to a PostgreSQL database through TypeORM, and, only when it runs as separate `api` and `worker` processes, to Redis for cross-process messages.
 - **`web-app/`** — the web application that clinic staff, owners and super admins use in the browser. It is a React 19 application built with TanStack Start and Vite.
 
 Next to them, `docs/` holds feature documents, test plans and this handbook. The backend also has its own `backend/docs/` folder with the generated entity catalog (`backend/docs/data-model/ENTITY_CATALOG.md`) and one generated module chapter.
@@ -111,8 +111,7 @@ The table names every folder in `backend/src/` and what it is responsible for. B
 | `cookie-parser` | Reads the httpOnly refresh-token cookie. |
 | `class-validator`, `class-transformer` | DTO validation and conversion in the global `ValidationPipe`. |
 | `@nestjs/websockets` 11, `@nestjs/platform-socket.io`, `socket.io` 4 | The realtime gateway at `/realtime`. |
-| `ioredis` 5 | Redis pub/sub for realtime events and cache invalidation across processes. |
-| `@nestjs/bull` 11 + `bull` 4 | A Bull queue named `submissions` is registered, but no code processes or adds jobs to it [Partial: registered, unused]. |
+| `ioredis` 5 | Redis pub/sub for realtime events and cache invalidation across processes (split `api`/`worker` mode only). |
 | `@nestjs/schedule` 6 | Scheduled jobs (`@Cron`, `@Interval`), loaded only in processes that run jobs. |
 | `@nestjs/cache-manager`, `cache-manager` | Listed as dependencies; no source file imports them [Not implemented]. |
 | `@nestjs/mongoose`, `mongoose` | Listed as dependencies; no source file imports them [Not implemented]. |

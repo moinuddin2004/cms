@@ -91,7 +91,7 @@ The table lists the eight timed jobs. The first four keep the live queue consist
 - Exactly one worker must run; nothing in the code stops a second worker, and a second worker would run each timed job a second time (the relays are safe with several workers, the timed jobs are not guaranteed to be).
 - Job times follow the server timezone, not the clinics'.
 - Inventory alerts reach only the server log, not any user.
-- Realtime depends on Redis in production; without it screens poll about every 10 seconds.
+- In the split `api`/`worker` setup realtime depends on Redis; without it screens poll about every 10 seconds. A single `all` process needs no Redis.
 - The access token is checked once when a socket connects; the connection continues after the token expires.
 - There is no clean-up job for session rows, security logs or the notification outbox.
 

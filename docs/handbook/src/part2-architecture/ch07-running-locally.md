@@ -10,7 +10,7 @@ This chapter lists what a developer needs to run the Platform on one machine: pr
 |---|---|---|
 | Node.js and npm | Both applications are Node projects. | Neither `package.json` pins a Node version. The README recommends Node 20 or newer. |
 | PostgreSQL | The only data store. | The account must be allowed to create the `btree_gist` extension and a function on first start. The API always opens its connection **with SSL** (`ssl: { rejectUnauthorized: false }`), so the server must accept SSL connections; Neon does. Whether a plain local PostgreSQL without SSL works was not verified [Unverified]. |
-| Redis | Messages between processes. | Optional when running the single development process (`all` role): realtime then works in-process. The access, settings and Bull connections still try to reach Redis and log warnings while it is missing. Required when `api` and `worker` run as separate processes. |
+| Redis | Messages between processes. | Not needed for the single development process (`all` role) as long as `REDIS_URL` is unset: realtime and cache invalidation work in-process and no Redis connection is opened. Required when `api` and `worker` run as separate processes. |
 | A Cloudinary account | File uploads (logos, patient documents, attachments). | Uploads fail without it; the rest of the Platform runs. |
 | An SMTP mail account | Verification and password-reset emails. | Optional for local work. |
 
@@ -35,7 +35,7 @@ The two applications are installed separately; there is no root-level install.
 
 1. Copy `backend/.env.example` to `backend/.env`. The template names: `DATABASE_URL`, `PORT`, `NODE_ENV`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, the Google and GitHub OAuth pairs, `EMAIL_TOKEN_SECRET`, `RESET_TOKEN_SECRET`, `SMTP_USER`, `SMTP_PASS` and the three `CLOUDINARY_*` variables.
 2. Fill in at least `DATABASE_URL` and `JWT_ACCESS_SECRET`. Leave `NODE_ENV` unset or not `production`, so the schema is created from the entities.
-3. Add the variables the template does not list when the defaults do not fit: `REDIS_URL` (default: Redis on the local machine), `CORS_ORIGIN` and `FRONTEND_URL` (default `http://localhost:3000`), and optionally the magic-link and rate-limit variables. Chapter 6 lists every variable with its purpose.
+3. Add the variables the template does not list when the defaults do not fit: `REDIS_URL` (only for the split `api`/`worker` setup), `CORS_ORIGIN` and `FRONTEND_URL` (default `http://localhost:3000`), and optionally the magic-link and rate-limit variables. Chapter 6 lists every variable with its purpose.
 4. The web app reads one variable, `VITE_API_BASE_URL` (default `http://localhost:5000`). Put it in `web-app/.env` only if the API runs elsewhere.
 
 Several template entries have no effect: `JWT_REFRESH_SECRET`, `EMAIL_TOKEN_SECRET` and `RESET_TOKEN_SECRET` are not read by any code, and the OAuth variables do nothing because OAuth is not registered.
@@ -60,7 +60,7 @@ What happens on the first backend start:
 3. The legacy migration baseline is recorded and the two hand-written migrations run (triggers and backfills).
 4. The feature catalog is seeded with the 24 active features, and the 5 system role templates are seeded into every existing organization.
 
-To try the production split locally: `npm run build`, then `npm run start:api` and `npm run start:worker` in two terminals, with Redis running. Do not start a second worker.
+To try the production split locally: `npm run build`, then `npm run start:api` and `npm run start:worker` in two terminals, with Redis running and `REDIS_URL` set (both refuse to start without it). Do not start a second worker.
 
 **Technical references:** `backend/src/main.ts` · `backend/src/bootstrap/http.ts` · `AppModule.forRole` · `FeatureFlagsService.seedCatalog` · `AccessTemplatesService`
 
