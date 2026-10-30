@@ -18,16 +18,12 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useForm } from '@tanstack/react-form'
-import { toast } from 'sonner'
-import { useCreateConsent } from '../../hooks/usePatientSubEntities'
-import { useAuthStore } from '@/store/useAuthStore'
+import { fieldError } from '@/components/forms/fieldError'
+import { useConsentForm } from '../../hooks/useConsentForm'
 import { Loader2 } from 'lucide-react'
 import { ConsentType } from '../../types'
-import {
-  SignaturePad,
-  type SignaturePadHandle,
-} from '@/components/shared/SignaturePad'
+import { SignaturePad } from '@/components/shared/SignaturePad'
+import type { SignaturePadHandle } from '@/components/shared/SignaturePad'
 
 export function ConsentFormDialog({
   patientId,
@@ -37,53 +33,12 @@ export function ConsentFormDialog({
   isMinor?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const { mutate, isPending } = useCreateConsent()
-  const { user } = useAuthStore()
   const sigRef = useRef<SignaturePadHandle>(null)
-
-  const form = useForm({
-    defaultValues: {
-      consentType: ConsentType.GENERAL,
-      consentText: 'I hereby give my consent for general dental procedures.',
-      isAgreed: false,
-      signedByName: '',
-      signedByType: isMinor ? 'GUARDIAN' : 'PATIENT',
-    },
-    onSubmit: async ({ value }) => {
-      if (!value.signedByName.trim()) {
-        toast.error('Signatory name is required.')
-        return
-      }
-      if (sigRef.current?.isEmpty()) {
-        toast.error('Please capture a signature before saving.')
-        return
-      }
-
-      // Store the signature inline as a PNG data URL. signatureUrl is a TEXT
-      // column rendered directly as an <img src>, so no external file storage
-      // is needed for signatures.
-      const signatureUrl = sigRef.current?.toDataURL() ?? undefined
-
-      mutate(
-        {
-          patientId,
-          consentType: value.consentType,
-          consentText: value.consentText,
-          isAgreed: value.isAgreed,
-          signedByName: value.signedByName.trim(),
-          signedByType: value.signedByType,
-          witnessedBy: user?.uuid,
-          signatureUrl,
-        },
-        {
-          onSuccess: () => {
-            form.reset()
-            sigRef.current?.clear()
-            setOpen(false)
-          },
-        },
-      )
-    },
+  const { form, isPending } = useConsentForm({
+    patientId,
+    isMinor,
+    sigRef,
+    onSaved: () => setOpen(false),
   })
 
   const busy = isPending
@@ -135,20 +90,20 @@ export function ConsentFormDialog({
                 <Textarea
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   className="h-24 resize-none"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <form.Field
-              name="signedByName"
-              validators={{
-                onChange: ({ value }) =>
-                  !value?.trim() ? 'Required' : undefined,
-              }}
-            >
+            <form.Field name="signedByName">
               {(field) => (
                 <div className="space-y-2">
                   <Label>
@@ -159,9 +114,9 @@ export function ConsentFormDialog({
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-[11px] text-destructive">
-                      {field.state.meta.errors[0]}
+                  {fieldError(field) && (
+                    <p className="text-xs font-medium text-danger">
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -224,9 +179,16 @@ export function ConsentFormDialog({
             >
               Cancel
             </Button>
-            <form.Subscribe selector={(s) => s.values.isAgreed}>
-              {(isAgreed) => (
-                <Button type="submit" disabled={busy || !isAgreed}>
+            <form.Subscribe
+              selector={(s) =>
+                [s.canSubmit, s.isSubmitting, s.values.isAgreed] as const
+              }
+            >
+              {([canSubmit, isSubmitting, isAgreed]) => (
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting || busy || !isAgreed}
+                >
                   {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Consent
                 </Button>

@@ -3,11 +3,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import apiClient from '@/lib/api'
-import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react'
+import { fieldError } from '@/components/forms/fieldError'
 import { AuthLayout } from './AuthLayout'
 import { AuthError, AuthHeading } from './AuthPrimitives'
 import { PasswordStrength } from './PasswordStrength'
@@ -17,52 +14,16 @@ import {
   authLabelClass,
   authSubmitClass,
 } from './authStyles'
+import { useResetPasswordForm } from '../hooks/useResetPasswordForm'
 
-const resetSchema = z
-  .object({
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Please confirm your password'),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  })
+const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
 export function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false)
-  const [globalError, setGlobalError] = useState('')
-  const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
-  // @ts-ignore
   const search = useSearch({ strict: false })
   const token = (search as any)?.token || ''
-
-  const form = useForm({
-    defaultValues: { newPassword: '', confirmPassword: '' },
-    onSubmit: async ({ value }) => {
-      setGlobalError('')
-      try {
-        const parsed = resetSchema.parse(value)
-        await apiClient.patch('/auth/reset-password', {
-          token,
-          newPassword: parsed.newPassword,
-        })
-        setSuccess(true)
-        toast.success('Password reset successful!')
-      } catch (err: any) {
-        if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message)
-        } else {
-          const msg = err.response?.data?.message
-          setGlobalError(
-            Array.isArray(msg)
-              ? msg[0]
-              : msg || 'Failed to reset password. Link may be expired.',
-          )
-        }
-      }
-    },
-  })
+  const { form, globalError, success } = useResetPasswordForm(token)
 
   if (!token) {
     return (
@@ -119,6 +80,7 @@ export function ResetPasswordForm() {
       />
 
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -144,6 +106,7 @@ export function ResetPasswordForm() {
                       onBlur={field.handleBlur}
                       required
                       autoComplete="new-password"
+                      aria-invalid={!!fieldError(field)}
                       className={authInputWithActionClass}
                     />
                     <button
@@ -161,6 +124,9 @@ export function ResetPasswordForm() {
                       )}
                     </button>
                   </div>
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
                   {field.state.value && (
                     <div className="mt-2.5">
                       <PasswordStrength password={field.state.value} />
@@ -178,17 +144,23 @@ export function ResetPasswordForm() {
             </Label>
             <form.Field name="confirmPassword">
               {(field) => (
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="Enter it again"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="new-password"
-                  className={authInputClass}
-                />
+                <>
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    placeholder="Enter it again"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                    autoComplete="new-password"
+                    aria-invalid={!!fieldError(field)}
+                    className={authInputClass}
+                  />
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
           </div>
@@ -198,12 +170,14 @@ export function ResetPasswordForm() {
           <AuthError message={globalError} />
         </div>
 
-        <form.Subscribe selector={(state) => state.isSubmitting}>
-          {(isSubmitting) => (
+        <form.Subscribe
+          selector={(state) => [state.canSubmit, state.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
             <Button
               type="submit"
               className={`group ${authSubmitClass}`}
-              disabled={isSubmitting}
+              disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? (
                 <>

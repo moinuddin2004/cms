@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react'
-import { useForm } from '@tanstack/react-form'
-import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
@@ -12,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Switch } from '@/components/ui/switch'
+import { fieldError } from '@/components/forms/fieldError'
 import {
   Loader2,
   AlertCircle,
@@ -22,20 +20,16 @@ import {
   CalendarPlus,
   SkipForward,
 } from 'lucide-react'
+import type { AppointmentType, Doctor } from '@/features/appointments/types'
 import {
-  AppointmentType,
   APPOINTMENT_TYPE_OPTIONS,
   DURATION_OPTIONS,
-  type Doctor,
-  type ValidationResult,
-  type AppointmentFormData,
 } from '@/features/appointments/types'
-import { useCreateAppointment } from '@/features/appointments/hooks/useCreateAppointment'
-import { useValidateAppointment } from '@/features/appointments/hooks/useValidateAppointment'
+
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { cn } from '@/lib/utils'
 import { FORM_STEPS } from '../types'
-import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { useFirstAppointmentForm } from '../hooks/useFirstAppointmentForm'
 
 // All steps including the appointment booking step
 const ALL_STEPS = [...FORM_STEPS.map((s) => s.title), 'Book Appointment']
@@ -56,80 +50,8 @@ export function AddAppointmentStep({
   onBack,
 }: AddAppointmentStepProps) {
   const { data: doctors = [] } = useDoctors()
-  const createMutation = useCreateAppointment()
-  const validateMutation = useValidateAppointment()
-
-  const [validation, setValidation] = useState<ValidationResult | null>(null)
-  const [watchedDoctorId, setWatchedDoctorId] = useState('')
-  const [watchedStartTime, setWatchedStartTime] = useState('')
-  const [watchedDuration, setWatchedDuration] = useState(30)
-
-  const form = useForm({
-    defaultValues: {
-      doctorId: '',
-      startTime: '',
-      duration: 30,
-      type: AppointmentType.CONSULTATION,
-      isEmergency: false,
-    },
-    onSubmit: async ({ value }) => {
-      if (!value.doctorId || !value.startTime) {
-        toast.error('Please select a doctor and appointment time')
-        return
-      }
-      const payload: AppointmentFormData = {
-        patientId,
-        doctorId: value.doctorId,
-        startTime: new Date(value.startTime).toISOString(),
-        duration: value.duration,
-        type: value.type,
-        notes: '',
-        isEmergency: value.isEmergency,
-      }
-      try {
-        await createMutation.mutateAsync(payload)
-        toast.success('Appointment booked successfully')
-        onDone()
-      } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ||
-          err.message ||
-          'Failed to book appointment'
-        toast.error(msg)
-      }
-    },
-  })
-
-  // Real-time slot validation
-  useEffect(() => {
-    if (!watchedDoctorId || !watchedStartTime || !watchedDuration) {
-      setValidation(null)
-      return
-    }
-    const timer = setTimeout(() => {
-      validateMutation.mutate(
-        {
-          doctorId: watchedDoctorId,
-          startTime: new Date(watchedStartTime).toISOString(),
-          duration: watchedDuration,
-        },
-        {
-          onSuccess: (result) => setValidation(result),
-          onError: () =>
-            setValidation({ valid: false, reason: 'Validation failed' }),
-        },
-      )
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [watchedDoctorId, watchedStartTime, watchedDuration]) // eslint-disable-line
-
-  const applySuggestion = () => {
-    if (validation?.suggestedStartTime) {
-      const newTime = toDateTimeLocalValue(validation.suggestedStartTime)
-      form.setFieldValue('startTime', newTime)
-      setWatchedStartTime(newTime)
-    }
-  }
+  const { form, validation, applySuggestion, isPending } =
+    useFirstAppointmentForm({ patientId, onDone })
 
   const activeStep = ALL_STEPS.length - 1 // last step
 
@@ -208,12 +130,9 @@ export function AddAppointmentStep({
                     </Label>
                     <Select
                       value={field.state.value}
-                      onValueChange={(val) => {
-                        field.handleChange(val)
-                        setWatchedDoctorId(val)
-                      }}
+                      onValueChange={(val) => field.handleChange(val)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-invalid={!!fieldError(field)}>
                         <SelectValue placeholder="Select doctor" />
                       </SelectTrigger>
                       <SelectContent>
@@ -224,6 +143,7 @@ export function AddAppointmentStep({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldErrorText message={fieldError(field)} />
                   </div>
                 )}
               </form.Field>
@@ -240,11 +160,9 @@ export function AddAppointmentStep({
                     <DateTimePicker
                       id="appt-startTime"
                       value={field.state.value}
-                      onChange={(val) => {
-                        field.handleChange(val)
-                        setWatchedStartTime(val)
-                      }}
+                      onChange={(val) => field.handleChange(val)}
                     />
+                    <FieldErrorText message={fieldError(field)} />
                   </div>
                 )}
               </form.Field>
@@ -258,11 +176,7 @@ export function AddAppointmentStep({
                     <Select
                       clearable={false}
                       value={String(field.state.value)}
-                      onValueChange={(val) => {
-                        const num = Number(val)
-                        field.handleChange(num)
-                        setWatchedDuration(num)
-                      }}
+                      onValueChange={(val) => field.handleChange(Number(val))}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -275,6 +189,7 @@ export function AddAppointmentStep({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldErrorText message={fieldError(field)} />
                   </div>
                 )}
               </form.Field>
@@ -345,6 +260,7 @@ export function AddAppointmentStep({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FieldErrorText message={fieldError(field)} />
                   </div>
                 )}
               </form.Field>
@@ -370,7 +286,7 @@ export function AddAppointmentStep({
             type="button"
             variant="outline"
             onClick={onBack}
-            disabled={createMutation.isPending}
+            disabled={isPending}
             className="gap-1.5"
           >
             <ChevronLeft size={15} /> Back
@@ -381,30 +297,45 @@ export function AddAppointmentStep({
               type="button"
               variant="ghost"
               onClick={onSkip}
-              disabled={createMutation.isPending}
+              disabled={isPending}
               className="gap-1.5 text-muted-foreground"
             >
               <SkipForward size={15} />
               Skip
             </Button>
-            <Button
-              type="submit"
-              disabled={
-                createMutation.isPending ||
-                (validation !== null && !validation.valid)
-              }
-              className="gap-1.5"
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
             >
-              {createMutation.isPending ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <CalendarPlus size={15} />
-              )}
-              Book Appointment
-            </Button>
+              {([canSubmit, isSubmitting]) => {
+                const busy = isPending || isSubmitting
+                return (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !canSubmit ||
+                      busy ||
+                      (validation !== null && !validation.valid)
+                    }
+                    className="gap-1.5"
+                  >
+                    {busy ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <CalendarPlus size={15} />
+                    )}
+                    Book Appointment
+                  </Button>
+                )
+              }}
+            </form.Subscribe>
           </div>
         </div>
       </form>
     </div>
   )
+}
+
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="text-xs font-medium text-danger">{message}</p>
 }

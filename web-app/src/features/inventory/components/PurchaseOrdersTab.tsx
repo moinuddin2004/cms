@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Can } from '@/features/access/components/Can'
 import {
   Dialog,
@@ -35,26 +35,26 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Plus, Trash2, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import {
   usePurchaseOrders,
   usePurchaseOrder,
-  useCreatePO,
   useUpdatePOStatus,
-  useReceivePOItems,
   useCancelPO,
 } from '../hooks/usePurchaseOrders'
+import {
+  useCreatePOForm,
+  useReceivePOForm,
+} from '../hooks/usePurchaseOrderForms'
+import { listError } from '../lib/listError'
 import { useSuppliers } from '../hooks/useSuppliers'
 import { ItemPicker } from './ItemPicker'
 import { POStatusBadge } from './inventory-ui'
-import type {
-  CreatePOItem,
-  PurchaseOrder,
-  PurchaseOrderStatus,
-  ReceivePOItem,
-} from '../types'
+import type { PurchaseOrder, PurchaseOrderStatus } from '../types'
 
 const STATUS_TABS: { value: PurchaseOrderStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -174,10 +174,8 @@ export function PurchaseOrdersTab() {
 }
 
 // ─── Create PO ──────────────────────────────────────────────────────
-interface DraftItem extends CreatePOItem {
-  name: string
-  unit: string
-}
+const rowError = (msg: string | undefined) =>
+  msg ? <p className="text-xs font-medium text-danger">{msg}</p> : null
 
 function CreatePODialog({
   open,
@@ -187,232 +185,252 @@ function CreatePODialog({
   onOpenChange: (o: boolean) => void
 }) {
   const { data: suppliers } = useSuppliers()
-  const createMutation = useCreatePO()
-  const [supplierId, setSupplierId] = useState('')
-  const [expectedDate, setExpectedDate] = useState('')
-  const [taxRate, setTaxRate] = useState(0)
-  const [notes, setNotes] = useState('')
-  const [items, setItems] = useState<DraftItem[]>([])
-
-  useEffect(() => {
-    if (open) {
-      setSupplierId('')
-      setExpectedDate('')
-      setTaxRate(0)
-      setNotes('')
-      setItems([])
-    }
-  }, [open])
-
-  const subtotal = items.reduce(
-    (s, it) =>
-      s + (Number(it.orderedQuantity) || 0) * (Number(it.unitPrice) || 0),
-    0,
-  )
-  const taxAmount = subtotal * (Number(taxRate) / 100)
-  const total = subtotal + taxAmount
-
-  const addItem = (item: {
-    id: string
-    name: string
-    unit: string
-    unitPrice: number
-  }) => {
-    setItems((prev) => {
-      if (prev.some((p) => p.inventoryItemId === item.id)) return prev
-      return [
-        ...prev,
-        {
-          inventoryItemId: item.id,
-          name: item.name,
-          unit: item.unit,
-          orderedQuantity: 1,
-          unitPrice: Number(item.unitPrice) || 0,
-        },
-      ]
-    })
-  }
-  const setItem = (idx: number, patch: Partial<DraftItem>) =>
-    setItems((prev) =>
-      prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)),
-    )
-
-  const submit = () => {
-    if (!supplierId) {
-      toast.error('Select a supplier')
-      return
-    }
-    if (items.length === 0) {
-      toast.error('Add at least one item')
-      return
-    }
-    createMutation.mutate(
-      {
-        supplierId,
-        expectedDeliveryDate: expectedDate || undefined,
-        taxRate: Number(taxRate) || 0,
-        notes: notes.trim() || undefined,
-        items: items.map((it) => ({
-          inventoryItemId: it.inventoryItemId,
-          orderedQuantity: Number(it.orderedQuantity) || 1,
-          unitPrice: Number(it.unitPrice) || 0,
-        })),
-      },
-      { onSuccess: () => onOpenChange(false) },
-    )
-  }
+  const { form } = useCreatePOForm({
+    open,
+    onDone: () => onOpenChange(false),
+  })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
+    >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>Create Purchase Order</DialogTitle>
         </DialogHeader>
-        <div className="space-y-5 pt-2">
+        <form
+          className="space-y-5 pt-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+        >
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>
-                Supplier <span className="text-destructive">*</span>
-              </Label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select supplier" />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers?.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Expected Delivery</Label>
-              <DatePicker
-                value={expectedDate}
-                onChange={(v) => setExpectedDate(v)}
-                clearable
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Add Items</Label>
-            <ItemPicker
-              onSelect={(item) =>
-                addItem({
-                  id: item.id,
-                  name: item.name,
-                  unit: item.unit,
-                  unitPrice: Number(item.unitPrice),
-                })
-              }
-              selectedIds={items.map((i) => i.inventoryItemId)}
-            />
-          </div>
-
-          {items.length > 0 && (
-            <div className="space-y-2 rounded-md border p-2">
-              {items.map((it, idx) => (
-                <div key={it.inventoryItemId} className="flex items-end gap-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{it.name}</p>
-                    <p className="text-xs text-muted-foreground">{it.unit}</p>
-                  </div>
-                  <div className="w-20">
-                    <Label className="text-xs">Qty</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={it.orderedQuantity}
-                      onChange={(e) =>
-                        setItem(idx, {
-                          orderedQuantity: Number(e.target.value),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="w-28">
-                    <Label className="text-xs">Unit Price</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={it.unitPrice}
-                      onChange={(e) =>
-                        setItem(idx, { unitPrice: Number(e.target.value) })
-                      }
-                    />
-                  </div>
-                  <div className="w-24 text-right text-sm">
-                    {formatCurrency(
-                      (Number(it.orderedQuantity) || 0) *
-                        (Number(it.unitPrice) || 0),
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      setItems((prev) => prev.filter((_, i) => i !== idx))
-                    }
+            <form.Field name="supplierId">
+              {(f) => (
+                <FieldWrapper label="Supplier" required error={fieldError(f)}>
+                  <Select
+                    value={f.state.value}
+                    onValueChange={(v) => f.handleChange(v)}
                   >
-                    <Trash2 className="h-4 w-4 text-muted-foreground" />
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers?.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldWrapper>
+              )}
+            </form.Field>
+            <form.Field name="expectedDeliveryDate">
+              {(f) => (
+                <FieldWrapper label="Expected Delivery">
+                  <DatePicker
+                    value={f.state.value}
+                    onChange={(v) => f.handleChange(v)}
+                    clearable
+                  />
+                </FieldWrapper>
+              )}
+            </form.Field>
+          </div>
+
+          <form.Field name="items" mode="array">
+            {(items) => (
+              <>
+                <div className="space-y-2">
+                  <Label>Add Items</Label>
+                  <ItemPicker
+                    onSelect={(item) => {
+                      if (
+                        items.state.value.some(
+                          (p) => p.inventoryItemId === item.id,
+                        )
+                      )
+                        return
+                      items.pushValue({
+                        inventoryItemId: item.id,
+                        name: item.name,
+                        unit: item.unit,
+                        orderedQuantity: '1',
+                        unitPrice: String(Number(item.unitPrice) || 0),
+                      })
+                    }}
+                    selectedIds={items.state.value.map(
+                      (i) => i.inventoryItemId,
+                    )}
+                  />
+                  {rowError(listError(items))}
                 </div>
-              ))}
-            </div>
-          )}
+
+                {items.state.value.length > 0 && (
+                  <div className="space-y-2 rounded-md border p-2">
+                    {items.state.value.map((it, idx) => (
+                      <div
+                        key={it.inventoryItemId}
+                        className="flex items-start gap-2"
+                      >
+                        <div className="flex-1 pt-5">
+                          <p className="text-sm font-medium">{it.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {it.unit}
+                          </p>
+                        </div>
+                        <form.Field name={`items[${idx}].orderedQuantity`}>
+                          {(f) => (
+                            <div className="w-24 space-y-1">
+                              <Label className="text-xs">Qty</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                value={f.state.value}
+                                onChange={(e) => f.handleChange(e.target.value)}
+                                onBlur={f.handleBlur}
+                                aria-invalid={!!fieldError(f)}
+                              />
+                              {rowError(fieldError(f))}
+                            </div>
+                          )}
+                        </form.Field>
+                        <form.Field name={`items[${idx}].unitPrice`}>
+                          {(f) => (
+                            <div className="w-28 space-y-1">
+                              <Label className="text-xs">Unit Price</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={f.state.value}
+                                onChange={(e) => f.handleChange(e.target.value)}
+                                onBlur={f.handleBlur}
+                                aria-invalid={!!fieldError(f)}
+                              />
+                              {rowError(fieldError(f))}
+                            </div>
+                          )}
+                        </form.Field>
+                        <div className="w-24 pt-7 text-right text-sm">
+                          {formatCurrency(
+                            (Number(it.orderedQuantity) || 0) *
+                              (Number(it.unitPrice) || 0),
+                          )}
+                        </div>
+                        <TooltipButton
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="mt-5"
+                          tooltip="Remove item"
+                          onClick={() => items.removeValue(idx)}
+                        >
+                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        </TooltipButton>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </form.Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Tax Rate (%)</Label>
-              <Input
-                type="number"
-                min={0}
-                value={taxRate}
-                onChange={(e) => setTaxRate(Number(e.target.value))}
-              />
-            </div>
-            <div className="flex flex-col items-end justify-end gap-0.5 text-sm">
-              <span className="text-muted-foreground">
-                Subtotal: {formatCurrency(subtotal)}
-              </span>
-              <span className="text-muted-foreground">
-                Tax: {formatCurrency(taxAmount)}
-              </span>
-              <span className="text-base font-bold">
-                Total: {formatCurrency(total)}
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              className="h-16 resize-none"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={createMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button onClick={submit} disabled={createMutation.isPending}>
-              {createMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <form.Field name="taxRate">
+              {(f) => (
+                <FieldWrapper
+                  label="Tax Rate (%)"
+                  htmlFor="po-tax-rate"
+                  error={fieldError(f)}
+                >
+                  <Input
+                    id="po-tax-rate"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.01"
+                    value={f.state.value}
+                    onChange={(e) => f.handleChange(e.target.value)}
+                    onBlur={f.handleBlur}
+                    aria-invalid={!!fieldError(f)}
+                  />
+                </FieldWrapper>
               )}
-              Create PO
-            </Button>
+            </form.Field>
+            <form.Subscribe
+              selector={(s) => {
+                const subtotal = s.values.items.reduce(
+                  (sum, it) =>
+                    sum +
+                    (Number(it.orderedQuantity) || 0) *
+                      (Number(it.unitPrice) || 0),
+                  0,
+                )
+                const tax = subtotal * ((Number(s.values.taxRate) || 0) / 100)
+                return [subtotal, tax] as const
+              }}
+            >
+              {([subtotal, taxAmount]) => (
+                <div className="flex flex-col items-end justify-end gap-0.5 text-sm">
+                  <span className="text-muted-foreground">
+                    Subtotal: {formatCurrency(subtotal)}
+                  </span>
+                  <span className="text-muted-foreground">
+                    Tax: {formatCurrency(taxAmount)}
+                  </span>
+                  <span className="text-base font-bold">
+                    Total: {formatCurrency(subtotal + taxAmount)}
+                  </span>
+                </div>
+              )}
+            </form.Subscribe>
           </div>
-        </div>
+
+          <form.Field name="notes">
+            {(f) => (
+              <FieldWrapper
+                label="Notes"
+                htmlFor="po-notes"
+                error={fieldError(f)}
+              >
+                <Textarea
+                  id="po-notes"
+                  className="h-16 resize-none"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  onBlur={f.handleBlur}
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
+
+          <form.Subscribe
+            selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Create PO
+                </Button>
+              </div>
+            )}
+          </form.Subscribe>
+        </form>
       </DialogContent>
     </Dialog>
   )
@@ -583,126 +601,144 @@ function ReceiveItemsDialog({
   open: boolean
   onOpenChange: (o: boolean) => void
 }) {
-  const receiveMutation = useReceivePOItems()
-  const [rows, setRows] = useState<Record<string, ReceivePOItem>>({})
-
-  const pendingItems = (po.items ?? []).filter(
-    (it) => Number(it.receivedQuantity) < Number(it.orderedQuantity),
-  )
-
-  useEffect(() => {
-    if (open) {
-      const init: Record<string, ReceivePOItem> = {}
-      pendingItems.forEach((it) => {
-        init[it.id] = { poItemId: it.id, receivedQuantity: 0 }
-      })
-      setRows(init)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, po.id])
-
-  const setRow = (id: string, patch: Partial<ReceivePOItem>) =>
-    setRows((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
-
-  const submit = () => {
-    const items = Object.values(rows).filter(
-      (r) => Number(r.receivedQuantity) > 0,
-    )
-    if (items.length === 0) {
-      toast.error('Enter at least one quantity to receive')
-      return
-    }
-    receiveMutation.mutate(
-      { id: po.id, items },
-      { onSuccess: () => onOpenChange(false) },
-    )
-  }
+  const { form } = useReceivePOForm({
+    open,
+    po,
+    onDone: () => onOpenChange(false),
+  })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
+    >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Receive Items — {po.poNumber}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
-          {pendingItems.map((it) => {
-            const remaining =
-              Number(it.orderedQuantity) - Number(it.receivedQuantity)
-            const row = rows[it.id]
-            return (
-              <div key={it.id} className="space-y-2 rounded-md border p-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">
-                    {it.inventoryItem?.name ?? '—'}
+        <form
+          className="space-y-4 pt-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+        >
+          <form.Field name="items" mode="array">
+            {(items) => (
+              <>
+                {items.state.value.map((row, idx) => {
+                  const it = po.items?.find((p) => p.id === row.poItemId)
+                  return (
+                    <div
+                      key={row.poItemId}
+                      className="space-y-2 rounded-md border p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{row.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {Number(it?.receivedQuantity ?? 0)} /{' '}
+                          {Number(it?.orderedQuantity ?? 0)} received ·{' '}
+                          {row.remaining} remaining
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <form.Field name={`items[${idx}].receivedQuantity`}>
+                          {(f) => (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Receiving now</Label>
+                              <Input
+                                type="number"
+                                min={0}
+                                max={row.remaining}
+                                value={f.state.value}
+                                onChange={(e) => f.handleChange(e.target.value)}
+                                onBlur={f.handleBlur}
+                                aria-invalid={!!fieldError(f)}
+                              />
+                              {fieldError(f) && (
+                                <p className="text-xs font-medium text-danger">
+                                  {fieldError(f)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </form.Field>
+                        <form.Field name={`items[${idx}].batchNumber`}>
+                          {(f) => (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Batch #</Label>
+                              <Input
+                                value={f.state.value}
+                                onChange={(e) => f.handleChange(e.target.value)}
+                                onBlur={f.handleBlur}
+                              />
+                              {fieldError(f) && (
+                                <p className="text-xs font-medium text-danger">
+                                  {fieldError(f)}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </form.Field>
+                        <form.Field name={`items[${idx}].expiryDate`}>
+                          {(f) => (
+                            <div className="space-y-1">
+                              <Label className="text-xs">Expiry</Label>
+                              <DatePicker
+                                value={f.state.value}
+                                onChange={(v) => f.handleChange(v)}
+                                clearable
+                              />
+                            </div>
+                          )}
+                        </form.Field>
+                      </div>
+                    </div>
+                  )
+                })}
+                {items.state.value.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    All items already received
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {Number(it.receivedQuantity)} / {Number(it.orderedQuantity)}{' '}
-                    received · {remaining} remaining
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Receiving now</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={remaining}
-                      value={row?.receivedQuantity ?? 0}
-                      onChange={(e) =>
-                        setRow(it.id, {
-                          receivedQuantity: Math.min(
-                            Number(e.target.value),
-                            remaining,
-                          ),
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Batch #</Label>
-                    <Input
-                      value={row?.batchNumber ?? ''}
-                      onChange={(e) =>
-                        setRow(it.id, { batchNumber: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Expiry</Label>
-                    <DatePicker
-                      value={row?.expiryDate ?? ''}
-                      onChange={(v) => setRow(it.id, { expiryDate: v })}
-                      clearable
-                    />
-                  </div>
-                </div>
+                ) : (
+                  listError(items) && (
+                    <p className="text-xs font-medium text-danger">
+                      {listError(items)}
+                    </p>
+                  )
+                )}
+              </>
+            )}
+          </form.Field>
+
+          <form.Subscribe
+            selector={(s) =>
+              [s.canSubmit, s.isSubmitting, s.values.items.length] as const
+            }
+          >
+            {([canSubmit, isSubmitting, pendingCount]) => (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting || pendingCount === 0}
+                >
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Receive Selected
+                </Button>
               </div>
-            )
-          })}
-          {pendingItems.length === 0 && (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              All items already received
-            </p>
-          )}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={receiveMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={submit}
-              disabled={receiveMutation.isPending || pendingItems.length === 0}
-            >
-              {receiveMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Receive Selected
-            </Button>
-          </div>
-        </div>
+            )}
+          </form.Subscribe>
+        </form>
       </DialogContent>
     </Dialog>
   )

@@ -1,5 +1,3 @@
-import { useState, useEffect, useRef } from 'react'
-import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +12,7 @@ import {
 import { MultiSelect } from '@/components/shared/MultiSelect'
 import { Switch } from '@/components/ui/switch'
 import { DatePicker } from '@/components/shared/DatePicker'
+import { fieldError } from '@/components/forms/fieldError'
 import { format } from 'date-fns'
 import {
   Loader2,
@@ -23,7 +22,6 @@ import {
   X,
   User,
 } from 'lucide-react'
-import { usePatientStore } from '@/store/patient-store'
 import {
   GENDER_OPTIONS,
   BLOOD_GROUP_OPTIONS,
@@ -32,10 +30,11 @@ import {
   FORM_STEPS,
   CommunicationPreference,
   Language,
-  PatientSource,
-  type PatientFormData,
-  type Patient,
 } from '../types'
+import type { PatientFormData, Patient } from '../types'
+import { PATIENT_STEP_FIELDS } from '../schemas/patient.schema'
+import type { PatientFormValues } from '../schemas/patient.schema'
+import { usePatientForm } from '../hooks/usePatientForm'
 import { cn } from '@/lib/utils'
 
 interface PatientFormProps {
@@ -46,36 +45,6 @@ interface PatientFormProps {
   onCancel?: () => void
 }
 
-const EMPTY_FORM: PatientFormData = {
-  fullName: '',
-  phone: '',
-  whatsappNumber: '',
-  dob: '',
-  gender: undefined,
-  bloodGroup: undefined,
-  maritalStatus: undefined,
-  cnic: '',
-  email: '',
-  city: '',
-  address: '',
-  preferredLanguage: Language.URDU,
-  communicationPref: CommunicationPreference.WHATSAPP,
-  source: PatientSource.WALK_IN,
-  referredByText: '',
-  occupation: '',
-  internalNotes: '',
-  tags: [],
-  isMinor: false,
-  guardianName: '',
-  guardianPhone: '',
-  guardianRelation: '',
-  medicalHistory: '',
-  allergies: '',
-  emergencyContactName: '',
-  emergencyContactPhone: '',
-  emergencyContactRelation: '',
-}
-
 export function PatientForm({
   defaultValues,
   onSubmit,
@@ -84,131 +53,15 @@ export function PatientForm({
   onCancel,
 }: PatientFormProps) {
   const {
+    form,
     currentStep,
-    setCurrentStep,
-    formDraft,
-    setFormDraft,
-    clearFormDraft,
-  } = usePatientStore()
-
-  const isSubmittingRef = useRef(false)
-  const formValuesRef = useRef<PatientFormData | null>(null)
-
-  const initialValues: PatientFormData = defaultValues
-    ? mapPatientToForm(defaultValues)
-    : formDraft
-      ? { ...EMPTY_FORM, ...formDraft }
-      : { ...EMPTY_FORM }
-
-  const form = useForm({
-    defaultValues: initialValues,
-    onSubmit: async ({ value }) => {
-      isSubmittingRef.current = true
-      try {
-        await onSubmit(value)
-        if (mode === 'create') {
-          clearFormDraft()
-        }
-      } finally {
-        isSubmittingRef.current = false
-      }
-    },
-  })
-
-  useEffect(() => {
-    formValuesRef.current = form.state.values
-  })
-
-  useEffect(() => {
-    if (mode === 'edit') {
-      setCurrentStep(0)
-    }
-  }, [mode, setCurrentStep])
-
-  const [stepErrors, setStepErrors] = useState<Record<number, string[]>>({})
-
-  const isFutureDate = (d?: string) => !!d && new Date(d) > new Date()
-  const phoneOk = (p?: string) => !p || /^[0-9+\-\s()]{7,20}$/.test(p.trim())
-  const emailOk = (e?: string) =>
-    !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim())
-  const cnicOk = (c?: string) => !c || /^\d{5}-\d{7}-\d$/.test(c.trim())
-
-  const errorsForStep = (step: number): string[] => {
-    const v = form.state.values
-    const errors: string[] = []
-    if (step === 0) {
-      if (!v.fullName?.trim()) errors.push('Full Name is required')
-      if (!v.phone?.trim()) errors.push('Phone Number is required')
-      else if (!phoneOk(v.phone))
-        errors.push('Phone Number looks invalid (7–20 digits)')
-      if (!phoneOk(v.whatsappNumber))
-        errors.push('WhatsApp Number looks invalid')
-      if (!emailOk(v.email)) errors.push('Email address is invalid')
-      if (!cnicOk(v.cnic)) errors.push('CNIC must look like 42101-1234567-1')
-      if (isFutureDate(v.dob))
-        errors.push('Date of Birth cannot be in the future')
-      if (v.isMinor) {
-        if (!v.guardianName?.trim())
-          errors.push('Guardian Name is required for minor patients')
-        if (!phoneOk(v.guardianPhone))
-          errors.push('Guardian Phone looks invalid')
-      }
-      if (!phoneOk(v.emergencyContactPhone))
-        errors.push('Emergency Contact Phone looks invalid')
-    }
-    return errors
-  }
-
-  const validateCurrentStep = (): boolean => {
-    const errors = errorsForStep(currentStep)
-    setStepErrors((prev) => ({ ...prev, [currentStep]: errors }))
-    return errors.length === 0
-  }
-
-  const validateAll = (): boolean => {
-    for (let s = 0; s < FORM_STEPS.length; s++) {
-      const errors = errorsForStep(s)
-      if (errors.length > 0) {
-        setStepErrors((prev) => ({ ...prev, [s]: errors }))
-        setCurrentStep(s)
-        return false
-      }
-    }
-    return true
-  }
-
-  const handleFinalSubmit = () => {
-    if (!validateAll()) return
-    form.handleSubmit()
-  }
-
-  const goNext = () => {
-    if (!validateCurrentStep()) return
-    if (currentStep < FORM_STEPS.length - 1) {
-      if (mode === 'create' && formValuesRef.current) {
-        setFormDraft(formValuesRef.current)
-      }
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const goPrev = () => {
-    if (currentStep > 0) {
-      setStepErrors((prev) => ({ ...prev, [currentStep]: [] }))
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  const handleCancel = () => {
-    if (mode === 'create') {
-      clearFormDraft()
-    } else {
-      setCurrentStep(0)
-    }
-    onCancel?.()
-  }
-
-  const currentErrors = stepErrors[currentStep] || []
+    blockedStep,
+    goNext,
+    goPrev,
+    jumpToStep,
+    submit,
+    cancel,
+  } = usePatientForm({ patient: defaultValues, mode, onSubmit, onCancel })
 
   return (
     <div className="flex flex-col gap-5">
@@ -222,14 +75,7 @@ export function PatientForm({
             <button
               type="button"
               aria-label={step.title}
-              onClick={() => {
-                if (i < currentStep || validateCurrentStep()) {
-                  if (mode === 'create' && formValuesRef.current) {
-                    setFormDraft(formValuesRef.current)
-                  }
-                  setCurrentStep(i)
-                }
-              }}
+              onClick={() => void jumpToStep(i)}
               className="flex items-center gap-2 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
             >
               <span
@@ -270,15 +116,25 @@ export function PatientForm({
       </div>
 
       {/* ── Validation Errors ── */}
-      {currentErrors.length > 0 && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 space-y-0.5">
-          {currentErrors.map((err) => (
-            <p key={err} className="text-sm text-destructive">
-              {err}
-            </p>
-          ))}
-        </div>
-      )}
+      <form.Subscribe
+        selector={(state) =>
+          PATIENT_STEP_FIELDS[currentStep].filter(
+            (name) => (state.fieldMeta[name]?.errors.length ?? 0) > 0,
+          ).length
+        }
+      >
+        {(invalidCount) =>
+          blockedStep === currentStep &&
+          invalidCount > 0 && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+              <p className="text-sm text-destructive">
+                Fix the {invalidCount} highlighted{' '}
+                {invalidCount === 1 ? 'field' : 'fields'} before continuing.
+              </p>
+            </div>
+          )
+        }
+      </form.Subscribe>
 
       {/* ── Form ── */}
       <form
@@ -319,7 +175,9 @@ export function PatientForm({
                             onChange={(e) => field.handleChange(e.target.value)}
                             onBlur={field.handleBlur}
                             placeholder="John Doe"
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -335,7 +193,10 @@ export function PatientForm({
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="03001234567"
+                            onBlur={field.handleBlur}
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -349,7 +210,10 @@ export function PatientForm({
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="03001234567"
+                            onBlur={field.handleBlur}
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -361,7 +225,9 @@ export function PatientForm({
                           <Select
                             value={field.state.value || ''}
                             onValueChange={(v) =>
-                              field.handleChange(v as PatientFormData['gender'])
+                              field.handleChange(
+                                (v || undefined) as PatientFormValues['gender'],
+                              )
                             }
                           >
                             <SelectTrigger id="gender">
@@ -387,7 +253,8 @@ export function PatientForm({
                             value={field.state.value || ''}
                             onValueChange={(v) =>
                               field.handleChange(
-                                v as PatientFormData['bloodGroup'],
+                                (v ||
+                                  undefined) as PatientFormValues['bloodGroup'],
                               )
                             }
                           >
@@ -414,7 +281,8 @@ export function PatientForm({
                             value={field.state.value || ''}
                             onValueChange={(v) =>
                               field.handleChange(
-                                v as PatientFormData['maritalStatus'],
+                                (v ||
+                                  undefined) as PatientFormValues['maritalStatus'],
                               )
                             }
                           >
@@ -446,6 +314,7 @@ export function PatientForm({
                             withYearDropdown
                             clearable
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -459,7 +328,10 @@ export function PatientForm({
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="42101-1234567-1"
+                            onBlur={field.handleBlur}
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -474,7 +346,10 @@ export function PatientForm({
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="patient@email.com"
+                            onBlur={field.handleBlur}
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -488,7 +363,10 @@ export function PatientForm({
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}
                             placeholder="Karachi"
+                            onBlur={field.handleBlur}
+                            aria-invalid={!!fieldError(field)}
                           />
+                          <FieldErrorText message={fieldError(field)} />
                         </div>
                       )}
                     </form.Field>
@@ -556,7 +434,10 @@ export function PatientForm({
                                       field.handleChange(e.target.value)
                                     }
                                     placeholder="Guardian full name"
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={!!fieldError(field)}
                                   />
+                                  <FieldErrorText message={fieldError(field)} />
                                 </div>
                               )}
                             </form.Field>
@@ -573,7 +454,10 @@ export function PatientForm({
                                       field.handleChange(e.target.value)
                                     }
                                     placeholder="03001234567"
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={!!fieldError(field)}
                                   />
+                                  <FieldErrorText message={fieldError(field)} />
                                 </div>
                               )}
                             </form.Field>
@@ -590,7 +474,10 @@ export function PatientForm({
                                       field.handleChange(e.target.value)
                                     }
                                     placeholder="Father, Mother, etc."
+                                    onBlur={field.handleBlur}
+                                    aria-invalid={!!fieldError(field)}
                                   />
+                                  <FieldErrorText message={fieldError(field)} />
                                 </div>
                               )}
                             </form.Field>
@@ -617,7 +504,10 @@ export function PatientForm({
                                 field.handleChange(e.target.value)
                               }
                               placeholder="Contact name"
+                              onBlur={field.handleBlur}
+                              aria-invalid={!!fieldError(field)}
                             />
+                            <FieldErrorText message={fieldError(field)} />
                           </div>
                         )}
                       </form.Field>
@@ -633,7 +523,10 @@ export function PatientForm({
                                 field.handleChange(e.target.value)
                               }
                               placeholder="03001234567"
+                              onBlur={field.handleBlur}
+                              aria-invalid={!!fieldError(field)}
                             />
+                            <FieldErrorText message={fieldError(field)} />
                           </div>
                         )}
                       </form.Field>
@@ -666,6 +559,7 @@ export function PatientForm({
                                 ))}
                               </SelectContent>
                             </Select>
+                            <FieldErrorText message={fieldError(field)} />
                           </div>
                         )}
                       </form.Field>
@@ -731,9 +625,9 @@ export function PatientForm({
                         How did they hear about us?
                       </Label>
                       <Select
-                        value={field.state.value || ''}
+                        value={field.state.value}
                         onValueChange={(v) =>
-                          field.handleChange(v as PatientFormData['source'])
+                          field.handleChange(v as PatientFormValues['source'])
                         }
                       >
                         <SelectTrigger id="source">
@@ -747,6 +641,7 @@ export function PatientForm({
                           ))}
                         </SelectContent>
                       </Select>
+                      <FieldErrorText message={fieldError(field)} />
                     </div>
                   )}
                 </form.Field>
@@ -760,7 +655,10 @@ export function PatientForm({
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         placeholder="Dr. Ahmed / Friend"
+                        onBlur={field.handleBlur}
+                        aria-invalid={!!fieldError(field)}
                       />
+                      <FieldErrorText message={fieldError(field)} />
                     </div>
                   )}
                 </form.Field>
@@ -802,7 +700,7 @@ export function PatientForm({
                         Communication Preference
                       </Label>
                       <Select
-                        value={field.state.value || ''}
+                        value={field.state.value}
                         onValueChange={(v) =>
                           field.handleChange(v as CommunicationPreference)
                         }
@@ -825,6 +723,7 @@ export function PatientForm({
                           </SelectItem>
                         </SelectContent>
                       </Select>
+                      <FieldErrorText message={fieldError(field)} />
                     </div>
                   )}
                 </form.Field>
@@ -838,7 +737,10 @@ export function PatientForm({
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         placeholder="Software Engineer"
+                        onBlur={field.handleBlur}
+                        aria-invalid={!!fieldError(field)}
                       />
+                      <FieldErrorText message={fieldError(field)} />
                     </div>
                   )}
                 </form.Field>
@@ -877,7 +779,7 @@ export function PatientForm({
           <Button
             type="button"
             variant="outline"
-            onClick={currentStep === 0 ? handleCancel : goPrev}
+            onClick={currentStep === 0 ? cancel : goPrev}
             className="gap-1.5"
           >
             {currentStep === 0 ? (
@@ -892,23 +794,36 @@ export function PatientForm({
           </Button>
 
           {currentStep < FORM_STEPS.length - 1 ? (
-            <Button type="button" onClick={goNext} className="gap-1.5">
+            <Button
+              type="button"
+              onClick={() => void goNext()}
+              className="gap-1.5"
+            >
               Next <ChevronRight size={15} />
             </Button>
           ) : (
-            <Button
-              type="button"
-              onClick={handleFinalSubmit}
-              disabled={isSubmitting}
-              className="gap-1.5"
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
             >
-              {isSubmitting ? (
-                <Loader2 size={15} className="animate-spin" />
-              ) : (
-                <Check size={15} />
-              )}
-              {mode === 'create' ? 'Add Patient' : 'Update Details'}
-            </Button>
+              {([canSubmit, formSubmitting]) => {
+                const busy = isSubmitting || formSubmitting
+                return (
+                  <Button
+                    type="button"
+                    onClick={() => void submit()}
+                    disabled={!canSubmit || busy}
+                    className="gap-1.5"
+                  >
+                    {busy ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Check size={15} />
+                    )}
+                    {mode === 'create' ? 'Add Patient' : 'Update Details'}
+                  </Button>
+                )
+              }}
+            </form.Subscribe>
           )}
         </div>
       </form>
@@ -943,37 +858,9 @@ function TagInput({
   )
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
+// ─── Field Error ────────────────────────────────────────────────────
 
-function mapPatientToForm(patient: Patient): PatientFormData {
-  return {
-    fullName: patient.fullName,
-    phone: patient.phone,
-    whatsappNumber: patient.whatsappNumber || '',
-    dob: patient.dob || '',
-    gender: patient.gender || undefined,
-    bloodGroup: patient.bloodGroup || undefined,
-    maritalStatus: patient.maritalStatus || undefined,
-    cnic: patient.cnic || '',
-    email: patient.email || '',
-    city: patient.city || '',
-    address: patient.address || '',
-    preferredLanguage: patient.preferredLanguage || Language.URDU,
-    communicationPref:
-      patient.communicationPref || CommunicationPreference.WHATSAPP,
-    source: patient.source || PatientSource.WALK_IN,
-    referredByText: patient.referredByText || '',
-    occupation: patient.occupation || '',
-    internalNotes: patient.internalNotes || '',
-    tags: patient.tags || [],
-    isMinor: patient.isMinor || false,
-    guardianName: patient.guardianName || '',
-    guardianPhone: patient.guardianPhone || '',
-    guardianRelation: patient.guardianRelation || '',
-    medicalHistory: patient.medicalHistory || '',
-    allergies: patient.allergies || '',
-    emergencyContactName: patient.emergencyContactName || '',
-    emergencyContactPhone: patient.emergencyContactPhone || '',
-    emergencyContactRelation: patient.emergencyContactRelation || '',
-  }
+function FieldErrorText({ message }: { message?: string }) {
+  if (!message) return null
+  return <p className="text-xs font-medium text-danger">{message}</p>
 }

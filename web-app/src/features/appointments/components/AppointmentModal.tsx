@@ -38,6 +38,9 @@ import { useLocationSlotDuration } from '@/features/appointments/hooks/useLocati
 import { fetchAppointmentById } from '@/features/appointments/services/appointments.api'
 import { usePatientSearch } from '@/features/patients'
 import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { fieldError } from '@/components/forms/fieldError'
+import { appointmentModalSchema } from '@/features/appointments/schemas/appointment.schema'
+import type { AppointmentModalValues } from '@/features/appointments/schemas/appointment.schema'
 
 interface PatientOption {
   id: string
@@ -99,15 +102,21 @@ export function AppointmentModal() {
       }))
   }, [slotDuration, original])
 
+  const defaultValues: AppointmentModalValues = {
+    patientId: '',
+    doctorId: '',
+    startTime: '',
+    duration: 30,
+    type: 'consultation',
+    notes: '',
+    isEmergency: false,
+  }
+
   const form = useForm({
-    defaultValues: {
-      patientId: '',
-      doctorId: '',
-      startTime: '',
-      duration: 30,
-      type: 'consultation' as string,
-      notes: '',
-      isEmergency: false,
+    defaultValues,
+    validators: {
+      onChange: appointmentModalSchema,
+      onSubmit: appointmentModalSchema,
     },
     onSubmit: async ({ value }) => {
       const payload = {
@@ -155,13 +164,15 @@ export function AppointmentModal() {
       fetchAppointmentById(selectedAppointmentId)
         .then((appt) => {
           const startTime = toDateTimeLocalValue(appt.startTime)
-          form.setFieldValue('patientId', appt.patientId)
-          form.setFieldValue('doctorId', appt.doctorId || '')
-          form.setFieldValue('startTime', startTime)
-          form.setFieldValue('duration', appt.durationMinutes)
-          form.setFieldValue('type', appt.type)
-          form.setFieldValue('notes', appt.notes || '')
-          form.setFieldValue('isEmergency', appt.isEmergency)
+          // Loaded values aren't user edits: leave fields untouched.
+          const quiet = { dontUpdateMeta: true }
+          form.setFieldValue('patientId', appt.patientId, quiet)
+          form.setFieldValue('doctorId', appt.doctorId || '', quiet)
+          form.setFieldValue('startTime', startTime, quiet)
+          form.setFieldValue('duration', appt.durationMinutes, quiet)
+          form.setFieldValue('type', appt.type, quiet)
+          form.setFieldValue('notes', appt.notes || '', quiet)
+          form.setFieldValue('isEmergency', appt.isEmergency, quiet)
           setWatchedDoctorId(appt.doctorId || '')
           setWatchedStartTime(startTime)
           setWatchedDuration(appt.durationMinutes)
@@ -194,9 +205,12 @@ export function AppointmentModal() {
       setWatchedDoctorId(prefillDoctorId || '')
       setWatchedStartTime(prefillTime || '')
       setWatchedDuration(slotDuration)
-      form.setFieldValue('duration', slotDuration)
-      if (prefillDoctorId) form.setFieldValue('doctorId', prefillDoctorId)
-      if (prefillTime) form.setFieldValue('startTime', prefillTime)
+      // Prefills aren't user edits: leave fields untouched.
+      const quiet = { dontUpdateMeta: true }
+      form.setFieldValue('duration', slotDuration, quiet)
+      if (prefillDoctorId)
+        form.setFieldValue('doctorId', prefillDoctorId, quiet)
+      if (prefillTime) form.setFieldValue('startTime', prefillTime, quiet)
     }
   }, [isCreateModalOpen, prefillDoctorId, prefillTime, slotDuration])
 
@@ -314,9 +328,9 @@ export function AppointmentModal() {
                       ))}
                     </div>
                   )}
-                  {field.state.meta.errors[0] && (
+                  {fieldError(field) && (
                     <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -346,9 +360,9 @@ export function AppointmentModal() {
                       ))}
                     </SelectContent>
                   </Select>
-                  {field.state.meta.errors[0] && (
+                  {fieldError(field) && (
                     <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -371,9 +385,9 @@ export function AppointmentModal() {
                       }}
                       onBlur={field.handleBlur}
                     />
-                    {field.state.meta.errors[0] && (
+                    {fieldError(field) && (
                       <p className="text-xs text-destructive">
-                        {String(field.state.meta.errors[0])}
+                        {fieldError(field)}
                       </p>
                     )}
                   </div>
@@ -404,6 +418,11 @@ export function AppointmentModal() {
                         ))}
                       </SelectContent>
                     </Select>
+                    {fieldError(field) && (
+                      <p className="text-xs text-destructive">
+                        {fieldError(field)}
+                      </p>
+                    )}
                   </div>
                 )}
               </form.Field>
@@ -471,6 +490,11 @@ export function AppointmentModal() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldError(field) && (
+                    <p className="text-xs text-destructive">
+                      {fieldError(field)}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -517,13 +541,26 @@ export function AppointmentModal() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isBusy || (validation !== null && !validation.valid)}
+              <form.Subscribe
+                selector={(s) => [s.canSubmit, s.isSubmitting] as const}
               >
-                {isBusy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isEditing ? 'Update' : 'Create'} Appointment
-              </Button>
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    disabled={
+                      !canSubmit ||
+                      isSubmitting ||
+                      isBusy ||
+                      (validation !== null && !validation.valid)
+                    }
+                  >
+                    {(isBusy || isSubmitting) && (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    )}
+                    {isEditing ? 'Update' : 'Create'} Appointment
+                  </Button>
+                )}
+              </form.Subscribe>
             </div>
           </form>
         )}

@@ -47,7 +47,9 @@ export const recordPaymentSchema = z.object({
     .int('Whole months only')
     .min(1, 'At least 1 month')
     .max(36, 'At most 36 months'),
-  amount: z.number({ message: 'Enter the amount' }).min(0, 'Cannot be negative'),
+  amount: z
+    .number({ message: 'Enter the amount' })
+    .min(0, 'Cannot be negative'),
   method: z.enum([
     'bank_transfer',
     'jazzcash',
@@ -76,3 +78,8 @@ export const updateSubscriptionSchema = z.object({
   maxUsers: optionalLimit,
 })
 export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>
+
+/** Super-admin payment instructions (`PaymentInstructionsDto`: max 2000). */
+export const paymentInstructionsSchema = z.object({
+  text: z.string().max(2000, 'At most 2000 characters'),
+})

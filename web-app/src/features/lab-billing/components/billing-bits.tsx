@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +13,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper, StatusBadge } from '@/components/shared'
 import { formatPaisa } from '@/features/lab-catalog'
+import { fieldError } from '@/components/forms/fieldError'
 import { cn } from '@/lib/utils'
+import { correctionReasonSchema } from '../schemas/lab-billing.schema'
 import { STATUS_LABEL } from '../types'
 import type { LabInvoiceStatus } from '../types'
 
@@ -117,49 +120,84 @@ export function ReasonDialog({
   isLoading: boolean
   onConfirm: (reason: string) => void
 }) {
-  const [reason, setReason] = useState('')
-  const short = reason.trim().length < 3
+  const form = useForm({
+    defaultValues: { reason: '' },
+    validators: {
+      onChange: correctionReasonSchema,
+      onSubmit: correctionReasonSchema,
+    },
+    onSubmit: ({ value }) => onConfirm(value.reason.trim()),
+  })
+
+  useEffect(() => {
+    if (open) form.reset()
+  }, [open, form])
+
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!isLoading) {
-          setReason('')
-          onOpenChange(o)
-        }
+        if (!isLoading) onOpenChange(o)
       }}
     >
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <FieldWrapper label="Reason" htmlFor="billing-reason" required>
-          <Textarea
-            id="billing-reason"
-            rows={3}
-            maxLength={500}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </FieldWrapper>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => onOpenChange(false)}
-          >
-            Back
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={short || isLoading}
-            onClick={() => onConfirm(reason.trim())}
-          >
-            {isLoading && <Loader2 className="size-4 animate-spin" />}
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+          className="space-y-4"
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <form.Field name="reason">
+            {(field) => (
+              <FieldWrapper
+                label="Reason"
+                htmlFor="billing-reason"
+                required
+                error={fieldError(field)}
+              >
+                <Textarea
+                  id="billing-reason"
+                  rows={3}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  autoFocus
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              onClick={() => onOpenChange(false)}
+            >
+              Back
+            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  variant="destructive"
+                  disabled={!canSubmit || isSubmitting || isLoading}
+                >
+                  {(isLoading || isSubmitting) && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {confirmLabel}
+                </Button>
+              )}
+            </form.Subscribe>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

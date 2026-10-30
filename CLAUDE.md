@@ -149,9 +149,10 @@ export default function PatientsRoute() {
 
 ### Forms — TanStack Form ONLY
 - **NEVER use `react-hook-form`** — it is banned from this project
-- Always use `@tanstack/react-form` with `@tanstack/zod-form-adapter`
+- Always use `@tanstack/react-form` + Zod 4. No adapter package — pass the schema straight in: `useForm({ defaultValues, validators: { onChange: schema, onSubmit: schema }, onSubmit })`. Never `.parse()` inside `onSubmit` or keep a separate useState error map instead.
+- Show field errors with `fieldError(field)` (`@/components/forms/fieldError`) — schema errors are `{ message }` objects, so rendering `field.state.meta.errors[0]` directly shows nothing / `[object Object]`.
 - Every form must have:
-  - Zod schema in `schemas/[feature].schema.ts`
+  - Zod schema in `schemas/[feature].schema.ts`, wired as `validators` (not just defined)
   - `useForm` hook extracted into `hooks/use[Feature]Form.ts`
   - Submit button disabled when `!canSubmit` or `isSubmitting`
   - Field-level validation with error messages shown below each field
@@ -159,7 +160,7 @@ export default function PatientsRoute() {
 ```tsx
 <form.Field name="fieldName">
   {(field) => (
-    <FieldWrapper label="Label" error={field.state.meta.errors[0]}>
+    <FieldWrapper label="Label" error={fieldError(field)}>
       <FormInput
         value={field.state.value}
         onChange={(e) => field.handleChange(e.target.value)}

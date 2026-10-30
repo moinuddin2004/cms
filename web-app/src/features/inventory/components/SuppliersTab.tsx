@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Can } from '@/features/access/components/Can'
 import {
   Dialog,
@@ -8,7 +8,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,14 +26,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Plus, MoreHorizontal, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
-import {
-  useSuppliers,
-  useCreateSupplier,
-  useUpdateSupplier,
-  useDeleteSupplier,
-} from '../hooks/useSuppliers'
-import type { Supplier, SupplierFormData } from '../types'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
+import { useSuppliers, useDeleteSupplier } from '../hooks/useSuppliers'
+import { useSupplierForm } from '../hooks/useSupplierForm'
+import type { Supplier } from '../types'
 
 export function SuppliersTab() {
   const { data: suppliers, isLoading } = useSuppliers()
@@ -142,16 +138,12 @@ export function SuppliersTab() {
   )
 }
 
-const emptyForm: SupplierFormData = {
-  name: '',
-  contactPerson: '',
-  phone: '',
-  email: '',
-  address: '',
-  city: '',
-  website: '',
-  notes: '',
-}
+const SUPPLIER_TEXT_FIELDS = [
+  ['contactPerson', 'Contact Person'],
+  ['phone', 'Phone'],
+  ['email', 'Email'],
+  ['city', 'City'],
+] as const
 
 function SupplierFormDialog({
   open,
@@ -162,136 +154,109 @@ function SupplierFormDialog({
   onOpenChange: (o: boolean) => void
   supplier: Supplier | null
 }) {
-  const isEdit = !!supplier
-  const createMutation = useCreateSupplier()
-  const updateMutation = useUpdateSupplier()
-  const [form, setForm] = useState<SupplierFormData>({ ...emptyForm })
+  const { form, isEdit } = useSupplierForm({
+    open,
+    supplier,
+    onDone: () => onOpenChange(false),
+  })
 
-  useEffect(() => {
-    if (open) {
-      setForm(
-        supplier
-          ? {
-              name: supplier.name,
-              contactPerson: supplier.contactPerson ?? '',
-              phone: supplier.phone ?? '',
-              email: supplier.email ?? '',
-              address: supplier.address ?? '',
-              city: supplier.city ?? '',
-              website: supplier.website ?? '',
-              notes: supplier.notes ?? '',
-            }
-          : { ...emptyForm },
-      )
-    }
-  }, [open, supplier])
-
-  const set = (patch: Partial<SupplierFormData>) =>
-    setForm((prev) => ({ ...prev, ...patch }))
-  const isPending = createMutation.isPending || updateMutation.isPending
-
-  const submit = () => {
-    if (!form.name.trim()) {
-      toast.error('Name is required')
-      return
-    }
-    const payload: SupplierFormData = {
-      ...form,
-      name: form.name.trim(),
-    }
-    if (isEdit && supplier) {
-      updateMutation.mutate(
-        { id: supplier.id, payload },
-        { onSuccess: () => onOpenChange(false) },
-      )
-    } else {
-      createMutation.mutate(payload, { onSuccess: () => onOpenChange(false) })
-    }
-  }
+  const textField = (
+    name:
+      | 'name'
+      | 'contactPerson'
+      | 'phone'
+      | 'email'
+      | 'city'
+      | 'address'
+      | 'website',
+    label: string,
+    required = false,
+  ) => (
+    <form.Field name={name}>
+      {(f) => (
+        <FieldWrapper
+          label={label}
+          htmlFor={`supplier-${name}`}
+          required={required}
+          error={fieldError(f)}
+        >
+          <Input
+            id={`supplier-${name}`}
+            value={f.state.value}
+            onChange={(e) => f.handleChange(e.target.value)}
+            onBlur={f.handleBlur}
+            aria-invalid={!!fieldError(f)}
+          />
+        </FieldWrapper>
+      )}
+    </form.Field>
+  )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
+    >
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Supplier' : 'Add Supplier'}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label>
-              Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              value={form.name}
-              onChange={(e) => set({ name: e.target.value })}
-            />
-          </div>
+        <form
+          className="space-y-4 pt-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+        >
+          {textField('name', 'Name', true)}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Contact Person</Label>
-              <Input
-                value={form.contactPerson}
-                onChange={(e) => set({ contactPerson: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Phone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => set({ phone: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={form.email}
-                onChange={(e) => set({ email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>City</Label>
-              <Input
-                value={form.city}
-                onChange={(e) => set({ city: e.target.value })}
-              />
-            </div>
+            {SUPPLIER_TEXT_FIELDS.map(([name, label]) => (
+              <div key={name}>{textField(name, label)}</div>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label>Address</Label>
-            <Input
-              value={form.address}
-              onChange={(e) => set({ address: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Website</Label>
-            <Input
-              value={form.website}
-              onChange={(e) => set({ website: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              className="h-16 resize-none"
-              value={form.notes}
-              onChange={(e) => set({ notes: e.target.value })}
-              placeholder="Payment terms, delivery schedule…"
-            />
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-            <Button onClick={submit} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? 'Save Changes' : 'Create Supplier'}
-            </Button>
-          </div>
-        </div>
+          {textField('address', 'Address')}
+          {textField('website', 'Website')}
+          <form.Field name="notes">
+            {(f) => (
+              <FieldWrapper
+                label="Notes"
+                htmlFor="supplier-notes"
+                error={fieldError(f)}
+              >
+                <Textarea
+                  id="supplier-notes"
+                  className="h-16 resize-none"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  onBlur={f.handleBlur}
+                  placeholder="Payment terms, delivery schedule…"
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
+          <form.Subscribe
+            selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isEdit ? 'Save Changes' : 'Create Supplier'}
+                </Button>
+              </div>
+            )}
+          </form.Subscribe>
+        </form>
       </DialogContent>
     </Dialog>
   )

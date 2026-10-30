@@ -151,7 +151,7 @@ function CommunicationRow({ comm }: { comm: PatientCommunication }) {
     delivered: 'bg-green-100 text-green-700',
     read: 'bg-green-100 text-green-700',
     failed: 'bg-red-100 text-red-700',
-    completed: 'bg-green-100 text-green-700',
+    received: 'bg-green-100 text-green-700',
   }
 
   return (
@@ -165,7 +165,7 @@ function CommunicationRow({ comm }: { comm: PatientCommunication }) {
               variant="outline"
               className="text-[10px] h-5 px-1.5 capitalize"
             >
-              {comm.purpose.replace('_', ' ')}
+              {comm.purpose.replaceAll('_', ' ')}
             </Badge>
           </div>
           {comm.subject && (

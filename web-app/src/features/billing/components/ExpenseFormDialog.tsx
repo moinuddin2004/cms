@@ -9,7 +9,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/shared/DatePicker'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -18,64 +17,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
 import { Loader2, Plus } from 'lucide-react'
-import { toast } from 'sonner'
-import { useCreateExpense } from '../hooks/useExpenses'
+import { expenseDefaults, useExpenseForm } from '../hooks/useExpenseForm'
 import { ExpenseCategory, PaymentMethod } from '../types'
 
 export function ExpenseFormDialog() {
   const [open, setOpen] = useState(false)
-  const [category, setCategory] = useState<ExpenseCategory>(
-    ExpenseCategory.SUPPLIES,
-  )
-  const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState<number>(0)
-  const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  )
-  const [method, setMethod] = useState<PaymentMethod>(PaymentMethod.CASH)
-  const [reference, setReference] = useState('')
-  const [notes, setNotes] = useState('')
-  const { mutate, isPending } = useCreateExpense()
-
-  const reset = () => {
-    setCategory(ExpenseCategory.SUPPLIES)
-    setDescription('')
-    setAmount(0)
-    setExpenseDate(new Date().toISOString().slice(0, 10))
-    setMethod(PaymentMethod.CASH)
-    setReference('')
-    setNotes('')
-  }
-
-  const submit = () => {
-    if (!description.trim()) return toast.error('Description is required')
-    if (!amount || amount <= 0) return toast.error('Enter a valid amount')
-    mutate(
-      {
-        category,
-        description: description.trim(),
-        amount: Number(amount),
-        expenseDate,
-        paymentMethod: method,
-        referenceNumber: reference || undefined,
-        notes: notes || undefined,
-      },
-      {
-        onSuccess: () => {
-          reset()
-          setOpen(false)
-        },
-      },
-    )
-  }
+  const form = useExpenseForm({
+    onDone: () => {
+      form.reset(expenseDefaults())
+      setOpen(false)
+    },
+  })
 
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
         setOpen(o)
-        if (!o) reset()
+        if (!o) form.reset(expenseDefaults())
       }}
     >
       <DialogTrigger asChild>
@@ -87,103 +49,170 @@ export function ExpenseFormDialog() {
         <DialogHeader>
           <DialogTitle>Record Expense</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 pt-2">
+        <form
+          className="space-y-4 pt-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+        >
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select
-                clearable={false}
-                value={category}
-                onValueChange={(v) => setCategory(v as ExpenseCategory)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(ExpenseCategory).map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">
-                      {c.toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Amount</Label>
-              <Input
-                type="number"
-                min={0}
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-              />
-            </div>
+            <form.Field name="category">
+              {(field) => (
+                <FieldWrapper label="Category" error={fieldError(field)}>
+                  <Select
+                    clearable={false}
+                    value={field.state.value}
+                    onValueChange={(v) =>
+                      field.handleChange(v as ExpenseCategory)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(ExpenseCategory).map((c) => (
+                        <SelectItem key={c} value={c} className="capitalize">
+                          {c.toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldWrapper>
+              )}
+            </form.Field>
+            <form.Field name="amount">
+              {(field) => (
+                <FieldWrapper
+                  label="Amount"
+                  htmlFor="expense-amount"
+                  error={fieldError(field)}
+                >
+                  <Input
+                    id="expense-amount"
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                </FieldWrapper>
+              )}
+            </form.Field>
           </div>
 
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Monthly clinic rent"
-            />
-          </div>
+          <form.Field name="description">
+            {(field) => (
+              <FieldWrapper
+                label="Description"
+                htmlFor="expense-description"
+                error={fieldError(field)}
+              >
+                <Input
+                  id="expense-description"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder="e.g. Monthly clinic rent"
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <DatePicker
-                value={expenseDate}
-                onChange={(v) => setExpenseDate(v)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Payment Method</Label>
-              <Select
-                clearable={false}
-                value={method}
-                onValueChange={(v) => setMethod(v as PaymentMethod)}
+            <form.Field name="expenseDate">
+              {(field) => (
+                <FieldWrapper label="Date" error={fieldError(field)}>
+                  <DatePicker
+                    value={field.state.value}
+                    onChange={(v) => {
+                      field.handleChange(v)
+                      field.handleBlur()
+                    }}
+                  />
+                </FieldWrapper>
+              )}
+            </form.Field>
+            <form.Field name="paymentMethod">
+              {(field) => (
+                <FieldWrapper label="Payment Method" error={fieldError(field)}>
+                  <Select
+                    clearable={false}
+                    value={field.state.value}
+                    onValueChange={(v) =>
+                      field.handleChange(v as PaymentMethod)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(PaymentMethod).map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {m.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldWrapper>
+              )}
+            </form.Field>
+          </div>
+
+          <form.Field name="referenceNumber">
+            {(field) => (
+              <FieldWrapper
+                label="Reference (optional)"
+                htmlFor="expense-reference"
+                error={fieldError(field)}
               >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(PaymentMethod).map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m.replace(/_/g, ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                <Input
+                  id="expense-reference"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
 
-          <div className="space-y-2">
-            <Label>Reference (optional)</Label>
-            <Input
-              value={reference}
-              onChange={(e) => setReference(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Notes</Label>
-            <Textarea
-              className="h-16 resize-none"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
+          <form.Field name="notes">
+            {(field) => (
+              <FieldWrapper label="Notes" htmlFor="expense-notes">
+                <Textarea
+                  id="expense-notes"
+                  className="h-16 resize-none"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={submit} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Expense
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Expense
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   )

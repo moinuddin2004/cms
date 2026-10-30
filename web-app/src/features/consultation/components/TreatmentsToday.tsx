@@ -1,10 +1,13 @@
 import { useState } from 'react'
+import { useStore } from '@tanstack/react-form'
 import { CheckCircle2, Loader2, Plus, Syringe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { fieldError } from '@/components/forms/fieldError'
 import type { Treatment } from '@/features/patients'
 import { PROCEDURE_PICKS } from '../constants/quickPicks'
-import { useAddTreatment, useProcedureCatalog } from '../hooks/useConsultation'
+import { useProcedureCatalog } from '../hooks/useConsultation'
+import { useTreatmentForm } from '../hooks/useTreatmentForm'
 import {
   OTHER_PROCEDURE,
   SEARCH_THRESHOLD,
@@ -28,31 +31,24 @@ export function TreatmentsToday({
   patientId: string
   treatments: Treatment[]
 }) {
-  const add = useAddTreatment(encounterId, patientId)
   const catalogQuery = useProcedureCatalog()
   const catalog = catalogQuery.data ?? []
-  const [selected, setSelected] = useState<string | null>(null)
-  const [name, setName] = useState('')
-  const [tooth, setTooth] = useState('')
   const [filter, setFilter] = useState('')
+  const { form, add } = useTreatmentForm({
+    encounterId,
+    patientId,
+    catalog,
+    onAdded: () => setFilter(''),
+  })
+  const values = useStore(form.store, (s) => s.values)
+  const { selected, name } = values
 
   const hasCatalog = catalog.length > 0
   const typing = !hasCatalog || selected === OTHER_PROCEDURE
-  const input = buildTreatmentInput({ selected, name, tooth }, catalog)
-  const canAdd = input !== null && !add.isPending
+  // Add stays off until the row is complete (a pick, or a typed name).
+  const complete = buildTreatmentInput(values, catalog) !== null
   const visible = filterProcedures(catalog, filter)
-
-  const submit = () => {
-    if (!input || add.isPending) return
-    add.mutate(input, {
-      onSuccess: () => {
-        setSelected(null)
-        setName('')
-        setTooth('')
-        setFilter('')
-      },
-    })
-  }
+  const pick = (value: string) => form.setFieldValue('selected', value)
 
   return (
     <Panel
@@ -104,12 +100,12 @@ export function TreatmentsToday({
               getKey={(p) => p.id}
               getLabel={(p) => p.name}
               isActive={(p) => selected === p.id}
-              onPick={(p) => setSelected(p.id)}
+              onPick={(p) => pick(p.id)}
               limit={filter ? visible.length : 8}
               trailing={
                 <Chip
                   active={selected === OTHER_PROCEDURE}
-                  onClick={() => setSelected(OTHER_PROCEDURE)}
+                  onClick={() => pick(OTHER_PROCEDURE)}
                 >
                   Other…
                 </Chip>
@@ -121,7 +117,7 @@ export function TreatmentsToday({
               getKey={(p) => p}
               getLabel={(p) => p}
               isActive={(p) => name === p}
-              onPick={setName}
+              onPick={(p) => form.setFieldValue('name', p)}
               limit={8}
             />
           )}
@@ -132,33 +128,79 @@ export function TreatmentsToday({
         className="flex flex-wrap gap-2"
         onSubmit={(e) => {
           e.preventDefault()
-          submit()
+          e.stopPropagation()
+          void form.handleSubmit()
         }}
       >
         {typing && (
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Procedure"
-            aria-label="Procedure"
-            className="h-9 min-w-40 flex-1"
-          />
+          <form.Field name="name">
+            {(field) => (
+              <Input
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+                placeholder="Procedure"
+                aria-label="Procedure"
+                aria-invalid={!!fieldError(field)}
+                className="h-9 min-w-40 flex-1"
+              />
+            )}
+          </form.Field>
         )}
-        <Input
-          value={tooth}
-          onChange={(e) => setTooth(e.target.value)}
-          placeholder="Tooth #"
-          aria-label="Tooth number"
-          className={typing ? 'h-9 w-24' : 'h-9 min-w-24 flex-1'}
-        />
-        <Button type="submit" disabled={!canAdd} className="h-9">
-          {add.isPending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Plus className="size-4" />
+        <form.Field name="tooth">
+          {(field) => (
+            <Input
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              placeholder="Tooth #"
+              aria-label="Tooth number"
+              aria-invalid={!!fieldError(field)}
+              className={typing ? 'h-9 w-24' : 'h-9 min-w-24 flex-1'}
+            />
           )}
-          Add
-        </Button>
+        </form.Field>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              disabled={
+                !complete || !canSubmit || isSubmitting || add.isPending
+              }
+              className="h-9"
+            >
+              {add.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-4" />
+              )}
+              Add
+            </Button>
+          )}
+        </form.Subscribe>
+        {/* Errors sit on their own line under the row. */}
+        {typing && (
+          <form.Field name="name">
+            {(field) =>
+              fieldError(field) && (
+                <p className="w-full text-xs text-destructive">
+                  {fieldError(field)}
+                </p>
+              )
+            }
+          </form.Field>
+        )}
+        <form.Field name="tooth">
+          {(field) =>
+            fieldError(field) && (
+              <p className="w-full text-xs text-destructive">
+                {fieldError(field)}
+              </p>
+            )
+          }
+        </form.Field>
       </form>
     </Panel>
   )

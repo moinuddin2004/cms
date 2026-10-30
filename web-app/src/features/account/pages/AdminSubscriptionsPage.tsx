@@ -1,6 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { Building2, FileText, Loader2, Search, Settings2, X } from 'lucide-react'
+import {
+  Building2,
+  FileText,
+  Loader2,
+  Search,
+  Settings2,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
@@ -27,6 +35,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useDebounce } from '@/hooks/useDebounce'
+import { fieldError } from '@/components/forms/fieldError'
+import { paymentInstructionsSchema } from '../schemas/account.schema'
 import {
   useAdminSubscriptions,
   usePaymentInstructions,
@@ -48,50 +58,68 @@ function PaymentInstructionsSheet({
 }) {
   const current = usePaymentInstructions()
   const save = useSavePaymentInstructions()
-  const [text, setText] = useState<string | null>(null)
-  const value = text ?? current.data?.text ?? ''
-  const dirty = text != null && text !== current.data?.text
+  const saved = current.data?.text ?? ''
+  const form = useForm({
+    defaultValues: { text: saved },
+    validators: {
+      onChange: paymentInstructionsSchema,
+      onSubmit: paymentInstructionsSchema,
+    },
+    onSubmit: async ({ value }) => {
+      try {
+        await save.mutateAsync(value.text)
+        toast.success('Payment instructions saved')
+        onOpenChange(false)
+      } catch {
+        toast.error('Could not save. Try again.')
+      }
+    },
+  })
+  const [canSubmit, isSubmitting, value] = useStore(
+    form.store,
+    (s) => [s.canSubmit, s.isSubmitting, s.values.text] as const,
+  )
+  const dirty = value !== saved
+
+  // Start from the saved text every time the sheet opens (or it loads).
+  useEffect(() => {
+    if (open) form.reset({ text: saved })
+  }, [open, saved, form])
+
   return (
     <FormSheet
       open={open}
-      onOpenChange={(o) => {
-        if (!o) setText(null)
-        onOpenChange(o)
-      }}
+      onOpenChange={onOpenChange}
       title="Payment instructions"
       description="Shown to every clinic owner on Plan & billing — bank account, JazzCash number, who to send the receipt to."
       submitLabel="Save"
-      isSubmitting={save.isPending}
-      submitDisabled={!dirty || value.length > 2000}
-      onSubmit={() =>
-        save.mutate(value, {
-          onSuccess: () => {
-            toast.success('Payment instructions saved')
-            setText(null)
-            onOpenChange(false)
-          },
-          onError: () => toast.error('Could not save. Try again.'),
-        })
-      }
+      isSubmitting={save.isPending || isSubmitting}
+      submitDisabled={!dirty || !canSubmit}
+      onSubmit={() => void form.handleSubmit()}
     >
       {current.isLoading ? (
         <LoadingSkeleton variant="detail" />
       ) : current.isError ? (
         <ErrorState onRetry={() => void current.refetch()} />
       ) : (
-        <FieldWrapper
-          label="Instructions"
-          htmlFor="pay-instructions"
-          error={value.length > 2000 ? 'At most 2000 characters' : undefined}
-          hint={dirty ? 'Unsaved changes' : undefined}
-        >
-          <Textarea
-            id="pay-instructions"
-            rows={8}
-            value={value}
-            onChange={(e) => setText(e.target.value)}
-          />
-        </FieldWrapper>
+        <form.Field name="text">
+          {(field) => (
+            <FieldWrapper
+              label="Instructions"
+              htmlFor="pay-instructions"
+              error={fieldError(field)}
+              hint={dirty ? 'Unsaved changes' : undefined}
+            >
+              <Textarea
+                id="pay-instructions"
+                rows={8}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
+                onBlur={field.handleBlur}
+              />
+            </FieldWrapper>
+          )}
+        </form.Field>
       )}
     </FormSheet>
   )

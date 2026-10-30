@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { useForm } from '@tanstack/react-form'
 import type { User, UserRoleType } from '../types'
-import { useCreateUser, useStaffCandidates, useUpdateUser } from '../api'
+import { useStaffCandidates } from '../api'
+import { useUserForm } from '../hooks/useUserForm'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
+import { fieldError } from '@/components/forms/fieldError'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
+import { Loader2 } from 'lucide-react'
 
 interface UserFormDialogProps {
   open: boolean
@@ -35,69 +36,14 @@ export function UserFormDialog({
   user,
   activeTab,
 }: UserFormDialogProps) {
-  const { isSuperAdmin, activeOrganizationId } = useAuthStore()
-  const createMutation = useCreateUser(activeOrganizationId || undefined)
-  const updateMutation = useUpdateUser(activeOrganizationId || undefined)
-
-  const isEditing = !!user
-
-  // Local state for watched values used in conditional rendering
-  const [selectedType, setSelectedType] = useState<string>(activeTab)
-
-  const form = useForm({
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      type: activeTab as string,
-      status: 'active',
-      organizationId: '',
-      employeeId: '',
-    },
-    onSubmit: async ({ value }) => {
-      if (isEditing && user) {
-        updateMutation.mutate(
-          {
-            id: user.uuid,
-            payload: {
-              name: value.name,
-              email: value.email,
-              ...(value.password ? { password: value.password } : {}),
-              status: value.status,
-              type: value.type as UserRoleType,
-            },
-          },
-          {
-            onSuccess: () => {
-              onOpenChange(false)
-              form.reset()
-            },
-          },
-        )
-      } else {
-        createMutation.mutate(
-          {
-            name: value.name,
-            email: value.email,
-            password: value.password,
-            type: value.type as UserRoleType,
-            ...(value.type === 'employee'
-              ? { employeeId: value.employeeId }
-              : {}),
-            ...(value.organizationId
-              ? { organizationId: value.organizationId }
-              : {}),
-          },
-          {
-            onSuccess: () => {
-              onOpenChange(false)
-              form.reset()
-            },
-          },
-        )
-      }
-    },
-  })
+  const { activeOrganizationId } = useAuthStore()
+  const { form, isEditing, isPending, selectedType, isSuperAdmin } =
+    useUserForm({
+      open,
+      user,
+      activeTab,
+      onDone: () => onOpenChange(false),
+    })
 
   const { data: orgsData } = useQuery({
     queryKey: ['organizations'],
@@ -114,26 +60,6 @@ export function UserFormDialog({
     open && isStaff,
   )
 
-  useEffect(() => {
-    if (open) {
-      if (user) {
-        const type =
-          user.globalRole === 'super_admin' ? 'super_admin' : activeTab
-        form.setFieldValue('name', user.name || '')
-        form.setFieldValue('email', user.email || '')
-        form.setFieldValue('status', user.status || 'active')
-        form.setFieldValue('type', type)
-        setSelectedType(type)
-      } else {
-        form.reset()
-        form.setFieldValue('type', activeTab)
-        setSelectedType(activeTab)
-      }
-    }
-  }, [open, user, activeTab])
-
-  const isPending = createMutation.isPending || updateMutation.isPending
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -141,6 +67,7 @@ export function UserFormDialog({
           <DialogTitle>{isEditing ? 'Edit User' : 'Create User'}</DialogTitle>
         </DialogHeader>
         <form
+          noValidate
           onSubmit={(e) => {
             e.preventDefault()
             e.stopPropagation()
@@ -157,8 +84,13 @@ export function UserFormDialog({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  required
+                  aria-invalid={!!fieldError(field)}
                 />
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -173,8 +105,13 @@ export function UserFormDialog({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  required
+                  aria-invalid={!!fieldError(field)}
                 />
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -185,10 +122,7 @@ export function UserFormDialog({
                 <Label>Role</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(val) => {
-                    field.handleChange(val)
-                    setSelectedType(val)
-                  }}
+                  onValueChange={(val) => field.handleChange(val)}
                   disabled={isEditing}
                 >
                   <SelectTrigger>
@@ -215,13 +149,7 @@ export function UserFormDialog({
           </form.Field>
 
           {isStaff && (
-            <form.Field
-              name="employeeId"
-              validators={{
-                onSubmit: ({ value }) =>
-                  value ? undefined : 'Choose the employee',
-              }}
-            >
+            <form.Field name="employeeId">
               {(field) => (
                 <div className="space-y-2">
                   <Label>Employee</Label>
@@ -264,9 +192,9 @@ export function UserFormDialog({
                       Employee directory first.
                     </p>
                   )}
-                  {field.state.meta.errors[0] && (
+                  {fieldError(field) && (
                     <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -294,6 +222,11 @@ export function UserFormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldError(field) && (
+                    <p className="text-xs text-destructive">
+                      {fieldError(field)}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -311,7 +244,13 @@ export function UserFormDialog({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
+                  aria-invalid={!!fieldError(field)}
                 />
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -347,9 +286,19 @@ export function UserFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? 'Saving...' : 'Save'}
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting || isPending}
+                >
+                  {isPending && <Loader2 className="size-4 animate-spin" />}
+                  {isPending ? 'Saving...' : 'Save'}
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </DialogContent>

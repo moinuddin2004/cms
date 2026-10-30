@@ -14,9 +14,6 @@ import {
   BellRing,
   CreditCard,
 } from 'lucide-react'
-import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -29,7 +26,8 @@ import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 
 import { useAccess, useMyAccess } from '@/features/access'
-import apiClient from '@/lib/api'
+import { fieldError } from '@/components/forms/fieldError'
+import { useChangePasswordForm } from '../hooks/useChangePasswordForm'
 
 type SectionId = 'profile' | 'appearance' | 'security' | 'sessions'
 
@@ -341,50 +339,7 @@ function AppearanceSection() {
 function SecuritySection() {
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
-  const [globalError, setGlobalError] = useState('')
-
-  const changePasswordSchema = z
-    .object({
-      currentPassword: z.string().min(1, 'Current password is required'),
-      newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-      confirmPassword: z.string().min(6, 'Please confirm your password'),
-    })
-    .refine((data) => data.newPassword === data.confirmPassword, {
-      message: 'Passwords do not match',
-      path: ['confirmPassword'],
-    })
-
-  const form = useForm({
-    defaultValues: {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    },
-    onSubmit: async ({ value }) => {
-      setGlobalError('')
-      try {
-        const parsed = changePasswordSchema.parse(value)
-        await apiClient.post('/auth/change-password', {
-          currentPassword: parsed.currentPassword,
-          newPassword: parsed.newPassword,
-          revokeOtherSessions: true,
-        })
-        toast.success('Password changed!', {
-          description: 'Other sessions have been revoked.',
-        })
-        form.reset()
-      } catch (err: any) {
-        if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message)
-        } else {
-          const msg = err.response?.data?.message
-          setGlobalError(
-            Array.isArray(msg) ? msg[0] : msg || 'Failed to change password',
-          )
-        }
-      }
-    },
-  })
+  const { form, globalError } = useChangePasswordForm()
 
   return (
     <SettingsCard
@@ -392,6 +347,7 @@ function SecuritySection() {
       description="Update your password. Other sessions will be revoked for security."
     >
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -416,6 +372,7 @@ function SecuritySection() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   required
+                  aria-invalid={!!fieldError(field)}
                   className="h-10 pr-10"
                 />
                 <Button
@@ -433,6 +390,11 @@ function SecuritySection() {
                   )}
                 </Button>
               </div>
+              {fieldError(field) && (
+                <p className="text-xs font-medium text-danger">
+                  {fieldError(field)}
+                </p>
+              )}
             </div>
           )}
         </form.Field>
@@ -451,6 +413,7 @@ function SecuritySection() {
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   required
+                  aria-invalid={!!fieldError(field)}
                   className="h-10 pr-10"
                 />
                 <Button
@@ -468,6 +431,11 @@ function SecuritySection() {
                   )}
                 </Button>
               </div>
+              {fieldError(field) && (
+                <p className="text-xs font-medium text-danger">
+                  {fieldError(field)}
+                </p>
+              )}
               {field.state.value && (
                 <PasswordStrength password={field.state.value} />
               )}
@@ -491,8 +459,14 @@ function SecuritySection() {
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
                 required
+                aria-invalid={!!fieldError(field)}
                 className="h-10"
               />
+              {fieldError(field) && (
+                <p className="text-xs font-medium text-danger">
+                  {fieldError(field)}
+                </p>
+              )}
             </div>
           )}
         </form.Field>
@@ -503,9 +477,15 @@ function SecuritySection() {
           </div>
         )}
 
-        <form.Subscribe selector={(state) => state.isSubmitting}>
-          {(isSubmitting) => (
-            <Button type="submit" disabled={isSubmitting} className="h-10">
+        <form.Subscribe
+          selector={(state) => [state.canSubmit, state.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              disabled={!canSubmit || isSubmitting}
+              className="h-10"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" /> Updating...

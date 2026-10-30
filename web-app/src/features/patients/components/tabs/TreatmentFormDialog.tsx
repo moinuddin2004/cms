@@ -18,16 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
-import { useForm } from '@tanstack/react-form'
+import { fieldError } from '@/components/forms/fieldError'
 import { Loader2, Plus } from 'lucide-react'
-import {
-  useCreateTreatment,
-  usePatientHistory,
-} from '../../hooks/usePatientSubEntities'
-import { usePlanTemplates, templateTotalCost } from '@/features/plan-templates'
-import type { PlanTemplate } from '@/features/plan-templates'
-
-const today = () => new Date().toISOString().slice(0, 10)
+import { usePatientHistory } from '../../hooks/usePatientSubEntities'
+import { useTreatmentForm } from '../../hooks/useTreatmentForm'
+import { usePlanTemplates } from '@/features/plan-templates'
 
 interface TreatmentFormDialogProps {
   patientId: string
@@ -43,7 +38,6 @@ export function TreatmentFormDialog({
   trigger,
 }: TreatmentFormDialogProps) {
   const [open, setOpen] = useState(false)
-  const { mutate, isPending } = useCreateTreatment()
   const linkedMode = !!encounterId
 
   // Standalone mode lets the user optionally attach the treatment to a visit.
@@ -56,45 +50,14 @@ export function TreatmentFormDialog({
   // Which procedure of the picked plan this treatment is ('' = whole plan).
   const [procedure, setProcedure] = useState('')
 
-  const form = useForm({
-    defaultValues: {
-      planTemplateId: '',
-      treatmentName: '',
-      notes: '',
-      cost: undefined as number | undefined,
-      date: today(),
-      encounterId: encounterId ?? '',
-    },
-    onSubmit: async ({ value }) => {
-      mutate(
-        {
-          patientId,
-          planTemplateId: value.planTemplateId || undefined,
-          treatmentName: value.treatmentName.trim(),
-          notes: value.notes || undefined,
-          cost: value.cost,
-          date: value.date || undefined,
-          encounterId: value.encounterId || undefined,
-        },
-        {
-          onSuccess: () => {
-            form.reset()
-            setProcedure('')
-            setOpen(false)
-          },
-        },
-      )
+  const { form, isPending, applyPlan } = useTreatmentForm({
+    patientId,
+    encounterId,
+    onSaved: () => {
+      setProcedure('')
+      setOpen(false)
     },
   })
-
-  /** Fill name + cost from the picked plan (or one of its procedures). */
-  const applyPlan = (plan: PlanTemplate | undefined, item: string) => {
-    if (!plan) return
-    const picked = item === '' ? null : plan.items[Number(item)]
-    form.setFieldValue('treatmentName', picked?.procedureName ?? plan.name)
-    const cost = picked ? picked.estimatedCost : templateTotalCost(plan.items)
-    form.setFieldValue('cost', cost == null ? undefined : Number(cost))
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -180,13 +143,7 @@ export function TreatmentFormDialog({
             }}
           </form.Field>
 
-          <form.Field
-            name="treatmentName"
-            validators={{
-              onChange: ({ value }) =>
-                !value.trim() ? 'Treatment name is required' : undefined,
-            }}
-          >
+          <form.Field name="treatmentName">
             {(field) => (
               <div className="space-y-2">
                 <Label>
@@ -198,9 +155,9 @@ export function TreatmentFormDialog({
                   onBlur={field.handleBlur}
                   placeholder="e.g., Scaling & Polishing"
                 />
-                {field.state.meta.errors[0] && (
-                  <p className="text-[11px] text-destructive">
-                    {field.state.meta.errors[0]}
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
                   </p>
                 )}
               </div>
@@ -208,47 +165,29 @@ export function TreatmentFormDialog({
           </form.Field>
 
           <div className="grid grid-cols-2 gap-4">
-            <form.Field
-              name="cost"
-              validators={{
-                onChange: ({ value }) =>
-                  value !== undefined && value < 0
-                    ? 'Cost cannot be negative'
-                    : undefined,
-              }}
-            >
+            <form.Field name="cost">
               {(field) => (
                 <div className="space-y-2">
                   <Label>Cost (Rs.)</Label>
                   <Input
                     type="number"
                     min={0}
-                    value={field.state.value ?? ''}
-                    onChange={(e) =>
-                      field.handleChange(
-                        e.target.value === ''
-                          ? undefined
-                          : Number(e.target.value),
-                      )
-                    }
+                    step="0.01"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
                     placeholder="0"
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-[11px] text-destructive">
-                      {field.state.meta.errors[0]}
+                  {fieldError(field) && (
+                    <p className="text-xs font-medium text-danger">
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
               )}
             </form.Field>
 
-            <form.Field
-              name="date"
-              validators={{
-                onChange: ({ value }) =>
-                  !value ? 'Date is required' : undefined,
-              }}
-            >
+            <form.Field name="date">
               {(field) => (
                 <div className="space-y-2">
                   <Label>
@@ -256,11 +195,14 @@ export function TreatmentFormDialog({
                   </Label>
                   <DatePicker
                     value={field.state.value}
-                    onChange={(v) => field.handleChange(v)}
+                    onChange={(v) => {
+                      field.handleChange(v)
+                      field.handleBlur()
+                    }}
                   />
-                  {field.state.meta.errors[0] && (
-                    <p className="text-[11px] text-destructive">
-                      {field.state.meta.errors[0]}
+                  {fieldError(field) && (
+                    <p className="text-xs font-medium text-danger">
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -323,12 +265,12 @@ export function TreatmentFormDialog({
               Cancel
             </Button>
             <form.Subscribe
-              selector={(s) => [s.canSubmit, s.values.treatmentName] as const}
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
             >
-              {([canSubmit, name]) => (
+              {([canSubmit, isSubmitting]) => (
                 <Button
                   type="submit"
-                  disabled={isPending || !canSubmit || !name.trim()}
+                  disabled={!canSubmit || isSubmitting || isPending}
                 >
                   {isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

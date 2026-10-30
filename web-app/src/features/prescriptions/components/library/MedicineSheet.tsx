@@ -1,35 +1,21 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormInput } from '@/components/forms/FormInput'
 import { FormSelect } from '@/components/forms/FormSelect'
 import { FormSection, FormSheet } from '@/components/forms/FormSheet'
+import { fieldError } from '@/components/forms/fieldError'
 import {
   DURATION_PRESETS,
   FREQUENCY_PRESETS,
   MEAL_RELATION_OPTIONS,
   MEDICINE_TYPE_OPTIONS,
+} from '../../types'
+import type {
   MealRelation,
+  MedicineDirectoryItem,
   MedicineType,
 } from '../../types'
-import type { MedicineDirectoryItem } from '../../types'
-import {
-  useCreateMedicine,
-  useUpdateMedicine,
-} from '../../hooks/useMedicineDirectory'
-
-const defaultsFor = (item: MedicineDirectoryItem | null) => ({
-  name: item?.name ?? '',
-  genericName: item?.genericName ?? '',
-  nameUrdu: item?.nameUrdu ?? '',
-  type: item?.type ?? MedicineType.TABLET,
-  strength: item?.strength ?? '',
-  defaultDosage: item?.defaultDosage ?? '',
-  defaultFrequency: item?.defaultFrequency ?? '',
-  defaultDuration: item?.defaultDuration ?? '',
-  defaultMealRelation: item?.defaultMealRelation ?? MealRelation.NONE,
-})
+import { useMedicineForm } from '../../hooks/useMedicineForm'
 
 /** Add or edit one medicine in the catalogue. */
 export function MedicineSheet({
@@ -41,35 +27,11 @@ export function MedicineSheet({
   onOpenChange: (open: boolean) => void
   item: MedicineDirectoryItem | null
 }) {
-  const create = useCreateMedicine()
-  const update = useUpdateMedicine()
-  const pending = create.isPending || update.isPending
-
-  const form = useForm({
-    defaultValues: defaultsFor(item),
-    onSubmit: async ({ value }) => {
-      const blank = (v: string) => v.trim() || null
-      const payload = {
-        name: value.name.trim(),
-        genericName: blank(value.genericName),
-        nameUrdu: blank(value.nameUrdu),
-        type: value.type,
-        strength: blank(value.strength),
-        defaultDosage: blank(value.defaultDosage),
-        defaultFrequency: blank(value.defaultFrequency),
-        defaultDuration: blank(value.defaultDuration),
-        defaultMealRelation: value.defaultMealRelation,
-      }
-      if (item) await update.mutateAsync({ id: item.id, data: payload })
-      else await create.mutateAsync(payload)
-      onOpenChange(false)
-    },
+  const { form, pending } = useMedicineForm({
+    open,
+    item,
+    onDone: () => onOpenChange(false),
   })
-
-  // The sheet stays mounted; start each opening from the right medicine.
-  useEffect(() => {
-    if (open) form.reset(defaultsFor(item))
-  }, [open, item])
 
   return (
     <FormSheet
@@ -117,13 +79,7 @@ export function MedicineSheet({
         }}
       >
         <FormSection title="Medicine">
-          <form.Field
-            name="name"
-            validators={{
-              onChange: ({ value }) =>
-                value.trim() ? undefined : 'Name is required',
-            }}
-          >
+          <form.Field name="name">
             {(field) => (
               <FormInput
                 label="Name"
@@ -131,7 +87,7 @@ export function MedicineSheet({
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                error={field.state.meta.errors[0]}
+                error={fieldError(field)}
                 placeholder="Augmentin 625mg Tab"
               />
             )}
@@ -141,6 +97,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="Generic name"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="Amoxicillin + Clavulanate"
@@ -151,6 +109,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="Urdu name"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   dir="rtl"
@@ -176,6 +136,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="Strength"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="500mg"
@@ -191,6 +153,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="Dose"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   placeholder="1"
@@ -214,6 +178,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="How often"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   list="med-frequency-presets"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -225,6 +191,8 @@ export function MedicineSheet({
               {(field) => (
                 <FormInput
                   label="For how long"
+                  onBlur={field.handleBlur}
+                  error={fieldError(field)}
                   list="med-duration-presets"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}

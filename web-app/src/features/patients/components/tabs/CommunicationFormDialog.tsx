@@ -17,38 +17,16 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Textarea } from '@/components/ui/textarea'
-import { useForm } from '@tanstack/react-form'
-import { useCreateCommunication } from '../../hooks/usePatientSubEntities'
-import { useAuthStore } from '@/store/useAuthStore'
+import { fieldError } from '@/components/forms/fieldError'
+import { useCommunicationForm } from '../../hooks/useCommunicationForm'
+import type { CommDirection, CommPurpose, CommType } from '../../types'
 import { Loader2, PhoneCall } from 'lucide-react'
 
 export function CommunicationFormDialog({ patientId }: { patientId: string }) {
   const [open, setOpen] = useState(false)
-  const { mutate, isPending } = useCreateCommunication()
-  const { user } = useAuthStore()
-
-  const form = useForm({
-    defaultValues: {
-      type: 'phone_call',
-      direction: 'outbound',
-      purpose: 'general_inquiry',
-      subject: '',
-      messageBody: '',
-      status: 'completed',
-    },
-    onSubmit: async ({ value }) => {
-      if (!user?.uuid) return
-      mutate(
-        {
-          patientId,
-          ...value,
-          sentBy: user.uuid,
-        },
-        {
-          onSuccess: () => setOpen(false),
-        },
-      )
-    },
+  const { form, isPending } = useCommunicationForm({
+    patientId,
+    onSaved: () => setOpen(false),
   })
 
   return (
@@ -77,13 +55,13 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
                   <Label>Type</Label>
                   <Select
                     value={field.state.value}
-                    onValueChange={(v) => field.handleChange(v)}
+                    onValueChange={(v) => field.handleChange(v as CommType)}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="phone_call">Phone Call</SelectItem>
+                      <SelectItem value="call">Phone Call</SelectItem>
                       <SelectItem value="whatsapp">WhatsApp</SelectItem>
                       <SelectItem value="sms">SMS</SelectItem>
                       <SelectItem value="email">Email</SelectItem>
@@ -100,7 +78,9 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
                   <Label>Direction</Label>
                   <Select
                     value={field.state.value}
-                    onValueChange={(v) => field.handleChange(v)}
+                    onValueChange={(v) =>
+                      field.handleChange(v as CommDirection)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -125,7 +105,7 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
                 <Label>Purpose</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(v) => field.handleChange(v)}
+                  onValueChange={(v) => field.handleChange(v as CommPurpose)}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -134,15 +114,20 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
                     <SelectItem value="appointment_reminder">
                       Appointment Reminder
                     </SelectItem>
+                    <SelectItem value="appointment_confirmation">
+                      Appointment Confirmation
+                    </SelectItem>
+                    <SelectItem value="appointment_cancellation">
+                      Appointment Cancellation
+                    </SelectItem>
+                    <SelectItem value="recall_reminder">
+                      Recall Reminder
+                    </SelectItem>
                     <SelectItem value="follow_up">Follow Up</SelectItem>
-                    <SelectItem value="general_inquiry">
-                      General Inquiry
-                    </SelectItem>
-                    <SelectItem value="treatment_discussion">
-                      Treatment Discussion
-                    </SelectItem>
                     <SelectItem value="billing">Billing/Payment</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="marketing">Marketing</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -156,8 +141,14 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
                 <Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="Summary of call"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -185,10 +176,21 @@ export function CommunicationFormDialog({ patientId }: { patientId: string }) {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Log
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting || isPending}
+                >
+                  {isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Log
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </DialogContent>

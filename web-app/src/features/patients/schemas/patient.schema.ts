@@ -10,67 +10,127 @@ import {
 
 const phoneRe = /^[0-9+\-\s()]{7,20}$/
 const cnicRe = /^\d{5}-\d{7}-\d$/
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const optionalPhone = z
-  .string()
-  .trim()
-  .refine((v) => !v || phoneRe.test(v), 'Phone number looks invalid')
-  .optional()
-  .or(z.literal(''))
+const phoneOk = (v: string) => !v.trim() || phoneRe.test(v.trim())
+
+const optionalPhone = (message: string) => z.string().refine(phoneOk, message)
+
+const max = (n: number) => z.string().max(n, `At most ${n} characters`)
 
 /**
- * Zod schema for the patient create/edit form. Mirrors the field-level rules
- * enforced in PatientForm so validation lives in one place per CLAUDE.md.
+ * Patient create/edit form (PatientForm). Values stay exactly as typed — the
+ * form submits them as-is — so rules only check, they never transform.
  */
-export const patientSchema = z.object({
-  fullName: z.string().trim().min(1, 'Full name is required'),
-  phone: z
-    .string()
-    .trim()
-    .min(1, 'Phone number is required')
-    .regex(phoneRe, 'Phone number looks invalid (7–20 digits)'),
-  whatsappNumber: optionalPhone,
-  dob: z
-    .string()
-    .refine((v) => !v || new Date(v) <= new Date(), 'Date of birth cannot be in the future')
-    .optional()
-    .or(z.literal('')),
-  gender: z.nativeEnum(Gender).optional(),
-  bloodGroup: z.nativeEnum(BloodGroup).optional(),
-  maritalStatus: z.nativeEnum(MaritalStatus).optional(),
-  cnic: z
-    .string()
-    .trim()
-    .refine((v) => !v || cnicRe.test(v), 'CNIC must look like 42101-1234567-1')
-    .optional()
-    .or(z.literal('')),
-  email: z.string().trim().email('Email address is invalid').optional().or(z.literal('')),
-  city: z.string().optional(),
-  address: z.string().optional(),
-  preferredLanguage: z.nativeEnum(Language).optional(),
-  communicationPref: z.nativeEnum(CommunicationPreference).optional(),
-  source: z.nativeEnum(PatientSource).optional(),
-  referredByText: z.string().optional(),
-  occupation: z.string().optional(),
-  internalNotes: z.string().optional(),
-  tags: z.array(z.string()).default([]),
-  isMinor: z.boolean().default(false),
-  guardianName: z.string().optional(),
-  guardianPhone: optionalPhone,
-  guardianRelation: z.string().optional(),
-  medicalHistory: z.string().optional(),
-  allergies: z.string().optional(),
-  emergencyContactName: z.string().optional(),
-  emergencyContactPhone: optionalPhone,
-  emergencyContactRelation: z.string().optional(),
-}).superRefine((val, ctx) => {
-  if (val.isMinor && !val.guardianName?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['guardianName'],
-      message: 'Guardian name is required for minor patients',
-    })
-  }
-})
+export const patientSchema = z
+  .object({
+    // Step 0 — Basic, Guardian, Emergency & Medical
+    fullName: max(150).refine((v) => !!v.trim(), 'Full Name is required'),
+    phone: z
+      .string()
+      .refine((v) => !!v.trim(), 'Phone Number is required')
+      .refine(phoneOk, 'Phone Number looks invalid (7–20 digits)'),
+    whatsappNumber: optionalPhone('WhatsApp Number looks invalid'),
+    dob: z
+      .string()
+      .refine(
+        (v) => !v || new Date(v) <= new Date(),
+        'Date of Birth cannot be in the future',
+      ),
+    gender: z.enum(Gender).optional(),
+    bloodGroup: z.enum(BloodGroup).optional(),
+    maritalStatus: z.enum(MaritalStatus).optional(),
+    cnic: z
+      .string()
+      .refine(
+        (v) => !v.trim() || cnicRe.test(v.trim()),
+        'CNIC must look like 42101-1234567-1',
+      ),
+    email: z
+      .string()
+      .refine(
+        (v) => !v.trim() || emailRe.test(v.trim()),
+        'Email address is invalid',
+      ),
+    city: max(100),
+    address: z.string(),
+    isMinor: z.boolean(),
+    guardianName: max(150),
+    guardianPhone: z.string(),
+    guardianRelation: max(50),
+    medicalHistory: z.string(),
+    allergies: z.string(),
+    emergencyContactName: max(150),
+    emergencyContactPhone: optionalPhone(
+      'Emergency Contact Phone looks invalid',
+    ),
+    emergencyContactRelation: max(50),
 
-export type PatientSchema = z.infer<typeof patientSchema>
+    // Step 1 — Clinic Info
+    preferredLanguage: z.enum(Language),
+    communicationPref: z.enum(CommunicationPreference, {
+      message: 'Select a communication preference',
+    }),
+    source: z.enum(PatientSource, { message: 'Select a source' }),
+    referredByText: max(200),
+    occupation: max(100),
+    internalNotes: z.string(),
+    tags: z.array(z.string()),
+  })
+  .superRefine((v, ctx) => {
+    // Guardian fields only exist (and only matter) for minor patients.
+    if (!v.isMinor) return
+    if (!v.guardianName.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['guardianName'],
+        message: 'Guardian Name is required for minor patients',
+      })
+    }
+    if (!phoneOk(v.guardianPhone)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['guardianPhone'],
+        message: 'Guardian Phone looks invalid',
+      })
+    }
+  })
+
+export type PatientFormValues = z.input<typeof patientSchema>
+
+/** Fields shown on each PatientForm step — used to gate "Next". */
+export const PATIENT_STEP_FIELDS: ReadonlyArray<
+  ReadonlyArray<keyof PatientFormValues>
+> = [
+  [
+    'fullName',
+    'phone',
+    'whatsappNumber',
+    'dob',
+    'gender',
+    'bloodGroup',
+    'maritalStatus',
+    'cnic',
+    'email',
+    'city',
+    'address',
+    'isMinor',
+    'guardianName',
+    'guardianPhone',
+    'guardianRelation',
+    'medicalHistory',
+    'allergies',
+    'emergencyContactName',
+    'emergencyContactPhone',
+    'emergencyContactRelation',
+  ],
+  [
+    'preferredLanguage',
+    'communicationPref',
+    'source',
+    'referredByText',
+    'occupation',
+    'internalNotes',
+    'tags',
+  ],
+]

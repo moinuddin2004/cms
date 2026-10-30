@@ -1,35 +1,35 @@
 {
   "note": "Localhost-only test credentials for the acceptance browser run (schema acceptit).",
   "password": "Acceptance#Test12345",
-  "organizationId": "31463883-0550-4a23-bc83-3e218dadfb62",
+  "organizationId": "29baa8c9-d578-4e58-8e61-e45f888916ef",
   "locations": {
-    "L1": "eae9698f-c8d0-428f-b5b2-0c733399ffaa",
-    "L2": "48b15057-5320-4b64-90e4-3b218fabcab7"
+    "L1": "270899d3-6332-4b84-add8-41c00d5abf35",
+    "L2": "0204726d-4d25-4c8d-bc52-3f688770c842"
   },
   "users": {
     "OwnerA": {
       "email": "ownera@browser.acceptance-it.test",
-      "userId": "9aa2469a-4fef-4c47-a1ea-29e8ea2c0cd0"
+      "userId": "ec8e9be9-14c4-4631-853a-a6cec1482ea9"
     },
     "AdminU": {
       "email": "adminu@browser.acceptance-it.test",
-      "userId": "1e2484f2-aee9-4b60-a8dc-51f739c4a0ff"
+      "userId": "7801aa0c-baf6-4129-ae42-d21d1fcc687d"
     },
     "Doc1": {
       "email": "doc1@browser.acceptance-it.test",
-      "userId": "67c4eb89-c7de-4d2e-9968-80f30e037fda"
+      "userId": "3684fdf1-f94a-4a98-bd23-9f110c1a5b0b"
     },
     "RecU": {
       "email": "recu@browser.acceptance-it.test",
-      "userId": "c80edab2-d981-49f9-a1ec-d9a7dd49189a"
+      "userId": "85e2a65b-6860-4196-9a14-457bd2cc5cf9"
     },
     "AcctU": {
       "email": "acctu@browser.acceptance-it.test",
-      "userId": "fc9e6614-3d3c-46ae-8366-6fb283d9e621"
+      "userId": "21430249-ddd8-4905-8e7f-34877ebc0372"
     },
     "SA": {
       "email": "sa@browser.acceptance-it.test",
-      "userId": "a531b0b8-920a-41ca-a1a8-55080de2e45f"
+      "userId": "cc64ee5a-40bf-4698-a676-f739d7bf266e"
     }
   }
 }

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useStore } from '@tanstack/react-form'
 import { toast } from 'sonner'
 import {
   Loader2,
@@ -41,6 +42,9 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -51,17 +55,19 @@ import {
 import { useTreatmentPlanTemplates } from '../hooks/useTreatmentPlanTemplates'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import {
-  useCreatePrescription,
   useFinalizePrescription,
   usePrescription,
-  useUpdatePrescription,
 } from '../hooks/usePrescriptions'
 import { useMySignature, useSaveMySignature } from '../hooks/useDoctorSignature'
 import {
+  emptyMedicineLine,
+  toMedicineLine,
+  usePrescriptionForm,
+} from '../hooks/usePrescriptionForm'
+import type { PrescriptionPatient } from '../schemas/prescription.schema'
+import {
   MealRelation,
   PrescriptionStatus,
-  type PrescriptionMedicine,
-  type Prescription,
   DURATION_PRESETS,
   presetCategoryLabel,
   FREQUENCY_PRESETS,
@@ -71,11 +77,10 @@ import {
   MedicineAutocomplete,
   medicineFromDirectory,
 } from './MedicineAutocomplete'
-import { PrescriptionPreview, type PreviewData } from './PrescriptionPreview'
-import {
-  SignaturePad,
-  type SignaturePadHandle,
-} from '@/components/shared/SignaturePad'
+import { PrescriptionPreview } from './PrescriptionPreview'
+import type { PreviewData } from './PrescriptionPreview'
+import { SignaturePad } from '@/components/shared/SignaturePad'
+import type { SignaturePadHandle } from '@/components/shared/SignaturePad'
 import { fetchPrescriptionPdf } from '../services/prescriptions.api'
 
 interface BuilderProps {
@@ -87,24 +92,29 @@ interface BuilderProps {
   initialAppointmentId?: string
 }
 
-interface PatientLite {
-  id: string
-  fullName: string
-  phone: string
-  patientNumber?: string
-  dob?: string | null
-  gender?: string | null
-}
+const toPatient = (p: any): PrescriptionPatient => ({
+  id: p.id,
+  fullName: p.fullName,
+  phone: p.phone,
+  patientNumber: p.patientNumber,
+  dob: p.dob ?? null,
+  gender: p.gender ?? null,
+})
 
-function emptyLine(): PrescriptionMedicine {
-  return {
-    medicineName: '',
-    dosage: '1',
-    frequency: '',
-    frequencyTiming: [],
-    mealRelation: MealRelation.NONE,
-    duration: '',
-  }
+/** The list-level medicines error ("Add at least one medicine"). */
+function listError(meds: {
+  state: { meta: { errors: unknown[] } }
+  form: { state: { isTouched: boolean; submissionAttempts: number } }
+}) {
+  return fieldError({
+    state: {
+      meta: {
+        errors: meds.state.meta.errors,
+        isTouched: meds.form.state.isTouched,
+      },
+    },
+    form: meds.form,
+  })
 }
 
 export function PrescriptionBuilder({
@@ -119,29 +129,15 @@ export function PrescriptionBuilder({
   const { data: existing, isLoading: loadingExisting } =
     usePrescription(prescriptionId)
 
-  // ── Build / edit state ──────────────────────────────────────────────
-  const [patient, setPatient] = useState<PatientLite | null>(null)
-  const [diagnosis, setDiagnosis] = useState('')
-  const [chiefComplaint, setChiefComplaint] = useState('')
-  const [furtherPlan, setFurtherPlan] = useState('')
-  const [instructionsEnglish, setInstructionsEnglish] = useState('')
-  const [instructionsUrdu, setInstructionsUrdu] = useState('')
-  const [vitals, setVitals] = useState({
-    bp: '',
-    pulse: '',
-    temperature: '',
-    spo2: '',
-    weight: '',
-    height: '',
+  // ── Form ────────────────────────────────────────────────────────────
+  const [signatureOpen, setSignatureOpen] = useState(false)
+  const { form, createMutation, pending } = usePrescriptionForm({
+    existing,
+    initialAppointmentId,
+    onReadyToSign: () => setSignatureOpen(true),
   })
-  const [medicines, setMedicines] = useState<PrescriptionMedicine[]>([
-    emptyLine(),
-  ])
-  const [templateId, setTemplateId] = useState<string | null>(null)
-  const [treatmentPlanTemplateId, setTreatmentPlanTemplateId] = useState<
-    string | null
-  >(null)
-  const [doctorId, setDoctorId] = useState<string | null>(null)
+  const values = useStore(form.store, (s) => s.values)
+  const patient = values.patient
 
   // ── Template data ──────────────────────────────────────────────────
   const { activeLocationId } = useAuthStore()
@@ -155,19 +151,24 @@ export function PrescriptionBuilder({
   const { data: doctors = [] } = useDoctors()
   const { data: mySignature } = useMySignature()
   const selectedDoctor = useMemo(
-    () => doctors.find((d) => d.id === doctorId) ?? null,
-    [doctors, doctorId],
+    () => doctors.find((d) => d.id === values.doctorId) ?? null,
+    [doctors, values.doctorId],
   )
 
   const activeTemplate = useMemo(
-    () => templates.find((t) => t.id === templateId) ?? defaultTemplate ?? null,
-    [templates, templateId, defaultTemplate],
+    () =>
+      templates.find((t) => t.id === values.templateId) ??
+      defaultTemplate ??
+      null,
+    [templates, values.templateId, defaultTemplate],
   )
 
-  // ── Patient picker ──────────────────────────────────────────────────
+  // ── Patient picker (search box is not form data) ───────────────────
   const [patientQuery, setPatientQuery] = useState('')
   const [patientOpen, setPatientOpen] = useState(false)
-  const [patientResults, setPatientResults] = useState<PatientLite[]>([])
+  const [patientResults, setPatientResults] = useState<PrescriptionPatient[]>(
+    [],
+  )
   const [patientLoading, setPatientLoading] = useState(false)
 
   useEffect(() => {
@@ -182,16 +183,7 @@ export function PrescriptionBuilder({
           params: { search: patientQuery, limit: 10 },
         })
         const list = data?.data?.data || data?.data || []
-        setPatientResults(
-          list.map((p: any) => ({
-            id: p.id,
-            fullName: p.fullName,
-            phone: p.phone,
-            patientNumber: p.patientNumber,
-            dob: p.dob ?? null,
-            gender: p.gender ?? null,
-          })),
-        )
+        setPatientResults(list.map(toPatient))
       } catch {
         // ignore
       } finally {
@@ -203,162 +195,20 @@ export function PrescriptionBuilder({
 
   // Pre-select an initial patient when opened from a patient page.
   useEffect(() => {
-    if (!initialPatientId || patient) return
+    if (!initialPatientId || form.getFieldValue('patient')) return
     api
       .get(`/patients/${initialPatientId}`)
       .then(({ data }) => {
         const p = data?.data
-        if (p) {
-          setPatient({
-            id: p.id,
-            fullName: p.fullName,
-            phone: p.phone,
-            patientNumber: p.patientNumber,
-            dob: p.dob ?? null,
-            gender: p.gender ?? null,
-          })
-        }
+        if (p && !form.getFieldValue('patient'))
+          form.setFieldValue('patient', toPatient(p))
       })
       .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialPatientId])
-
-  // Hydrate state from a loaded existing prescription
-  useEffect(() => {
-    if (!existing) return
-    setPatient({
-      id: existing.patient?.id ?? existing.patientId,
-      fullName: existing.patient?.fullName ?? '',
-      phone: existing.patient?.phone ?? '',
-      patientNumber: existing.patient?.patientNumber,
-      dob: existing.patient?.dob ?? null,
-      gender: existing.patient?.gender ?? null,
-    })
-    setDiagnosis(existing.diagnosis ?? '')
-    setChiefComplaint(existing.chiefComplaint ?? '')
-    setFurtherPlan(existing.furtherPlan ?? '')
-    setInstructionsEnglish(existing.instructionsEnglish ?? '')
-    setInstructionsUrdu(existing.instructionsUrdu ?? '')
-    setVitals({
-      bp: existing.vitals?.bp ?? '',
-      pulse: existing.vitals?.pulse ?? '',
-      temperature: existing.vitals?.temperature ?? '',
-      spo2: existing.vitals?.spo2 ?? '',
-      weight: existing.vitals?.weight ?? '',
-      height: existing.vitals?.height ?? '',
-    })
-    setMedicines(
-      existing.medicines && existing.medicines.length > 0
-        ? existing.medicines
-        : [emptyLine()],
-    )
-    setTemplateId(existing.prescriptionTemplateId)
-    setTreatmentPlanTemplateId(existing.treatmentPlanTemplateId)
-    setDoctorId(existing.doctorId ?? existing.doctor?.id ?? null)
-  }, [existing])
-
-  // ── Mutations ───────────────────────────────────────────────────────
-  const createMutation = useCreatePrescription()
-  const updateMutation = useUpdatePrescription()
-  const finalizeMutation = useFinalizePrescription()
-
-  const buildPayload = useCallback(
-    () => ({
-      patientId: patient?.id,
-      appointmentId: initialAppointmentId,
-      doctorId: doctorId ?? undefined,
-      prescriptionTemplateId: templateId ?? undefined,
-      treatmentPlanTemplateId: treatmentPlanTemplateId ?? undefined,
-      diagnosis: diagnosis || undefined,
-      chiefComplaint: chiefComplaint || undefined,
-      furtherPlan: furtherPlan || undefined,
-      instructionsEnglish: instructionsEnglish || undefined,
-      instructionsUrdu: instructionsUrdu || undefined,
-      vitals: anyVitals(vitals) ? vitals : undefined,
-      medicines: medicines
-        .filter((m) => m.medicineName.trim())
-        .map((m, idx) => ({ ...m, sortOrder: idx })),
-    }),
-    [
-      patient,
-      initialAppointmentId,
-      doctorId,
-      templateId,
-      treatmentPlanTemplateId,
-      diagnosis,
-      chiefComplaint,
-      furtherPlan,
-      instructionsEnglish,
-      instructionsUrdu,
-      vitals,
-      medicines,
-    ],
-  )
-
-  const handleSaveDraft = useCallback(async () => {
-    if (!patient) {
-      toast.error('Please select a patient first')
-      return
-    }
-    const payload = buildPayload()
-    if (!payload.medicines || payload.medicines.length === 0) {
-      toast.error('Add at least one medicine')
-      return
-    }
-    if (isEditing && existing) {
-      const updated = await updateMutation.mutateAsync({
-        id: existing.id,
-        data: payload as any,
-      })
-      toast.success('Draft saved')
-      return updated
-    }
-    const created = await createMutation.mutateAsync(payload as any)
-    toast.success('Draft created')
-    ;(navigate as any)({
-      to: '/prescriptions/$prescriptionId',
-      params: { prescriptionId: created.id },
-    })
-    return created
-  }, [
-    patient,
-    buildPayload,
-    isEditing,
-    existing,
-    updateMutation,
-    createMutation,
-    navigate,
-  ])
+  }, [initialPatientId, form])
 
   // ── Finalize flow ───────────────────────────────────────────────────
-  const [signatureOpen, setSignatureOpen] = useState(false)
+  const finalizeMutation = useFinalizePrescription()
   const sigPadRef = useRef<SignaturePadHandle>(null)
-
-  const handleFinalize = async () => {
-    if (!patient) {
-      toast.error('Please select a patient first')
-      return
-    }
-    const payload = buildPayload()
-    if (!payload.medicines || payload.medicines.length === 0) {
-      toast.error('Add at least one medicine')
-      return
-    }
-    // Ensure we have a saved prescription first
-    let target: Prescription | undefined =
-      (existing as Prescription) ?? undefined
-    if (!isEditing) {
-      target = await createMutation.mutateAsync(payload as any)
-    } else if (existing) {
-      target = await updateMutation.mutateAsync({
-        id: existing.id,
-        data: payload as any,
-      })
-    }
-    if (!target) return
-    setSignatureOpen(true)
-  }
-
   const saveSignatureMutation = useSaveMySignature()
 
   const confirmFinalize = async () => {
@@ -404,27 +254,25 @@ export function PrescriptionBuilder({
   const applyPlanTemplate = (templateIdToApply: string) => {
     const tpl = planTemplates.find((p) => p.id === templateIdToApply)
     if (!tpl) return
-    setTreatmentPlanTemplateId(tpl.id)
-    setMedicines(
-      tpl.medicines.map((m) => ({
-        medicineDirectoryId: m.medicineDirectoryId ?? undefined,
-        medicineName: m.medicineName,
-        medicineNameUrdu: m.medicineNameUrdu,
-        type: m.type,
-        dosage: m.dosage,
-        frequency: m.frequency,
-        frequencyTiming: m.frequencyTiming ?? [],
-        mealRelation: m.mealRelation,
-        duration: m.duration,
-        specialInstructions: m.specialInstructions,
-        specialInstructionsUrdu: m.specialInstructionsUrdu,
-      })),
+    form.setFieldValue('treatmentPlanTemplateId', tpl.id)
+    form.setFieldValue(
+      'medicines',
+      tpl.medicines.length
+        ? tpl.medicines.map((m) =>
+            toMedicineLine({
+              ...m,
+              medicineDirectoryId: m.medicineDirectoryId ?? undefined,
+            }),
+          )
+        : [emptyMedicineLine()],
     )
-    if (!furtherPlan && tpl.furtherPlan) setFurtherPlan(tpl.furtherPlan)
-    if (!instructionsEnglish && tpl.instructionsEnglish)
-      setInstructionsEnglish(tpl.instructionsEnglish)
-    if (!instructionsUrdu && tpl.instructionsUrdu)
-      setInstructionsUrdu(tpl.instructionsUrdu)
+    const v = form.state.values
+    if (!v.furtherPlan && tpl.furtherPlan)
+      form.setFieldValue('furtherPlan', tpl.furtherPlan)
+    if (!v.instructionsEnglish && tpl.instructionsEnglish)
+      form.setFieldValue('instructionsEnglish', tpl.instructionsEnglish)
+    if (!v.instructionsUrdu && tpl.instructionsUrdu)
+      form.setFieldValue('instructionsUrdu', tpl.instructionsUrdu)
     toast.success(`Applied template: ${tpl.name}`)
   }
 
@@ -468,26 +316,15 @@ export function PrescriptionBuilder({
               designation: selectedDoctor.designation,
             }
           : null),
-      diagnosis,
-      chiefComplaint,
-      furtherPlan,
-      instructionsEnglish,
-      instructionsUrdu,
-      vitals,
-      medicines,
+      diagnosis: values.diagnosis,
+      chiefComplaint: values.chiefComplaint,
+      furtherPlan: values.furtherPlan,
+      instructionsEnglish: values.instructionsEnglish,
+      instructionsUrdu: values.instructionsUrdu,
+      vitals: values.vitals,
+      medicines: values.medicines,
     }),
-    [
-      existing,
-      patient,
-      selectedDoctor,
-      diagnosis,
-      chiefComplaint,
-      furtherPlan,
-      instructionsEnglish,
-      instructionsUrdu,
-      vitals,
-      medicines,
-    ],
+    [existing, patient, selectedDoctor, values],
   )
 
   if (isEditing && loadingExisting) {
@@ -499,7 +336,6 @@ export function PrescriptionBuilder({
   }
 
   const finalized = existing?.status === PrescriptionStatus.FINALIZED
-  const readOnly = false // amendments allowed — finalize amends via the same flow
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
@@ -572,22 +408,26 @@ export function PrescriptionBuilder({
               </Link>
             </Button>
           ) : (
-            <Select
-              clearable={false}
-              value={templateId ?? defaultTemplate?.id ?? ''}
-              onValueChange={(v) => setTemplateId(v)}
-            >
-              <SelectTrigger className="h-9 w-[200px] text-xs">
-                <SelectValue placeholder="Layout" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} {t.isDefault && '(default)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <form.Field name="templateId">
+              {(field) => (
+                <Select
+                  clearable={false}
+                  value={field.state.value || defaultTemplate?.id || ''}
+                  onValueChange={(v) => field.handleChange(v)}
+                >
+                  <SelectTrigger className="h-9 w-[200px] text-xs">
+                    <SelectValue placeholder="Layout" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name} {t.isDefault && '(default)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </form.Field>
           )}
 
           {existing && (
@@ -627,129 +467,167 @@ export function PrescriptionBuilder({
         </div>
 
         {/* Patient */}
-        <div className="bg-card border rounded-lg p-3 space-y-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Patient
-          </Label>
-          {patient ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-sm">{patient.fullName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {patient.patientNumber ?? ''} · {patient.phone}
-                </p>
-              </div>
-              {!isEditing && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPatient(null)}
-                >
-                  Change
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                value={patientQuery}
-                onChange={(e) => {
-                  setPatientQuery(e.target.value)
-                  setPatientOpen(true)
-                }}
-                onFocus={() => setPatientOpen(true)}
-                placeholder="Search patient by name or phone…"
-                className="pl-9 h-9"
-              />
-              {patientOpen && patientQuery.trim().length >= 2 && (
-                <div className="absolute z-20 mt-1 w-full bg-popover border rounded-md shadow-lg max-h-72 overflow-y-auto">
-                  {patientLoading && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      Searching…
-                    </div>
-                  )}
-                  {!patientLoading && patientResults.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      No patients found
-                    </div>
-                  )}
-                  {patientResults.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setPatient(p)
-                        setPatientOpen(false)
-                        setPatientQuery('')
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                    >
-                      <p className="font-medium">{p.fullName}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {p.patientNumber} · {p.phone}
+        <form.Field name="patient">
+          {(field) => (
+            <div className="bg-card border rounded-lg p-3 space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Patient
+              </Label>
+              <FieldWrapper error={fieldError(field)}>
+                {field.state.value ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm">
+                        {field.state.value.fullName}
                       </p>
-                    </button>
-                  ))}
-                </div>
-              )}
+                      <p className="text-xs text-muted-foreground">
+                        {field.state.value.patientNumber ?? ''} ·{' '}
+                        {field.state.value.phone}
+                      </p>
+                    </div>
+                    {!isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => field.handleChange(null)}
+                      >
+                        Change
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      value={patientQuery}
+                      onChange={(e) => {
+                        setPatientQuery(e.target.value)
+                        setPatientOpen(true)
+                      }}
+                      onFocus={() => setPatientOpen(true)}
+                      onBlur={field.handleBlur}
+                      aria-invalid={!!fieldError(field)}
+                      placeholder="Search patient by name or phone…"
+                      className="pl-9 h-9"
+                    />
+                    {patientOpen && patientQuery.trim().length >= 2 && (
+                      <div className="absolute z-20 mt-1 w-full bg-popover border rounded-md shadow-lg max-h-72 overflow-y-auto">
+                        {patientLoading && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            Searching…
+                          </div>
+                        )}
+                        {!patientLoading && patientResults.length === 0 && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            No patients found
+                          </div>
+                        )}
+                        {patientResults.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              field.handleChange(p)
+                              setPatientOpen(false)
+                              setPatientQuery('')
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+                          >
+                            <p className="font-medium">{p.fullName}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {p.patientNumber} · {p.phone}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </FieldWrapper>
             </div>
           )}
-        </div>
+        </form.Field>
 
         {/* Doctor */}
-        <div className="bg-card border rounded-lg p-3 space-y-2">
-          <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-            Prescribing Doctor
-          </Label>
-          <Select
-            value={doctorId ?? ''}
-            onValueChange={(v) => setDoctorId(v || null)}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select a doctor…" />
-            </SelectTrigger>
-            <SelectContent>
-              {doctors.length === 0 ? (
-                <SelectItem value="__none" disabled>
-                  No doctors found
-                </SelectItem>
-              ) : (
-                doctors.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    Dr. {d.fullName}
-                    {d.designation ? ` · ${d.designation}` : ''}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
+        <form.Field name="doctorId">
+          {(field) => (
+            <div className="bg-card border rounded-lg p-3 space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Prescribing Doctor
+              </Label>
+              <FieldWrapper error={fieldError(field)}>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(v) => {
+                    field.handleChange(v || '')
+                    field.handleBlur()
+                  }}
+                >
+                  <SelectTrigger
+                    className="h-9"
+                    aria-invalid={!!fieldError(field)}
+                  >
+                    <SelectValue placeholder="Select a doctor…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.length === 0 ? (
+                      <SelectItem value="__none" disabled>
+                        No doctors found
+                      </SelectItem>
+                    ) : (
+                      doctors.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          Dr. {d.fullName}
+                          {d.designation ? ` · ${d.designation}` : ''}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </FieldWrapper>
+            </div>
+          )}
+        </form.Field>
 
         {/* Complaint / diagnosis */}
         <div className="bg-card border rounded-lg p-3 space-y-3">
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Chief Complaint
-            </Label>
-            <Input
-              value={chiefComplaint}
-              onChange={(e) => setChiefComplaint(e.target.value)}
-              className="h-9 mt-1"
-              placeholder="What brought the patient in today?"
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Diagnosis
-            </Label>
-            <Input
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              className="h-9 mt-1"
-              placeholder="e.g. Dental caries, Gingivitis"
-            />
-          </div>
+          <form.Field name="chiefComplaint">
+            {(field) => (
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Chief Complaint
+                </Label>
+                <FieldWrapper error={fieldError(field)} className="mt-1">
+                  <Input
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    className="h-9"
+                    placeholder="What brought the patient in today?"
+                  />
+                </FieldWrapper>
+              </div>
+            )}
+          </form.Field>
+          <form.Field name="diagnosis">
+            {(field) => (
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Diagnosis
+                </Label>
+                <FieldWrapper error={fieldError(field)} className="mt-1">
+                  <Input
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    className="h-9"
+                    placeholder="e.g. Dental caries, Gingivitis"
+                  />
+                </FieldWrapper>
+              </div>
+            )}
+          </form.Field>
         </div>
 
         {/* Vitals */}
@@ -761,139 +639,313 @@ export function PrescriptionBuilder({
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </summary>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            <VitalInput
-              label="BP"
-              value={vitals.bp}
-              onChange={(v) => setVitals({ ...vitals, bp: v })}
-              placeholder="120/80"
-            />
-            <VitalInput
-              label="Pulse"
-              value={vitals.pulse}
-              onChange={(v) => setVitals({ ...vitals, pulse: v })}
-              placeholder="72"
-            />
-            <VitalInput
-              label="Temp"
-              value={vitals.temperature}
-              onChange={(v) => setVitals({ ...vitals, temperature: v })}
-              placeholder="37°C"
-            />
-            <VitalInput
-              label="SpO₂"
-              value={vitals.spo2}
-              onChange={(v) => setVitals({ ...vitals, spo2: v })}
-              placeholder="98%"
-            />
-            <VitalInput
-              label="Weight"
-              value={vitals.weight}
-              onChange={(v) => setVitals({ ...vitals, weight: v })}
-              placeholder="kg"
-            />
-            <VitalInput
-              label="Height"
-              value={vitals.height}
-              onChange={(v) => setVitals({ ...vitals, height: v })}
-              placeholder="cm"
-            />
+            {(
+              [
+                ['bp', 'BP', '120/80'],
+                ['pulse', 'Pulse', '72'],
+                ['temperature', 'Temp', '37°C'],
+                ['spo2', 'SpO₂', '98%'],
+                ['weight', 'Weight', 'kg'],
+                ['height', 'Height', 'cm'],
+              ] as const
+            ).map(([key, label, placeholder]) => (
+              <form.Field key={key} name={`vitals.${key}`}>
+                {(field) => (
+                  <VitalInput
+                    label={label}
+                    value={field.state.value}
+                    onChange={(v) => field.handleChange(v)}
+                    onBlur={field.handleBlur}
+                    error={fieldError(field)}
+                    placeholder={placeholder}
+                  />
+                )}
+              </form.Field>
+            ))}
           </div>
         </details>
 
         {/* Medicines */}
-        <div className="bg-card border rounded-lg p-3 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-              Medicines
-            </Label>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setMedicines([...medicines, emptyLine()])}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" /> Add medicine
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {medicines.map((med, idx) => (
-              <MedicineRow
-                key={idx}
-                index={idx}
-                medicine={med}
-                onChange={(updated) => {
-                  const next = [...medicines]
-                  next[idx] = updated
-                  setMedicines(next)
-                }}
-                onRemove={() => {
-                  const next = medicines.filter((_, i) => i !== idx)
-                  setMedicines(next.length > 0 ? next : [emptyLine()])
-                }}
-              />
-            ))}
-          </div>
-        </div>
+        <form.Field name="medicines" mode="array">
+          {(meds) => (
+            <div className="bg-card border rounded-lg p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Medicines
+                </Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => meds.pushValue(emptyMedicineLine())}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add medicine
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {meds.state.value.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-md border bg-muted/20 p-2.5 space-y-2"
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="text-[10px] text-muted-foreground font-mono w-5 text-center pt-2.5">
+                        {idx + 1}.
+                      </span>
+                      <form.Field name={`medicines[${idx}].medicineName`}>
+                        {(f) => (
+                          <FieldWrapper
+                            error={fieldError(f)}
+                            className="flex-1"
+                          >
+                            <MedicineAutocomplete
+                              value={f.state.value}
+                              onChange={(v) => f.handleChange(v)}
+                              onPick={(picked) =>
+                                form.setFieldValue(`medicines[${idx}]`, {
+                                  ...form.getFieldValue(`medicines[${idx}]`),
+                                  ...toMedicineLine(
+                                    medicineFromDirectory(picked),
+                                  ),
+                                })
+                              }
+                            />
+                          </FieldWrapper>
+                        )}
+                      </form.Field>
+                      <TooltipButton
+                        tooltip="Remove medicine"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          if (meds.state.value.length > 1) meds.removeValue(idx)
+                          else
+                            form.setFieldValue('medicines', [
+                              emptyMedicineLine(),
+                            ])
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </TooltipButton>
+                    </div>
+                    <div className="grid grid-cols-12 gap-2 pl-7">
+                      <form.Field name={`medicines[${idx}].dosage`}>
+                        {(f) => (
+                          <FieldWrapper
+                            error={fieldError(f)}
+                            className="col-span-2"
+                          >
+                            <Input
+                              value={f.state.value}
+                              onChange={(e) => f.handleChange(e.target.value)}
+                              onBlur={f.handleBlur}
+                              className="h-8 text-xs"
+                              placeholder="Dose"
+                            />
+                          </FieldWrapper>
+                        )}
+                      </form.Field>
+                      <form.Field name={`medicines[${idx}].frequency`}>
+                        {(f) => (
+                          <FieldWrapper
+                            error={fieldError(f)}
+                            className="col-span-4"
+                          >
+                            <FreeSelect
+                              value={f.state.value}
+                              onChange={(v) => f.handleChange(v)}
+                              onBlur={f.handleBlur}
+                              options={FREQUENCY_PRESETS}
+                              placeholder="Frequency"
+                            />
+                          </FieldWrapper>
+                        )}
+                      </form.Field>
+                      <form.Field name={`medicines[${idx}].mealRelation`}>
+                        {(f) => (
+                          <div className="col-span-3">
+                            <Select
+                              clearable={false}
+                              value={f.state.value ?? MealRelation.NONE}
+                              onValueChange={(v) =>
+                                f.handleChange(v as MealRelation)
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MEAL_RELATION_OPTIONS.map((o) => (
+                                  <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </form.Field>
+                      <form.Field name={`medicines[${idx}].duration`}>
+                        {(f) => (
+                          <FieldWrapper
+                            error={fieldError(f)}
+                            className="col-span-3"
+                          >
+                            <FreeSelect
+                              value={f.state.value}
+                              onChange={(v) => f.handleChange(v)}
+                              onBlur={f.handleBlur}
+                              options={DURATION_PRESETS}
+                              placeholder="Duration"
+                            />
+                          </FieldWrapper>
+                        )}
+                      </form.Field>
+                    </div>
+                    <details className="pl-7 [&_summary::-webkit-details-marker]:hidden">
+                      <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">
+                        + Special instructions
+                      </summary>
+                      <div className="grid grid-cols-2 gap-2 mt-1.5">
+                        <form.Field
+                          name={`medicines[${idx}].specialInstructions`}
+                        >
+                          {(f) => (
+                            <Input
+                              value={f.state.value ?? ''}
+                              onChange={(e) => f.handleChange(e.target.value)}
+                              className="h-8 text-xs"
+                              placeholder="English"
+                            />
+                          )}
+                        </form.Field>
+                        <form.Field
+                          name={`medicines[${idx}].specialInstructionsUrdu`}
+                        >
+                          {(f) => (
+                            <Input
+                              value={f.state.value ?? ''}
+                              onChange={(e) => f.handleChange(e.target.value)}
+                              dir="rtl"
+                              className="h-8 text-xs text-right"
+                              style={{
+                                fontFamily: "'Noto Nastaliq Urdu', serif",
+                              }}
+                              placeholder="اردو"
+                            />
+                          )}
+                        </form.Field>
+                      </div>
+                    </details>
+                  </div>
+                ))}
+              </div>
+              {listError(meds) && (
+                <p className="text-xs font-medium text-danger">
+                  {listError(meds)}
+                </p>
+              )}
+            </div>
+          )}
+        </form.Field>
 
         {/* Further plan */}
-        <div className="bg-card border rounded-lg p-3 space-y-2">
-          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Further Plan / Comment
-          </Label>
-          <Textarea
-            value={furtherPlan}
-            onChange={(e) => setFurtherPlan(e.target.value)}
-            className="resize-none h-20"
-            placeholder="Follow-up in 7 days, lab work, referrals…"
-          />
-        </div>
+        <form.Field name="furtherPlan">
+          {(field) => (
+            <div className="bg-card border rounded-lg p-3 space-y-2">
+              <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Further Plan / Comment
+              </Label>
+              <FieldWrapper error={fieldError(field)}>
+                <Textarea
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  className="resize-none h-20"
+                  placeholder="Follow-up in 7 days, lab work, referrals…"
+                />
+              </FieldWrapper>
+            </div>
+          )}
+        </form.Field>
 
         {/* Instructions */}
         <div className="bg-card border rounded-lg p-3 space-y-3">
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Instructions (English)
-            </Label>
-            <Textarea
-              value={instructionsEnglish}
-              onChange={(e) => setInstructionsEnglish(e.target.value)}
-              className="resize-none h-24 mt-1"
-              placeholder="Avoid salt in diet, soft drinks…"
-            />
-          </div>
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              ہدایات (Urdu)
-            </Label>
-            <Textarea
-              value={instructionsUrdu}
-              onChange={(e) => setInstructionsUrdu(e.target.value)}
-              dir="rtl"
-              className="resize-none h-24 mt-1 text-right"
-              style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
-              placeholder="نمک اور مشروبات سے پرہیز…"
-            />
-          </div>
+          <form.Field name="instructionsEnglish">
+            {(field) => (
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Instructions (English)
+                </Label>
+                <FieldWrapper error={fieldError(field)} className="mt-1">
+                  <Textarea
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    className="resize-none h-24"
+                    placeholder="Avoid salt in diet, soft drinks…"
+                  />
+                </FieldWrapper>
+              </div>
+            )}
+          </form.Field>
+          <form.Field name="instructionsUrdu">
+            {(field) => (
+              <div>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  ہدایات (Urdu)
+                </Label>
+                <FieldWrapper error={fieldError(field)} className="mt-1">
+                  <Textarea
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    dir="rtl"
+                    className="resize-none h-24 text-right"
+                    style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
+                    placeholder="نمک اور مشروبات سے پرہیز…"
+                  />
+                </FieldWrapper>
+              </div>
+            )}
+          </form.Field>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 sticky bottom-0 bg-background pt-2 pb-2 border-t">
-          <Button
-            variant="outline"
-            onClick={handleSaveDraft}
-            disabled={
-              readOnly || createMutation.isPending || updateMutation.isPending
-            }
-          >
-            <Save className="h-4 w-4 mr-1.5" />
-            {createMutation.isPending || updateMutation.isPending
-              ? 'Saving…'
-              : 'Save Draft'}
-          </Button>
-          <Button onClick={handleFinalize} disabled={readOnly}>
-            <CheckCircle2 className="h-4 w-4 mr-1.5" />
-            {finalized ? 'Amend & Sign' : 'Finalize & Sign'}
-          </Button>
-        </div>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => {
+            const busy = isSubmitting || pending
+            return (
+              <div className="flex items-center justify-end gap-2 sticky bottom-0 bg-background pt-2 pb-2 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => void form.handleSubmit({ intent: 'draft' })}
+                  disabled={!canSubmit || busy}
+                >
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-1.5" />
+                  )}
+                  {busy ? 'Saving…' : 'Save Draft'}
+                </Button>
+                <Button
+                  onClick={() => void form.handleSubmit({ intent: 'finalize' })}
+                  disabled={!canSubmit || busy}
+                >
+                  {busy ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  )}
+                  {finalized ? 'Amend & Sign' : 'Finalize & Sign'}
+                </Button>
+              </div>
+            )
+          }}
+        </form.Subscribe>
       </div>
 
       {/* ════ RIGHT — LIVE PREVIEW ═══════════════════════════════════ */}
@@ -963,130 +1015,17 @@ export function PrescriptionBuilder({
   )
 }
 
-// ─── Medicine row ─────────────────────────────────────────────────────
-
-function MedicineRow({
-  index,
-  medicine,
-  onChange,
-  onRemove,
-}: {
-  index: number
-  medicine: PrescriptionMedicine
-  onChange: (m: PrescriptionMedicine) => void
-  onRemove: () => void
-}) {
-  return (
-    <div className="rounded-md border bg-muted/20 p-2.5 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-muted-foreground font-mono w-5 text-center">
-          {index + 1}.
-        </span>
-        <div className="flex-1">
-          <MedicineAutocomplete
-            value={medicine.medicineName}
-            onChange={(v) => onChange({ ...medicine, medicineName: v })}
-            onPick={(picked) =>
-              onChange({ ...medicine, ...medicineFromDirectory(picked) })
-            }
-          />
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-destructive hover:text-destructive"
-          onClick={onRemove}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      <div className="grid grid-cols-12 gap-2 pl-7">
-        <div className="col-span-2">
-          <Input
-            value={medicine.dosage}
-            onChange={(e) => onChange({ ...medicine, dosage: e.target.value })}
-            className="h-8 text-xs"
-            placeholder="Dose"
-          />
-        </div>
-        <div className="col-span-4">
-          <FreeSelect
-            value={medicine.frequency}
-            onChange={(v) => onChange({ ...medicine, frequency: v })}
-            options={FREQUENCY_PRESETS}
-            placeholder="Frequency"
-          />
-        </div>
-        <div className="col-span-3">
-          <Select
-            clearable={false}
-            value={medicine.mealRelation ?? MealRelation.NONE}
-            onValueChange={(v) =>
-              onChange({ ...medicine, mealRelation: v as MealRelation })
-            }
-          >
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MEAL_RELATION_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="col-span-3">
-          <FreeSelect
-            value={medicine.duration}
-            onChange={(v) => onChange({ ...medicine, duration: v })}
-            options={DURATION_PRESETS}
-            placeholder="Duration"
-          />
-        </div>
-      </div>
-      <details className="pl-7 [&_summary::-webkit-details-marker]:hidden">
-        <summary className="text-[10px] text-muted-foreground cursor-pointer hover:text-foreground">
-          + Special instructions
-        </summary>
-        <div className="grid grid-cols-2 gap-2 mt-1.5">
-          <Input
-            value={medicine.specialInstructions ?? ''}
-            onChange={(e) =>
-              onChange({ ...medicine, specialInstructions: e.target.value })
-            }
-            className="h-8 text-xs"
-            placeholder="English"
-          />
-          <Input
-            value={medicine.specialInstructionsUrdu ?? ''}
-            onChange={(e) =>
-              onChange({
-                ...medicine,
-                specialInstructionsUrdu: e.target.value,
-              })
-            }
-            dir="rtl"
-            className="h-8 text-xs text-right"
-            style={{ fontFamily: "'Noto Nastaliq Urdu', serif" }}
-            placeholder="اردو"
-          />
-        </div>
-      </details>
-    </div>
-  )
-}
-
 /** A combobox-lite: type free text or pick from presets. */
 function FreeSelect({
   value,
   onChange,
+  onBlur,
   options,
   placeholder,
 }: {
   value: string
   onChange: (v: string) => void
+  onBlur?: () => void
   options: string[]
   placeholder?: string
 }) {
@@ -1107,6 +1046,7 @@ function FreeSelect({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setOpen(true)}
+        onBlur={onBlur}
         className="h-8 text-xs"
         placeholder={placeholder}
       />
@@ -1138,26 +1078,30 @@ function VitalInput({
   label,
   value,
   onChange,
+  onBlur,
+  error,
   placeholder,
 }: {
   label: string
   value: string
   onChange: (v: string) => void
+  onBlur: () => void
+  error?: string
   placeholder?: string
 }) {
   return (
     <div>
       <Label className="text-[10px] text-muted-foreground">{label}</Label>
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8 text-xs mt-0.5"
-        placeholder={placeholder}
-      />
+      <FieldWrapper error={error} className="mt-0.5">
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          aria-invalid={!!error}
+          className="h-8 text-xs"
+          placeholder={placeholder}
+        />
+      </FieldWrapper>
     </div>
   )
-}
-
-function anyVitals(v: Record<string, string>): boolean {
-  return Object.values(v).some((x) => x.trim() !== '')
 }

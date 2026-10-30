@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useForm } from '@tanstack/react-form'
+import { useState } from 'react'
 import {
   Table,
   TableBody,
@@ -27,13 +26,13 @@ import {
 } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/formatters'
 import { CalendarX2, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { fieldError } from '@/components/forms/fieldError'
 import {
   useAvailabilityOverrides,
-  useCreateOverride,
-  useUpdateOverride,
   useDeleteOverride,
 } from '../hooks/useAvailabilityOverrides'
-import { type AvailabilityOverride, type OverrideFormData } from '../types'
+import { useOverrideForm } from '../hooks/useOverrideForm'
+import type { AvailabilityOverride } from '../types'
 
 interface AvailabilityOverrideTabProps {
   employeeId: string
@@ -192,48 +191,12 @@ function OverrideFormDialog({
   onOpenChange,
   override,
 }: OverrideFormDialogProps) {
-  const createMutation = useCreateOverride(employeeId)
-  const updateMutation = useUpdateOverride(employeeId)
-  const isEditing = !!override
-  const isPending = createMutation.isPending || updateMutation.isPending
-
-  const form = useForm({
-    defaultValues: {
-      date: '',
-      isAvailable: false,
-      reason: '',
-      overrideHours: [] as Array<{ startTime: string; endTime: string }>,
-    },
-    onSubmit: async ({ value }) => {
-      const payload: OverrideFormData = {
-        date: value.date,
-        isAvailable: value.isAvailable,
-        reason: value.reason,
-        overrideHours: value.isAvailable ? value.overrideHours : undefined,
-      }
-      try {
-        if (isEditing && override) {
-          await updateMutation.mutateAsync({ id: override.id, payload })
-        } else {
-          await createMutation.mutateAsync(payload)
-        }
-        onOpenChange(false)
-        form.reset()
-      } catch {
-        // toast handled in hooks
-      }
-    },
+  const { form, isEditing, isPending } = useOverrideForm({
+    employeeId,
+    isOpen,
+    override,
+    onDone: () => onOpenChange(false),
   })
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset()
-      form.setFieldValue('date', override?.date ?? '')
-      form.setFieldValue('isAvailable', override?.isAvailable ?? false)
-      form.setFieldValue('reason', override?.reason ?? '')
-      form.setFieldValue('overrideHours', override?.overrideHours ?? [])
-    }
-  }, [isOpen, override])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -261,7 +224,13 @@ function OverrideFormDialog({
                 <DatePicker
                   value={field.state.value}
                   onChange={(v) => field.handleChange(v)}
+                  className={fieldError(field) ? 'border-destructive' : ''}
                 />
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -276,7 +245,7 @@ function OverrideFormDialog({
                   </p>
                 </div>
                 <Switch
-                  checked={field.state.value as boolean}
+                  checked={field.state.value}
                   onCheckedChange={(val) => field.handleChange(val)}
                 />
               </div>
@@ -306,38 +275,47 @@ function OverrideFormDialog({
                           Add Slot
                         </Button>
                       </div>
-                      {(
-                        arrayField.state.value as Array<{
-                          startTime: string
-                          endTime: string
-                        }>
-                      ).map((_, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
+                      {arrayField.state.value.map((_, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
                           <form.Field name={`overrideHours[${idx}].startTime`}>
                             {(subField) => (
-                              <Input
-                                type="time"
-                                className="flex-1"
-                                value={subField.state.value as string}
-                                onChange={(e) =>
-                                  subField.handleChange(e.target.value)
-                                }
-                              />
+                              <div className="flex-1 space-y-1">
+                                <Input
+                                  type="time"
+                                  value={subField.state.value}
+                                  onChange={(e) =>
+                                    subField.handleChange(e.target.value)
+                                  }
+                                  onBlur={subField.handleBlur}
+                                />
+                                {fieldError(subField) && (
+                                  <p className="text-xs text-destructive">
+                                    {fieldError(subField)}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </form.Field>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="pt-2 text-xs text-muted-foreground">
                             to
                           </span>
                           <form.Field name={`overrideHours[${idx}].endTime`}>
                             {(subField) => (
-                              <Input
-                                type="time"
-                                className="flex-1"
-                                value={subField.state.value as string}
-                                onChange={(e) =>
-                                  subField.handleChange(e.target.value)
-                                }
-                              />
+                              <div className="flex-1 space-y-1">
+                                <Input
+                                  type="time"
+                                  value={subField.state.value}
+                                  onChange={(e) =>
+                                    subField.handleChange(e.target.value)
+                                  }
+                                  onBlur={subField.handleBlur}
+                                />
+                                {fieldError(subField) && (
+                                  <p className="text-xs text-destructive">
+                                    {fieldError(subField)}
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </form.Field>
                           <Button
@@ -381,10 +359,21 @@ function OverrideFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Create Override'}
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !canSubmit || isSubmitting}
+                >
+                  {(isPending || isSubmitting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isEditing ? 'Save Changes' : 'Create Override'}
+                </Button>
+              )}
+            </form.Subscribe>
           </DialogFooter>
         </form>
       </DialogContent>

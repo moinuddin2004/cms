@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FormInput } from '@/components/forms/FormInput'
@@ -7,75 +5,20 @@ import { FormSelect } from '@/components/forms/FormSelect'
 import { FormTextarea } from '@/components/forms/FormTextarea'
 import { FormSection, FormSheet } from '@/components/forms/FormSheet'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { fieldError } from '@/components/forms/fieldError'
 import {
   DURATION_PRESETS,
   PRESET_CATEGORY_OPTIONS,
-  PresetCategory,
-  toPresetCategory,
   FREQUENCY_PRESETS,
   MEAL_RELATION_OPTIONS,
   MealRelation,
 } from '../../types'
-import type { TreatmentPlanTemplate } from '../../types'
-import {
-  useCreateTreatmentPlanTemplate,
-  useUpdateTreatmentPlanTemplate,
-} from '../../hooks/useTreatmentPlanTemplates'
+import type { PresetCategory, TreatmentPlanTemplate } from '../../types'
+import { emptyPresetMedicine, usePresetForm } from '../../hooks/usePresetForm'
 import {
   MedicineAutocomplete,
   medicineFromDirectory,
 } from '../MedicineAutocomplete'
-
-interface MedValues {
-  medicineDirectoryId?: string
-  medicineName: string
-  medicineNameUrdu?: string
-  type?: string
-  dosage: string
-  frequency: string
-  frequencyTiming: string[]
-  mealRelation: MealRelation
-  duration: string
-  specialInstructions?: string
-  specialInstructionsUrdu?: string
-}
-
-const emptyMed = (): MedValues => ({
-  medicineName: '',
-  dosage: '1',
-  frequency: '',
-  frequencyTiming: [],
-  mealRelation: MealRelation.NONE,
-  duration: '',
-})
-
-const defaultsFor = (preset: TreatmentPlanTemplate | null) => ({
-  name: preset?.name ?? '',
-  category: preset ? toPresetCategory(preset.category) : PresetCategory.GENERAL,
-  description: preset?.description ?? '',
-  furtherPlan: preset?.furtherPlan ?? '',
-  instructionsEnglish: preset?.instructionsEnglish ?? '',
-  instructionsUrdu: preset?.instructionsUrdu ?? '',
-  medicines: preset?.medicines.length
-    ? [...preset.medicines]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(
-          (m): MedValues => ({
-            medicineDirectoryId: m.medicineDirectoryId ?? undefined,
-            medicineName: m.medicineName,
-            medicineNameUrdu: m.medicineNameUrdu ?? undefined,
-            type: m.type ?? undefined,
-            dosage: m.dosage,
-            frequency: m.frequency,
-            frequencyTiming: m.frequencyTiming,
-            mealRelation: m.mealRelation,
-            duration: m.duration,
-            specialInstructions: m.specialInstructions ?? undefined,
-            specialInstructionsUrdu: m.specialInstructionsUrdu ?? undefined,
-          }),
-        )
-    : [emptyMed()],
-})
 
 /** Create or edit a prescription preset: a named set of medicines + instructions. */
 export function PresetSheet({
@@ -87,35 +30,11 @@ export function PresetSheet({
   onOpenChange: (open: boolean) => void
   preset: TreatmentPlanTemplate | null
 }) {
-  const create = useCreateTreatmentPlanTemplate()
-  const update = useUpdateTreatmentPlanTemplate()
-  const pending = create.isPending || update.isPending
-
-  const form = useForm({
-    defaultValues: defaultsFor(preset),
-    onSubmit: async ({ value }) => {
-      const blank = (v: string) => v.trim() || null
-      const payload = {
-        name: value.name.trim(),
-        category: value.category,
-        description: blank(value.description),
-        furtherPlan: blank(value.furtherPlan),
-        instructionsEnglish: blank(value.instructionsEnglish),
-        instructionsUrdu: blank(value.instructionsUrdu),
-        medicines: value.medicines
-          .filter((m) => m.medicineName.trim())
-          .map((m, sortOrder) => ({ ...m, sortOrder })),
-      }
-      if (preset)
-        await update.mutateAsync({ id: preset.id, data: payload as never })
-      else await create.mutateAsync(payload as never)
-      onOpenChange(false)
-    },
+  const { form, pending } = usePresetForm({
+    open,
+    preset,
+    onDone: () => onOpenChange(false),
   })
-
-  useEffect(() => {
-    if (open) form.reset(defaultsFor(preset))
-  }, [open, preset])
 
   return (
     <FormSheet
@@ -164,13 +83,7 @@ export function PresetSheet({
       >
         <FormSection title="Preset">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <form.Field
-              name="name"
-              validators={{
-                onChange: ({ value }) =>
-                  value.trim() ? undefined : 'Name is required',
-              }}
-            >
+            <form.Field name="name">
               {(field) => (
                 <FormInput
                   containerClassName="sm:col-span-2"
@@ -179,7 +92,7 @@ export function PresetSheet({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  error={field.state.meta.errors[0]}
+                  error={fieldError(field)}
                   placeholder="e.g. Toothache after extraction"
                 />
               )}
@@ -209,22 +122,7 @@ export function PresetSheet({
           </form.Field>
         </FormSection>
 
-        <form.Field
-          name="medicines"
-          mode="array"
-          validators={{
-            onChange: ({ value }) => {
-              const named = value.filter((m) => m.medicineName.trim())
-              if (named.length === 0) return 'Add at least one medicine'
-              return named.every(
-                (m) =>
-                  m.dosage.trim() && m.frequency.trim() && m.duration.trim(),
-              )
-                ? undefined
-                : 'Fill in dose, how often and for how long for every medicine'
-            },
-          }}
-        >
+        <form.Field name="medicines" mode="array">
           {(meds) => (
             <FormSection title={`Medicines (${meds.state.value.length})`}>
               <div className="space-y-3">
@@ -246,7 +144,7 @@ export function PresetSheet({
                             onPick={(picked) => {
                               const seeded = medicineFromDirectory(picked)
                               form.setFieldValue(`medicines[${i}]`, {
-                                ...emptyMed(),
+                                ...emptyPresetMedicine(),
                                 medicineDirectoryId:
                                   seeded.medicineDirectoryId ?? undefined,
                                 medicineName: seeded.medicineName,
@@ -305,6 +203,8 @@ export function PresetSheet({
                         {(f) => (
                           <FormInput
                             label="Dose"
+                            onBlur={f.handleBlur}
+                            error={fieldError(f)}
                             value={f.state.value}
                             onChange={(e) => f.handleChange(e.target.value)}
                             placeholder="1"
@@ -315,6 +215,8 @@ export function PresetSheet({
                         {(f) => (
                           <FormInput
                             label="How often"
+                            onBlur={f.handleBlur}
+                            error={fieldError(f)}
                             list="preset-frequency-presets"
                             value={f.state.value}
                             onChange={(e) => f.handleChange(e.target.value)}
@@ -341,6 +243,8 @@ export function PresetSheet({
                         {(f) => (
                           <FormInput
                             label="For how long"
+                            onBlur={f.handleBlur}
+                            error={fieldError(f)}
                             list="preset-duration-presets"
                             value={f.state.value}
                             onChange={(e) => f.handleChange(e.target.value)}
@@ -361,16 +265,16 @@ export function PresetSheet({
                     <option key={p} value={p} />
                   ))}
                 </datalist>
-                {meds.state.meta.errors[0] && (
+                {listError(meds) && (
                   <p className="text-xs font-medium text-danger">
-                    {meds.state.meta.errors[0]}
+                    {listError(meds)}
                   </p>
                 )}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => void meds.pushValue(emptyMed())}
+                  onClick={() => void meds.pushValue(emptyPresetMedicine())}
                 >
                   <Plus className="size-3.5" /> Add medicine
                 </Button>
@@ -418,4 +322,24 @@ export function PresetSheet({
       </form>
     </FormSheet>
   )
+}
+
+/**
+ * The list-level error ("Add at least one medicine" / missing dose…). The list
+ * has no input of its own, so it shows once anything in the form was touched
+ * — otherwise Save could be disabled with no reason given.
+ */
+function listError(meds: {
+  state: { meta: { errors: unknown[] } }
+  form: { state: { isTouched: boolean; submissionAttempts: number } }
+}) {
+  return fieldError({
+    state: {
+      meta: {
+        errors: meds.state.meta.errors,
+        isTouched: meds.form.state.isTouched,
+      },
+    },
+    form: meds.form,
+  })
 }

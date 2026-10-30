@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
-import { useState, useEffect } from 'react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -12,26 +12,20 @@ import {
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { toast } from 'sonner'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
 import { EmploymentRolesManager } from './EmploymentRolesManager'
+import { useOrganizationSettingsForm } from './hooks/useOrganizationSettingsForm'
+import type { OrganizationSettings } from './hooks/useOrganizationSettingsForm'
 
-interface OrganizationSettings {
-  id: string
-  organizationId: string
-  allowLocationOverride: boolean
-  defaultSlotDuration: number
-  advanceBookingDays: number
-  cancellationNoticeHours: number
-}
+type NumberField =
+  'defaultSlotDuration' | 'advanceBookingDays' | 'cancellationNoticeHours'
 
 export function OrganizationSettingsFeature({
   organizationId,
 }: {
   organizationId: string
 }) {
-  const queryClient = useQueryClient()
-  const [formData, setFormData] = useState<Partial<OrganizationSettings>>({})
-
   const { data: settings, isLoading } = useQuery({
     queryKey: ['orgSettings', organizationId],
     queryFn: async () => {
@@ -42,36 +36,32 @@ export function OrganizationSettingsFeature({
     },
   })
 
-  useEffect(() => {
-    if (settings) {
-      setFormData(settings)
-    }
-  }, [settings])
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Partial<OrganizationSettings>) =>
-      apiClient.patch(`/organizations/${organizationId}/settings`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['orgSettings', organizationId],
-      })
-      toast.success('Organization settings updated successfully')
-    },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to update settings'),
-  })
-
-  const handleSave = () => {
-    updateMutation.mutate(formData)
-  }
-
-  const handleChange = (field: keyof OrganizationSettings, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  const form = useOrganizationSettingsForm({ organizationId, settings })
 
   if (isLoading) return <div>Loading settings...</div>
 
+  const numberField = (name: NumberField, label: string) => (
+    <form.Field name={name}>
+      {(field) => (
+        <FieldWrapper
+          label={label}
+          htmlFor={`org-${name}`}
+          error={fieldError(field)}
+        >
+          <Input
+            id={`org-${name}`}
+            type="number"
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+          />
+        </FieldWrapper>
+      )}
+    </form.Field>
+  )
+
   return (
+    // Not a <form>: EmploymentRolesManager renders its own buttons in here.
     <div className="space-y-6">
       <Card>
         <CardHeader>
@@ -90,12 +80,14 @@ export function OrganizationSettingsFeature({
                 their local settings will be disabled.
               </p>
             </div>
-            <Switch
-              checked={!!formData.allowLocationOverride}
-              onCheckedChange={(val) =>
-                handleChange('allowLocationOverride', val)
-              }
-            />
+            <form.Field name="allowLocationOverride">
+              {(field) => (
+                <Switch
+                  checked={field.state.value}
+                  onCheckedChange={(val) => field.handleChange(val)}
+                />
+              )}
+            </form.Field>
           </div>
         </CardContent>
       </Card>
@@ -110,46 +102,29 @@ export function OrganizationSettingsFeature({
           </CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <Label>Default Slot Duration (mins)</Label>
-            <Input
-              type="number"
-              value={formData.defaultSlotDuration || 30}
-              onChange={(e) =>
-                handleChange('defaultSlotDuration', parseInt(e.target.value))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Advance Booking Days</Label>
-            <Input
-              type="number"
-              value={formData.advanceBookingDays || 30}
-              onChange={(e) =>
-                handleChange('advanceBookingDays', parseInt(e.target.value))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Cancellation Notice (hours)</Label>
-            <Input
-              type="number"
-              value={formData.cancellationNoticeHours || 24}
-              onChange={(e) =>
-                handleChange(
-                  'cancellationNoticeHours',
-                  parseInt(e.target.value),
-                )
-              }
-            />
-          </div>
+          {numberField('defaultSlotDuration', 'Default Slot Duration (mins)')}
+          {numberField('advanceBookingDays', 'Advance Booking Days')}
+          {numberField(
+            'cancellationNoticeHours',
+            'Cancellation Notice (hours)',
+          )}
         </CardContent>
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={updateMutation.isPending}>
-          {updateMutation.isPending ? 'Saving...' : 'Save All Settings'}
-        </Button>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => void form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+              {isSubmitting ? 'Saving...' : 'Save All Settings'}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </div>
   )

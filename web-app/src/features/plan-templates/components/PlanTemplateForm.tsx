@@ -1,4 +1,3 @@
-import { useForm } from '@tanstack/react-form'
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,21 +5,17 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { FormSelect } from '@/components/forms/FormSelect'
-import { PLAN_TEMPLATE_CATEGORY_OPTIONS, PlanTemplateCategory } from '../types'
-import type { PlanTemplate, PlanTemplateInput } from '../types'
-
-interface ItemValues {
-  procedureName: string
-  estimatedSessions: number
-  /** '' = not set. */
-  estimatedCost: string
-}
-
-const emptyItem = (): ItemValues => ({
-  procedureName: '',
-  estimatedSessions: 1,
-  estimatedCost: '',
-})
+import { fieldError } from '@/components/forms/fieldError'
+import { PLAN_TEMPLATE_CATEGORY_OPTIONS } from '../types'
+import type {
+  PlanTemplate,
+  PlanTemplateCategory,
+  PlanTemplateInput,
+} from '../types'
+import {
+  emptyPlanTemplateItem,
+  usePlanTemplateForm,
+} from '../hooks/usePlanTemplateForm'
 
 /** Create / edit one treatment plan template. */
 export function PlanTemplateForm({
@@ -34,42 +29,7 @@ export function PlanTemplateForm({
   onSubmit: (input: PlanTemplateInput) => void
   onCancel: () => void
 }) {
-  const form = useForm({
-    defaultValues: {
-      name: template?.name ?? '',
-      category: template?.category ?? PlanTemplateCategory.GENERAL,
-      description: template?.description ?? '',
-      items: template?.items.length
-        ? template.items.map(
-            (i): ItemValues => ({
-              procedureName: i.procedureName,
-              estimatedSessions: i.estimatedSessions,
-              estimatedCost:
-                i.estimatedCost == null ? '' : String(i.estimatedCost),
-            }),
-          )
-        : [emptyItem()],
-    },
-    onSubmit: ({ value }) => {
-      onSubmit({
-        name: value.name.trim(),
-        category: value.category,
-        description: value.description.trim() || null,
-        items: value.items
-          .filter((i) => i.procedureName.trim())
-          .map((i) => ({
-            procedureName: i.procedureName.trim(),
-            estimatedSessions: Math.max(
-              1,
-              Math.round(i.estimatedSessions) || 1,
-            ),
-            estimatedCost:
-              i.estimatedCost.trim() === '' ? null : Number(i.estimatedCost),
-            notes: null,
-          })),
-      })
-    },
-  })
+  const form = usePlanTemplateForm({ template, onSubmit })
 
   return (
     <form
@@ -81,13 +41,7 @@ export function PlanTemplateForm({
       }}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <form.Field
-          name="name"
-          validators={{
-            onChange: ({ value }) =>
-              value.trim() ? undefined : 'Name is required',
-          }}
-        >
+        <form.Field name="name">
           {(field) => (
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="pt-name">
@@ -100,10 +54,8 @@ export function PlanTemplateForm({
                 onBlur={field.handleBlur}
                 placeholder="e.g. Root Canal Treatment (RCT)"
               />
-              {field.state.meta.errors[0] && (
-                <p className="text-xs text-destructive">
-                  {field.state.meta.errors[0]}
-                </p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -130,23 +82,18 @@ export function PlanTemplateForm({
               id="pt-desc"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
               className="h-16 resize-none"
               placeholder="What this plan covers"
             />
+            {fieldError(field) && (
+              <p className="text-xs text-destructive">{fieldError(field)}</p>
+            )}
           </div>
         )}
       </form.Field>
 
-      <form.Field
-        name="items"
-        mode="array"
-        validators={{
-          onChange: ({ value }) =>
-            value.some((i) => i.procedureName.trim())
-              ? undefined
-              : 'Add at least one procedure',
-        }}
-      >
+      <form.Field name="items" mode="array">
         {(items) => (
           <div className="space-y-2">
             <Label>Procedures, in order</Label>
@@ -160,40 +107,67 @@ export function PlanTemplateForm({
                 </span>
                 <form.Field name={`items[${i}].procedureName`}>
                   {(f) => (
-                    <Input
-                      value={f.state.value}
-                      onChange={(e) => f.handleChange(e.target.value)}
-                      placeholder="Procedure"
-                      aria-label={`Procedure ${i + 1}`}
-                    />
+                    <div className="space-y-1">
+                      <Input
+                        value={f.state.value}
+                        onChange={(e) => f.handleChange(e.target.value)}
+                        onBlur={f.handleBlur}
+                        placeholder="Procedure"
+                        aria-label={`Procedure ${i + 1}`}
+                        aria-invalid={!!fieldError(f)}
+                      />
+                      {fieldError(f) && (
+                        <p className="text-xs text-destructive">
+                          {fieldError(f)}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </form.Field>
                 <div className="col-span-3 grid grid-cols-2 gap-2 sm:contents">
                   <form.Field name={`items[${i}].estimatedSessions`}>
                     {(f) => (
-                      <Input
-                        type="number"
-                        min={1}
-                        value={f.state.value}
-                        onChange={(e) =>
-                          f.handleChange(Number(e.target.value) || 1)
-                        }
-                        aria-label="Sessions"
-                        title="Sessions (visits)"
-                      />
+                      <div className="space-y-1">
+                        <Input
+                          type="number"
+                          min={1}
+                          value={f.state.value}
+                          onChange={(e) =>
+                            f.handleChange(Number(e.target.value) || 1)
+                          }
+                          onBlur={f.handleBlur}
+                          aria-label="Sessions"
+                          title="Sessions (visits)"
+                          aria-invalid={!!fieldError(f)}
+                        />
+                        {fieldError(f) && (
+                          <p className="text-xs text-destructive">
+                            {fieldError(f)}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </form.Field>
                   <form.Field name={`items[${i}].estimatedCost`}>
                     {(f) => (
-                      <Input
-                        type="number"
-                        min={0}
-                        inputMode="decimal"
-                        value={f.state.value}
-                        onChange={(e) => f.handleChange(e.target.value)}
-                        placeholder="Fee (Rs.)"
-                        aria-label="Fee"
-                      />
+                      <div className="space-y-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          inputMode="decimal"
+                          value={f.state.value}
+                          onChange={(e) => f.handleChange(e.target.value)}
+                          onBlur={f.handleBlur}
+                          placeholder="Fee (Rs.)"
+                          aria-label="Fee"
+                          aria-invalid={!!fieldError(f)}
+                        />
+                        {fieldError(f) && (
+                          <p className="text-xs text-destructive">
+                            {fieldError(f)}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </form.Field>
                 </div>
@@ -234,16 +208,14 @@ export function PlanTemplateForm({
                 </div>
               </div>
             ))}
-            {items.state.meta.errors[0] && (
-              <p className="text-xs text-destructive">
-                {items.state.meta.errors[0]}
-              </p>
+            {listError(items) && (
+              <p className="text-xs text-destructive">{listError(items)}</p>
             )}
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => void items.pushValue(emptyItem())}
+              onClick={() => void items.pushValue(emptyPlanTemplateItem())}
             >
               <Plus className="size-3.5" /> Add procedure
             </Button>
@@ -277,4 +249,24 @@ export function PlanTemplateForm({
       </div>
     </form>
   )
+}
+
+/**
+ * The list-level error ("Add at least one procedure"). The list has no input
+ * of its own, so it shows once anything in the form was touched — otherwise
+ * Save could be disabled with no reason given.
+ */
+function listError(items: {
+  state: { meta: { errors: unknown[] } }
+  form: { state: { isTouched: boolean; submissionAttempts: number } }
+}) {
+  return fieldError({
+    state: {
+      meta: {
+        errors: items.state.meta.errors,
+        isTouched: items.form.state.isTouched,
+      },
+    },
+    form: items.form,
+  })
 }

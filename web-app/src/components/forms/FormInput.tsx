@@ -14,7 +14,7 @@ interface FormInputProps extends React.ComponentProps<'input'> {
  * Controlled input + label/error wrapper. Works with TanStack Form fields:
  *   <FormInput label="Name" value={field.state.value}
  *     onChange={(e) => field.handleChange(e.target.value)}
- *     onBlur={field.handleBlur} error={field.state.meta.errors[0]} />
+ *     onBlur={field.handleBlur} error={fieldError(field)} />
  */
 export function FormInput({
   label,
@@ -25,7 +25,8 @@ export function FormInput({
   id,
   ...props
 }: FormInputProps) {
-  const inputId = id ?? (label ? `f-${label.replace(/\s+/g, '-').toLowerCase()}` : undefined)
+  const inputId =
+    id ?? (label ? `f-${label.replace(/\s+/g, '-').toLowerCase()}` : undefined)
   return (
     <FieldWrapper
       label={label}

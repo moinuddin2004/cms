@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { useAccess } from '@/features/access'
-import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -19,14 +17,14 @@ import { format } from 'date-fns'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
-import { useAuthStore } from '@/store/useAuthStore'
-import {
-  type EmployeeFormData,
-  type Employee,
-  GENDER_OPTIONS,
+import { fieldError } from '@/components/forms/fieldError'
+import { useEmployeeForm } from '../hooks/useEmployeeForm'
+import { GENDER_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from '../types'
+import type {
+  EmployeeFormData,
+  Employee,
   EmploymentType,
-  EMPLOYMENT_TYPE_OPTIONS,
-  employeeFormSchema,
+  Gender,
 } from '../types'
 
 interface EmployeeFormProps {
@@ -39,18 +37,7 @@ interface EmployeeFormProps {
   variant?: 'card' | 'sheet'
 }
 
-// Helper to clear a single key from errors
-function clearError(
-  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>,
-  key: string,
-) {
-  setErrors((prev) => {
-    if (!prev[key]) return prev
-    const next = { ...prev }
-    delete next[key]
-    return next
-  })
-}
+const ERROR_RING = 'border-destructive focus-visible:ring-destructive'
 
 type PayType = 'SALARY' | 'COMMISSION' | 'SALARY_PLUS_COMMISSION'
 
@@ -69,81 +56,15 @@ export function EmployeeForm({
   serverError,
   variant = 'card',
 }: EmployeeFormProps) {
-  const { activeLocationId } = useAuthStore()
   // Pay terms need compensation.manage (it implies the commissions feature).
   const commissionsOn = useAccess().can('compensation.manage')
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const { data: roles } = useQuery({
     queryKey: ['employment-roles'],
     queryFn: () => apiClient.get('/employment-roles').then((r) => r.data.data),
   })
 
-  const initial = defaultValues
-    ? {
-        fullName: defaultValues.fullName ?? '',
-        phone: defaultValues.phone ?? '',
-        cnic: defaultValues.cnic ?? '',
-        designation: defaultValues.designation ?? '',
-        employmentRoleId: defaultValues.employmentRoleId ?? '',
-        employmentType:
-          defaultValues.employmentType ?? EmploymentType.FULL_TIME,
-        joiningDate: defaultValues.joiningDate?.split('T')[0] ?? '',
-        primaryLocationId:
-          defaultValues.primaryLocationId ?? activeLocationId ?? '',
-        gender: (defaultValues.gender ?? '') as string,
-        dob: defaultValues.dob ? defaultValues.dob.split('T')[0] : '',
-        hasPortalAccess: defaultValues.hasPortalAccess ?? false,
-        portalEmail: '',
-        portalPassword: '',
-        profilePictureUrl: defaultValues.profilePictureUrl ?? '',
-        userId: defaultValues.userId ?? '',
-        grossSalary: undefined as string | number | undefined,
-        payType: 'SALARY' as PayType,
-        commissionRate: '',
-        commissionBasis: 'NET' as 'NET' | 'GROSS',
-      }
-    : {
-        fullName: '',
-        phone: '',
-        cnic: '',
-        designation: '',
-        employmentRoleId: '',
-        employmentType: EmploymentType.FULL_TIME as string,
-        joiningDate: new Date().toISOString().split('T')[0],
-        primaryLocationId: activeLocationId ?? '',
-        gender: '' as string,
-        dob: '',
-        hasPortalAccess: false,
-        portalEmail: '',
-        portalPassword: '',
-        profilePictureUrl: '',
-        userId: '',
-        grossSalary: undefined as string | number | undefined,
-        payType: 'SALARY' as PayType,
-        commissionRate: '',
-        commissionBasis: 'NET' as 'NET' | 'GROSS',
-      }
-
-  const form = useForm({
-    defaultValues: initial,
-    onSubmit: async ({ value }) => {
-      const result = employeeFormSchema.safeParse(value)
-      if (!result.success) {
-        const errors: Record<string, string> = {}
-        result.error.issues.forEach((e) => {
-          const key = String(e.path[0])
-          if (!errors[key]) errors[key] = e.message
-        })
-        setFieldErrors(errors)
-        return
-      }
-      setFieldErrors({})
-      await onSubmit(result.data as EmployeeFormData)
-    },
-  })
-
-  const hasErrors = Object.keys(fieldErrors).length > 0
+  const form = useEmployeeForm({ employee: defaultValues, onSubmit })
 
   const formContent = (
     <form
@@ -163,12 +84,18 @@ export function EmployeeForm({
       )}
 
       {/* Client validation summary (shown after failed submit) */}
-      {hasErrors && (
-        <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>Please fix the errors below before submitting.</span>
-        </div>
-      )}
+      <form.Subscribe
+        selector={(s) => s.submissionAttempts > 0 && !s.canSubmit}
+      >
+        {(hasErrors) =>
+          hasErrors && (
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>Please fix the errors below before submitting.</span>
+            </div>
+          )
+        }
+      </form.Subscribe>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {/* Full Name */}
@@ -181,21 +108,12 @@ export function EmployeeForm({
               <Input
                 placeholder="e.g., Dr. Ali Hassan"
                 value={field.state.value}
-                onChange={(e) => {
-                  field.handleChange(e.target.value)
-                  clearError(setFieldErrors, 'fullName')
-                }}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                className={
-                  fieldErrors.fullName
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : ''
-                }
+                className={fieldError(field) ? ERROR_RING : ''}
               />
-              {fieldErrors.fullName && (
-                <p className="text-xs text-destructive">
-                  {fieldErrors.fullName}
-                </p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -211,19 +129,12 @@ export function EmployeeForm({
               <Input
                 placeholder="e.g., +92 300 1234567"
                 value={field.state.value}
-                onChange={(e) => {
-                  field.handleChange(e.target.value)
-                  clearError(setFieldErrors, 'phone')
-                }}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                className={
-                  fieldErrors.phone
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : ''
-                }
+                className={fieldError(field) ? ERROR_RING : ''}
               />
-              {fieldErrors.phone && (
-                <p className="text-xs text-destructive">{fieldErrors.phone}</p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -244,7 +155,11 @@ export function EmployeeForm({
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
+                className={fieldError(field) ? ERROR_RING : ''}
               />
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
+              )}
             </div>
           )}
         </form.Field>
@@ -259,21 +174,12 @@ export function EmployeeForm({
               <Input
                 placeholder="e.g., Dentist"
                 value={field.state.value}
-                onChange={(e) => {
-                  field.handleChange(e.target.value)
-                  clearError(setFieldErrors, 'designation')
-                }}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                className={
-                  fieldErrors.designation
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : ''
-                }
+                className={fieldError(field) ? ERROR_RING : ''}
               />
-              {fieldErrors.designation && (
-                <p className="text-xs text-destructive">
-                  {fieldErrors.designation}
-                </p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -288,18 +194,9 @@ export function EmployeeForm({
               </Label>
               <Select
                 value={field.state.value}
-                onValueChange={(val) => {
-                  field.handleChange(val)
-                  clearError(setFieldErrors, 'employmentRoleId')
-                }}
+                onValueChange={(val) => field.handleChange(val)}
               >
-                <SelectTrigger
-                  className={
-                    fieldErrors.employmentRoleId
-                      ? 'border-destructive focus-visible:ring-destructive'
-                      : ''
-                  }
-                >
+                <SelectTrigger className={fieldError(field) ? ERROR_RING : ''}>
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,10 +207,8 @@ export function EmployeeForm({
                   ))}
                 </SelectContent>
               </Select>
-              {fieldErrors.employmentRoleId && (
-                <p className="text-xs text-destructive">
-                  {fieldErrors.employmentRoleId}
-                </p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -328,9 +223,11 @@ export function EmployeeForm({
               </Label>
               <Select
                 value={field.state.value}
-                onValueChange={(val) => field.handleChange(val)}
+                onValueChange={(val) =>
+                  field.handleChange(val as EmploymentType)
+                }
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldError(field) ? ERROR_RING : ''}>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -341,6 +238,9 @@ export function EmployeeForm({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
+              )}
             </div>
           )}
         </form.Field>
@@ -354,17 +254,12 @@ export function EmployeeForm({
               </Label>
               <DatePicker
                 value={field.state.value}
-                onChange={(v) => {
-                  field.handleChange(v)
-                  clearError(setFieldErrors, 'joiningDate')
-                }}
+                onChange={(v) => field.handleChange(v)}
                 placeholder="Select joining date"
-                className={fieldErrors.joiningDate ? 'border-destructive' : ''}
+                className={fieldError(field) ? 'border-destructive' : ''}
               />
-              {fieldErrors.joiningDate && (
-                <p className="text-xs text-destructive">
-                  {fieldErrors.joiningDate}
-                </p>
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
               )}
             </div>
           )}
@@ -381,8 +276,8 @@ export function EmployeeForm({
                 </span>
               </Label>
               <Select
-                value={field.state.value || ''}
-                onValueChange={(val) => field.handleChange(val)}
+                value={field.state.value}
+                onValueChange={(val) => field.handleChange(val as Gender | '')}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select gender" />
@@ -435,14 +330,14 @@ export function EmployeeForm({
                 type="number"
                 min={0}
                 placeholder="e.g., 50000"
-                value={field.state.value ?? ''}
-                onChange={(e) =>
-                  field.handleChange(
-                    e.target.value === '' ? undefined : e.target.value,
-                  )
-                }
+                value={field.state.value}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
+                className={fieldError(field) ? ERROR_RING : ''}
               />
+              {fieldError(field) && (
+                <p className="text-xs text-destructive">{fieldError(field)}</p>
+              )}
             </div>
           )}
         </form.Field>
@@ -503,9 +398,9 @@ export function EmployeeForm({
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
                         />
-                        {fieldErrors.commissionRate && (
+                        {fieldError(field) && (
                           <p className="text-sm text-destructive">
-                            {fieldErrors.commissionRate}
+                            {fieldError(field)}
                           </p>
                         )}
                       </div>
@@ -562,19 +457,8 @@ export function EmployeeForm({
                 </p>
               </div>
               <Switch
-                checked={field.state.value as boolean}
-                onCheckedChange={(val) => {
-                  field.handleChange(val)
-                  // Clear portal errors when toggled off
-                  if (!val) {
-                    setFieldErrors((prev) => {
-                      const next = { ...prev }
-                      delete next.portalEmail
-                      delete next.portalPassword
-                      return next
-                    })
-                  }
-                }}
+                checked={field.state.value}
+                onCheckedChange={(val) => field.handleChange(val)}
               />
             </div>
 
@@ -590,21 +474,16 @@ export function EmployeeForm({
                       <Input
                         type="email"
                         placeholder="e.g., ali@clinic.com"
-                        value={emailField.state.value as string}
-                        onChange={(e) => {
+                        value={emailField.state.value}
+                        onChange={(e) =>
                           emailField.handleChange(e.target.value)
-                          clearError(setFieldErrors, 'portalEmail')
-                        }}
-                        onBlur={emailField.handleBlur}
-                        className={
-                          fieldErrors.portalEmail
-                            ? 'border-destructive focus-visible:ring-destructive'
-                            : ''
                         }
+                        onBlur={emailField.handleBlur}
+                        className={fieldError(emailField) ? ERROR_RING : ''}
                       />
-                      {fieldErrors.portalEmail && (
+                      {fieldError(emailField) && (
                         <p className="text-xs text-destructive">
-                          {fieldErrors.portalEmail}
+                          {fieldError(emailField)}
                         </p>
                       )}
                     </div>
@@ -620,21 +499,14 @@ export function EmployeeForm({
                       <Input
                         type="password"
                         placeholder="Min. 6 characters"
-                        value={pwField.state.value as string}
-                        onChange={(e) => {
-                          pwField.handleChange(e.target.value)
-                          clearError(setFieldErrors, 'portalPassword')
-                        }}
+                        value={pwField.state.value}
+                        onChange={(e) => pwField.handleChange(e.target.value)}
                         onBlur={pwField.handleBlur}
-                        className={
-                          fieldErrors.portalPassword
-                            ? 'border-destructive focus-visible:ring-destructive'
-                            : ''
-                        }
+                        className={fieldError(pwField) ? ERROR_RING : ''}
                       />
-                      {fieldErrors.portalPassword && (
+                      {fieldError(pwField) && (
                         <p className="text-xs text-destructive">
-                          {fieldErrors.portalPassword}
+                          {fieldError(pwField)}
                         </p>
                       )}
                     </div>
@@ -662,10 +534,21 @@ export function EmployeeForm({
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isPending}>
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === 'create' ? 'Create Employee' : 'Update Employee'}
-        </Button>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              disabled={isPending || !canSubmit || isSubmitting}
+            >
+              {(isPending || isSubmitting) && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              {mode === 'create' ? 'Create Employee' : 'Update Employee'}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </form>
   )

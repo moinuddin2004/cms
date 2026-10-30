@@ -1,5 +1,4 @@
-import { useEffect } from 'react'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useStore } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -9,69 +8,11 @@ import { FormInput } from '@/components/forms/FormInput'
 import { FormSelect } from '@/components/forms/FormSelect'
 import { FormTextarea } from '@/components/forms/FormTextarea'
 import { FormSection, FormSheet } from '@/components/forms/FormSheet'
+import { fieldError } from '@/components/forms/fieldError'
 import { MealRelation, PageOrientation, PageSize } from '../../types'
 import type { PrescriptionTemplate } from '../../types'
-import {
-  useCreatePrescriptionTemplate,
-  useUpdatePrescriptionTemplate,
-} from '../../hooks/usePrescriptionTemplates'
+import { toLayoutParts, useLayoutForm } from '../../hooks/useLayoutForm'
 import { PrescriptionPreview } from '../PrescriptionPreview'
-
-const DEFAULT_COLOR = '#0d9488'
-
-const defaultsFor = (layout: PrescriptionTemplate | null) => ({
-  name: layout?.name ?? '',
-  pageSize: layout?.pageSize ?? PageSize.A4,
-  isDefault: layout?.isDefault ?? false,
-  primaryColor:
-    (layout?.styling.primaryColor as string | undefined) ?? DEFAULT_COLOR,
-  showVitals: layout?.styling.showVitals !== false,
-  showMedicineUrdu: layout?.styling.showMedicineUrdu !== false,
-  showPatientGender: layout?.styling.showPatientGender !== false,
-  showDate: layout?.styling.showDate !== false,
-  clinicName: (layout?.header.clinicName as string | undefined) ?? '',
-  clinicNameUrdu: (layout?.header.clinicNameUrdu as string | undefined) ?? '',
-  doctorQualification:
-    (layout?.header.doctorQualification as string | undefined) ?? '',
-  registrationNumber:
-    (layout?.header.registrationNumber as string | undefined) ?? '',
-  doctorPhone: (layout?.header.doctorPhone as string | undefined) ?? '',
-  address: (layout?.footer.address as string | undefined) ?? '',
-  timings: (layout?.footer.timings as string | undefined) ?? '',
-  phone: (layout?.footer.phone as string | undefined) ?? '',
-  disclaimerText: (layout?.footer.disclaimerText as string | undefined) ?? '',
-})
-
-type Values = ReturnType<typeof defaultsFor>
-
-/** The settings in the form, laid out the way the printed template stores them. */
-function toParts(v: Values, layout: PrescriptionTemplate | null) {
-  return {
-    header: {
-      ...layout?.header,
-      clinicName: v.clinicName,
-      clinicNameUrdu: v.clinicNameUrdu,
-      doctorQualification: v.doctorQualification,
-      registrationNumber: v.registrationNumber,
-      doctorPhone: v.doctorPhone,
-    },
-    footer: {
-      ...layout?.footer,
-      address: v.address,
-      timings: v.timings,
-      phone: v.phone,
-      disclaimerText: v.disclaimerText,
-    },
-    styling: {
-      ...layout?.styling,
-      primaryColor: v.primaryColor,
-      showVitals: v.showVitals,
-      showMedicineUrdu: v.showMedicineUrdu,
-      showPatientGender: v.showPatientGender,
-      showDate: v.showDate,
-    },
-  }
-}
 
 /** Create or edit a print layout, with the printed page shown live beside it. */
 export function LayoutSheet({
@@ -83,31 +24,14 @@ export function LayoutSheet({
   onOpenChange: (open: boolean) => void
   layout: PrescriptionTemplate | null
 }) {
-  const create = useCreatePrescriptionTemplate()
-  const update = useUpdatePrescriptionTemplate()
-  const pending = create.isPending || update.isPending
-
-  const form = useForm({
-    defaultValues: defaultsFor(layout),
-    onSubmit: async ({ value }) => {
-      const payload = {
-        name: value.name.trim(),
-        pageSize: value.pageSize,
-        isDefault: value.isDefault,
-        ...toParts(value, layout),
-      }
-      if (layout) await update.mutateAsync({ id: layout.id, data: payload })
-      else await create.mutateAsync(payload)
-      onOpenChange(false)
-    },
+  const { form, pending } = useLayoutForm({
+    open,
+    layout,
+    onDone: () => onOpenChange(false),
   })
 
-  useEffect(() => {
-    if (open) form.reset(defaultsFor(layout))
-  }, [open, layout])
-
   const values = useStore(form.store, (s) => s.values)
-  const parts = toParts(values, layout)
+  const parts = toLayoutParts(values, layout)
   const previewTemplate: PrescriptionTemplate = {
     id: 'preview',
     organizationId: '',
@@ -171,13 +95,7 @@ export function LayoutSheet({
           }}
         >
           <FormSection title="Layout">
-            <form.Field
-              name="name"
-              validators={{
-                onChange: ({ value }) =>
-                  value.trim() ? undefined : 'Name is required',
-              }}
-            >
+            <form.Field name="name">
               {(field) => (
                 <FormInput
                   label="Name"
@@ -185,7 +103,7 @@ export function LayoutSheet({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  error={field.state.meta.errors[0]}
+                  error={fieldError(field)}
                   placeholder="e.g. Main branch letterhead"
                 />
               )}

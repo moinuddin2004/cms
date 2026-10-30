@@ -18,83 +18,29 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useForm } from '@tanstack/react-form'
-import { toast } from 'sonner'
-import { useCreateDocument } from '../../hooks/usePatientSubEntities'
-import { useUpload } from '../../hooks/useUpload'
-import { useAuthStore } from '@/store/useAuthStore'
 import { Loader2, FileUp } from 'lucide-react'
 import { DocumentType } from '../../types'
 import { FileUploadField } from '@/components/shared/FileUploadField'
+import { fieldError } from '@/components/forms/fieldError'
+import { useDocumentForm } from '../../hooks/useDocumentForm'
 
 export function DocumentFormDialog({ patientId }: { patientId: string }) {
   const [open, setOpen] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const { mutate, isPending } = useCreateDocument()
-  const { mutateAsync: upload, isPending: isUploading } = useUpload()
-  const { user } = useAuthStore()
-
-  const form = useForm({
-    defaultValues: {
-      documentType: DocumentType.XRAY,
-      fileName: '',
-      notes: '',
-      toothNumber: '',
-      isVisibleToPatient: true,
-    },
-    onSubmit: async ({ value }) => {
-      if (!user?.uuid) {
-        toast.error('Your session is missing — please sign in again.')
-        return
-      }
-      if (!file) {
-        toast.error('Please choose a file to upload.')
-        return
-      }
-
-      let uploaded
-      try {
-        uploaded = await upload({ file, folder: 'patient-documents' })
-      } catch {
-        return // toast already shown by useUpload
-      }
-
-      const isImage = uploaded.mimeType.startsWith('image/')
-      mutate(
-        {
-          patientId,
-          documentType: value.documentType,
-          fileName: value.fileName.trim() || uploaded.fileName,
-          fileUrl: uploaded.url,
-          thumbnailUrl: isImage ? uploaded.url : undefined,
-          fileSizeBytes: uploaded.sizeBytes,
-          mimeType: uploaded.mimeType,
-          notes: value.notes || undefined,
-          toothNumber: value.toothNumber || undefined,
-          isVisibleToPatient: value.isVisibleToPatient,
-          uploadedBy: user.uuid,
-        },
-        {
-          onSuccess: () => {
-            form.reset()
-            setFile(null)
-            setOpen(false)
-          },
-        },
-      )
-    },
+  const { form, isPending, isUploading } = useDocumentForm({
+    patientId,
+    onSaved: () => setOpen(false),
   })
 
   const busy = isPending || isUploading
 
+  // The picker unmounts with the dialog, so drop the picked file with it.
+  const onOpenChange = (o: boolean) => {
+    setOpen(o)
+    if (!o) form.resetField('file')
+  }
+
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o)
-        if (!o) setFile(null)
-      }}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button size="sm">
           <FileUp size={14} className="mr-2" /> Upload File
@@ -112,16 +58,28 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
           }}
           className="space-y-4 pt-4"
         >
-          <div className="space-y-2">
-            <Label>
-              File <span className="text-destructive">*</span>
-            </Label>
-            <FileUploadField
-              onFileSelected={setFile}
-              accept="image/*,application/pdf"
-              disabled={busy}
-            />
-          </div>
+          <form.Field name="file">
+            {(field) => (
+              <div className="space-y-2">
+                <Label>
+                  File <span className="text-destructive">*</span>
+                </Label>
+                <FileUploadField
+                  onFileSelected={(f) => {
+                    field.handleChange(f)
+                    field.handleBlur()
+                  }}
+                  accept="image/*,application/pdf"
+                  disabled={busy}
+                />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
+              </div>
+            )}
+          </form.Field>
 
           <div className="grid grid-cols-2 gap-4">
             <form.Field name="documentType">
@@ -154,8 +112,14 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
                   <Input
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
                     placeholder="e.g. 14, 26"
                   />
+                  {fieldError(field) && (
+                    <p className="text-xs font-medium text-danger">
+                      {fieldError(field)}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -168,8 +132,14 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
                 <Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="Defaults to the file name if left blank"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -210,15 +180,24 @@ export function DocumentFormDialog({ patientId }: { patientId: string }) {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               className="mr-2"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={busy || !file}>
-              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isUploading ? 'Uploading…' : 'Upload'}
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={!canSubmit || isSubmitting || busy}
+                >
+                  {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isUploading ? 'Uploading…' : 'Upload'}
+                </Button>
+              )}
+            </form.Subscribe>
           </div>
         </form>
       </DialogContent>

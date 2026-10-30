@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -21,13 +19,10 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Loader2 } from 'lucide-react'
 import { useEmployees } from '../hooks/useEmployees'
-import { useCreatePayroll } from '../hooks/useCreatePayroll'
-import { useUpdatePayroll } from '../hooks/useUpdatePayroll'
-import {
-  PayrollStatus,
-  PAYROLL_STATUS_OPTIONS,
-  type PayrollRecord,
-} from '../types'
+import { fieldError } from '@/components/forms/fieldError'
+import { usePayrollForm } from '../hooks/usePayrollForm'
+import { PAYROLL_STATUS_OPTIONS } from '../types'
+import type { PayrollStatus, PayrollRecord } from '../types'
 
 const MONTHS = [
   'January',
@@ -59,63 +54,17 @@ export function CreateEditPayrollModal({
   defaultMonth,
   defaultYear,
 }: CreateEditPayrollModalProps) {
-  const isEdit = !!record
-  const createMutation = useCreatePayroll()
-  const updateMutation = useUpdatePayroll()
+  const { form, isEdit, isPending } = usePayrollForm({
+    record,
+    isOpen,
+    defaultMonth,
+    defaultYear,
+    onDone: () => onOpenChange(false),
+  })
   const now = new Date()
 
   const { data: employeesPage } = useEmployees({ page: 1, limit: 100 })
   const employees = employeesPage?.data ?? []
-
-  const form = useForm({
-    defaultValues: {
-      employeeId: '',
-      month: defaultMonth ?? now.getMonth() + 1,
-      year: defaultYear ?? now.getFullYear(),
-      salaryAmount: 0,
-      status: PayrollStatus.PENDING as string,
-      notes: '',
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        if (isEdit && record) {
-          await updateMutation.mutateAsync({
-            recordId: record.id,
-            data: {
-              salaryAmount: value.salaryAmount,
-              month: value.month,
-              year: value.year,
-              status: value.status as PayrollStatus,
-              notes: value.notes,
-            },
-          })
-        } else {
-          await createMutation.mutateAsync(value as any)
-        }
-        onOpenChange(false)
-      } catch {
-        // Hooks surface the error toast.
-      }
-    },
-  })
-
-  useEffect(() => {
-    if (!isOpen) return
-    form.reset()
-    if (record) {
-      form.setFieldValue('employeeId', record.employeeId)
-      form.setFieldValue('month', record.month)
-      form.setFieldValue('year', record.year)
-      form.setFieldValue('salaryAmount', Number(record.salaryAmount))
-      form.setFieldValue('status', record.status)
-      form.setFieldValue('notes', record.notes ?? '')
-    } else {
-      form.setFieldValue('month', defaultMonth ?? now.getMonth() + 1)
-      form.setFieldValue('year', defaultYear ?? now.getFullYear())
-    }
-  }, [isOpen, record])
-
-  const isPending = createMutation.isPending || updateMutation.isPending
 
   const yearOptions = Array.from(
     { length: 6 },
@@ -165,7 +114,7 @@ export function CreateEditPayrollModal({
                       if (emp?.grossSalary != null) {
                         form.setFieldValue(
                           'salaryAmount',
-                          Number(emp.grossSalary),
+                          String(Number(emp.grossSalary)),
                         )
                       }
                     }}
@@ -182,9 +131,9 @@ export function CreateEditPayrollModal({
                       ))}
                     </SelectContent>
                   </Select>
-                  {field.state.meta.errors[0] && (
+                  {fieldError(field) && (
                     <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -251,12 +200,12 @@ export function CreateEditPayrollModal({
                     min={0}
                     step="0.01"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                    onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
                   />
-                  {field.state.meta.errors[0] && (
+                  {fieldError(field) && (
                     <p className="text-xs text-destructive">
-                      {String(field.state.meta.errors[0])}
+                      {fieldError(field)}
                     </p>
                   )}
                 </div>
@@ -268,7 +217,9 @@ export function CreateEditPayrollModal({
                   <Label>Status</Label>
                   <Select
                     value={field.state.value}
-                    onValueChange={(val) => field.handleChange(val)}
+                    onValueChange={(val) =>
+                      field.handleChange(val as PayrollStatus)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -281,6 +232,11 @@ export function CreateEditPayrollModal({
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldError(field) && (
+                    <p className="text-xs text-destructive">
+                      {fieldError(field)}
+                    </p>
+                  )}
                 </div>
               )}
             </form.Field>
@@ -309,10 +265,21 @@ export function CreateEditPayrollModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? 'Save Changes' : 'Create Record'}
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !canSubmit || isSubmitting}
+                >
+                  {(isPending || isSubmitting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isEdit ? 'Save Changes' : 'Create Record'}
+                </Button>
+              )}
+            </form.Subscribe>
           </DialogFooter>
         </form>
       </DialogContent>

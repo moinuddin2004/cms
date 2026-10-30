@@ -2,6 +2,7 @@ import { useState, forwardRef, useImperativeHandle } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useNavigate } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -20,7 +20,20 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
 import { OrganizationTable } from './components/OrganizationTable'
+import { useOrganizationForm } from './hooks/useOrganizationForm'
+import type { OrganizationPayload } from './hooks/useOrganizationForm'
+import { SUBSCRIPTION_PLANS } from './schemas/organization.schema'
+import type { SubscriptionPlan } from './schemas/organization.schema'
+
+const PLAN_LABEL: Record<SubscriptionPlan, string> = {
+  free: 'Free',
+  starter: 'Starter',
+  professional: 'Professional',
+  enterprise: 'Enterprise',
+}
 
 export interface Organization {
   id: string
@@ -50,7 +63,7 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
     })
 
     const createMutation = useMutation({
-      mutationFn: async (data: Partial<Organization>) =>
+      mutationFn: async (data: OrganizationPayload) =>
         apiClient.post('/organizations', data),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['organizations'] })
@@ -69,7 +82,7 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
         data,
       }: {
         id: string
-        data: Partial<Organization>
+        data: OrganizationPayload
       }) => apiClient.patch(`/organizations/${id}`, data),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['organizations'] })
@@ -95,6 +108,13 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
         ),
     })
 
+    const { form } = useOrganizationForm({
+      open: isFormOpen,
+      organization: orgToEdit,
+      onCreate: (data) => createMutation.mutateAsync(data),
+      onUpdate: (id, data) => updateMutation.mutateAsync({ id, data }),
+    })
+
     const handleCreateNew = () => {
       setOrgToEdit(null)
       setIsFormOpen(true)
@@ -102,21 +122,9 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
 
     useImperativeHandle(ref, () => ({ create: handleCreateNew }))
 
-    const [formData, setFormData] = useState<Partial<Organization>>({})
-
     const openEdit = (org: Organization) => {
       setOrgToEdit(org)
-      setFormData(org)
       setIsFormOpen(true)
-    }
-
-    const handleSave = (e: React.FormEvent) => {
-      e.preventDefault()
-      if (orgToEdit) {
-        updateMutation.mutate({ id: orgToEdit.id, data: formData })
-      } else {
-        createMutation.mutate(formData)
-      }
     }
 
     const navigate = useNavigate()
@@ -157,82 +165,80 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
           }}
         />
 
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <Dialog
+          open={isFormOpen}
+          onOpenChange={(o) => !form.state.isSubmitting && setIsFormOpen(o)}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
                 {orgToEdit ? 'Edit Organization' : 'Create Organization'}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  required
-                  value={formData.name || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+              }}
+            >
+              <form.Field name="name">
+                {(f) => (
+                  <FieldWrapper
+                    label="Name"
+                    htmlFor="organization-name"
+                    required
+                    error={fieldError(f)}
+                  >
+                    <Input
+                      id="organization-name"
+                      value={f.state.value}
+                      onChange={(e) => f.handleChange(e.target.value)}
+                      onBlur={f.handleBlur}
+                      aria-invalid={!!fieldError(f)}
+                    />
+                  </FieldWrapper>
+                )}
+              </form.Field>
               {orgToEdit && (
-                <div className="space-y-2">
-                  <Label>Slug</Label>
-                  <Input disabled value={formData.slug || ''} />
-                </div>
+                <FieldWrapper label="Slug" htmlFor="organization-slug">
+                  <Input
+                    id="organization-slug"
+                    disabled
+                    value={orgToEdit.slug || ''}
+                  />
+                </FieldWrapper>
               )}
-              <div className="space-y-2">
-                <Label>Clinic Type</Label>
-                <Input
-                  value={formData.clinicType || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, clinicType: e.target.value })
-                  }
-                  placeholder="e.g. Dental, Medical"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Timezone</Label>
-                  <Input
-                    value={formData.timezone || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, timezone: e.target.value })
-                    }
-                    placeholder="e.g. Asia/Karachi"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Input
-                    value={formData.currency || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, currency: e.target.value })
-                    }
-                    placeholder="e.g. PKR"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Subscription Plan</Label>
-                <Select
-                  clearable={false}
-                  value={formData.subscriptionPlan || 'FREE'}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, subscriptionPlan: val })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FREE">FREE</SelectItem>
-                    <SelectItem value="BASIC">BASIC</SelectItem>
-                    <SelectItem value="PREMIUM">PREMIUM</SelectItem>
-                    <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <form.Field name="subscriptionPlan">
+                {(f) => (
+                  <FieldWrapper
+                    label="Subscription Plan"
+                    htmlFor="organization-plan"
+                    required
+                    error={fieldError(f)}
+                  >
+                    <Select
+                      clearable={false}
+                      value={f.state.value}
+                      onValueChange={(val) => {
+                        f.handleChange(val as SubscriptionPlan)
+                        f.handleBlur()
+                      }}
+                    >
+                      <SelectTrigger id="organization-plan" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SUBSCRIPTION_PLANS.map((plan) => (
+                          <SelectItem key={plan} value={plan}>
+                            {PLAN_LABEL[plan]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldWrapper>
+                )}
+              </form.Field>
               <div className="flex justify-end pt-4">
                 <Button
                   type="button"
@@ -242,14 +248,18 @@ export const OrganizationManagementView = forwardRef<{ create: () => void }>(
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={
-                    createMutation.isPending || updateMutation.isPending
-                  }
+                <form.Subscribe
+                  selector={(st) => [st.canSubmit, st.isSubmitting] as const}
                 >
-                  Save
-                </Button>
+                  {([canSubmit, isSubmitting]) => (
+                    <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                      {isSubmitting && (
+                        <Loader2 className="size-4 animate-spin" />
+                      )}
+                      Save
+                    </Button>
+                  )}
+                </form.Subscribe>
               </div>
             </form>
           </DialogContent>

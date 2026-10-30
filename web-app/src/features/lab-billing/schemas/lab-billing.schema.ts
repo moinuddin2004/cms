@@ -100,3 +100,8 @@ export const refundSchema = (maxPaisa: number) =>
     reason: text(500).min(3, 'Say why (at least 3 characters)'),
   })
 export type RefundValues = z.input<ReturnType<typeof refundSchema>>
+
+/** Reason for a money correction (void etc.; backend `ReasonDto`: 3–500). */
+export const correctionReasonSchema = z.object({
+  reason: text(500).min(3, 'Say why (at least 3 characters)'),
+})

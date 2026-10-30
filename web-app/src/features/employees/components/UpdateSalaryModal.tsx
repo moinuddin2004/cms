@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -11,8 +9,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useUpdateSalary } from '../hooks/useSetSalary'
-import { toast } from 'sonner'
+import { fieldError } from '@/components/forms/fieldError'
+import { useSalaryForm } from '../hooks/useSalaryForm'
 import { Loader2 } from 'lucide-react'
 import { activeCurrency } from '@/lib/currency'
 
@@ -29,29 +27,12 @@ export function UpdateSalaryModal({
   onOpenChange,
   currentSalary,
 }: UpdateSalaryModalProps) {
-  const updateSalaryMutation = useUpdateSalary(employeeId)
-
-  const form = useForm({
-    defaultValues: {
-      grossSalary: currentSalary || 0,
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        await updateSalaryMutation.mutateAsync(value)
-        toast.success('Salary updated')
-        onOpenChange(false)
-        form.reset()
-      } catch {
-        toast.error('Failed to update salary')
-      }
-    },
+  const { form, isPending } = useSalaryForm({
+    employeeId,
+    isOpen,
+    currentSalary,
+    onDone: () => onOpenChange(false),
   })
-
-  useEffect(() => {
-    if (isOpen) {
-      form.setFieldValue('grossSalary', currentSalary || 0)
-    }
-  }, [isOpen, currentSalary])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -83,13 +64,13 @@ export function UpdateSalaryModal({
                     className="pl-12"
                     placeholder="50000"
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                    onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
                   />
                 </div>
-                {field.state.meta.errors[0] && (
+                {fieldError(field) && (
                   <p className="text-xs text-destructive">
-                    {String(field.state.meta.errors[0])}
+                    {fieldError(field)}
                   </p>
                 )}
               </div>
@@ -104,15 +85,21 @@ export function UpdateSalaryModal({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={updateSalaryMutation.isPending}
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
             >
-              {updateSalaryMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !canSubmit || isSubmitting}
+                >
+                  {(isPending || isSubmitting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Changes
+                </Button>
               )}
-              Save Changes
-            </Button>
+            </form.Subscribe>
           </DialogFooter>
         </form>
       </DialogContent>

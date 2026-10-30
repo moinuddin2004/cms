@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/shared'
+import { fieldError } from '@/components/forms/fieldError'
+import { orderActionReasonSchema } from '../schemas/lab-order.schema'
 
 /** Confirm a status action, asking for the reason the workflow records. */
 export function ReasonDialog({
@@ -32,47 +35,84 @@ export function ReasonDialog({
   isLoading: boolean
   onConfirm: (reason: string) => void
 }) {
-  const [reason, setReason] = useState('')
+  const form = useForm({
+    defaultValues: { reason: '' },
+    validators: {
+      onChange: orderActionReasonSchema,
+      onSubmit: orderActionReasonSchema,
+    },
+    onSubmit: ({ value }) => onConfirm(value.reason.trim()),
+  })
+
+  useEffect(() => {
+    if (open) form.reset()
+  }, [open, form])
+
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (!isLoading) {
-          setReason('')
-          onOpenChange(o)
-        }
+        if (!isLoading) onOpenChange(o)
       }}
     >
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-        <FieldWrapper label="Reason" htmlFor="action-reason" required>
-          <Textarea
-            id="action-reason"
-            rows={3}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </FieldWrapper>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            disabled={isLoading}
-            onClick={() => onOpenChange(false)}
-          >
-            Back
-          </Button>
-          <Button
-            variant={destructive ? 'destructive' : 'default'}
-            disabled={!reason.trim() || isLoading}
-            onClick={() => onConfirm(reason.trim())}
-          >
-            {isLoading && <Loader2 className="size-4 animate-spin" />}
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+          className="space-y-4"
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription>{description}</DialogDescription>
+          </DialogHeader>
+          <form.Field name="reason">
+            {(field) => (
+              <FieldWrapper
+                label="Reason"
+                htmlFor="action-reason"
+                required
+                error={fieldError(field)}
+              >
+                <Textarea
+                  id="action-reason"
+                  rows={3}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  autoFocus
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading}
+              onClick={() => onOpenChange(false)}
+            >
+              Back
+            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  variant={destructive ? 'destructive' : 'default'}
+                  disabled={!canSubmit || isSubmitting || isLoading}
+                >
+                  {(isLoading || isSubmitting) && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  {confirmLabel}
+                </Button>
+              )}
+            </form.Subscribe>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

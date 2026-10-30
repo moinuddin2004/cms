@@ -4,13 +4,14 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useForm } from '@tanstack/react-form'
 import { Loader2, Plus, Activity, Droplets } from 'lucide-react'
-import { toast } from 'sonner'
 import {
   useVitals,
   useDentalInfo,
   useUpsertDentalInfo,
-  useCreateVitals,
 } from '../../hooks/usePatientSubEntities'
+import { useVitalsForm } from '../../hooks/useVitalsForm'
+import type { VitalKey } from '../../schemas/patient-records.schema'
+import { fieldError } from '@/components/forms/fieldError'
 import type { Patient, PatientVitals, PatientDentalInfo } from '../../types'
 import { Label } from '@/components/ui/label'
 import {
@@ -22,7 +23,6 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Checkbox } from '@/components/ui/checkbox'
 import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types'
-import { useAuthStore } from '@/store/useAuthStore'
 import { useAccess } from '@/features/access/hooks/useAccess'
 
 export function VitalsAndDentalTab({ patient }: { patient: Patient }) {
@@ -166,85 +166,26 @@ function Metric({
   )
 }
 
-// Range guard: returns an error string or undefined. Empty is allowed (optional).
-function range(min: number, max: number, label: string) {
-  return ({ value }: { value: number | string | undefined }) => {
-    if (value === undefined || value === '') return undefined
-    const n = typeof value === 'string' ? Number(value) : value
-    if (Number.isNaN(n)) return undefined
-    if (n < min || n > max) return `${label} must be between ${min} and ${max}`
-    return undefined
-  }
-}
-
-function FieldError({ errors }: { errors: Array<string | undefined> }) {
-  const msg = errors.find(Boolean)
-  if (!msg) return null
-  return <p className="text-[11px] text-destructive">{msg}</p>
-}
-
 function VitalsForm({ patientId }: { patientId: string }) {
-  const { mutate, isPending } = useCreateVitals()
-  const { user } = useAuthStore()
+  const { form, isPending } = useVitalsForm({ patientId })
 
-  const form = useForm({
-    defaultValues: {
-      bpSystolic: undefined as number | undefined,
-      bpDiastolic: undefined as number | undefined,
-      pulseRate: undefined as number | undefined,
-      temperature: undefined as number | undefined,
-      oxygenSaturation: undefined as number | undefined,
-      weightKg: undefined as number | undefined,
-      heightCm: undefined as number | undefined,
-      notes: '' as string,
-    },
-    onSubmit: async ({ value }) => {
-      if (!user?.uuid) {
-        toast.error('Your session is missing — please sign in again.')
-        return
-      }
-      const { notes, ...vitals } = value
-      const hasAny = Object.values(vitals).some(
-        (v) => v !== undefined && !Number.isNaN(v),
-      )
-      if (!hasAny) {
-        toast.error('Enter at least one vital before saving.')
-        return
-      }
-      mutate(
-        {
-          patientId,
-          ...vitals,
-          notes: notes.trim() || undefined,
-          recordedBy: user.uuid,
-        },
-        { onSuccess: () => form.reset() },
-      )
-    },
-  })
-
-  const numField = (
-    name: keyof typeof form.state.values,
-    label: string,
-    placeholder: string,
-    validate: ReturnType<typeof range>,
-  ) => (
-    <form.Field name={name} validators={{ onChange: validate }}>
+  const numField = (name: VitalKey, label: string, placeholder: string) => (
+    <form.Field name={name}>
       {(field) => (
         <div className="space-y-1">
           <Label className="text-xs">{label}</Label>
           <Input
             type="number"
-            value={field.state.value ?? ''}
-            onChange={(e) =>
-              field.handleChange(
-                e.target.value === '' ? undefined : Number(e.target.value),
-              )
-            }
+            value={field.state.value}
+            onChange={(e) => field.handleChange(e.target.value)}
             onBlur={field.handleBlur}
             placeholder={placeholder}
           />
-          <FieldError errors={field.state.meta.errors} />
+          {fieldError(field) && (
+            <p className="text-xs font-medium text-danger">
+              {fieldError(field)}
+            </p>
+          )}
         </div>
       )}
     </form.Field>
@@ -259,18 +200,13 @@ function VitalsForm({ patientId }: { patientId: string }) {
       }}
     >
       <div className="grid grid-cols-3 gap-3">
-        {numField('bpSystolic', 'Systolic', '120', range(50, 300, 'Systolic'))}
-        {numField(
-          'bpDiastolic',
-          'Diastolic',
-          '80',
-          range(30, 200, 'Diastolic'),
-        )}
-        {numField('pulseRate', 'Pulse (bpm)', '72', range(20, 250, 'Pulse'))}
-        {numField('temperature', 'Temp (°C)', '37', range(30, 45, 'Temp'))}
-        {numField('oxygenSaturation', 'SpO₂ (%)', '98', range(50, 100, 'SpO₂'))}
-        {numField('weightKg', 'Weight (kg)', '70', range(1, 500, 'Weight'))}
-        {numField('heightCm', 'Height (cm)', '175', range(20, 300, 'Height'))}
+        {numField('bpSystolic', 'Systolic', '120')}
+        {numField('bpDiastolic', 'Diastolic', '80')}
+        {numField('pulseRate', 'Pulse (bpm)', '72')}
+        {numField('temperature', 'Temp (°C)', '37')}
+        {numField('oxygenSaturation', 'SpO₂ (%)', '98')}
+        {numField('weightKg', 'Weight (kg)', '70')}
+        {numField('heightCm', 'Height (cm)', '175')}
       </div>
       <form.Field name="notes">
         {(field) => (
@@ -285,9 +221,15 @@ function VitalsForm({ patientId }: { patientId: string }) {
         )}
       </form.Field>
       <div className="mt-3 flex justify-end">
-        <form.Subscribe selector={(s) => s.isValid}>
-          {(isValid) => (
-            <Button type="submit" size="sm" disabled={isPending || !isValid}>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!canSubmit || isSubmitting || isPending}
+            >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Vitals
             </Button>

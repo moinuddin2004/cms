@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { MultiSelect } from '@/components/shared/MultiSelect'
 import {
@@ -56,6 +57,7 @@ import type {
   WorkflowTemplateDetail,
   WorkflowVersion,
 } from '../types'
+import { workflowDraftErrors } from '../schemas/workflow.schema'
 import { IssuesList } from './IssuesList'
 import { SimulationPanel } from './SimulationPanel'
 import { DefinitionStatusBadge } from './studio-badges'
@@ -100,6 +102,12 @@ export function WorkflowVersionEditor({
   }))
   const stateOptions = def.states.filter((s) => s.code.trim())
   const rows = issuesByRow(version.issues)
+  // Row-level rules (codes, names, picks) checked as you type; the server's
+  // whole-graph checks still come back as issues on save.
+  const errors = useMemo(() => workflowDraftErrors(def), [def])
+  const invalid = errors.size > 0
+  /** A cell's error — only once something was edited, so a fresh draft isn't red. */
+  const err = (path: string) => (dirty ? errors.get(path) : undefined)
 
   const save = useSaveWorkflowDraft(template.id)
   const discard = useDiscardWorkflowDraft(template.id)
@@ -122,19 +130,26 @@ export function WorkflowVersionEditor({
     value: string,
     onChange: (v: string) => void,
     label: string,
+    error?: string,
   ) => (
-    <Select value={value} onValueChange={onChange} disabled={ro}>
-      <SelectTrigger className="h-8 w-36" aria-label={label}>
-        <SelectValue placeholder="State…" />
-      </SelectTrigger>
-      <SelectContent>
-        {stateOptions.map((s) => (
-          <SelectItem key={s.code} value={s.code}>
-            {s.code}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <FieldWrapper error={error}>
+      <Select value={value} onValueChange={onChange} disabled={ro}>
+        <SelectTrigger
+          className="h-8 w-36"
+          aria-label={label}
+          aria-invalid={!!error}
+        >
+          <SelectValue placeholder="State…" />
+        </SelectTrigger>
+        <SelectContent>
+          {stateOptions.map((s) => (
+            <SelectItem key={s.code} value={s.code}>
+              {s.code}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </FieldWrapper>
   )
 
   return (
@@ -154,7 +169,7 @@ export function WorkflowVersionEditor({
             </Button>
             <Button
               variant="outline"
-              disabled={!dirty || save.isPending}
+              disabled={!dirty || invalid || save.isPending}
               onClick={() =>
                 save.mutate({
                   versionId: version.id,
@@ -188,6 +203,11 @@ export function WorkflowVersionEditor({
       {isDraft ? (
         <div className="space-y-1">
           <IssuesList issues={version.issues} />
+          {dirty && invalid && (
+            <p className="text-xs font-medium text-danger">
+              Fix the highlighted fields to save the draft.
+            </p>
+          )}
           {dirty && (
             <p className="text-xs text-text-3">
               Issues and the test run are from the last save. Save the draft to
@@ -269,30 +289,38 @@ export function WorkflowVersionEditor({
                   </div>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Input
-                    aria-label={`State ${i + 1} code`}
-                    className="h-8 font-mono text-xs"
-                    value={s.code}
-                    readOnly={ro}
-                    onChange={(e) =>
-                      setDef((d) =>
-                        updateState(d, i, {
-                          code: e.target.value.toLowerCase(),
-                        }),
-                      )
-                    }
-                  />
+                  <FieldWrapper error={err(`states.${i}.code`)}>
+                    <Input
+                      aria-label={`State ${i + 1} code`}
+                      aria-invalid={!!err(`states.${i}.code`)}
+                      className="h-8 font-mono text-xs"
+                      value={s.code}
+                      readOnly={ro}
+                      onChange={(e) =>
+                        setDef((d) =>
+                          updateState(d, i, {
+                            code: e.target.value.toLowerCase(),
+                          }),
+                        )
+                      }
+                    />
+                  </FieldWrapper>
                 </td>
                 <td className="px-2 py-1.5">
-                  <Input
-                    aria-label={`State ${i + 1} name`}
-                    className="h-8"
-                    value={s.name}
-                    readOnly={ro}
-                    onChange={(e) =>
-                      setDef((d) => updateState(d, i, { name: e.target.value }))
-                    }
-                  />
+                  <FieldWrapper error={err(`states.${i}.name`)}>
+                    <Input
+                      aria-label={`State ${i + 1} name`}
+                      aria-invalid={!!err(`states.${i}.name`)}
+                      className="h-8"
+                      value={s.name}
+                      readOnly={ro}
+                      onChange={(e) =>
+                        setDef((d) =>
+                          updateState(d, i, { name: e.target.value }),
+                        )
+                      }
+                    />
+                  </FieldWrapper>
                 </td>
                 <td className="px-2 py-1.5">
                   <Select
@@ -399,33 +427,44 @@ export function WorkflowVersionEditor({
                       t.from,
                       (v) => set({ from: v }),
                       `${label} from`,
+                      err(`transitions.${i}.from`),
                     )}
                   </td>
                   <td className="px-2 py-1.5">
-                    <Input
-                      aria-label={`${label} action`}
-                      className="h-8 w-32 font-mono text-xs"
-                      value={t.action}
-                      readOnly={ro}
-                      onChange={(e) =>
-                        set({ action: e.target.value.toLowerCase() })
-                      }
-                    />
+                    <FieldWrapper error={err(`transitions.${i}.action`)}>
+                      <Input
+                        aria-label={`${label} action`}
+                        aria-invalid={!!err(`transitions.${i}.action`)}
+                        className="h-8 w-32 font-mono text-xs"
+                        value={t.action}
+                        readOnly={ro}
+                        onChange={(e) =>
+                          set({ action: e.target.value.toLowerCase() })
+                        }
+                      />
+                    </FieldWrapper>
                   </td>
                   <td className="px-2 py-1.5">
-                    {stateSelect(t.to, (v) => set({ to: v }), `${label} to`)}
+                    {stateSelect(
+                      t.to,
+                      (v) => set({ to: v }),
+                      `${label} to`,
+                      err(`transitions.${i}.to`),
+                    )}
                   </td>
                   <td className="px-2 py-1.5">
-                    <MultiSelect
-                      aria-label={`${label} sides`}
-                      className="w-40"
-                      options={SIDE_OPTIONS}
-                      value={t.allowedSides}
-                      disabled={ro || derived}
-                      onChange={(v) =>
-                        set({ allowedSides: v as TransitionSide[] })
-                      }
-                    />
+                    <FieldWrapper error={err(`transitions.${i}.allowedSides`)}>
+                      <MultiSelect
+                        aria-label={`${label} sides`}
+                        className="w-40"
+                        options={SIDE_OPTIONS}
+                        value={t.allowedSides}
+                        disabled={ro || derived}
+                        onChange={(v) =>
+                          set({ allowedSides: v as TransitionSide[] })
+                        }
+                      />
+                    </FieldWrapper>
                   </td>
                   <td className="px-2 py-1.5">
                     <MultiSelect
@@ -439,19 +478,23 @@ export function WorkflowVersionEditor({
                     />
                   </td>
                   <td className="px-2 py-1.5">
-                    <MultiSelect
-                      aria-label={`${label} required input`}
-                      className="w-44"
-                      placeholder="None"
-                      creatable
-                      options={(t.requiredFields ?? []).map((f) => ({
-                        value: f,
-                        label: f,
-                      }))}
-                      value={t.requiredFields ?? []}
-                      disabled={ro}
-                      onChange={(v) => set({ requiredFields: v })}
-                    />
+                    <FieldWrapper
+                      error={err(`transitions.${i}.requiredFields`)}
+                    >
+                      <MultiSelect
+                        aria-label={`${label} required input`}
+                        className="w-44"
+                        placeholder="None"
+                        creatable
+                        options={(t.requiredFields ?? []).map((f) => ({
+                          value: f,
+                          label: f,
+                        }))}
+                        value={t.requiredFields ?? []}
+                        disabled={ro}
+                        onChange={(v) => set({ requiredFields: v })}
+                      />
+                    </FieldWrapper>
                   </td>
                   <td className="px-2 py-1.5 text-center">
                     <Checkbox

@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -20,13 +18,10 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Loader2 } from 'lucide-react'
-import { useCreateLeave, useUpdateLeave } from '../hooks/useLeave'
-import {
-  LEAVE_TYPE_OPTIONS,
-  LeaveType,
-  type EmployeeLeave,
-  type LeaveFormData,
-} from '../types'
+import { fieldError } from '@/components/forms/fieldError'
+import { useLeaveForm } from '../hooks/useLeaveForm'
+import { LEAVE_TYPE_OPTIONS } from '../types'
+import type { EmployeeLeave, LeaveType } from '../types'
 
 interface LeaveFormDialogProps {
   employeeId: string
@@ -41,48 +36,12 @@ export function LeaveFormDialog({
   onOpenChange,
   leave,
 }: LeaveFormDialogProps) {
-  const createMutation = useCreateLeave()
-  const updateMutation = useUpdateLeave()
-  const isEditing = !!leave
-  const isPending = createMutation.isPending || updateMutation.isPending
-
-  const form = useForm({
-    defaultValues: {
-      leaveType: LeaveType.ANNUAL as string,
-      startDate: '',
-      endDate: '',
-      reason: '',
-    },
-    onSubmit: async ({ value }) => {
-      try {
-        if (isEditing && leave) {
-          await updateMutation.mutateAsync({
-            id: leave.id,
-            payload: value as LeaveFormData,
-          })
-        } else {
-          await createMutation.mutateAsync({
-            ...(value as LeaveFormData),
-            employeeId,
-          })
-        }
-        onOpenChange(false)
-        form.reset()
-      } catch {
-        // toast handled in hooks
-      }
-    },
+  const { form, isEditing, isPending } = useLeaveForm({
+    employeeId,
+    isOpen,
+    leave,
+    onDone: () => onOpenChange(false),
   })
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset()
-      form.setFieldValue('leaveType', leave?.leaveType ?? LeaveType.ANNUAL)
-      form.setFieldValue('startDate', leave?.startDate ?? '')
-      form.setFieldValue('endDate', leave?.endDate ?? '')
-      form.setFieldValue('reason', leave?.reason ?? '')
-    }
-  }, [isOpen, leave])
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -111,7 +70,7 @@ export function LeaveFormDialog({
                 <Label>Leave Type</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(val) => field.handleChange(val)}
+                  onValueChange={(val) => field.handleChange(val as LeaveType)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select leave type" />
@@ -124,6 +83,11 @@ export function LeaveFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -132,9 +96,7 @@ export function LeaveFormDialog({
             {(startField) => (
               <form.Field name="endDate">
                 {(endField) => {
-                  const error =
-                    startField.state.meta.errors[0] ??
-                    endField.state.meta.errors[0]
+                  const error = fieldError(startField) ?? fieldError(endField)
                   return (
                     <div className="space-y-2">
                       <Label htmlFor="leave-dates">Leave dates</Label>
@@ -154,9 +116,7 @@ export function LeaveFormDialog({
                         }}
                       />
                       {error && (
-                        <p className="text-xs text-destructive">
-                          {String(error)}
-                        </p>
+                        <p className="text-xs text-destructive">{error}</p>
                       )}
                     </div>
                   )
@@ -188,10 +148,21 @@ export function LeaveFormDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Save Changes' : 'Submit Request'}
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !canSubmit || isSubmitting}
+                >
+                  {(isPending || isSubmitting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isEditing ? 'Save Changes' : 'Submit Request'}
+                </Button>
+              )}
+            </form.Subscribe>
           </DialogFooter>
         </form>
       </DialogContent>

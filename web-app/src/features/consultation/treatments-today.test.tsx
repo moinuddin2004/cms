@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ProcedureOption } from './types'
 import { TreatmentsToday } from './components/TreatmentsToday'
 import {
@@ -72,7 +72,7 @@ describe('TreatmentsToday', () => {
       />,
     )
 
-  it('has no fee field and adds the picked service', () => {
+  it('has no fee field and adds the picked service', async () => {
     renderIt()
     expect(screen.queryByLabelText('Fee')).toBeNull()
     expect(
@@ -85,13 +85,16 @@ describe('TreatmentsToday', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(mutate).toHaveBeenCalledWith(
-      { serviceId: 's1', notes: 'Tooth: 26' },
-      expect.any(Object),
+    // Form submit validates first, so the mutation lands a tick later.
+    await waitFor(() =>
+      expect(mutate).toHaveBeenCalledWith(
+        { serviceId: 's1', notes: 'Tooth: 26' },
+        expect.any(Object),
+      ),
     )
   })
 
-  it('shows a name box only after choosing "Other…"', () => {
+  it('shows a name box only after choosing "Other…"', async () => {
     renderIt()
     expect(screen.queryByLabelText('Procedure')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Other…' }))
@@ -99,9 +102,11 @@ describe('TreatmentsToday', () => {
       target: { value: 'Bleaching' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    expect(mutate).toHaveBeenCalledWith(
-      { treatmentName: 'Bleaching', notes: undefined },
-      expect.any(Object),
+    await waitFor(() =>
+      expect(mutate).toHaveBeenCalledWith(
+        { treatmentName: 'Bleaching', notes: undefined },
+        expect.any(Object),
+      ),
     )
   })
 

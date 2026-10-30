@@ -29,3 +29,6 @@ export const cloneRoleSchema = (needsReason: boolean) =>
       : z.string().max(500, 'At most 500 characters'),
   })
 export type CloneRoleValues = z.infer<ReturnType<typeof cloneRoleSchema>>
+
+/** Form shape for RiskReasonDialog. */
+export const riskReasonFormSchema = z.object({ reason: riskReasonSchema })

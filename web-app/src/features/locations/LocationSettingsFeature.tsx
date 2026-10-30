@@ -1,6 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
-import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -9,14 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 // import { Switch } from '@/components/ui/switch' // only the (hidden) reminders card uses it
-import { toast } from 'sonner'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
 import { QueueSettingsSection } from '@/features/queue'
 import { Can } from '@/features/access'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { ShieldOff } from 'lucide-react'
+import { Loader2, ShieldOff } from 'lucide-react'
+import { useLocationSettingsForm } from './hooks/useLocationSettingsForm'
+import type { LocationSettings } from './hooks/useLocationSettingsForm'
+import type { LocationSettingsFormValues } from './schemas/location-settings.schema'
 
 interface OrganizationSettings {
   allowLocationOverride: boolean
@@ -33,22 +35,6 @@ interface Location {
   id: string
   organizationId: string
   name: string
-}
-
-interface LocationSettings {
-  id: string
-  locationId: string
-  appointmentSlotDuration: number
-  maxAppointmentsPerDay: number
-  advanceBookingDays: number
-  cancellationNoticeHours: number
-  reminderEnabled: boolean
-  reminderDaysBefore: number
-  reminderHoursBefore: number
-  paymentGateway: string | null
-  taxRate: number
-  lateFeePercentage: number
-  theme: string
 }
 
 /**
@@ -77,9 +63,6 @@ export function LocationSettingsFeature({
 }
 
 function LocationSettingsContent({ locationId }: { locationId: string }) {
-  const queryClient = useQueryClient()
-  const [formData, setFormData] = useState<Partial<LocationSettings>>({})
-
   const { data: location, isLoading: isLocLoading } = useQuery({
     queryKey: ['locations', locationId],
     queryFn: async () => {
@@ -107,46 +90,53 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
     },
   })
 
-  useEffect(() => {
-    if (settings) {
-      setFormData(settings)
-    }
-  }, [settings])
-
-  const updateMutation = useMutation({
-    mutationFn: async (data: Partial<LocationSettings>) =>
-      apiClient.patch(`/locations/${locationId}/settings`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locSettings', locationId] })
-      toast.success('Location settings updated successfully')
-    },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to update settings'),
-  })
-
-  const handleSave = () => {
-    updateMutation.mutate(formData)
-  }
-
-  const handleChange = (field: keyof LocationSettings, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
+  const form = useLocationSettingsForm({ locationId, settings })
 
   if (isLocLoading || isOrgSettingsLoading || isSettingsLoading)
     return <div>Loading settings...</div>
 
   const isOverrideDisabled = orgSettings?.allowLocationOverride === false
 
-  // Derive display values. If disabled, fallback to org defaults for some fields.
-  const displaySlotDuration = isOverrideDisabled
-    ? orgSettings?.defaultSlotDuration
-    : formData.appointmentSlotDuration
-  const displayAdvanceBooking = isOverrideDisabled
-    ? orgSettings?.advanceBookingDays
-    : formData.advanceBookingDays
-  const displayCancellationHours = isOverrideDisabled
-    ? orgSettings?.cancellationNoticeHours
-    : formData.cancellationNoticeHours
+  // When overrides are off, show the inherited org values instead.
+  const inherited: Partial<
+    Record<keyof LocationSettingsFormValues, number | undefined>
+  > = isOverrideDisabled
+    ? {
+        appointmentSlotDuration: orgSettings.defaultSlotDuration,
+        advanceBookingDays: orgSettings.advanceBookingDays,
+        cancellationNoticeHours: orgSettings.cancellationNoticeHours,
+      }
+    : {}
+
+  const numberField = (
+    name: keyof LocationSettingsFormValues,
+    label: string,
+    step?: string,
+  ) => (
+    <form.Field name={name}>
+      {(field) => (
+        <FieldWrapper
+          label={label}
+          htmlFor={`loc-${name}`}
+          error={isOverrideDisabled ? undefined : fieldError(field)}
+        >
+          <Input
+            id={`loc-${name}`}
+            type="number"
+            step={step}
+            disabled={isOverrideDisabled}
+            value={
+              name in inherited
+                ? String(inherited[name] ?? '')
+                : field.state.value
+            }
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+          />
+        </FieldWrapper>
+      )}
+    </form.Field>
+  )
 
   return (
     <div className="space-y-6">
@@ -167,59 +157,13 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Slot Duration (mins)</Label>
-              <Input
-                type="number"
-                disabled={isOverrideDisabled}
-                value={displaySlotDuration || ''}
-                onChange={(e) =>
-                  handleChange(
-                    'appointmentSlotDuration',
-                    parseInt(e.target.value),
-                  )
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Max Appointments / Day</Label>
-              <Input
-                type="number"
-                disabled={isOverrideDisabled} // assuming generic policy
-                value={formData.maxAppointmentsPerDay || ''}
-                onChange={(e) =>
-                  handleChange(
-                    'maxAppointmentsPerDay',
-                    parseInt(e.target.value),
-                  )
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Advance Booking Days</Label>
-              <Input
-                type="number"
-                disabled={isOverrideDisabled}
-                value={displayAdvanceBooking || ''}
-                onChange={(e) =>
-                  handleChange('advanceBookingDays', parseInt(e.target.value))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Cancellation Notice (hours)</Label>
-              <Input
-                type="number"
-                disabled={isOverrideDisabled}
-                value={displayCancellationHours || ''}
-                onChange={(e) =>
-                  handleChange(
-                    'cancellationNoticeHours',
-                    parseInt(e.target.value),
-                  )
-                }
-              />
-            </div>
+            {numberField('appointmentSlotDuration', 'Slot Duration (mins)')}
+            {numberField('maxAppointmentsPerDay', 'Max Appointments / Day')}
+            {numberField('advanceBookingDays', 'Advance Booking Days')}
+            {numberField(
+              'cancellationNoticeHours',
+              'Cancellation Notice (hours)',
+            )}
           </CardContent>
         </Card>
       )}
@@ -281,41 +225,26 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
             <CardTitle>Payment & Billing</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label>Tax Rate (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                disabled={isOverrideDisabled}
-                value={formData.taxRate || 0}
-                onChange={(e) =>
-                  handleChange('taxRate', parseFloat(e.target.value))
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Late Fee (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                disabled={isOverrideDisabled}
-                value={formData.lateFeePercentage || 0}
-                onChange={(e) =>
-                  handleChange('lateFeePercentage', parseFloat(e.target.value))
-                }
-              />
-            </div>
+            {numberField('taxRate', 'Tax Rate (%)', '0.01')}
+            {numberField('lateFeePercentage', 'Late Fee (%)', '0.01')}
           </CardContent>
         </Card>
       )}
 
       <div className="flex justify-end">
-        <Button
-          onClick={handleSave}
-          disabled={updateMutation.isPending || isOverrideDisabled}
+        <form.Subscribe
+          selector={(st) => [st.canSubmit, st.isSubmitting] as const}
         >
-          {updateMutation.isPending ? 'Saving...' : 'Save All Settings'}
-        </Button>
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              onClick={() => void form.handleSubmit()}
+              disabled={!canSubmit || isSubmitting || isOverrideDisabled}
+            >
+              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+              {isSubmitting ? 'Saving...' : 'Save All Settings'}
+            </Button>
+          )}
+        </form.Subscribe>
       </div>
     </div>
   )

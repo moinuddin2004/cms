@@ -39,3 +39,12 @@ export type OrderItemFormValues = LabOrderFormValues['items'][number]
 export const revisionSchema = z.object({
   reason: z.string().trim().min(1, 'Say what changed').max(1000),
 })
+
+/** Reason for an order status action (backend: required, max 1000). */
+export const orderActionReasonSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'A reason is required')
+    .max(1000, 'At most 1000 characters'),
+})

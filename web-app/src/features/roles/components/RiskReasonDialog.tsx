@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { ShieldAlert } from 'lucide-react'
 import {
   AlertDialog,
@@ -12,9 +12,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/shared'
+import { fieldError } from '@/components/forms/fieldError'
 import { PERMISSIONS } from '@/features/access/generated/catalog'
 import type { Permission } from '@/features/access/generated/catalog'
-import { riskReasonSchema } from '../schemas/roles.schema'
+import { riskReasonFormSchema } from '../schemas/roles.schema'
 
 /** Confirm granting high-risk permissions; a reason is required (audit). */
 export function RiskReasonDialog({
@@ -28,60 +29,90 @@ export function RiskReasonDialog({
   onCancel: () => void
 }) {
   const open = !!permissions?.length
-  const [reason, setReason] = useState('')
-  const [touched, setTouched] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      setReason('')
-      setTouched(false)
-    }
-  }, [open])
-
-  const parsed = riskReasonSchema.safeParse(reason)
-  const error =
-    touched && !parsed.success ? parsed.error.issues[0]?.message : undefined
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && onCancel()}>
       <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="size-5 text-danger" /> Grant high-risk
-            access?
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            Everyone with this role will be able to:{' '}
-            {(permissions ?? []).map((p) => PERMISSIONS[p].label).join(', ')}.
-            The reason is saved in the audit log.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <FieldWrapper
-          label="Reason"
-          htmlFor="risk-reason"
-          required
-          error={error}
-        >
-          <Textarea
-            id="risk-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            onBlur={() => setTouched(true)}
-            rows={3}
-            placeholder="e.g. Accountant covers refunds while the manager is away"
-          />
-        </FieldWrapper>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <Button
-            variant="destructive"
-            disabled={!parsed.success}
-            onClick={() => onConfirm(reason)}
-          >
-            Grant access
-          </Button>
-        </AlertDialogFooter>
+        {/* Mounted per open, so the form starts fresh each time. */}
+        {open && (
+          <RiskReasonForm permissions={permissions} onConfirm={onConfirm} />
+        )}
       </AlertDialogContent>
     </AlertDialog>
+  )
+}
+
+function RiskReasonForm({
+  permissions,
+  onConfirm,
+}: {
+  permissions: Permission[]
+  onConfirm: (reason: string) => void
+}) {
+  const form = useForm({
+    defaultValues: { reason: '' },
+    // onMount keeps "Grant access" disabled until a valid reason is typed.
+    validators: {
+      onMount: riskReasonFormSchema,
+      onChange: riskReasonFormSchema,
+      onSubmit: riskReasonFormSchema,
+    },
+    onSubmit: ({ value }) => onConfirm(value.reason),
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        void form.handleSubmit()
+      }}
+      className="space-y-4"
+    >
+      <AlertDialogHeader>
+        <AlertDialogTitle className="flex items-center gap-2">
+          <ShieldAlert className="size-5 text-danger" /> Grant high-risk access?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          Everyone with this role will be able to:{' '}
+          {permissions.map((p) => PERMISSIONS[p].label).join(', ')}. The reason
+          is saved in the audit log.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <form.Field name="reason">
+        {(field) => (
+          <FieldWrapper
+            label="Reason"
+            htmlFor="risk-reason"
+            required
+            error={fieldError(field)}
+          >
+            <Textarea
+              id="risk-reason"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              rows={3}
+              placeholder="e.g. Accountant covers refunds while the manager is away"
+            />
+          </FieldWrapper>
+        )}
+      </form.Field>
+      <AlertDialogFooter>
+        <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+        <form.Subscribe
+          selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
+            <Button
+              type="submit"
+              variant="destructive"
+              disabled={!canSubmit || isSubmitting}
+            >
+              Grant access
+            </Button>
+          )}
+        </form.Subscribe>
+      </AlertDialogFooter>
+    </form>
   )
 }

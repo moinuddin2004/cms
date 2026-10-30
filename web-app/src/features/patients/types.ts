@@ -129,17 +129,19 @@ export enum CommStatus {
   DELIVERED = 'delivered',
   READ = 'read',
   FAILED = 'failed',
-  COMPLETED = 'completed',
+  RECEIVED = 'received',
 }
 
 export enum CommPurpose {
   APPOINTMENT_REMINDER = 'appointment_reminder',
-  POST_OP_FOLLOWUP = 'post_op_followup',
-  RECALL = 'recall',
-  MARKETING = 'marketing',
-  TREATMENT_PLAN = 'treatment_plan',
+  APPOINTMENT_CONFIRMATION = 'appointment_confirmation',
+  APPOINTMENT_CANCELLATION = 'appointment_cancellation',
+  RECALL_REMINDER = 'recall_reminder',
+  FOLLOW_UP = 'follow_up',
   BILLING = 'billing',
   GENERAL = 'general',
+  MARKETING = 'marketing',
+  EMERGENCY = 'emergency',
 }
 
 export enum RecallType {
@@ -740,10 +742,7 @@ export interface PatientImportRequest {
 }
 
 export type PatientImportRowStatus =
-  | 'created'
-  | 'would_create'
-  | 'duplicate'
-  | 'error'
+  'created' | 'would_create' | 'duplicate' | 'error'
 
 export interface PatientImportRowResult {
   /** 0-based position in the file. */

@@ -91,3 +91,41 @@ export const queuePolicySchema = z
   })
 
 export type QueuePolicyFormValues = z.input<typeof queuePolicySchema>
+
+/**
+ * Reason for a queue action (cancel, urgent, pause, stop, …). Backend
+ * `ReasonDto` / `RequiredReasonDto` cap it at 500 characters; `required`
+ * mirrors the dialog's prop.
+ */
+export const queueReasonSchema = (required: boolean, label = 'Reason') =>
+  z.object({
+    reason: required
+      ? z
+          .string()
+          .trim()
+          .min(1, `${label} is required`)
+          .max(500, 'At most 500 characters')
+      : z.string().trim().max(500, 'At most 500 characters'),
+  })
+
+/** Transfer to another doctor (`TransferDto`): doctor required, reason optional. */
+export const transferSchema = z.object({
+  toDoctorId: z.string().min(1, 'Choose a doctor'),
+  reason: z.string().trim().max(500, 'At most 500 characters'),
+})
+
+/** Check-in: urgent priority needs a reason (`urgentReason` max 500). */
+export const checkInSchema = z
+  .object({
+    urgent: z.boolean(),
+    urgentReason: z.string().trim().max(500, 'At most 500 characters'),
+  })
+  .superRefine((v, ctx) => {
+    if (v.urgent && !v.urgentReason) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['urgentReason'],
+        message: 'Enter a reason for urgent priority',
+      })
+    }
+  })

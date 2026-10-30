@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -12,21 +11,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useEmployeeSchedule } from '../hooks/useEmployeeSchedule'
-import { useSetSchedule } from '../hooks/useSetSchedule'
-import { DAY_NAMES, SLOT_OPTIONS, type ScheduleDay } from '../types'
+import { useScheduleForm } from '../hooks/useScheduleForm'
+import type { ScheduleFormValues } from '../schemas/schedule.schema'
+import { DAY_NAMES, SLOT_OPTIONS } from '../types'
+import { fieldError } from '@/components/forms/fieldError'
 import { Clock, Save, Loader2, Calendar } from 'lucide-react'
 
 interface ScheduleTabProps {
   employeeId: string
 }
-
-const DEFAULT_SCHEDULE: ScheduleDay[] = Array.from({ length: 7 }, (_, i) => ({
-  dayOfWeek: i,
-  isWorking: i >= 1 && i <= 5, // Mon-Fri
-  startTime: i >= 1 && i <= 5 ? '09:00' : null,
-  endTime: i >= 1 && i <= 5 ? '17:00' : null,
-  slotDuration: 30,
-}))
 
 /** Convert 24h "HH:MM" to 12h display string */
 function to12h(time: string | null): string {
@@ -39,55 +32,12 @@ function to12h(time: string | null): string {
 
 export function ScheduleTab({ employeeId }: ScheduleTabProps) {
   const { data: serverSchedule, isLoading } = useEmployeeSchedule(employeeId)
-  const setScheduleMutation = useSetSchedule(employeeId)
+  const form = useScheduleForm(employeeId, serverSchedule)
 
-  const [schedule, setSchedule] = useState<ScheduleDay[]>(DEFAULT_SCHEDULE)
-  const [slotDuration, setSlotDuration] = useState(30)
-  const [isDirty, setIsDirty] = useState(false)
-
-  // Sync from server once fetched
-  useEffect(() => {
-    if (serverSchedule && serverSchedule.length === 7) {
-      setSchedule(
-        serverSchedule
-          .map((d) => ({ ...d }))
-          .sort((a, b) => a.dayOfWeek - b.dayOfWeek),
-      )
-      // Use slot duration from first working day
-      const firstWorking = serverSchedule.find((d) => d.isWorking)
-      if (firstWorking?.slotDuration) setSlotDuration(firstWorking.slotDuration)
-      setIsDirty(false)
-    }
-  }, [serverSchedule])
-
-  const updateDay = (dayIdx: number, updates: Partial<ScheduleDay>) => {
-    setSchedule((prev) =>
-      prev.map((d) => (d.dayOfWeek === dayIdx ? { ...d, ...updates } : d)),
-    )
-    setIsDirty(true)
-  }
-
-  const toggleWorking = (dayIdx: number, isWorking: boolean) => {
-    updateDay(dayIdx, {
-      isWorking,
-      startTime: isWorking ? '09:00' : null,
-      endTime: isWorking ? '17:00' : null,
-    })
-  }
-
-  const handleSave = () => {
-    setScheduleMutation.mutate(
-      {
-        slotDuration,
-        schedule: schedule.map((d) => ({
-          dayOfWeek: d.dayOfWeek,
-          isWorking: d.isWorking,
-          startTime: d.isWorking ? d.startTime || '09:00' : undefined,
-          endTime: d.isWorking ? d.endTime || '17:00' : undefined,
-        })),
-      },
-      { onSuccess: () => setIsDirty(false) },
-    )
+  const toggleWorking = (i: number, isWorking: boolean) => {
+    form.setFieldValue(`days[${i}].isWorking`, isWorking)
+    form.setFieldValue(`days[${i}].startTime`, isWorking ? '09:00' : '')
+    form.setFieldValue(`days[${i}].endTime`, isWorking ? '17:00' : '')
   }
 
   if (isLoading) {
@@ -112,95 +62,140 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
               <span>Slot:</span>
-              <Select
-                clearable={false}
-                value={String(slotDuration)}
-                onValueChange={(v) => {
-                  setSlotDuration(Number(v))
-                  setIsDirty(true)
-                }}
-              >
-                <SelectTrigger className="w-[130px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SLOT_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <form.Field name="slotDuration">
+                {(field) => (
+                  <Select
+                    clearable={false}
+                    value={field.state.value}
+                    onValueChange={(v) =>
+                      field.handleChange(
+                        v as ScheduleFormValues['slotDuration'],
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-[130px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SLOT_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </form.Field>
             </div>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={!isDirty || setScheduleMutation.isPending}
+            <form.Subscribe
+              selector={(s) =>
+                [s.canSubmit, s.isSubmitting, s.isDirty] as const
+              }
             >
-              {setScheduleMutation.isPending ? (
-                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Save className="mr-1 h-3.5 w-3.5" />
+              {([canSubmit, isSubmitting, isDirty]) => (
+                <Button
+                  size="sm"
+                  onClick={() => void form.handleSubmit()}
+                  disabled={!isDirty || !canSubmit || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Save className="mr-1 h-3.5 w-3.5" />
+                  )}
+                  Save
+                </Button>
               )}
-              Save
-            </Button>
+            </form.Subscribe>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
-        {schedule.map((day) => (
-          <div
-            key={day.dayOfWeek}
-            className={`flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors ${
-              day.isWorking
-                ? 'bg-background border-border'
-                : 'bg-muted/50 border-transparent'
-            }`}
-          >
-            {/* Day name */}
-            <div className="w-24 flex items-center gap-2">
-              <Switch
-                checked={day.isWorking}
-                onCheckedChange={(val) => toggleWorking(day.dayOfWeek, val)}
-              />
-              <span
-                className={`text-sm font-medium ${day.isWorking ? 'text-foreground' : 'text-muted-foreground'}`}
+        <form.Subscribe selector={(s) => s.values.days}>
+          {(days) =>
+            days.map((day, i) => (
+              <div
+                key={day.dayOfWeek}
+                className={`flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors ${
+                  day.isWorking
+                    ? 'bg-background border-border'
+                    : 'bg-muted/50 border-transparent'
+                }`}
               >
-                {DAY_NAMES[day.dayOfWeek]}
-              </span>
-            </div>
+                {/* Day name */}
+                <div className="w-24 flex items-center gap-2">
+                  <Switch
+                    checked={day.isWorking}
+                    onCheckedChange={(val) => toggleWorking(i, val)}
+                  />
+                  <span
+                    className={`text-sm font-medium ${day.isWorking ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    {DAY_NAMES[day.dayOfWeek]}
+                  </span>
+                </div>
 
-            {/* Times or OFF */}
-            {day.isWorking ? (
-              <div className="flex items-center gap-2 flex-1">
-                <Input
-                  type="time"
-                  value={day.startTime || '09:00'}
-                  onChange={(e) =>
-                    updateDay(day.dayOfWeek, { startTime: e.target.value })
-                  }
-                  className="w-32 h-8 text-sm"
-                />
-                <span className="text-xs text-muted-foreground">to</span>
-                <Input
-                  type="time"
-                  value={day.endTime || '17:00'}
-                  onChange={(e) =>
-                    updateDay(day.dayOfWeek, { endTime: e.target.value })
-                  }
-                  className="w-32 h-8 text-sm"
-                />
-                <span className="ml-2 text-xs text-muted-foreground">
-                  {to12h(day.startTime)} – {to12h(day.endTime)}
-                </span>
+                {/* Times or OFF */}
+                {day.isWorking ? (
+                  <form.Field name={`days[${i}].startTime`}>
+                    {(start) => (
+                      <form.Field name={`days[${i}].endTime`}>
+                        {(end) => {
+                          const startError = fieldError(start)
+                          const endError = fieldError(end)
+                          return (
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="time"
+                                  aria-label={`${DAY_NAMES[day.dayOfWeek]} start`}
+                                  aria-invalid={!!startError}
+                                  value={start.state.value}
+                                  onChange={(e) =>
+                                    start.handleChange(e.target.value)
+                                  }
+                                  onBlur={start.handleBlur}
+                                  className="w-32 h-8 text-sm"
+                                />
+                                <span className="text-xs text-muted-foreground">
+                                  to
+                                </span>
+                                <Input
+                                  type="time"
+                                  aria-label={`${DAY_NAMES[day.dayOfWeek]} end`}
+                                  aria-invalid={!!endError}
+                                  value={end.state.value}
+                                  onChange={(e) =>
+                                    end.handleChange(e.target.value)
+                                  }
+                                  onBlur={end.handleBlur}
+                                  className="w-32 h-8 text-sm"
+                                />
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  {to12h(start.state.value)} –{' '}
+                                  {to12h(end.state.value)}
+                                </span>
+                              </div>
+                              {(startError || endError) && (
+                                <p className="text-xs font-medium text-danger">
+                                  {startError ?? endError}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        }}
+                      </form.Field>
+                    )}
+                  </form.Field>
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">
+                    Day off
+                  </span>
+                )}
               </div>
-            ) : (
-              <span className="text-sm text-muted-foreground italic">
-                Day off
-              </span>
-            )}
-          </div>
-        ))}
+            ))
+          }
+        </form.Subscribe>
       </CardContent>
     </Card>
   )

@@ -1,23 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useStore } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import {
   useCashClosePreview,
   usePaymentAccounts,
 } from '../../hooks/use-billing-queries'
-import { reportsApi } from '../../services/billing-v2.api'
+import { useCashCloseForm } from '../../hooks/useCashCloseForm'
+import { cashVariance } from '../../schemas/cash-close.schema'
 import { PrintButton } from '../print/PrintButton'
 import { Money } from '../shared/billing-badges'
-
-const isAmount = (v: string) => /^\d+(\.\d{1,2})?$/.test(v.trim())
 
 /**
  * Close the counter (D23, plan §8.3): expected per account since the last
@@ -33,51 +33,42 @@ export function CashCloseSheet({
 }) {
   const preview = useCashClosePreview(open)
   const accounts = usePaymentAccounts()
-  const [counted, setCounted] = useState<Record<string, string>>({})
-  const [note, setNote] = useState('')
   const [closedId, setClosedId] = useState<string | null>(null)
-  const create = useBillingMutation(reportsApi.createCashClose, {
-    success: 'Counter closed',
-  })
 
   useEffect(() => {
-    if (open) {
-      setCounted({})
-      setNote('')
-      setClosedId(null)
-    }
+    if (open) setClosedId(null)
   }, [open])
 
-  const isCounted = (id: string) =>
-    accounts.data?.find((a) => a.id === id)?.countedInCashClose ?? false
-  const lines = (preview.data?.lines ?? []).map((l) => {
-    const raw = counted[l.paymentAccountId] ?? ''
-    const needs = isCounted(l.paymentAccountId)
-    const variance =
-      needs && isAmount(raw)
-        ? Math.round((Number(raw) - l.expected) * 100) / 100
-        : 0
-    return { ...l, raw, needs, variance }
+  const checks = useMemo(
+    () =>
+      (preview.data?.lines ?? []).map((l) => ({
+        paymentAccountId: l.paymentAccountId,
+        expected: l.expected,
+        needs:
+          accounts.data?.find((a) => a.id === l.paymentAccountId)
+            ?.countedInCashClose ?? false,
+      })),
+    [preview.data, accounts.data],
+  )
+  const form = useCashCloseForm({
+    open,
+    periodEnd: preview.data?.periodEnd,
+    checks,
+    onClosed: setClosedId,
   })
-  const missing = lines.some((l) => l.needs && !isAmount(l.raw))
-  const hasVariance = lines.some((l) => l.variance !== 0)
-  const canSubmit =
-    !!preview.data && !missing && (!hasVariance || note.trim().length > 0)
 
-  const submit = () => {
-    if (!preview.data || !canSubmit) return
-    create.mutate(
-      {
-        periodEnd: preview.data.periodEnd,
-        lines: lines.map((l) => ({
-          paymentAccountId: l.paymentAccountId,
-          ...(l.needs ? { counted: Number(l.raw) } : {}),
-        })),
-        note: note.trim() || undefined,
-      },
-      { onSuccess: (c) => setClosedId(c.id) },
-    )
-  }
+  // Live variance preview from what's typed so far.
+  const counted = useStore(form.store, (s) => s.values.counted)
+  const note = useStore(form.store, (s) => s.values.note)
+  const lines = (preview.data?.lines ?? []).map((l, i) => {
+    const check = checks[i]
+    return {
+      ...l,
+      needs: check.needs,
+      variance: cashVariance(check, counted[l.paymentAccountId]),
+    }
+  })
+  const hasVariance = lines.some((l) => l.variance !== 0)
 
   return (
     <FormSheet
@@ -104,13 +95,20 @@ export function CashCloseSheet({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={submit} disabled={!canSubmit || create.isPending}>
-              {create.isPending && <Loader2 className="size-4 animate-spin" />}
-              Close counter ({formatCurrency(
-                preview.data?.totalExpected ?? 0,
-              )}{' '}
-              expected)
-            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  onClick={() => void form.handleSubmit()}
+                  disabled={!preview.data || !canSubmit || isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                  Close counter (
+                  {formatCurrency(preview.data?.totalExpected ?? 0)} expected)
+                </Button>
+              )}
+            </form.Subscribe>
           </>
         )
       }
@@ -143,25 +141,26 @@ export function CashCloseSheet({
               </div>
               {l.needs && (
                 <div className="mt-2 flex items-end gap-3">
-                  <FieldWrapper
-                    label="Counted (Rs)"
-                    htmlFor={`count-${l.paymentAccountId}`}
-                    required
-                    className="flex-1"
-                  >
-                    <Input
-                      id={`count-${l.paymentAccountId}`}
-                      inputMode="decimal"
-                      className="text-right tabular-nums"
-                      value={l.raw}
-                      onChange={(e) =>
-                        setCounted((c) => ({
-                          ...c,
-                          [l.paymentAccountId]: e.target.value,
-                        }))
-                      }
-                    />
-                  </FieldWrapper>
+                  <form.Field name={`counted.${l.paymentAccountId}`}>
+                    {(field) => (
+                      <FieldWrapper
+                        label="Counted (Rs)"
+                        htmlFor={`count-${l.paymentAccountId}`}
+                        required
+                        className="flex-1"
+                        error={fieldError(field)}
+                      >
+                        <Input
+                          id={`count-${l.paymentAccountId}`}
+                          inputMode="decimal"
+                          className="text-right tabular-nums"
+                          value={field.state.value ?? ''}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                        />
+                      </FieldWrapper>
+                    )}
+                  </form.Field>
                   <span
                     className={cn(
                       'pb-2 font-semibold',
@@ -179,23 +178,32 @@ export function CashCloseSheet({
               )}
             </div>
           ))}
-          <FieldWrapper
-            label="Note"
-            htmlFor="close-note"
-            required={hasVariance}
-            error={
-              hasVariance && !note.trim() ? 'Explain the difference' : undefined
-            }
-          >
-            <Textarea
-              id="close-note"
-              dir="auto"
-              rows={2}
-              maxLength={500}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </FieldWrapper>
+          <form.Field name="note">
+            {(field) => (
+              <FieldWrapper
+                label="Note"
+                htmlFor="close-note"
+                required={hasVariance}
+                // The "explain" prompt shows live as soon as a count differs.
+                error={
+                  fieldError(field) ??
+                  (hasVariance && !note.trim()
+                    ? 'Explain the difference'
+                    : undefined)
+                }
+              >
+                <Textarea
+                  id="close-note"
+                  dir="auto"
+                  rows={2}
+                  maxLength={500}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
         </div>
       )}
     </FormSheet>

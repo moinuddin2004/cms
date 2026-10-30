@@ -156,9 +156,9 @@ export function OrderTemplateSheet({
                       }
                     />
                   ))}
-                  {typeof items.state.meta.errors[0] === 'string' && (
+                  {fieldError(items) && (
                     <p className="text-sm text-destructive">
-                      {items.state.meta.errors[0]}
+                      {fieldError(items)}
                     </p>
                   )}
                   <Button

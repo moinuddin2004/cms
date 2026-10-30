@@ -3,12 +3,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import apiClient from '@/lib/api'
-import { toast } from 'sonner'
 import { ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react'
-import { useAuthStore } from '@/store/useAuthStore'
+import { fieldError } from '@/components/forms/fieldError'
 import { AuthLayout } from './AuthLayout'
 import { AuthError, AuthHeading } from './AuthPrimitives'
 import { PasswordStrength } from './PasswordStrength'
@@ -20,72 +16,14 @@ import {
   authSubmitClass,
   authTextLinkClass,
 } from './authStyles'
+import { useRegisterForm } from '../hooks/useRegisterForm'
 
-const registerSchema = z.object({
-  clinicName: z.string().trim().min(2, 'Enter your clinic name'),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  phone: z.string().trim().max(20, 'At most 20 characters'),
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-})
+const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
-  const [globalError, setGlobalError] = useState('')
   const navigate = useNavigate()
-  const setAuth = useAuthStore((state) => state.setAuth)
-
-  const form = useForm({
-    defaultValues: {
-      clinicName: '',
-      name: '',
-      phone: '',
-      email: '',
-      password: '',
-    },
-    onSubmit: async ({ value }) => {
-      setGlobalError('')
-      try {
-        const parsed = registerSchema.parse(value)
-        const response = await apiClient.post('/auth/register', {
-          ...parsed,
-          phone: parsed.phone || undefined,
-        })
-
-        if (response.data?.isSuccess) {
-          // Signup also signs in (same payload as /auth/login).
-          const d = response.data.data
-          setAuth({
-            user: d.user,
-            accessToken: d.accessToken,
-            isSuperAdmin: d.isSuperAdmin,
-            accessSource: d.accessSource,
-            requiresOrgSelection: d.requiresOrgSelection,
-            requiresLocationSelection: d.requiresLocationSelection,
-            accessibleOrganizations: d.accessibleOrganizations,
-            activeOrganizationId: d.activeOrganizationId,
-            activeLocationId: d.activeLocationId,
-            labMemberships: d.labMemberships ?? [],
-          })
-          toast.success('Your clinic is ready', {
-            description: 'Your 14-day free trial has started.',
-          })
-          navigate({ to: '/setup' })
-        }
-      } catch (err: any) {
-        if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message)
-        } else {
-          const msg = err.response?.data?.message
-          setGlobalError(
-            Array.isArray(msg)
-              ? msg[0]
-              : msg || 'Registration failed. Please try again.',
-          )
-        }
-      }
-    },
-  })
+  const { form, globalError } = useRegisterForm()
 
   return (
     <AuthLayout>
@@ -95,6 +33,7 @@ export function RegisterForm() {
       />
 
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -109,16 +48,22 @@ export function RegisterForm() {
             </Label>
             <form.Field name="clinicName">
               {(field) => (
-                <Input
-                  id="register-clinic"
-                  placeholder="City Care Clinic"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="organization"
-                  className={authInputClass}
-                />
+                <>
+                  <Input
+                    id="register-clinic"
+                    placeholder="City Care Clinic"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                    autoComplete="organization"
+                    aria-invalid={!!fieldError(field)}
+                    className={authInputClass}
+                  />
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
           </div>
@@ -130,16 +75,22 @@ export function RegisterForm() {
             </Label>
             <form.Field name="name">
               {(field) => (
-                <Input
-                  id="register-name"
-                  placeholder="Dr. John Doe"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="name"
-                  className={authInputClass}
-                />
+                <>
+                  <Input
+                    id="register-name"
+                    placeholder="Dr. John Doe"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                    autoComplete="name"
+                    aria-invalid={!!fieldError(field)}
+                    className={authInputClass}
+                  />
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
           </div>
@@ -151,17 +102,23 @@ export function RegisterForm() {
             </Label>
             <form.Field name="email">
               {(field) => (
-                <Input
-                  id="register-email"
-                  type="email"
-                  placeholder="doctor@clinic.com"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  required
-                  autoComplete="email"
-                  className={authInputClass}
-                />
+                <>
+                  <Input
+                    id="register-email"
+                    type="email"
+                    placeholder="doctor@clinic.com"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    required
+                    autoComplete="email"
+                    aria-invalid={!!fieldError(field)}
+                    className={authInputClass}
+                  />
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
           </div>
@@ -169,21 +126,26 @@ export function RegisterForm() {
           {/* Phone */}
           <div>
             <Label htmlFor="register-phone" className={authLabelClass}>
-              Phone{' '}
-              <span className="font-normal text-text-3">(optional)</span>
+              Phone <span className="font-normal text-text-3">(optional)</span>
             </Label>
             <form.Field name="phone">
               {(field) => (
-                <Input
-                  id="register-phone"
-                  type="tel"
-                  placeholder="0300 1234567"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  autoComplete="tel"
-                  className={authInputClass}
-                />
+                <>
+                  <Input
+                    id="register-phone"
+                    type="tel"
+                    placeholder="0300 1234567"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    autoComplete="tel"
+                    aria-invalid={!!fieldError(field)}
+                    className={authInputClass}
+                  />
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
           </div>
@@ -195,31 +157,39 @@ export function RegisterForm() {
             </Label>
             <form.Field name="password">
               {(field) => (
-                <div className="relative">
-                  <Input
-                    id="register-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="At least 6 characters"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                    autoComplete="new-password"
-                    className={authInputWithActionClass}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="size-[17px]" />
-                    ) : (
-                      <Eye className="size-[17px]" />
-                    )}
-                  </button>
-                </div>
+                <>
+                  <div className="relative">
+                    <Input
+                      id="register-password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      required
+                      autoComplete="new-password"
+                      aria-invalid={!!fieldError(field)}
+                      className={authInputWithActionClass}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={
+                        showPassword ? 'Hide password' : 'Show password'
+                      }
+                      className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="size-[17px]" />
+                      ) : (
+                        <Eye className="size-[17px]" />
+                      )}
+                    </button>
+                  </div>
+                  {fieldError(field) && (
+                    <p className={fieldErrorClass}>{fieldError(field)}</p>
+                  )}
+                </>
               )}
             </form.Field>
             <form.Field name="password">
@@ -238,12 +208,14 @@ export function RegisterForm() {
           <AuthError message={globalError} />
         </div>
 
-        <form.Subscribe selector={(state) => state.isSubmitting}>
-          {(isSubmitting) => (
+        <form.Subscribe
+          selector={(state) => [state.canSubmit, state.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
             <Button
               type="submit"
               className={`group ${authSubmitClass}`}
-              disabled={isSubmitting}
+              disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? (
                 <>

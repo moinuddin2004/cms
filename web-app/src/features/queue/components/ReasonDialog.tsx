@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -9,8 +10,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { fieldError } from '@/components/forms/fieldError'
+import { queueReasonSchema } from '../schemas/queue.schema'
 
 /**
  * Confirm a queue action with a (required or optional) reason — cancel,
@@ -42,57 +45,83 @@ export function ReasonDialog({
   isLoading?: boolean
   onConfirm: (reason: string) => void
 }) {
-  const [reason, setReason] = useState('')
-  const [touched, setTouched] = useState(false)
+  const schema = useMemo(
+    () => queueReasonSchema(required, label),
+    [required, label],
+  )
+  const form = useForm({
+    defaultValues: { reason: '' },
+    validators: { onChange: schema, onSubmit: schema },
+    onSubmit: ({ value }) => onConfirm(value.reason.trim()),
+  })
+
   useEffect(() => {
-    if (open) {
-      setReason('')
-      setTouched(false)
-    }
-  }, [open])
-  const missing = required && !reason.trim()
+    if (open) form.reset()
+  }, [open, form])
 
   return (
     <Dialog open={open} onOpenChange={(o) => !isLoading && onOpenChange(o)}>
       <DialogContent className="sm:max-w-[420px]">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description && <DialogDescription>{description}</DialogDescription>}
-        </DialogHeader>
-        <div className="space-y-1">
-          <Label htmlFor="queue-reason" className="text-xs">
-            {label} {required ? '*' : '(optional)'}
-          </Label>
-          <Textarea
-            id="queue-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            onBlur={() => setTouched(true)}
-            placeholder={placeholder}
-            rows={2}
-            autoFocus
-          />
-          {touched && missing && (
-            <p className="text-xs text-red-500">{label} is required.</p>
-          )}
-        </div>
-        <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading}
-          >
-            Back
-          </Button>
-          <Button
-            variant={destructive ? 'destructive' : 'default'}
-            disabled={isLoading || missing}
-            onClick={() => onConfirm(reason.trim())}
-          >
-            {isLoading && <Loader2 className="mr-1.5 size-4 animate-spin" />}
-            {confirmLabel}
-          </Button>
-        </DialogFooter>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.handleSubmit()
+          }}
+          className="space-y-4"
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            {description && (
+              <DialogDescription>{description}</DialogDescription>
+            )}
+          </DialogHeader>
+          <form.Field name="reason">
+            {(field) => (
+              <FieldWrapper
+                label={required ? label : `${label} (optional)`}
+                htmlFor="queue-reason"
+                required={required}
+                error={fieldError(field)}
+              >
+                <Textarea
+                  id="queue-reason"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder={placeholder}
+                  rows={2}
+                  autoFocus
+                />
+              </FieldWrapper>
+            )}
+          </form.Field>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+            >
+              Back
+            </Button>
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  variant={destructive ? 'destructive' : 'default'}
+                  disabled={!canSubmit || isSubmitting || isLoading}
+                >
+                  {(isLoading || isSubmitting) && (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  )}
+                  {confirmLabel}
+                </Button>
+              )}
+            </form.Subscribe>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )

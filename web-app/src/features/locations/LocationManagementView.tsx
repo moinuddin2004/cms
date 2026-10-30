@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useNavigate } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,18 +11,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/shared/SearchableSelect'
+import { FieldWrapper } from '@/components/forms/FieldWrapper'
+import { FormSelect } from '@/components/forms/FormSelect'
+import { fieldError } from '@/components/forms/fieldError'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { LocationTable } from './components/LocationTable'
+import { useLocationForm } from './hooks/useLocationForm'
+import type {
+  LocationCreatePayload,
+  LocationUpdatePayload,
+} from './hooks/useLocationForm'
 
 export interface Location {
   id: string
@@ -40,257 +41,283 @@ export interface Location {
   }
 }
 
-export const LocationManagementView = forwardRef<{ create: () => void }>(function LocationManagementView(_props, ref) {
-  const { isSuperAdmin } = useAuthStore()
-  const queryClient = useQueryClient()
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [locToEdit, setLocToEdit] = useState<Location | null>(null)
-  const [deactivateTarget, setDeactivateTarget] = useState<Location | null>(null)
+export const LocationManagementView = forwardRef<{ create: () => void }>(
+  function LocationManagementView(_props, ref) {
+    const { isSuperAdmin } = useAuthStore()
+    const queryClient = useQueryClient()
+    const [isFormOpen, setIsFormOpen] = useState(false)
+    const [locToEdit, setLocToEdit] = useState<Location | null>(null)
+    const [deactivateTarget, setDeactivateTarget] = useState<Location | null>(
+      null,
+    )
 
-  const { data: locationsData, isLoading } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const res = await apiClient.get('/locations')
-      return res.data.data as Location[]
-    },
-  })
+    const { data: locationsData, isLoading } = useQuery({
+      queryKey: ['locations'],
+      queryFn: async () => {
+        const res = await apiClient.get('/locations')
+        return res.data.data as Location[]
+      },
+    })
 
-  const { data: orgsData } = useQuery({
-    queryKey: ['organizations'],
-    queryFn: async () => {
-      const res = await apiClient.get('/organizations')
-      return res.data.data as { id: string; name: string }[]
-    },
-    enabled: isSuperAdmin,
-  })
+    const { data: orgsData } = useQuery({
+      queryKey: ['organizations'],
+      queryFn: async () => {
+        const res = await apiClient.get('/organizations')
+        return res.data.data as { id: string; name: string }[]
+      },
+      enabled: isSuperAdmin,
+    })
 
-  const createMutation = useMutation({
-    mutationFn: async (data: Partial<Location>) =>
-      apiClient.post('/locations', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] })
-      setIsFormOpen(false)
-      toast.success('Location created successfully')
-    },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to create location'),
-  })
+    const createMutation = useMutation({
+      mutationFn: async (data: LocationCreatePayload) =>
+        apiClient.post('/locations', data),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['locations'] })
+        setIsFormOpen(false)
+        toast.success('Location created successfully')
+      },
+      onError: (err: any) =>
+        toast.error(err.response?.data?.message || 'Failed to create location'),
+    })
 
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Location> }) =>
-      apiClient.patch(`/locations/${id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] })
-      setIsFormOpen(false)
-      toast.success('Location updated successfully')
-    },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.message || 'Failed to update location'),
-  })
+    const updateMutation = useMutation({
+      mutationFn: async ({
+        id,
+        data,
+      }: {
+        id: string
+        data: LocationUpdatePayload
+      }) => apiClient.patch(`/locations/${id}`, data),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['locations'] })
+        setIsFormOpen(false)
+        toast.success('Location updated successfully')
+      },
+      onError: (err: any) =>
+        toast.error(err.response?.data?.message || 'Failed to update location'),
+    })
 
-  const deactivateMutation = useMutation({
-    mutationFn: async (id: string) => apiClient.delete(`/locations/${id}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] })
-      toast.success('Location deactivated')
-    },
-    onError: (err: any) =>
-      toast.error(
-        err.response?.data?.message || 'Failed to deactivate location',
-      ),
-  })
+    const deactivateMutation = useMutation({
+      mutationFn: async (id: string) => apiClient.delete(`/locations/${id}`),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['locations'] })
+        toast.success('Location deactivated')
+      },
+      onError: (err: any) =>
+        toast.error(
+          err.response?.data?.message || 'Failed to deactivate location',
+        ),
+    })
 
-  const [formData, setFormData] = useState<Partial<Location>>({})
+    const { form } = useLocationForm({
+      open: isFormOpen,
+      location: locToEdit,
+      requireOrganization: isSuperAdmin && !locToEdit,
+      onCreate: (data) => createMutation.mutateAsync(data),
+      onUpdate: (id, data) => updateMutation.mutateAsync({ id, data }),
+    })
 
-  const handleCreateNew = () => {
-    setLocToEdit(null)
-    setFormData({})
-    setIsFormOpen(true)
-  }
-
-  useImperativeHandle(ref, () => ({ create: handleCreateNew }))
-
-  const openEdit = (loc: Location) => {
-    setLocToEdit(loc)
-    setFormData(loc)
-    setIsFormOpen(true)
-  }
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isSuperAdmin && !formData.organizationId && !locToEdit) {
-      toast.error('Organization is required for Super Admins')
-      return
+    const handleCreateNew = () => {
+      setLocToEdit(null)
+      setIsFormOpen(true)
     }
-    if (locToEdit) {
-      updateMutation.mutate({ id: locToEdit.id, data: formData })
-    } else {
-      createMutation.mutate(formData)
+
+    useImperativeHandle(ref, () => ({ create: handleCreateNew }))
+
+    const openEdit = (loc: Location) => {
+      setLocToEdit(loc)
+      setIsFormOpen(true)
     }
-  }
 
-  const navigate = useNavigate()
+    const orgOptions = (orgsData ?? []).map((org) => ({
+      value: org.id,
+      label: org.name,
+    }))
 
-  return (
-    <div className="flex flex-col space-y-6">
-      <LocationTable
-        locations={locationsData ?? []}
-        isLoading={isLoading}
-        showOrganization={isSuperAdmin}
-        onSettings={(loc) => navigate({ to: `/locations/${loc.id}/settings` })}
-        onEdit={openEdit}
-        onDeactivate={setDeactivateTarget}
-      />
+    const text = (
+      name: 'address' | 'city' | 'country' | 'phone' | 'email',
+      label: string,
+      props: {
+        type?: string
+        inputMode?: 'tel' | 'email'
+        placeholder?: string
+      } = {},
+    ) => (
+      <form.Field name={name}>
+        {(f) => (
+          <FieldWrapper
+            label={label}
+            htmlFor={`location-${name}`}
+            error={fieldError(f)}
+          >
+            <Input
+              id={`location-${name}`}
+              value={f.state.value}
+              onChange={(e) => f.handleChange(e.target.value)}
+              onBlur={f.handleBlur}
+              aria-invalid={!!fieldError(f)}
+              {...props}
+            />
+          </FieldWrapper>
+        )}
+      </form.Field>
+    )
 
-      <ConfirmDialog
-        open={!!deactivateTarget}
-        onOpenChange={(open) => !open && setDeactivateTarget(null)}
-        title="Deactivate location?"
-        description={
-          <>
-            <strong>{deactivateTarget?.name}</strong> will be deactivated and
-            hidden from location selection.
-          </>
-        }
-        confirmLabel="Deactivate"
-        destructive
-        isLoading={deactivateMutation.isPending}
-        onConfirm={() => {
-          if (!deactivateTarget) return
-          deactivateMutation.mutate(deactivateTarget.id, {
-            onSettled: () => setDeactivateTarget(null),
-          })
-        }}
-      />
+    const navigate = useNavigate()
 
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {locToEdit ? 'Edit Location' : 'Create Location'}
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSave} className="space-y-4">
-            {isSuperAdmin && !locToEdit && (
-              <div className="space-y-2">
-                <Label>Organization (Required)</Label>
-                <Select
-                  value={formData.organizationId || ''}
-                  onValueChange={(val) =>
-                    setFormData({ ...formData, organizationId: val })
-                  }
+    return (
+      <div className="flex flex-col space-y-6">
+        <LocationTable
+          locations={locationsData ?? []}
+          isLoading={isLoading}
+          showOrganization={isSuperAdmin}
+          onSettings={(loc) =>
+            navigate({ to: `/locations/${loc.id}/settings` })
+          }
+          onEdit={openEdit}
+          onDeactivate={setDeactivateTarget}
+        />
+
+        <ConfirmDialog
+          open={!!deactivateTarget}
+          onOpenChange={(open) => !open && setDeactivateTarget(null)}
+          title="Deactivate location?"
+          description={
+            <>
+              <strong>{deactivateTarget?.name}</strong> will be deactivated and
+              hidden from location selection.
+            </>
+          }
+          confirmLabel="Deactivate"
+          destructive
+          isLoading={deactivateMutation.isPending}
+          onConfirm={() => {
+            if (!deactivateTarget) return
+            deactivateMutation.mutate(deactivateTarget.id, {
+              onSettled: () => setDeactivateTarget(null),
+            })
+          }}
+        />
+
+        <Dialog
+          open={isFormOpen}
+          onOpenChange={(o) => !form.state.isSubmitting && setIsFormOpen(o)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {locToEdit ? 'Edit Location' : 'Create Location'}
+              </DialogTitle>
+            </DialogHeader>
+            <form
+              className="space-y-4"
+              onSubmit={(e) => {
+                e.preventDefault()
+                void form.handleSubmit()
+              }}
+            >
+              {isSuperAdmin && !locToEdit && (
+                <form.Field name="organizationId">
+                  {(f) => (
+                    <FormSelect
+                      label="Organization"
+                      required
+                      placeholder="Select Organization"
+                      value={f.state.value}
+                      onValueChange={(v) => {
+                        f.handleChange(v)
+                        f.handleBlur()
+                      }}
+                      options={orgOptions}
+                      error={fieldError(f)}
+                    />
+                  )}
+                </form.Field>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <form.Field name="name">
+                  {(f) => (
+                    <FieldWrapper
+                      label="Name"
+                      htmlFor="location-name"
+                      required
+                      error={fieldError(f)}
+                    >
+                      <Input
+                        id="location-name"
+                        value={f.state.value}
+                        onChange={(e) => f.handleChange(e.target.value)}
+                        onBlur={f.handleBlur}
+                        aria-invalid={!!fieldError(f)}
+                      />
+                    </FieldWrapper>
+                  )}
+                </form.Field>
+                <form.Field name="code">
+                  {(f) => (
+                    <FieldWrapper
+                      label="Code"
+                      htmlFor="location-code"
+                      required
+                      error={fieldError(f)}
+                      hint={locToEdit ? "Code can't be changed." : undefined}
+                    >
+                      <Input
+                        id="location-code"
+                        disabled={!!locToEdit}
+                        value={f.state.value}
+                        onChange={(e) => f.handleChange(e.target.value)}
+                        onBlur={f.handleBlur}
+                        aria-invalid={!!fieldError(f)}
+                        placeholder="e.g. NYC-01"
+                      />
+                    </FieldWrapper>
+                  )}
+                </form.Field>
+              </div>
+
+              {text('address', 'Address')}
+
+              <div className="grid grid-cols-2 gap-4">
+                {text('city', 'City')}
+                {text('country', 'Country')}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {text('phone', 'Phone', {
+                  inputMode: 'tel',
+                  placeholder: '0300 1234567',
+                })}
+                {text('email', 'Email', { type: 'email', inputMode: 'email' })}
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFormOpen(false)}
+                  className="mr-2"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Organization" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orgsData?.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  Cancel
+                </Button>
+                <form.Subscribe
+                  selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+                >
+                  {([canSubmit, isSubmitting]) => (
+                    <Button type="submit" disabled={!canSubmit || isSubmitting}>
+                      {isSubmitting && (
+                        <Loader2 className="size-4 animate-spin" />
+                      )}
+                      Save
+                    </Button>
+                  )}
+                </form.Subscribe>
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  required
-                  value={formData.name || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Code</Label>
-                <Input
-                  required
-                  disabled={!!locToEdit}
-                  value={formData.code || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, code: e.target.value })
-                  }
-                  placeholder="e.g. NYC-01"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input
-                value={formData.address || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>City</Label>
-                <Input
-                  value={formData.city || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, city: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Country</Label>
-                <Input
-                  value={formData.country || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, country: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input
-                  value={formData.phone || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={formData.email || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-                className="mr-2"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
-                Save
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  )
-})
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
+  },
+)

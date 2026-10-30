@@ -1,13 +1,9 @@
-import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from '@tanstack/react-router'
-import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import apiClient from '@/lib/api'
-import { toast } from 'sonner'
 import { ArrowRight, Loader2, MailCheck } from 'lucide-react'
+import { fieldError } from '@/components/forms/fieldError'
 import { AuthLayout } from './AuthLayout'
 import { AuthError, AuthHeading } from './AuthPrimitives'
 import {
@@ -17,39 +13,13 @@ import {
   authSubmitClass,
   authTextLinkClass,
 } from './authStyles'
+import { useForgotPasswordForm } from '../hooks/useForgotPasswordForm'
 
-const forgotSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-})
+const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
 export function ForgotPasswordForm() {
-  const [globalError, setGlobalError] = useState('')
-  const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
-
-  const form = useForm({
-    defaultValues: { email: '' },
-    onSubmit: async ({ value }) => {
-      setGlobalError('')
-      try {
-        const parsed = forgotSchema.parse(value)
-        await apiClient.post('/auth/forgot-password', parsed)
-        setSuccess(true)
-        toast.success('Reset link sent!', {
-          description: 'Check your email inbox.',
-        })
-      } catch (err: any) {
-        if (err instanceof z.ZodError) {
-          setGlobalError(err.issues[0].message)
-        } else {
-          setGlobalError(
-            err.response?.data?.message ||
-              'Failed to process request. Try again.',
-          )
-        }
-      }
-    },
-  })
+  const { form, globalError, success } = useForgotPasswordForm()
 
   if (success) {
     return (
@@ -84,6 +54,7 @@ export function ForgotPasswordForm() {
       />
 
       <form
+        noValidate
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -97,17 +68,23 @@ export function ForgotPasswordForm() {
           </Label>
           <form.Field name="email">
             {(field) => (
-              <Input
-                id="forgot-email"
-                type="email"
-                placeholder="doctor@clinic.com"
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                onBlur={field.handleBlur}
-                required
-                autoComplete="email"
-                className={authInputClass}
-              />
+              <>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="doctor@clinic.com"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  required
+                  autoComplete="email"
+                  aria-invalid={!!fieldError(field)}
+                  className={authInputClass}
+                />
+                {fieldError(field) && (
+                  <p className={fieldErrorClass}>{fieldError(field)}</p>
+                )}
+              </>
             )}
           </form.Field>
         </div>
@@ -116,12 +93,14 @@ export function ForgotPasswordForm() {
           <AuthError message={globalError} />
         </div>
 
-        <form.Subscribe selector={(state) => state.isSubmitting}>
-          {(isSubmitting) => (
+        <form.Subscribe
+          selector={(state) => [state.canSubmit, state.isSubmitting] as const}
+        >
+          {([canSubmit, isSubmitting]) => (
             <Button
               type="submit"
               className={`group ${authSubmitClass}`}
-              disabled={isSubmitting}
+              disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? (
                 <>

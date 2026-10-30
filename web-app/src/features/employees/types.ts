@@ -1,6 +1,3 @@
-import { z } from 'zod'
-import { percentToBps } from '@/features/billing/lib/commission-math'
-
 // ─── Enums (Matching Backend) ───────────────────────────────────────
 
 export enum Gender {
@@ -97,12 +94,23 @@ export const LEAVE_STATUS_OPTIONS = [
 // ─── Schedule Helpers ───────────────────────────────────────────────
 
 export const DAY_NAMES = [
-  'Sunday', 'Monday', 'Tuesday', 'Wednesday',
-  'Thursday', 'Friday', 'Saturday',
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
 ] as const
 
 export const DAY_SHORT = [
-  'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat',
+  'Sun',
+  'Mon',
+  'Tue',
+  'Wed',
+  'Thu',
+  'Fri',
+  'Sat',
 ] as const
 
 export const SLOT_OPTIONS = [
@@ -260,150 +268,65 @@ export interface GeneratePayrollResult {
   records: PayrollRecord[]
 }
 
-// ─── Zod Schemas ────────────────────────────────────────────────────
+// ─── Form Payloads ──────────────────────────────────────────────────
+// What the forms send to the API. The Zod schemas that validate the form
+// values (strings) live in ./schemas/employee.schema.ts.
 
-export const employeeFormSchema = z
-  .object({
-    fullName: z.string().min(2, 'Full name is required').max(255),
-    phone: z.string().min(10, 'Valid phone number is required').max(20),
-    cnic: z.string().max(20).optional().transform((v) => (v === '' ? undefined : v)),
-    designation: z.string().min(2, 'Designation is required').max(100),
-    employmentRoleId: z.string().min(1, 'Role is required'),
-    employmentType: z.nativeEnum(EmploymentType).default(EmploymentType.FULL_TIME),
-    joiningDate: z.string().min(1, 'Joining date is required'),
-    gender: z.nativeEnum(Gender).optional(),
-    dob: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-    hasPortalAccess: z.boolean().default(false),
-    portalEmail: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-    portalPassword: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-    profilePictureUrl: z
-      .string()
-      .optional()
-      .transform((v) => (v === '' ? undefined : v)),
-    userId: z
-      .string()
-      .optional()
-      .transform((v) => (v === '' ? undefined : v)),
-    primaryLocationId: z.string().optional().transform((v) => (v === '' ? undefined : v)),
-    grossSalary: z.coerce.number().min(0).optional(),
-    // Optional compensation step (create only, when commissions are on).
-    payType: z
-      .enum(['SALARY', 'COMMISSION', 'SALARY_PLUS_COMMISSION'])
-      .default('SALARY'),
-    commissionRate: z.string().optional(),
-    commissionBasis: z.enum(['NET', 'GROSS']).default('NET'),
-  })
-  .superRefine((data, ctx) => {
-    if (data.payType !== 'SALARY' && percentToBps(data.commissionRate ?? '') === null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Enter a commission between 0 and 100% (max 2 decimals)',
-        path: ['commissionRate'],
-      })
-    }
-    if (data.payType === 'SALARY_PLUS_COMMISSION' && !data.grossSalary) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Salary + commission needs a salary',
-        path: ['grossSalary'],
-      })
-    }
-    if (data.hasPortalAccess && !data.userId) {
-      if (!data.portalEmail || data.portalEmail.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Email is required for portal access',
-          path: ['portalEmail'],
-        })
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.portalEmail)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Enter a valid email address',
-          path: ['portalEmail'],
-        })
-      }
-      if (!data.portalPassword || data.portalPassword.trim() === '') {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Password is required for portal access',
-          path: ['portalPassword'],
-        })
-      } else if (data.portalPassword.length < 6) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Password must be at least 6 characters',
-          path: ['portalPassword'],
-        })
-      }
-    }
-  })
+export interface EmployeeFormData {
+  fullName: string
+  phone: string
+  cnic?: string
+  designation: string
+  employmentRoleId: string
+  employmentType: EmploymentType
+  joiningDate: string
+  gender?: Gender
+  dob?: string
+  hasPortalAccess: boolean
+  portalEmail?: string
+  portalPassword?: string
+  profilePictureUrl?: string
+  userId?: string
+  primaryLocationId?: string
+  grossSalary?: number
+  // Optional compensation step (create only, when commissions are on).
+  payType: 'SALARY' | 'COMMISSION' | 'SALARY_PLUS_COMMISSION'
+  commissionRate?: string
+  commissionBasis: 'NET' | 'GROSS'
+}
 
-export type EmployeeFormData = z.infer<typeof employeeFormSchema>
+export interface SalaryFormData {
+  grossSalary: number
+}
 
-export const salaryFormSchema = z.object({
-  grossSalary: z.coerce.number().min(1, 'Salary must be a positive number'),
-})
+export interface MarkPaidFormData {
+  paymentMethod: PaymentMethod
+  paymentReference?: string
+  notes?: string
+}
 
-export type SalaryFormData = z.infer<typeof salaryFormSchema>
+export interface PayrollFormData {
+  employeeId: string
+  month: number
+  year: number
+  salaryAmount: number
+  status: PayrollStatus
+  notes?: string
+}
 
-export const markPaidFormSchema = z.object({
-  paymentMethod: z.nativeEnum(PaymentMethod),
-  paymentReference: z.string().optional(),
-  notes: z.string().optional(),
-})
+export interface LeaveFormData {
+  leaveType: LeaveType
+  startDate: string
+  endDate: string
+  reason?: string
+}
 
-export type MarkPaidFormData = z.infer<typeof markPaidFormSchema>
-
-export const payrollFormSchema = z.object({
-  employeeId: z.string().min(1, 'Employee is required'),
-  month: z.coerce.number().min(1).max(12),
-  year: z.coerce.number().min(2020),
-  salaryAmount: z.coerce.number().min(0, 'Amount must be 0 or more'),
-  status: z.nativeEnum(PayrollStatus).default(PayrollStatus.PENDING),
-  notes: z.string().optional(),
-})
-
-export type PayrollFormData = z.infer<typeof payrollFormSchema>
-
-export const leaveFormSchema = z
-  .object({
-    leaveType: z.nativeEnum(LeaveType),
-    startDate: z.string().min(1, 'Start date is required'),
-    endDate: z.string().min(1, 'End date is required'),
-    reason: z.string().optional(),
-  })
-  .refine((data) => data.endDate >= data.startDate, {
-    message: 'End date must be on or after start date',
-    path: ['endDate'],
-  })
-
-export type LeaveFormData = z.infer<typeof leaveFormSchema>
-
-export const overrideFormSchema = z
-  .object({
-    date: z.string().min(1, 'Date is required'),
-    isAvailable: z.boolean().default(false),
-    reason: z.string().optional(),
-    overrideHours: z
-      .array(
-        z.object({
-          startTime: z.string().min(1, 'Required'),
-          endTime: z.string().min(1, 'Required'),
-        }),
-      )
-      .optional(),
-  })
-  .refine(
-    (data) =>
-      !data.overrideHours ||
-      data.overrideHours.every((s) => s.endTime > s.startTime),
-    {
-      message: 'End time must be after start time',
-      path: ['overrideHours'],
-    },
-  )
-
-export type OverrideFormData = z.infer<typeof overrideFormSchema>
+export interface OverrideFormData {
+  date: string
+  isAvailable: boolean
+  reason?: string
+  overrideHours?: OverrideHoursSlot[]
+}
 
 // ─── Query / Filter Params ──────────────────────────────────────────
 

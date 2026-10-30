@@ -1,5 +1,3 @@
-import { useEffect } from 'react'
-import { useForm } from '@tanstack/react-form'
 import {
   Dialog,
   DialogContent,
@@ -19,13 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
-import { useMarkPaid } from '../hooks/useMarkPaid'
-import {
-  type MarkPaidFormData,
-  PaymentMethod,
-  PAYMENT_METHOD_OPTIONS,
-} from '../types'
-import { toast } from 'sonner'
+import { fieldError } from '@/components/forms/fieldError'
+import { useMarkPaidForm } from '../hooks/useMarkPaidForm'
+import { PAYMENT_METHOD_OPTIONS } from '../types'
+import type { PaymentMethod } from '../types'
 import { Loader2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
 
@@ -45,36 +40,11 @@ export function MarkPaidModal({
   isOpen,
   onOpenChange,
 }: MarkPaidModalProps) {
-  const markPaidMutation = useMarkPaid()
-
-  const form = useForm({
-    defaultValues: {
-      paymentMethod: PaymentMethod.BANK_TRANSFER as string,
-      paymentReference: '',
-      notes: '',
-    },
-    onSubmit: async ({ value }) => {
-      if (!record) return
-      try {
-        await markPaidMutation.mutateAsync({
-          recordId: record.id,
-          employeeId: record.employeeId,
-          data: value as MarkPaidFormData,
-        })
-        toast.success('✅ Salary marked as paid')
-        onOpenChange(false)
-        form.reset()
-      } catch {
-        toast.error('Failed to mark as paid')
-      }
-    },
+  const { form, isPending } = useMarkPaidForm({
+    record,
+    isOpen,
+    onDone: () => onOpenChange(false),
   })
-
-  useEffect(() => {
-    if (isOpen) {
-      form.reset()
-    }
-  }, [isOpen])
 
   if (!record) return null
 
@@ -101,7 +71,9 @@ export function MarkPaidModal({
                 <Label>Payment Method</Label>
                 <Select
                   value={field.state.value}
-                  onValueChange={(val) => field.handleChange(val)}
+                  onValueChange={(val) =>
+                    field.handleChange(val as PaymentMethod)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select method" />
@@ -114,6 +86,11 @@ export function MarkPaidModal({
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldError(field) && (
+                  <p className="text-xs text-destructive">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -160,12 +137,21 @@ export function MarkPaidModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={markPaidMutation.isPending}>
-              {markPaidMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <form.Subscribe
+              selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+            >
+              {([canSubmit, isSubmitting]) => (
+                <Button
+                  type="submit"
+                  disabled={isPending || !canSubmit || isSubmitting}
+                >
+                  {(isPending || isSubmitting) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Confirm Payment
+                </Button>
               )}
-              Confirm Payment
-            </Button>
+            </form.Subscribe>
           </DialogFooter>
         </form>
       </DialogContent>
