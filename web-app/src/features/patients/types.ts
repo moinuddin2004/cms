@@ -49,25 +49,21 @@ export enum PatientSource {
 
 export enum GumCondition {
   HEALTHY = 'healthy',
-  GINGIVITIS = 'gingivitis',
-  PERIODONTITIS = 'periodontitis',
-  RECESSION = 'recession',
-  BLEEDING = 'bleeding',
-  OTHER = 'other',
+  MILD_GINGIVITIS = 'mild_gingivitis',
+  MODERATE_GINGIVITIS = 'moderate_gingivitis',
+  SEVERE_PERIODONTITIS = 'severe_periodontitis',
 }
 
 export enum BrushingFrequency {
-  TWICE_DAILY = 'twice_daily',
   ONCE_DAILY = 'once_daily',
-  OCCASIONALLY = 'occasionally',
-  RARELY = 'rarely',
+  TWICE_DAILY = 'twice_daily',
+  IRREGULAR = 'irregular',
   UNKNOWN = 'unknown',
 }
 
 export enum FlossingFrequency {
   DAILY = 'daily',
   OCCASIONALLY = 'occasionally',
-  RARELY = 'rarely',
   NEVER = 'never',
   UNKNOWN = 'unknown',
 }
@@ -84,19 +80,20 @@ export enum PlanItemStatus {
   PENDING = 'pending',
   IN_PROGRESS = 'in_progress',
   COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
   SKIPPED = 'skipped',
+  POSTPONED = 'postponed',
 }
 
 export enum DocumentType {
   XRAY = 'xray',
-  PHOTO = 'photo',
-  CBCT = 'cbct',
-  MEDICAL_REPORT = 'medical_report',
+  CBCT_SCAN = 'cbct_scan',
+  REPORT = 'report',
   PRESCRIPTION = 'prescription',
   CONSENT_FORM = 'consent_form',
-  ID_PROOF = 'id_proof',
-  INSURANCE = 'insurance',
+  INSURANCE_CARD = 'insurance_card',
+  CNIC_COPY = 'cnic_copy',
+  PHOTO_BEFORE = 'photo_before',
+  PHOTO_AFTER = 'photo_after',
   OTHER = 'other',
 }
 
@@ -145,38 +142,38 @@ export enum CommPurpose {
 }
 
 export enum RecallType {
-  ROUTINE_CHECKUP = 'routine_checkup',
-  CLEANING = 'cleaning',
-  ORTHO_ADJUSTMENT = 'ortho_adjustment',
+  SIX_MONTH_CHECKUP = '6_month_checkup',
+  ANNUAL_CLEANING = 'annual_cleaning',
+  POST_TREATMENT_FOLLOWUP = 'post_treatment_followup',
   IMPLANT_REVIEW = 'implant_review',
-  POST_OP_REVIEW = 'post_op_review',
+  ORTHODONTIC_REVIEW = 'orthodontic_review',
   CUSTOM = 'custom',
 }
 
 export enum RecallStatus {
   SCHEDULED = 'scheduled',
-  DUE = 'due',
+  REMINDER_SENT = 'reminder_sent',
   CONTACTED = 'contacted',
-  APPOINTMENT_BOOKED = 'appointment_booked',
+  BOOKED = 'booked',
   COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+  IGNORED = 'ignored',
+  OVERDUE = 'overdue',
 }
 
 export enum ReferralStatus {
   PENDING = 'pending',
-  CONTACTED = 'contacted',
-  CONVERTED = 'converted',
-  NOT_INTERESTED = 'not_interested',
+  REGISTERED = 'registered',
+  REWARDED = 'rewarded',
+  CANCELLED = 'cancelled',
 }
 
 export enum FeedbackCategory {
-  GENERAL = 'general',
   DOCTOR = 'doctor',
-  CLINIC_ENVIRONMENT = 'clinic_environment',
-  FRONT_DESK = 'front_desk',
+  SERVICE = 'service',
+  FACILITY = 'facility',
+  BILLING = 'billing',
   WAITING_TIME = 'waiting_time',
-  TREATMENT = 'treatment',
-  PRICING = 'pricing',
+  GENERAL = 'general',
 }
 
 // ─── Options Arrays ───────────────────────────────────────────────

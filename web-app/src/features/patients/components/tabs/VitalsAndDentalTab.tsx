@@ -2,14 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useForm } from '@tanstack/react-form'
 import { Loader2, Plus, Activity, Droplets } from 'lucide-react'
-import {
-  useVitals,
-  useDentalInfo,
-  useUpsertDentalInfo,
-} from '../../hooks/usePatientSubEntities'
+import { useVitals, useDentalInfo } from '../../hooks/usePatientSubEntities'
 import { useVitalsForm } from '../../hooks/useVitalsForm'
+import { useDentalInfoForm } from '../../hooks/useDentalInfoForm'
 import type { VitalKey } from '../../schemas/patient-records.schema'
 import { fieldError } from '@/components/forms/fieldError'
 import type { Patient, PatientVitals, PatientDentalInfo } from '../../types'
@@ -247,30 +243,7 @@ function DentalInfoForm({
   patientId: string
   existing?: PatientDentalInfo
 }) {
-  const { mutate, isPending } = useUpsertDentalInfo()
-
-  const form = useForm({
-    defaultValues: {
-      gumCondition: existing?.gumCondition || GumCondition.HEALTHY,
-      brushingFrequency:
-        existing?.brushingFrequency || BrushingFrequency.UNKNOWN,
-      flossingFrequency:
-        existing?.flossingFrequency || FlossingFrequency.UNKNOWN,
-      teethSensitivity: existing?.teethSensitivity ?? false,
-      sensitivityNotes: existing?.sensitivityNotes || '',
-      smokingStatus: existing?.smokingStatus ?? false,
-      tobaccoChewing: existing?.tobaccoChewing ?? false,
-      orthodonticHistory: existing?.orthodonticHistory ?? false,
-      orthodonticNotes: existing?.orthodonticNotes || '',
-      teethConditionNotes: existing?.teethConditionNotes || '',
-      previousExtractions: existing?.previousExtractions || '',
-      previousSurgeries: existing?.previousSurgeries || '',
-      dentistNotes: existing?.dentistNotes || '',
-    },
-    onSubmit: async ({ value }) => {
-      mutate({ patientId, ...value })
-    },
-  })
+  const { form, isPending } = useDentalInfoForm({ patientId, existing })
 
   return (
     <form
@@ -296,7 +269,7 @@ function DentalInfoForm({
                   <SelectContent>
                     {Object.values(GumCondition).map((v) => (
                       <SelectItem key={v} value={v} className="capitalize">
-                        {v.replace('_', ' ')}
+                        {v.replaceAll('_', ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -320,7 +293,7 @@ function DentalInfoForm({
                   <SelectContent>
                     {Object.values(BrushingFrequency).map((v) => (
                       <SelectItem key={v} value={v} className="capitalize">
-                        {v.replace('_', ' ')}
+                        {v.replaceAll('_', ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -344,7 +317,7 @@ function DentalInfoForm({
                   <SelectContent>
                     {Object.values(FlossingFrequency).map((v) => (
                       <SelectItem key={v} value={v} className="capitalize">
-                        {v.replace('_', ' ')}
+                        {v.replaceAll('_', ' ')}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -433,9 +406,15 @@ function DentalInfoForm({
                 <Textarea
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="General teeth condition..."
                   className="resize-none h-20"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -446,9 +425,15 @@ function DentalInfoForm({
                 <Textarea
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="List previous extractions..."
                   className="resize-none h-20"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -459,9 +444,15 @@ function DentalInfoForm({
                 <Textarea
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="Any previous dental surgeries..."
                   className="resize-none h-20"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
@@ -472,19 +463,35 @@ function DentalInfoForm({
                 <Textarea
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                   placeholder="Additional dentist observations..."
                   className="resize-none h-20"
                 />
+                {fieldError(field) && (
+                  <p className="text-xs font-medium text-danger">
+                    {fieldError(field)}
+                  </p>
+                )}
               </div>
             )}
           </form.Field>
         </div>
 
         <div className="flex justify-end pt-2">
-          <Button type="submit" size="sm" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {existing ? 'Update Dental Info' : 'Save Dental Info'}
-          </Button>
+          <form.Subscribe
+            selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!canSubmit || isSubmitting || isPending}
+              >
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {existing ? 'Update Dental Info' : 'Save Dental Info'}
+              </Button>
+            )}
+          </form.Subscribe>
         </div>
       </div>
     </form>

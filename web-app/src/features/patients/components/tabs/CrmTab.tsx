@@ -193,9 +193,9 @@ function CommunicationRow({ comm }: { comm: PatientCommunication }) {
 function ReferralRow({ referral }: { referral: PatientReferral }) {
   const statusColor: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700',
-    contacted: 'bg-blue-100 text-blue-700',
-    converted: 'bg-green-100 text-green-700',
-    not_interested: 'bg-muted text-muted-foreground',
+    registered: 'bg-blue-100 text-blue-700',
+    rewarded: 'bg-green-100 text-green-700',
+    cancelled: 'bg-muted text-muted-foreground',
   }
 
   return (

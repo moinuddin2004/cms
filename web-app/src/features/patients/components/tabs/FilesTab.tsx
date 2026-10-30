@@ -71,7 +71,7 @@ function DocumentRow({ document }: { document: PatientDocument }) {
           <p className="text-sm font-medium truncate">{document.fileName}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <Badge variant="outline" className="text-[10px] h-5 px-1.5">
-              {document.documentType.replace('_', ' ')}
+              {document.documentType.replaceAll('_', ' ')}
             </Badge>
             {document.toothNumber && (
               <span className="text-[10px] text-muted-foreground">

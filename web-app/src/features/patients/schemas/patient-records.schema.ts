@@ -1,10 +1,13 @@
 import { z } from 'zod'
 import {
+  BrushingFrequency,
   CommDirection,
   CommPurpose,
   CommType,
   ConsentType,
   DocumentType,
+  FlossingFrequency,
+  GumCondition,
 } from '../types'
 
 /**
@@ -130,3 +133,24 @@ export type VitalsFormValues = z.input<typeof vitalsSchema>
 
 /** The numeric vitals (everything but notes). */
 export type VitalKey = Exclude<keyof VitalsFormValues, 'notes'>
+
+// ── Dental info ─────────────────────────────────────────────────────────────
+
+/** Everything is optional; the enums must match the backend's. */
+export const dentalInfoSchema = z.object({
+  gumCondition: z.enum(GumCondition),
+  brushingFrequency: z.enum(BrushingFrequency),
+  flossingFrequency: z.enum(FlossingFrequency),
+  teethSensitivity: z.boolean(),
+  sensitivityNotes: max(2000),
+  smokingStatus: z.boolean(),
+  tobaccoChewing: z.boolean(),
+  orthodonticHistory: z.boolean(),
+  orthodonticNotes: max(2000),
+  teethConditionNotes: max(2000),
+  previousExtractions: max(2000),
+  previousSurgeries: max(2000),
+  dentistNotes: max(2000),
+})
+
+export type DentalInfoFormValues = z.input<typeof dentalInfoSchema>
