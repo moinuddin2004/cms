@@ -1,134 +1,337 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import type { ColumnDef } from '@/components/shared/table-features'
 import {
-  CalendarClock,
-  Clock,
-  Stethoscope,
-  Footprints,
-  Zap,
-  Loader2,
-  CalendarPlus,
-  CalendarX2,
-} from 'lucide-react'
+  DataTable,
+  EmptyState,
+  ErrorState,
+  LoadingSkeleton,
+  NoResultsState,
+  ViewToggle,
+} from '@/components/shared'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useDebounce } from '@/hooks/useDebounce'
 import { cn } from '@/lib/utils'
+import { usePatientStore } from '@/store/patient-store'
+import { useAppointments } from '@/features/appointments'
+import { usePatientVisits } from '@/features/queue'
 import {
-  useAppointments,
-  AppointmentStatus,
-  STATUS_BG_COLORS,
-  STATUS_LABELS,
-  type Appointment,
-} from '@/features/appointments'
+  CalendarCheck2,
+  CalendarClock,
+  CalendarPlus,
+  CalendarX2,
+  ChevronRight,
+  Clock,
+  Footprints,
+  Stethoscope,
+  Zap,
+} from 'lucide-react'
+import { usePatientHistory } from '../../hooks/usePatientSubEntities'
+import type { Encounter, Patient } from '../../types'
+import { AppointmentDetailSheet } from './history/AppointmentDetailSheet'
+import { VisitDetailSheet } from './history/VisitDetailSheet'
+import { buildApptRows, findEncounter } from './history/appointmentRows'
+import type { ApptRow } from './history/appointmentRows'
 import {
-  ENTRY_STATUS_LABELS,
-  usePatientVisits,
-  type PatientVisit,
-} from '@/features/queue'
-import type { Patient } from '../../types'
+  CHIP_TONES,
+  Chip,
+  DateBlock,
+  HistorySearch,
+} from './history/HistoryParts'
 
-type HistoryItem =
-  | { kind: 'appointment'; at: number; appt: Appointment }
-  | { kind: 'walk_in'; at: number; visit: PatientVisit }
+type When = 'all' | 'upcoming' | 'past'
 
-const TERMINAL = [
-  AppointmentStatus.COMPLETED,
-  AppointmentStatus.CANCELLED,
-  AppointmentStatus.NO_SHOW,
+const WHEN_OPTIONS: { value: When; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'past', label: 'History' },
 ]
 
 export function AppointmentsTab({ patient }: { patient: Patient }) {
-  const { data, isLoading } = useAppointments({
-    patientId: patient.id,
-    limit: 100,
-  })
+  const appts = useAppointments({ patientId: patient.id, limit: 100 })
+  const visitsQ = usePatientVisits(patient.id)
+  const { data: history } = usePatientHistory(patient.id)
+  const encounters = history?.encounters ?? []
 
-  // Walk-ins have no appointment row — they come from the patient's queue visits.
-  const { data: visits = [], isLoading: loadingVisits } = usePatientVisits(patient.id)
+  const { historyViewMode: view, setHistoryViewMode } = usePatientStore()
+  const [when, setWhen] = useState<When>('all')
+  const [search, setSearch] = useState('')
+  const term = useDebounce(search, 300).trim().toLowerCase()
+  const [selected, setSelected] = useState<ApptRow | null>(null)
+  const [visitOf, setVisitOf] = useState<{
+    encounter: Encounter
+    row: ApptRow
+  } | null>(null)
 
-  const appointments = data?.data ?? []
-  const walkIns = visits.filter((v) => v.queueType === 'walk_in')
+  const rows = useMemo(
+    () => buildApptRows(appts.data?.data ?? [], visitsQ.data ?? []),
+    [appts.data, visitsQ.data],
+  )
+  const upcomingCount = rows.filter((r) => r.upcoming).length
 
-  const { upcoming, past } = useMemo(() => {
-    const now = Date.now()
-    const up: Appointment[] = []
-    const old: HistoryItem[] = []
-    for (const a of appointments) {
-      const isFuture = new Date(a.startTime).getTime() >= now
-      const isTerminal = TERMINAL.includes(a.status)
-      if (isFuture && !isTerminal) up.push(a)
-      else old.push({ kind: 'appointment', at: +new Date(a.startTime), appt: a })
-    }
-    for (const v of walkIns) {
-      old.push({ kind: 'walk_in', at: +new Date(v.checkedInAt), visit: v })
-    }
-    up.sort((x, y) => +new Date(x.startTime) - +new Date(y.startTime))
-    old.sort((x, y) => y.at - x.at)
-    return { upcoming: up, past: old }
-  }, [appointments, walkIns])
-  const total = appointments.length + walkIns.length
+  const filtered = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (when === 'all' || r.upcoming === (when === 'upcoming')) &&
+          (!term ||
+            [r.typeLabel, r.doctor ?? '', r.reason ?? '', r.statusLabel]
+              .join(' ')
+              .toLowerCase()
+              .includes(term)),
+      ),
+    [rows, when, term],
+  )
+  const filterCount = (when !== 'all' ? 1 : 0) + (term ? 1 : 0)
+  const clearFilters = () => {
+    setWhen('all')
+    setSearch('')
+  }
+
+  const columns = useMemo<ColumnDef<ApptRow, unknown>[]>(
+    () => [
+      {
+        id: 'date',
+        header: 'Date',
+        accessorFn: (r) => r.at.getTime(),
+        cell: ({ row }) => (
+          <div>
+            <p className="text-sm font-medium">
+              {row.original.at.toLocaleDateString([], { dateStyle: 'medium' })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {row.original.timeLabel}
+            </p>
+          </div>
+        ),
+      },
+      {
+        id: 'type',
+        header: 'Type',
+        accessorFn: (r) => r.typeLabel,
+        cell: ({ row }) => (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-medium capitalize">
+              {row.original.typeLabel}
+            </span>
+            <KindChips row={row.original} />
+          </div>
+        ),
+      },
+      {
+        id: 'doctor',
+        header: 'Doctor',
+        accessorFn: (r) => r.doctor ?? '',
+        cell: ({ row }) =>
+          row.original.doctor ? (
+            <span className="text-sm">Dr. {row.original.doctor}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        accessorFn: (r) => r.statusLabel,
+        cell: ({ row }) => (
+          <Chip className={row.original.statusClass}>
+            {row.original.statusLabel}
+          </Chip>
+        ),
+      },
+      {
+        id: 'token',
+        header: 'Token',
+        accessorFn: (r) => r.token ?? '',
+        cell: ({ row }) =>
+          row.original.token ? (
+            <span className="font-mono text-sm font-bold text-primary">
+              {row.original.token}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
+      },
+      {
+        id: 'reason',
+        header: 'Reason',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="block max-w-[200px] truncate text-sm text-text-2">
+            {row.original.reason || '—'}
+          </span>
+        ),
+      },
+      {
+        id: 'open',
+        header: '',
+        enableSorting: false,
+        cell: () => (
+          <ChevronRight className="ml-auto size-4 text-muted-foreground" />
+        ),
+      },
+    ],
+    [],
+  )
+
+  const isLoading = appts.isLoading || visitsQ.isLoading
+  const isError = appts.isError || visitsQ.isError
+  const upcoming = filtered.filter((r) => r.upcoming)
+  const past = filtered.filter((r) => !r.upcoming)
 
   return (
-    <div className="mt-4 space-y-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
+    <div className="mt-4 space-y-4 animate-in fade-in duration-300">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-semibold">
-            <CalendarClock className="text-brand-600" size={20} />
+            <CalendarClock className="text-primary" size={20} />
             Appointments
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {total === 0
+            {rows.length === 0
               ? 'No appointments or visits on record for this patient.'
-              : `${upcoming.length} upcoming · ${past.length} past`}
+              : `${upcomingCount} upcoming · ${rows.length - upcomingCount} past — click one for details`}
           </p>
         </div>
-        <Button asChild size="sm" variant="outline">
-          <Link to="/appointments" search={{ create: '1' }}>
-            <CalendarPlus className="size-3.5" />
-            Book appointment
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ViewToggle value={view} onChange={setHistoryViewMode} size="sm" />
+          <Button asChild size="sm">
+            <Link to="/appointments" search={{ create: '1' }}>
+              <CalendarPlus className="size-3.5" />
+              Book appointment
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      {isLoading || loadingVisits ? (
-        <div className="flex justify-center p-8">
-          <Loader2 className="animate-spin text-muted-foreground" />
+      {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div
+            role="tablist"
+            aria-label="When"
+            className="inline-flex items-center gap-0.5 rounded-[9px] border border-border bg-panel p-[2px]"
+          >
+            {WHEN_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                role="tab"
+                aria-selected={when === o.value}
+                onClick={() => setWhen(o.value)}
+                className={cn(
+                  'h-7 rounded-[7px] px-3 text-xs font-medium transition-colors',
+                  when === o.value
+                    ? 'bg-surface text-foreground shadow-sm'
+                    : 'text-text-2 hover:text-foreground',
+                )}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+          <HistorySearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Search doctor, reason, status…"
+          />
+          {filterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={clearFilters}
+            >
+              Clear all filters
+              <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+                {filterCount}
+              </span>
+            </Button>
+          )}
         </div>
-      ) : total === 0 ? (
-        <Card className="flex min-h-[200px] flex-col items-center justify-center border-dashed bg-muted/20 p-6 text-center text-muted-foreground">
-          <CalendarX2 size={32} className="mb-4 opacity-20" />
-          <p className="font-medium">No appointments yet.</p>
-          <p className="mt-1 text-sm">
-            Book this patient's first visit from the scheduler.
-          </p>
-        </Card>
+      )}
+
+      {isLoading ? (
+        <LoadingSkeleton variant={view === 'table' ? 'table' : 'cards'} />
+      ) : isError ? (
+        <ErrorState
+          onRetry={() => {
+            void appts.refetch()
+            void visitsQ.refetch()
+          }}
+        />
+      ) : rows.length === 0 ? (
+        <EmptyState
+          icon={CalendarX2}
+          title="No appointments yet"
+          description="Book this patient's first visit from the scheduler."
+        />
+      ) : filtered.length === 0 ? (
+        <NoResultsState
+          message="No appointments match your filters."
+          onClear={clearFilters}
+        />
+      ) : view === 'table' ? (
+        <DataTable
+          columns={columns}
+          data={filtered}
+          onRowClick={setSelected}
+          defaultPageSize={10}
+          getRowClassName={(r) =>
+            r.upcoming ? 'bg-primary-soft/40' : undefined
+          }
+        />
       ) : (
         <div className="space-y-6">
           {upcoming.length > 0 && (
             <Section title="Upcoming" count={upcoming.length}>
-              {upcoming.map((appt) => (
-                <AppointmentHistoryCard key={appt.id} appt={appt} upcoming />
+              {upcoming.map((r) => (
+                <AppointmentCard
+                  key={r.id}
+                  row={r}
+                  hasVisit={!!findEncounter(r, encounters)}
+                  onOpen={() => setSelected(r)}
+                />
               ))}
             </Section>
           )}
           {past.length > 0 && (
             <Section title="History" count={past.length}>
-              {past.map((item) =>
-                item.kind === 'appointment' ? (
-                  <AppointmentHistoryCard key={item.appt.id} appt={item.appt} />
-                ) : (
-                  <WalkInVisitCard key={item.visit.id} visit={item.visit} />
-                ),
-              )}
+              {past.map((r) => (
+                <AppointmentCard
+                  key={r.id}
+                  row={r}
+                  hasVisit={!!findEncounter(r, encounters)}
+                  onOpen={() => setSelected(r)}
+                />
+              ))}
             </Section>
           )}
         </div>
       )}
+
+      <AppointmentDetailSheet
+        row={selected}
+        encounter={selected ? findEncounter(selected, encounters) : undefined}
+        onClose={() => setSelected(null)}
+        onOpenVisit={(encounter) => {
+          if (selected) setVisitOf({ encounter, row: selected })
+          setSelected(null)
+        }}
+      />
+      <VisitDetailSheet
+        patientId={patient.id}
+        encounterId={visitOf?.encounter.id ?? null}
+        visit={
+          visitOf?.row.visit ??
+          visitsQ.data?.find((v) => v.id === visitOf?.encounter.queueEntryId)
+        }
+        onClose={() => setVisitOf(null)}
+      />
     </div>
   )
 }
 
-// ─── Section ──────────────────────────────────────────────────────────
 function Section({
   title,
   count,
@@ -142,174 +345,109 @@ function Section({
     <div>
       <div className="mb-3 flex items-center gap-2">
         <span className="text-sm font-semibold text-foreground">{title}</span>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground tabular-nums">
+        <span className="rounded-full bg-panel-2 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
           {count}
         </span>
       </div>
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {children}
+      </div>
     </div>
   )
 }
 
-// ─── Card ─────────────────────────────────────────────────────────────
-function AppointmentHistoryCard({
-  appt,
-  upcoming,
-}: {
-  appt: Appointment
-  upcoming?: boolean
-}) {
-  const start = new Date(appt.startTime)
-  const end = new Date(appt.endTime)
-  const isCancelled = appt.status === AppointmentStatus.CANCELLED
-  const token = appt.queueEntry?.token ?? '—'
-
-  const timeLabel = `${start.toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })} – ${end.toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })}`
-
+function KindChips({ row }: { row: ApptRow }) {
   return (
-    <Card
-      className={cn(
-        'flex items-stretch gap-3 p-3 shadow-sm transition-shadow hover:shadow-md',
-        isCancelled && 'opacity-60',
+    <>
+      {row.kind === 'walk_in' && (
+        <Chip className={CHIP_TONES.walkIn}>
+          <Footprints className="size-2.5" /> Walk-in
+        </Chip>
       )}
-    >
-      {/* Date block */}
-      <div
-        className={cn(
-          'flex min-w-[58px] flex-col items-center justify-center rounded-lg px-2 py-1.5 text-center',
-          upcoming
-            ? 'bg-primary-soft text-primary-text'
-            : 'bg-muted text-foreground',
-        )}
-      >
-        <span className="text-[10px] font-bold uppercase leading-none opacity-70">
-          {start.toLocaleDateString([], { month: 'short' })}
-        </span>
-        <span className="text-xl font-bold leading-tight tabular-nums">
-          {start.getDate()}
-        </span>
-        <span className="text-[10px] leading-none opacity-70">
-          {start.toLocaleDateString([], { weekday: 'short' })}
-        </span>
-      </div>
-
-      {/* Details */}
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-sm font-semibold capitalize">
-            {appt.type.replace('_', ' ')}
-          </span>
-          <span
-            className={cn(
-              'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize',
-              STATUS_BG_COLORS[appt.status],
-            )}
-          >
-            {STATUS_LABELS[appt.status]}
-          </span>
-          {appt.isEmergency && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
-              <Zap className="size-2.5" /> Emergency
-            </span>
-          )}
-        </div>
-
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Clock className="size-3" />
-            {timeLabel}
-          </span>
-          {appt.doctor?.fullName && (
-            <span className="inline-flex items-center gap-1">
-              <Stethoscope className="size-3" />
-              Dr. {appt.doctor.fullName}
-            </span>
-          )}
-        </p>
-
-        {appt.reasonForVisit && (
-          <p className="mt-1 truncate text-xs italic text-muted-foreground">
-            “{appt.reasonForVisit}”
-          </p>
-        )}
-      </div>
-
-      {/* Token */}
-      <div className="flex shrink-0 flex-col items-end justify-center">
-        <span
-          className={cn(
-            'font-mono text-sm font-bold tabular-nums',
-            !appt.queueEntry
-              ? 'text-muted-foreground'
-              : 'text-primary',
-          )}
-        >
-          {token}
-        </span>
-      </div>
-    </Card>
+      {row.emergency && (
+        <Chip className={CHIP_TONES.emergency}>
+          <Zap className="size-2.5" /> Emergency
+        </Chip>
+      )}
+    </>
   )
 }
 
-// ─── Walk-in visit (queue entry, no appointment) ──────────────────────
-function WalkInVisitCard({ visit }: { visit: PatientVisit }) {
-  const at = new Date(visit.checkedInAt)
-  const left = visit.status === 'cancelled' || visit.status === 'aborted'
+function AppointmentCard({
+  row,
+  hasVisit,
+  onOpen,
+}: {
+  row: ApptRow
+  hasVisit: boolean
+  onOpen: () => void
+}) {
+  const faded =
+    row.statusLabel === 'Cancelled' ||
+    row.statusLabel === 'No Show' ||
+    row.visit?.status === 'aborted'
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
       className={cn(
-        'flex items-stretch gap-3 p-3 shadow-sm transition-shadow hover:shadow-md',
-        left && 'opacity-60',
+        'group cursor-pointer gap-0 p-3 shadow-sm transition-all hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        faded && 'opacity-70',
       )}
     >
-      <div className="flex min-w-[58px] flex-col items-center justify-center rounded-lg bg-muted px-2 py-1.5 text-center text-foreground">
-        <span className="text-[10px] font-bold uppercase leading-none opacity-70">
-          {at.toLocaleDateString([], { month: 'short' })}
-        </span>
-        <span className="text-xl font-bold leading-tight tabular-nums">{at.getDate()}</span>
-        <span className="text-[10px] leading-none opacity-70">
-          {at.toLocaleDateString([], { weekday: 'short' })}
-        </span>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-0.5 rounded-full border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700 dark:border-purple-900 dark:bg-purple-950 dark:text-purple-300">
-            <Footprints className="size-2.5" /> Walk-in
-          </span>
-          <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium">
-            {ENTRY_STATUS_LABELS[visit.status]}
-          </span>
-          {visit.priorityClass === 'authorized_urgent' && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
-              <Zap className="size-2.5" /> Emergency
+      <div className="flex items-start gap-3">
+        <DateBlock date={row.at} highlight={row.upcoming} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm font-semibold capitalize">
+              {row.typeLabel}
             </span>
+            <Chip className={row.statusClass}>{row.statusLabel}</Chip>
+            <KindChips row={row} />
+          </div>
+          <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1">
+              <Clock className="size-3" />
+              {row.timeLabel}
+            </span>
+            {row.doctor && (
+              <span className="inline-flex items-center gap-1">
+                <Stethoscope className="size-3" />
+                Dr. {row.doctor}
+              </span>
+            )}
+          </p>
+          {row.reason && (
+            <p className="mt-1 truncate text-xs italic text-muted-foreground">
+              “{row.reason}”
+            </p>
           )}
         </div>
-        <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1">
-            <Clock className="size-3" />
-            Arrived {at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span
+            className={cn(
+              'font-mono text-sm font-bold tabular-nums',
+              row.token ? 'text-primary' : 'text-muted-foreground',
+            )}
+          >
+            {row.token ?? '—'}
           </span>
-          {visit.doctorName && (
-            <span className="inline-flex items-center gap-1">
-              <Stethoscope className="size-3" />
-              Dr. {visit.doctorName}
-            </span>
-          )}
+          <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        </div>
+      </div>
+      {hasVisit && (
+        <p className="mt-2.5 flex items-center gap-1.5 border-t border-border pt-2 text-xs font-medium text-emerald">
+          <CalendarCheck2 className="size-3.5" /> Visit recorded — tap to see
+          what was done
         </p>
-        {visit.reasonForVisit && (
-          <p className="mt-1 truncate text-xs italic text-muted-foreground">“{visit.reasonForVisit}”</p>
-        )}
-      </div>
-      <div className="flex shrink-0 flex-col items-end justify-center">
-        <span className="font-mono text-sm font-bold tabular-nums text-primary">{visit.token}</span>
-      </div>
+      )}
     </Card>
   )
 }

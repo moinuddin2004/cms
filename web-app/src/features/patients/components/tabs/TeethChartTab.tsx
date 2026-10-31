@@ -41,27 +41,27 @@ const CONDITIONS: Record<string, { label: string; dot: string; chip: string }> =
     HEALTHY: {
       label: 'Healthy',
       dot: 'bg-green-500',
-      chip: 'bg-green-100 text-green-700 border-green-300',
+      chip: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/40',
     },
     CARIES: {
       label: 'Caries',
       dot: 'bg-red-500',
-      chip: 'bg-red-100 text-red-700 border-red-300',
+      chip: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40',
     },
     FILLED: {
       label: 'Filled',
       dot: 'bg-blue-500',
-      chip: 'bg-blue-100 text-blue-700 border-blue-300',
+      chip: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40',
     },
     CROWN: {
       label: 'Crown',
       dot: 'bg-purple-500',
-      chip: 'bg-purple-100 text-purple-700 border-purple-300',
+      chip: 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/40',
     },
     EXTRACTION_NEEDED: {
       label: 'Extraction',
       dot: 'bg-orange-500',
-      chip: 'bg-orange-100 text-orange-700 border-orange-300',
+      chip: 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/40',
     },
     MISSING: {
       label: 'Missing',
@@ -187,7 +187,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Stethoscope className="text-brand-600" size={20} />
+              <Stethoscope className="text-primary" size={20} />
               FDI Teeth Charting
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -257,13 +257,13 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
                   }}
                   className={`text-sm cursor-pointer transition-colors shadow-sm hover:border-brand-300 ${
                     viewing?.id === chart.id
-                      ? 'border-brand-400 ring-1 ring-brand-200'
+                      ? 'border-primary/50 ring-1 ring-primary/30'
                       : ''
                   }`}
                 >
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-brand-700">
+                      <span className="font-semibold text-primary-text">
                         {new Date(chart.recordedAt).toLocaleDateString()}
                       </span>
                       {chart.isInitialChart && (
@@ -281,7 +281,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
                     <p className="text-muted-foreground text-xs line-clamp-2">
                       {chart.notes || 'No notes provided.'}
                     </p>
-                    <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-brand-600">
+                    <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-primary">
                       <Eye size={12} /> View
                     </span>
                   </CardContent>
@@ -363,8 +363,8 @@ function NewChartForm({
   }
 
   return (
-    <Card className="border-brand-200 shadow-md ring-1 ring-brand-100">
-      <CardHeader className="bg-brand-50/50 pb-4 border-b">
+    <Card className="border-primary/20 shadow-md ring-1 ring-primary/10">
+      <CardHeader className="bg-muted/30 pb-4 border-b">
         <CardTitle className="text-md">Interactive FDI Chart</CardTitle>
         <CardDescription>
           Pick a condition, then click teeth to mark them. Click a marked tooth
@@ -381,7 +381,8 @@ function NewChartForm({
               onClick={() => setActiveCondition(c)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
                 activeCondition === c
-                  ? 'ring-2 ring-brand-500 ring-offset-1 ' + CONDITIONS[c].chip
+                  ? 'ring-2 ring-primary ring-offset-1 ring-offset-background ' +
+                    CONDITIONS[c].chip
                   : 'bg-background hover:bg-muted text-muted-foreground'
               }`}
             >

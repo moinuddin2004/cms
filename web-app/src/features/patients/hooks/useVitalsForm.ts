@@ -22,7 +22,13 @@ const defaultValues: VitalsFormValues = {
 const num = (v: string) => (v.trim() === '' ? undefined : Number(v))
 
 /** Record a set of vitals. Every vital is optional, but at least one is needed. */
-export function useVitalsForm({ patientId }: { patientId: string }) {
+export function useVitalsForm({
+  patientId,
+  onSaved,
+}: {
+  patientId: string
+  onSaved?: () => void
+}) {
   const { mutate, isPending } = useCreateVitals()
   const { user } = useAuthStore()
 
@@ -49,7 +55,12 @@ export function useVitalsForm({ patientId }: { patientId: string }) {
           notes: notes.trim() || undefined,
           recordedBy: user.uuid,
         },
-        { onSuccess: () => form.reset() },
+        {
+          onSuccess: () => {
+            form.reset()
+            onSaved?.()
+          },
+        },
       )
     },
   })

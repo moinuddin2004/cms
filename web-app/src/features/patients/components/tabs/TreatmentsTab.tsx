@@ -24,7 +24,7 @@ export function TreatmentsTab({
       <CardHeader className="flex flex-row items-center justify-between gap-2 border-b px-4 py-3 [.border-b]:pb-3">
         <div>
           <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-            <Stethoscope className="text-brand-600" size={16} />
+            <Stethoscope className="text-primary" size={16} />
             Treatments
             {treatments.length > 0 && (
               <Badge variant="secondary" className="text-[11px]">
@@ -100,7 +100,7 @@ export function TreatmentsTab({
                       {t.encounterId ? (
                         <Badge
                           variant="outline"
-                          className="text-[10px] bg-brand-50 text-brand-700"
+                          className="text-[10px] bg-primary-soft text-primary-text"
                         >
                           <Link2 size={10} className="mr-1" /> Visit
                         </Badge>

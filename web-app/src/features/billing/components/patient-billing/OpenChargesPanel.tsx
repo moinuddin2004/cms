@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { FileText, Plus, Receipt } from 'lucide-react'
+import { FileText, Plus, Receipt, X } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTable } from '@/components/shared/DataTable'
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
@@ -14,6 +16,7 @@ import type { Charge } from '../../types/billing.types'
 import { AddChargeSheet } from '../charges/AddChargeSheet'
 import { ChargeRowActions } from '../charges/ChargeRowActions'
 import { ChargeBadges, Money } from '../shared/billing-badges'
+import { cn } from '@/lib/utils'
 
 /**
  * Open charges of a patient: unbilled first, then billed with a balance.
@@ -40,6 +43,13 @@ export function OpenChargesPanel({
   )
 
   const rows = useMemo(() => charges.data ?? [], [charges.data])
+  const totals = useMemo(
+    () => ({ balance: rows.reduce((sum, c) => sum + c.balance, 0) }),
+    [rows],
+  )
+  const selectedTotal = rows
+    .filter((c) => selected.includes(c.id))
+    .reduce((sum, c) => sum + c.balance, 0)
   const unbilled = useMemo(
     () => rows.filter((c) => !c.invoiceId).map((c) => c.id),
     [rows],
@@ -103,11 +113,13 @@ export function OpenChargesPanel({
         accessorFn: (r) => r.invoiceNumber ?? '',
         cell: ({ row }) =>
           row.original.invoiceNumber ? (
-            <span className="font-mono text-[12px]">
+            <Badge variant="info" className="px-1.5 py-0 font-mono text-[11px]">
               {row.original.invoiceNumber}
-            </span>
+            </Badge>
           ) : (
-            <span className="text-xs text-muted-foreground">Not invoiced</span>
+            <Badge variant="muted" className="px-1.5 py-0 text-[10px]">
+              Not invoiced
+            </Badge>
           ),
       },
       {
@@ -138,7 +150,13 @@ export function OpenChargesPanel({
         accessorKey: 'balance',
         header: 'Balance',
         cell: ({ row }) => (
-          <Money value={row.original.balance} className="font-semibold" />
+          <Money
+            value={row.original.balance}
+            className={cn(
+              'font-semibold',
+              row.original.balance > 0 ? 'text-amber' : 'text-emerald',
+            )}
+          />
         ),
       },
       {
@@ -158,9 +176,23 @@ export function OpenChargesPanel({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap justify-end gap-2">
-        {canDesk && (
-          <>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          {rows.length > 0 ? (
+            <>
+              <span className="font-medium text-foreground">{rows.length}</span>{' '}
+              open charge{rows.length === 1 ? '' : 's'} · balance{' '}
+              <Money
+                value={totals.balance}
+                className="font-semibold text-foreground"
+              />
+            </>
+          ) : (
+            'Charges waiting to be invoiced or paid.'
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {canDesk && (
             <Button
               size="sm"
               variant="outline"
@@ -168,25 +200,44 @@ export function OpenChargesPanel({
             >
               <Plus className="size-3.5" /> Add charge
             </Button>
+          )}
+          <Can perm="billing.payment.collect">
+            <Button size="sm" onClick={onCollect}>
+              <Receipt className="size-3.5" /> Collect payment
+            </Button>
+          </Can>
+        </div>
+      </div>
+
+      {canDesk && selected.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary-soft px-3 py-2">
+          <p className="text-sm text-primary-text">
+            <span className="font-semibold">{selected.length}</span> selected ·{' '}
+            <Money value={selectedTotal} className="font-semibold" />
+          </p>
+          <div className="flex items-center gap-1">
             <Button
               size="sm"
-              variant="outline"
-              disabled={!selected.length || issue.isPending}
+              disabled={issue.isPending}
               onClick={() =>
                 issue.mutate(undefined, { onSuccess: () => setSelected([]) })
               }
             >
-              <FileText className="size-3.5" /> Issue invoice
-              {selected.length ? ` (${selected.length})` : ''}
+              <FileText className="size-3.5" />
+              {issue.isPending ? 'Issuing…' : 'Issue invoice'}
             </Button>
-          </>
-        )}
-        <Can perm="billing.payment.collect">
-          <Button size="sm" onClick={onCollect}>
-            <Receipt className="size-3.5" /> Collect payment
-          </Button>
-        </Can>
-      </div>
+            <TooltipButton
+              tooltip="Clear selection"
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => setSelected([])}
+            >
+              <X className="size-4" />
+            </TooltipButton>
+          </div>
+        </div>
+      )}
 
       {charges.isLoading ? (
         <LoadingSkeleton variant="table" rows={3} />

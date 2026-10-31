@@ -8,14 +8,17 @@ interface PatientListHeaderProps {
   onNewPatient: () => void
 }
 
-export function PatientListHeader({ totalCount, onNewPatient }: PatientListHeaderProps) {
+export function PatientListHeader({
+  totalCount,
+  onNewPatient,
+}: PatientListHeaderProps) {
   const { viewMode, setViewMode } = usePatientStore()
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-4">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-brand-100 rounded-lg">
-          <Users size={20} className="text-brand-700" />
+        <div className="p-2 bg-primary-soft rounded-lg">
+          <Users size={20} className="text-primary-text" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Patients</h1>

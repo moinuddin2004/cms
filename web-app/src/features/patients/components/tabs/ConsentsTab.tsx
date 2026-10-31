@@ -22,10 +22,10 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <FileSignature className="text-brand-600" size={20} />
+            <FileSignature className="text-primary" size={20} />
             Legal Consents
           </h3>
-          <p className="text-sm text-muted-foreground bg-amber-50 text-amber-800 p-2 rounded-md mt-2 inline-flex items-center gap-2 border border-amber-200">
+          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-amber/30 bg-amber-soft px-2.5 py-1.5 text-xs text-amber">
             <AlertTriangle size={14} /> Consents are immutable. Once signed and
             captured, they cannot be deleted or modified.
           </p>
@@ -71,7 +71,7 @@ function ConsentCard({
 }) {
   return (
     <Card
-      className={`relative overflow-hidden shadow-sm ${!consent.isAgreed ? 'bg-muted/50 border-dashed' : 'border-brand-200'}`}
+      className={`relative overflow-hidden shadow-sm ${!consent.isAgreed ? 'bg-muted/50 border-dashed' : 'border-primary/20'}`}
     >
       <CardHeader className="pb-2 border-b bg-muted/20">
         <div className="flex justify-between items-start">
@@ -104,7 +104,7 @@ function ConsentCard({
               variant={consent.isAgreed ? 'default' : 'secondary'}
               className={
                 consent.isAgreed
-                  ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                  ? 'bg-emerald-soft text-emerald hover:bg-emerald-soft'
                   : 'bg-muted text-muted-foreground'
               }
             >

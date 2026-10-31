@@ -78,7 +78,7 @@ export function AddAppointmentStep({
                 className={cn(
                   'text-sm font-medium hidden sm:inline',
                   i === activeStep
-                    ? 'text-brand-700'
+                    ? 'text-primary-text'
                     : i < activeStep
                       ? 'text-brand-500'
                       : 'text-slate-400',
@@ -201,8 +201,8 @@ export function AddAppointmentStep({
                 className={cn(
                   'flex items-start gap-2 px-3 py-2 rounded-lg border text-sm',
                   validation.valid
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                    : 'bg-red-50 border-red-200 text-red-700',
+                    ? 'bg-emerald-soft border-emerald/30 text-emerald'
+                    : 'bg-danger-soft border-danger/30 text-danger',
                 )}
               >
                 {validation.valid ? (

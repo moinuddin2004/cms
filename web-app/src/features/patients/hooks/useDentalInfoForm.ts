@@ -27,9 +27,11 @@ function defaultsFor(existing?: PatientDentalInfo): DentalInfoFormValues {
 export function useDentalInfoForm({
   patientId,
   existing,
+  onSaved,
 }: {
   patientId: string
   existing?: PatientDentalInfo
+  onSaved?: () => void
 }) {
   const { mutate, isPending } = useUpsertDentalInfo()
 
@@ -37,7 +39,7 @@ export function useDentalInfoForm({
     defaultValues: defaultsFor(existing),
     validators: { onChange: dentalInfoSchema, onSubmit: dentalInfoSchema },
     onSubmit: async ({ value }) => {
-      mutate({ patientId, ...value })
+      mutate({ patientId, ...value }, { onSuccess: () => onSaved?.() })
     },
   })
 

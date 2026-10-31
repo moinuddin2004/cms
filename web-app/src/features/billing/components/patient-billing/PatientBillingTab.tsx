@@ -3,6 +3,7 @@ import type { ColumnDef } from '@/components/shared/table-features'
 import { Undo2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DataTable } from '@/components/shared/DataTable'
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
@@ -23,7 +24,7 @@ import { Money } from '../shared/billing-badges'
 import { OpenChargesPanel } from './OpenChargesPanel'
 import { StatementPanel } from './StatementPanel'
 
-const TRIGGER = 'text-xs'
+const TRIGGER = 'h-8 px-3 text-xs data-[state=active]:shadow-sm'
 
 /**
  * Billing tab on the patient page (plan §8.3). Renders nothing without
@@ -48,48 +49,50 @@ export function PatientBillingTab({
         isLoading={summary.isLoading}
       />
 
-      <Tabs defaultValue="open">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <TabsList className="h-auto gap-1 bg-muted/50 p-1">
-            <TabsTrigger value="open" className={TRIGGER}>
-              Open charges
-            </TabsTrigger>
-            <TabsTrigger value="invoices" className={TRIGGER}>
-              Invoices
-            </TabsTrigger>
-            <TabsTrigger value="payments" className={TRIGGER}>
-              Payments
-            </TabsTrigger>
-            <TabsTrigger value="statement" className={TRIGGER}>
-              Statement
-            </TabsTrigger>
-          </TabsList>
-          {advance > 0 && can('billing.refund.issue') && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setRefundOpen(true)}
-            >
-              <Undo2 className="size-3.5" /> Refund advance
-            </Button>
-          )}
-        </div>
-        <TabsContent value="open" className="pt-3">
-          <OpenChargesPanel
-            patientId={patient.id}
-            onCollect={() => setCollectOpen(true)}
-          />
-        </TabsContent>
-        <TabsContent value="invoices" className="pt-3">
-          <PatientInvoices patientId={patient.id} />
-        </TabsContent>
-        <TabsContent value="payments" className="pt-3">
-          <PatientPayments patientId={patient.id} />
-        </TabsContent>
-        <TabsContent value="statement" className="pt-3">
-          <StatementPanel patientId={patient.id} />
-        </TabsContent>
-      </Tabs>
+      <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+        <Tabs defaultValue="open" className="gap-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-panel px-4 py-2.5">
+            <TabsList className="h-auto gap-1 bg-muted/60 p-1">
+              <TabsTrigger value="open" className={TRIGGER}>
+                Open charges
+              </TabsTrigger>
+              <TabsTrigger value="invoices" className={TRIGGER}>
+                Invoices
+              </TabsTrigger>
+              <TabsTrigger value="payments" className={TRIGGER}>
+                Payments
+              </TabsTrigger>
+              <TabsTrigger value="statement" className={TRIGGER}>
+                Statement
+              </TabsTrigger>
+            </TabsList>
+            {advance > 0 && can('billing.refund.issue') && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setRefundOpen(true)}
+              >
+                <Undo2 className="size-3.5" /> Refund advance
+              </Button>
+            )}
+          </div>
+          <TabsContent value="open" className="p-4">
+            <OpenChargesPanel
+              patientId={patient.id}
+              onCollect={() => setCollectOpen(true)}
+            />
+          </TabsContent>
+          <TabsContent value="invoices" className="p-4">
+            <PatientInvoices patientId={patient.id} />
+          </TabsContent>
+          <TabsContent value="payments" className="p-4">
+            <PatientPayments patientId={patient.id} />
+          </TabsContent>
+          <TabsContent value="statement" className="p-4">
+            <StatementPanel patientId={patient.id} />
+          </TabsContent>
+        </Tabs>
+      </Card>
 
       <CollectPaymentSheet
         patient={patient}

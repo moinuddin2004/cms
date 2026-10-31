@@ -16,7 +16,7 @@ function PatientDetailPage() {
   const { data: patient, isLoading, isError } = usePatient(patientId)
 
   return (
-    <DashboardLayout title="Patient Details">
+    <DashboardLayout>
       {isLoading ? (
         <DetailSkeleton />
       ) : isError || !patient ? (

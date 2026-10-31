@@ -79,7 +79,7 @@ export function RecordDrawer({
           </TabsList>
 
           <TabsContent value="history" className="space-y-4">
-            <VisitsTab patient={patient} hideAmounts />
+            <VisitsTab patient={patient} hideAmounts compact />
             <TreatmentsTab patient={patient} hideAmounts />
           </TabsContent>
           <Can perm="patients.chart.edit">

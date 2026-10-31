@@ -94,7 +94,7 @@ export function PatientForm({
                 className={cn(
                   'text-sm font-medium hidden sm:inline',
                   i === currentStep
-                    ? 'text-brand-700'
+                    ? 'text-primary-text'
                     : i < currentStep
                       ? 'text-brand-500'
                       : 'text-slate-400',
@@ -419,7 +419,7 @@ export function PatientForm({
                     <form.Subscribe selector={(state) => state.values.isMinor}>
                       {(isMinor) =>
                         isMinor && (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-brand-200/40 bg-brand-500/5 p-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-primary/20 bg-brand-500/5 p-4">
                             <form.Field name="guardianName">
                               {(field) => (
                                 <div className="space-y-1.5">

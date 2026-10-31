@@ -15,7 +15,7 @@ export function FilesTab({ patient }: { patient: Patient }) {
       <Card className="shadow-sm">
         <CardHeader className="pb-2 border-b flex flex-row items-center justify-between bg-muted/20">
           <CardTitle className="text-md flex items-center gap-2">
-            <FolderOpen className="text-brand-600" size={16} />
+            <FolderOpen className="text-primary" size={16} />
             Patient Documents & Scans
           </CardTitle>
           <DocumentFormDialog patientId={patient.id} />

@@ -1,6 +1,5 @@
 import type {
-  Patient,
-  PatientPrescription,
+  Patient,
   PatientConsent,
 } from '../types'
 
@@ -68,51 +67,6 @@ function patientHeader(patient: Patient, docTitle: string, docMeta: string) {
         <div class="muted">${escapeHtml(patient.phone)}</div>
       </div>
     </div>`
-}
-
-export function printPrescription(rx: PatientPrescription, patient: Patient) {
-  const meds = (rx.medications || [])
-    .map(
-      (m: any) => `
-      <tr>
-        <td>${escapeHtml(m.name)}</td>
-        <td>${escapeHtml(m.dosage)}</td>
-        <td>${escapeHtml(m.frequency)}</td>
-        <td>${escapeHtml(m.instructions)}</td>
-      </tr>`,
-    )
-    .join('')
-
-  const extra = [
-    rx.chiefComplaint
-      ? `<div class="block"><span class="label">Chief Complaint:</span> ${escapeHtml(rx.chiefComplaint)}</div>`
-      : '',
-    rx.diagnosis
-      ? `<div class="block"><span class="label">Diagnosis:</span> ${escapeHtml(rx.diagnosis)}</div>`
-      : '',
-    rx.specialInstructions
-      ? `<div class="block"><span class="label">Special Instructions:</span> ${escapeHtml(rx.specialInstructions)}</div>`
-      : '',
-  ].join('')
-
-  openPrintWindow(
-    `Prescription ${rx.prescriptionNumber}`,
-    `
-      ${patientHeader(
-        patient,
-        'Prescription',
-        `${rx.prescriptionNumber} · ${new Date(rx.prescriptionDate).toLocaleDateString()}`,
-      )}
-      <h2>Medications</h2>
-      <table>
-        <thead>
-          <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Instructions</th></tr>
-        </thead>
-        <tbody>${meds || '<tr><td colspan="4">No medications listed.</td></tr>'}</tbody>
-      </table>
-      ${extra}
-    `,
-  )
 }
 
 export function printConsent(consent: PatientConsent, patient: Patient) {

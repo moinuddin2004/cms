@@ -83,14 +83,6 @@ export function useTreatmentPlans(patientId: string) {
   })
 }
 
-export function usePrescriptions(patientId: string) {
-  return useQuery({
-    queryKey: keys.prescriptions(patientId),
-    queryFn: () => api.fetchPatientPrescriptions(patientId),
-    enabled: !!patientId,
-  })
-}
-
 export function useConsents(patientId: string) {
   return useQuery({
     queryKey: keys.consents(patientId),
@@ -313,19 +305,6 @@ export function useUpdateTreatmentPlanItem() {
       toast.success('Procedure updated')
     },
     onError: (err) => toast.error(errMsg(err, 'Failed to update procedure')),
-  })
-}
-
-export function useCreatePrescription() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ patientId, ...payload }: { patientId: string } & any) =>
-      api.createPatientPrescription(patientId, payload),
-    onSuccess: (_, { patientId }) => {
-      queryClient.invalidateQueries({ queryKey: keys.prescriptions(patientId) })
-      toast.success('Prescription created')
-    },
-    onError: (err) => toast.error(errMsg(err, 'Failed to create prescription')),
   })
 }
 

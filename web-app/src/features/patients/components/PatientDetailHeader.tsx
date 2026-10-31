@@ -32,18 +32,18 @@ function getInitials(name: string): string {
 export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
   usePageTitle(patient.fullName)
   return (
-    <div className="flex items-center gap-3 py-1">
+    <div className="flex items-center gap-3 pb-1">
       <BackButton to="/patients" label="Back to patients" />
 
-      <Avatar className="w-9 h-9 shrink-0">
-        <AvatarFallback className="bg-brand-100 text-brand-700 font-semibold text-xs">
+      <Avatar className="size-11 shrink-0">
+        <AvatarFallback className="bg-primary-soft text-primary-text font-semibold text-sm">
           {getInitials(patient.fullName)}
         </AvatarFallback>
       </Avatar>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-base font-semibold text-foreground leading-tight truncate">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground leading-tight truncate">
             {patient.fullName}
           </h1>
           <Badge
@@ -76,13 +76,13 @@ export function PatientDetailHeader({ patient }: PatientDetailHeaderProps) {
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-3 mt-0.5 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-muted-foreground">
           <span className="flex items-center gap-1">
-            <Phone size={11} /> {patient.phone}
+            <Phone size={12} /> {patient.phone}
           </span>
           {patient.email && (
             <span className="flex items-center gap-1">
-              <Mail size={11} /> {patient.email}
+              <Mail size={12} /> {patient.email}
             </span>
           )}
         </div>

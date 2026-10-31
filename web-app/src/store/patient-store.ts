@@ -9,6 +9,10 @@ interface PatientStoreState {
   setViewMode: (mode: ViewMode) => void
   toggleViewMode: () => void
 
+  /** Card or table view of the patient record's appointments / visits tabs */
+  historyViewMode: ViewMode
+  setHistoryViewMode: (mode: ViewMode) => void
+
   /** Multi-step form draft (auto-save) */
   formDraft: Partial<PatientFormData> | null
   setFormDraft: (draft: Partial<PatientFormData>) => void
@@ -26,6 +30,9 @@ export const usePatientStore = create<PatientStoreState>((set) => ({
     set((state) => ({
       viewMode: state.viewMode === 'table' ? 'card' : 'table',
     })),
+
+  historyViewMode: 'card',
+  setHistoryViewMode: (mode) => set({ historyViewMode: mode }),
 
   formDraft: null,
   setFormDraft: (draft) =>

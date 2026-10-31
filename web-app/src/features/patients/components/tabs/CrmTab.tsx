@@ -46,7 +46,7 @@ export function CrmTab({ patient }: { patient: Patient }) {
           <CardHeader className="pb-2 border-b flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-md flex items-center gap-2">
-                <MessageCircle className="text-brand-600" size={16} />
+                <MessageCircle className="text-primary" size={16} />
                 Communication Logs
               </CardTitle>
               <CardDescription className="text-xs mt-1">
@@ -263,8 +263,8 @@ function FeedbackCard({ feedback }: { feedback: PatientFeedback }) {
         </p>
       )}
       {feedback.responseText && (
-        <div className="bg-brand-50/50 p-2 rounded border border-brand-100 text-xs">
-          <span className="font-semibold text-brand-700">Response:</span>{' '}
+        <div className="bg-muted/30 p-2 rounded border border-primary/20 text-xs">
+          <span className="font-semibold text-primary-text">Response:</span>{' '}
           {feedback.responseText}
         </div>
       )}

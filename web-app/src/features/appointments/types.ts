@@ -93,12 +93,18 @@ export const STATUS_COLORS: Record<AppointmentStatus, string> = {
 }
 
 export const STATUS_BG_COLORS: Record<AppointmentStatus, string> = {
-  [AppointmentStatus.SCHEDULED]: 'bg-blue-50 border-blue-200 text-blue-700',
-  [AppointmentStatus.CONFIRMED]: 'bg-violet-50 border-violet-200 text-violet-700',
-  [AppointmentStatus.CHECKED_IN]: 'bg-amber-50 border-amber-200 text-amber-700',
-  [AppointmentStatus.COMPLETED]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-  [AppointmentStatus.CANCELLED]: 'bg-red-50 border-red-200 text-red-700',
-  [AppointmentStatus.NO_SHOW]: 'bg-status-error/10 border-status-error/20 text-status-error',
+  [AppointmentStatus.SCHEDULED]:
+    'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/15 dark:border-blue-500/30 dark:text-blue-300',
+  [AppointmentStatus.CONFIRMED]:
+    'bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-500/15 dark:border-violet-500/30 dark:text-violet-300',
+  [AppointmentStatus.CHECKED_IN]:
+    'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300',
+  [AppointmentStatus.COMPLETED]:
+    'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-500/15 dark:border-emerald-500/30 dark:text-emerald-300',
+  [AppointmentStatus.CANCELLED]:
+    'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/15 dark:border-red-500/30 dark:text-red-300',
+  [AppointmentStatus.NO_SHOW]:
+    'bg-status-error/10 border-status-error/20 text-status-error',
 }
 
 /** Human label per status — used in the queue and badges. */
@@ -146,7 +152,10 @@ export interface AppointmentQueueEntry {
 }
 
 /** Short label for where an arrived patient is in the queue. */
-export const QUEUE_STATUS_LABELS: Record<AppointmentQueueEntry['status'], string> = {
+export const QUEUE_STATUS_LABELS: Record<
+  AppointmentQueueEntry['status'],
+  string
+> = {
   waiting: 'Waiting',
   called: 'Called',
   in_consultation: 'With doctor',
