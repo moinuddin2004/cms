@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { intField } from '@/lib/zod-numbers'
 
 const phoneRe = /^[0-9+\-\s()]{7,20}$/
 
@@ -56,11 +57,7 @@ export const walkInSchema = z
 export type WalkInFormValues = z.input<typeof walkInSchema>
 
 const minutes = (min: number, max: number) =>
-  z.coerce
-    .number({ message: 'Enter a number' })
-    .int('Whole minutes')
-    .min(min, `At least ${min}`)
-    .max(max, `At most ${max}`)
+  intField('Minutes', { min, max })
 
 /** Queue settings (location override or organization default). */
 export const queuePolicySchema = z
@@ -72,14 +69,11 @@ export const queuePolicySchema = z
     maxLateMin: minutes(0, 480),
     walkinStarvationMin: minutes(1, 480),
     skippedRejoinPolicy: z.enum(['end', 'original_position', 'manual']),
-    callTimeoutSec: z.union([
-      z.literal(''),
-      z.coerce
-        .number()
-        .int()
-        .min(30, 'At least 30 seconds')
-        .max(3600, 'At most 3600 seconds'),
-    ]),
+    callTimeoutSec: intField('Seconds', {
+      min: 30,
+      max: 3600,
+      required: false,
+    }),
     manualSelectReasonRequired: z.boolean(),
     serviceDayCutoff: z
       .string()

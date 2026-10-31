@@ -25,7 +25,7 @@ import { FeatureImpactDialog } from '../components/FeatureImpactDialog'
 import { FeatureLocationsSheet } from '../components/FeatureLocationsSheet'
 import type { OwnerFeature } from '../types/feature-settings.types'
 
-/** `/admin/features` — the clinic owner switches entitled features on/off. */
+/** `/settings/features` — the clinic owner switches entitled features on/off. */
 export function FeatureSettingsPage() {
   return (
     <DashboardLayout

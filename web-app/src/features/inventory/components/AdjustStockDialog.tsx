@@ -17,6 +17,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Loader2 } from 'lucide-react'
 import { useAdjustStockForm } from '../hooks/useAdjustStockForm'
 import { notesRequiredFor, signedAdjustment } from '../schemas/inventory.schema'
@@ -103,11 +104,9 @@ export function AdjustStockDialog({
                           htmlFor="adjust-quantity"
                           error={fieldError(f)}
                         >
-                          <Input
+                          <NumberInput
                             id="adjust-quantity"
-                            type="number"
-                            min={0}
-                            step="0.01"
+                            mode="decimal"
                             value={f.state.value}
                             onChange={(e) => f.handleChange(e.target.value)}
                             onBlur={f.handleBlur}

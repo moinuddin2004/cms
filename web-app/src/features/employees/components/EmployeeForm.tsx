@@ -18,6 +18,7 @@ import { AlertCircle, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { useEmployeeForm } from '../hooks/useEmployeeForm'
 import { GENDER_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from '../types'
 import type {
@@ -326,9 +327,7 @@ export function EmployeeForm({
                   (optional)
                 </span>
               </Label>
-              <Input
-                type="number"
-                min={0}
+              <NumberInput
                 placeholder="e.g., 50000"
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
@@ -390,9 +389,8 @@ export function EmployeeForm({
                         <Label htmlFor="emp-commission-rate">
                           Default commission (%)
                         </Label>
-                        <Input
+                        <NumberInput
                           id="emp-commission-rate"
-                          inputMode="decimal"
                           placeholder="e.g. 40"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}

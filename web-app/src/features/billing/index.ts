@@ -2,6 +2,7 @@
 export * from './types/billing.types'
 export { billingKeys } from './query-keys'
 export {
+  useCatalogServices,
   useOutstanding,
   usePlanBillingSummary,
 } from './hooks/use-billing-queries'

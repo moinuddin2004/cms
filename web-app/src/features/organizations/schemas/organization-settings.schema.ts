@@ -1,24 +1,12 @@
 import { z } from 'zod'
-
-/** A whole number typed as a string, within [min, max]. */
-export const intInRange = (label: string, min: number, max?: number) =>
-  z
-    .string()
-    .trim()
-    .regex(/^\d+$/, `${label}: enter a whole number`)
-    .refine(
-      (v) => Number(v) >= min && (max === undefined || Number(v) <= max),
-      max === undefined
-        ? `${label} must be at least ${min}`
-        : `${label} must be between ${min} and ${max}`,
-    )
+import { intField } from '@/lib/zod-numbers'
 
 /** Org booking defaults (mirrors UpdateOrganizationSettingsDto). */
 export const organizationSettingsSchema = z.object({
   allowLocationOverride: z.boolean(),
-  defaultSlotDuration: intInRange('Slot duration', 5, 480),
-  advanceBookingDays: intInRange('Advance booking', 1, 365),
-  cancellationNoticeHours: intInRange('Cancellation notice', 0, 168),
+  defaultSlotDuration: intField('Slot duration', { min: 5, max: 480 }),
+  advanceBookingDays: intField('Advance booking', { min: 1, max: 365 }),
+  cancellationNoticeHours: intField('Cancellation notice', { min: 0, max: 168 }),
 })
 
 export type OrganizationSettingsFormValues = z.input<

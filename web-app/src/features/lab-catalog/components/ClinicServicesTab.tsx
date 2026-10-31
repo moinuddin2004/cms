@@ -292,7 +292,7 @@ export function ClinicServicesTab() {
           description="Services appear here once a lab on your list has its catalog set up."
           action={
             <Button variant="outline" asChild>
-              <Link to="/labs">Go to your labs</Link>
+              <Link to="/settings/labs">Go to your labs</Link>
             </Button>
           }
         />

@@ -3,7 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { FieldWrapper, FormSheet } from '@/components/shared'
 import { fieldError } from '@/features/queue'
 import {
@@ -103,9 +103,8 @@ export function SettingsSheet({
               error={fieldError(f)}
               hint="0 until your accountant confirms the rate."
             >
-              <Input
+              <NumberInput
                 id="lb-tax"
-                inputMode="decimal"
                 value={f.state.value}
                 onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
@@ -121,9 +120,9 @@ export function SettingsSheet({
               error={fieldError(f)}
               hint="0 = due on the day of issue."
             >
-              <Input
+              <NumberInput
                 id="lb-due"
-                inputMode="numeric"
+                mode="integer"
                 value={f.state.value}
                 onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}

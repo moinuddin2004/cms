@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { FieldWrapper, FormSelect } from '@/components/shared'
 import { MultiSelect } from '@/components/shared/MultiSelect'
@@ -104,9 +105,9 @@ export function TemplateAnswerFields({
           case 'number':
             return (
               <FieldWrapper key={f.key} label={f.label} htmlFor={id}>
-                <Input
+                <NumberInput
                   id={id}
-                  inputMode="decimal"
+                  decimals={6}
                   value={typeof current === 'number' ? String(current) : ''}
                   onChange={(e) =>
                     set(

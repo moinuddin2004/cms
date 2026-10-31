@@ -272,7 +272,7 @@ describe('theme form', () => {
   })
 
   it('scopes preview CSS to its own container', () => {
-    const css = buildThemeCss('#0d9488', {
+    const css = buildThemeCss('#0d9488', 'tinted', {
       light: "[data-theme-preview='p']",
       dark: ".dark [data-theme-preview='p']",
     })

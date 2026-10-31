@@ -1,7 +1,9 @@
 import { setDefaultThemeMode } from '@/hooks/useTheme'
-import type { ClinicTheme } from '../types'
+import { DEFAULT_THEME } from '../types'
+import type { ClinicTheme, DarkBase } from '../types'
 import { deriveBrandPalette, RAMP_STEPS } from './color'
 import type { BrandTokens } from './color'
+import { darkBaseVars, darkSidebarVars, deriveDarkBase } from './dark-base'
 
 const STYLE_ID = 'clinic-theme'
 
@@ -29,18 +31,21 @@ function tokens(t: BrandTokens): string[] {
 }
 
 /**
- * CSS overriding the brand seed in styles.css for light (`:root`) and dark
- * (`.dark`). Injected after the stylesheet, so equal specificity wins. The
- * theme builder's preview passes its own scoped selectors.
+ * CSS overriding the brand seed and dark base in styles.css for light
+ * (`:root`) and dark (`.dark`). Injected after the stylesheet, so equal
+ * specificity wins. The theme builder's preview passes its own scoped
+ * selectors.
  */
 export function buildThemeCss(
   brandColor: string,
+  darkBase: DarkBase = DEFAULT_THEME.dark_base,
   selectors: { light: string; dark: string } = {
     light: ':root',
     dark: '.dark',
   },
 ): string {
   const p = deriveBrandPalette(brandColor)
+  const base = deriveDarkBase(darkBase, brandColor)
   const ramp = RAMP_STEPS.map((s) => `--brand-${s}: ${p.ramp[s]};`)
   const block = (selector: string, lines: string[]) =>
     `${selector} {\n  ${lines.join('\n  ')}\n}`
@@ -49,8 +54,14 @@ export function buildThemeCss(
       ...tokens(p.light),
       ...ramp,
       `--chart-1: ${p.light.brand};`,
+      ...darkSidebarVars(base),
     ]),
-    block(selectors.dark, [...tokens(p.dark), `--chart-1: ${p.dark.brand};`]),
+    block(selectors.dark, [
+      ...tokens(p.dark),
+      `--chart-1: ${p.dark.brand};`,
+      ...darkBaseVars(base),
+      ...darkSidebarVars(base),
+    ]),
   ].join('\n')
 }
 
@@ -81,7 +92,7 @@ export function applyClinicTheme(theme: ClinicTheme, doc: Document = document) {
     doc.head.appendChild(style)
   }
   try {
-    style.textContent = buildThemeCss(theme.brand_color)
+    style.textContent = buildThemeCss(theme.brand_color, theme.dark_base)
   } catch {
     style.textContent = '' // invalid colour: keep the stylesheet defaults
   }

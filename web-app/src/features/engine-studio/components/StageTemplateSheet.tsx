@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Loader2, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import {
   FieldWrapper,
@@ -264,9 +265,9 @@ export function StageTemplateSheet({
                             required
                             error={fieldError(f)}
                           >
-                            <Input
+                            <NumberInput
                               id={`step-${i}-days`}
-                              inputMode="numeric"
+                              mode="integer"
                               value={f.state.value}
                               onChange={(e) => f.handleChange(e.target.value)}
                               onBlur={f.handleBlur}

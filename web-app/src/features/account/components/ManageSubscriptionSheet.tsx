@@ -10,6 +10,8 @@ import {
 import { DatePicker } from '@/components/shared/DatePicker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
+import { toInputValue } from '@/lib/zod-numbers'
 import {
   Select,
   SelectContent,
@@ -46,7 +48,11 @@ function errorMessage(err: unknown) {
   return Array.isArray(msg) ? String(msg[0]) : (msg as string) || 'Could not save. Try again.'
 }
 
-const numberOrNull = (v: string) => (v.trim() === '' ? null : Number(v))
+/** Monthly price × months typed, rounded to paisa ('' while months is empty). */
+const amountFor = (monthlyPrice: number, months: string) =>
+  months.trim() === ''
+    ? ''
+    : toInputValue(Math.round(monthlyPrice * Number(months) * 100) / 100)
 
 function RecordPaymentForm({
   orgId,
@@ -79,7 +85,7 @@ function RecordPaymentForm({
                   if (price != null) {
                     form.setFieldValue(
                       'amount',
-                      price * form.getFieldValue('months'),
+                      amountFor(price, form.getFieldValue('months')),
                     )
                   }
                 }}
@@ -101,20 +107,18 @@ function RecordPaymentForm({
         <form.Field name="months">
           {(f) => (
             <FieldWrapper label="Months paid" htmlFor="pay-months" required error={fieldError(f)}>
-              <Input
+              <NumberInput
                 id="pay-months"
-                type="number"
-                min={1}
-                max={36}
-                value={Number.isNaN(f.state.value) ? '' : f.state.value}
+                mode="integer"
+                value={f.state.value}
                 onChange={(e) => {
-                  const months = e.target.valueAsNumber
+                  const months = e.target.value
                   f.handleChange(months)
                   const price = sub.plans.find(
                     (p) => p.key === form.getFieldValue('plan'),
                   )?.monthlyPrice
-                  if (price != null && !Number.isNaN(months)) {
-                    form.setFieldValue('amount', price * months)
+                  if (price != null) {
+                    form.setFieldValue('amount', amountFor(price, months))
                   }
                 }}
                 onBlur={f.handleBlur}
@@ -125,13 +129,11 @@ function RecordPaymentForm({
         <form.Field name="amount">
           {(f) => (
             <FieldWrapper label="Amount received (PKR)" htmlFor="pay-amount" required error={fieldError(f)}>
-              <Input
+              <NumberInput
                 id="pay-amount"
-                type="number"
-                min={0}
-                step="0.01"
-                value={Number.isNaN(f.state.value) ? '' : f.state.value}
-                onChange={(e) => f.handleChange(e.target.valueAsNumber)}
+                mode="decimal"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
               />
             </FieldWrapper>
@@ -284,12 +286,11 @@ function PlanForm({ orgId, sub }: { orgId: string; sub: AdminSubscription }) {
               hint={`Empty = plan default (${sub.plan.maxLocations ?? 'unlimited'}).`}
               error={fieldError(f)}
             >
-              <Input
+              <NumberInput
                 id="lim-loc"
-                type="number"
-                min={1}
-                value={f.state.value ?? ''}
-                onChange={(e) => f.handleChange(numberOrNull(e.target.value))}
+                mode="integer"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
               />
             </FieldWrapper>
@@ -303,12 +304,11 @@ function PlanForm({ orgId, sub }: { orgId: string; sub: AdminSubscription }) {
               hint={`Empty = plan default (${sub.plan.maxUsers ?? 'unlimited'}).`}
               error={fieldError(f)}
             >
-              <Input
+              <NumberInput
                 id="lim-users"
-                type="number"
-                min={1}
-                value={f.state.value ?? ''}
-                onChange={(e) => f.handleChange(numberOrNull(e.target.value))}
+                mode="integer"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
               />
             </FieldWrapper>

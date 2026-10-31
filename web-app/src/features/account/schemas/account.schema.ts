@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { decimalField, intField, moneyField } from '@/lib/zod-numbers'
 
 const optionalText = (max: number) =>
   z.string().trim().max(max, `At most ${max} characters`)
@@ -33,23 +34,19 @@ export const setupLocationSchema = z.object({
     .refine((v) => !v || z.string().email().safeParse(v).success, {
       message: 'Enter a valid email',
     }),
-  taxRate: z
-    .number({ message: 'Enter a number' })
-    .min(0, 'Cannot be negative')
-    .max(100, 'At most 100%'),
+  taxRate: decimalField('Tax rate', { max: 100 }),
 })
-export type SetupLocationInput = z.infer<typeof setupLocationSchema>
+/** Form values: the tax rate is edited as text. */
+export type SetupLocationFormValues = z.input<typeof setupLocationSchema>
+/** API payload. */
+export type SetupLocationInput = Omit<SetupLocationFormValues, 'taxRate'> & {
+  taxRate: number
+}
 
 export const recordPaymentSchema = z.object({
   plan: z.enum(['free', 'starter', 'professional', 'enterprise']),
-  months: z
-    .number({ message: 'Enter months' })
-    .int('Whole months only')
-    .min(1, 'At least 1 month')
-    .max(36, 'At most 36 months'),
-  amount: z
-    .number({ message: 'Enter the amount' })
-    .min(0, 'Cannot be negative'),
+  months: intField('Months', { min: 1, max: 36 }),
+  amount: moneyField('Amount'),
   method: z.enum([
     'bank_transfer',
     'jazzcash',
@@ -62,22 +59,31 @@ export const recordPaymentSchema = z.object({
   paidAt: z.string().min(1, 'Pick the payment date'),
   notes: optionalText(1000),
 })
-export type RecordPaymentInput = z.infer<typeof recordPaymentSchema>
-
-const optionalLimit = z
-  .number()
-  .int('Whole number')
-  .min(1, 'At least 1')
-  .nullable()
+/** Form values: months and amount are edited as text. */
+export type RecordPaymentFormValues = z.input<typeof recordPaymentSchema>
+/** API payload. */
+export type RecordPaymentInput = Omit<
+  RecordPaymentFormValues,
+  'months' | 'amount'
+> & { months: number; amount: number }
 
 export const updateSubscriptionSchema = z.object({
   plan: z.enum(['free', 'starter', 'professional', 'enterprise']),
   trialEndsAt: z.string().nullable(),
   paidUntil: z.string().nullable(),
-  maxLocations: optionalLimit,
-  maxUsers: optionalLimit,
+  // '' = use the plan default.
+  maxLocations: intField('Location limit', { min: 1, required: false }),
+  maxUsers: intField('Login limit', { min: 1, required: false }),
 })
-export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>
+/** Form values: limits are edited as text. */
+export type UpdateSubscriptionFormValues = z.input<
+  typeof updateSubscriptionSchema
+>
+/** API payload (null limit = plan default). */
+export type UpdateSubscriptionInput = Omit<
+  UpdateSubscriptionFormValues,
+  'maxLocations' | 'maxUsers'
+> & { maxLocations: number | null; maxUsers: number | null }
 
 /** Super-admin payment instructions (`PaymentInstructionsDto`: max 2000). */
 export const paymentInstructionsSchema = z.object({

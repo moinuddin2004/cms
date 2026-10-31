@@ -363,7 +363,7 @@ export function PrescriptionBuilder({
                     variant="outline"
                     className="h-7 text-xs"
                   >
-                    <Link to={'/prescription-presets' as any}>
+                    <Link to="/settings/prescription-presets">
                       <Plus className="h-3 w-3 mr-1" /> Create one
                     </Link>
                   </Button>
@@ -388,7 +388,7 @@ export function PrescriptionBuilder({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link
-                      to={'/prescription-presets' as any}
+                      to="/settings/prescription-presets"
                       className="text-xs text-muted-foreground"
                     >
                       <ExternalLink className="h-3 w-3 mr-2" />
@@ -402,7 +402,7 @@ export function PrescriptionBuilder({
 
           {templates.length === 0 ? (
             <Button asChild variant="outline" size="sm" className="text-xs">
-              <Link to={'/prescription-templates' as any}>
+              <Link to="/settings/prescription-templates">
                 <LayoutTemplate className="h-3 w-3 mr-1.5" />
                 Set up layout
               </Link>

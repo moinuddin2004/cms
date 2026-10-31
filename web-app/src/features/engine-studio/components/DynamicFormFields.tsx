@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/shared'
@@ -152,7 +153,7 @@ function PreviewField({
       )
       break
     case 'number':
-      control = <NumberInput id={id} field={field} onChange={onChange} />
+      control = <NumberField id={id} field={field} onChange={onChange} />
       break
     case 'date':
       control = (
@@ -241,7 +242,7 @@ function PreviewField({
 }
 
 /** Keeps the typed text (e.g. "1.") while sending a number. */
-function NumberInput({
+function NumberField({
   id,
   field,
   onChange,
@@ -255,9 +256,11 @@ function NumberInput({
   )
   return (
     <div className="flex items-center gap-2">
-      <Input
+      <NumberInput
         id={id}
-        inputMode="decimal"
+        mode={field.decimals === 0 ? 'integer' : 'decimal'}
+        decimals={field.decimals ?? 6}
+        allowNegative={(field.min ?? -1) < 0}
         value={text}
         onChange={(e) => {
           const v = e.target.value

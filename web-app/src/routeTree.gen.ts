@@ -80,9 +80,26 @@ import { Route as PrescriptionsNewRouteImport } from './routes/prescriptions/new
 import { Route as QueueDoctorRouteImport } from './routes/queue.doctor'
 import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as ReportsReportKeyRouteImport } from './routes/reports.$reportKey'
-import { Route as SettingsBillingRouteImport } from './routes/settings_.billing'
-import { Route as SettingsNotificationsRouteImport } from './routes/settings_.notifications'
-import { Route as SettingsSubscriptionRouteImport } from './routes/settings_.subscription'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsAppearanceRouteImport } from './routes/settings.appearance'
+import { Route as SettingsBillingRouteImport } from './routes/settings.billing'
+import { Route as SettingsClinicRouteImport } from './routes/settings.clinic'
+import { Route as SettingsFeaturesRouteImport } from './routes/settings.features'
+import { Route as SettingsLabCatalogRouteImport } from './routes/settings.lab-catalog'
+import { Route as SettingsLabOrderTemplatesRouteImport } from './routes/settings.lab-order-templates'
+import { Route as SettingsLabsRouteImport } from './routes/settings.labs'
+import { Route as SettingsMedicineDirectoryRouteImport } from './routes/settings.medicine-directory'
+import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
+import { Route as SettingsPlanTemplatesRouteImport } from './routes/settings.plan-templates'
+import { Route as SettingsPrescriptionPresetsRouteImport } from './routes/settings.prescription-presets'
+import { Route as SettingsPrescriptionTemplatesRouteImport } from './routes/settings.prescription-templates'
+import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
+import { Route as SettingsSessionsRouteImport } from './routes/settings.sessions'
+import { Route as SettingsSidebarRouteImport } from './routes/settings.sidebar'
+import { Route as SettingsSubscriptionRouteImport } from './routes/settings.subscription'
+import { Route as SettingsThemeRouteImport } from './routes/settings.theme'
+import { Route as SettingsUsersRouteImport } from './routes/settings.users'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioFormsRouteImport } from './routes/studio.forms'
 import { Route as StudioStagesRouteImport } from './routes/studio.stages'
@@ -98,6 +115,10 @@ import { Route as LocationsIdSettingsRouteImport } from './routes/locations_.$id
 import { Route as OrganizationsIdFeaturesRouteImport } from './routes/organizations_.$id.features'
 import { Route as OrganizationsIdSettingsRouteImport } from './routes/organizations_.$id.settings'
 import { Route as PatientsPatientIdIndexRouteImport } from './routes/patients/$patientId.index'
+import { Route as SettingsLocationsIndexRouteImport } from './routes/settings.locations.index'
+import { Route as SettingsLocationsIdRouteImport } from './routes/settings.locations.$id'
+import { Route as SettingsRolesIndexRouteImport } from './routes/settings.roles.index'
+import { Route as SettingsRolesRoleIdRouteImport } from './routes/settings.roles.$roleId'
 import { Route as StudioFormsFormIdRouteImport } from './routes/studio.forms_.$formId'
 import { Route as StudioWorkflowsWorkflowIdRouteImport } from './routes/studio.workflows_.$workflowId'
 
@@ -457,20 +478,109 @@ const ReportsReportKeyRoute = ReportsReportKeyRouteImport.update({
   path: '/reports/$reportKey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsBillingRoute = SettingsBillingRouteImport.update({
-  id: '/settings_/billing',
-  path: '/settings/billing',
-  getParentRoute: () => rootRouteImport,
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsAppearanceRoute = SettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsBillingRoute = SettingsBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsClinicRoute = SettingsClinicRouteImport.update({
+  id: '/clinic',
+  path: '/clinic',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsFeaturesRoute = SettingsFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsLabCatalogRoute = SettingsLabCatalogRouteImport.update({
+  id: '/lab-catalog',
+  path: '/lab-catalog',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsLabOrderTemplatesRoute =
+  SettingsLabOrderTemplatesRouteImport.update({
+    id: '/lab-order-templates',
+    path: '/lab-order-templates',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsLabsRoute = SettingsLabsRouteImport.update({
+  id: '/labs',
+  path: '/labs',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsMedicineDirectoryRoute =
+  SettingsMedicineDirectoryRouteImport.update({
+    id: '/medicine-directory',
+    path: '/medicine-directory',
+    getParentRoute: () => SettingsRoute,
+  } as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
-  id: '/settings_/notifications',
-  path: '/settings/notifications',
-  getParentRoute: () => rootRouteImport,
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsPlanTemplatesRoute = SettingsPlanTemplatesRouteImport.update({
+  id: '/plan-templates',
+  path: '/plan-templates',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsPrescriptionPresetsRoute =
+  SettingsPrescriptionPresetsRouteImport.update({
+    id: '/prescription-presets',
+    path: '/prescription-presets',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsPrescriptionTemplatesRoute =
+  SettingsPrescriptionTemplatesRouteImport.update({
+    id: '/prescription-templates',
+    path: '/prescription-templates',
+    getParentRoute: () => SettingsRoute,
+  } as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSessionsRoute = SettingsSessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSidebarRoute = SettingsSidebarRouteImport.update({
+  id: '/sidebar',
+  path: '/sidebar',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSubscriptionRoute = SettingsSubscriptionRouteImport.update({
-  id: '/settings_/subscription',
-  path: '/settings/subscription',
-  getParentRoute: () => rootRouteImport,
+  id: '/subscription',
+  path: '/subscription',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsThemeRoute = SettingsThemeRouteImport.update({
+  id: '/theme',
+  path: '/theme',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsUsersRoute = SettingsUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SettingsRoute,
 } as any)
 const StudioIndexRoute = StudioIndexRouteImport.update({
   id: '/studio/',
@@ -549,6 +659,26 @@ const PatientsPatientIdIndexRoute = PatientsPatientIdIndexRouteImport.update({
   path: '/patients/$patientId/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsLocationsIndexRoute = SettingsLocationsIndexRouteImport.update({
+  id: '/locations/',
+  path: '/locations/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsLocationsIdRoute = SettingsLocationsIdRouteImport.update({
+  id: '/locations/$id',
+  path: '/locations/$id',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRolesIndexRoute = SettingsRolesIndexRouteImport.update({
+  id: '/roles/',
+  path: '/roles/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsRolesRoleIdRoute = SettingsRolesRoleIdRouteImport.update({
+  id: '/roles/$roleId',
+  path: '/roles/$roleId',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const StudioFormsFormIdRoute = StudioFormsFormIdRouteImport.update({
   id: '/studio/forms_/$formId',
   path: '/studio/forms/$formId',
@@ -592,7 +722,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
@@ -626,9 +756,25 @@ export interface FileRoutesByFullPath {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/reports/$reportKey': typeof ReportsReportKeyRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/clinic': typeof SettingsClinicRoute
+  '/settings/features': typeof SettingsFeaturesRoute
+  '/settings/lab-catalog': typeof SettingsLabCatalogRoute
+  '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
+  '/settings/labs': typeof SettingsLabsRoute
+  '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
+  '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
+  '/settings/prescription-templates': typeof SettingsPrescriptionTemplatesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sidebar': typeof SettingsSidebarRoute
   '/settings/subscription': typeof SettingsSubscriptionRoute
+  '/settings/theme': typeof SettingsThemeRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -639,6 +785,7 @@ export interface FileRoutesByFullPath {
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
@@ -648,11 +795,15 @@ export interface FileRoutesByFullPath {
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/settings/locations/$id': typeof SettingsLocationsIdRoute
+  '/settings/roles/$roleId': typeof SettingsRolesRoleIdRoute
   '/studio/forms/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
+  '/settings/locations/': typeof SettingsLocationsIndexRoute
+  '/settings/roles/': typeof SettingsRolesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -685,7 +836,6 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
-  '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
@@ -719,9 +869,25 @@ export interface FileRoutesByTo {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/reports/$reportKey': typeof ReportsReportKeyRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
   '/settings/billing': typeof SettingsBillingRoute
+  '/settings/clinic': typeof SettingsClinicRoute
+  '/settings/features': typeof SettingsFeaturesRoute
+  '/settings/lab-catalog': typeof SettingsLabCatalogRoute
+  '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
+  '/settings/labs': typeof SettingsLabsRoute
+  '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
+  '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
+  '/settings/prescription-templates': typeof SettingsPrescriptionTemplatesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sidebar': typeof SettingsSidebarRoute
   '/settings/subscription': typeof SettingsSubscriptionRoute
+  '/settings/theme': typeof SettingsThemeRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -732,6 +898,7 @@ export interface FileRoutesByTo {
   '/patients': typeof PatientsIndexRoute
   '/prescriptions': typeof PrescriptionsIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/studio': typeof StudioIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders/receive/$token': typeof LabOrdersReceiveTokenRoute
@@ -741,11 +908,15 @@ export interface FileRoutesByTo {
   '/locations/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/settings/locations/$id': typeof SettingsLocationsIdRoute
+  '/settings/roles/$roleId': typeof SettingsRolesRoleIdRoute
   '/studio/forms/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/admin/roles': typeof AdminRolesIndexRoute
   '/employees/$employeeId': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId': typeof PatientsPatientIdIndexRoute
+  '/settings/locations': typeof SettingsLocationsIndexRoute
+  '/settings/roles': typeof SettingsRolesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -779,7 +950,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
   '/users': typeof UsersRoute
@@ -813,9 +984,25 @@ export interface FileRoutesById {
   '/prescriptions/new': typeof PrescriptionsNewRoute
   '/queue/doctor': typeof QueueDoctorRoute
   '/reports/$reportKey': typeof ReportsReportKeyRoute
-  '/settings_/billing': typeof SettingsBillingRoute
-  '/settings_/notifications': typeof SettingsNotificationsRoute
-  '/settings_/subscription': typeof SettingsSubscriptionRoute
+  '/settings/appearance': typeof SettingsAppearanceRoute
+  '/settings/billing': typeof SettingsBillingRoute
+  '/settings/clinic': typeof SettingsClinicRoute
+  '/settings/features': typeof SettingsFeaturesRoute
+  '/settings/lab-catalog': typeof SettingsLabCatalogRoute
+  '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
+  '/settings/labs': typeof SettingsLabsRoute
+  '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
+  '/settings/notifications': typeof SettingsNotificationsRoute
+  '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
+  '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
+  '/settings/prescription-templates': typeof SettingsPrescriptionTemplatesRoute
+  '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
+  '/settings/sessions': typeof SettingsSessionsRoute
+  '/settings/sidebar': typeof SettingsSidebarRoute
+  '/settings/subscription': typeof SettingsSubscriptionRoute
+  '/settings/theme': typeof SettingsThemeRoute
+  '/settings/users': typeof SettingsUsersRoute
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
@@ -826,6 +1013,7 @@ export interface FileRoutesById {
   '/patients/': typeof PatientsIndexRoute
   '/prescriptions/': typeof PrescriptionsIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/studio/': typeof StudioIndexRoute
   '/admin/roles/$roleId': typeof AdminRolesRoleIdRoute
   '/lab-orders_/receive/$token': typeof LabOrdersReceiveTokenRoute
@@ -835,11 +1023,15 @@ export interface FileRoutesById {
   '/locations_/$id/settings': typeof LocationsIdSettingsRoute
   '/organizations_/$id/features': typeof OrganizationsIdFeaturesRoute
   '/organizations_/$id/settings': typeof OrganizationsIdSettingsRoute
+  '/settings/locations/$id': typeof SettingsLocationsIdRoute
+  '/settings/roles/$roleId': typeof SettingsRolesRoleIdRoute
   '/studio/forms_/$formId': typeof StudioFormsFormIdRoute
   '/studio/workflows_/$workflowId': typeof StudioWorkflowsWorkflowIdRoute
   '/admin/roles/': typeof AdminRolesIndexRoute
   '/employees/$employeeId/': typeof EmployeesEmployeeIdIndexRoute
   '/patients/$patientId/': typeof PatientsPatientIdIndexRoute
+  '/settings/locations/': typeof SettingsLocationsIndexRoute
+  '/settings/roles/': typeof SettingsRolesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -908,9 +1100,25 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/reports/$reportKey'
+    | '/settings/appearance'
     | '/settings/billing'
+    | '/settings/clinic'
+    | '/settings/features'
+    | '/settings/lab-catalog'
+    | '/settings/lab-order-templates'
+    | '/settings/labs'
+    | '/settings/medicine-directory'
     | '/settings/notifications'
+    | '/settings/plan-templates'
+    | '/settings/prescription-presets'
+    | '/settings/prescription-templates'
+    | '/settings/profile'
+    | '/settings/security'
+    | '/settings/sessions'
+    | '/settings/sidebar'
     | '/settings/subscription'
+    | '/settings/theme'
+    | '/settings/users'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -921,6 +1129,7 @@ export interface FileRouteTypes {
     | '/patients/'
     | '/prescriptions/'
     | '/reports/'
+    | '/settings/'
     | '/studio/'
     | '/admin/roles/$roleId'
     | '/lab-orders/receive/$token'
@@ -930,11 +1139,15 @@ export interface FileRouteTypes {
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
+    | '/settings/locations/$id'
+    | '/settings/roles/$roleId'
     | '/studio/forms/$formId'
     | '/studio/workflows/$workflowId'
     | '/admin/roles/'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
+    | '/settings/locations/'
+    | '/settings/roles/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -967,7 +1180,6 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/select-location'
     | '/sessions'
-    | '/settings'
     | '/setup'
     | '/subscriptions'
     | '/users'
@@ -1001,9 +1213,25 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/reports/$reportKey'
+    | '/settings/appearance'
     | '/settings/billing'
+    | '/settings/clinic'
+    | '/settings/features'
+    | '/settings/lab-catalog'
+    | '/settings/lab-order-templates'
+    | '/settings/labs'
+    | '/settings/medicine-directory'
     | '/settings/notifications'
+    | '/settings/plan-templates'
+    | '/settings/prescription-presets'
+    | '/settings/prescription-templates'
+    | '/settings/profile'
+    | '/settings/security'
+    | '/settings/sessions'
+    | '/settings/sidebar'
     | '/settings/subscription'
+    | '/settings/theme'
+    | '/settings/users'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -1014,6 +1242,7 @@ export interface FileRouteTypes {
     | '/patients'
     | '/prescriptions'
     | '/reports'
+    | '/settings'
     | '/studio'
     | '/admin/roles/$roleId'
     | '/lab-orders/receive/$token'
@@ -1023,11 +1252,15 @@ export interface FileRouteTypes {
     | '/locations/$id/settings'
     | '/organizations/$id/features'
     | '/organizations/$id/settings'
+    | '/settings/locations/$id'
+    | '/settings/roles/$roleId'
     | '/studio/forms/$formId'
     | '/studio/workflows/$workflowId'
     | '/admin/roles'
     | '/employees/$employeeId'
     | '/patients/$patientId'
+    | '/settings/locations'
+    | '/settings/roles'
   id:
     | '__root__'
     | '/'
@@ -1094,9 +1327,25 @@ export interface FileRouteTypes {
     | '/prescriptions/new'
     | '/queue/doctor'
     | '/reports/$reportKey'
-    | '/settings_/billing'
-    | '/settings_/notifications'
-    | '/settings_/subscription'
+    | '/settings/appearance'
+    | '/settings/billing'
+    | '/settings/clinic'
+    | '/settings/features'
+    | '/settings/lab-catalog'
+    | '/settings/lab-order-templates'
+    | '/settings/labs'
+    | '/settings/medicine-directory'
+    | '/settings/notifications'
+    | '/settings/plan-templates'
+    | '/settings/prescription-presets'
+    | '/settings/prescription-templates'
+    | '/settings/profile'
+    | '/settings/security'
+    | '/settings/sessions'
+    | '/settings/sidebar'
+    | '/settings/subscription'
+    | '/settings/theme'
+    | '/settings/users'
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
@@ -1107,6 +1356,7 @@ export interface FileRouteTypes {
     | '/patients/'
     | '/prescriptions/'
     | '/reports/'
+    | '/settings/'
     | '/studio/'
     | '/admin/roles/$roleId'
     | '/lab-orders_/receive/$token'
@@ -1116,11 +1366,15 @@ export interface FileRouteTypes {
     | '/locations_/$id/settings'
     | '/organizations_/$id/features'
     | '/organizations_/$id/settings'
+    | '/settings/locations/$id'
+    | '/settings/roles/$roleId'
     | '/studio/forms_/$formId'
     | '/studio/workflows_/$workflowId'
     | '/admin/roles/'
     | '/employees/$employeeId/'
     | '/patients/$patientId/'
+    | '/settings/locations/'
+    | '/settings/roles/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1154,7 +1408,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectLocationRoute: typeof SelectLocationRoute
   SessionsRoute: typeof SessionsRoute
-  SettingsRoute: typeof SettingsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   SetupRoute: typeof SetupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
   UsersRoute: typeof UsersRoute
@@ -1188,9 +1442,6 @@ export interface RootRouteChildren {
   PrescriptionsNewRoute: typeof PrescriptionsNewRoute
   QueueDoctorRoute: typeof QueueDoctorRoute
   ReportsReportKeyRoute: typeof ReportsReportKeyRoute
-  SettingsBillingRoute: typeof SettingsBillingRoute
-  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
-  SettingsSubscriptionRoute: typeof SettingsSubscriptionRoute
   StudioFormsRoute: typeof StudioFormsRoute
   StudioStagesRoute: typeof StudioStagesRoute
   StudioWorkflowsRoute: typeof StudioWorkflowsRoute
@@ -1716,26 +1967,145 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsReportKeyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings_/billing': {
-      id: '/settings_/billing'
-      path: '/settings/billing'
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/appearance': {
+      id: '/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof SettingsAppearanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/billing': {
+      id: '/settings/billing'
+      path: '/billing'
       fullPath: '/settings/billing'
       preLoaderRoute: typeof SettingsBillingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/settings_/notifications': {
-      id: '/settings_/notifications'
-      path: '/settings/notifications'
+    '/settings/clinic': {
+      id: '/settings/clinic'
+      path: '/clinic'
+      fullPath: '/settings/clinic'
+      preLoaderRoute: typeof SettingsClinicRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/features': {
+      id: '/settings/features'
+      path: '/features'
+      fullPath: '/settings/features'
+      preLoaderRoute: typeof SettingsFeaturesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/lab-catalog': {
+      id: '/settings/lab-catalog'
+      path: '/lab-catalog'
+      fullPath: '/settings/lab-catalog'
+      preLoaderRoute: typeof SettingsLabCatalogRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/lab-order-templates': {
+      id: '/settings/lab-order-templates'
+      path: '/lab-order-templates'
+      fullPath: '/settings/lab-order-templates'
+      preLoaderRoute: typeof SettingsLabOrderTemplatesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/labs': {
+      id: '/settings/labs'
+      path: '/labs'
+      fullPath: '/settings/labs'
+      preLoaderRoute: typeof SettingsLabsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/medicine-directory': {
+      id: '/settings/medicine-directory'
+      path: '/medicine-directory'
+      fullPath: '/settings/medicine-directory'
+      preLoaderRoute: typeof SettingsMedicineDirectoryRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/notifications': {
+      id: '/settings/notifications'
+      path: '/notifications'
       fullPath: '/settings/notifications'
       preLoaderRoute: typeof SettingsNotificationsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
     }
-    '/settings_/subscription': {
-      id: '/settings_/subscription'
-      path: '/settings/subscription'
+    '/settings/plan-templates': {
+      id: '/settings/plan-templates'
+      path: '/plan-templates'
+      fullPath: '/settings/plan-templates'
+      preLoaderRoute: typeof SettingsPlanTemplatesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/prescription-presets': {
+      id: '/settings/prescription-presets'
+      path: '/prescription-presets'
+      fullPath: '/settings/prescription-presets'
+      preLoaderRoute: typeof SettingsPrescriptionPresetsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/prescription-templates': {
+      id: '/settings/prescription-templates'
+      path: '/prescription-templates'
+      fullPath: '/settings/prescription-templates'
+      preLoaderRoute: typeof SettingsPrescriptionTemplatesRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/sessions': {
+      id: '/settings/sessions'
+      path: '/sessions'
+      fullPath: '/settings/sessions'
+      preLoaderRoute: typeof SettingsSessionsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/sidebar': {
+      id: '/settings/sidebar'
+      path: '/sidebar'
+      fullPath: '/settings/sidebar'
+      preLoaderRoute: typeof SettingsSidebarRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/subscription': {
+      id: '/settings/subscription'
+      path: '/subscription'
       fullPath: '/settings/subscription'
       preLoaderRoute: typeof SettingsSubscriptionRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/theme': {
+      id: '/settings/theme'
+      path: '/theme'
+      fullPath: '/settings/theme'
+      preLoaderRoute: typeof SettingsThemeRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/users': {
+      id: '/settings/users'
+      path: '/users'
+      fullPath: '/settings/users'
+      preLoaderRoute: typeof SettingsUsersRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/studio/': {
       id: '/studio/'
@@ -1842,6 +2212,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PatientsPatientIdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings/locations/': {
+      id: '/settings/locations/'
+      path: '/locations'
+      fullPath: '/settings/locations/'
+      preLoaderRoute: typeof SettingsLocationsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/locations/$id': {
+      id: '/settings/locations/$id'
+      path: '/locations/$id'
+      fullPath: '/settings/locations/$id'
+      preLoaderRoute: typeof SettingsLocationsIdRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/roles/': {
+      id: '/settings/roles/'
+      path: '/roles'
+      fullPath: '/settings/roles/'
+      preLoaderRoute: typeof SettingsRolesIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/roles/$roleId': {
+      id: '/settings/roles/$roleId'
+      path: '/roles/$roleId'
+      fullPath: '/settings/roles/$roleId'
+      preLoaderRoute: typeof SettingsRolesRoleIdRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/studio/forms_/$formId': {
       id: '/studio/forms_/$formId'
       path: '/studio/forms/$formId'
@@ -1858,6 +2256,64 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface SettingsRouteChildren {
+  SettingsAppearanceRoute: typeof SettingsAppearanceRoute
+  SettingsBillingRoute: typeof SettingsBillingRoute
+  SettingsClinicRoute: typeof SettingsClinicRoute
+  SettingsFeaturesRoute: typeof SettingsFeaturesRoute
+  SettingsLabCatalogRoute: typeof SettingsLabCatalogRoute
+  SettingsLabOrderTemplatesRoute: typeof SettingsLabOrderTemplatesRoute
+  SettingsLabsRoute: typeof SettingsLabsRoute
+  SettingsMedicineDirectoryRoute: typeof SettingsMedicineDirectoryRoute
+  SettingsNotificationsRoute: typeof SettingsNotificationsRoute
+  SettingsPlanTemplatesRoute: typeof SettingsPlanTemplatesRoute
+  SettingsPrescriptionPresetsRoute: typeof SettingsPrescriptionPresetsRoute
+  SettingsPrescriptionTemplatesRoute: typeof SettingsPrescriptionTemplatesRoute
+  SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
+  SettingsSessionsRoute: typeof SettingsSessionsRoute
+  SettingsSidebarRoute: typeof SettingsSidebarRoute
+  SettingsSubscriptionRoute: typeof SettingsSubscriptionRoute
+  SettingsThemeRoute: typeof SettingsThemeRoute
+  SettingsUsersRoute: typeof SettingsUsersRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+  SettingsLocationsIdRoute: typeof SettingsLocationsIdRoute
+  SettingsRolesRoleIdRoute: typeof SettingsRolesRoleIdRoute
+  SettingsLocationsIndexRoute: typeof SettingsLocationsIndexRoute
+  SettingsRolesIndexRoute: typeof SettingsRolesIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAppearanceRoute: SettingsAppearanceRoute,
+  SettingsBillingRoute: SettingsBillingRoute,
+  SettingsClinicRoute: SettingsClinicRoute,
+  SettingsFeaturesRoute: SettingsFeaturesRoute,
+  SettingsLabCatalogRoute: SettingsLabCatalogRoute,
+  SettingsLabOrderTemplatesRoute: SettingsLabOrderTemplatesRoute,
+  SettingsLabsRoute: SettingsLabsRoute,
+  SettingsMedicineDirectoryRoute: SettingsMedicineDirectoryRoute,
+  SettingsNotificationsRoute: SettingsNotificationsRoute,
+  SettingsPlanTemplatesRoute: SettingsPlanTemplatesRoute,
+  SettingsPrescriptionPresetsRoute: SettingsPrescriptionPresetsRoute,
+  SettingsPrescriptionTemplatesRoute: SettingsPrescriptionTemplatesRoute,
+  SettingsProfileRoute: SettingsProfileRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
+  SettingsSessionsRoute: SettingsSessionsRoute,
+  SettingsSidebarRoute: SettingsSidebarRoute,
+  SettingsSubscriptionRoute: SettingsSubscriptionRoute,
+  SettingsThemeRoute: SettingsThemeRoute,
+  SettingsUsersRoute: SettingsUsersRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+  SettingsLocationsIdRoute: SettingsLocationsIdRoute,
+  SettingsRolesRoleIdRoute: SettingsRolesRoleIdRoute,
+  SettingsLocationsIndexRoute: SettingsLocationsIndexRoute,
+  SettingsRolesIndexRoute: SettingsRolesIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1890,7 +2346,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SelectLocationRoute: SelectLocationRoute,
   SessionsRoute: SessionsRoute,
-  SettingsRoute: SettingsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   SetupRoute: SetupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
   UsersRoute: UsersRoute,
@@ -1924,9 +2380,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrescriptionsNewRoute: PrescriptionsNewRoute,
   QueueDoctorRoute: QueueDoctorRoute,
   ReportsReportKeyRoute: ReportsReportKeyRoute,
-  SettingsBillingRoute: SettingsBillingRoute,
-  SettingsNotificationsRoute: SettingsNotificationsRoute,
-  SettingsSubscriptionRoute: SettingsSubscriptionRoute,
   StudioFormsRoute: StudioFormsRoute,
   StudioStagesRoute: StudioStagesRoute,
   StudioWorkflowsRoute: StudioWorkflowsRoute,

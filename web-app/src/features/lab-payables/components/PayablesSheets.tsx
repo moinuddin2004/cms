@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import {
   FieldWrapper,
   FormInput,
@@ -108,14 +108,19 @@ export function ApproveBillSheet({
         </form.Field>
         <form.Field name="taxPercent">
           {(f) => (
-            <FormInput
+            <FieldWrapper
               label="Tax %"
-              inputMode="decimal"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value)}
-              onBlur={f.handleBlur}
+              htmlFor="bill-tax"
               error={fieldError(f)}
-            />
+            >
+              <NumberInput
+                id="bill-tax"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
+                onBlur={f.handleBlur}
+                aria-invalid={!!fieldError(f)}
+              />
+            </FieldWrapper>
           )}
         </form.Field>
         <form.Subscribe selector={(s) => s.values.taxPercent}>
@@ -224,15 +229,20 @@ export function PayLabSheet({
         <div className="grid gap-4 sm:grid-cols-2">
           <form.Field name="amount">
             {(f) => (
-              <FormInput
+              <FieldWrapper
                 label={`Amount (${activeCurrency()})`}
+                htmlFor="pay-amount"
                 required
-                inputMode="decimal"
-                value={f.state.value}
-                onChange={(e) => f.handleChange(e.target.value)}
-                onBlur={f.handleBlur}
                 error={fieldError(f)}
-              />
+              >
+                <NumberInput
+                  id="pay-amount"
+                  value={f.state.value}
+                  onChange={(e) => f.handleChange(e.target.value)}
+                  onBlur={f.handleBlur}
+                  aria-invalid={!!fieldError(f)}
+                />
+              </FieldWrapper>
             )}
           </form.Field>
           <form.Field name="method">
@@ -290,9 +300,8 @@ export function PayLabSheet({
                         </p>
                       </div>
                       <FieldWrapper error={fieldError(f)} className="w-36">
-                        <Input
+                        <NumberInput
                           aria-label={`Amount for ${a.billNo}`}
-                          inputMode="decimal"
                           placeholder="0"
                           value={f.state.value}
                           onChange={(e) => f.handleChange(e.target.value)}

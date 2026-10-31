@@ -6,19 +6,19 @@ import { cn } from '@/lib/utils'
 
 const TABS = [
   {
-    to: '/prescription-presets',
+    to: '/settings/prescription-presets',
     label: 'Presets',
     hint: 'Ready-made medicine sets',
     icon: ClipboardList,
   },
   {
-    to: '/medicine-directory',
+    to: '/settings/medicine-directory',
     label: 'Medicines',
     hint: 'Drug catalogue',
     icon: Pill,
   },
   {
-    to: '/prescription-templates',
+    to: '/settings/prescription-templates',
     label: 'Print layouts',
     hint: 'Letterhead and paper',
     icon: LayoutTemplate,
@@ -43,7 +43,7 @@ export function LibraryShell({
 
   return (
     <DashboardLayout
-      title="Prescription Library"
+      title="Prescription library"
       subtitle={subtitle}
       backTo="/prescriptions"
       backLabel="Back to prescriptions"

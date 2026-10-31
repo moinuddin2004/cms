@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper, FormSection, FormSheet } from '@/components/shared'
@@ -219,9 +219,8 @@ export function InvoiceSheet({
                   htmlFor="inv-discount"
                   error={fieldError(f)}
                 >
-                  <Input
+                  <NumberInput
                     id="inv-discount"
-                    inputMode="decimal"
                     placeholder="0"
                     value={f.state.value}
                     onChange={(e) => f.handleChange(e.target.value)}
@@ -237,9 +236,8 @@ export function InvoiceSheet({
                   htmlFor="inv-tax"
                   error={fieldError(f)}
                 >
-                  <Input
+                  <NumberInput
                     id="inv-tax"
-                    inputMode="decimal"
                     value={f.state.value}
                     onChange={(e) => f.handleChange(e.target.value)}
                     onBlur={f.handleBlur}

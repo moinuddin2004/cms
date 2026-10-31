@@ -19,6 +19,7 @@ const values = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, 'Use a colour like #2563eb'),
   sidebar_style: z.enum(['light', 'dark', 'brand']),
   default_mode: z.enum(['light', 'dark', 'system']),
+  dark_base: z.enum(['tinted', 'graphite', 'midnight', 'stone', 'black']),
 })
 
 /** Org theme / platform defaults: values + per-key locks. */

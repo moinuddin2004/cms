@@ -13,73 +13,20 @@ import { BrandMark } from '@/components/layout/BrandMark'
 import { ErrorState, FieldWrapper, LoadingSkeleton } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import apiClient from '@/lib/api'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { cn } from '@/lib/utils'
-import { useAuthStore } from '@/store/useAuthStore'
+import { ClinicDetailsForm } from '../components/ClinicDetailsForm'
 import { useClinicSetup, useCompleteSetup } from '../hooks/useAccount'
-import {
-  useSetupClinicForm,
-  useSetupLocationForm,
-} from '../hooks/useSetupForms'
+import { useSetupLocationForm } from '../hooks/useSetupForms'
 import { fieldError } from '../lib/fieldError'
-import { SPECIALTY_OPTIONS } from '../types'
+import { errorMessage, refreshSession } from '../lib/session'
 import type { ClinicSetup } from '../types'
-
-const TIMEZONES = [
-  'Asia/Karachi',
-  'Asia/Dubai',
-  'Asia/Riyadh',
-  'Asia/Qatar',
-  'Asia/Kolkata',
-  'Asia/Dhaka',
-  'Europe/London',
-  'America/New_York',
-  'UTC',
-]
-const CURRENCIES = ['PKR', 'AED', 'SAR', 'QAR', 'INR', 'BDT', 'GBP', 'USD', 'EUR']
 
 const STEPS = [
   { key: 'clinic', label: 'Clinic', icon: Building2 },
   { key: 'location', label: 'Location & tax', icon: MapPin },
   { key: 'team', label: 'Your team', icon: Users },
 ] as const
-
-function errorMessage(err: unknown) {
-  const msg = (err as { response?: { data?: { message?: unknown } } })
-    ?.response?.data?.message
-  return Array.isArray(msg) ? String(msg[0]) : (msg as string) || 'Could not save. Try again.'
-}
-
-/** Re-read the session so the sidebar/forms pick up the new name, currency, specialties. */
-async function refreshSession() {
-  try {
-    const { data } = await apiClient.get('/auth/me')
-    const me = data?.data
-    if (!me) return
-    const s = useAuthStore.getState()
-    s.setAuth({
-      user: me.user,
-      accessToken: me.accessToken,
-      isSuperAdmin: me.isSuperAdmin,
-      accessSource: me.accessSource,
-      requiresOrgSelection: false,
-      requiresLocationSelection: false,
-      accessibleOrganizations: me.accessibleOrganizations,
-      activeOrganizationId: s.activeOrganizationId,
-      activeLocationId: s.activeLocationId,
-      labMemberships: me.labMemberships ?? [],
-    })
-  } catch {
-    // The old values stay until the next refresh — harmless.
-  }
-}
 
 function Stepper({ step }: { step: number }) {
   return (
@@ -117,162 +64,6 @@ function Stepper({ step }: { step: number }) {
   )
 }
 
-function ClinicStep({
-  setup,
-  onNext,
-}: {
-  setup: ClinicSetup
-  onNext: () => void
-}) {
-  const { form, save } = useSetupClinicForm(setup, onNext)
-  return (
-    <form
-      className="space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        form.handleSubmit().catch((err) => toast.error(errorMessage(err)))
-      }}
-    >
-      <form.Field name="name">
-        {(f) => (
-          <FieldWrapper label="Clinic name" htmlFor="setup-name" required error={fieldError(f)}>
-            <Input
-              id="setup-name"
-              value={f.state.value}
-              onChange={(e) => f.handleChange(e.target.value)}
-              onBlur={f.handleBlur}
-            />
-          </FieldWrapper>
-        )}
-      </form.Field>
-
-      <form.Field name="specialtyTags">
-        {(f) => (
-          <FieldWrapper
-            label="What kind of clinic is it?"
-            required
-            hint="Pick every type that applies — it decides which tools you see."
-            error={fieldError(f)}
-          >
-            <div className="flex flex-wrap gap-2">
-              {SPECIALTY_OPTIONS.map((o) => {
-                const on = f.state.value.includes(o.value)
-                return (
-                  <button
-                    key={o.value}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() =>
-                      f.handleChange(
-                        on
-                          ? f.state.value.filter((v) => v !== o.value)
-                          : [...f.state.value, o.value],
-                      )
-                    }
-                    className={cn(
-                      'rounded-full border px-3 py-1.5 text-sm transition-colors',
-                      on
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border text-muted-foreground hover:bg-muted',
-                    )}
-                  >
-                    {o.label}
-                  </button>
-                )
-              })}
-            </div>
-          </FieldWrapper>
-        )}
-      </form.Field>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <form.Field name="phone">
-          {(f) => (
-            <FieldWrapper label="Phone" htmlFor="setup-phone" error={fieldError(f)}>
-              <Input
-                id="setup-phone"
-                inputMode="tel"
-                value={f.state.value}
-                onChange={(e) => f.handleChange(e.target.value)}
-                onBlur={f.handleBlur}
-              />
-            </FieldWrapper>
-          )}
-        </form.Field>
-        <form.Field name="email">
-          {(f) => (
-            <FieldWrapper label="Clinic email" htmlFor="setup-email" error={fieldError(f)}>
-              <Input
-                id="setup-email"
-                type="email"
-                value={f.state.value}
-                onChange={(e) => f.handleChange(e.target.value)}
-                onBlur={f.handleBlur}
-              />
-            </FieldWrapper>
-          )}
-        </form.Field>
-        <form.Field name="timezone">
-          {(f) => (
-            <FieldWrapper label="Timezone" required error={fieldError(f)}>
-              <Select value={f.state.value} onValueChange={f.handleChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(TIMEZONES.includes(f.state.value)
-                    ? TIMEZONES
-                    : [f.state.value, ...TIMEZONES]
-                  ).map((tz) => (
-                    <SelectItem key={tz} value={tz}>
-                      {tz.replace('_', ' ')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldWrapper>
-          )}
-        </form.Field>
-        <form.Field name="currency">
-          {(f) => (
-            <FieldWrapper label="Currency" required error={fieldError(f)}>
-              <Select value={f.state.value} onValueChange={f.handleChange}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(CURRENCIES.includes(f.state.value)
-                    ? CURRENCIES
-                    : [f.state.value, ...CURRENCIES]
-                  ).map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FieldWrapper>
-          )}
-        </form.Field>
-      </div>
-
-      <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
-        {([canSubmit, isSubmitting]) => (
-          <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={!canSubmit || isSubmitting || save.isPending}>
-              {(isSubmitting || save.isPending) && (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              )}
-              Save & continue
-            </Button>
-          </div>
-        )}
-      </form.Subscribe>
-    </form>
-  )
-}
-
 function LocationStep({
   setup,
   onBack,
@@ -298,7 +89,7 @@ function LocationStep({
             label="Location name"
             htmlFor="loc-name"
             required
-            hint="Your first branch. You can add more under Locations later."
+            hint="Your first branch. You can add more later in Settings → Locations."
             error={fieldError(f)}
           >
             <Input
@@ -369,14 +160,11 @@ function LocationStep({
               hint="Added on top of each patient invoice. Leave 0 for no tax."
               error={fieldError(f)}
             >
-              <Input
+              <NumberInput
                 id="loc-tax"
-                type="number"
-                step="0.01"
-                min={0}
-                max={100}
-                value={Number.isNaN(f.state.value) ? '' : f.state.value}
-                onChange={(e) => f.handleChange(e.target.valueAsNumber)}
+                mode="decimal"
+                value={f.state.value}
+                onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
               />
             </FieldWrapper>
@@ -421,7 +209,7 @@ function TeamStep({ onBack }: { onBack: () => void }) {
       <p className="text-sm text-muted-foreground">
         Add your doctors and front-desk staff whenever you are ready — each
         person gets a role (Doctor, Receptionist, …) that decides what they
-        can see. You can also do this later from the sidebar.
+        can see. You can also do this later.
       </p>
       <ul className="space-y-2 text-sm">
         <li className="flex items-start gap-2">
@@ -434,8 +222,8 @@ function TeamStep({ onBack }: { onBack: () => void }) {
         <li className="flex items-start gap-2">
           <Check className="mt-0.5 size-4 text-primary" />
           <span>
-            <strong className="font-semibold">User Admin</strong> — give a staff
-            member a login.
+            <strong className="font-semibold">Settings → Users</strong> — give a
+            staff member a login.
           </span>
         </li>
         <li className="flex items-start gap-2">
@@ -493,7 +281,11 @@ export function SetupWizardPage() {
           ) : setup.isError || !setup.data ? (
             <ErrorState onRetry={() => void setup.refetch()} />
           ) : step === 0 ? (
-            <ClinicStep setup={setup.data} onNext={() => setStep(1)} />
+            <ClinicDetailsForm
+              mode="wizard"
+              setup={setup.data}
+              onSaved={() => setStep(1)}
+            />
           ) : step === 1 ? (
             <LocationStep
               setup={setup.data}

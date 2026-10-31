@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { LabLinksPage } from '@/features/labs'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** The clinic's lab list. */
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/labs')({
-  staticData: { can: 'lab.links.manage' },
-  component: () => <LabLinksPage />,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/labs', replace: true })
+  },
 })

@@ -1,6 +1,7 @@
 import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -287,9 +288,9 @@ function ItemFields({
                       htmlFor={`tpl-${i}-qty`}
                       error={fieldError(f)}
                     >
-                      <Input
+                      <NumberInput
                         id={`tpl-${i}-qty`}
-                        inputMode="numeric"
+                        mode="integer"
                         value={f.state.value}
                         onChange={(e) => f.handleChange(e.target.value)}
                         onBlur={f.handleBlur}

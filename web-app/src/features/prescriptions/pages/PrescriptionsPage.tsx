@@ -93,7 +93,7 @@ export function PrescriptionsPage() {
         <div className="flex items-center gap-2">
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
           <Button variant="outline" size="sm" asChild>
-            <Link to="/prescription-presets">
+            <Link to="/settings/prescription-presets">
               <Library className="size-3.5" />
               Library
             </Link>

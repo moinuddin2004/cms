@@ -175,7 +175,7 @@ export function LocationSelector() {
                   <Button
                     variant="default"
                     className="gap-2"
-                    onClick={() => navigate({ to: '/locations' as any })}
+                    onClick={() => navigate({ to: '/settings/locations' })}
                   >
                     <PlusCircle className="w-4 h-4" />
                     Create First Location

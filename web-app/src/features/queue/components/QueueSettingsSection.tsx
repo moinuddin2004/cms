@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from '@/components/shared'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useQueueSettingsForm } from '../hooks/useQueueSettingsForm'
 import { useQueuePermissions } from '../hooks/useQueuePermissions'
@@ -133,11 +134,10 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                         hint={hint}
                         error={fieldError(field)}
                       >
-                        <Input
+                        <NumberInput
                           id={name}
-                          type="number"
-                          min={0}
-                          value={String(field.state.value)}
+                          mode="integer"
+                          value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
                         />
@@ -184,12 +184,11 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                       hint="Leave empty to keep it off"
                       error={fieldError(field)}
                     >
-                      <Input
+                      <NumberInput
                         id="callTimeoutSec"
-                        type="number"
-                        min={30}
+                        mode="integer"
                         placeholder="Off"
-                        value={String(field.state.value)}
+                        value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
                       />

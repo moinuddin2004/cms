@@ -172,7 +172,10 @@ export const LocationManagementView = forwardRef<{ create: () => void }>(
           isLoading={isLoading}
           showOrganization={isSuperAdmin}
           onSettings={(loc) =>
-            navigate({ to: `/locations/${loc.id}/settings` })
+            navigate({
+              to: '/settings/locations/$id',
+              params: { id: loc.id },
+            })
           }
           onEdit={openEdit}
           onDeactivate={setDeactivateTarget}

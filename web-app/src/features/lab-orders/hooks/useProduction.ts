@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { toNumber } from '@/lib/zod-numbers'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { toastOrderError } from '../lib/order-errors'
@@ -128,7 +129,7 @@ export function receiveDefaults(
         include: true,
         line: {
           quantity: l.quantity,
-          receivedQty: l.quantity,
+          receivedQty: String(l.quantity),
           condition: 'ok',
           qcResult: 'pass',
           qcNotes: '',
@@ -142,7 +143,7 @@ export const toReceiveLines = (v: ReceiveShipmentValues): ReceiveLineInput[] =>
     .filter((l) => l.include)
     .map((l) => ({
       shipmentItemId: l.shipmentItemId,
-      receivedQty: l.line.receivedQty,
+      receivedQty: toNumber(l.line.receivedQty),
       condition: l.line.condition,
       ...(l.line.condition !== 'missing' && l.line.qcResult
         ? { qcResult: l.line.qcResult }

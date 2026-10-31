@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { intField } from '@/lib/zod-numbers'
 
 const text = (n: number) => z.string().trim().max(n, `At most ${n} characters`)
 
@@ -38,13 +39,15 @@ export type RemakeDecisionValues = z.input<typeof remakeDecisionSchema>
 export const receiveLineSchema = z
   .object({
     quantity: z.number().int().min(1),
-    receivedQty: z.number().int().min(0),
+    receivedQty: intField('Received', { min: 0 }),
     condition: z.enum(['ok', 'damaged', 'missing']),
     qcResult: z.enum(['pass', 'fail', '']),
     qcNotes: text(2000),
   })
   .superRefine((v, ctx) => {
-    if (v.condition === 'missing' ? v.receivedQty !== 0 : v.receivedQty < 1) {
+    if (!/^\d+$/.test(v.receivedQty)) return
+    const received = Number(v.receivedQty)
+    if (v.condition === 'missing' ? received !== 0 : received < 1) {
       ctx.addIssue({
         code: 'custom',
         path: ['receivedQty'],
@@ -54,7 +57,7 @@ export const receiveLineSchema = z
             : 'At least 1',
       })
     }
-    if (v.receivedQty > v.quantity) {
+    if (received > v.quantity) {
       ctx.addIssue({
         code: 'custom',
         path: ['receivedQty'],

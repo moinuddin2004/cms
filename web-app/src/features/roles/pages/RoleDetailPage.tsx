@@ -16,7 +16,7 @@ import { RiskReasonDialog } from '../components/RiskReasonDialog'
 import { RoleDot, RoleKindBadge } from '../components/role-badges'
 import { useRoleEditor } from '../hooks/useRoleEditor'
 import { useDeleteRole, useRole } from '../hooks/useRoles'
-import { useUnsavedChangesGuard } from '../hooks/useUnsavedChangesGuard'
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard'
 import { toastRoleError } from '../lib/role-errors'
 
 /** One role: Permissions (bundles + advanced), Home page, Members. */
@@ -30,7 +30,7 @@ export function RoleDetailPage({ roleId }: { roleId: string }) {
   const [cloning, setCloning] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  const back = { backTo: '/admin/roles', backLabel: 'Back to roles' }
+  const back = { backTo: '/settings/roles', backLabel: 'Back to roles' }
 
   if (isLoading) {
     return (
@@ -161,7 +161,7 @@ export function RoleDetailPage({ roleId }: { roleId: string }) {
         onOpenChange={setCloning}
         onCloned={(copy) =>
           void navigate({
-            to: '/admin/roles/$roleId',
+            to: '/settings/roles/$roleId',
             params: { roleId: copy.id },
           })
         }
@@ -182,7 +182,7 @@ export function RoleDetailPage({ roleId }: { roleId: string }) {
           remove.mutate(role.id, {
             onSuccess: () => {
               setDeleting(false)
-              void navigate({ to: '/admin/roles', replace: true })
+              void navigate({ to: '/settings/roles', replace: true })
             },
             onError: (err) => {
               toastRoleError(err)

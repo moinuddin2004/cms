@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { FormSelect } from '@/components/forms/FormSelect'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { PLAN_TEMPLATE_CATEGORY_OPTIONS } from '../types'
 import type {
   PlanTemplate,
@@ -128,13 +129,11 @@ export function PlanTemplateForm({
                   <form.Field name={`items[${i}].estimatedSessions`}>
                     {(f) => (
                       <div className="space-y-1">
-                        <Input
-                          type="number"
-                          min={1}
+                        <NumberInput
+                          mode="integer"
+                          placeholder="1"
                           value={f.state.value}
-                          onChange={(e) =>
-                            f.handleChange(Number(e.target.value) || 1)
-                          }
+                          onChange={(e) => f.handleChange(e.target.value)}
                           onBlur={f.handleBlur}
                           aria-label="Sessions"
                           title="Sessions (visits)"
@@ -151,10 +150,7 @@ export function PlanTemplateForm({
                   <form.Field name={`items[${i}].estimatedCost`}>
                     {(f) => (
                       <div className="space-y-1">
-                        <Input
-                          type="number"
-                          min={0}
-                          inputMode="decimal"
+                        <NumberInput
                           value={f.state.value}
                           onChange={(e) => f.handleChange(e.target.value)}
                           onBlur={f.handleBlur}

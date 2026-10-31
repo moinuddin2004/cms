@@ -66,7 +66,10 @@ export function RolesPage() {
   }
 
   const open = (role: { id: string }) =>
-    void navigate({ to: '/admin/roles/$roleId', params: { roleId: role.id } })
+    void navigate({
+      to: '/settings/roles/$roleId',
+      params: { roleId: role.id },
+    })
 
   const columns = useMemo<ColumnDef<RoleSummary, unknown>[]>(
     () => [

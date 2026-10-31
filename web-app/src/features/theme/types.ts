@@ -1,5 +1,6 @@
 export type SidebarStyle = 'light' | 'dark' | 'brand'
 export type DefaultMode = 'light' | 'dark' | 'system'
+export type DarkBase = 'tinted' | 'graphite' | 'midnight' | 'stone' | 'black'
 
 /** The resolved theme for a tenant (`GET /theme`, `GET /public/theme/:orgId`). */
 export interface ClinicTheme {
@@ -10,6 +11,7 @@ export interface ClinicTheme {
   brand_color: string
   sidebar_style: SidebarStyle
   default_mode: DefaultMode
+  dark_base: DarkBase
 }
 
 export type ThemeKey = keyof ClinicTheme
@@ -22,6 +24,7 @@ export const DEFAULT_THEME: ClinicTheme = {
   brand_color: '#2563eb',
   sidebar_style: 'light',
   default_mode: 'system',
+  dark_base: 'tinted',
 }
 
 interface ScopeCell {
@@ -64,6 +67,27 @@ export const DEFAULT_MODE_LABEL: Record<DefaultMode, string> = {
   system: 'Follow device',
 }
 
+/** Dark mode base presets, in picker order. */
+export const DARK_BASE_OPTIONS: {
+  value: DarkBase
+  label: string
+  description: string
+}[] = [
+  {
+    value: 'tinted',
+    label: 'Brand tint',
+    description: 'Greys with a hint of your brand colour',
+  },
+  { value: 'graphite', label: 'Graphite', description: 'Pure grey, no colour cast' },
+  { value: 'midnight', label: 'Midnight', description: 'Cool blue-grey' },
+  { value: 'stone', label: 'Stone', description: 'Soft, warm grey' },
+  {
+    value: 'black',
+    label: 'True black',
+    description: 'Deepest black, best on OLED screens',
+  },
+]
+
 export const THEME_KEY_LABEL: Record<ThemeKey, string> = {
   app_name: 'Clinic name',
   logo_url: 'Logo (light)',
@@ -72,4 +96,5 @@ export const THEME_KEY_LABEL: Record<ThemeKey, string> = {
   brand_color: 'Brand colour',
   sidebar_style: 'Sidebar style',
   default_mode: 'Default mode',
+  dark_base: 'Dark mode base',
 }

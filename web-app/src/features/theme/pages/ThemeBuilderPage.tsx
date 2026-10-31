@@ -13,7 +13,7 @@ import {
 import { LocationThemeSheet } from '../components/LocationThemeSheet'
 import { ThemeEditor } from '../components/ThemeEditor'
 
-/** `/admin/theme` — clinic branding; super admins also edit platform defaults. */
+/** `/settings/theme` — clinic branding; super admins also edit platform defaults. */
 export function ThemeBuilderPage() {
   const orgId = useAuthStore((s) => s.activeOrganizationId)
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin)

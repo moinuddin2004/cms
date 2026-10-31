@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
@@ -64,9 +65,8 @@ function AmountField({
       error={fieldError(field)}
       hint={hint}
     >
-      <Input
+      <NumberInput
         id={id}
-        inputMode="decimal"
         value={field.state.value}
         onChange={(e) => field.handleChange(e.target.value)}
         onBlur={field.handleBlur}

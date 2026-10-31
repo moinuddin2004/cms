@@ -1,21 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-// import { Switch } from '@/components/ui/switch' // only the (hidden) reminders card uses it
+import { NumberInput } from '@/components/forms/NumberInput'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { ErrorState } from '@/components/feedback/ErrorState'
+import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton'
+import { SaveBar } from '@/components/shared/SaveBar'
 import { QueueSettingsSection } from '@/features/queue'
 import { Can } from '@/features/access'
+import { SettingsCard, SettingsRow } from '@/features/settings'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Loader2, ShieldOff } from 'lucide-react'
+import { ShieldOff } from 'lucide-react'
 import { useLocationSettingsForm } from './hooks/useLocationSettingsForm'
 import type { LocationSettings } from './hooks/useLocationSettingsForm'
 import type { LocationSettingsFormValues } from './schemas/location-settings.schema'
@@ -63,15 +58,16 @@ export function LocationSettingsFeature({
 }
 
 function LocationSettingsContent({ locationId }: { locationId: string }) {
-  const { data: location, isLoading: isLocLoading } = useQuery({
+  const locationQuery = useQuery({
     queryKey: ['locations', locationId],
     queryFn: async () => {
       const res = await apiClient.get(`/locations/${locationId}`)
       return res.data.data as Location
     },
   })
+  const location = locationQuery.data
 
-  const { data: orgSettings, isLoading: isOrgSettingsLoading } = useQuery({
+  const orgSettingsQuery = useQuery({
     queryKey: ['orgSettings', location?.organizationId],
     queryFn: async () => {
       const res = await apiClient.get(
@@ -81,8 +77,9 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
     },
     enabled: !!location?.organizationId,
   })
+  const orgSettings = orgSettingsQuery.data
 
-  const { data: settings, isLoading: isSettingsLoading } = useQuery({
+  const settingsQuery = useQuery({
     queryKey: ['locSettings', locationId],
     queryFn: async () => {
       const res = await apiClient.get(`/locations/${locationId}/settings`)
@@ -90,10 +87,27 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
     },
   })
 
-  const form = useLocationSettingsForm({ locationId, settings })
+  const form = useLocationSettingsForm({
+    locationId,
+    settings: settingsQuery.data,
+  })
 
-  if (isLocLoading || isOrgSettingsLoading || isSettingsLoading)
-    return <div>Loading settings...</div>
+  if (
+    locationQuery.isLoading ||
+    orgSettingsQuery.isLoading ||
+    settingsQuery.isLoading
+  )
+    return <LoadingSkeleton variant="detail" />
+  if (locationQuery.isError || settingsQuery.isError)
+    return (
+      <ErrorState
+        title="Couldn't load this location's settings"
+        onRetry={() => {
+          void locationQuery.refetch()
+          void settingsQuery.refetch()
+        }}
+      />
+    )
 
   const isOverrideDisabled = orgSettings?.allowLocationOverride === false
 
@@ -111,141 +125,150 @@ function LocationSettingsContent({ locationId }: { locationId: string }) {
   const numberField = (
     name: keyof LocationSettingsFormValues,
     label: string,
-    step?: string,
+    hint: string,
+    unit: string,
+    decimal?: boolean,
   ) => (
     <form.Field name={name}>
-      {(field) => (
-        <FieldWrapper
-          label={label}
-          htmlFor={`loc-${name}`}
-          error={isOverrideDisabled ? undefined : fieldError(field)}
-        >
-          <Input
-            id={`loc-${name}`}
-            type="number"
-            step={step}
-            disabled={isOverrideDisabled}
-            value={
-              name in inherited
-                ? String(inherited[name] ?? '')
-                : field.state.value
+      {(field) => {
+        const isInherited = name in inherited
+        return (
+          <SettingsRow
+            label={label}
+            hint={
+              <>
+                {hint}
+                {isInherited && (
+                  <span className="ml-1.5 inline-flex rounded-full bg-amber-soft px-1.5 py-px text-[10px] font-medium text-amber">
+                    From clinic
+                  </span>
+                )}
+              </>
             }
-            onChange={(e) => field.handleChange(e.target.value)}
-            onBlur={field.handleBlur}
-          />
-        </FieldWrapper>
-      )}
+          >
+            <FieldWrapper
+              htmlFor={`loc-${name}`}
+              error={isInherited ? undefined : fieldError(field)}
+            >
+              <div className="relative max-w-[220px]">
+                <NumberInput
+                  id={`loc-${name}`}
+                  mode={decimal ? 'decimal' : 'integer'}
+                  disabled={isInherited || isOverrideDisabled}
+                  value={
+                    isInherited
+                      ? String(inherited[name] ?? '')
+                      : field.state.value
+                  }
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  className="pr-16"
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-3">
+                  {unit}
+                </span>
+              </div>
+            </FieldWrapper>
+          </SettingsRow>
+        )
+      }}
     </form.Field>
   )
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl space-y-6">
+      {location && (
+        <p className="text-sm text-text-2">
+          Settings for{' '}
+          <span className="font-semibold text-foreground">{location.name}</span>
+        </p>
+      )}
+
       {isOverrideDisabled && (
-        <div className="bg-amber-50 text-amber-800 p-4 rounded-md border border-amber-200">
-          <strong>Notice:</strong> Organization override is disabled. Some
-          settings are inherited from the organization and cannot be changed
-          here.
+        <div className="rounded-lg border border-amber/30 bg-amber-soft p-4 text-sm text-amber">
+          Booking rules marked “From clinic” are set for the whole clinic and
+          can’t be changed for one location.
         </div>
       )}
 
       {orgSettings?.featureAppointments !== false && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Appointment Settings</CardTitle>
-            <CardDescription>
-              Configure booking rules for this location.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-6">
-            {numberField('appointmentSlotDuration', 'Slot Duration (mins)')}
-            {numberField('maxAppointmentsPerDay', 'Max Appointments / Day')}
-            {numberField('advanceBookingDays', 'Advance Booking Days')}
+        <SettingsCard
+          title="Booking rules"
+          description="How appointments can be booked at this location."
+        >
+          <div className="divide-y divide-border">
+            {numberField(
+              'appointmentSlotDuration',
+              'Slot length',
+              'Default length of one appointment.',
+              'minutes',
+            )}
+            {numberField(
+              'maxAppointmentsPerDay',
+              'Daily limit',
+              'Most appointments in one day. 0 = no limit.',
+              'per day',
+            )}
+            {numberField(
+              'advanceBookingDays',
+              'Book ahead',
+              'How far ahead a slot can be booked.',
+              'days',
+            )}
             {numberField(
               'cancellationNoticeHours',
-              'Cancellation Notice (hours)',
+              'Cancellation notice',
+              'How early a patient must cancel.',
+              'hours',
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SettingsCard>
       )}
-
-      <QueueSettingsSection locationId={locationId} />
 
       {/* Appointment reminders: hidden until SMS/WhatsApp delivery exists —
-          notifications are in-app only for now (see CHANNELS_BY_AUDIENCE).
-      {orgSettings?.featureReminders !== false && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Reminder Settings</CardTitle>
-            <CardDescription>Configure automated reminders.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between border-b pb-4 mt-2">
-              <Label>Enable Reminders</Label>
-              <Switch
-                disabled={isOverrideDisabled}
-                checked={!!formData.reminderEnabled}
-                onCheckedChange={(val) => handleChange('reminderEnabled', val)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label>Days Before</Label>
-                <Input
-                  type="number"
-                  disabled={isOverrideDisabled}
-                  value={formData.reminderDaysBefore || ''}
-                  onChange={(e) =>
-                    handleChange('reminderDaysBefore', parseInt(e.target.value))
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Hours Before</Label>
-                <Input
-                  type="number"
-                  disabled={isOverrideDisabled}
-                  value={formData.reminderHoursBefore || ''}
-                  onChange={(e) =>
-                    handleChange(
-                      'reminderHoursBefore',
-                      parseInt(e.target.value),
-                    )
-                  }
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      */}
+          notifications are in-app only for now (see CHANNELS_BY_AUDIENCE). */}
 
       {orgSettings?.featureFinance !== false && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment & Billing</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-6">
-            {numberField('taxRate', 'Tax Rate (%)', '0.01')}
-            {numberField('lateFeePercentage', 'Late Fee (%)', '0.01')}
-          </CardContent>
-        </Card>
+        <SettingsCard
+          title="Tax & late fees"
+          description="Added to patient invoices from this location."
+        >
+          <div className="divide-y divide-border">
+            {numberField(
+              'taxRate',
+              'Sales tax',
+              'Added on top of each invoice. 0 = no tax.',
+              '%',
+              true,
+            )}
+            {numberField(
+              'lateFeePercentage',
+              'Late fee',
+              'Charged on overdue invoices.',
+              '%',
+              true,
+            )}
+          </div>
+        </SettingsCard>
       )}
 
-      <div className="flex justify-end">
-        <form.Subscribe
-          selector={(st) => [st.canSubmit, st.isSubmitting] as const}
-        >
-          {([canSubmit, isSubmitting]) => (
-            <Button
-              onClick={() => void form.handleSubmit()}
-              disabled={!canSubmit || isSubmitting || isOverrideDisabled}
-            >
-              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-              {isSubmitting ? 'Saving...' : 'Save All Settings'}
-            </Button>
-          )}
-        </form.Subscribe>
-      </div>
+      <form.Subscribe
+        selector={(st) =>
+          [st.canSubmit, st.isSubmitting, !st.isDefaultValue] as const
+        }
+      >
+        {([canSubmit, isSubmitting, dirty]) => (
+          <SaveBar
+            dirty={dirty && !isOverrideDisabled}
+            saving={isSubmitting}
+            canSave={canSubmit}
+            onSave={() => void form.handleSubmit()}
+            onDiscard={() => form.reset()}
+          />
+        )}
+      </form.Subscribe>
+
+      <QueueSettingsSection locationId={locationId} />
     </div>
   )
 }

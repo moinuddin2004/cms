@@ -26,10 +26,10 @@ import {
 } from '@/components/shared'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { cn } from '@/lib/utils'
 import { useAccess } from '@/features/access/hooks/useAccess'
 import { useVitals, useDentalInfo } from '../../hooks/usePatientSubEntities'
@@ -455,10 +455,13 @@ function RecordVitalsSheet({
             {fieldLabel}
           </Label>
           <div className="relative">
-            <Input
+            <NumberInput
               id={`vital-${name}`}
-              type="number"
-              inputMode="decimal"
+              mode={
+                ['temperature', 'weightKg', 'heightCm'].includes(name)
+                  ? 'decimal'
+                  : 'integer'
+              }
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}

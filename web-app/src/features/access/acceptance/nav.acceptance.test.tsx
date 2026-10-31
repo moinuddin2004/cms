@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 
 import { Sidebar } from '@/components/layout/Sidebar'
+import { useSettingsItems } from '@/features/settings/hooks/useSettingsItems'
 import { useUIStore } from '@/store/ui-store'
 import { useAuthStore } from '@/store/useAuthStore'
 import { AccessContext } from '../lib/access-context'
@@ -80,6 +81,17 @@ const hrefs = () =>
   )
 const nav = () => screen.getByRole('navigation', { name: 'Main' })
 
+/** Group headings of the settings pages the current actor may open. */
+function SettingsGroups() {
+  return (
+    <>
+      {useSettingsItems().map((g) => (
+        <h2 key={g.id}>{g.label}</h2>
+      ))}
+    </>
+  )
+}
+
 /** `staticData.can` of a route file, read from source (routes are the contract). */
 function routeCan(file: string): string | string[] {
   const src = readFileSync(join(__dirname, '../../../routes', file), 'utf8')
@@ -89,14 +101,16 @@ function routeCan(file: string): string | string[] {
 }
 
 describe('NAV — sidebar', () => {
-  it('NAV-01 default sidebar per role: only items whose `can` passes; empty groups/sections hidden; "Clinic setup" only for admin/owner', () => {
+  it('NAV-01 default sidebar per role: only items whose `can` passes; empty groups/sections hidden; clinic setup only in Settings, for admin/owner', () => {
     const seen: Record<string, (string | null)[]> = {}
     const sections: Record<string, boolean> = {}
     for (const actor of ['Doc1', 'RecU', 'AcctU', 'OwnerA', 'AdminU'] as ActorName[]) {
       const { unmount } = renderAs(actor, <Sidebar />)
       seen[actor] = hrefs()
-      sections[actor] = !!within(nav()).queryByText('Clinic setup')
       unmount()
+      const probe = renderAs(actor, <SettingsGroups />)
+      sections[actor] = !!screen.queryByText('Team & access')
+      probe.unmount()
     }
     // Doctor: own queue, patients, appointments; no billing, no setup.
     expect(seen.Doc1).toEqual(
@@ -104,19 +118,22 @@ describe('NAV — sidebar', () => {
     )
     expect(seen.Doc1).not.toContain('/billing')
     expect(seen.Doc1).not.toContain('/payroll')
-    expect(seen.Doc1).not.toContain('/admin/roles')
+    expect(seen.Doc1).not.toContain('/settings/roles')
     // Receptionist: billing desk yes; payroll / finance / roles no.
     expect(seen.RecU).toEqual(
       expect.arrayContaining(['/billing', '/patients', '/appointments']),
     )
-    for (const h of ['/payroll', '/finance', '/admin/roles', '/queue/doctor'])
+    for (const h of ['/payroll', '/finance', '/settings/roles', '/queue/doctor'])
       expect(seen.RecU).not.toContain(h)
     // Accountant: finance + invoices; no clinical queue.
     expect(seen.AcctU).toEqual(
       expect.arrayContaining(['/finance', '/invoices', '/billing']),
     )
     expect(seen.AcctU).not.toContain('/queue/doctor')
-    // Clinic setup: admin + owner only.
+    // Setup pages never sit in the sidebar…
+    for (const actor of Object.keys(seen))
+      expect(seen[actor].some((h) => h?.startsWith('/settings/'))).toBe(false)
+    // …and Settings shows clinic setup to admin + owner only.
     expect(sections).toEqual({
       Doc1: false,
       RecU: false,
@@ -232,8 +249,8 @@ describe('NAV — sidebar', () => {
 })
 
 describe('NAV — builder access', () => {
-  it('NAV-13 RecU opens /admin/navigation → NoAccess page; the owner gets the page', () => {
-    router.matches = [{ staticData: { can: routeCan('admin.navigation.tsx') } }]
+  it('NAV-13 RecU opens /settings/sidebar → NoAccess page; the owner gets the page', () => {
+    router.matches = [{ staticData: { can: routeCan('settings.sidebar.tsx') } }]
     const rec = renderAs(
       'RecU',
       <RouteAccessGate>

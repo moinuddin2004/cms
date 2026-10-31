@@ -1,12 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { LocationsPage } from '@/features/locations/pages/LocationsPage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/locations')({
-  staticData: { can: 'admin.locations.manage' },
-  component: () => (
-    <DashboardLayout>
-      <LocationsPage />
-    </DashboardLayout>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/locations', replace: true })
+  },
 })

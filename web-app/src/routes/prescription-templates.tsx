@@ -1,9 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PrintLayoutsPage } from '@/features/prescriptions/pages/PrintLayoutsPage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** Print layouts (letterhead, footer, paper). */
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/prescription-templates')({
-  // Doctors read the library; managers edit it.
-  staticData: { can: ['prescriptions.create', 'prescriptions.library.manage'] },
-  component: () => <PrintLayoutsPage />,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/prescription-templates', replace: true })
+  },
 })

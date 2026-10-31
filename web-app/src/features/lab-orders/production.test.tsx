@@ -175,18 +175,18 @@ describe('production schemas', () => {
       receiveLineSchema.safeParse({
         ...base,
         condition: 'missing',
-        receivedQty: 1,
+        receivedQty: '1',
       }).success,
     ).toBe(false)
     expect(
-      receiveLineSchema.safeParse({ ...base, condition: 'ok', receivedQty: 3 })
+      receiveLineSchema.safeParse({ ...base, condition: 'ok', receivedQty: '3' })
         .success,
     ).toBe(false)
     expect(
       receiveLineSchema.safeParse({
         ...base,
         condition: 'damaged',
-        receivedQty: 1,
+        receivedQty: '1',
       }).success,
     ).toBe(true)
   })
@@ -211,14 +211,14 @@ describe('production schemas', () => {
   it('receiving sends only ticked lines, without QC for missing ones', () => {
     const v = receiveDefaults(shipment)
     expect(v.lines[0].line).toMatchObject({
-      receivedQty: 2,
+      receivedQty: '2',
       condition: 'ok',
       qcResult: 'pass',
     })
     v.lines[0].line = {
       ...v.lines[0].line,
       condition: 'missing',
-      receivedQty: 0,
+      receivedQty: '0',
     }
     expect(toReceiveLines(v)).toEqual([
       { shipmentItemId: 'line1', receivedQty: 0, condition: 'missing' },

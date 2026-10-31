@@ -17,8 +17,9 @@ import {
   SIDEBAR_STYLE_LABEL,
   THEME_KEY_LABEL,
 } from '../types'
-import type { DefaultMode, SidebarStyle, ThemeKey } from '../types'
+import type { DarkBase, DefaultMode, SidebarStyle, ThemeKey } from '../types'
 import { BrandColorField } from './BrandColorField'
+import { DarkBaseField } from './DarkBaseField'
 import { LogoField } from './LogoField'
 
 type ThemeForm = ReturnType<typeof useThemeForm>['form']
@@ -183,6 +184,19 @@ export function ThemeControls({
           disabled={disabled}
           onChange={f.set}
         />
+      ))}
+      {row('dark_base', (f, disabled) => (
+        <form.Subscribe selector={(s) => s.values.values.brand_color}>
+          {(brandColor) => (
+            <DarkBaseField
+              id="theme-dark_base"
+              value={f.value as DarkBase}
+              brandColor={brandColor}
+              disabled={disabled}
+              onChange={f.set}
+            />
+          )}
+        </form.Subscribe>
       ))}
     </div>
   )

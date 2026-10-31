@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
@@ -284,7 +284,7 @@ function EditRow({
 }: {
   charge: Charge
   edit: {
-    quantity?: number
+    quantity?: string
     unitPrice?: string
     void?: boolean
     discountTypeId?: string | null
@@ -294,7 +294,7 @@ function EditRow({
   canVoid: boolean
   discountOptions: Array<{ value: string; label: string }>
   onChange: (patch: {
-    quantity?: number
+    quantity?: string
     unitPrice?: string
     void?: boolean
     discountTypeId?: string | null
@@ -318,19 +318,17 @@ function EditRow({
           <Money value={charge.allocatedAmount} />
         </div>
       </div>
-      <Input
+      <NumberInput
+        mode="integer"
         aria-label="Quantity"
-        type="number"
-        min={1}
         className="h-8"
         disabled={edit.void}
-        value={edit.quantity ?? charge.quantity}
-        onChange={(e) => onChange({ quantity: Number(e.target.value) })}
+        value={edit.quantity ?? String(charge.quantity)}
+        onChange={(e) => onChange({ quantity: e.target.value })}
       />
-      <Input
+      <NumberInput
         aria-label="Unit price"
-        inputMode="decimal"
-        className="h-8 text-right tabular-nums"
+        className="h-8 text-right"
         disabled={edit.void || !canPrice}
         value={edit.unitPrice ?? String(charge.unitPrice)}
         onChange={(e) => onChange({ unitPrice: e.target.value })}

@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
 import { fieldError } from '@/features/queue'
@@ -117,9 +118,8 @@ export function ServicePriceSheet({
                 required
                 error={fieldError(f)}
               >
-                <Input
+                <NumberInput
                   id="price-unit"
-                  inputMode="decimal"
                   disabled={started}
                   value={f.state.value}
                   onChange={(e) => f.handleChange(e.target.value)}
@@ -135,9 +135,8 @@ export function ServicePriceSheet({
                 htmlFor="price-rush"
                 error={fieldError(f)}
               >
-                <Input
+                <NumberInput
                   id="price-rush"
-                  inputMode="decimal"
                   disabled={started}
                   value={f.state.value}
                   onChange={(e) => f.handleChange(e.target.value)}

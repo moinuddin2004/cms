@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BarChart3 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   EmptyState,
@@ -147,20 +147,26 @@ function Aging() {
 
 function Monthly() {
   const [year, setYear] = useState(new Date().getFullYear())
+  // Typed text; the report only follows once it is a full year in range.
+  const [yearText, setYearText] = useState(String(year))
   const { data, isLoading, isError, refetch } = useMonthlyCostReport(year)
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <span className="text-sm text-text-3">Year</span>
-        <Input
+        <NumberInput
           aria-label="Year"
-          type="number"
+          mode="integer"
+          maxLength={4}
           className="h-9 w-28"
-          value={year}
+          value={yearText}
           onChange={(e) => {
+            setYearText(e.target.value)
             const y = Number(e.target.value)
-            if (y >= 2000 && y <= 2100) setYear(y)
+            if (e.target.value.length === 4 && y >= 2000 && y <= 2100)
+              setYear(y)
           }}
+          onBlur={() => setYearText(String(year))}
         />
       </div>
       {isLoading ? (

@@ -7,9 +7,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { useSalaryForm } from '../hooks/useSalaryForm'
 import { Loader2 } from 'lucide-react'
 import { activeCurrency } from '@/lib/currency'
@@ -59,8 +59,7 @@ export function UpdateSalaryModal({
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                     {activeCurrency()}
                   </span>
-                  <Input
-                    type="number"
+                  <NumberInput
                     className="pl-12"
                     placeholder="50000"
                     value={field.state.value}

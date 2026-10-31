@@ -19,6 +19,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Loader2 } from 'lucide-react'
 import { useCategories } from '../hooks/useCategories'
 import { useItemForm } from '../hooks/useItemForm'
@@ -54,11 +55,9 @@ export function ItemFormDialog({
           htmlFor={`item-${name}`}
           error={fieldError(f)}
         >
-          <Input
+          <NumberInput
             id={`item-${name}`}
-            type="number"
-            min={0}
-            step="0.01"
+            mode="decimal"
             value={f.state.value}
             onChange={(e) => f.handleChange(e.target.value)}
             onBlur={f.handleBlur}

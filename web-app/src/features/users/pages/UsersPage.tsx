@@ -12,8 +12,8 @@ export function UsersPage() {
 
   return (
     <PageWrapper
-      title="User Management"
-      subtitle="Manage system access across roles and organizations"
+      title="Users"
+      subtitle="Who can sign in, and to which clinic and location."
       actions={
         (isSuperAdmin || isOwner) && (
           <Button onClick={() => viewRef.current?.create()}>

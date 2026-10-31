@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   CalendarDays,
   LayoutDashboard,
@@ -41,16 +41,23 @@ export function ThemePreview({
 }) {
   const scope = useId().replace(/[^a-zA-Z0-9_-]/g, '')
   const [dark, setDark] = useState(false)
+  // Picking a dark base shows it straight away.
+  const lastDarkBase = useRef(values.dark_base)
+  useEffect(() => {
+    if (lastDarkBase.current === values.dark_base) return
+    lastDarkBase.current = values.dark_base
+    setDark(true)
+  }, [values.dark_base])
   const brand = isHexColor(values.brand_color)
     ? values.brand_color
     : DEFAULT_THEME.brand_color
   const css = useMemo(
     () =>
-      buildThemeCss(brand, {
+      buildThemeCss(brand, values.dark_base, {
         light: `[data-theme-preview='${scope}']`,
         dark: `.dark [data-theme-preview='${scope}'], [data-theme-preview='${scope}'].dark`,
       }),
-    [brand, scope],
+    [brand, values.dark_base, scope],
   )
   const mark = {
     app_name: values.app_name || inherited?.app_name || DEFAULT_THEME.app_name,

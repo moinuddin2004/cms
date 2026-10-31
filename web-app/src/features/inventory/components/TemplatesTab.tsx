@@ -35,6 +35,7 @@ import {
 import { Plus, Trash2, MoreHorizontal, Loader2 } from 'lucide-react'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { APPOINTMENT_TYPE_OPTIONS } from '@/features/appointments/types'
 import {
@@ -297,10 +298,8 @@ function TemplateFormDialog({
                           {(f) => (
                             <div className="w-24 space-y-1">
                               <Label className="text-xs">Qty</Label>
-                              <Input
-                                type="number"
-                                min={0.01}
-                                step="0.01"
+                              <NumberInput
+                                mode="decimal"
                                 value={f.state.value}
                                 onChange={(e) => f.handleChange(e.target.value)}
                                 onBlur={f.handleBlur}

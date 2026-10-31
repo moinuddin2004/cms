@@ -2,6 +2,7 @@ import { Loader2, PackageCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
 import { fieldError } from '@/features/queue'
 import { useReceiveShipmentForm } from '../../hooks/useProduction'
@@ -76,7 +77,7 @@ export function ReceiveShipmentForm({
                             f.handleChange(c)
                             form.setFieldValue(
                               `lines[${i}].line.receivedQty`,
-                              c === 'missing' ? 0 : l.line.quantity,
+                              c === 'missing' ? '0' : String(l.line.quantity),
                             )
                           }}
                           options={CONDITIONS}
@@ -90,16 +91,12 @@ export function ReceiveShipmentForm({
                           htmlFor={`rcv-qty-${i}`}
                           error={fieldError(f)}
                         >
-                          <Input
+                          <NumberInput
                             id={`rcv-qty-${i}`}
-                            type="number"
-                            min={0}
-                            max={l.line.quantity}
+                            mode="integer"
                             value={f.state.value}
                             disabled={l.line.condition === 'missing'}
-                            onChange={(e) =>
-                              f.handleChange(Number(e.target.value))
-                            }
+                            onChange={(e) => f.handleChange(e.target.value)}
                             onBlur={f.handleBlur}
                           />
                         </FieldWrapper>

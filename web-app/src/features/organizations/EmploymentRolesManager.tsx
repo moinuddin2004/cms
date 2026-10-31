@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card'
 
 /**
- * Roles moved to Clinic setup → Roles (`/admin/roles`): permission bundles
+ * Roles moved to Settings → Roles (`/settings/roles`): permission bundles
  * per module, scopes, home page and members. This card only points there.
  */
 export function EmploymentRolesManager() {
@@ -27,7 +27,7 @@ export function EmploymentRolesManager() {
       </CardHeader>
       <CardContent>
         <Button asChild variant="outline">
-          <Link to="/admin/roles">
+          <Link to="/settings/roles">
             Open roles <ArrowRight className="size-4" />
           </Link>
         </Button>

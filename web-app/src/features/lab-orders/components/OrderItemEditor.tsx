@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Loader2, Paperclip, Trash2 } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { FieldWrapper, FormSelect } from '@/components/shared'
 import { FileUploadField } from '@/components/shared/FileUploadField'
@@ -102,9 +102,9 @@ export function OrderItemEditor({
           )}
           {service.unitType !== 'per_tooth' && (
             <FieldWrapper label="Quantity" htmlFor={`qty-${index}`}>
-              <Input
+              <NumberInput
                 id={`qty-${index}`}
-                inputMode="numeric"
+                mode="integer"
                 value={value.quantity}
                 onChange={(e) =>
                   onChange({ ...value, quantity: e.target.value })

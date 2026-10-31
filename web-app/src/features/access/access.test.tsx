@@ -280,8 +280,7 @@ describe('resolveNav', () => {
       'Clinic',
       'Finance',
       'Team',
-      'Admin',
-      'Clinic setup',
+      'Platform',
     ])
   })
 

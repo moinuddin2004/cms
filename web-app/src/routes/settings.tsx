@@ -1,22 +1,7 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { SettingsPage } from '@/features/settings/pages/SettingsPage'
-import { useAuthStore } from '@/store/useAuthStore'
+import { createFileRoute } from '@tanstack/react-router'
+import { SettingsLayout } from '@/features/settings'
 
+/** Shell for every settings page (rail + page). */
 export const Route = createFileRoute('/settings')({
-  component: SettingsRouteComponent,
+  component: SettingsLayout,
 })
-
-function SettingsRouteComponent() {
-  const { accessToken } = useAuthStore()
-
-  if (!accessToken) {
-    return <Navigate to="/login" />
-  }
-
-  return (
-    <DashboardLayout>
-      <SettingsPage />
-    </DashboardLayout>
-  )
-}

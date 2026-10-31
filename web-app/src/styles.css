@@ -213,17 +213,19 @@
   --brand-soft: rgba(59, 130, 246, 0.16);
   --brand-text: #93c5fd;
 
-  /* ─── Surfaces & text (MedTrackr) ─── */
-  --surface: #1e293b;
-  --panel: #1e293b;
-  --panel-2: #334155;
-  --text: #f1f5f9;
-  --text-2: #cbd5e1;
-  --text-3: #94a3b8;
-  --border-soft: #1e293b;
+  /* ─── Surfaces & text (MedTrackr) ───
+     The default "Brand tint" dark base; the clinic theme replaces these
+     (features/theme/lib/dark-base.ts). */
+  --surface: #181c23;
+  --panel: #181c23;
+  --panel-2: #272b34;
+  --text: #f0f4fa;
+  --text-2: #ced1d7;
+  --text-3: #a0a3a9;
+  --border-soft: #181c23;
 
   /* ─── Shadcn Semantic ─── */
-  --background: #0f172a;
+  --background: #0e1219;
   --foreground: var(--text);
   --card: var(--surface);
   --card-foreground: var(--text);
@@ -231,15 +233,15 @@
   --popover-foreground: var(--text);
   --primary: var(--brand);
   --primary-foreground: #ffffff;
-  --secondary: #334155;
+  --secondary: #272b34;
   --secondary-foreground: var(--text);
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --muted: #181c23;
+  --muted-foreground: #a0a3a9;
+  --accent: #20242c;
   --accent-foreground: var(--text);
   --destructive: #f87171;
-  --border: #293548;
-  --input: #293548;
+  --border: #2a2e36;
+  --input: #2a2e36;
   --ring: var(--brand);
 
   /* ─── MedTrackr accent families ─── */
@@ -269,13 +271,13 @@
   --chart-5: #f87171;
 
   /* ─── Sidebar ─── */
-  --sidebar: #0b1120;
-  --sidebar-foreground: #cbd5e1;
+  --sidebar: #090c13;
+  --sidebar-foreground: #ced1d7;
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: var(--brand-soft);
   --sidebar-accent-foreground: var(--brand-text);
-  --sidebar-border: #1e293b;
+  --sidebar-border: #1b1f27;
   --sidebar-ring: var(--brand);
 
   /* ─── Brand ramp (blue) ─── */
@@ -314,111 +316,116 @@
   }
 }
 
-/* ── Sonner Toast — Branded overrides ──────────────────────────────── */
+/* ── Toasts (shadcn Sonner, components/shared/AppToaster) ────────────
+   A neutral card where the type shows at a glance: a solid icon chip, a
+   stripe on the left and a faint tint, all in the type's colour. */
 [data-sonner-toaster] {
-  --width: 360px;
+  --width: 380px;
 }
 
-[data-sonner-toast] {
+[data-sonner-toast][data-styled='true'] {
+  --toast-tone: var(--muted-foreground);
   border-radius: var(--radius-lg) !important;
-  border: 1px solid var(--border) !important;
-  background: var(--card) !important;
-  color: var(--foreground) !important;
-  box-shadow: var(--shadow-md) !important;
+  border: 1px solid
+    color-mix(in oklab, var(--toast-tone) 28%, var(--border)) !important;
+  background: color-mix(
+    in oklab,
+    var(--toast-tone) 7%,
+    var(--popover)
+  ) !important;
+  color: var(--popover-foreground) !important;
+  box-shadow:
+    inset 4px 0 0 var(--toast-tone),
+    var(--shadow-lg) !important;
   font-family: var(--font-sans) !important;
-  font-size: 0.875rem !important;
-  padding: 14px 16px !important;
-  gap: 10px !important;
+  padding: 12px 14px 12px 18px !important;
+  gap: 12px !important;
+  align-items: flex-start !important;
+}
+[data-sonner-toast][data-type='success'] {
+  --toast-tone: var(--emerald);
+}
+[data-sonner-toast][data-type='error'] {
+  --toast-tone: var(--danger);
+}
+[data-sonner-toast][data-type='warning'] {
+  --toast-tone: var(--amber);
+}
+[data-sonner-toast][data-type='info'],
+[data-sonner-toast][data-type='loading'] {
+  --toast-tone: var(--primary);
+}
+/* Room for the close button. */
+[data-sonner-toast]:has([data-close-button]) {
+  padding-right: 36px !important;
 }
 
-/* Title */
+/* Icon chip: solid type colour; the icon takes the page colour so it reads
+   in light and dark mode. */
+[data-sonner-toast] [data-icon] {
+  width: 26px !important;
+  height: 26px !important;
+  margin: 0 !important;
+  flex-shrink: 0;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 9999px;
+  background: var(--toast-tone);
+  color: var(--background) !important;
+}
+
+[data-sonner-toast] [data-content] {
+  gap: 2px !important;
+  padding-top: 3px;
+}
 [data-sonner-toast] [data-title] {
   font-weight: 600 !important;
   font-size: 0.875rem !important;
-  color: var(--foreground) !important;
+  line-height: 1.35 !important;
+  letter-spacing: -0.01em;
+  color: var(--popover-foreground) !important;
 }
-
-/* Description */
 [data-sonner-toast] [data-description] {
   font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
   color: var(--muted-foreground) !important;
 }
 
-/* Close button */
+/* Close button: top-right, quiet until hovered. */
 [data-sonner-toast] [data-close-button] {
-  background: var(--muted) !important;
-  border: 1px solid var(--border) !important;
+  left: auto !important;
+  right: 8px !important;
+  top: 8px !important;
+  transform: none !important;
+  width: 22px !important;
+  height: 22px !important;
+  background: transparent !important;
+  border: none !important;
   color: var(--muted-foreground) !important;
   border-radius: var(--radius-sm) !important;
-  top: 10px !important;
-  right: 10px !important;
 }
 [data-sonner-toast] [data-close-button]:hover {
   background: var(--accent) !important;
   color: var(--foreground) !important;
 }
 
-/* ── SUCCESS — emerald soft ── */
-[data-sonner-toast][data-type='success'] {
-  background: var(--emerald-soft) !important;
-  border-color: var(--emerald) !important;
-  border-left: 4px solid var(--emerald) !important;
+/* Action / cancel buttons. */
+[data-sonner-toast] [data-button] {
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  align-self: center;
 }
-[data-sonner-toast][data-type='success'] [data-title] {
-  color: var(--emerald) !important;
+[data-sonner-toast] [data-button][data-action] {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
 }
-[data-sonner-toast][data-type='success'] svg {
-  color: var(--emerald) !important;
-}
-
-/* ── ERROR — danger soft ── */
-[data-sonner-toast][data-type='error'] {
-  background: var(--danger-soft) !important;
-  border-color: var(--danger) !important;
-  border-left: 4px solid var(--danger) !important;
-}
-[data-sonner-toast][data-type='error'] [data-title] {
-  color: var(--danger) !important;
-}
-[data-sonner-toast][data-type='error'] svg {
-  color: var(--danger) !important;
-}
-
-/* ── WARNING — amber soft ── */
-[data-sonner-toast][data-type='warning'] {
-  background: var(--amber-soft) !important;
-  border-color: var(--amber) !important;
-  border-left: 4px solid var(--amber) !important;
-}
-[data-sonner-toast][data-type='warning'] [data-title] {
-  color: var(--amber) !important;
-}
-[data-sonner-toast][data-type='warning'] svg {
-  color: var(--amber) !important;
-}
-
-/* ── INFO / DEFAULT — brand primary soft ── */
-[data-sonner-toast][data-type='info'],
-[data-sonner-toast][data-type='default'] {
-  background: var(--primary-soft) !important;
-  border-color: var(--primary) !important;
-  border-left: 4px solid var(--primary) !important;
-}
-[data-sonner-toast][data-type='info'] [data-title],
-[data-sonner-toast][data-type='default'] [data-title] {
-  color: var(--primary-text) !important;
-}
-[data-sonner-toast][data-type='info'] svg,
-[data-sonner-toast][data-type='default'] svg {
-  color: var(--primary) !important;
-}
-
-/* ── Dark mode adjustments ── */
-.dark [data-sonner-toast][data-type='success'] [data-description],
-.dark [data-sonner-toast][data-type='error'] [data-description],
-.dark [data-sonner-toast][data-type='warning'] [data-description],
-.dark [data-sonner-toast][data-type='info'] [data-description] {
-  color: var(--text-3) !important;
+[data-sonner-toast] [data-button][data-cancel] {
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
 }
 
 /* Scrollbar styling */
@@ -445,7 +452,7 @@
    then a soft brand glow brings the hue back at the top. */
 .auth-brand-surface {
   color: #fff;
-  background-color: color-mix(in oklab, var(--primary) 62%, #0a0f1c);
+  background-color: color-mix(in oklab, var(--primary) 62%, #0c0c0e);
   background-image:
     radial-gradient(
       120% 90% at 10% 0%,
@@ -572,15 +579,16 @@ select:-webkit-autofill {
 :root[data-sidebar-style='dark'] aside.bg-sidebar,
 [data-sidebar-preview='dark'] {
   color-scheme: dark;
-  --sidebar: #0b1120;
-  --sidebar-border: #1e293b;
-  --border: #1e293b;
+  /* --base-* come from the clinic's dark base (features/theme). */
+  --sidebar: var(--base-sidebar, #0b1120);
+  --sidebar-border: var(--base-sidebar-border, #1e293b);
+  --border: var(--sidebar-border);
   --foreground: #f1f5f9;
   --text-2: #cbd5e1;
   --text-3: #94a3b8;
   --muted-foreground: #94a3b8;
-  --panel: #1e293b;
-  --accent: #1e293b;
+  --panel: var(--base-sidebar-panel, #1e293b);
+  --accent: var(--panel);
   --primary-soft: color-mix(in oklab, var(--brand) 24%, transparent);
   --primary-text: #ffffff;
 }

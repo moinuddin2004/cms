@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
 import { OptionSelect } from '../shared/OptionSelect'
@@ -92,9 +92,7 @@ export function CommissionRulesEditor({
             ))}
           </div>
           <div className="space-y-1">
-            <Input
-              inputMode="decimal"
-              className="tabular-nums"
+            <NumberInput
               aria-label={row.mode === 'percent' ? 'Percent' : 'Fixed amount'}
               placeholder={row.mode === 'percent' ? 'e.g. 40' : 'e.g. 500'}
               value={row.value}

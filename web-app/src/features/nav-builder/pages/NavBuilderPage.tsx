@@ -35,7 +35,7 @@ const HOME_OPTIONS = ARRANGEABLE_KEYS.map((key) => registry[key]!)
   .filter((d) => !d.superAdminOnly && !d.labMember && d.href !== '/dashboard')
   .map((d) => ({ href: d.href, label: d.label }))
 
-/** `/admin/navigation` — the clinic's sidebar: rename, hide, reorder. */
+/** `/settings/sidebar` — the clinic's sidebar: rename, hide, reorder. */
 export function NavBuilderPage() {
   const orgId = useAuthStore((s) => s.activeOrganizationId)
   const query = useClinicNavLayout(orgId)

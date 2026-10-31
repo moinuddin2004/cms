@@ -5,8 +5,17 @@ const { ORG, LOCATION } = ConfigScope;
 
 /**
  * Theme keys (design doc, decision 6: logo, name, brand colour, sidebar
- * style and default mode only — no font, radius or density).
+ * style and default mode only — no font, radius or density), plus the dark
+ * mode base palette picked from a fixed set of presets.
  */
+export const DARK_BASES = [
+  'tinted',
+  'graphite',
+  'midnight',
+  'stone',
+  'black',
+] as const;
+
 export const THEME_SETTINGS = {
   appName: defineSetting('theme.app_name', {
     schema: s.string({ min: 1, max: 60 }),
@@ -50,6 +59,12 @@ export const THEME_SETTINGS = {
     scopes: [ORG],
     lockable: true,
   }),
+  darkBase: defineSetting('theme.dark_base', {
+    schema: s.oneOf(DARK_BASES),
+    default: 'tinted',
+    scopes: [ORG],
+    lockable: true,
+  }),
 };
 
 export const THEME_KEYS = Object.values(THEME_SETTINGS).map((d) => d.key);
@@ -63,6 +78,7 @@ export interface ResolvedTheme {
   brand_color: string;
   sidebar_style: 'light' | 'dark' | 'brand';
   default_mode: 'light' | 'dark' | 'system';
+  dark_base: (typeof DARK_BASES)[number];
 }
 
 export const shortThemeKey = (key: string) => key.replace(/^theme\./, '');

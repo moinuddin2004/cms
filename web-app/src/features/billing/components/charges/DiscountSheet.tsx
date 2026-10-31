@@ -3,7 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
@@ -99,10 +99,8 @@ export function DiscountSheet({
           htmlFor="discount-value"
           error={fieldError(field)}
         >
-          <Input
+          <NumberInput
             id="discount-value"
-            inputMode="decimal"
-            className="tabular-nums"
             placeholder={placeholder}
             value={field.state.value}
             onChange={(e) => field.handleChange(e.target.value)}

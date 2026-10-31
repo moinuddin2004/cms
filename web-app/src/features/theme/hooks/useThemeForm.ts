@@ -34,6 +34,7 @@ export function themeFormDefaults(
       default_mode: value(
         'default_mode',
       ) as ThemeFormValues['values']['default_mode'],
+      dark_base: value('dark_base') as ThemeFormValues['values']['dark_base'],
     },
     locks,
   }

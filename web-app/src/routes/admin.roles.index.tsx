@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { RolesPage } from '@/features/roles'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/admin/roles/')({
-  staticData: { can: 'admin.roles.manage' },
-  component: RolesPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/roles', replace: true })
+  },
 })

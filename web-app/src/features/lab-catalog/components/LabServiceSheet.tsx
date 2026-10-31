@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Textarea } from '@/components/ui/textarea'
 import {
   FieldWrapper,
@@ -160,9 +161,9 @@ export function LabServiceSheet({
                     required
                     error={fieldError(f)}
                   >
-                    <Input
+                    <NumberInput
                       id="svc-days"
-                      inputMode="numeric"
+                      mode="integer"
                       value={f.state.value}
                       onChange={(e) => f.handleChange(e.target.value)}
                       onBlur={f.handleBlur}

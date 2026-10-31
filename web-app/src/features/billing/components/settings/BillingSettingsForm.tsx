@@ -4,6 +4,8 @@ import { Loader2, Lock, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SectionCard } from '../shared/billing-ui'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
+import { toInputValue, toNumber } from '@/lib/zod-numbers'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
@@ -29,7 +31,7 @@ const FORMATS = [
 
 const EMPTY: BillingSettingsValues = {
   documentCode: '',
-  dueDays: 7,
+  dueDays: '7',
   invoicePrintFormat: 'A4',
   receiptPrintFormat: 'A4',
   showLogo: true,
@@ -43,7 +45,7 @@ const EMPTY: BillingSettingsValues = {
 
 const toValues = (s: BillingSettings): BillingSettingsValues => ({
   documentCode: s.documentCode ?? '',
-  dueDays: s.dueDays,
+  dueDays: toInputValue(s.dueDays),
   invoicePrintFormat: s.invoicePrintFormat,
   receiptPrintFormat: s.receiptPrintFormat,
   showLogo: s.showLogo,
@@ -66,7 +68,7 @@ export function BillingSettingsForm() {
         ...(settings.data?.documentCodeLocked
           ? {}
           : { documentCode: v.documentCode }),
-        dueDays: v.dueDays,
+        dueDays: toNumber(v.dueDays),
         invoicePrintFormat: v.invoicePrintFormat,
         receiptPrintFormat: v.receiptPrintFormat,
         showLogo: v.showLogo,
@@ -169,13 +171,11 @@ export function BillingSettingsForm() {
                 htmlFor="due-days"
                 error={fieldError(f)}
               >
-                <Input
+                <NumberInput
+                  mode="integer"
                   id="due-days"
-                  type="number"
-                  min={0}
-                  max={365}
                   value={f.state.value}
-                  onChange={(e) => f.handleChange(Number(e.target.value))}
+                  onChange={(e) => f.handleChange(e.target.value)}
                   onBlur={f.handleBlur}
                 />
               </FieldWrapper>
@@ -251,10 +251,8 @@ export function BillingSettingsForm() {
                 htmlFor="variance-alert"
                 error={fieldError(f)}
               >
-                <Input
+                <NumberInput
                   id="variance-alert"
-                  inputMode="decimal"
-                  className="tabular-nums"
                   value={f.state.value}
                   onChange={(e) => f.handleChange(e.target.value)}
                   onBlur={f.handleBlur}

@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { FeatureSettingsPage } from '@/features/feature-settings'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/admin/features')({
-  staticData: { can: 'admin.features.manage' },
-  component: FeatureSettingsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/features', replace: true })
+  },
 })

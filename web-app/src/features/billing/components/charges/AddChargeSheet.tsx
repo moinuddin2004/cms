@@ -3,6 +3,8 @@ import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
+import { toNumber } from '@/lib/zod-numbers'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { OptionSelect } from '../shared/OptionSelect'
@@ -19,7 +21,7 @@ const EMPTY: ManualChargeValues = {
   kind: 'service',
   serviceId: '',
   description: '',
-  quantity: 1,
+  quantity: '1',
   unitPrice: '',
 }
 
@@ -37,7 +39,7 @@ export function AddChargeSheet({
   const add = useBillingMutation(
     (v: ManualChargeValues) =>
       chargesApi.addManual(patientId, {
-        quantity: v.quantity,
+        quantity: toNumber(v.quantity),
         ...(v.kind === 'service'
           ? { serviceId: v.serviceId }
           : {
@@ -169,10 +171,8 @@ export function AddChargeSheet({
                       required
                       error={fieldError(field)}
                     >
-                      <Input
+                      <NumberInput
                         id="charge-price"
-                        inputMode="decimal"
-                        className="tabular-nums"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
@@ -192,12 +192,11 @@ export function AddChargeSheet({
               htmlFor="charge-qty"
               error={fieldError(field)}
             >
-              <Input
+              <NumberInput
+                mode="integer"
                 id="charge-qty"
-                type="number"
-                min={1}
                 value={field.state.value}
-                onChange={(e) => field.handleChange(Number(e.target.value))}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
               />
             </FieldWrapper>

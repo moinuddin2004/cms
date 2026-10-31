@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
@@ -48,9 +48,9 @@ export function OrganizationSettingsFeature({
           htmlFor={`org-${name}`}
           error={fieldError(field)}
         >
-          <Input
+          <NumberInput
             id={`org-${name}`}
-            type="number"
+            mode="integer"
             value={field.state.value}
             onChange={(e) => field.handleChange(e.target.value)}
             onBlur={field.handleBlur}

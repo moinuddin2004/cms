@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Percent, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Can } from '@/features/access'
 import { formatDate } from '@/lib/formatters'
@@ -163,10 +163,9 @@ function ChargeLine({ charge }: { charge: Charge }) {
         )}
       </div>
       {state.mode === 'MANUAL' && checked && (
-        <Input
+        <NumberInput
           aria-label={`Pay now for ${charge.description}`}
-          inputMode="decimal"
-          className="h-8 w-24 text-right tabular-nums"
+          className="h-8 w-24 text-right"
           value={state.manual[charge.id] ?? ''}
           onChange={(e) =>
             dispatch({

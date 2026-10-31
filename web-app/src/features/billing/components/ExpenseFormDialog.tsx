@@ -19,6 +19,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Loader2, Plus } from 'lucide-react'
 import { expenseDefaults, useExpenseForm } from '../hooks/useExpenseForm'
 import { ExpenseCategory, PaymentMethod } from '../types'
@@ -88,11 +89,8 @@ export function ExpenseFormDialog() {
                   htmlFor="expense-amount"
                   error={fieldError(field)}
                 >
-                  <Input
+                  <NumberInput
                     id="expense-amount"
-                    type="number"
-                    min={0}
-                    step="0.01"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}

@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { toInputValue, toNumber, toNumberOrNull } from '@/lib/zod-numbers'
 import { planTemplateSchema } from '../schemas/planTemplate.schema'
 import type {
   PlanTemplateFormValues,
@@ -9,7 +10,7 @@ import type { PlanTemplate, PlanTemplateInput } from '../types'
 
 export const emptyPlanTemplateItem = (): PlanTemplateItemValues => ({
   procedureName: '',
-  estimatedSessions: 1,
+  estimatedSessions: '1',
   estimatedCost: '',
 })
 
@@ -21,8 +22,8 @@ function defaultsFor(template: PlanTemplate | null): PlanTemplateFormValues {
     items: template?.items.length
       ? template.items.map((i) => ({
           procedureName: i.procedureName,
-          estimatedSessions: i.estimatedSessions,
-          estimatedCost: i.estimatedCost == null ? '' : String(i.estimatedCost),
+          estimatedSessions: toInputValue(i.estimatedSessions),
+          estimatedCost: toInputValue(i.estimatedCost),
         }))
       : [emptyPlanTemplateItem()],
   }
@@ -48,12 +49,8 @@ export function usePlanTemplateForm({
           .filter((i) => i.procedureName.trim())
           .map((i) => ({
             procedureName: i.procedureName.trim(),
-            estimatedSessions: Math.max(
-              1,
-              Math.round(i.estimatedSessions) || 1,
-            ),
-            estimatedCost:
-              i.estimatedCost.trim() === '' ? null : Number(i.estimatedCost),
+            estimatedSessions: toNumber(i.estimatedSessions) || 1,
+            estimatedCost: toNumberOrNull(i.estimatedCost),
             notes: null,
           })),
       })

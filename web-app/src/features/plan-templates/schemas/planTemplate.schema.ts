@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { intField, moneyField } from '@/lib/zod-numbers'
 import { PlanTemplateCategory } from '../types'
 
 const max = (n: number) => z.string().max(n, `At most ${n} characters`)
@@ -6,18 +7,10 @@ const max = (n: number) => z.string().max(n, `At most ${n} characters`)
 /** One procedure row. Blank rows are allowed and dropped on save. */
 const itemSchema = z.object({
   procedureName: max(200),
-  estimatedSessions: z
-    .number()
-    .int('Whole sessions only')
-    .min(1, 'At least 1 session'),
+  /** '' = 1 session. */
+  estimatedSessions: intField('Sessions', { min: 1, required: false }),
   /** '' = not set. */
-  estimatedCost: z
-    .string()
-    .trim()
-    .refine(
-      (v) => !v || (Number.isFinite(Number(v)) && Number(v) >= 0),
-      'Enter a valid fee',
-    ),
+  estimatedCost: moneyField('Fee', { required: false }),
 })
 
 /** Create / edit a treatment plan template. */

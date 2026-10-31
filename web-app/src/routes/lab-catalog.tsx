@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { LabCatalogPage } from '@/features/lab-catalog'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** The clinic's lab price list and treatment mappings. */
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/lab-catalog')({
-  staticData: { can: 'lab.catalog.manage' },
-  component: () => <LabCatalogPage />,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/lab-catalog', replace: true })
+  },
 })

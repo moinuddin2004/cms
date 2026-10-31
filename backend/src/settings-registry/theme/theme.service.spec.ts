@@ -22,6 +22,7 @@ const actor: ActorRef = { userId: 'u', side: ActorSide.CLINIC };
 const THEME_FIELDS = [
   'app_name',
   'brand_color',
+  'dark_base',
   'default_mode',
   'favicon_url',
   'logo_dark_url',

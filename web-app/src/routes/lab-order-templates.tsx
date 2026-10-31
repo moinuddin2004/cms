@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { OrderTemplatesPage } from '@/features/lab-catalog'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** Saved lab orders — every clinic role (doctors keep their own). */
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/lab-order-templates')({
-  staticData: { can: 'lab.orders.create' },
-  component: () => <OrderTemplatesPage />,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/lab-order-templates', replace: true })
+  },
 })

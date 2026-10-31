@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
+import { toInputValue, toNumber } from '@/lib/zod-numbers'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/features/queue/utils/fieldError'
@@ -34,13 +35,13 @@ export function EditChargeSheet({
   const save = useBillingMutation(
     (v: EditChargeValues) =>
       chargesApi.update((charge as Charge).id, {
-        quantity: v.quantity,
+        quantity: toNumber(v.quantity),
         ...(canPrice ? { unitPrice: toAmount(v.unitPrice) } : {}),
       }),
     { success: 'Charge updated' },
   )
   const form = useForm({
-    defaultValues: { quantity: 1, unitPrice: '0' } as EditChargeValues,
+    defaultValues: { quantity: '1', unitPrice: '0' } as EditChargeValues,
     validators: { onChange: editChargeSchema, onSubmit: editChargeSchema },
     onSubmit: async ({ value }) => {
       await save.mutateAsync(value)
@@ -51,7 +52,7 @@ export function EditChargeSheet({
   useEffect(() => {
     if (open && charge)
       form.reset({
-        quantity: charge.quantity,
+        quantity: toInputValue(charge.quantity),
         unitPrice: String(charge.unitPrice),
       })
   }, [open, charge, form])
@@ -92,12 +93,11 @@ export function EditChargeSheet({
               htmlFor="edit-qty"
               error={fieldError(field)}
             >
-              <Input
+              <NumberInput
+                mode="integer"
                 id="edit-qty"
-                type="number"
-                min={1}
                 value={field.state.value}
-                onChange={(e) => field.handleChange(Number(e.target.value))}
+                onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
               />
             </FieldWrapper>
@@ -115,10 +115,8 @@ export function EditChargeSheet({
                   : 'Catalog price — give a discount instead.'
               }
             >
-              <Input
+              <NumberInput
                 id="edit-price"
-                inputMode="decimal"
-                className="tabular-nums"
                 disabled={!canPrice}
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}

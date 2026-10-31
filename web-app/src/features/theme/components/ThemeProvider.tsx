@@ -31,6 +31,7 @@ export function normalizeTheme(
         : DEFAULT_THEME.brand_color,
     sidebar_style: t?.sidebar_style ?? DEFAULT_THEME.sidebar_style,
     default_mode: t?.default_mode ?? DEFAULT_THEME.default_mode,
+    dark_base: t?.dark_base ?? DEFAULT_THEME.dark_base,
   }
 }
 
@@ -103,7 +104,7 @@ export function ThemeProvider() {
     if (!withOrg || !current.data) return
     const fresh = normalizeTheme(current.data)
     cacheTheme(fresh)
-    cacheThemeCss(buildThemeCss(fresh.brand_color))
+    cacheThemeCss(buildThemeCss(fresh.brand_color, fresh.dark_base))
   }, [withOrg, current.data])
 
   return null

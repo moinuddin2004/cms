@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { moneyField } from '@/lib/zod-numbers'
 
 /**
  * Zod schema for the "add treatment" form. A treatment always needs a name and
@@ -14,17 +15,7 @@ export const treatmentSchema = z.object({
     .min(1, 'Treatment name is required')
     .max(200, 'At most 200 characters'),
   notes: z.string(),
-  cost: z.string().superRefine((v, ctx) => {
-    const s = v.trim()
-    if (!s) return
-    if (s.startsWith('-') && Number.isFinite(Number(s))) {
-      ctx.addIssue({ code: 'custom', message: 'Cost cannot be negative' })
-    } else if (!/^\d*\.?\d+$/.test(s)) {
-      ctx.addIssue({ code: 'custom', message: 'Enter a valid amount' })
-    } else if (!/^\d*(\.\d{1,2})?$/.test(s)) {
-      ctx.addIssue({ code: 'custom', message: 'At most 2 decimal places' })
-    }
-  }),
+  cost: moneyField('Cost', { required: false }),
   date: z.string().min(1, 'Date is required'),
   encounterId: z.string(),
 })

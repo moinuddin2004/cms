@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
@@ -151,10 +152,9 @@ export function RefundSheet({
                   required
                   error={fieldError(field)}
                 >
-                  <Input
+                  <NumberInput
                     id="refund-amount"
-                    inputMode="decimal"
-                    className="text-right tabular-nums"
+                    className="text-right"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}

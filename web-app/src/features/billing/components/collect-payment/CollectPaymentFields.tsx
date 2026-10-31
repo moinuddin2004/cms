@@ -1,4 +1,5 @@
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
@@ -22,10 +23,9 @@ export function CollectPaymentFields() {
           htmlFor="collect-amount"
           error={amountInvalid ? 'Enter an amount (max 2 decimals)' : undefined}
         >
-          <Input
+          <NumberInput
             id="collect-amount"
-            inputMode="decimal"
-            className="h-11 text-right text-lg font-semibold tabular-nums"
+            className="h-11 text-right text-lg font-semibold"
             value={state.amount}
             onChange={(e) =>
               dispatch({ type: 'amount', amount: e.target.value })

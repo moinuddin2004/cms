@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
 import { fieldError } from '@/features/queue'
 import { useServiceOptionForm } from '../hooks/useServiceOptionForm'
@@ -128,9 +129,8 @@ export function ServiceOptionSheet({
               required
               error={fieldError(f)}
             >
-              <Input
+              <NumberInput
                 id="opt-cost"
-                inputMode="decimal"
                 value={f.state.value}
                 onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}

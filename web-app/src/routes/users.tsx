@@ -1,12 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { UsersPage } from '@/features/users/pages/UsersPage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/users')({
-  staticData: { can: 'admin.users.manage' },
-  component: () => (
-    <DashboardLayout>
-      <UsersPage />
-    </DashboardLayout>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/users', replace: true })
+  },
 })

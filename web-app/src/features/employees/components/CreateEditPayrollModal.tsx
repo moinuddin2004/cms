@@ -20,6 +20,7 @@ import {
 import { Loader2 } from 'lucide-react'
 import { useEmployees } from '../hooks/useEmployees'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { usePayrollForm } from '../hooks/usePayrollForm'
 import { PAYROLL_STATUS_OPTIONS } from '../types'
 import type { PayrollStatus, PayrollRecord } from '../types'
@@ -195,10 +196,7 @@ export function CreateEditPayrollModal({
               {(field) => (
                 <div className="space-y-2">
                   <Label>Amount</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
+                  <NumberInput
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}

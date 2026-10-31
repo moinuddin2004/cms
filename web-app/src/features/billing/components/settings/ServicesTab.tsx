@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import type { ColumnDef } from '@/components/shared/table-features'
 import { DataTable } from '@/components/shared/DataTable'
@@ -324,10 +325,8 @@ function ServiceSheet({
               required
               error={fieldError(f)}
             >
-              <Input
+              <NumberInput
                 id="svc-price"
-                inputMode="decimal"
-                className="tabular-nums"
                 value={f.state.value}
                 onChange={(e) => f.handleChange(e.target.value)}
                 onBlur={f.handleBlur}
@@ -436,11 +435,10 @@ function PriceOverrides({ services }: { services: CatalogService[] }) {
               setDraft((d) => ({ ...d, doctorId: v === 'ALL' ? '' : v }))
             }
           />
-          <Input
+          <NumberInput
             aria-label="Override price"
             placeholder="Price (Rs)"
-            inputMode="decimal"
-            className="h-8 w-28 text-xs tabular-nums"
+            className="h-8 w-28 text-xs"
             value={draft.price}
             onChange={(e) => setDraft((d) => ({ ...d, price: e.target.value }))}
           />

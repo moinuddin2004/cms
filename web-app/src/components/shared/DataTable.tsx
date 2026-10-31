@@ -144,13 +144,13 @@ function DataTableInner<TData extends RowData>({
       {toolbar && <div className="flex items-center gap-3">{toolbar}</div>}
 
       {/* Table */}
-      <div className="rounded-xl border border-border overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+      <div className="rounded-xl border border-border overflow-hidden bg-card shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800"
+                className="bg-muted dark:bg-accent/60 hover:bg-muted dark:hover:bg-accent/60 border-b border-border"
               >
                 {headerGroup.headers.map((header) => {
                   const canSort = header.column.getCanSort()
@@ -158,9 +158,9 @@ function DataTableInner<TData extends RowData>({
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'h-10 px-4 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500 dark:text-slate-400 select-none whitespace-nowrap',
+                        'h-10 px-4 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground select-none whitespace-nowrap',
                         canSort &&
-                          'group cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors',
+                          'group cursor-pointer hover:text-foreground transition-colors',
                       )}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                     >
@@ -180,7 +180,7 @@ function DataTableInner<TData extends RowData>({
           <TableBody>
             {isLoading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
-                <TableRow key={i} className="border-b border-slate-100 dark:border-slate-800">
+                <TableRow key={i} className="border-b border-border-soft dark:border-border">
                   {columns.map((_, j) => (
                     <TableCell key={j} className="px-4 py-3">
                       <Skeleton className="h-5 w-full rounded" />
@@ -193,7 +193,7 @@ function DataTableInner<TData extends RowData>({
                 <TableRow
                   key={row.id}
                   className={cn(
-                    'border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors',
+                    'border-b border-border-soft dark:border-border hover:bg-muted dark:hover:bg-accent/50 transition-colors',
                     onRowClick && 'cursor-pointer',
                     getRowClassName?.(row.original),
                   )}

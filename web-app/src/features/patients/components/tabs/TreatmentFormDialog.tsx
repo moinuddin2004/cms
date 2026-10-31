@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Loader2, Plus } from 'lucide-react'
 import { usePatientHistory } from '../../hooks/usePatientSubEntities'
 import { useTreatmentForm } from '../../hooks/useTreatmentForm'
@@ -169,10 +170,7 @@ export function TreatmentFormDialog({
               {(field) => (
                 <div className="space-y-2">
                   <Label>Cost (Rs.)</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
+                  <NumberInput
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}

@@ -5,7 +5,8 @@ import type { Charge, InvoiceEditOp } from '../../types/billing.types'
  * changed; `toOperations` turns it into the server's command list.
  */
 export interface ChargeEdit {
-  quantity?: number
+  /** As typed in the NumberInput; only a whole number 1–999 is sent. */
+  quantity?: string
   unitPrice?: string
   void?: boolean
   /** string = discount type id; null = remove the current discount. */
@@ -61,6 +62,8 @@ export function editInvoiceReducer(
 }
 
 const isPrice = (v: string) => /^\d+(\.\d{1,2})?$/.test(v.trim())
+const isQuantity = (v: string) =>
+  /^\d+$/.test(v.trim()) && Number(v) >= 1 && Number(v) <= 999
 
 /** Only real changes become commands; invalid typed prices are skipped. */
 export function toOperations(
@@ -77,10 +80,14 @@ export function toOperations(
     }
     if (
       e.quantity !== undefined &&
-      e.quantity >= 1 &&
-      e.quantity !== c.quantity
+      isQuantity(e.quantity) &&
+      Number(e.quantity) !== c.quantity
     ) {
-      ops.push({ op: 'updateQuantity', chargeId: c.id, quantity: e.quantity })
+      ops.push({
+        op: 'updateQuantity',
+        chargeId: c.id,
+        quantity: Number(e.quantity),
+      })
     }
     if (
       e.unitPrice !== undefined &&

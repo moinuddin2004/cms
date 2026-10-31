@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ThemeBuilderPage } from '@/features/theme'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/admin/theme')({
-  staticData: { can: 'admin.theme.manage' },
-  component: ThemeBuilderPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/theme', replace: true })
+  },
 })

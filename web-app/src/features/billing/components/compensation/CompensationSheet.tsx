@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { DatePicker } from '@/components/shared/DatePicker'
@@ -183,10 +183,8 @@ export function CompensationSheet({
                       required
                       error={fieldError(field)}
                     >
-                      <Input
+                      <NumberInput
                         id="comp-salary"
-                        inputMode="decimal"
-                        className="tabular-nums"
                         value={field.state.value}
                         onChange={(e) => field.handleChange(e.target.value)}
                         onBlur={field.handleBlur}
@@ -206,10 +204,8 @@ export function CompensationSheet({
                           required
                           error={fieldError(field)}
                         >
-                          <Input
+                          <NumberInput
                             id="comp-rate"
-                            inputMode="decimal"
-                            className="tabular-nums"
                             placeholder="e.g. 40"
                             value={field.state.value}
                             onChange={(e) => field.handleChange(e.target.value)}

@@ -1,11 +1,12 @@
 import { useForm } from '@tanstack/react-form'
+import { toInputValue, toNumber } from '@/lib/zod-numbers'
 import {
   setupClinicSchema,
   setupLocationSchema,
 } from '../schemas/account.schema'
 import type {
   SetupClinicInput,
-  SetupLocationInput,
+  SetupLocationFormValues,
 } from '../schemas/account.schema'
 import type { ClinicSetup } from '../types'
 import { useSaveSetupClinic, useSaveSetupLocation } from './useAccount'
@@ -25,7 +26,7 @@ export function clinicDefaults(setup: ClinicSetup | undefined): SetupClinicInput
 
 export function locationDefaults(
   setup: ClinicSetup | undefined,
-): SetupLocationInput {
+): SetupLocationFormValues {
   const l = setup?.location
   return {
     name: l?.name ?? setup?.clinic.name ?? '',
@@ -33,7 +34,7 @@ export function locationDefaults(
     city: l?.city ?? '',
     phone: l?.phone ?? setup?.clinic.phone ?? '',
     email: l?.email ?? '',
-    taxRate: l?.taxRate ?? 0,
+    taxRate: toInputValue(l?.taxRate ?? 0),
   }
 }
 
@@ -46,11 +47,13 @@ export function useSetupClinicForm(
   const form = useForm({
     defaultValues: clinicDefaults(setup),
     validators: { onChange: setupClinicSchema, onSubmit: setupClinicSchema },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value, formApi }) => {
       await save.mutateAsync({
         ...value,
         currency: value.currency.toUpperCase(),
       })
+      // Saved values become the new baseline (settings: hides the save bar).
+      formApi.reset(value)
       onSaved()
     },
   })
@@ -70,7 +73,7 @@ export function useSetupLocationForm(
       onSubmit: setupLocationSchema,
     },
     onSubmit: async ({ value }) => {
-      await save.mutateAsync(value)
+      await save.mutateAsync({ ...value, taxRate: toNumber(value.taxRate) })
       onSaved()
     },
   })

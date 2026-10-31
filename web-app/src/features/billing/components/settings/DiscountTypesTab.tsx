@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/shared/MultiSelect'
 import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Switch } from '@/components/ui/switch'
 import type { ColumnDef } from '@/components/shared/table-features'
 import { DataTable } from '@/components/shared/DataTable'
@@ -304,10 +305,8 @@ function DiscountTypeSheet({
           required={required}
           error={fieldError(f)}
         >
-          <Input
+          <NumberInput
             id={`dt-${name}`}
-            inputMode="decimal"
-            className="tabular-nums"
             value={f.state.value}
             onChange={(e) => f.handleChange(e.target.value)}
             onBlur={f.handleBlur}

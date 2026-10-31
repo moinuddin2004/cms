@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { toInputValue, toNumber, toNumberOrNull } from '@/lib/zod-numbers'
 import {
   recordPaymentSchema,
   updateSubscriptionSchema,
 } from '../schemas/account.schema'
 import type {
-  RecordPaymentInput,
-  UpdateSubscriptionInput,
+  RecordPaymentFormValues,
+  UpdateSubscriptionFormValues,
 } from '../schemas/account.schema'
 import type { AdminSubscription, PlanKey } from '../types'
 import {
@@ -26,14 +27,16 @@ export const toYmd = (iso: string | null) => {
 export const endOfDayIso = (ymd: string | null) =>
   ymd ? new Date(`${ymd}T23:59:59`).toISOString() : null
 
-function paymentDefaults(sub: AdminSubscription | undefined): RecordPaymentInput {
+function paymentDefaults(
+  sub: AdminSubscription | undefined,
+): RecordPaymentFormValues {
   const plan: PlanKey =
     sub && sub.plan.key !== 'free' ? sub.plan.key : 'starter'
   const price = sub?.plans.find((p) => p.key === plan)?.monthlyPrice ?? 0
   return {
     plan,
-    months: 1,
-    amount: price,
+    months: '1',
+    amount: toInputValue(price),
     method: 'bank_transfer',
     reference: '',
     paidAt: toYmd(new Date().toISOString())!,
@@ -54,6 +57,8 @@ export function useRecordPaymentForm(
     onSubmit: async ({ value }) => {
       await record.mutateAsync({
         ...value,
+        months: toNumber(value.months),
+        amount: toNumber(value.amount),
         paidAt: new Date(`${value.paidAt}T12:00:00`).toISOString(),
       })
       form.reset(paymentDefaults(sub))
@@ -68,13 +73,13 @@ export function useRecordPaymentForm(
 
 function planDefaults(
   sub: AdminSubscription | undefined,
-): UpdateSubscriptionInput {
+): UpdateSubscriptionFormValues {
   return {
     plan: sub?.plan.key ?? 'starter',
     trialEndsAt: toYmd(sub?.trialEndsAt ?? null),
     paidUntil: toYmd(sub?.paidUntil ?? null),
-    maxLocations: sub?.overrides.maxLocations ?? null,
-    maxUsers: sub?.overrides.maxUsers ?? null,
+    maxLocations: toInputValue(sub?.overrides.maxLocations),
+    maxUsers: toInputValue(sub?.overrides.maxUsers),
   }
 }
 
@@ -94,6 +99,8 @@ export function useUpdateSubscriptionForm(
     onSubmit: async ({ value }) => {
       await update.mutateAsync({
         ...value,
+        maxLocations: toNumberOrNull(value.maxLocations),
+        maxUsers: toNumberOrNull(value.maxUsers),
         trialEndsAt: endOfDayIso(value.trialEndsAt),
         paidUntil: endOfDayIso(value.paidUntil),
       })

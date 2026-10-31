@@ -1,13 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { PlanTemplatesPage } from '@/features/plan-templates'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-/** Predefined treatment plans (Root Canal, Implant…). Prescription Presets are separate. */
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/plan-templates')({
-  staticData: { can: 'plans.templates.manage' },
-  component: () => (
-    <DashboardLayout>
-      <PlanTemplatesPage />
-    </DashboardLayout>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/plan-templates', replace: true })
+  },
 })

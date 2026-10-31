@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { toInputValue, toNumber, toNumberOrNull } from '@/lib/zod-numbers'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
@@ -15,10 +16,10 @@ import { QUEUE_KEY, useQueuePolicies } from './useQueueData'
 const DEFAULTS: QueuePolicyFormValues = {
   scope: 'location',
   smartQueueEnabled: false,
-  earlyWindowMin: 15,
-  lateGraceMin: 10,
-  maxLateMin: 45,
-  walkinStarvationMin: 45,
+  earlyWindowMin: '15',
+  lateGraceMin: '10',
+  maxLateMin: '45',
+  walkinStarvationMin: '45',
   skippedRejoinPolicy: 'end',
   callTimeoutSec: '',
   manualSelectReasonRequired: false,
@@ -30,12 +31,12 @@ function fromSettings(data: QueuePolicySettings): QueuePolicyFormValues {
   return {
     scope: 'location',
     smartQueueEnabled: e.smartQueueEnabled,
-    earlyWindowMin: e.earlyWindowMin,
-    lateGraceMin: e.lateGraceMin,
-    maxLateMin: e.maxLateMin,
-    walkinStarvationMin: e.walkinStarvationMin,
+    earlyWindowMin: toInputValue(e.earlyWindowMin),
+    lateGraceMin: toInputValue(e.lateGraceMin),
+    maxLateMin: toInputValue(e.maxLateMin),
+    walkinStarvationMin: toInputValue(e.walkinStarvationMin),
     skippedRejoinPolicy: e.skippedRejoinPolicy,
-    callTimeoutSec: e.callTimeoutSec ?? '',
+    callTimeoutSec: toInputValue(e.callTimeoutSec),
     manualSelectReasonRequired: e.manualSelectReasonRequired,
     serviceDayCutoff: e.serviceDayCutoff,
   }
@@ -51,15 +52,18 @@ export function useQueueSettingsForm() {
   const queryClient = useQueryClient()
 
   const save = useMutation({
-    mutationFn: (values: QueuePolicyFormValues) => {
-      const v = queuePolicySchema.parse(values)
+    mutationFn: (v: QueuePolicyFormValues) => {
       const target =
         v.scope === 'organization'
           ? data?.organizationDefault
           : data?.locationOverride
       return updateQueuePolicies({
         ...v,
-        callTimeoutSec: v.callTimeoutSec === '' ? null : v.callTimeoutSec,
+        earlyWindowMin: toNumber(v.earlyWindowMin),
+        lateGraceMin: toNumber(v.lateGraceMin),
+        maxLateMin: toNumber(v.maxLateMin),
+        walkinStarvationMin: toNumber(v.walkinStarvationMin),
+        callTimeoutSec: toNumberOrNull(v.callTimeoutSec),
         version: target?.version,
       })
     },

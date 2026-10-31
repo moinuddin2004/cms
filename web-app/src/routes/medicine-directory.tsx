@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { MedicinesPage } from '@/features/prescriptions/pages/MedicinesPage'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/medicine-directory')({
-  // Doctors read the library; managers edit it.
-  staticData: { can: ['prescriptions.create', 'prescriptions.library.manage'] },
-  component: () => <MedicinesPage />,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/medicine-directory', replace: true })
+  },
 })

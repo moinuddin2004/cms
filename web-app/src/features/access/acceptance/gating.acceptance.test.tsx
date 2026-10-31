@@ -17,7 +17,7 @@ import { queuePermissionsFrom } from '@/features/queue/hooks/useQueuePermissions
 import { QueueEntryActions } from '@/features/queue/components/QueueEntryActions'
 import type { QueueEntry } from '@/features/queue/types'
 import { visiblePatientTabs } from '@/features/patients/utils/patientTabs'
-import { SettingsPage } from '@/features/settings/pages/SettingsPage'
+import { useSettingsItems } from '@/features/settings/hooks/useSettingsItems'
 import { UsersPage } from '@/features/users/pages/UsersPage'
 import { ClinicOverviewPage } from '@/features/reports/pages/ClinicOverviewPage'
 import { OrderTemplatesPage } from '@/features/lab-catalog/pages/OrderTemplatesPage'
@@ -188,8 +188,8 @@ beforeEach(() => {
 const NO_ACCESS = 'Aapke paas is page ki permission nahi'
 
 describe('UI — route gate', () => {
-  it('UI-01 RecU opens /payroll, /finance, /admin/roles → NoAccess page (not blank, not a crash)', () => {
-    for (const file of ['payroll.tsx', 'finance.tsx', 'admin.roles.index.tsx']) {
+  it('UI-01 RecU opens /payroll, /finance, /settings/roles → NoAccess page (not blank, not a crash)', () => {
+    for (const file of ['payroll.tsx', 'finance.tsx', 'settings.roles.index.tsx']) {
       router.matches = [{ staticData: { can: routeCan(file) } }]
       const { unmount } = renderAs(
         'RecU',
@@ -359,22 +359,35 @@ describe('UI — buttons and sections follow the permission', () => {
     expect(await open('AdminU')).toBe(true)
   })
 
-  it('UI-09 settings links: RecU none of Billing / Notifications / Theme; AdminU all', () => {
-    api.get.mockResolvedValue({ data: { data: [] } })
+  it('UI-09 settings pages: RecU none of Billing / Notifications / Theme; AdminU all', () => {
+    function SettingsLinks() {
+      const items = useSettingsItems().flatMap((g) => g.items)
+      return (
+        <>
+          {items.map((i) => (
+            <a key={i.key} href={i.href}>
+              {i.label}
+            </a>
+          ))}
+        </>
+      )
+    }
     const links = () => ({
-      billing: !!screen.queryByRole('link', { name: 'Billing' }),
+      billing: !!screen.queryByRole('link', {
+        name: 'Services, prices & payments',
+      }),
       notifications: !!screen.queryByRole('link', { name: 'Notifications' }),
       theme: !!screen.queryByRole('link', { name: 'Branding & theme' }),
     })
-    const rec = renderAs('RecU', wrap(<SettingsPage />))
+    const rec = renderAs('RecU', <SettingsLinks />)
     expect(links()).toEqual({ billing: false, notifications: false, theme: false })
     rec.unmount()
-    renderAs('AdminU', wrap(<SettingsPage />))
+    renderAs('AdminU', <SettingsLinks />)
     expect(links()).toEqual({ billing: true, notifications: true, theme: true })
   })
 
   it('UI-10 users page: RecU → NoAccess; AdminU → the page', async () => {
-    router.matches = [{ staticData: { can: routeCan('users.tsx') } }]
+    router.matches = [{ staticData: { can: routeCan('settings.users.tsx') } }]
     api.get.mockResolvedValue({
       data: { data: [], total: 0, page: 1, limit: 10, totalPages: 0 },
     })

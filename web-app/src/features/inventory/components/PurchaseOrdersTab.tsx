@@ -37,6 +37,7 @@ import {
 import { Plus, Trash2, Loader2 } from 'lucide-react'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -286,9 +287,8 @@ function CreatePODialog({
                           {(f) => (
                             <div className="w-24 space-y-1">
                               <Label className="text-xs">Qty</Label>
-                              <Input
-                                type="number"
-                                min={1}
+                              <NumberInput
+                                mode="integer"
                                 value={f.state.value}
                                 onChange={(e) => f.handleChange(e.target.value)}
                                 onBlur={f.handleBlur}
@@ -302,10 +302,8 @@ function CreatePODialog({
                           {(f) => (
                             <div className="w-28 space-y-1">
                               <Label className="text-xs">Unit Price</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                step="0.01"
+                              <NumberInput
+                                mode="decimal"
                                 value={f.state.value}
                                 onChange={(e) => f.handleChange(e.target.value)}
                                 onBlur={f.handleBlur}
@@ -347,12 +345,9 @@ function CreatePODialog({
                   htmlFor="po-tax-rate"
                   error={fieldError(f)}
                 >
-                  <Input
+                  <NumberInput
                     id="po-tax-rate"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
+                    mode="decimal"
                     value={f.state.value}
                     onChange={(e) => f.handleChange(e.target.value)}
                     onBlur={f.handleBlur}
@@ -646,10 +641,8 @@ function ReceiveItemsDialog({
                           {(f) => (
                             <div className="space-y-1">
                               <Label className="text-xs">Receiving now</Label>
-                              <Input
-                                type="number"
-                                min={0}
-                                max={row.remaining}
+                              <NumberInput
+                                mode="integer"
                                 value={f.state.value}
                                 onChange={(e) => f.handleChange(e.target.value)}
                                 onBlur={f.handleBlur}

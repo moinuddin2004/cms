@@ -1,7 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { NavBuilderPage } from '@/features/nav-builder'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+/** Moved to Settings: kept so old links and bookmarks still land. */
 export const Route = createFileRoute('/admin/navigation')({
-  staticData: { can: 'admin.nav.manage' },
-  component: NavBuilderPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/sidebar', replace: true })
+  },
 })

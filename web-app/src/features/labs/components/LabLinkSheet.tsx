@@ -3,6 +3,7 @@ import { Check, FlaskConical, Loader2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { NumberInput } from '@/components/forms/NumberInput'
 import {
   EmptyState,
   ErrorState,
@@ -111,10 +112,9 @@ export function LabLinkSheet({
                     hint="Days you have to pay the lab's bill."
                     error={fieldError(f)}
                   >
-                    <Input
+                    <NumberInput
                       id="link-terms"
-                      inputMode="numeric"
-                      className="tabular-nums"
+                      mode="integer"
                       value={f.state.value}
                       onChange={(e) => f.handleChange(e.target.value)}
                       onBlur={f.handleBlur}

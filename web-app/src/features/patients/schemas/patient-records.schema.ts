@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { decimalField, intField } from '@/lib/zod-numbers'
 import {
   BrushingFrequency,
   CommDirection,
@@ -87,23 +88,10 @@ export type ConsentFormValues = z.input<typeof consentSchema>
  * otherwise it must be a number in [lo, hi] (whole for integer columns).
  */
 const vital = (lo: number, hi: number, label: string, whole = false) =>
-  z.string().superRefine((v, ctx) => {
-    const s = v.trim()
-    if (!s) return
-    const n = Number(s)
-    if (!Number.isFinite(n)) {
-      ctx.addIssue({ code: 'custom', message: 'Enter a number' })
-    } else if (whole && !Number.isInteger(n)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: `${label} must be a whole number`,
-      })
-    } else if (n < lo || n > hi) {
-      ctx.addIssue({
-        code: 'custom',
-        message: `${label} must be between ${lo} and ${hi}`,
-      })
-    }
+  (whole ? intField : decimalField)(label, {
+    min: lo,
+    max: hi,
+    required: false,
   })
 
 export const vitalsSchema = z

@@ -1,24 +1,8 @@
 import { z } from 'zod'
+import { intField, moneyField } from '@/lib/zod-numbers'
 
 // Zod schemas mirroring the backend DTOs (same limits, same required rules).
 // Money fields are edited as strings and parsed on submit.
-
-const money = (
-  label: string,
-  opts: { min?: number; required?: boolean } = {},
-) =>
-  z
-    .string()
-    .trim()
-    .refine(
-      (v) =>
-        (opts.required === false && v === '') || /^\d+(\.\d{1,2})?$/.test(v),
-      `${label}: enter an amount (max 2 decimals)`,
-    )
-    .refine(
-      (v) => v === '' || Number(v) >= (opts.min ?? 0),
-      `${label} must be at least ${opts.min ?? 0}`,
-    )
 
 export const toAmount = (v: string): number =>
   Math.round(Number(v || 0) * 100) / 100
@@ -37,8 +21,8 @@ export const manualChargeSchema = z
     kind: z.enum(['service', 'other']),
     serviceId: z.string(),
     description: z.string().trim().max(200),
-    quantity: z.number().int().min(1, 'At least 1').max(999),
-    unitPrice: money('Price', { required: false }),
+    quantity: intField('Quantity', { min: 1, max: 999 }),
+    unitPrice: moneyField('Price', { required: false }),
   })
   .superRefine((v, ctx) => {
     if (v.kind === 'service' && !v.serviceId)
@@ -65,8 +49,8 @@ export const manualChargeSchema = z
 export type ManualChargeValues = z.infer<typeof manualChargeSchema>
 
 export const editChargeSchema = z.object({
-  quantity: z.number().int().min(1, 'At least 1').max(999),
-  unitPrice: money('Price'),
+  quantity: intField('Quantity', { min: 1, max: 999 }),
+  unitPrice: moneyField('Price'),
 })
 export type EditChargeValues = z.infer<typeof editChargeSchema>
 
@@ -110,7 +94,7 @@ export const discountSchema = z
 export type DiscountValues = z.infer<typeof discountSchema>
 
 export const refundSchema = z.object({
-  amount: money('Amount', { min: 0.01 }),
+  amount: moneyField('Amount', { min: 0.01 }),
   paymentAccountId: z.string().min(1, 'Choose how the money is returned'),
   referenceNumber: z.string().trim().max(80),
   reason: z
@@ -125,7 +109,7 @@ export const serviceSchema = z.object({
   name: z.string().trim().min(2, 'Name is required').max(120),
   code: z.string().trim().max(30),
   kind: z.enum(['CONSULTATION', 'PROCEDURE', 'OTHER']),
-  defaultPrice: money('Default price'),
+  defaultPrice: moneyField('Default price'),
   sortOrder: z.number().int().min(0),
 })
 export type ServiceValues = z.infer<typeof serviceSchema>
@@ -147,14 +131,14 @@ export const discountTypeSchema = z
     name: z.string().trim().min(2, 'Name is required').max(80),
     code: z.string().trim().max(30),
     kind: z.enum(['PERCENTAGE', 'FIXED']),
-    value: money('Value', { min: 0.01 }),
-    maxAmount: money('Max amount', { required: false }),
+    value: moneyField('Value', { min: 0.01 }),
+    maxAmount: moneyField('Max amount', { required: false }),
     appliesTo: z.enum(['ALL', 'SERVICE_KINDS', 'SERVICES']),
     serviceKinds: z.array(z.enum(['CONSULTATION', 'PROCEDURE', 'OTHER'])),
     serviceIds: z.array(z.string()),
     receptionEditable: z.boolean(),
-    minValue: money('Min', { required: false }),
-    maxValue: money('Max', { required: false }),
+    minValue: moneyField('Min', { required: false }),
+    maxValue: moneyField('Max', { required: false }),
     requiresNote: z.boolean(),
     validFrom: z.string(),
     validTo: z.string(),
@@ -211,7 +195,7 @@ export const billingSettingsSchema = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z0-9]{2,6}$/, '2–6 letters or digits'),
-  dueDays: z.number().int().min(0).max(365),
+  dueDays: intField('Due days', { min: 0, max: 365 }),
   invoicePrintFormat: z.enum(['A4', 'THERMAL_80']),
   receiptPrintFormat: z.enum(['A4', 'THERMAL_80']),
   showLogo: z.boolean(),
@@ -220,6 +204,6 @@ export const billingSettingsSchema = z.object({
   footerNote: z.string().trim().max(300),
   defaultConsultationServiceId: z.string(),
   defaultPaymentAccountId: z.string(),
-  cashVarianceAlertAmount: money('Alert amount'),
+  cashVarianceAlertAmount: moneyField('Alert amount'),
 })
 export type BillingSettingsValues = z.infer<typeof billingSettingsSchema>

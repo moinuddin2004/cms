@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -13,6 +12,7 @@ import {
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { NumberInput } from '@/components/forms/NumberInput'
 import { Plus, Minus, X, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/formatters'
@@ -197,10 +197,8 @@ export function ConsumptionRecorder({
                         >
                           <Minus className="h-3 w-3" />
                         </TooltipButton>
-                        <Input
-                          type="number"
-                          min={0.01}
-                          step="0.01"
+                        <NumberInput
+                          mode="decimal"
                           className={cn(
                             'h-7 w-16 text-center',
                             error && 'border-red-500',
