@@ -18,7 +18,7 @@ import {
   useOrderTemplateForm,
 } from '../hooks/useOrderTemplateForm'
 import { useClinicForms, useClinicServices } from '../hooks/useClinicCatalog'
-import { formatPaisa } from '../lib/money'
+import { formatMinor } from '../lib/money'
 import type { ClinicServiceRow, CurrentForm, OrderTemplate } from '../types'
 import { TemplateAnswerFields } from './TemplateAnswerFields'
 
@@ -55,7 +55,7 @@ export function OrderTemplateSheet({
       .map((s) => ({
         value: s.id,
         label: `${s.name} · ${s.lab.name}${
-          s.price ? ` — ${formatPaisa(s.price.unitPricePaisa)}` : ''
+          s.price ? ` — ${formatMinor(s.price.unitPriceMinor)}` : ''
         }`,
       }))
 
@@ -273,7 +273,7 @@ function ItemFields({
                         disabled={!service.options.length}
                         options={service.options.map((o) => ({
                           value: o.id,
-                          label: `${o.name} (+${formatPaisa(o.extraCostPaisa)})`,
+                          label: `${o.name} (+${formatMinor(o.extraCostMinor)})`,
                         }))}
                         value={f.state.value}
                         onChange={f.handleChange}

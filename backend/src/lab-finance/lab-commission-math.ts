@@ -1,6 +1,6 @@
 /**
  * Commission on one lab invoice line (lab ERD §6c, basis `net_of_lab_cost`,
- * "collected" basis). Pure: integer paisa in, integer paisa out.
+ * "collected" basis). Pure: integer minor units in, integer minor units out.
  *
  * Lab allocations are per invoice, not per line, so a line's share is
  * proportional to its pre-tax amount (§6c "invoice line ke hisse ke
@@ -24,43 +24,43 @@ import { CommissionBasis } from 'src/billing/commissions/commission.enums';
 
 export interface LabLineCommissionInput {
   /** qty × unit − discount + tax. */
-  lineTotalPaisa: number;
-  taxPaisa: number;
+  lineTotalMinor: number;
+  taxMinor: number;
   /** qty × unit (before discount) — the GROSS basis price. */
-  grossPaisa: number;
-  invoiceTotalPaisa: number;
-  creditedPaisa: number;
+  grossMinor: number;
+  invoiceTotalMinor: number;
+  creditedMinor: number;
   /** Active (not reversed) allocations on the invoice. */
-  allocatedPaisa: number;
+  allocatedMinor: number;
   invoiceVoid: boolean;
-  labCostPaisa: number;
+  labCostMinor: number;
   basis: CommissionBasis;
   rateBps: number | null;
-  fixedPaisa: number | null;
+  fixedMinor: number | null;
 }
 
 export function labLineCommissionTarget(
   i: LabLineCommissionInput,
 ): CommissionTarget {
-  const total = BigInt(Math.max(0, i.invoiceTotalPaisa));
+  const total = BigInt(Math.max(0, i.invoiceTotalMinor));
   if (total === 0n || i.invoiceVoid)
-    return { collectedPaisa: 0, targetPaisa: 0 };
+    return { collectedMinor: 0, targetMinor: 0 };
   const invoiceNet = BigInt(
-    Math.max(0, i.invoiceTotalPaisa - Math.max(0, i.creditedPaisa)),
+    Math.max(0, i.invoiceTotalMinor - Math.max(0, i.creditedMinor)),
   );
   const collected = BigInt(
-    Math.min(Math.max(0, i.allocatedPaisa), Number(invoiceNet)),
+    Math.min(Math.max(0, i.allocatedMinor), Number(invoiceNet)),
   );
-  const preTax = BigInt(Math.max(0, i.lineTotalPaisa - i.taxPaisa));
+  const preTax = BigInt(Math.max(0, i.lineTotalMinor - i.taxMinor));
   const lineNet = divRoundHalfUp(preTax * invoiceNet, total);
   const lineCollected = divRoundHalfUp(preTax * collected, total);
   return commissionTarget({
-    allocatedPaisa: Number(lineCollected),
-    netPaisa: Number(lineNet),
-    grossPaisa: i.grossPaisa,
+    allocatedMinor: Number(lineCollected),
+    netMinor: Number(lineNet),
+    grossMinor: i.grossMinor,
     basis: i.basis,
     rateBps: i.rateBps,
-    fixedPaisa: i.fixedPaisa,
-    labCostPaisa: i.labCostPaisa,
+    fixedMinor: i.fixedMinor,
+    labCostMinor: i.labCostMinor,
   });
 }

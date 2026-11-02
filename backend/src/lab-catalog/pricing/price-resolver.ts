@@ -1,6 +1,6 @@
 /**
  * Catalog price rules (lab ERD §4, §13 "Lab pricing", "Patient pricing",
- * "Price locking"). Pure: no NestJS / TypeORM, all money integer paisa.
+ * "Price locking"). Pure: no NestJS / TypeORM, all money integer minor units.
  * Sprint 6 snapshots what these return onto the order item at submit, so
  * later catalog edits never change an existing order or invoice.
  */
@@ -14,8 +14,8 @@ export type Ymd = string;
 export interface PriceWindow {
   id: string;
   organizationId: string | null;
-  unitPricePaisa: number;
-  rushSurchargePaisa: number;
+  unitPriceMinor: number;
+  rushSurchargeMinor: number;
   currency: string;
   effectiveFrom: Ymd;
   effectiveTo: Ymd | null;
@@ -58,30 +58,30 @@ export function pickLabPrice<T extends PriceWindow>(
 
 export interface OptionCost {
   id: string;
-  extraCostPaisa: number;
+  extraCostMinor: number;
 }
 
 export interface LabUnitCost {
-  basePaisa: number;
-  optionsPaisa: number;
-  rushPaisa: number;
+  baseMinor: number;
+  optionsMinor: number;
+  rushMinor: number;
   /** base + options + rush: what one unit costs the clinic. */
-  unitPaisa: number;
+  unitMinor: number;
 }
 
 /** One unit's lab cost: the resolved price plus chosen options and rush. */
 export function labUnitCost(
-  price: Pick<PriceWindow, 'unitPricePaisa' | 'rushSurchargePaisa'>,
+  price: Pick<PriceWindow, 'unitPriceMinor' | 'rushSurchargeMinor'>,
   options: readonly OptionCost[],
   rush: boolean,
 ): LabUnitCost {
-  const optionsPaisa = options.reduce((sum, o) => sum + o.extraCostPaisa, 0);
-  const rushPaisa = rush ? price.rushSurchargePaisa : 0;
+  const optionsMinor = options.reduce((sum, o) => sum + o.extraCostMinor, 0);
+  const rushMinor = rush ? price.rushSurchargeMinor : 0;
   return {
-    basePaisa: price.unitPricePaisa,
-    optionsPaisa,
-    rushPaisa,
-    unitPaisa: price.unitPricePaisa + optionsPaisa + rushPaisa,
+    baseMinor: price.unitPriceMinor,
+    optionsMinor,
+    rushMinor,
+    unitMinor: price.unitPriceMinor + optionsMinor + rushMinor,
   };
 }
 
@@ -90,7 +90,7 @@ export type PatientPriceLevel = 'DOCTOR' | 'LOCATION' | 'DEFAULT';
 export interface PatientPriceOverride {
   locationId: string;
   doctorId: string | null;
-  pricePaisa: number;
+  priceMinor: number;
 }
 
 /**
@@ -99,23 +99,23 @@ export interface PatientPriceOverride {
  * lab order line and the charge billed for it agree.
  */
 export function pickPatientPrice(
-  defaultPaisa: number,
+  defaultMinor: number,
   overrides: readonly PatientPriceOverride[],
   locationId: string | null,
   doctorId: string | null,
-): { unitPricePaisa: number; level: PatientPriceLevel } {
+): { unitPriceMinor: number; level: PatientPriceLevel } {
   const atLocation = locationId
     ? overrides.filter((o) => o.locationId === locationId)
     : [];
   const doctor = doctorId
     ? atLocation.find((o) => o.doctorId === doctorId)
     : undefined;
-  if (doctor) return { unitPricePaisa: doctor.pricePaisa, level: 'DOCTOR' };
+  if (doctor) return { unitPriceMinor: doctor.priceMinor, level: 'DOCTOR' };
   const location = atLocation.find((o) => o.doctorId === null);
   if (location) {
-    return { unitPricePaisa: location.pricePaisa, level: 'LOCATION' };
+    return { unitPriceMinor: location.priceMinor, level: 'LOCATION' };
   }
-  return { unitPricePaisa: defaultPaisa, level: 'DEFAULT' };
+  return { unitPriceMinor: defaultMinor, level: 'DEFAULT' };
 }
 
 export interface NewWindow {

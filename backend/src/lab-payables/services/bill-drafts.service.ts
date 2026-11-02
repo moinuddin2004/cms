@@ -80,7 +80,7 @@ export class BillDraftsService {
       total: string;
     }>(
       m,
-      `SELECT l.order_item_id, l.charge_request_id, SUM(l.line_total_paisa) AS total
+      `SELECT l.order_item_id, l.charge_request_id, SUM(l.line_total_minor) AS total
          FROM vendor_bill_lines l JOIN vendor_bills b ON b.id = l.vendor_bill_id
         WHERE b.lab_order_id = $1 AND NOT l.is_manual
           AND b.status IN ('approved', 'partially_paid', 'paid')
@@ -102,17 +102,17 @@ export class BillDraftsService {
             id: string;
             order_item_id: string | null;
             charge_request_id: string | null;
-            line_total_paisa: string;
+            line_total_minor: string;
           }>(
             m,
-            `SELECT id, order_item_id, charge_request_id, line_total_paisa
+            `SELECT id, order_item_id, charge_request_id, line_total_minor
                FROM vendor_bill_lines WHERE vendor_bill_id = $1 AND NOT is_manual`,
             [draft.id],
           )
         ).map((l) => ({
           id: l.id,
           key: lineKey(l),
-          lineTotalPaisa: Number(l.line_total_paisa),
+          lineTotalMinor: Number(l.line_total_minor),
         }))
       : [];
 
@@ -153,16 +153,16 @@ export class BillDraftsService {
           remakeRequestId: e.remakeRequestId,
           description: e.description.slice(0, 300),
           quantity: e.quantity,
-          unitCostPaisa: e.unitCostPaisa,
-          lineTotalPaisa: e.linePaisa,
+          unitCostMinor: e.unitCostMinor,
+          lineTotalMinor: e.lineMinor,
         })),
       );
     }
     for (const u of plan.updates) {
       await lineRepo.update(u.id, {
-        lineTotalPaisa: u.linePaisa,
+        lineTotalMinor: u.lineMinor,
         quantity: u.quantity,
-        unitCostPaisa: u.unitCostPaisa,
+        unitCostMinor: u.unitCostMinor,
       });
     }
     await this.retotal(m, draft);
@@ -178,7 +178,7 @@ export class BillDraftsService {
           after: {
             billNo: draft.billNo,
             labOrderId: order.id,
-            totalPaisa: draft.totalPaisa,
+            totalMinor: draft.totalMinor,
           },
         },
       );
@@ -192,8 +192,8 @@ export class BillDraftsService {
       .getRepository(VendorBillLine)
       .findBy({ vendorBillId: bill.id });
     Object.assign(bill, billTotals(lines, bill.taxBp));
-    bill.paidPaisa = 0;
-    bill.balancePaisa = 0;
+    bill.paidMinor = 0;
+    bill.balanceMinor = 0;
     return m.getRepository(VendorBill).save(bill);
   }
 
@@ -206,14 +206,14 @@ export class BillDraftsService {
       line_no: number;
       service_name_snap: string | null;
       quantity: number;
-      lab_unit_cost_paisa: string;
-      lab_line_cost_paisa: string;
+      lab_unit_cost_minor: string;
+      lab_line_cost_minor: string;
       remake_of_item_id: string | null;
       remake_id: string | null;
     }>(
       m,
-      `SELECT i.id, i.line_no, i.service_name_snap, i.quantity, i.lab_unit_cost_paisa,
-              i.lab_line_cost_paisa, i.remake_of_item_id,
+      `SELECT i.id, i.line_no, i.service_name_snap, i.quantity, i.lab_unit_cost_minor,
+              i.lab_line_cost_minor, i.remake_of_item_id,
               (SELECT r.id FROM remake_requests r WHERE r.new_item_id = i.id LIMIT 1) AS remake_id
          FROM lab_order_items i
         WHERE i.order_id = $1
@@ -225,11 +225,11 @@ export class BillDraftsService {
     const charges = await sqlRows<{
       id: string;
       kind: string;
-      amount_paisa: string;
+      amount_minor: string;
       reason: string;
     }>(
       m,
-      `SELECT id, kind, amount_paisa, reason FROM order_charge_requests
+      `SELECT id, kind, amount_minor, reason FROM order_charge_requests
         WHERE order_id = $1 AND item_id IS NULL AND status = 'approved'
         ORDER BY created_at`,
       [orderId],
@@ -246,8 +246,8 @@ export class BillDraftsService {
           remakeRequestId: i.remake_id,
           description: `${i.remake_of_item_id ? 'Remake: ' : ''}${i.service_name_snap ?? `Line ${i.line_no}`}`,
           quantity: i.quantity,
-          unitCostPaisa: Number(i.lab_unit_cost_paisa),
-          totalPaisa: Number(i.lab_line_cost_paisa),
+          unitCostMinor: Number(i.lab_unit_cost_minor),
+          totalMinor: Number(i.lab_line_cost_minor),
         }),
       ),
       ...charges.map(
@@ -259,8 +259,8 @@ export class BillDraftsService {
           remakeRequestId: null,
           description: c.reason,
           quantity: 1,
-          unitCostPaisa: Number(c.amount_paisa),
-          totalPaisa: Number(c.amount_paisa),
+          unitCostMinor: Number(c.amount_minor),
+          totalMinor: Number(c.amount_minor),
         }),
       ),
     ];

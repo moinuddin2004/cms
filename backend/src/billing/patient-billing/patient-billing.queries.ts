@@ -1,6 +1,6 @@
 import { EntityManager } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { fromPaisa, roundRupees, toPaisa } from '../common/money';
+import { fromMinor, roundRupees, toMinor } from '../common/money';
 import { LedgerEntry } from '../entities/ledger-entry.entity';
 import { LedgerEntryType } from '../enums/billing.enums';
 import { PatientBillingSummary } from '../mappers/billing-response.types';
@@ -70,18 +70,18 @@ export const PatientBillingQueries = {
     );
     return new Map(
       rows.map((r) => {
-        const unbilled = toPaisa(r.unbilled);
-        const outstanding = toPaisa(r.outstanding);
-        const advance = toPaisa(r.advance);
+        const unbilled = toMinor(r.unbilled);
+        const outstanding = toMinor(r.outstanding);
+        const advance = toMinor(r.advance);
         return [
           r.patient_id,
           {
             patientId: r.patient_id,
-            unbilledTotal: fromPaisa(unbilled),
-            invoicedOutstanding: fromPaisa(outstanding),
+            unbilledTotal: fromMinor(unbilled),
+            invoicedOutstanding: fromMinor(outstanding),
             overdueAmount: roundRupees(r.overdue),
-            advance: fromPaisa(advance),
-            netPosition: fromPaisa(outstanding + unbilled - advance),
+            advance: fromMinor(advance),
+            netPosition: fromMinor(outstanding + unbilled - advance),
             ledgerBalance: roundRupees(r.ledger),
             needsReviewCount: Number(r.review),
             needsPricingCount: Number(r.pricing),
@@ -139,9 +139,9 @@ export const PatientBillingQueries = {
     if (to) qb.andWhere('l.entry_date <= :to', { to });
     const entries = await qb.getMany();
 
-    let running = toPaisa(opening);
+    let running = toMinor(opening);
     const rows = entries.map((e) => {
-      running += toPaisa(e.debit) - toPaisa(e.credit);
+      running += toMinor(e.debit) - toMinor(e.credit);
       return {
         id: e.id,
         entryDate: e.entryDate,
@@ -149,7 +149,7 @@ export const PatientBillingQueries = {
         description: e.description,
         debit: e.debit,
         credit: e.credit,
-        balance: fromPaisa(running),
+        balance: fromMinor(running),
         invoiceId: e.invoiceId,
         paymentId: e.paymentId,
         refundId: e.refundId,
@@ -166,7 +166,7 @@ export const PatientBillingQueries = {
       to,
       openingBalance: roundRupees(opening),
       rows,
-      closingBalance: fromPaisa(running),
+      closingBalance: fromMinor(running),
       advance,
     };
   },
@@ -186,11 +186,11 @@ export const PatientBillingQueries = {
     );
     return [...summaries.values()].map((s) => ({
       patientId: s.patientId,
-      outstanding: fromPaisa(
-        toPaisa(s.invoicedOutstanding) + toPaisa(s.unbilledTotal),
+      outstanding: fromMinor(
+        toMinor(s.invoicedOutstanding) + toMinor(s.unbilledTotal),
       ),
       advance: s.advance,
-      hasOverdue: toPaisa(s.overdueAmount) > 0,
+      hasOverdue: toMinor(s.overdueAmount) > 0,
     }));
   },
 };

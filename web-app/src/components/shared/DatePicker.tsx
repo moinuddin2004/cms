@@ -3,6 +3,7 @@ import { format, isValid } from 'date-fns'
 import type { Matcher } from 'react-day-picker'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { todayYmd } from '@/lib/datetime'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -62,7 +63,8 @@ export function DatePicker({
 
   const minDate = min ? fromYMD(min) : undefined
   const maxDate = max ? fromYMD(max) : undefined
-  const today = new Date()
+  // "Today" is the clinic's calendar day, not the browser's.
+  const today = fromYMD(todayYmd())
   const disabledDays: Matcher[] = []
   if (minDate) disabledDays.push({ before: minDate })
   if (maxDate) disabledDays.push({ after: maxDate })
@@ -98,6 +100,7 @@ export function DatePicker({
         <Calendar
           mode="single"
           selected={selected}
+          today={today}
           defaultMonth={selected ?? maxDate ?? today}
           onSelect={(day) => day && select(day)}
           disabled={disabledDays.length ? disabledDays : undefined}

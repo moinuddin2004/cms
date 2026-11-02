@@ -8,6 +8,7 @@ import { PageSize } from '../enums/page-size.enum';
 import { MealRelation } from '../enums/meal-relation.enum';
 import { PrescriptionTemplateService } from './prescription-template.service';
 import { PdfTextWriter } from '../pdf/pdf-text';
+import { ClockService } from 'src/common/clock/clock.service';
 import {
   STORAGE_PROVIDER,
   StorageProvider,
@@ -54,6 +55,7 @@ export class PrescriptionPdfService {
     @Inject(forwardRef(() => PrescriptionTemplateService))
     private readonly templateService: PrescriptionTemplateService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly clock: ClockService,
   ) {}
 
   async generatePdfBuffer(
@@ -65,6 +67,8 @@ export class PrescriptionPdfService {
       relations: ['patient', 'doctor', 'prescriptionTemplate'],
     });
     if (!p) throw new NotFoundException('Prescription not found');
+    // Dates on the PDF are the clinic's (location) dates, not the server's.
+    const tz = await this.clock.timezoneFor(p.locationId);
 
     let template = p.prescriptionTemplate ?? null;
     if (!template) {
@@ -159,7 +163,9 @@ export class PrescriptionPdfService {
 
     // ── Patient bar ───────────────────────────────────────────────
     const patient = p.patient;
-    const dobAge = patient?.dob ? `Age: ${ageFromDob(patient.dob)}` : '';
+    const dobAge = patient?.dob
+      ? `Age: ${ageFromDob(patient.dob, this.clock.today(tz))}`
+      : '';
     const patientLine = [
       `Name: ${patient?.fullName ?? '—'}`,
       dobAge,
@@ -168,7 +174,7 @@ export class PrescriptionPdfService {
         : '',
       `Reg#: ${patient?.patientNumber ?? '—'}`,
       styling.showDate !== false
-        ? `Date: ${new Date(p.createdAt).toLocaleDateString('en-GB')}`
+        ? `Date: ${new Date(p.createdAt).toLocaleDateString('en-GB', { timeZone: tz })}`
         : '',
       `RX: ${p.prescriptionNumber}`,
     ]
@@ -521,12 +527,14 @@ function parseHexColor(hex: string): { r: number; g: number; b: number } {
   };
 }
 
-function ageFromDob(dob: Date | string): number {
-  const d = dob instanceof Date ? dob : new Date(dob);
-  const now = new Date();
-  let years = now.getFullYear() - d.getFullYear();
-  const m = now.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) years--;
+/** Whole years from a calendar DOB to the clinic's `today` ('YYYY-MM-DD'). */
+function ageFromDob(dob: Date | string, today: string): number {
+  const born =
+    dob instanceof Date ? dob.toISOString().slice(0, 10) : String(dob);
+  const [by, bm, bd] = born.slice(0, 10).split('-').map(Number);
+  const [ty, tm, td] = today.split('-').map(Number);
+  let years = ty - by;
+  if (tm < bm || (tm === bm && td < bd)) years--;
   return years;
 }
 

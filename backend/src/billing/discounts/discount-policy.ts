@@ -2,7 +2,7 @@ import { CUSTOM_DISCOUNT_NAME, NOTE_MIN_LENGTH } from '../billing.constants';
 import { noPermission } from 'src/access/decorators/access.decorators';
 import { BillingActor } from '../common/billing-context';
 import { billingError } from '../common/billing-errors';
-import { toPaisa } from '../common/money';
+import { toMinor } from '../common/money';
 import { DiscountType } from '../entities/discount-type.entity';
 import { DiscountKind } from '../enums/billing.enums';
 import { DiscountRule } from './calculator/discount-calculator';
@@ -100,7 +100,7 @@ function assertValueAllowed(
   value: number,
   actor: BillingActor,
 ): void {
-  const changed = toPaisa(value) !== toPaisa(type.value);
+  const changed = toMinor(value) !== toMinor(type.value);
   if (changed && !isValueInKindBounds(type.kind, value)) {
     throw billingError(
       'BILLING_DISCOUNT_VALUE_NOT_ALLOWED',

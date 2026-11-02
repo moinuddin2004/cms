@@ -10,6 +10,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Switch } from '@/components/ui/switch'
 import { fieldError } from '@/components/forms/fieldError'
+import { formatInClinic } from '@/lib/datetime'
 import {
   Loader2,
   AlertCircle,
@@ -224,12 +225,10 @@ export function AddAppointmentStep({
                       >
                         <Lightbulb className="w-3.5 h-3.5" />
                         Apply suggested:{' '}
-                        {new Date(
+                        {formatInClinic(
                           validation.suggestedStartTime,
-                        ).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                          'hh:mm a',
+                        )}
                       </button>
                     )}
                   </div>

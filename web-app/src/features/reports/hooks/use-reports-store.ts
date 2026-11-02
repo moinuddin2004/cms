@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { dateToYmd, todayYmd, ymdToDate } from '@/lib/datetime'
 import type { ReportScopeKind, RevenueBasis } from '../types/reports.types'
 
 export type PeriodPreset =
@@ -37,7 +38,7 @@ export const useReportsStore = create<ReportsFilters>((set) => ({
   setBasis: (basis) => set({ basis }),
 }))
 
-const ymd = (d: Date) => d.toLocaleDateString('en-CA')
+const ymd = dateToYmd
 
 export const PERIOD_LABEL: Record<Exclude<PeriodPreset, 'custom'>, string> = {
   month: 'This month',
@@ -47,11 +48,14 @@ export const PERIOD_LABEL: Record<Exclude<PeriodPreset, 'custom'>, string> = {
   lastYear: 'Last year',
 }
 
-/** Clinic-local `{from, to}` of a preset (the browser's today). */
+/**
+ * Clinic-local `{from, to}` of a preset. `today` is a calendar-day carrier
+ * (defaults to the clinic's today, not the browser's).
+ */
 export function periodRange(
   preset: PeriodPreset,
   custom: { from?: string; to?: string },
-  today = new Date(),
+  today = ymdToDate(todayYmd()),
 ): { from: string; to: string } {
   const y = today.getFullYear()
   const m = today.getMonth()

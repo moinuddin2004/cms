@@ -31,20 +31,20 @@ interface LineRow {
   order_id: string | null;
   patient_id: string;
   rate_bps: number | null;
-  fixed_paisa: string | null;
+  fixed_minor: string | null;
   basis: CommissionBasis;
   line_kind: LabInvoiceLineKind;
   lab_order_item_id: string | null;
   charge_item_id: string | null;
-  charge_amount_paisa: string | null;
-  gross_paisa: string;
-  line_total_paisa: string;
-  tax_paisa: string;
-  total_paisa: string;
-  credited_paisa: string;
+  charge_amount_minor: string | null;
+  gross_minor: string;
+  line_total_minor: string;
+  tax_minor: string;
+  total_minor: string;
+  credited_minor: string;
   status: string;
-  allocated_paisa: string;
-  already_paisa: string;
+  allocated_minor: string;
+  already_minor: string;
 }
 
 type PlanPick = {
@@ -58,7 +58,7 @@ export interface LabCommissionDelta {
   orderId: string | null;
   patientId: string;
   locationId: string;
-  amountPaisa: number;
+  amountMinor: number;
 }
 
 /**
@@ -125,7 +125,7 @@ export class LabCommissionService {
         performingAssignmentId: found.assignmentId,
         commissionPlanId: found.plan?.id ?? null,
         commissionRateBps: resolved?.rateBps ?? null,
-        commissionFixedPaisa: resolved?.fixedPaisa ?? null,
+        commissionFixedMinor: resolved?.fixedMinor ?? null,
       });
     }
   }
@@ -152,20 +152,20 @@ export class LabCommissionService {
     const entries: CommissionEntryRow[] = [];
     const deltas = new Map<string, LabCommissionDelta>();
     for (const r of rows) {
-      const { collectedPaisa, targetPaisa } = labLineCommissionTarget({
-        lineTotalPaisa: Number(r.line_total_paisa),
-        taxPaisa: Number(r.tax_paisa),
-        grossPaisa: Number(r.gross_paisa),
-        invoiceTotalPaisa: Number(r.total_paisa),
-        creditedPaisa: Number(r.credited_paisa),
-        allocatedPaisa: Number(r.allocated_paisa),
+      const { collectedMinor, targetMinor } = labLineCommissionTarget({
+        lineTotalMinor: Number(r.line_total_minor),
+        taxMinor: Number(r.tax_minor),
+        grossMinor: Number(r.gross_minor),
+        invoiceTotalMinor: Number(r.total_minor),
+        creditedMinor: Number(r.credited_minor),
+        allocatedMinor: Number(r.allocated_minor),
         invoiceVoid: r.status === 'void',
-        labCostPaisa: this.costOf(r, costs),
+        labCostMinor: this.costOf(r, costs),
         basis: r.basis,
         rateBps: r.rate_bps,
-        fixedPaisa: r.fixed_paisa === null ? null : Number(r.fixed_paisa),
+        fixedMinor: r.fixed_minor === null ? null : Number(r.fixed_minor),
       });
-      const diff = targetPaisa - Number(r.already_paisa);
+      const diff = targetMinor - Number(r.already_minor);
       if (diff === 0) continue;
       entries.push({
         organizationId: r.organization_id,
@@ -175,9 +175,9 @@ export class LabCommissionService {
         labInvoiceLineId: r.id,
         sourceType: source.type,
         sourceId,
-        basePaisa: collectedPaisa,
+        baseMinor: collectedMinor,
         rateBps: r.rate_bps,
-        amountPaisa: diff,
+        amountMinor: diff,
       });
       const key = `${r.doctor_id}|${r.order_id}|${r.patient_id}`;
       const d = deltas.get(key) ?? {
@@ -185,13 +185,13 @@ export class LabCommissionService {
         orderId: r.order_id,
         patientId: r.patient_id,
         locationId: r.location_id,
-        amountPaisa: 0,
+        amountMinor: 0,
       };
-      d.amountPaisa += diff;
+      d.amountMinor += diff;
       deltas.set(key, d);
     }
     if (entries.length) await m.getRepository(CommissionEntry).insert(entries);
-    return [...deltas.values()].filter((d) => d.amountPaisa !== 0);
+    return [...deltas.values()].filter((d) => d.amountMinor !== 0);
   }
 
   /**
@@ -204,7 +204,7 @@ export class LabCommissionService {
     if (r.line_kind === LabInvoiceLineKind.LAB_ITEM && r.lab_order_item_id)
       return costs.get(r.lab_order_item_id) ?? 0;
     if (r.line_kind === LabInvoiceLineKind.LAB_CHARGE && !r.charge_item_id)
-      return Number(r.charge_amount_paisa ?? 0);
+      return Number(r.charge_amount_minor ?? 0);
     return 0;
   }
 
@@ -235,23 +235,23 @@ export class LabCommissionService {
               l.performing_assignment_id AS assignment_id, l.doctor_id,
               i.order_id, i.patient_id,
               l.commission_rate_bps AS rate_bps,
-              l.commission_fixed_paisa AS fixed_paisa,
+              l.commission_fixed_minor AS fixed_minor,
               p.commission_basis AS basis, l.line_kind, l.lab_order_item_id,
-              cr.item_id AS charge_item_id, cr.amount_paisa AS charge_amount_paisa,
-              l.quantity::bigint * l.unit_price_paisa AS gross_paisa,
-              l.line_total_paisa, l.tax_paisa,
-              i.total_paisa, i.credited_paisa, i.status,
-              COALESCE((SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
-                         WHERE a.invoice_id = i.id AND a.reversed_at IS NULL), 0) AS allocated_paisa,
-              COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce
-                         WHERE ce.lab_invoice_line_id = l.id), 0) AS already_paisa
+              cr.item_id AS charge_item_id, cr.amount_minor AS charge_amount_minor,
+              l.quantity::bigint * l.unit_price_minor AS gross_minor,
+              l.line_total_minor, l.tax_minor,
+              i.total_minor, i.credited_minor, i.status,
+              COALESCE((SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
+                         WHERE a.invoice_id = i.id AND a.reversed_at IS NULL), 0) AS allocated_minor,
+              COALESCE((SELECT SUM(ce.amount_minor) FROM commission_entries ce
+                         WHERE ce.lab_invoice_line_id = l.id), 0) AS already_minor
          FROM lab_invoice_lines l
          JOIN lab_invoices i ON i.id = l.invoice_id
          JOIN compensation_plans p ON p.id = l.commission_plan_id
          LEFT JOIN order_charge_requests cr ON cr.id = l.order_charge_request_id
         WHERE l.invoice_id = ANY($1::uuid[])
           AND l.performing_assignment_id IS NOT NULL
-          AND (l.commission_rate_bps IS NOT NULL OR l.commission_fixed_paisa IS NOT NULL)
+          AND (l.commission_rate_bps IS NOT NULL OR l.commission_fixed_minor IS NOT NULL)
         ORDER BY l.id`,
       [invoiceIds],
     );

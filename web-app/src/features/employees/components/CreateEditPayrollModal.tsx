@@ -21,6 +21,7 @@ import { Loader2 } from 'lucide-react'
 import { useEmployees } from '../hooks/useEmployees'
 import { fieldError } from '@/components/forms/fieldError'
 import { NumberInput } from '@/components/forms/NumberInput'
+import { nowInClinic } from '@/lib/datetime'
 import { usePayrollForm } from '../hooks/usePayrollForm'
 import { PAYROLL_STATUS_OPTIONS } from '../types'
 import type { PayrollStatus, PayrollRecord } from '../types'
@@ -62,7 +63,7 @@ export function CreateEditPayrollModal({
     defaultYear,
     onDone: () => onOpenChange(false),
   })
-  const now = new Date()
+  const now = nowInClinic()
 
   const { data: employeesPage } = useEmployees({ page: 1, limit: 100 })
   const employees = employeesPage?.data ?? []

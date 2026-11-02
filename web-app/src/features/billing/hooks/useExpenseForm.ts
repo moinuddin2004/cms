@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { todayYmd } from '@/lib/datetime'
 import { expenseFormSchema } from '../schemas/expense.schema'
 import type { ExpenseFormValues } from '../schemas/expense.schema'
 import { ExpenseCategory, PaymentMethod } from '../types'
@@ -8,7 +9,7 @@ export const expenseDefaults = (): ExpenseFormValues => ({
   category: ExpenseCategory.SUPPLIES,
   description: '',
   amount: '',
-  expenseDate: new Date().toISOString().slice(0, 10),
+  expenseDate: todayYmd(),
   paymentMethod: PaymentMethod.CASH,
   referenceNumber: '',
   notes: '',

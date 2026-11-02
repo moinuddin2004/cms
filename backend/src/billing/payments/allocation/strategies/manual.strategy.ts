@@ -1,5 +1,5 @@
 import { AllocationMode } from '../../../enums/billing.enums';
-import { Paisa, sumPaisa } from '../../../common/money';
+import { Minor, sumMinor } from '../../../common/money';
 import {
   AllocationInput,
   AllocationPlanError,
@@ -13,13 +13,13 @@ export class ManualAllocationStrategy implements AllocationStrategy {
 
   targets(
     sortedCharges: readonly PlannerCharge[],
-    totalFundsPaisa: Paisa,
+    totalFundsMinor: Minor,
     input: AllocationInput,
-  ): Map<string, Paisa> {
-    const out = new Map<string, Paisa>();
+  ): Map<string, Minor> {
+    const out = new Map<string, Minor>();
     for (const c of sortedCharges) {
       const requested = input.requested?.get(c.id) ?? 0;
-      if (requested > c.balancePaisa) {
+      if (requested > c.balanceMinor) {
         throw new AllocationPlanError(
           'BILLING_ALLOCATION_EXCEEDS_BALANCE',
           'An amount is larger than the charge balance',
@@ -27,7 +27,7 @@ export class ManualAllocationStrategy implements AllocationStrategy {
       }
       out.set(c.id, requested);
     }
-    if (sumPaisa([...out.values()]) > totalFundsPaisa) {
+    if (sumMinor([...out.values()]) > totalFundsMinor) {
       throw new AllocationPlanError(
         'BILLING_ALLOCATION_EXCEEDS_FUNDS',
         'The amounts add up to more than the money available',

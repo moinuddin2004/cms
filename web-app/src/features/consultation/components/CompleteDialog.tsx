@@ -1,5 +1,4 @@
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
-import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { formatYmd } from '@/lib/datetime'
 import type { VisitNotes } from '../types'
 
 export type RxSummary = 'none' | 'draft' | 'signed'
@@ -64,7 +64,7 @@ export function CompleteDialog({
     {
       ok: Boolean(notes.followUpDate),
       text: notes.followUpDate
-        ? `Next visit: ${format(new Date(`${notes.followUpDate}T12:00:00`), 'dd MMM yyyy')}`
+        ? `Next visit: ${formatYmd(notes.followUpDate, 'dd MMM yyyy')}`
         : 'No next visit set',
     },
   ]

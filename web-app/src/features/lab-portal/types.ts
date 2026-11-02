@@ -60,10 +60,7 @@ export const LAB_ROLE_LABEL: Record<LabMemberRole, string> = {
 
 /** What the lab side may do on an order (from the pinned workflows). */
 export type LabOrderAction =
-  | 'accept'
-  | 'reject'
-  | 'request_clarification'
-  | 'change_expected_date'
+  'accept' | 'reject' | 'request_clarification' | 'change_expected_date'
 
 export interface PortalPatientRef {
   /** Name or file number, as the clinic's link allows. */
@@ -109,8 +106,8 @@ export interface PortalOrderItem {
   rush: boolean
   options: { id: string; code: string; name: string }[] | null
   currency: string
-  labUnitCostPaisa: number
-  labLineCostPaisa: number
+  labUnitCostMinor: number
+  labLineCostMinor: number
   status: string | null
   form: {
     code: string
@@ -138,7 +135,7 @@ export interface PortalOrderDetail {
   clinic: { name: string }
   patient: PortalPatientRef
   doctor: { fullName: string } | null
-  labCostPaisa: number
+  labCostMinor: number
   items: PortalOrderItem[]
   revisions: {
     id: string

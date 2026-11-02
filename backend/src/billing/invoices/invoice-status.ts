@@ -1,4 +1,4 @@
-import { toPaisa } from '../common/money';
+import { toMinor } from '../common/money';
 import {
   InvoicePaymentStatus,
   InvoiceRefundStatus,
@@ -16,9 +16,9 @@ export function invoicePaymentStatus(
   today: string,
 ): InvoicePaymentStatus | null {
   if (inv.status === InvoiceStatus.CANCELLED) return null;
-  if (toPaisa(inv.balanceDue) <= 0) return InvoicePaymentStatus.PAID;
+  if (toMinor(inv.balanceDue) <= 0) return InvoicePaymentStatus.PAID;
   if (inv.dueDate < today) return InvoicePaymentStatus.OVERDUE;
-  if (toPaisa(inv.paidAmount) > 0) return InvoicePaymentStatus.PARTIALLY_PAID;
+  if (toMinor(inv.paidAmount) > 0) return InvoicePaymentStatus.PARTIALLY_PAID;
   return InvoicePaymentStatus.UNPAID;
 }
 
@@ -28,21 +28,21 @@ export function invoiceRefundStatus(inv: {
   releasedAmount: number;
   refundedAmount: number;
 }): InvoiceRefundStatus {
-  const refunded = toPaisa(inv.refundedAmount);
+  const refunded = toMinor(inv.refundedAmount);
   if (refunded === 0) return InvoiceRefundStatus.NONE;
-  const nothingLeftOnInvoice = toPaisa(inv.paidAmount) === 0;
-  const nothingLeftToRefund = refunded === toPaisa(inv.releasedAmount);
+  const nothingLeftOnInvoice = toMinor(inv.paidAmount) === 0;
+  const nothingLeftToRefund = refunded === toMinor(inv.releasedAmount);
   return nothingLeftOnInvoice && nothingLeftToRefund
     ? InvoiceRefundStatus.FULLY_REFUNDED
     : InvoiceRefundStatus.PARTIALLY_REFUNDED;
 }
 
-/** releasedAmount − refundedAmount, in paisa. */
-export const refundablePaisa = (inv: {
+/** releasedAmount − refundedAmount, in minor units. */
+export const refundableMinor = (inv: {
   releasedAmount: number;
   refundedAmount: number;
 }): number =>
-  Math.max(0, toPaisa(inv.releasedAmount) - toPaisa(inv.refundedAmount));
+  Math.max(0, toMinor(inv.releasedAmount) - toMinor(inv.refundedAmount));
 
 /** List filter value: payment statuses plus the two document states. */
 export type InvoiceListStatus = InvoicePaymentStatus | 'REFUNDED' | 'CANCELLED';

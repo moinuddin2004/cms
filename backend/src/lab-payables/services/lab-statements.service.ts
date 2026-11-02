@@ -154,7 +154,7 @@ export class LabStatementsService {
       const result = reconcile(
         dto.lines.map((l) => ({
           labReference: l.labReference ?? null,
-          amountPaisa: l.amountPaisa,
+          amountMinor: l.amountMinor,
         })),
         bills,
       );
@@ -170,8 +170,8 @@ export class LabStatementsService {
           periodStart: dto.periodStart,
           periodEnd: dto.periodEnd,
           statementRef: dto.statementRef?.trim() || null,
-          totalPaisa:
-            dto.totalPaisa ?? dto.lines.reduce((a, l) => a + l.amountPaisa, 0),
+          totalMinor:
+            dto.totalMinor ?? dto.lines.reduce((a, l) => a + l.amountMinor, 0),
           notes: dto.notes?.trim() || null,
           status: clean
             ? StatementStatus.RECONCILED
@@ -187,7 +187,7 @@ export class LabStatementsService {
           labReference: l.labReference?.trim() || null,
           lineDate: l.lineDate ?? null,
           description: l.description?.trim() || null,
-          amountPaisa: l.amountPaisa,
+          amountMinor: l.amountMinor,
           ...result.lines[i],
         })),
         ...result.missingInStatement.map((b) => ({
@@ -195,8 +195,8 @@ export class LabStatementsService {
           statementId: statement.id,
           labReference: null,
           description: `Not on the statement: ${b.billNo}${b.orderNo ? ` (${b.orderNo})` : ''}`,
-          amountPaisa: 0,
-          systemAmountPaisa: b.totalPaisa,
+          amountMinor: 0,
+          systemAmountMinor: b.totalMinor,
           matchedBillId: b.billId,
           matchedBillLineId: b.firstLineId,
           matchStatus: StatementMatch.MISSING_IN_STATEMENT,
@@ -219,7 +219,7 @@ export class LabStatementsService {
           labId: dto.labId,
           periodStart: dto.periodStart,
           periodEnd: dto.periodEnd,
-          totalPaisa: statement.totalPaisa,
+          totalMinor: statement.totalMinor,
           status: statement.status,
         },
       });
@@ -278,16 +278,16 @@ export class LabStatementsService {
       bill_no: string;
       vendor_invoice_no: string | null;
       order_no: string | null;
-      total_paisa: string;
+      total_minor: string;
       first_line_id: string | null;
     }>(
       m,
-      `SELECT b.id, b.bill_no, b.vendor_invoice_no, o.order_no, b.total_paisa,
+      `SELECT b.id, b.bill_no, b.vendor_invoice_no, o.order_no, b.total_minor,
               (SELECT l.id FROM vendor_bill_lines l WHERE l.vendor_bill_id = b.id
                 ORDER BY l.created_at, l.id LIMIT 1) AS first_line_id
          FROM vendor_bills b LEFT JOIN lab_orders o ON o.id = b.lab_order_id
         WHERE b.organization_id = $1 AND b.lab_id = $2 AND b.status <> 'void'
-          AND b.bill_date BETWEEN $3 AND $4 AND b.total_paisa > 0
+          AND b.bill_date BETWEEN $3 AND $4 AND b.total_minor > 0
         ORDER BY b.bill_date, b.bill_no`,
       [organizationId, labId, from, to],
     );
@@ -296,7 +296,7 @@ export class LabStatementsService {
       billNo: r.bill_no,
       vendorInvoiceNo: r.vendor_invoice_no,
       orderNo: r.order_no,
-      totalPaisa: Number(r.total_paisa),
+      totalMinor: Number(r.total_minor),
       firstLineId: r.first_line_id,
     }));
   }

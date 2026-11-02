@@ -72,10 +72,10 @@ Columns use `snake_case` (`organization_id`, `created_at`) in every module excep
 
 The Platform stores money in two ways, and a reader must check which one a column uses:
 
-- **Integer paisa** (`bigint` or `integer` columns whose names end in `_paisa`). One rupee is 100 paisa, so 1,250.50 PKR is stored as `125050`. The newer money-handling code uses this form: payroll breakdowns, commissions and compensation plans, the general-ledger journals, and every lab billing and payables table.
+- **Integer paisa** (`bigint` or `integer` columns whose names end in `_minor`). One rupee is 100 paisa, so 1,250.50 PKR is stored as `125050`. The newer money-handling code uses this form: payroll breakdowns, commissions and compensation plans, the general-ledger journals, and every lab billing and payables table.
 - **Numeric with two decimals** (`numeric(12,2)` or `numeric(10,2)`). The amount is stored in rupees with two decimal places. Billing v2 (charges, invoices, payments, refunds), subscriptions, inventory, insurance, treatment plans and the legacy `treatments.cost` use this form.
 
-Some tables carry both. `payroll_records` keeps `base_salary_paisa`, `commission_paisa` and `total_paisa` in paisa and also `salary_amount` in rupees, which mirrors the total for older screens. "PKR" is the default currency of a new organization, not a limit: `organizations.currency` and `locations.currency` hold the currency code.
+Some tables carry both. `payroll_records` keeps `base_salary_minor`, `commission_minor` and `total_minor` in paisa and also `salary_amount` in rupees, which mirrors the total for older screens. "PKR" is the default currency of a new organization, not a limit: `organizations.currency` and `locations.currency` hold the currency code.
 
 ### 12.3.4 Timestamps and dates
 

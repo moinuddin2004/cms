@@ -1,6 +1,6 @@
 /**
  * Commission arithmetic. Pure: no NestJS / TypeORM / DB. All money is
- * integer paisa, all rates integer basis points (4000 = 40.00%); products
+ * integer minor units, all rates integer basis points (4000 = 40.00%); products
  * are computed in BigInt so nothing ever touches floating point.
  */
 
@@ -15,7 +15,7 @@ export interface CommissionRuleLike {
   serviceId: string | null;
   serviceCategory: ServiceKind | null;
   rateBps: number | null;
-  fixedAmountPaisa: number | null;
+  fixedAmountMinor: number | null;
 }
 
 export interface CommissionPlanLike {
@@ -29,10 +29,10 @@ export interface ChargeServiceLike {
   serviceKind: ServiceKind;
 }
 
-/** Exactly one of `rateBps` / `fixedPaisa` is set. */
+/** Exactly one of `rateBps` / `fixedMinor` is set. */
 export interface ResolvedCommission {
   rateBps: number | null;
-  fixedPaisa: number | null;
+  fixedMinor: number | null;
   source: 'SERVICE' | 'CATEGORY' | 'DEFAULT';
 }
 
@@ -50,7 +50,7 @@ export function resolveCommissionRate(
     r: CommissionRuleLike | undefined,
     source: ResolvedCommission['source'],
   ): ResolvedCommission | null =>
-    r ? { rateBps: r.rateBps, fixedPaisa: r.fixedAmountPaisa, source } : null;
+    r ? { rateBps: r.rateBps, fixedMinor: r.fixedAmountMinor, source } : null;
 
   const byService = charge.serviceId
     ? plan.rules.find((r) => r.serviceId === charge.serviceId)
@@ -63,7 +63,7 @@ export function resolveCommissionRate(
     pick(byCategory, 'CATEGORY') ??
     (plan.defaultRateBps === null
       ? null
-      : { rateBps: plan.defaultRateBps, fixedPaisa: null, source: 'DEFAULT' })
+      : { rateBps: plan.defaultRateBps, fixedMinor: null, source: 'DEFAULT' })
   );
 }
 
@@ -76,32 +76,32 @@ export function divRoundHalfUp(n: bigint, d: bigint): bigint {
 
 export interface CommissionTargetInput {
   /** SUM of allocations on the charge — covers net AND tax. */
-  allocatedPaisa: number;
+  allocatedMinor: number;
   /** 0 for a VOID charge. */
-  netPaisa: number;
+  netMinor: number;
   /**
    * The charge's share of invoice sales tax (0 / omitted: none). Payments
    * cover net and tax pro rata, and tax is not doctor revenue, so only the
    * pre-tax part of what was collected earns commission.
    */
-  taxPaisa?: number;
-  grossPaisa: number;
+  taxMinor?: number;
+  grossMinor: number;
   basis: CommissionBasis;
   rateBps: number | null;
-  fixedPaisa: number | null;
+  fixedMinor: number | null;
   /**
    * Lab cost of the case (lab ERD §6c basis `net_of_lab_cost`): the doctor
    * earns on the price minus what the lab charged, pro rata to what was
    * collected. Omitted / 0 for work without a lab.
    */
-  labCostPaisa?: number;
+  labCostMinor?: number;
 }
 
 export interface CommissionTarget {
   /** Pre-tax part collected on the charge, capped at net. */
-  collectedPaisa: number;
+  collectedMinor: number;
   /** Total commission the charge should have earned so far. */
-  targetPaisa: number;
+  targetMinor: number;
 }
 
 /**
@@ -121,33 +121,33 @@ export interface CommissionTarget {
  * unapply reverses itself and price / discount changes adjust automatically.
  */
 export function commissionTarget(i: CommissionTargetInput): CommissionTarget {
-  const net = BigInt(Math.max(0, i.netPaisa));
-  const tax = BigInt(Math.max(0, i.taxPaisa ?? 0));
-  const allocated = BigInt(Math.max(0, i.allocatedPaisa));
+  const net = BigInt(Math.max(0, i.netMinor));
+  const tax = BigInt(Math.max(0, i.taxMinor ?? 0));
+  const allocated = BigInt(Math.max(0, i.allocatedMinor));
   const preTax =
     tax === 0n ? allocated : divRoundHalfUp(allocated * net, net + tax);
   const collected = net === 0n ? 0n : preTax < net ? preTax : net;
   const result = (target: bigint): CommissionTarget => ({
-    collectedPaisa: Number(collected),
-    targetPaisa: Number(target),
+    collectedMinor: Number(collected),
+    targetMinor: Number(target),
   });
   if (net === 0n || collected === 0n) return result(0n);
 
-  if (i.fixedPaisa !== null) {
-    return result(divRoundHalfUp(BigInt(i.fixedPaisa) * collected, net));
+  if (i.fixedMinor !== null) {
+    return result(divRoundHalfUp(BigInt(i.fixedMinor) * collected, net));
   }
   const rate = BigInt(i.rateBps ?? 0);
   const scale = BigInt(MAX_RATE_BPS);
-  const lab = BigInt(Math.max(0, i.labCostPaisa ?? 0));
+  const lab = BigInt(Math.max(0, i.labCostMinor ?? 0));
   if (lab > 0n) {
     const price =
-      i.basis === CommissionBasis.GROSS ? BigInt(i.grossPaisa) : net;
+      i.basis === CommissionBasis.GROSS ? BigInt(i.grossMinor) : net;
     const base = price > lab ? price - lab : 0n;
     return result(divRoundHalfUp(collected * base * rate, net * scale));
   }
   if (i.basis === CommissionBasis.GROSS) {
     return result(
-      divRoundHalfUp(collected * BigInt(i.grossPaisa) * rate, net * scale),
+      divRoundHalfUp(collected * BigInt(i.grossMinor) * rate, net * scale),
     );
   }
   return result(divRoundHalfUp(collected * rate, scale));
@@ -174,8 +174,8 @@ export function bpsToPercent(bps: number): string {
   return frac ? `${whole}.${frac}` : String(whole);
 }
 
-/** Rupees (≤ 2 decimals) → paisa without float math. Null when invalid. */
-export function rupeesToPaisa(value: string | number): number | null {
+/** Rupees (≤ 2 decimals) → minor units without float math. Null when invalid. */
+export function rupeesToMinor(value: string | number): number | null {
   const m = DECIMAL.exec(String(value));
   if (!m) return null;
   return Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));

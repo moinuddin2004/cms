@@ -23,14 +23,14 @@ export interface CommissionRuleView {
   serviceName: string | null;
   serviceCategory: ServiceKind | null;
   rateBps: number | null;
-  fixedAmountPaisa: number | null;
+  fixedAmountMinor: number | null;
 }
 
 export interface CompensationPlanView {
   id: string;
   assignmentId: string;
   type: CompensationPlanType;
-  baseSalaryPaisa: number | null;
+  baseSalaryMinor: number | null;
   defaultRateBps: number | null;
   commissionBasis: CommissionBasis;
   effectiveFrom: string;
@@ -100,7 +100,7 @@ export class CompensationPlansService {
         assignment,
         {
           type: dto.type,
-          baseSalaryPaisa: dto.baseSalaryPaisa ?? null,
+          baseSalaryMinor: dto.baseSalaryMinor ?? null,
           defaultRateBps: dto.defaultRateBps ?? null,
           commissionBasis: dto.commissionBasis,
           effectiveFrom: dto.effectiveFrom ?? today,
@@ -201,7 +201,7 @@ function toView(
     id: p.id,
     assignmentId: p.assignmentId,
     type: p.type,
-    baseSalaryPaisa: p.baseSalaryPaisa,
+    baseSalaryMinor: p.baseSalaryMinor,
     defaultRateBps: p.defaultRateBps,
     commissionBasis: p.commissionBasis,
     effectiveFrom: p.effectiveFrom,
@@ -215,7 +215,7 @@ function toView(
       serviceName: r.serviceId ? (names.get(r.serviceId) ?? null) : null,
       serviceCategory: r.serviceCategory,
       rateBps: r.rateBps,
-      fixedAmountPaisa: r.fixedAmountPaisa,
+      fixedAmountMinor: r.fixedAmountMinor,
     })),
     createdAt: p.createdAt,
   };

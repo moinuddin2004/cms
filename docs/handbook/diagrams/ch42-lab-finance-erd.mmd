@@ -16,14 +16,14 @@ erDiagram
         uuid order_id FK
         string invoice_no
         string status
-        bigint balance_paisa
+        bigint balance_minor
     }
     lab_invoice_lines {
         uuid id PK
         uuid invoice_id FK
         uuid lab_order_item_id FK
         string line_kind
-        bigint line_total_paisa
+        bigint line_total_minor
     }
     lab_payments {
         uuid id PK
@@ -36,11 +36,11 @@ erDiagram
         uuid id PK
         uuid payment_id FK
         uuid invoice_id FK
-        bigint amount_paisa
+        bigint amount_minor
     }
     lab_credit_notes {
         uuid id PK
         uuid invoice_id FK
-        bigint amount_paisa
+        bigint amount_minor
         string status
     }

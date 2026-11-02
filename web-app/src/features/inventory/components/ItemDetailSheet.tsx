@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/table'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { formatDate, formatYmd } from '@/lib/datetime'
 import { useInventoryItem } from '../hooks/useInventory'
 import { getStockLevel, MovementBadge, QtyDelta } from './inventory-ui'
 import type { InventoryItem } from '../types'
@@ -72,9 +73,7 @@ export function ItemDetailSheet({
               <Info
                 label="Expiry"
                 value={
-                  item.expiryDate
-                    ? new Date(item.expiryDate).toLocaleDateString()
-                    : '—'
+                  formatYmd(item.expiryDate)
                 }
               />
             </div>
@@ -115,7 +114,7 @@ export function ItemDetailSheet({
                     {(item.recentMovements ?? []).map((m) => (
                       <TableRow key={m.id}>
                         <TableCell className="text-xs">
-                          {new Date(m.createdAt).toLocaleDateString()}
+                          {formatDate(m.createdAt)}
                         </TableCell>
                         <TableCell>
                           <MovementBadge type={m.movementType} />

@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { TooltipButton } from '@/components/shared/TooltipButton'
+import { formatDate } from '@/lib/datetime'
 import type { OwnerFeature } from '../types/feature-settings.types'
 
 export const LOCKED_MESSAGE = 'Plan mein nahi — super admin se rabta karein'
@@ -16,11 +17,7 @@ export const TRIAL_ENDED_MESSAGE =
 
 export function formatUntil(until: string | null) {
   if (!until) return null
-  return new Date(until).toLocaleDateString(undefined, {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
+  return formatDate(until)
 }
 
 /** One feature: name, state, the owner's switch (or a lock) and locations. */

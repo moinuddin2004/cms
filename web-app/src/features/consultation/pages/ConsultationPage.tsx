@@ -154,7 +154,10 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
   const { encounter, doctor } = workspace
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    // On a laptop/tablet in landscape the screen never scrolls as a whole:
+    // the header stays, and each column scrolls on its own — the patient
+    // summary, the notes and the prescription are all in view at once.
+    <div className="min-h-screen bg-muted/30 lg:flex lg:h-dvh lg:flex-col lg:overflow-hidden">
       <ConsultationHeader
         workspace={workspace}
         patient={patient}
@@ -164,11 +167,11 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
         completing={complete.isPending}
       />
 
-      <main className="mx-auto grid max-w-[1600px] items-start gap-4 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[260px_minmax(0,1fr)] lg:p-4 xl:grid-cols-[260px_minmax(0,1fr)_minmax(340px,420px)]">
+      <main className="mx-auto grid w-full max-w-[1600px] gap-4 p-3 lg:min-h-0 lg:flex-1 lg:grid-cols-[260px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)] lg:px-4 lg:py-0">
         <Button
           variant="outline"
           size="sm"
-          className="h-9 justify-between md:col-span-2 lg:hidden"
+          className="h-9 justify-between lg:hidden"
           aria-expanded={showSummary}
           onClick={() => setShowSummary((s) => !s)}
         >
@@ -185,7 +188,7 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
 
         <aside
           className={cn(
-            'md:col-span-2 lg:col-span-1 lg:row-span-2 lg:block xl:row-span-1',
+            'lg:block lg:overflow-y-auto lg:py-4',
             showSummary ? 'block' : 'hidden',
           )}
         >
@@ -198,37 +201,42 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
           />
         </aside>
 
-        <div className="min-w-0 lg:col-start-2">
-          <VisitNotes
-            value={notes}
-            onChange={setNotes}
-            saveState={notesSave.state}
-            savedAt={notesSave.savedAt}
-          />
-        </div>
+        <div className="min-w-0 space-y-4 lg:overflow-y-auto lg:py-4 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(360px,440px)] xl:grid-rows-[minmax(0,1fr)] xl:gap-4 xl:space-y-0 xl:overflow-hidden xl:py-0">
+          {/* What the doctor writes and does in the chair. */}
+          <div className="min-w-0 space-y-4 xl:overflow-y-auto xl:py-4">
+            <VisitNotes
+              value={notes}
+              onChange={setNotes}
+              saveState={notesSave.state}
+              savedAt={notesSave.savedAt}
+            />
+            <TreatmentPlanPanel
+              patientId={patient.id}
+              encounterId={encounterId}
+              dentistId={doctor?.id ?? null}
+            />
+            <TreatmentsToday
+              encounterId={encounterId}
+              patientId={patient.id}
+              treatments={encounter.treatments ?? []}
+            />
+          </div>
 
-        <div className="min-w-0 space-y-4 lg:col-start-2 xl:col-start-3 xl:row-start-1">
-          <TreatmentsToday
-            encounterId={encounterId}
-            patientId={patient.id}
-            treatments={encounter.treatments ?? []}
-          />
-          <TreatmentPlanPanel
-            patientId={patient.id}
-            encounterId={encounterId}
-            dentistId={doctor?.id ?? null}
-          />
-          <PrescriptionPanel
-            encounterId={encounterId}
-            encounterDate={encounter.encounterDate}
-            patientId={patient.id}
-            doctorId={doctor?.id ?? null}
-            notes={notes}
-            latestVitals={vitals}
-            command={rxCommand}
-            onTemplateAdvice={addTemplateAdvice}
-            registerFlush={registerRxFlush}
-          />
+          {/* The prescription gets a column of its own; Sign & print stays at its foot. */}
+          <div className="min-w-0 xl:flex xl:flex-col xl:py-4">
+            <PrescriptionPanel
+              encounterId={encounterId}
+              encounterDate={encounter.encounterDate}
+              patientId={patient.id}
+              doctorId={doctor?.id ?? null}
+              notes={notes}
+              latestVitals={vitals}
+              command={rxCommand}
+              onTemplateAdvice={addTemplateAdvice}
+              registerFlush={registerRxFlush}
+              className="xl:min-h-0 xl:flex-1"
+            />
+          </div>
         </div>
       </main>
 

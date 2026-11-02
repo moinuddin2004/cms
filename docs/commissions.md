@@ -11,17 +11,17 @@ still work: the old "Update salary" action writes salary-only plan versions.
 
 | Table | What it holds |
 |---|---|
-| `compensation_plans` | How one **assignment** (employee × location) is paid, valid for `[effective_from, effective_to]` (inclusive, `NULL` = current). Type `SALARY`, `COMMISSION` or `SALARY_PLUS_COMMISSION`; `base_salary_paisa`, `default_rate_bps`, `commission_basis` (`NET`/`GROSS`). A GiST exclusion constraint forbids overlapping versions. |
+| `compensation_plans` | How one **assignment** (employee × location) is paid, valid for `[effective_from, effective_to]` (inclusive, `NULL` = current). Type `SALARY`, `COMMISSION` or `SALARY_PLUS_COMMISSION`; `base_salary_minor`, `default_rate_bps`, `commission_basis` (`NET`/`GROSS`). A GiST exclusion constraint forbids overlapping versions. |
 | `commission_rules` | Overrides of one plan for one catalog service or one service category (`ServiceKind`): a rate (bps) **or** a fixed amount (paisa) per fully paid charge. |
-| `charges` (4 columns) | Snapshot taken when a visit charge is created: `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps` / `commission_fixed_paisa`. Null on old, manual and salary-only charges. |
+| `charges` (4 columns) | Snapshot taken when a visit charge is created: `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps` / `commission_fixed_minor`. Null on old, manual and salary-only charges. |
 | `commission_entries` | Append-only ledger, signed paisa, one row per change. `UNIQUE (source_type, source_id, charge_id)`. A trigger refuses deletes and any update except `settlement_id`. |
 | `commission_settlements` | A batch of entries paid through one payroll record (`PENDING` → `PAID`). |
-| `payroll_records` (3 columns) | `base_salary_paisa`, `commission_paisa`, `total_paisa`; `salary_amount` (rupees) mirrors the total for older screens. Unique per employee × **location** × month. |
+| `payroll_records` (3 columns) | `base_salary_minor`, `commission_minor`, `total_minor`; `salary_amount` (rupees) mirrors the total for older screens. Unique per employee × **location** × month. |
 
 Money is integer paisa, rates integer basis points (4000 = 40.00%). No
 floating point is used: products are BigInt, numeric columns are converted
 to paisa in SQL (`(amount * 100)::bigint`), UI input is parsed as text
-(`percentToBps`, `rupeesToPaisa`).
+(`percentToBps`, `rupeesToMinor`).
 
 `employee_org_location_assignments.gross_salary` is **deprecated**: the
 migration copied it into a `SALARY` plan per assignment and nothing writes it
@@ -61,7 +61,7 @@ net = 0                 → target = 0
 rate, NET basis         → target = round(collected × rate / 10000)
 rate, GROSS basis       → target = round(collected × gross × rate / (net × 10000))
 fixed amount            → target = round(fixed × collected / net)
-already = SUM(entries.amount_paisa for the charge)
+already = SUM(entries.amount_minor for the charge)
 target ≠ already        → insert entry (amount = target − already)
 ```
 

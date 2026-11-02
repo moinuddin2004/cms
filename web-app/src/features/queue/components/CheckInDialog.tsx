@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
+import { formatTime } from '@/lib/datetime'
 import { checkInSchema } from '../schemas/queue.schema'
 import { checkInAppointment, convertToWalkIn } from '../services/queue.api'
 import { useQueueAction } from '../hooks/useQueueAction'
@@ -128,10 +129,7 @@ export function CheckInDialog({
             <DialogDescription>
               {target.patientName ?? 'Patient'}
               {target.doctorName ? ` · Dr. ${target.doctorName}` : ''} ·{' '}
-              {new Date(target.startTime).toLocaleTimeString([], {
-                hour: 'numeric',
-                minute: '2-digit',
-              })}
+              {formatTime(target.startTime)}
             </DialogDescription>
           </DialogHeader>
 

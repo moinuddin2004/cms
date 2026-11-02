@@ -7,7 +7,7 @@ import { BillingClock } from '../common/billing-clock.service';
 import { BillingContext } from '../common/billing-context';
 import { billingError, notFound } from '../common/billing-errors';
 import { BillingLookups } from '../common/billing-lookups';
-import { toPaisa } from '../common/money';
+import { toMinor } from '../common/money';
 import { CreateCashCloseDto } from '../dto/report.dto';
 import { CashClose, CashCloseLine } from '../entities/cash-close.entity';
 import { BillingAuditAction, BillingAuditEntity } from '../enums/billing.enums';
@@ -191,7 +191,7 @@ export class CashCloseService {
       this.dataSource.manager,
       tenant,
     );
-    const alert = toPaisa(settings.cashVarianceAlertAmount);
+    const alert = toMinor(settings.cashVarianceAlertAmount);
     const names = await BillingLookups.userNames(
       this.dataSource.manager,
       rows.map((r) => r.closedBy),
@@ -206,7 +206,7 @@ export class CashCloseService {
       totalVariance: c.totalVariance,
       note: c.note,
       closedByName: names.get(c.closedBy) ?? null,
-      flagged: Math.abs(toPaisa(c.totalVariance)) > alert,
+      flagged: Math.abs(toMinor(c.totalVariance)) > alert,
       createdAt: c.createdAt.toISOString(),
     }));
   }

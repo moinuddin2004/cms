@@ -220,6 +220,12 @@ export default function PatientsRoute() {
 - Return typed responses using `ApiResponse<T>` from `shared/types`
 - TanStack Query hooks in `use[Feature]s.ts` consume the api functions
 
+### Dates & Times — clinic timezone
+- API speaks UTC instants (`…Z`) and plain `YYYY-MM-DD` calendar dates. Every instant is shown and entered on the active LOCATION's clock (`locations.timezone`, set in location settings) — never the browser's.
+- All conversion goes through `@/lib/datetime`: show with `formatDate` / `formatDateTime` / `formatTime` / `formatInClinic(v, pattern)`; calendar dates with `formatYmd`; send picker values with `clinicInputToUtc` / `clinicDateTimeToUtc`; prefill with `utcToClinicInput`; "today" = `todayYmd()`; day-range filters = `clinicDayBounds(day)`; date-fns on instants takes `inClinic()`.
+- Never: `new Date(x).toLocale*String()`, `format(new Date(x), …)` without `inClinic()`, `toISOString().slice(0, 10)` as "today", manual offset math.
+- FullCalendar runs with `timeZone="UTC"` fed clinic wall times (`features/appointments/utils/datetime.ts`).
+
 ### Zustand
 - Each feature has its own slice in `use[Feature]Store.ts`
 - Slice handles: selected item, sheet open/close, view mode
@@ -316,7 +322,7 @@ Each domain is a self-contained NestJS module under `src/`:
 - `patients/` — full patient records: dental charts, vitals, clinical notes, treatments, prescriptions, documents, consents, feedback
 - `appointments/` — booking only: scheduling, validate, booking rules, conflict detection (DB exclusion constraint `no_doctor_overlap`), status transition map. Check-in hands over to the queue.
 - `queue/` — doctor-wise clinic queue after arrival. ALL queue mutations go through `QueueOrchestrator` (transaction → session row lock → transition map → audit `queue_events` + `outbox`). `SelectionEngine` is a pure function (spec covers the 14 scenarios in both modes). Mutations need an `Idempotency-Key` header; entry actions accept `If-Match: <version>`. Realtime: Socket.IO `/realtime` rooms fed by the outbox relay. Policies: `queue_policies` (org default + location override).
-- `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times.
+- `common/clock/` — `ClockService`: "now"/"today" in the LOCATION's timezone. Never use server-local `new Date()` + `setHours()` for clinic days/times. The process runs in UTC (`bootstrap/utc.ts`, imported first by every entry point); every instant column is `timestamptz` (date decorators included — `type: 'timestamptz'`); SQL that derives a clinic day/month from a `timestamptz` uses `AT TIME ZONE <location tz>`.
 - `employees/` — staff records, salary, work schedules, location assignments
 - `payroll/` — payroll records, payment tracking
 - `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis (only when `REDIS_URL` is set; single `all` process needs none).

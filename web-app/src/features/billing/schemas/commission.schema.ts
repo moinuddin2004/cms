@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { percentToBps, rupeesToPaisa } from '../lib/commission-math'
+import { percentToBps, rupeesToMinor } from '../lib/commission-math'
 import type {
   CommissionRuleInput,
   CompensationPlanInput,
@@ -7,7 +7,7 @@ import type {
 import type { ServiceKind } from '../types/billing.types'
 
 // Inputs are edited as text and converted with integer math only
-// (% → basis points, rupees → paisa) in `toPlanInput` / `toRuleInputs`.
+// (% → basis points, rupees → minor units) in `toPlanInput` / `toRuleInputs`.
 
 export const ruleRowSchema = z.object({
   /** `svc:<serviceId>` or `cat:<ServiceKind>`. */
@@ -31,7 +31,7 @@ export function ruleRowErrors(
     const ok =
       r.mode === 'percent'
         ? percentToBps(r.value) !== null
-        : rupeesToPaisa(r.value) !== null
+        : rupeesToMinor(r.value) !== null
     if (!ok)
       out.value =
         r.mode === 'percent'
@@ -66,7 +66,7 @@ export const compensationSchema = z
     rules: z.array(ruleRowSchema),
   })
   .superRefine((v, ctx) => {
-    if (v.type !== 'COMMISSION' && rupeesToPaisa(v.salary) === null)
+    if (v.type !== 'COMMISSION' && rupeesToMinor(v.salary) === null)
       ctx.addIssue({
         code: 'custom',
         path: ['salary'],
@@ -96,7 +96,7 @@ export function toRuleInputs(rows: RuleRow[]): CommissionRuleInput[] {
         : { serviceCategory: id as ServiceKind }
     return r.mode === 'percent'
       ? { ...target, rateBps: percentToBps(r.value) as number }
-      : { ...target, fixedAmountPaisa: rupeesToPaisa(r.value) as number }
+      : { ...target, fixedAmountMinor: rupeesToMinor(r.value) as number }
   })
 }
 
@@ -107,7 +107,7 @@ export function toPlanInput(v: CompensationValues): CompensationPlanInput {
     effectiveFrom: v.effectiveFrom,
     commissionBasis: v.basis,
     ...(v.type !== 'COMMISSION'
-      ? { baseSalaryPaisa: rupeesToPaisa(v.salary) as number }
+      ? { baseSalaryMinor: rupeesToMinor(v.salary) as number }
       : {}),
     ...(earns ? { defaultRateBps: percentToBps(v.rate) as number } : {}),
     rules: earns ? toRuleInputs(v.rules) : [],

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
+import { ClockService } from 'src/common/clock/clock.service';
 import {
   PurchaseOrder,
   PurchaseOrderStatus,
@@ -59,14 +60,27 @@ export class PurchaseOrderService {
     private readonly poItemRepo: Repository<PurchaseOrderItem>,
     private readonly dataSource: DataSource,
     private readonly inventoryService: InventoryService,
+    private readonly clock: ClockService,
   ) {}
 
-  private async generatePoNumber(organizationId: string): Promise<string> {
+  /**
+   * The location's calendar day as a Date for the `date` columns
+   * (`orderDate`, `receivedDate`) — UTC midnight of the clinic's today.
+   */
+  private async clinicToday(locationId: string): Promise<Date> {
+    const tz = await this.clock.timezoneFor(locationId);
+    return new Date(`${this.clock.today(tz)}T00:00:00Z`);
+  }
+
+  private async generatePoNumber(
+    organizationId: string,
+    locationId: string,
+  ): Promise<string> {
     const last = await this.poRepo.findOne({
       where: { organizationId },
       order: { createdAt: 'DESC' },
     });
-    const year = new Date().getFullYear();
+    const year = (await this.clinicToday(locationId)).getUTCFullYear();
     let seq = 1;
     if (last?.poNumber) {
       const parts = last.poNumber.split('-');
@@ -82,7 +96,10 @@ export class PurchaseOrderService {
     dto: CreatePurchaseOrderDto,
     createdBy: string,
   ): Promise<PurchaseOrder> {
-    const poNumber = await this.generatePoNumber(organizationId);
+    const poNumber = await this.generatePoNumber(
+      organizationId,
+      locationId,
+    );
 
     const items = dto.items.map((line, index) =>
       this.poItemRepo.create({
@@ -178,8 +195,10 @@ export class PurchaseOrderService {
       );
     }
     po.status = newStatus;
-    if (newStatus === PurchaseOrderStatus.ORDERED) po.orderDate = new Date();
-    if (newStatus === PurchaseOrderStatus.RECEIVED) po.receivedDate = new Date();
+    if (newStatus === PurchaseOrderStatus.ORDERED)
+      po.orderDate = await this.clinicToday(po.locationId);
+    if (newStatus === PurchaseOrderStatus.RECEIVED)
+      po.receivedDate = await this.clinicToday(po.locationId);
     await this.poRepo.save(po);
     return this.findOne(id, organizationId);
   }
@@ -201,6 +220,7 @@ export class PurchaseOrderService {
       );
     }
 
+    const receivedOn = await this.clinicToday(po.locationId);
     await this.dataSource.transaction(async (manager) => {
       const poItemRepo = manager.getRepository(PurchaseOrderItem);
       const poRepo = manager.getRepository(PurchaseOrder);
@@ -262,7 +282,7 @@ export class PurchaseOrderService {
 
       if (fullyReceived) {
         po.status = PurchaseOrderStatus.RECEIVED;
-        po.receivedDate = new Date();
+        po.receivedDate = receivedOn;
       } else if (anyReceived) {
         po.status = PurchaseOrderStatus.PARTIALLY_RECEIVED;
       }

@@ -56,7 +56,7 @@ export const labBillingApi = {
     ),
   creditNote: (
     id: string,
-    body: { amountPaisa: number; reason: string },
+    body: { amountMinor: number; reason: string },
     key: string,
   ) =>
     post<LabInvoiceDetail>(
@@ -82,7 +82,7 @@ export const labBillingApi = {
   refund: (
     body: {
       patientId: string
-      amountPaisa: number
+      amountMinor: number
       method: string
       reason: string
       reference?: string

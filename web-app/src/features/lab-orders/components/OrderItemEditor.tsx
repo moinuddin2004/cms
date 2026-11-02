@@ -8,7 +8,7 @@ import { MultiSelect } from '@/components/shared/MultiSelect'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DynamicFormFields, readFields } from '@/features/engine-studio'
 import type { RenderFile } from '@/features/engine-studio'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import type { ClinicServiceRow } from '@/features/lab-catalog'
 import { toastOrderError } from '../lib/order-errors'
 import type { OrderItemFormValues } from '../schemas/lab-order.schema'
@@ -75,7 +75,7 @@ export function OrderItemEditor({
         }
         options={services.map((s) => ({
           value: s.id,
-          label: `${s.name}${s.price ? ` — ${formatPaisa(s.price.unitPricePaisa)}` : ''}`,
+          label: `${s.name}${s.price ? ` — ${formatMinor(s.price.unitPriceMinor)}` : ''}`,
         }))}
         placeholder="Choose a service"
       />
@@ -93,7 +93,7 @@ export function OrderItemEditor({
                   .filter((o) => o.isActive)
                   .map((o) => ({
                     value: o.id,
-                    label: `${o.name} (+${formatPaisa(o.extraCostPaisa)})`,
+                    label: `${o.name} (+${formatMinor(o.extraCostMinor)})`,
                   }))}
                 value={value.optionIds}
                 onChange={(optionIds) => onChange({ ...value, optionIds })}

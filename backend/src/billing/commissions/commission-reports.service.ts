@@ -20,9 +20,9 @@ export interface CommissionEntryRow {
   patientName: string;
   invoiceNumber: string | null;
   sourceType: CommissionSourceType;
-  basePaisa: number;
+  baseMinor: number;
   rateBps: number | null;
-  amountPaisa: number;
+  amountMinor: number;
   settled: boolean;
 }
 
@@ -33,20 +33,20 @@ export interface DoctorEarningsRow {
   locationName: string;
   planType: CompensationPlanType | null;
   /** Patient money allocated (net of releases) to the doctor's charges. */
-  collectedPaisa: number;
+  collectedMinor: number;
   /** Commission entries written in the range (signed). */
-  earnedPaisa: number;
+  earnedMinor: number;
   /** …of which already in a settlement. */
-  settledPaisa: number;
+  settledMinor: number;
   /** …of which not settled yet. */
-  pendingPaisa: number;
+  pendingMinor: number;
 }
 
 export interface DoctorEarningsReport {
   rows: DoctorEarningsRow[];
   totals: Pick<
     DoctorEarningsRow,
-    'collectedPaisa' | 'earnedPaisa' | 'settledPaisa' | 'pendingPaisa'
+    'collectedMinor' | 'earnedMinor' | 'settledMinor' | 'pendingMinor'
   >;
 }
 
@@ -148,10 +148,10 @@ export class CommissionReportsService {
                           JOIN charges c ON c.id = pa.charge_id
                          WHERE c.performing_assignment_id = a.id
                            AND pa.created_at >= $3 AND pa.created_at < $4), 0) AS collected,
-              COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce
+              COALESCE((SELECT SUM(ce.amount_minor) FROM commission_entries ce
                          WHERE ce.assignment_id = a.id
                            AND ce.created_at >= $3 AND ce.created_at < $4), 0) AS earned,
-              COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce
+              COALESCE((SELECT SUM(ce.amount_minor) FROM commission_entries ce
                          WHERE ce.assignment_id = a.id AND ce.settlement_id IS NOT NULL
                            AND ce.created_at >= $3 AND ce.created_at < $4), 0) AS settled
          FROM employee_org_location_assignments a
@@ -173,10 +173,10 @@ export class CommissionReportsService {
         doctorName: r.doctor_name,
         locationName: r.location_name,
         planType: r.plan_type,
-        collectedPaisa: Number(r.collected),
-        earnedPaisa: earned,
-        settledPaisa: settled,
-        pendingPaisa: earned - settled,
+        collectedMinor: Number(r.collected),
+        earnedMinor: earned,
+        settledMinor: settled,
+        pendingMinor: earned - settled,
       };
     });
     const sum = (k: keyof DoctorEarningsReport['totals']) =>
@@ -184,10 +184,10 @@ export class CommissionReportsService {
     return {
       rows: out,
       totals: {
-        collectedPaisa: sum('collectedPaisa'),
-        earnedPaisa: sum('earnedPaisa'),
-        settledPaisa: sum('settledPaisa'),
-        pendingPaisa: sum('pendingPaisa'),
+        collectedMinor: sum('collectedMinor'),
+        earnedMinor: sum('earnedMinor'),
+        settledMinor: sum('settledMinor'),
+        pendingMinor: sum('pendingMinor'),
       },
     };
   }
@@ -206,9 +206,9 @@ export class CommissionReportsService {
       patient_name: string;
       invoice_number: string | null;
       source_type: CommissionSourceType;
-      base_paisa: string;
+      base_minor: string;
       rate_bps: number | null;
-      amount_paisa: string;
+      amount_minor: string;
       settlement_id: string | null;
     }>(
       this.dataSource,
@@ -217,8 +217,8 @@ export class CommissionReportsService {
               COALESCE(c.description, ll.description) AS description,
               pt.full_name AS patient_name,
               COALESCE(i.invoice_number, li.invoice_no) AS invoice_number,
-              ce.source_type, ce.base_paisa, ce.rate_bps,
-              ce.amount_paisa, ce.settlement_id
+              ce.source_type, ce.base_minor, ce.rate_bps,
+              ce.amount_minor, ce.settlement_id
          FROM commission_entries ce
          JOIN employee_org_location_assignments a ON a.id = ce.assignment_id
          JOIN employees e ON e.id = a.employee_id
@@ -243,9 +243,9 @@ export class CommissionReportsService {
       patientName: r.patient_name,
       invoiceNumber: r.invoice_number,
       sourceType: r.source_type,
-      basePaisa: Number(r.base_paisa),
+      baseMinor: Number(r.base_minor),
       rateBps: r.rate_bps,
-      amountPaisa: Number(r.amount_paisa),
+      amountMinor: Number(r.amount_minor),
       settled: !!r.settlement_id,
     }));
   }

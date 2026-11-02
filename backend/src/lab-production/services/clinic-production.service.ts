@@ -48,17 +48,17 @@ import {
  */
 export function remakeCharges(
   party: ResponsibleParty,
-  original: { labLineCostPaisa: number; patientLinePricePaisa: number },
-): { labPaisa: number; patientPaisa: number } {
+  original: { labLineCostMinor: number; patientLinePriceMinor: number },
+): { labMinor: number; patientMinor: number } {
   switch (party) {
     case ResponsibleParty.LAB:
-      return { labPaisa: 0, patientPaisa: 0 };
+      return { labMinor: 0, patientMinor: 0 };
     case ResponsibleParty.CLINIC:
-      return { labPaisa: original.labLineCostPaisa, patientPaisa: 0 };
+      return { labMinor: original.labLineCostMinor, patientMinor: 0 };
     case ResponsibleParty.PATIENT:
       return {
-        labPaisa: original.labLineCostPaisa,
-        patientPaisa: original.patientLinePricePaisa,
+        labMinor: original.labLineCostMinor,
+        patientMinor: original.patientLinePriceMinor,
       };
     default:
       throw productionError(
@@ -458,8 +458,8 @@ export class ClinicProductionService {
         Object.assign(r, {
           status: RemakeStatus.AGREED,
           responsibleParty: party,
-          labChargePaisa: charges.labPaisa,
-          patientChargePaisa: charges.patientPaisa,
+          labChargeMinor: charges.labMinor,
+          patientChargeMinor: charges.patientMinor,
           newItemId: newItem.id,
         });
         await repo.save(r);
@@ -479,8 +479,8 @@ export class ClinicProductionService {
           status: r.status,
           responsibleParty: r.responsibleParty,
           newItemId: r.newItemId,
-          labChargePaisa: r.labChargePaisa,
-          patientChargePaisa: r.patientChargePaisa,
+          labChargeMinor: r.labChargeMinor,
+          patientChargeMinor: r.patientChargeMinor,
         },
       });
     });
@@ -498,7 +498,7 @@ export class ClinicProductionService {
     m: EntityManager,
     c: ClinicCall,
     original: LabOrderItem,
-    charges: { labPaisa: number; patientPaisa: number },
+    charges: { labMinor: number; patientMinor: number },
   ): Promise<LabOrderItem> {
     const [{ max }] = await sqlRows<{ max: number }>(
       m,
@@ -509,7 +509,7 @@ export class ClinicProductionService {
       m,
       original.workflowTemplateVersionId,
     );
-    const unit = (line: number, unitPaisa: number) => (line ? unitPaisa : 0);
+    const unit = (line: number, unitMinor: number) => (line ? unitMinor : 0);
     const repo = m.getRepository(LabOrderItem);
     const item = await repo.save(
       repo.create({
@@ -527,13 +527,13 @@ export class ClinicProductionService {
         optionsSnap: original.optionsSnap,
         labPriceId: original.labPriceId,
         currency: original.currency,
-        labUnitCostPaisa: unit(charges.labPaisa, original.labUnitCostPaisa),
-        labLineCostPaisa: charges.labPaisa,
-        patientUnitPricePaisa: unit(
-          charges.patientPaisa,
-          original.patientUnitPricePaisa,
+        labUnitCostMinor: unit(charges.labMinor, original.labUnitCostMinor),
+        labLineCostMinor: charges.labMinor,
+        patientUnitPriceMinor: unit(
+          charges.patientMinor,
+          original.patientUnitPriceMinor,
         ),
-        patientLinePricePaisa: charges.patientPaisa,
+        patientLinePriceMinor: charges.patientMinor,
         pricedOn: original.pricedOn,
         formSchemaVersionId: original.formSchemaVersionId,
         workflowTemplateVersionId: original.workflowTemplateVersionId,
@@ -604,8 +604,8 @@ export class ClinicProductionService {
       action: AuditAction.CREATE,
       after: {
         remakeOfItemId: original.id,
-        labLineCostPaisa: item.labLineCostPaisa,
-        patientLinePricePaisa: item.patientLinePricePaisa,
+        labLineCostMinor: item.labLineCostMinor,
+        patientLinePriceMinor: item.patientLinePriceMinor,
       },
     });
     return item;

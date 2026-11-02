@@ -42,12 +42,12 @@ For a clinic whose timezone differs from the server's by a few hours, the differ
 | Style | Where | Meaning |
 |---|---|---|
 | `numeric(12,2)` rupees | Patient billing: charges, invoices, payments, refunds, ledger entries | Exact decimal with two places |
-| `bigint` paisa | Commissions (rules, entries, settlements, compensation plans), the lab billing tables (invoice, credits, payments), and a few billing fields | Whole number of the smallest unit |
+| `bigint` minor units (`*_minor` columns) | Commissions (rules, entries, settlements, compensation plans), the lab billing tables (invoice, credits, payments), and a few billing fields | Whole number of the smallest unit |
 | `decimal(10,2)` | Inventory prices and quantities, payroll records, employee salary on assignments | Exact decimal |
 
-The table shows the three styles. A **paisa** is one hundredth of a rupee; "PKR" is the default currency and not a limit. Amounts cross the API as numbers with at most two decimals in the billing module, and as integer paisa in the lab and commission modules.
+The table shows the three styles. A **minor unit** is the smallest unit of the currency (for PKR, one paisa: a hundredth of a rupee). Columns and fields are named `*_minor` / `*Minor`, not after paisa, so the names fit any currency; "PKR" is the default currency and not a limit. Amounts cross the API as numbers with at most two decimals in the billing module, and as integer paisa in the lab and commission modules.
 
-**How it is calculated.** All billing math is done in **integer paisa** so that no floating-point error can creep in. `money.ts` holds the helpers: `toPaisa` and `fromPaisa`, `sumPaisa`, `percentOf` and `basisPointsOf`. A percentage with up to two decimals is turned into basis points (17.5 percent becomes 1750) and applied with exact big-integer arithmetic.
+**How it is calculated.** All billing math is done in **integer paisa** so that no floating-point error can creep in. `money.ts` holds the helpers: `toMinor` and `fromMinor`, `sumMinor`, `percentOf` and `basisPointsOf`. A percentage with up to two decimals is turned into basis points (17.5 percent becomes 1750) and applied with exact big-integer arithmetic.
 
 - **Rounding is half up** (0.5 paisa rounds to the next whole paisa), the same everywhere, including tax.
 - **Splitting.** When an amount is shared in proportion (for example tax spread over charges), each share is rounded down and the leftover paisa go to the largest share, so the shares always add up exactly to the total.
@@ -61,9 +61,9 @@ The flowchart reads top to bottom. A user types 4500.50. The web app converts th
 
 **Tax is exclusive.** Prices are before tax. Tax equals the taxable amount (the sum of active charge net amounts after discounts) times the rate, rounded half up once per invoice. The total is subtotal minus discount plus tax. The rate is copied onto the invoice when it is issued from the location's billing settings, and later edits use that copy, not the current setting. Tax is spread over the invoice's charges so that payments can be allocated charge by charge; tax is never revenue and never earns commission. Lab invoices use the same half-up rounding and keep tax in its own paisa column.
 
-**Currency.** Each organization has a `currency` (default PKR). It is returned with the organization list after sign-in. The web app's `activeCurrency()` and `useCurrency()` read it, and `formatPaisa` writes amounts as "PKR 4,500.50". Number grouping uses a Pakistani locale. The currency is a display label: there is no conversion and no multi-currency ledger.
+**Currency.** Each organization has a `currency` (default PKR). It is returned with the organization list after sign-in. The web app's `activeCurrency()` and `useCurrency()` read it, and `formatMinor` writes amounts as "PKR 4,500.50". Number grouping uses a Pakistani locale. The currency is a display label: there is no conversion and no multi-currency ledger.
 
-**Technical references:** `backend/src/billing/common/money.ts` · `money-column.ts` · `paisa-column.ts` · `backend/src/billing/tax/invoice-tax.ts` · `backend/src/organizations/entities/organization.entity.ts` · `web-app/src/lib/currency.ts` · `web-app/src/features/lab-catalog/lib/money.ts`
+**Technical references:** `backend/src/billing/common/money.ts` · `money-column.ts` · `minor-column.ts` · `backend/src/billing/tax/invoice-tax.ts` · `backend/src/organizations/entities/organization.entity.ts` · `web-app/src/lib/currency.ts` · `web-app/src/features/lab-catalog/lib/money.ts`
 
 ## 62.3 Document numbering
 

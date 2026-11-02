@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import { PackageCheck } from 'lucide-react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -72,7 +73,7 @@ export function ReceiveShipmentPage({ token }: { token: string }) {
       <p className="text-sm text-text-2">
         {shipment.courierName ?? 'No courier'}
         {shipment.trackingNo && ` #${shipment.trackingNo}`} · dispatched{' '}
-        {new Date(shipment.dispatchedAt).toLocaleString('en-GB')}
+        {formatInClinic(shipment.dispatchedAt, 'dd/MM/yyyy, HH:mm')}
       </p>
       <ReceiveShipmentForm
         shipment={shipment}

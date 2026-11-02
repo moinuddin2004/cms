@@ -1,3 +1,4 @@
+import './bootstrap/utc';
 import 'reflect-metadata';
 import { join } from 'path';
 import { DataSource } from 'typeorm';
@@ -6,6 +7,8 @@ import {
   MIGRATIONS_GLOB,
   recordLegacyBaseline,
 } from './common/database/migrations';
+import { upgradeNaiveTimestamps } from './common/database/timestamptz';
+import { renamePaisaToMinor } from './common/database/minor-units';
 
 // Load environment variables
 config();
@@ -26,6 +29,15 @@ class CliDataSource extends DataSource {
   ) {
     await recordLegacyBaseline(this);
     return super.runMigrations(options);
+  }
+
+  // Same rule as app startup: naive timestamps become timestamptz and
+  // `*_paisa` columns become `*_minor` in place first, so `schema:sync`
+  // doesn't drop and re-add them.
+  override async synchronize(dropBeforeSync?: boolean) {
+    await upgradeNaiveTimestamps(this);
+    await renamePaisaToMinor(this);
+    return super.synchronize(dropBeforeSync);
   }
 }
 

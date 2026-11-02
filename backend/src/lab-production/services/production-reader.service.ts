@@ -94,8 +94,8 @@ interface RemakeRow {
   notes: string | null;
   responsible_party: string;
   is_warranty_claim: boolean;
-  lab_charge_paisa: string | null;
-  patient_charge_paisa: string | null;
+  lab_charge_minor: string | null;
+  patient_charge_minor: string | null;
   status: string;
   decided_at: Date | null;
   decision_note: string | null;
@@ -161,10 +161,10 @@ const mapRemake = (r: RemakeRow, side: ReaderSide) => ({
   notes: r.notes,
   responsibleParty: r.responsible_party,
   isWarrantyClaim: r.is_warranty_claim,
-  labChargePaisa: num(r.lab_charge_paisa),
+  labChargeMinor: num(r.lab_charge_minor),
   // The lab never sees what the patient pays (lab ERD §13).
   ...(side === 'clinic'
-    ? { patientChargePaisa: num(r.patient_charge_paisa) }
+    ? { patientChargeMinor: num(r.patient_charge_minor) }
     : {}),
   status: r.status,
   decidedAt: r.decided_at,
@@ -532,7 +532,7 @@ export class ProductionReaderService {
       this.dataSource,
       `SELECT r.id, r.order_id, o.order_no, r.original_item_id, oi.line_no AS original_line_no,
               oi.service_name_snap, r.new_item_id, ni.line_no AS new_line_no, r.reason_code, r.notes,
-              r.responsible_party, r.is_warranty_claim, r.lab_charge_paisa, r.patient_charge_paisa,
+              r.responsible_party, r.is_warranty_claim, r.lab_charge_minor, r.patient_charge_minor,
               r.status, r.decided_at, r.decision_note, r.dispute_note, r.created_at, r.version,
               org.name AS clinic_name
          FROM remake_requests r

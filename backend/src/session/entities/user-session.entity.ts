@@ -74,9 +74,9 @@ export class UserSession {
   @Column({ name: 'is_current', type: 'boolean', default: false })
   isCurrent: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'last_active_at' })
+  @UpdateDateColumn({ name: 'last_active_at', type: 'timestamptz' })
   lastActiveAt: Date;
 }

@@ -64,9 +64,9 @@ export class OrgFeatureFlag {
   @Column({ name: 'entitled_until', type: 'timestamptz', nullable: true })
   entitledUntil: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

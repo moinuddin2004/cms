@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { toPaisa } from '../common/money';
+import { toMinor } from '../common/money';
 
 export type InvariantId =
   | 'I1'
@@ -134,8 +134,8 @@ export class BillingInvariantChecker {
       args,
     );
     if (
-      toPaisa(i5.ledger as string) !==
-      toPaisa(i5.outstanding as string) - toPaisa(i5.advance as string)
+      toMinor(i5.ledger as string) !==
+      toMinor(i5.outstanding as string) - toMinor(i5.advance as string)
     ) {
       out.push({
         invariant: 'I5',
@@ -256,18 +256,18 @@ export class BillingInvariantChecker {
     return `
       WITH base AS (
         SELECT c.id,
-               c.commission_rate_bps AS rate, c.commission_fixed_paisa AS fixed,
+               c.commission_rate_bps AS rate, c.commission_fixed_minor AS fixed,
                p.commission_basis AS basis,
                c.gross_amount * 100 AS gross,
                CASE WHEN c.status = 'VOID' THEN 0 ELSE c.net_amount * 100 END AS net,
                CASE WHEN c.status = 'VOID' THEN 0 ELSE c.tax_amount * 100 END AS tax,
                COALESCE((SELECT SUM(pa.amount) * 100 FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS alloc_all,
-               COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS recorded
+               COALESCE((SELECT SUM(ce.amount_minor) FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS recorded
           FROM charges c
           JOIN compensation_plans p ON p.id = c.commission_plan_id
          WHERE c.organization_id = $1 AND c.location_id = $2 AND ${patientFilter}
            AND c.performing_assignment_id IS NOT NULL
-           AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_paisa IS NOT NULL)
+           AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_minor IS NOT NULL)
       ), pre AS (
         SELECT *, CASE WHEN tax = 0 THEN alloc_all
                        ELSE ROUND(GREATEST(alloc_all, 0) * net / (net + tax)) END AS alloc

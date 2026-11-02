@@ -27,7 +27,7 @@ import {
   useClinicLabs,
   useClinicServices,
 } from '../hooks/useClinicCatalog'
-import { formatPaisa } from '../lib/money'
+import { formatMinor } from '../lib/money'
 import type { ClinicServiceRow } from '../types'
 import { PriceTag, UnitTypeBadge } from './catalog-badges'
 import { MappingSheet } from './MappingSheet'
@@ -36,8 +36,8 @@ type MappedFilter = 'all' | 'mapped' | 'unmapped'
 
 /** Patient price − lab cost for one unit, when both are known. */
 function marginOf(s: ClinicServiceRow): number | null {
-  return s.price && s.patientPricePaisa !== null
-    ? s.patientPricePaisa - s.price.unitPricePaisa
+  return s.price && s.patientPriceMinor !== null
+    ? s.patientPriceMinor - s.price.unitPriceMinor
     : null
 }
 
@@ -147,8 +147,8 @@ export function ClinicServicesTab() {
           row.original.mapping ? (
             <div className="min-w-0 text-sm">
               <p className="tabular-nums">
-                {row.original.patientPricePaisa !== null
-                  ? formatPaisa(row.original.patientPricePaisa)
+                {row.original.patientPriceMinor !== null
+                  ? formatMinor(row.original.patientPriceMinor)
                   : '—'}
               </p>
               <p className="truncate text-xs text-text-3">
@@ -173,7 +173,7 @@ export function ClinicServicesTab() {
                   : 'text-sm tabular-nums'
               }
             >
-              {m === null ? '—' : formatPaisa(m)}
+              {m === null ? '—' : formatMinor(m)}
             </span>
           )
         },
@@ -347,14 +347,14 @@ export function ClinicServicesTab() {
                     <div>
                       <dt className="text-text-3">Patient price</dt>
                       <dd className="text-sm tabular-nums">
-                        {s.patientPricePaisa !== null
-                          ? formatPaisa(s.patientPricePaisa)
+                        {s.patientPriceMinor !== null
+                          ? formatMinor(s.patientPriceMinor)
                           : 'Not mapped'}
                       </dd>
                     </div>
                     {m !== null && (
                       <div className="col-span-2 text-text-3">
-                        Margin {formatPaisa(m)} per unit
+                        Margin {formatMinor(m)} per unit
                       </div>
                     )}
                   </dl>

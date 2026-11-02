@@ -22,7 +22,7 @@ import {
 } from 'class-validator';
 import { PageQueryDto } from 'src/labs/dto/lab.dto';
 import { OptionType, UnitType } from '../enums/catalog.enums';
-import { MAX_PAISA, MAX_TEMPLATE_ITEMS } from '../lab-catalog.constants';
+import { MAX_MINOR, MAX_TEMPLATE_ITEMS } from '../lab-catalog.constants';
 
 /** Trims strings; blank becomes null so optional fields can be cleared. */
 const trimToNull = ({ value }: { value: unknown }) => {
@@ -231,8 +231,8 @@ export class CreateOptionDto {
 
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  extraCostPaisa: number;
+  @Max(MAX_MINOR)
+  extraCostMinor: number;
 
   @IsOptional()
   @IsInt()
@@ -252,8 +252,8 @@ export class UpdateOptionDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  extraCostPaisa?: number;
+  @Max(MAX_MINOR)
+  extraCostMinor?: number;
 
   @IsOptional()
   @IsInt()
@@ -288,14 +288,14 @@ export class CreatePriceDto {
 
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  unitPricePaisa: number;
+  @Max(MAX_MINOR)
+  unitPriceMinor: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  rushSurchargePaisa?: number;
+  @Max(MAX_MINOR)
+  rushSurchargeMinor?: number;
 
   @Matches(YMD, { message: YMD_MESSAGE })
   effectiveFrom: string;
@@ -317,14 +317,14 @@ export class UpdatePriceDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  unitPricePaisa?: number;
+  @Max(MAX_MINOR)
+  unitPriceMinor?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  rushSurchargePaisa?: number;
+  @Max(MAX_MINOR)
+  rushSurchargeMinor?: number;
 
   @IsOptional()
   @Matches(YMD, { message: YMD_MESSAGE })

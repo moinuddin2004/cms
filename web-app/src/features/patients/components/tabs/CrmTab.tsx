@@ -27,6 +27,7 @@ import type {
   PatientFeedback,
 } from '../../types'
 import { CommunicationFormDialog } from './CommunicationFormDialog'
+import { formatDate } from '@/lib/datetime'
 
 export function CrmTab({ patient }: { patient: Patient }) {
   const { data: communications = [], isLoading: loadingComms } =
@@ -183,7 +184,7 @@ function CommunicationRow({ comm }: { comm: PatientCommunication }) {
           {comm.status}
         </Badge>
         <span className="text-[10px] text-muted-foreground">
-          {comm.sentAt ? new Date(comm.sentAt).toLocaleDateString() : '—'}
+          {comm.sentAt ? formatDate(comm.sentAt) : '—'}
         </span>
       </div>
     </div>
@@ -254,7 +255,7 @@ function FeedbackCard({ feedback }: { feedback: PatientFeedback }) {
           </Badge>
         </div>
         <span className="text-[10px] text-muted-foreground">
-          {new Date(feedback.createdAt).toLocaleDateString()}
+          {formatDate(feedback.createdAt)}
         </span>
       </div>
       {feedback.feedbackText && (

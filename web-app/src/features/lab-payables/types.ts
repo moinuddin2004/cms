@@ -1,29 +1,14 @@
-/** Lab payables (lab ERD §6b). All money is integer paisa. */
+/** Lab payables (lab ERD §6b). All money is integer minor units. */
 
 export type BillStatus =
-  | 'draft'
-  | 'approved'
-  | 'partially_paid'
-  | 'paid'
-  | 'void'
+  'draft' | 'approved' | 'partially_paid' | 'paid' | 'void'
 export type BillLineKind =
-  | 'service'
-  | 'rush'
-  | 'shipping'
-  | 'material'
-  | 'remake'
-  | 'other'
+  'service' | 'rush' | 'shipping' | 'material' | 'remake' | 'other'
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'cheque' | 'other'
 export type StatementStatus =
-  | 'uploaded'
-  | 'reconciling'
-  | 'reconciled'
-  | 'disputed'
+  'uploaded' | 'reconciling' | 'reconciled' | 'disputed'
 export type MatchStatus =
-  | 'matched'
-  | 'amount_mismatch'
-  | 'missing_in_system'
-  | 'missing_in_statement'
+  'matched' | 'amount_mismatch' | 'missing_in_system' | 'missing_in_statement'
 
 export interface Paginated<T> {
   data: T[]
@@ -45,12 +30,12 @@ export interface VendorBill {
   status: BillStatus
   billDate: string
   dueOn: string | null
-  subtotalPaisa: number
+  subtotalMinor: number
   taxBp: number
-  taxPaisa: number
-  totalPaisa: number
-  paidPaisa: number
-  balancePaisa: number
+  taxMinor: number
+  totalMinor: number
+  paidMinor: number
+  balanceMinor: number
   currency: string
   approvedAt: string | null
   voidedAt: string | null
@@ -70,8 +55,8 @@ export interface BillLine {
   remakeRequestId: string | null
   description: string
   quantity: number
-  unitCostPaisa: number
-  lineTotalPaisa: number
+  unitCostMinor: number
+  lineTotalMinor: number
   isManual: boolean
 }
 
@@ -81,7 +66,7 @@ export interface Allocation {
   paymentNo: string | null
   vendorBillId: string
   billNo: string | null
-  amountPaisa: number
+  amountMinor: number
   reversedAt: string | null
   createdAt: string
 }
@@ -96,9 +81,9 @@ export interface VendorPayment {
   paymentNo: string
   labId: string
   labName: string | null
-  amountPaisa: number
-  allocatedPaisa: number
-  unallocatedPaisa: number
+  amountMinor: number
+  allocatedMinor: number
+  unallocatedMinor: number
   method: PaymentMethod
   reference: string | null
   paidOn: string
@@ -118,7 +103,7 @@ export interface LabStatement {
   periodStart: string
   periodEnd: string
   statementRef: string | null
-  totalPaisa: number
+  totalMinor: number
   status: StatementStatus
   counts: Partial<Record<MatchStatus, number>> | null
   createdAt: string
@@ -132,8 +117,8 @@ export interface StatementLine {
   labReference: string | null
   lineDate: string | null
   description: string | null
-  amountPaisa: number
-  systemAmountPaisa: number | null
+  amountMinor: number
+  systemAmountMinor: number | null
   matchedBillId: string | null
   matchedBillLineId: string | null
   matchStatus: MatchStatus
@@ -165,10 +150,10 @@ export interface AgingReport {
     labId: string
     labName: string
     buckets: Record<AgingBucket, number>
-    totalPaisa: number
+    totalMinor: number
     bills: number
   }>
-  totals: { buckets: Record<AgingBucket, number>; totalPaisa: number }
+  totals: { buckets: Record<AgingBucket, number>; totalMinor: number }
 }
 
 export interface MonthlyCostReport {
@@ -177,9 +162,9 @@ export interface MonthlyCostReport {
     labId: string
     labName: string
     months: number[]
-    totalPaisa: number
+    totalMinor: number
   }>
-  totals: { months: number[]; totalPaisa: number }
+  totals: { months: number[]; totalMinor: number }
 }
 
 export interface CaseProfitRow {
@@ -189,15 +174,15 @@ export interface CaseProfitRow {
   submittedAt: string
   labName: string
   patientName: string | null
-  patientPricePaisa: number
-  labCostPaisa: number
-  billedLabCostPaisa: number
-  expensesPaisa: number
+  patientPriceMinor: number
+  labCostMinor: number
+  billedLabCostMinor: number
+  expensesMinor: number
   /** Issued lab invoices net of credit notes; null while nothing is invoiced. */
-  invoicedPaisa: number | null
-  collectedPaisa: number
-  commissionPaisa: number
-  profitPaisa: number
+  invoicedMinor: number | null
+  collectedMinor: number
+  commissionMinor: number
+  profitMinor: number
 }
 
 export const BILL_STATUS_LABEL: Record<BillStatus, string> = {

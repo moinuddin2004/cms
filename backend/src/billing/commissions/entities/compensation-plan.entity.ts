@@ -11,7 +11,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
-import { PaisaColumn } from '../../common/paisa-column';
+import { MinorColumn } from '../../common/minor-column';
 import { CommissionBasis, CompensationPlanType } from '../commission.enums';
 import { CommissionRule } from './commission-rule.entity';
 
@@ -26,9 +26,9 @@ import { CommissionRule } from './commission-rule.entity';
 @Index('idx_compensation_plans_assignment', ['assignmentId', 'effectiveFrom'])
 @Check(
   'chk_compensation_plans_fields',
-  `("type" = 'SALARY' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NULL)
-   OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_paisa" IS NULL)
-   OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NOT NULL)`,
+  `("type" = 'SALARY' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NULL)
+   OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_minor" IS NULL)
+   OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NOT NULL)`,
 )
 @Check(
   'chk_compensation_plans_rate',
@@ -36,7 +36,7 @@ import { CommissionRule } from './commission-rule.entity';
 )
 @Check(
   'chk_compensation_plans_salary',
-  `"base_salary_paisa" IS NULL OR "base_salary_paisa" >= 0`,
+  `"base_salary_minor" IS NULL OR "base_salary_minor" >= 0`,
 )
 @Check(
   'chk_compensation_plans_dates',
@@ -63,8 +63,8 @@ export class CompensationPlan {
   @Column({ name: 'type', type: 'enum', enum: CompensationPlanType })
   type: CompensationPlanType;
 
-  @PaisaColumn('base_salary_paisa', { nullable: true })
-  baseSalaryPaisa: number | null;
+  @MinorColumn('base_salary_minor', { nullable: true })
+  baseSalaryMinor: number | null;
 
   /** Basis points: 4000 = 40.00%. */
   @Column({ name: 'default_rate_bps', type: 'int', nullable: true })

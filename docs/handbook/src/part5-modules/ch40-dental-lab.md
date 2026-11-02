@@ -182,7 +182,7 @@ The receive page (`/lab-orders/receive/$token`) is titled "Receive SHP-0001" (th
 - A started price cannot change its amounts or start date (`LAB_PRICE_LOCKED`) and can end yesterday at the earliest.
 - A negotiated price needs the clinic to be linked to the lab.
 - The form, workflow and stage template must be active platform definitions of the service's specialty (`LAB_SERVICE_DEFINITION_INVALID`); the category must be of the same specialty.
-- Amounts are `bigint` paisa, at most PKR 1,000,000,000 (`MAX_PAISA`).
+- Amounts are `bigint` paisa, at most PKR 1,000,000,000 (`MAX_MINOR`).
 - Archived services are hidden from new orders; old orders keep them.
 
 **Who can do it.** Super admin. The lab itself cannot edit its catalog: no lab portal screen or route exists for it (the code comments say the portal "will add" one).
@@ -656,7 +656,7 @@ The receive page (`/lab-orders/receive/$token`) is titled "Receive SHP-0001" (th
 
 **Behind the scenes — in simple terms.** This is, together with a revision, the only way a frozen price can move. An order-level charge (for example shipping) does not touch an item; it stays a separate row and later lands on the vendor bill.
 
-**Behind the scenes — technically.** `POST /lab-orders/:id/charge-requests/:chargeId/decision` (`lab.orders.create`, body decision approve or reject, note, version) → `LabOrdersService.decideCharge`: row lock, version check, only pending requests, sets status, `decided_by`, `decided_at`, and for an approved item charge adds the amount to `lab_line_cost_paisa` with `snapshotChange: 'charge'`. Audit row written. The request itself is created by the lab; see Chapter 41 for why that has no screen yet.
+**Behind the scenes — technically.** `POST /lab-orders/:id/charge-requests/:chargeId/decision` (`lab.orders.create`, body decision approve or reject, note, version) → `LabOrdersService.decideCharge`: row lock, version check, only pending requests, sets status, `decided_by`, `decided_at`, and for an approved item charge adds the amount to `lab_line_cost_minor` with `snapshotChange: 'charge'`. Audit row written. The request itself is created by the lab; see Chapter 41 for why that has no screen yet.
 
 **Rules and validations.** `LAB_ORDER_CHARGE_DECIDED` if already decided; the amount is greater than zero and a reason is required (set when the lab asks).
 
@@ -962,7 +962,7 @@ The lab module has about fifty tables. This section covers the ones the clinic s
 
 *Figure 40.11 — Lab services, options, prices, mappings and order templates.*
 
-The diagram centres on `lab_services`, with columns `lab_id`, `service_category_id`, `form_schema_id`, `workflow_template_id`, `stage_template_id`, `code`, `unit_type` and `default_turnaround_days`. `labs` points to it ("makes") and `service_categories` points to it ("files"). Three tables hang off it: `lab_service_options` ("offers option", with `extra_cost_paisa`), `lab_service_prices` ("priced by", with `unit_price_paisa`, `rush_surcharge_paisa`, `effective_from`, `effective_to`, `voided_at`) and `service_mappings` ("billed as", with `is_default` and `is_active`) hang off it. `organizations` connects to `lab_service_prices` with an optional line ("negotiated for"), because an empty organization means the list price. `services` (the clinic's billing catalog) connects to `service_mappings` ("clinic treatment"). `order_templates` belongs to an organization ("owns") and optionally to a lab ("default lab"), and holds `owner_user_id` (a logical link to a user, no foreign key), `template_json` and `use_count`.
+The diagram centres on `lab_services`, with columns `lab_id`, `service_category_id`, `form_schema_id`, `workflow_template_id`, `stage_template_id`, `code`, `unit_type` and `default_turnaround_days`. `labs` points to it ("makes") and `service_categories` points to it ("files"). Three tables hang off it: `lab_service_options` ("offers option", with `extra_cost_minor`), `lab_service_prices` ("priced by", with `unit_price_minor`, `rush_surcharge_minor`, `effective_from`, `effective_to`, `voided_at`) and `service_mappings` ("billed as", with `is_default` and `is_active`) hang off it. `organizations` connects to `lab_service_prices` with an optional line ("negotiated for"), because an empty organization means the list price. `services` (the clinic's billing catalog) connects to `service_mappings` ("clinic treatment"). `order_templates` belongs to an organization ("owns") and optionally to a lab ("default lab"), and holds `owner_user_id` (a logical link to a user, no foreign key), `template_json` and `use_count`.
 
 The relationships in words:
 - Each lab service belongs to exactly one lab and one service category; its form, workflow and stage template are optional.
@@ -975,7 +975,7 @@ The relationships in words:
 
 *Figure 40.12 — Lab orders, items, revisions, messages, charge requests and magic links.*
 
-The diagram shows `lab_orders` with `organization_id`, `location_id`, `patient_id`, `lab_clinic_link_id`, `workflow_template_version_id`, `order_no`, `status_code` and `current_revision_no`. It points down to `lab_order_items` ("contains": `order_id`, `lab_service_id`, `remake_of_item_id`, `status_code`, `lab_line_cost_paisa`, `patient_line_price_paisa`), which has a loop to itself ("remake of"), one `item_form_responses` row and many `item_teeth`. `lab_orders` also reaches `order_revisions` ("revised as", with a `snapshot` and `lab_acknowledged_at`), `order_messages` ("discusses"), `order_charge_requests` ("extra charges") and `magic_links` ("opened by", with `token_hash`, `expires_at`, `revoked_at`). `lab_clinic_links` ("carries") links a lab and an organization to the orders, and `patients` ("ordered for") points to the order. A dotted line from `lab_orders` to `attachments` is labelled "order_id, no FK".
+The diagram shows `lab_orders` with `organization_id`, `location_id`, `patient_id`, `lab_clinic_link_id`, `workflow_template_version_id`, `order_no`, `status_code` and `current_revision_no`. It points down to `lab_order_items` ("contains": `order_id`, `lab_service_id`, `remake_of_item_id`, `status_code`, `lab_line_cost_minor`, `patient_line_price_minor`), which has a loop to itself ("remake of"), one `item_form_responses` row and many `item_teeth`. `lab_orders` also reaches `order_revisions` ("revised as", with a `snapshot` and `lab_acknowledged_at`), `order_messages` ("discusses"), `order_charge_requests` ("extra charges") and `magic_links` ("opened by", with `token_hash`, `expires_at`, `revoked_at`). `lab_clinic_links` ("carries") links a lab and an organization to the orders, and `patients` ("ordered for") points to the order. A dotted line from `lab_orders` to `attachments` is labelled "order_id, no FK".
 
 The relationships in words:
 - Each order belongs to exactly one organization, location, patient, lab and lab link, and pins one workflow version that never changes; the doctor is optional.

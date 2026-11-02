@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import type { ReactNode } from 'react'
 import {
   AlertTriangle,
@@ -20,7 +21,7 @@ import { ErrorState, FormSelect, LoadingSkeleton } from '@/components/shared'
 import { FileUploadField } from '@/components/shared/FileUploadField'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { useAccess } from '@/features/access'
 import { LabBillingPanel } from '@/features/lab-billing'
 import { LabAccessPanel } from '../components/LabAccessPanel'
@@ -54,13 +55,7 @@ const VIA_LABEL: Record<string, string> = {
   qr: 'QR scan',
 }
 
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+const fmt = (iso: string) => formatInClinic(iso, 'd MMM, HH:mm')
 
 function Section({
   title,
@@ -258,8 +253,8 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
           action={
             order.totals && (
               <span className="text-sm tabular-nums text-text-2">
-                Lab {formatPaisa(order.totals.labCostPaisa)} · Patient{' '}
-                {formatPaisa(order.totals.patientPricePaisa)}
+                Lab {formatMinor(order.totals.labCostMinor)} · Patient{' '}
+                {formatMinor(order.totals.patientPriceMinor)}
               </span>
             )
           }
@@ -282,11 +277,11 @@ export function LabOrderDetailPage({ orderId }: { orderId: string }) {
                   <div className="flex items-center gap-3">
                     {i.prices && (
                       <span className="text-sm tabular-nums">
-                        {formatPaisa(i.prices.labLineCostPaisa)}
+                        {formatMinor(i.prices.labLineCostMinor)}
                         <span className="text-xs text-text-3">
                           {' '}
                           · patient{' '}
-                          {formatPaisa(i.prices.patientLinePricePaisa)}
+                          {formatMinor(i.prices.patientLinePriceMinor)}
                         </span>
                       </span>
                     )}
@@ -496,7 +491,7 @@ function Charges({
             className="flex flex-wrap items-center justify-between gap-2"
           >
             <span>
-              {statusLabel(c.kind)} · {formatPaisa(c.amountPaisa)} — {c.reason}
+              {statusLabel(c.kind)} · {formatMinor(c.amountMinor)} — {c.reason}
             </span>
             {c.status === 'pending' && canDecide ? (
               <span className="flex gap-1">

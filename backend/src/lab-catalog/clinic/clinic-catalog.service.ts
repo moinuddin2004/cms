@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Brackets, DataSource, In, IsNull } from 'typeorm';
-import { toPaisa } from 'src/billing/common/money';
+import { toMinor } from 'src/billing/common/money';
 import { CatalogService } from 'src/billing/entities/catalog-service.entity';
 import { ServicePrice } from 'src/billing/entities/service-price.entity';
 import { ClockService } from 'src/common/clock/clock.service';
@@ -34,8 +34,8 @@ const VISIBLE_LINKS = [LabLinkStatus.ACTIVE, LabLinkStatus.INVITED];
 
 export interface ClinicServiceRowWithPatient extends ClinicServiceRow {
   linkStatus: LabLinkStatus;
-  /** Patient price of the mapped treatment at the active location, paisa. */
-  patientPricePaisa: number | null;
+  /** Patient price of the mapped treatment at the active location, minor units. */
+  patientPriceMinor: number | null;
 }
 
 export interface ClinicTreatmentRow {
@@ -45,7 +45,7 @@ export interface ClinicTreatmentRow {
   kind: string;
   isActive: boolean;
   /** Patient price at the active location (location override or default). */
-  pricePaisa: number;
+  priceMinor: number;
   mappedServiceCount: number;
 }
 
@@ -185,7 +185,7 @@ export class ClinicCatalogService {
                 isDefault: mapping.isDefault,
               }
             : null,
-          patientPricePaisa: mapping
+          patientPriceMinor: mapping
             ? (patientPrices.get(mapping.clinicTreatmentId) ?? null)
             : null,
         };
@@ -256,18 +256,18 @@ export class ClinicCatalogService {
       code: t.code,
       kind: t.kind,
       isActive: t.isActive,
-      pricePaisa: prices.get(t.id) ?? toPaisa(t.defaultPrice),
+      priceMinor: prices.get(t.id) ?? toMinor(t.defaultPrice),
       mappedServiceCount: counts.get(t.id) ?? 0,
     }));
   }
 
-  /** Location price (no doctor) or the treatment default, in paisa. */
+  /** Location price (no doctor) or the treatment default, in minor units. */
   private async patientPrices(
     tenant: TenantContext,
     treatments: CatalogService[],
   ): Promise<Map<string, number>> {
     const out = new Map<string, number>();
-    for (const t of treatments) out.set(t.id, toPaisa(t.defaultPrice));
+    for (const t of treatments) out.set(t.id, toMinor(t.defaultPrice));
     if (!treatments.length || !tenant.locationId) return out;
     const overrides = await this.dataSource.getRepository(ServicePrice).findBy({
       organizationId: tenant.organizationId,
@@ -275,7 +275,7 @@ export class ClinicCatalogService {
       serviceId: In(treatments.map((t) => t.id)),
       doctorId: IsNull(),
     });
-    for (const o of overrides) out.set(o.serviceId, toPaisa(o.price));
+    for (const o of overrides) out.set(o.serviceId, toMinor(o.price));
     return out;
   }
 }

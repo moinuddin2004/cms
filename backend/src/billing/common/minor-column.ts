@@ -2,25 +2,25 @@ import { Column, ColumnOptions, ValueTransformer } from 'typeorm';
 
 /**
  * `bigint` comes back from pg as a string; expose it as an integer number of
- * paisa. Clinic amounts stay far below 2^53, so `Number` is exact.
+ * minor units. Clinic amounts stay far below 2^53, so `Number` is exact.
  */
-export const paisaTransformer: ValueTransformer = {
+export const minorTransformer: ValueTransformer = {
   to: (value: number | null | undefined) => value,
   from: (value: string | null) => (value === null ? null : Number(value)),
 };
 
 /**
- * Integer paisa column (`bigint`). NOT NULL default 0 unless `nullable` is
- * passed. Used by the commission tables, which store money as paisa.
+ * Integer minor units column (`bigint`). NOT NULL default 0 unless `nullable` is
+ * passed. Used by the commission tables, which store money as minor units.
  */
-export function PaisaColumn(
+export function MinorColumn(
   name: string,
   opts: Pick<ColumnOptions, 'nullable' | 'default'> = {},
 ): PropertyDecorator {
   return Column({
     name,
     type: 'bigint',
-    transformer: paisaTransformer,
+    transformer: minorTransformer,
     nullable: opts.nullable ?? false,
     ...(opts.nullable
       ? {}

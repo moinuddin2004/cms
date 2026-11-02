@@ -13,6 +13,7 @@ import { useConsents } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientConsent } from '../../types'
 import { ConsentFormDialog } from './ConsentFormDialog'
 import { printConsent } from '../../utils/print'
+import { formatDate } from '@/lib/datetime'
 
 export function ConsentsTab({ patient }: { patient: Patient }) {
   const { data: consents = [], isLoading } = useConsents(patient.id)
@@ -114,9 +115,7 @@ function ConsentCard({
           <div>
             <p className="text-xs text-muted-foreground">Agreed Date</p>
             <p className="font-medium">
-              {consent.agreedAt
-                ? new Date(consent.agreedAt).toLocaleDateString()
-                : 'N/A'}
+              {consent.agreedAt ? formatDate(consent.agreedAt) : 'N/A'}
             </p>
           </div>
           <div>

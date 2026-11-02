@@ -21,7 +21,7 @@ import {
 import type { ViewMode } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ListToolbar } from '@/components/shared/ListToolbar'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { StatementStatusBadge } from '../components/payables-badges'
 import {
   ALL,
@@ -111,10 +111,10 @@ export function LabStatementsPage() {
       {
         id: 'total',
         header: 'Lab says',
-        accessorKey: 'totalPaisa',
+        accessorKey: 'totalMinor',
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {formatPaisa(row.original.totalPaisa)}
+            {formatMinor(row.original.totalMinor)}
           </span>
         ),
       },
@@ -268,7 +268,7 @@ export function LabStatementsPage() {
                   <div className="flex justify-between border-t border-border/60 pt-2 text-xs text-text-3">
                     <span>{problems(s)} to check</span>
                     <span className="tabular-nums text-foreground">
-                      {formatPaisa(s.totalPaisa)}
+                      {formatMinor(s.totalMinor)}
                     </span>
                   </div>
                 </button>

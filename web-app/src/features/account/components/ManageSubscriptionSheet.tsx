@@ -48,7 +48,7 @@ function errorMessage(err: unknown) {
   return Array.isArray(msg) ? String(msg[0]) : (msg as string) || 'Could not save. Try again.'
 }
 
-/** Monthly price × months typed, rounded to paisa ('' while months is empty). */
+/** Monthly price × months typed, rounded to minor units ('' while months is empty). */
 const amountFor = (monthlyPrice: number, months: string) =>
   months.trim() === ''
     ? ''

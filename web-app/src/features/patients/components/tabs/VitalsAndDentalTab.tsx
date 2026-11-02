@@ -39,6 +39,7 @@ import type { VitalKey } from '../../schemas/patient-records.schema'
 import type { Patient, PatientVitals, PatientDentalInfo } from '../../types'
 import { GumCondition, BrushingFrequency, FlossingFrequency } from '../../types'
 import { CHIP_TONES, Chip } from './history/HistoryParts'
+import { formatDate, formatDateTime, formatTime } from '@/lib/datetime'
 
 type Tone = 'ok' | 'warning' | 'danger'
 
@@ -131,18 +132,11 @@ function VitalsSection({
         header: 'Recorded',
         accessorFn: (v) => new Date(v.recordedAt).getTime(),
         cell: ({ row }) => {
-          const d = new Date(row.original.recordedAt)
+          const d = row.original.recordedAt
           return (
             <div className="whitespace-nowrap">
-              <p className="text-sm font-medium">
-                {d.toLocaleDateString([], { dateStyle: 'medium' })}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {d.toLocaleTimeString([], {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                })}
-              </p>
+              <p className="text-sm font-medium">{formatDate(d)}</p>
+              <p className="text-xs text-muted-foreground">{formatTime(d)}</p>
             </div>
           )
         },
@@ -195,10 +189,7 @@ function VitalsSection({
         title="Vitals"
         subtitle={
           latest
-            ? `Last recorded ${new Date(latest.recordedAt).toLocaleString([], {
-                dateStyle: 'medium',
-                timeStyle: 'short',
-              })}`
+            ? `Last recorded ${formatDateTime(latest.recordedAt)}`
             : 'Blood pressure, pulse, temperature and more.'
         }
         action={

@@ -69,6 +69,6 @@ export class SubscriptionPayment {
   @Column({ name: 'recorded_by', type: 'uuid', nullable: true })
   recordedBy: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

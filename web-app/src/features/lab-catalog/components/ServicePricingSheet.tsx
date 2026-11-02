@@ -23,7 +23,7 @@ import {
   useSetOptionActive,
   useVoidPrice,
 } from '../hooks/usePlatformCatalog'
-import { catalogToday, formatPaisa, formatYmd } from '../lib/money'
+import { catalogToday, formatMinor, formatYmd } from '../lib/money'
 import { OPTION_TYPE_LABEL } from '../types'
 import type { LabServiceItem, PriceWindow, ServiceOption } from '../types'
 import { ActiveSwitch } from './ActiveSwitch'
@@ -94,10 +94,10 @@ export function ServicePricingSheet({
       {
         id: 'cost',
         header: 'Extra / unit',
-        accessorKey: 'extraCostPaisa',
+        accessorKey: 'extraCostMinor',
         cell: ({ row }) => (
           <span className="text-sm tabular-nums">
-            +{formatPaisa(row.original.extraCostPaisa)}
+            +{formatMinor(row.original.extraCostMinor)}
           </span>
         ),
       },
@@ -155,15 +155,15 @@ export function ServicePricingSheet({
       {
         id: 'amount',
         header: 'Price / unit',
-        accessorKey: 'unitPricePaisa',
+        accessorKey: 'unitPriceMinor',
         cell: ({ row }) => (
           <div className="text-sm tabular-nums">
             <p>
-              {formatPaisa(row.original.unitPricePaisa, row.original.currency)}
+              {formatMinor(row.original.unitPriceMinor, row.original.currency)}
             </p>
-            {row.original.rushSurchargePaisa > 0 && (
+            {row.original.rushSurchargeMinor > 0 && (
               <p className="text-xs text-text-3">
-                Rush +{formatPaisa(row.original.rushSurchargePaisa)}
+                Rush +{formatMinor(row.original.rushSurchargeMinor)}
               </p>
             )}
           </div>

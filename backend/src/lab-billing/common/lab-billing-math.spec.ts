@@ -10,7 +10,7 @@ import {
 } from './lab-billing-math';
 
 describe('lab billing math', () => {
-  it('rounds tax half-up per line, in integer paisa', () => {
+  it('rounds tax half-up per line, in integer minor', () => {
     expect(bpOf(1_000, 1_500)).toBe(150);
     expect(bpOf(1, 5_000)).toBe(1); // 0.5 → 1
     expect(bpOf(3, 1_500)).toBe(0); // 0.45 → 0
@@ -21,48 +21,48 @@ describe('lab billing math', () => {
     expect(
       lineMath({
         quantity: 2,
-        unitPricePaisa: 1_500_000,
-        discountPaisa: 200_000,
+        unitPriceMinor: 1_500_000,
+        discountMinor: 200_000,
         taxRateBp: 0,
       }),
     ).toEqual({
-      grossPaisa: 3_000_000,
-      netPaisa: 2_800_000,
-      taxPaisa: 0,
-      lineTotalPaisa: 2_800_000,
+      grossMinor: 3_000_000,
+      netMinor: 2_800_000,
+      taxMinor: 0,
+      lineTotalMinor: 2_800_000,
     });
     expect(
       lineMath({
         quantity: 1,
-        unitPricePaisa: 1_005,
-        discountPaisa: 0,
+        unitPriceMinor: 1_005,
+        discountMinor: 0,
         taxRateBp: 1_700,
-      }).taxPaisa,
+      }).taxMinor,
     ).toBe(171); // 170.85 → 171
   });
 
-  it('refuses a discount above the line and fractional / negative paisa', () => {
+  it('refuses a discount above the line and fractional / negative minor', () => {
     expect(() =>
       lineMath({
         quantity: 1,
-        unitPricePaisa: 100,
-        discountPaisa: 101,
+        unitPriceMinor: 100,
+        discountMinor: 101,
         taxRateBp: 0,
       }),
     ).toThrow(LineMathError);
     expect(() =>
       lineMath({
         quantity: 1,
-        unitPricePaisa: 10.5,
-        discountPaisa: 0,
+        unitPriceMinor: 10.5,
+        discountMinor: 0,
         taxRateBp: 0,
       }),
     ).toThrow(LineMathError);
     expect(() =>
       lineMath({
         quantity: 0,
-        unitPricePaisa: 100,
-        discountPaisa: 0,
+        unitPriceMinor: 100,
+        discountMinor: 0,
         taxRateBp: 0,
       }),
     ).toThrow(LineMathError);
@@ -82,9 +82,9 @@ describe('lab billing math', () => {
   it('status follows the balance; draft and void stay', () => {
     const s = (
       status: LabInvoiceStatus,
-      paidPaisa: number,
-      balancePaisa: number,
-    ) => invoiceStatusFor({ status, paidPaisa, balancePaisa });
+      paidMinor: number,
+      balanceMinor: number,
+    ) => invoiceStatusFor({ status, paidMinor, balanceMinor });
     expect(s(LabInvoiceStatus.ISSUED, 0, 100)).toBe(LabInvoiceStatus.ISSUED);
     expect(s(LabInvoiceStatus.ISSUED, 10, 90)).toBe(
       LabInvoiceStatus.PARTIALLY_PAID,
@@ -101,18 +101,18 @@ describe('lab billing math', () => {
     expect(
       fifoAllocations(
         [
-          { id: 'a', balancePaisa: 300 },
-          { id: 'b', balancePaisa: 0 },
-          { id: 'c', balancePaisa: 500 },
+          { id: 'a', balanceMinor: 300 },
+          { id: 'b', balanceMinor: 0 },
+          { id: 'c', balanceMinor: 500 },
         ],
         600,
       ),
     ).toEqual([
-      { invoiceId: 'a', amountPaisa: 300 },
-      { invoiceId: 'c', amountPaisa: 300 },
+      { invoiceId: 'a', amountMinor: 300 },
+      { invoiceId: 'c', amountMinor: 300 },
     ]);
-    expect(fifoAllocations([{ id: 'a', balancePaisa: 300 }], 1_000)).toEqual([
-      { invoiceId: 'a', amountPaisa: 300 },
+    expect(fifoAllocations([{ id: 'a', balanceMinor: 300 }], 1_000)).toEqual([
+      { invoiceId: 'a', amountMinor: 300 },
     ]);
   });
 

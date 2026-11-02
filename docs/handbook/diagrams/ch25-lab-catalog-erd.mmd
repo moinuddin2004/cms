@@ -24,13 +24,13 @@ erDiagram
     uuid id PK "uuid v7"
     uuid lab_service_id FK
     enum option_type
-    bigint extra_cost_paisa
+    bigint extra_cost_minor
   }
   lab_service_prices {
     uuid id PK "uuid v7"
     uuid lab_service_id FK
     uuid organization_id FK "null = list price"
-    bigint unit_price_paisa
+    bigint unit_price_minor
     date effective_from
     date effective_to
   }

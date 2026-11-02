@@ -11,6 +11,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { cn } from '@/lib/utils'
 import type { Doctor } from '@/features/appointments/types'
+import { todayYmd } from '@/lib/datetime'
 
 // ─── Date helpers ──────────────────────────────────────────────────────
 function toYMD(d: Date): string {
@@ -81,7 +82,7 @@ export function AppointmentsToolbar({
   className,
 }: AppointmentsToolbarProps) {
   const selectedYMD = selectedDate ? toYMD(selectedDate) : null
-  const todayYMD = toYMD(new Date())
+  const todayYMD = todayYmd()
 
   // Strip slides with the selection — anchored on the selected day, or today
   // when nothing is selected.

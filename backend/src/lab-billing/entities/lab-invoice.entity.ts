@@ -11,7 +11,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { LabOrder } from 'src/lab-orders/entities/lab-order.entity';
 import { LabOrderItem } from 'src/lab-orders/entities/lab-order-item.entity';
@@ -35,7 +35,7 @@ import {
 @Unique('uq_lab_invoices_org_no', ['organizationId', 'invoiceNo'])
 @Check(
   'chk_lab_invoices_math',
-  `"total_paisa" = "subtotal_paisa" - "discount_paisa" + "tax_paisa" AND "balance_paisa" >= 0 AND "paid_paisa" >= 0 AND "credited_paisa" >= 0`,
+  `"total_minor" = "subtotal_minor" - "discount_minor" + "tax_minor" AND "balance_minor" >= 0 AND "paid_minor" >= 0 AND "credited_minor" >= 0`,
 )
 @Index('idx_lab_invoices_patient', ['organizationId', 'patientId'])
 @Index('idx_lab_invoices_order', ['orderId'])
@@ -86,28 +86,28 @@ export class LabInvoice {
   @Column({ name: 'currency', type: 'char', length: 3, default: 'PKR' })
   currency: string;
 
-  @PaisaColumn('subtotal_paisa')
-  subtotalPaisa: number;
+  @MinorColumn('subtotal_minor')
+  subtotalMinor: number;
 
-  @PaisaColumn('discount_paisa')
-  discountPaisa: number;
+  @MinorColumn('discount_minor')
+  discountMinor: number;
 
-  @PaisaColumn('tax_paisa')
-  taxPaisa: number;
+  @MinorColumn('tax_minor')
+  taxMinor: number;
 
-  @PaisaColumn('total_paisa')
-  totalPaisa: number;
+  @MinorColumn('total_minor')
+  totalMinor: number;
 
   /** Σ credit notes (cached). */
-  @PaisaColumn('credited_paisa')
-  creditedPaisa: number;
+  @MinorColumn('credited_minor')
+  creditedMinor: number;
 
   /** Σ active allocations (cached). */
-  @PaisaColumn('paid_paisa')
-  paidPaisa: number;
+  @MinorColumn('paid_minor')
+  paidMinor: number;
 
-  @PaisaColumn('balance_paisa')
-  balancePaisa: number;
+  @MinorColumn('balance_minor')
+  balanceMinor: number;
 
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string | null;
@@ -156,7 +156,7 @@ export class LabInvoice {
 @Unique('uq_lab_invoice_lines_no', ['invoiceId', 'lineNo'])
 @Check(
   'chk_lab_invoice_lines_math',
-  `"quantity" > 0 AND "unit_price_paisa" >= 0 AND "discount_paisa" >= 0 AND "discount_paisa" <= "quantity" * "unit_price_paisa" AND "tax_rate_bp" BETWEEN 0 AND 10000 AND "tax_paisa" >= 0 AND "line_total_paisa" = "quantity" * "unit_price_paisa" - "discount_paisa" + "tax_paisa"`,
+  `"quantity" > 0 AND "unit_price_minor" >= 0 AND "discount_minor" >= 0 AND "discount_minor" <= "quantity" * "unit_price_minor" AND "tax_rate_bp" BETWEEN 0 AND 10000 AND "tax_minor" >= 0 AND "line_total_minor" = "quantity" * "unit_price_minor" - "discount_minor" + "tax_minor"`,
 )
 @Index('uq_lab_invoice_lines_item', ['labOrderItemId'], {
   unique: true,
@@ -226,8 +226,8 @@ export class LabInvoiceLine {
   @Column({ name: 'commission_rate_bps', type: 'int', nullable: true })
   commissionRateBps: number | null;
 
-  @PaisaColumn('commission_fixed_paisa', { nullable: true })
-  commissionFixedPaisa: number | null;
+  @MinorColumn('commission_fixed_minor', { nullable: true })
+  commissionFixedMinor: number | null;
 
   @Column({ name: 'description', type: 'varchar', length: 200 })
   description: string;
@@ -235,20 +235,20 @@ export class LabInvoiceLine {
   @Column({ name: 'quantity', type: 'int', default: 1 })
   quantity: number;
 
-  @PaisaColumn('unit_price_paisa')
-  unitPricePaisa: number;
+  @MinorColumn('unit_price_minor')
+  unitPriceMinor: number;
 
-  @PaisaColumn('discount_paisa')
-  discountPaisa: number;
+  @MinorColumn('discount_minor')
+  discountMinor: number;
 
   @Column({ name: 'tax_rate_bp', type: 'int', default: 0 })
   taxRateBp: number;
 
-  @PaisaColumn('tax_paisa')
-  taxPaisa: number;
+  @MinorColumn('tax_minor')
+  taxMinor: number;
 
-  @PaisaColumn('line_total_paisa')
-  lineTotalPaisa: number;
+  @MinorColumn('line_total_minor')
+  lineTotalMinor: number;
 
   /** Copied from the invoice on void, for the partial unique indexes. */
   @Column({ name: 'is_void', type: 'boolean', default: false })

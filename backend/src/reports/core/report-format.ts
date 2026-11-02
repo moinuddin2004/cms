@@ -1,4 +1,4 @@
-import { fromPaisa } from 'src/billing/common/money';
+import { fromMinor } from 'src/billing/common/money';
 import { displayDate } from './report-dates';
 import type {
   ReportColumn,
@@ -8,7 +8,7 @@ import type {
   ReportView,
 } from './report.types';
 
-/** Paisa → rupees for every money cell of a row (other cells untouched). */
+/** Minor → rupees for every money cell of a row (other cells untouched). */
 export function rowToRupees(
   row: ReportRow,
   columns: ReportColumn[],
@@ -16,14 +16,14 @@ export function rowToRupees(
   const out: ReportRow = { ...row };
   for (const c of columns) {
     if (c.type === 'money' && out[c.key] != null) {
-      out[c.key] = fromPaisa(Number(out[c.key]));
+      out[c.key] = fromMinor(Number(out[c.key]));
     }
   }
   return out;
 }
 
 /**
- * Totals row: Σ of the `total` columns (money in paisa, so no float drift).
+ * Totals row: Σ of the `total` columns (money in minor units, so no float drift).
  * Null when no column is summable.
  */
 export function totalsOf(
@@ -43,7 +43,7 @@ export function summaryToRupees(
   items: ReportSummaryItem[],
 ): ReportSummaryItem[] {
   return items.map((s) =>
-    s.type === 'money' ? { ...s, value: fromPaisa(s.value) } : s,
+    s.type === 'money' ? { ...s, value: fromMinor(s.value) } : s,
   );
 }
 

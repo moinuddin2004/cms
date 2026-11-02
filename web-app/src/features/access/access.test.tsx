@@ -38,8 +38,7 @@ vi.mock('@tanstack/react-router', () => ({
 }))
 const socket = vi.hoisted(() => ({
   onChange: null as
-    | null
-    | ((e: { organizationId: string; version: number } | null) => void),
+    null | ((e: { organizationId: string; version: number } | null) => void),
 }))
 vi.mock('./hooks/useAccessSocket', () => ({
   useAccessSocket: (_org: string, onChange: typeof socket.onChange) => {
@@ -338,7 +337,7 @@ describe('resolveNav', () => {
           ],
         },
         {
-          label: 'Paisa',
+          label: 'Minor',
           group: true,
           icon: 'Wallet',
           items: [{ key: 'nav.invoices' }, { key: 'nav.payments' }],
@@ -357,9 +356,9 @@ describe('resolveNav', () => {
     expect(sections[0].items).toEqual([
       expect.objectContaining({ label: 'Cash counter', href: '/billing' }),
     ])
-    const paisa = sections[1].items[0]
-    expect(isNavGroup(paisa) && paisa.label).toBe('Paisa')
-    expect(isNavGroup(paisa) && paisa.children.map((c) => c.href)).toEqual([
+    const minor = sections[1].items[0]
+    expect(isNavGroup(minor) && minor.label).toBe('Minor')
+    expect(isNavGroup(minor) && minor.children.map((c) => c.href)).toEqual([
       '/invoices',
     ])
   })

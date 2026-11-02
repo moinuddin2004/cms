@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import type { ColumnDef } from '@/components/shared/table-features'
 import { useNavigate } from '@tanstack/react-router'
 import { ClipboardList } from 'lucide-react'
@@ -28,13 +29,7 @@ import { PORTAL_ORDER_STATUSES } from '../types'
 import type { PortalOrderRow } from '../types'
 
 const ALL = 'all'
-const fmtDate = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-      })
-    : '—'
+const fmtDate = (iso: string | null) => formatInClinic(iso, 'd MMM')
 
 /**
  * The lab's order inbox (lab ERD §13): every submitted order from the

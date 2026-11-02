@@ -32,6 +32,7 @@ import {
 } from '@/features/appointments/hooks/useAppointmentActions'
 import { CheckInDialog } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
+import { formatInClinic } from '@/lib/datetime'
 
 interface AppointmentCardProps {
   appointment: Appointment
@@ -52,9 +53,7 @@ export function AppointmentCard({
   const confirmMutation = useConfirmAppointment()
   const [checkingIn, setCheckingIn] = useState(false)
 
-  const startTime = new Date(appointment.startTime)
-  const endTime = new Date(appointment.endTime)
-  const timeLabel = `${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  const timeLabel = `${formatInClinic(appointment.startTime, 'hh:mm a')} — ${formatInClinic(appointment.endTime, 'hh:mm a')}`
 
   const statusClass =
     STATUS_BG_COLORS[appointment.status] || STATUS_BG_COLORS.scheduled

@@ -24,7 +24,11 @@ import { ListToolbar } from '@/components/shared/ListToolbar'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useLabInvoices } from '../hooks/useLabBilling'
 import type { LabInvoiceRow, LabInvoiceStatus } from '../types'
-import { LabInvoiceStatusBadge, Paisa, STATUS_OPTIONS } from './billing-bits'
+import {
+  LabInvoiceStatusBadge,
+  MoneyAmount,
+  STATUS_OPTIONS,
+} from './billing-bits'
 
 const ALL = 'all'
 
@@ -105,23 +109,23 @@ export function InvoicesList() {
       {
         id: 'total',
         header: 'Total',
-        accessorKey: 'totalPaisa',
-        cell: ({ row }) => <Paisa value={row.original.totalPaisa} />,
+        accessorKey: 'totalMinor',
+        cell: ({ row }) => <MoneyAmount value={row.original.totalMinor} />,
       },
       {
         id: 'paid',
         header: 'Paid',
-        accessorKey: 'paidPaisa',
-        cell: ({ row }) => <Paisa value={row.original.paidPaisa} />,
+        accessorKey: 'paidMinor',
+        cell: ({ row }) => <MoneyAmount value={row.original.paidMinor} />,
       },
       {
         id: 'balance',
         header: 'Balance',
-        accessorKey: 'balancePaisa',
+        accessorKey: 'balanceMinor',
         cell: ({ row }) => (
-          <Paisa
+          <MoneyAmount
             value={
-              row.original.status === 'draft' ? 0 : row.original.balancePaisa
+              row.original.status === 'draft' ? 0 : row.original.balanceMinor
             }
             strong
           />
@@ -283,9 +287,9 @@ export function InvoicesList() {
                 <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2 text-xs text-text-3">
                   <span>{i.issuedOn ?? 'Not issued'}</span>
                   <span>
-                    Total <Paisa value={i.totalPaisa} /> · Due{' '}
-                    <Paisa
-                      value={i.status === 'draft' ? 0 : i.balancePaisa}
+                    Total <MoneyAmount value={i.totalMinor} /> · Due{' '}
+                    <MoneyAmount
+                      value={i.status === 'draft' ? 0 : i.balanceMinor}
                       strong
                     />
                   </span>

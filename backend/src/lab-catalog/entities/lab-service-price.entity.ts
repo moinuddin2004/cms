@@ -11,7 +11,7 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { LabService } from './lab-service.entity';
 
@@ -32,7 +32,7 @@ import { LabService } from './lab-service.entity';
 ])
 @Check(
   'chk_lab_service_prices_amounts',
-  `"unit_price_paisa" >= 0 AND "rush_surcharge_paisa" >= 0`,
+  `"unit_price_minor" >= 0 AND "rush_surcharge_minor" >= 0`,
 )
 @Check(
   'chk_lab_service_prices_dates',
@@ -61,11 +61,11 @@ export class LabServicePrice {
   @Column({ name: 'organization_id', type: 'uuid', nullable: true })
   organizationId: string | null;
 
-  @PaisaColumn('unit_price_paisa')
-  unitPricePaisa: number;
+  @MinorColumn('unit_price_minor')
+  unitPriceMinor: number;
 
-  @PaisaColumn('rush_surcharge_paisa')
-  rushSurchargePaisa: number;
+  @MinorColumn('rush_surcharge_minor')
+  rushSurchargeMinor: number;
 
   @Column({ name: 'currency', type: 'char', length: 3, default: 'PKR' })
   currency: string;

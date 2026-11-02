@@ -50,8 +50,8 @@ interface BillableItem {
   id: string;
   service_name_snap: string;
   quantity: number;
-  patient_unit_price_paisa: string;
-  patient_line_price_paisa: string;
+  patient_unit_price_minor: string;
+  patient_line_price_minor: string;
   clinic_treatment_id: string | null;
   status_code: string;
   teeth: string | null;
@@ -62,7 +62,7 @@ interface BillableCharge {
   id: string;
   kind: ChargeKind;
   reason: string;
-  amount_paisa: string;
+  amount_minor: string;
   status: ChargeStatus;
   billed: boolean;
 }
@@ -78,14 +78,14 @@ type DraftLine = Omit<
   | 'isVoid'
   | 'organizationId'
   | 'lineNo'
-  | 'taxPaisa'
-  | 'lineTotalPaisa'
+  | 'taxMinor'
+  | 'lineTotalMinor'
   | 'taxRateBp'
   // commission snapshot: set at issue by lab-finance
   | 'performingAssignmentId'
   | 'commissionPlanId'
   | 'commissionRateBps'
-  | 'commissionFixedPaisa'
+  | 'commissionFixedMinor'
 >;
 
 const CHARGE_LABEL: Record<ChargeKind, string> = {
@@ -293,7 +293,7 @@ export class LabInvoicesService {
       fromState: LabInvoiceStatus.DRAFT,
       toState: LabInvoiceStatus.ISSUED,
       actionCode: 'issue',
-      metadata: { invoiceNo, totalPaisa: issued.totalPaisa },
+      metadata: { invoiceNo, totalMinor: issued.totalMinor },
     });
     await this.events.emit(m, 'invoiceIssued', {
       organizationId: org,
@@ -303,7 +303,7 @@ export class LabInvoicesService {
       invoiceId: id,
       invoiceNo,
       issuedOn: today,
-      totalPaisa: issued.totalPaisa,
+      totalMinor: issued.totalMinor,
     });
     if (!applyAdvance) return;
     const refs = await this.allocations.applyAdvance(m, c, issued);
@@ -329,7 +329,7 @@ export class LabInvoicesService {
           'LAB_BILLING_INVOICE_NOT_OPEN',
           'This invoice is already void',
         );
-      if (invoice.paidPaisa > 0 || invoice.creditedPaisa > 0)
+      if (invoice.paidMinor > 0 || invoice.creditedMinor > 0)
         throw labBillingError(
           'LAB_BILLING_INVOICE_HAS_MONEY',
           'Payments or credit notes are on this invoice — reverse or credit them instead',
@@ -361,7 +361,7 @@ export class LabInvoicesService {
         actorUserId: c.actor.userId,
         invoiceId: id,
         wasIssued: invoice.status !== LabInvoiceStatus.DRAFT,
-        totalPaisa: invoice.totalPaisa,
+        totalMinor: invoice.totalMinor,
       });
     });
   }
@@ -374,7 +374,7 @@ export class LabInvoicesService {
         c.tenant.organizationId,
         [id],
       );
-      if (!isOpen(invoice) || invoice.balancePaisa <= 0)
+      if (!isOpen(invoice) || invoice.balanceMinor <= 0)
         throw labBillingError(
           'LAB_BILLING_INVOICE_NOT_OPEN',
           'Nothing is owed on this invoice',
@@ -402,7 +402,7 @@ export class LabInvoicesService {
     order: OrderRef | null,
     dto: {
       lines?: InvoiceLineDto[];
-      discountPaisa?: number;
+      discountMinor?: number;
       taxRateBp?: number;
     },
   ): Promise<void> {
@@ -427,7 +427,7 @@ export class LabInvoicesService {
       );
 
     const seen = new Set<string>();
-    const drafts: Array<DraftLine & { discountPaisa: number }> = wanted.map(
+    const drafts: Array<DraftLine & { discountMinor: number }> = wanted.map(
       (l) => {
         const ref = l.itemId ?? l.chargeRequestId;
         if (ref) {
@@ -443,18 +443,18 @@ export class LabInvoicesService {
     );
 
     const taxRateBp = dto.taxRateBp ?? (await this.settings(m, org)).taxRateBp;
-    const gross = drafts.map((d) => d.quantity * d.unitPricePaisa);
-    let discounts = drafts.map((d) => d.discountPaisa);
+    const gross = drafts.map((d) => d.quantity * d.unitPriceMinor);
+    let discounts = drafts.map((d) => d.discountMinor);
     try {
-      if (dto.discountPaisa !== undefined)
-        discounts = spreadDiscount(gross, dto.discountPaisa);
+      if (dto.discountMinor !== undefined)
+        discounts = spreadDiscount(gross, dto.discountMinor);
       const repo = m.getRepository(LabInvoiceLine);
       await repo.save(
         drafts.map((d, i) => {
           const money = lineMath({
             quantity: d.quantity,
-            unitPricePaisa: d.unitPricePaisa,
-            discountPaisa: discounts[i],
+            unitPriceMinor: d.unitPriceMinor,
+            discountMinor: discounts[i],
             taxRateBp,
           });
           return repo.create({
@@ -462,10 +462,10 @@ export class LabInvoicesService {
             organizationId: org,
             invoiceId: invoice.id,
             lineNo: i + 1,
-            discountPaisa: discounts[i],
+            discountMinor: discounts[i],
             taxRateBp,
-            taxPaisa: money.taxPaisa,
-            lineTotalPaisa: money.lineTotalPaisa,
+            taxMinor: money.taxMinor,
+            lineTotalMinor: money.lineTotalMinor,
           });
         }),
       );
@@ -482,8 +482,8 @@ export class LabInvoicesService {
     order: OrderRef | null,
     items: BillableItem[],
     charges: BillableCharge[],
-  ): DraftLine & { discountPaisa: number } {
-    const discountPaisa = l.discountPaisa ?? 0;
+  ): DraftLine & { discountMinor: number } {
+    const discountMinor = l.discountMinor ?? 0;
     switch (l.kind) {
       case LabInvoiceLineKind.LAB_ITEM: {
         const item = items.find((i) => i.id === l.itemId);
@@ -503,8 +503,8 @@ export class LabInvoicesService {
             `${item.service_name_snap} is already on another invoice`,
           );
         // Frozen at submit (inv. 3): the line repeats the snapshot exactly.
-        const unit = Number(item.patient_unit_price_paisa);
-        const total = Number(item.patient_line_price_paisa);
+        const unit = Number(item.patient_unit_price_minor);
+        const total = Number(item.patient_line_price_minor);
         const exact = item.quantity * unit === total;
         return {
           lineKind: LabInvoiceLineKind.LAB_ITEM,
@@ -517,8 +517,8 @@ export class LabInvoicesService {
             (item.teeth ? ` — teeth ${item.teeth}` : '')
           ).slice(0, 200),
           quantity: exact ? item.quantity : 1,
-          unitPricePaisa: exact ? unit : total,
-          discountPaisa,
+          unitPriceMinor: exact ? unit : total,
+          discountMinor,
         };
       }
       case LabInvoiceLineKind.LAB_CHARGE: {
@@ -544,12 +544,12 @@ export class LabInvoicesService {
             `${CHARGE_LABEL[charge.kind]}: ${charge.reason}`
           ).slice(0, 200),
           quantity: 1,
-          unitPricePaisa: l.unitPricePaisa ?? Number(charge.amount_paisa),
-          discountPaisa,
+          unitPriceMinor: l.unitPriceMinor ?? Number(charge.amount_minor),
+          discountMinor,
         };
       }
       case LabInvoiceLineKind.MANUAL: {
-        if (!l.description?.trim() || l.unitPricePaisa === undefined)
+        if (!l.description?.trim() || l.unitPriceMinor === undefined)
           throw labBillingError(
             'LAB_BILLING_INVALID',
             'A manual line needs a description and a price',
@@ -562,8 +562,8 @@ export class LabInvoicesService {
           doctorId: order?.doctorId ?? null,
           description: l.description.trim(),
           quantity: l.quantity ?? 1,
-          unitPricePaisa: l.unitPricePaisa,
-          discountPaisa,
+          unitPriceMinor: l.unitPriceMinor,
+          discountMinor,
         };
       }
     }
@@ -581,8 +581,8 @@ export class LabInvoicesService {
   ): Promise<BillableItem[]> {
     return sqlRows<BillableItem>(
       m,
-      `SELECT i.id, i.service_name_snap, i.quantity, i.patient_unit_price_paisa,
-              i.patient_line_price_paisa, i.clinic_treatment_id, i.status_code,
+      `SELECT i.id, i.service_name_snap, i.quantity, i.patient_unit_price_minor,
+              i.patient_line_price_minor, i.clinic_treatment_id, i.status_code,
               (SELECT string_agg(t.tooth_code, ', ' ORDER BY t.tooth_code)
                  FROM item_teeth t WHERE t.item_id = i.id) AS teeth,
               EXISTS (SELECT 1 FROM lab_invoice_lines l
@@ -602,7 +602,7 @@ export class LabInvoicesService {
   ): Promise<BillableCharge[]> {
     return sqlRows<BillableCharge>(
       m,
-      `SELECT c.id, c.kind, c.reason, c.amount_paisa, c.status,
+      `SELECT c.id, c.kind, c.reason, c.amount_minor, c.status,
               EXISTS (SELECT 1 FROM lab_invoice_lines l
                        WHERE l.order_charge_request_id = c.id AND NOT l.is_void
                          AND l.invoice_id IS DISTINCT FROM $2::uuid) AS billed
@@ -676,7 +676,7 @@ export class LabInvoicesService {
       .getRepository(LabInvoiceLine)
       .find({ where: { invoiceId }, order: { lineNo: 'ASC' } });
     return lines.map(
-      (l) => `${l.description} × ${l.quantity} = ${l.lineTotalPaisa}`,
+      (l) => `${l.description} × ${l.quantity} = ${l.lineTotalMinor}`,
     );
   }
 

@@ -13,7 +13,7 @@ import { Patient } from 'src/patients/entities/patient.entity';
 import { Employee } from 'src/employees/entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { MoneyColumn, moneyTransformer } from '../common/money-column';
-import { PaisaColumn } from '../common/paisa-column';
+import { MinorColumn } from '../common/minor-column';
 import { CompensationPlan } from '../commissions/entities/compensation-plan.entity';
 import {
   ChargeSource,
@@ -114,8 +114,8 @@ export class Charge {
   @Column({ name: 'commission_rate_bps', type: 'int', nullable: true })
   commissionRateBps: number | null;
 
-  @PaisaColumn('commission_fixed_paisa', { nullable: true })
-  commissionFixedPaisa: number | null;
+  @MinorColumn('commission_fixed_minor', { nullable: true })
+  commissionFixedMinor: number | null;
 
   /** Snapshot; MANUAL "Other" charges count as OTHER for discount rules. */
   @Column({

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { type Appointment, AppointmentStatus, STATUS_BG_COLORS } from '@/features/appointments/types'
 import { useAppointmentStore } from '@/store/appointment-store'
-import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { dateToYmd, formatInClinic, toClinicYmd, todayYmd } from '@/lib/datetime'
 
 interface MonthlyGridProps {
   appointments: Appointment[]
@@ -25,10 +25,9 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
     
     const days = Array.from({ length: daysInMonth }, (_, i) => {
       const date = new Date(year, month, i + 1)
-      const dayAppts = appointments.filter((a) => {
-        const aDate = new Date(a.startTime)
-        return aDate.getDate() === date.getDate() && aDate.getMonth() === date.getMonth() && aDate.getFullYear() === date.getFullYear()
-      })
+      const ymd = dateToYmd(date)
+      // Bucket by the clinic calendar day the appointment starts on.
+      const dayAppts = appointments.filter((a) => toClinicYmd(a.startTime) === ymd)
       return { date, appointments: dayAppts }
     })
     
@@ -36,7 +35,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
   }, [appointments, selectedDate])
 
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const today = new Date()
+  const today = todayYmd()
 
   return (
     <div className="flex-1 flex flex-col border rounded-xl bg-card overflow-hidden">
@@ -56,16 +55,15 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
         ))}
         
         {days.map(({ date, appointments }) => {
-          const isToday = date.getDate() === today.getDate() && date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()
+          const isToday = dateToYmd(date) === today
           
           return (
             <div 
               key={date.toISOString()} 
               className={`border-r border-b p-1.5 flex flex-col min-h-[100px] hover:bg-muted cursor-pointer ${isToday ? 'bg-primary/10' : ''}`}
               onClick={() => {
-                const clickDate = new Date(date)
-                clickDate.setHours(9, 0, 0, 0)
-                openCreateModal(undefined, toDateTimeLocalValue(clickDate))
+                // 09:00 on that day, clinic wall time.
+                openCreateModal(undefined, `${dateToYmd(date)}T09:00`)
               }}
             >
               <div className="flex justify-between items-center mb-1 px-1">
@@ -89,9 +87,9 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
                         openEditModal(appt.id)
                       }}
                       className={`text-[10px] px-1.5 py-0.5 rounded truncate transition-colors hover:brightness-95 ${statusClass} ${isCancelled ? 'opacity-50 line-through' : ''}`}
-                      title={`${new Date(appt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${appt.patient?.fullName}`}
+                      title={`${formatInClinic(appt.startTime, 'hh:mm a')} - ${appt.patient?.fullName}`}
                     >
-                      {new Date(appt.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {appt.patient?.fullName}
+                      {formatInClinic(appt.startTime, 'hh:mm a')} {appt.patient?.fullName}
                     </div>
                   )
                 })}

@@ -56,9 +56,9 @@ export class OrganizationSettings {
   @Column({ name: 'cancellation_notice_hours', type: 'int', default: 24 })
   cancellationNoticeHours: number;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

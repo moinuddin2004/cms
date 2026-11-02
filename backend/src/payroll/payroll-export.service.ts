@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { PayrollRecord } from './entities/payroll-record.entity';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { ClockService } from 'src/common/clock/clock.service';
+import { localDate } from 'src/common/clock/tz.util';
 
 function money(v: unknown): string {
   const n = Number(v);
@@ -12,21 +14,30 @@ function money(v: unknown): string {
   });
 }
 
-/** Integer paisa → "50,000.50" (no float math). */
-function paisaMoney(paisa: number): string {
-  const sign = paisa < 0 ? '-' : '';
-  const abs = Math.abs(paisa);
+/** Integer minor units → "50,000.50" (no float math). */
+function minorMoney(minor: number): string {
+  const sign = minor < 0 ? '-' : '';
+  const abs = Math.abs(minor);
   return `${sign}${Math.trunc(abs / 100).toLocaleString('en-US')}.${String(abs % 100).padStart(2, '0')}`;
 }
 
 /** Breakdown of a record; rows from before the breakdown count as salary. */
-function breakdown(r: PayrollRecord): { base: number; commission: number; total: number } {
-  if (r.totalPaisa) {
-    return { base: r.baseSalaryPaisa, commission: r.commissionPaisa, total: r.totalPaisa };
+function breakdown(r: PayrollRecord): {
+  base: number;
+  commission: number;
+  total: number;
+} {
+  if (r.totalMinor) {
+    return {
+      base: r.baseSalaryMinor,
+      commission: r.commissionMinor,
+      total: r.totalMinor,
+    };
   }
   const m = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(String(r.salaryAmount ?? '0'));
   const total = m
-    ? (m[1] ? -1 : 1) * (Number(m[2]) * 100 + Number((m[3] ?? '').padEnd(2, '0')))
+    ? (m[1] ? -1 : 1) *
+      (Number(m[2]) * 100 + Number((m[3] ?? '').padEnd(2, '0')))
     : 0;
   return { base: total, commission: 0, total };
 }
@@ -41,6 +52,7 @@ export class PayrollExportService {
   constructor(
     @InjectRepository(PayrollRecord)
     private readonly payrollRepo: Repository<PayrollRecord>,
+    private readonly clock: ClockService,
   ) {}
 
   async generatePayslipPdf(
@@ -103,17 +115,26 @@ export class PayrollExportService {
       y -= 20;
     };
     const pay = breakdown(record);
-    row('Base Salary', paisaMoney(pay.base));
-    row('Commission', paisaMoney(pay.commission));
-    row('Gross Pay', paisaMoney(pay.total));
+    row('Base Salary', minorMoney(pay.base));
+    row('Commission', minorMoney(pay.commission));
+    row('Gross Pay', minorMoney(pay.total));
     row('Deductions', money(0));
-    row('Net Pay', paisaMoney(pay.total), true);
+    row('Net Pay', minorMoney(pay.total), true);
     y -= 10;
     row('Status', record.status);
     row('Payment Method', record.paymentMethod ?? '—');
+    // Paid date as the clinic (record's location) saw it, not the server.
+    const tz = await this.clock.timezoneFor(record.locationId);
     row(
       'Paid Date',
-      record.paidAt ? new Date(record.paidAt).toDateString() : '—',
+      record.paidAt
+        ? new Date(record.paidAt).toLocaleDateString('en-GB', {
+            timeZone: tz,
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        : '—',
     );
 
     const bytes = await pdf.save();
@@ -139,6 +160,7 @@ export class PayrollExportService {
       order: { createdAt: 'DESC' },
     });
 
+    const tz = await this.clock.timezoneFor(ctx.locationId);
     const header = [
       'Employee Name',
       'Designation',
@@ -160,14 +182,14 @@ export class PayrollExportService {
         [
           emp?.fullName ?? '',
           emp?.designation ?? emp?.jobTitle ?? '',
-          paisaMoney(pay.base),
-          paisaMoney(pay.commission),
-          paisaMoney(pay.total),
+          minorMoney(pay.base),
+          minorMoney(pay.commission),
+          minorMoney(pay.total),
           money(0),
-          paisaMoney(pay.total),
+          minorMoney(pay.total),
           r.status,
           r.paymentMethod ?? '',
-          r.paidAt ? new Date(r.paidAt).toISOString().slice(0, 10) : '',
+          r.paidAt ? localDate(tz, new Date(r.paidAt)) : '',
         ]
           .map(csvCell)
           .join(','),

@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { CatalogService } from '../../entities/catalog-service.entity';
 import { ServiceKind } from '../../enums/billing.enums';
-import { PaisaColumn } from '../../common/paisa-column';
+import { MinorColumn } from '../../common/minor-column';
 import { CompensationPlan } from './compensation-plan.entity';
 
 /**
@@ -28,7 +28,7 @@ import { CompensationPlan } from './compensation-plan.entity';
 })
 @Check(
   'chk_commission_rules_amount',
-  `("rate_bps" IS NULL) <> ("fixed_amount_paisa" IS NULL)`,
+  `("rate_bps" IS NULL) <> ("fixed_amount_minor" IS NULL)`,
 )
 @Check(
   'chk_commission_rules_rate',
@@ -36,7 +36,7 @@ import { CompensationPlan } from './compensation-plan.entity';
 )
 @Check(
   'chk_commission_rules_fixed',
-  `"fixed_amount_paisa" IS NULL OR "fixed_amount_paisa" >= 0`,
+  `"fixed_amount_minor" IS NULL OR "fixed_amount_minor" >= 0`,
 )
 @Check(
   'chk_commission_rules_target',
@@ -71,6 +71,6 @@ export class CommissionRule {
   @Column({ name: 'rate_bps', type: 'int', nullable: true })
   rateBps: number | null;
 
-  @PaisaColumn('fixed_amount_paisa', { nullable: true })
-  fixedAmountPaisa: number | null;
+  @MinorColumn('fixed_amount_minor', { nullable: true })
+  fixedAmountMinor: number | null;
 }

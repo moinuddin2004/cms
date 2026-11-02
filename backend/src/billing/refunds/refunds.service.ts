@@ -11,9 +11,9 @@ import { DEFAULT_PAGE_SIZE } from '../billing.constants';
 import { BillingClock, ClinicTime } from '../common/billing-clock.service';
 import { assertBillingCan, BillingContext } from '../common/billing-context';
 import { billingError, invariant, notFound } from '../common/billing-errors';
-import { BillingLocks, paymentAdvancePaisa } from '../common/billing-locks';
+import { BillingLocks, paymentAdvanceMinor } from '../common/billing-locks';
 import { BillingLookups, toPatientRef } from '../common/billing-lookups';
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import {
   CreateRefundDto,
   InvoiceRefundDto,
@@ -32,7 +32,7 @@ import {
 } from '../enums/billing.enums';
 import {
   invoiceRefundStatus,
-  refundablePaisa,
+  refundableMinor,
 } from '../invoices/invoice-status';
 import { InvoicesService } from '../invoices/invoices.service';
 import { LedgerService } from '../ledger/ledger.service';
@@ -163,16 +163,16 @@ export class RefundsService {
       body.paymentAccountId,
       body.referenceNumber,
     );
-    const amount = toPaisa(body.amount);
+    const amount = toMinor(body.amount);
 
     if (invoice) {
       const fresh = await manager
         .getRepository(Invoice)
         .findOneByOrFail({ id: invoice.id });
-      if (amount > refundablePaisa(fresh)) {
+      if (amount > refundableMinor(fresh)) {
         throw billingError(
           'BILLING_REFUND_EXCEEDS_INVOICE_REFUNDABLE',
-          `Only Rs ${fromPaisa(refundablePaisa(fresh))} can be refunded from this invoice`,
+          `Only Rs ${fromMinor(refundableMinor(fresh))} can be refunded from this invoice`,
         );
       }
     }
@@ -181,11 +181,11 @@ export class RefundsService {
       ctx.tenant,
       patientId,
     );
-    const available = payments.reduce((a, p) => a + paymentAdvancePaisa(p), 0);
+    const available = payments.reduce((a, p) => a + paymentAdvanceMinor(p), 0);
     if (amount > available) {
       throw billingError(
         'BILLING_REFUND_EXCEEDS_ADVANCE',
-        `The patient's advance is only Rs ${fromPaisa(available)}`,
+        `The patient's advance is only Rs ${fromMinor(available)}`,
       );
     }
 
@@ -194,12 +194,12 @@ export class RefundsService {
       payments,
       invoice?.id ?? null,
     );
-    const sources: Array<{ paymentId: string; amountPaisa: number }> = [];
+    const sources: Array<{ paymentId: string; amountMinor: number }> = [];
     let left = amount;
     for (const p of ordered) {
       if (left === 0) break;
-      const take = Math.min(left, paymentAdvancePaisa(p));
-      if (take > 0) sources.push({ paymentId: p.id, amountPaisa: take });
+      const take = Math.min(left, paymentAdvanceMinor(p));
+      if (take > 0) sources.push({ paymentId: p.id, amountMinor: take });
       left -= take;
     }
     invariant(left === 0, 'Refund sources do not cover the amount');
@@ -219,7 +219,7 @@ export class RefundsService {
         organizationId: ctx.tenant.organizationId,
         refundId: refund.id,
         paymentId: s.paymentId,
-        amount: fromPaisa(s.amountPaisa),
+        amount: fromMinor(s.amountMinor),
       })),
     );
     await this.totals.recomputePayments(
@@ -311,7 +311,7 @@ export class RefundsService {
     manager: EntityManager,
     ctx: BillingContext,
     refund: Refund,
-    sources: Array<{ paymentId: string; amountPaisa: number }>,
+    sources: Array<{ paymentId: string; amountMinor: number }>,
     invoice: Invoice | null,
   ): Promise<void> {
     const entries: AuditEntry[] = [
@@ -323,7 +323,7 @@ export class RefundsService {
           ...refund,
           sources: sources.map((s) => ({
             ...s,
-            amount: fromPaisa(s.amountPaisa),
+            amount: fromMinor(s.amountMinor),
           })),
         },
         reason: refund.reason,

@@ -54,13 +54,13 @@ const ok = <T,>(data: T) => ({ data: { data } })
 const patient = { id: 'p1', fullName: 'Ali Ahmed', patientNumber: 'P-001' }
 const summary = {
   patientId: 'p1',
-  invoicedPaisa: 2_800_000,
-  creditedPaisa: 0,
-  paidPaisa: 1_000_000,
-  receivablePaisa: 1_800_000,
-  collectedPaisa: 1_000_000,
-  refundedPaisa: 0,
-  advancePaisa: 0,
+  invoicedMinor: 2_800_000,
+  creditedMinor: 0,
+  paidMinor: 1_000_000,
+  receivableMinor: 1_800_000,
+  collectedMinor: 1_000_000,
+  refundedMinor: 0,
+  advanceMinor: 0,
 }
 const row: LabInvoiceRow = {
   id: 'inv1',
@@ -71,13 +71,13 @@ const row: LabInvoiceRow = {
   order: { id: 'o1', orderNo: 'LAB-0001' },
   issuedOn: '2026-10-20',
   dueOn: '2026-10-20',
-  subtotalPaisa: 3_000_000,
-  discountPaisa: 200_000,
-  taxPaisa: 0,
-  totalPaisa: 2_800_000,
-  creditedPaisa: 0,
-  paidPaisa: 1_000_000,
-  balancePaisa: 1_800_000,
+  subtotalMinor: 3_000_000,
+  discountMinor: 200_000,
+  taxMinor: 0,
+  totalMinor: 2_800_000,
+  creditedMinor: 0,
+  paidMinor: 1_000_000,
+  balanceMinor: 1_800_000,
   createdAt: '2026-10-20T10:00:00Z',
   version: 3,
 }
@@ -99,21 +99,21 @@ describe('lab billing math (mirrors the server)', () => {
       100_000, 100_000,
     ])
     expect(previewInvoice([1_500_000, 1_500_000], 200_000, 0)).toEqual({
-      subtotalPaisa: 3_000_000,
-      discountPaisa: 200_000,
-      taxPaisa: 0,
-      totalPaisa: 2_800_000,
+      subtotalMinor: 3_000_000,
+      discountMinor: 200_000,
+      taxMinor: 0,
+      totalMinor: 2_800_000,
     })
   })
 
   it('tax is basis points, half-up per line', () => {
-    expect(previewInvoice([1_005], 0, 1_700).taxPaisa).toBe(171)
+    expect(previewInvoice([1_005], 0, 1_700).taxMinor).toBe(171)
     expect(percentToBp('17')).toBe(1_700)
     expect(percentToBp('17.5')).toBe(1_750)
     expect(percentToBp('101')).toBeNull()
   })
 
-  it('validates amounts as whole paisa and caps a credit note', () => {
+  it('validates amounts as whole minor and caps a credit note', () => {
     const pay = (amount: string) =>
       paymentSchema.safeParse({
         amount,
@@ -144,16 +144,16 @@ describe('LabBillingPanel', () => {
         id: 'it3',
         description: 'Zirconia crown — teeth 36',
         quantity: 1,
-        patientLinePricePaisa: 1_500_000,
+        patientLinePriceMinor: 1_500_000,
         status: 'accepted',
       },
     ],
     unbilledCharges: [],
     totals: {
-      billedPaisa: 2_800_000,
-      creditedPaisa: 0,
-      paidPaisa: 1_000_000,
-      balancePaisa: 1_800_000,
+      billedMinor: 2_800_000,
+      creditedMinor: 0,
+      paidMinor: 1_000_000,
+      balanceMinor: 1_800_000,
     },
     patientSummary: summary,
   }
@@ -183,7 +183,7 @@ describe('LabBillingPanel', () => {
     expect(body).toMatchObject({
       orderId: 'o1',
       lines: [{ kind: 'lab_item', itemId: 'it3' }],
-      discountPaisa: 0,
+      discountMinor: 0,
       taxRateBp: 0,
       issue: false,
     })
@@ -206,11 +206,11 @@ describe('LabInvoiceDetailPage', () => {
         chargeRequestId: null,
         description: 'Zirconia crown — teeth 16',
         quantity: 1,
-        unitPricePaisa: 1_500_000,
-        discountPaisa: 100_000,
+        unitPriceMinor: 1_500_000,
+        discountMinor: 100_000,
         taxRateBp: 0,
-        taxPaisa: 0,
-        lineTotalPaisa: 1_400_000,
+        taxMinor: 0,
+        lineTotalMinor: 1_400_000,
         doctor: null,
       },
     ],
@@ -222,7 +222,7 @@ describe('LabInvoiceDetailPage', () => {
         method: 'cash',
         receivedAt: '2026-10-20T10:00:00Z',
         paymentStatus: 'posted',
-        amountPaisa: 1_000_000,
+        amountMinor: 1_000_000,
         createdAt: '2026-10-20T10:00:00Z',
         reversedAt: null,
         releaseReason: null,
@@ -234,7 +234,7 @@ describe('LabInvoiceDetailPage', () => {
         method: 'card',
         receivedAt: '2026-10-20T11:00:00Z',
         paymentStatus: 'reversed',
-        amountPaisa: 1_800_000,
+        amountMinor: 1_800_000,
         createdAt: '2026-10-20T11:00:00Z',
         reversedAt: '2026-10-20T12:00:00Z',
         releaseReason: 'payment_reversed',
@@ -268,9 +268,9 @@ describe('LabInvoiceDetailPage', () => {
     expect(url).toBe('/lab-billing/payments')
     expect(body).toMatchObject({
       patientId: 'p1',
-      amountPaisa: 1_800_000,
+      amountMinor: 1_800_000,
       method: 'cash',
-      allocations: [{ invoiceId: 'inv1', amountPaisa: 1_800_000 }],
+      allocations: [{ invoiceId: 'inv1', amountMinor: 1_800_000 }],
     })
     expect(config.headers?.['Idempotency-Key']).toBeTruthy()
   })

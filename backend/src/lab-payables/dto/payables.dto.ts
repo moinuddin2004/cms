@@ -23,8 +23,8 @@ import {
   VendorPaymentMethod,
 } from '../enums/payables.enums';
 
-/** Paisa amounts are whole numbers within JS's exact range. */
-const MAX_PAISA = 1_000_000_000_000;
+/** Minor amounts are whole numbers within JS's exact range. */
+const MAX_MINOR = 1_000_000_000_000;
 
 export class PageQueryDto {
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page?: number;
@@ -63,7 +63,7 @@ export class AddBillLineDto extends VersionDto {
   @IsEnum(BillLineKind) kind: BillLineKind;
   @IsString() @MinLength(1) @MaxLength(300) description: string;
   @Type(() => Number) @IsInt() @Min(1) @Max(10_000) quantity: number;
-  @Type(() => Number) @IsInt() @Min(0) @Max(MAX_PAISA) unitCostPaisa: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(MAX_MINOR) unitCostMinor: number;
 }
 
 export class ApproveBillDto extends VersionDto {
@@ -83,12 +83,12 @@ export class ReasonVersionDto extends VersionDto {
 
 export class AllocationDto {
   @IsUUID() billId: string;
-  @Type(() => Number) @IsInt() @Min(1) @Max(MAX_PAISA) amountPaisa: number;
+  @Type(() => Number) @IsInt() @Min(1) @Max(MAX_MINOR) amountMinor: number;
 }
 
 export class CreatePaymentDto {
   @IsUUID() labId: string;
-  @Type(() => Number) @IsInt() @Min(1) @Max(MAX_PAISA) amountPaisa: number;
+  @Type(() => Number) @IsInt() @Min(1) @Max(MAX_MINOR) amountMinor: number;
   @IsEnum(VendorPaymentMethod) method: VendorPaymentMethod;
   @IsOptional() @IsString() @MaxLength(100) reference?: string;
   @IsOptional() @IsDateString() paidOn?: string;
@@ -117,7 +117,7 @@ export class StatementLineDto {
   @IsOptional() @IsString() @MaxLength(60) labReference?: string;
   @IsOptional() @IsDateString() lineDate?: string;
   @IsOptional() @IsString() @MaxLength(300) description?: string;
-  @Type(() => Number) @IsInt() @Min(0) @Max(MAX_PAISA) amountPaisa: number;
+  @Type(() => Number) @IsInt() @Min(0) @Max(MAX_MINOR) amountMinor: number;
 }
 
 export class CreateStatementDto {
@@ -130,8 +130,8 @@ export class CreateStatementDto {
   @Type(() => Number)
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  totalPaisa?: number;
+  @Max(MAX_MINOR)
+  totalMinor?: number;
   @IsOptional() @IsString() @MaxLength(2000) notes?: string;
   @IsArray()
   @ArrayMinSize(1)

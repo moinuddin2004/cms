@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Label } from '@/components/ui/label'
+import { nowInClinic } from '@/lib/datetime'
 import { useGeneratePayroll } from '../hooks/useGeneratePayroll'
 import { toast } from 'sonner'
 import { Loader2, Zap, AlertCircle } from 'lucide-react'
@@ -44,7 +45,7 @@ export function GeneratePayrollModal({
   isOpen,
   onOpenChange,
 }: GeneratePayrollModalProps) {
-  const now = new Date()
+  const now = nowInClinic()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const generateMutation = useGeneratePayroll()
@@ -54,11 +55,11 @@ export function GeneratePayrollModal({
       const result = await generateMutation.mutateAsync({ month, year })
       const messages: string[] = []
       if (result.generated > 0)
-        messages.push(`✅ ${result.generated} payroll records created`)
+        messages.push(`${result.generated} payroll records created`)
       if (result.skipped > 0)
-        messages.push(`⏭️ ${result.skipped} already existed`)
-      if (result.noSalary?.length > 0)
-        messages.push(`⚠️ No salary set: ${result.noSalary.join(', ')}`)
+        messages.push(`${result.skipped} already existed`)
+      if (result.noSalary.length > 0)
+        messages.push(`No salary set: ${result.noSalary.join(', ')}`)
       toast.success(messages.join('\n') || 'Payroll generated')
       onOpenChange(false)
     } catch (error: any) {
@@ -125,7 +126,7 @@ export function GeneratePayrollModal({
               </Select>
             </div>
           </div>
-          <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 text-amber-800 text-xs">
+          <div className="flex items-start gap-2 rounded-md border border-amber/20 bg-amber-soft p-3 text-xs text-amber">
             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
             <span>
               Only employees with a salary configured and active at this

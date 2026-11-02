@@ -16,7 +16,7 @@ sequenceDiagram
                 PS->>PS: Count as skipped
             else No record yet
                 PS->>CPV: activeOn last day of month, else first day
-                CPV-->>PS: Plan with base_salary_paisa
+                CPV-->>PS: Plan with base_salary_minor
                 PS->>CS: lockUnsettled - entries before period end, FOR UPDATE
                 CS-->>PS: Entry ids and their total
                 alt Base and commission both zero

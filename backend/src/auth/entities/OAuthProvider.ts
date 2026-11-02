@@ -73,6 +73,6 @@ export class OAuthProvider {
   @Column({ name: 'profile_data', type: 'jsonb', default: '{}' })
   profileData: Record<string, any>;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

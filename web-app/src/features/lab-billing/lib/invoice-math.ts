@@ -1,4 +1,4 @@
-// Mirrors the server's lab billing math (integer paisa, half-up per line,
+// Mirrors the server's lab billing math (integer minor units, half-up per line,
 // invoice discount spread by largest remainder) so previews match exactly.
 
 const half = (value: number, bp: number) =>
@@ -24,29 +24,29 @@ export function spreadDiscount(gross: number[], discount: number): number[] {
 }
 
 export interface InvoicePreview {
-  subtotalPaisa: number
-  discountPaisa: number
-  taxPaisa: number
-  totalPaisa: number
+  subtotalMinor: number
+  discountMinor: number
+  taxMinor: number
+  totalMinor: number
 }
 
 /** Totals of `gross` line amounts with an invoice discount and one tax rate. */
 export function previewInvoice(
   gross: number[],
-  discountPaisa: number,
+  discountMinor: number,
   taxRateBp: number,
 ): InvoicePreview {
-  const subtotalPaisa = gross.reduce((a, g) => a + g, 0)
-  const d = Math.min(Math.max(discountPaisa, 0), subtotalPaisa)
+  const subtotalMinor = gross.reduce((a, g) => a + g, 0)
+  const d = Math.min(Math.max(discountMinor, 0), subtotalMinor)
   const discounts = spreadDiscount(gross, d)
-  const taxPaisa = gross.reduce(
+  const taxMinor = gross.reduce(
     (a, g, i) => a + half(g - discounts[i], taxRateBp),
     0,
   )
   return {
-    subtotalPaisa,
-    discountPaisa: d,
-    taxPaisa,
-    totalPaisa: subtotalPaisa - d + taxPaisa,
+    subtotalMinor,
+    discountMinor: d,
+    taxMinor,
+    totalMinor: subtotalMinor - d + taxMinor,
   }
 }

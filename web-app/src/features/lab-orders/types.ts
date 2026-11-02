@@ -54,8 +54,8 @@ export interface LabOrderRow {
   doctor: { id: string; fullName: string } | null
   lab: { id: string; name: string }
   itemCount: number
-  labCostPaisa: number | null
-  patientPricePaisa: number | null
+  labCostMinor: number | null
+  patientPriceMinor: number | null
   requestedOn: string | null
   labExpectedOn: string | null
   submittedAt: string | null
@@ -116,15 +116,14 @@ export interface LabOrderItem {
   rush: boolean
   optionIds: string[]
   options:
-    | { id: string; code: string; name: string; extraCostPaisa: number }[]
-    | null
+    { id: string; code: string; name: string; extraCostMinor: number }[] | null
   clinicTreatmentId: string | null
   prices: {
     currency: string
-    labUnitCostPaisa: number
-    labLineCostPaisa: number
-    patientUnitPricePaisa: number
-    patientLinePricePaisa: number
+    labUnitCostMinor: number
+    labLineCostMinor: number
+    patientUnitPriceMinor: number
+    patientLinePriceMinor: number
     pricedOn: string | null
   } | null
   status: string | null
@@ -160,7 +159,7 @@ export interface ChargeRequest {
   id: string
   itemId: string | null
   kind: string
-  amountPaisa: number
+  amountMinor: number
   currency: string
   reason: string
   status: 'pending' | 'approved' | 'rejected'
@@ -218,7 +217,7 @@ export interface LabOrderDetail {
   patient: { id: string; fullName: string; patientNumber: string }
   doctor: { id: string; fullName: string } | null
   lab: { id: string; name: string; city: string | null }
-  totals: { labCostPaisa: number; patientPricePaisa: number } | null
+  totals: { labCostMinor: number; patientPriceMinor: number } | null
   items: LabOrderItem[]
   revisions: OrderRevision[]
   messages: OrderMessage[]
@@ -313,7 +312,4 @@ export interface OrderMagicLink {
 
 /** Lab answers a clinic admin can record for the lab (proxy mode). */
 export type ProxyAction =
-  | 'accept'
-  | 'reject'
-  | 'request_clarification'
-  | 'change_expected_date'
+  'accept' | 'reject' | 'request_clarification' | 'change_expected_date'

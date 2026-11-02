@@ -3,12 +3,17 @@
  *
  * Patients belong to the organization; a patient counts for a location by
  * `primary_location_id` (patients without one only show in the
- * all-locations view). `patients.created_at` and other `CreateDateColumn`s
- * without `type: 'timestamptz'` are `timestamp` holding UTC wall time.
+ * all-locations view). Every instant column is `timestamptz` (old naive
+ * `timestamp` columns were converted by `upgradeNaiveTimestamps`).
  */
 
-/** A UTC `timestamp` column as `timestamptz`. */
-export const utc = (col: string) => `(${col} AT TIME ZONE 'UTC')`;
+/**
+ * Formerly turned a naive UTC `timestamp` column into `timestamptz`. All such
+ * columns are `timestamptz` now, so this is the column itself — applying
+ * `AT TIME ZONE 'UTC'` to a `timestamptz` would yield a naive timestamp and
+ * shift every later `AT TIME ZONE <clinic tz>` the wrong way.
+ */
+export const utc = (col: string) => col;
 
 /** Clinic-local date of a `timestamptz` expression (`tz` = a `$n` param). */
 export const localDay = (expr: string, tz: string) =>

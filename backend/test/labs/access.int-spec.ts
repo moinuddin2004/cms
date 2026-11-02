@@ -242,7 +242,7 @@ describe('Lab access (API)', () => {
       'post',
       `/platform/labs/${lab.id}/services/${service.id}/prices`,
       fx.superAdmin,
-      { unitPricePaisa: 500_000, effectiveFrom: today },
+      { unitPriceMinor: 500_000, effectiveFrom: today },
     );
     expect(p.status).toBe(201);
 

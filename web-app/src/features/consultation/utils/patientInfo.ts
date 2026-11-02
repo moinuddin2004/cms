@@ -1,9 +1,14 @@
 import { differenceInYears } from 'date-fns'
+import { todayYmd, ymdToDate } from '@/lib/datetime'
 import type { Patient, PatientVitals } from '@/features/patients'
 
 export function ageLabel(dob: string | null | undefined): string | null {
   if (!dob) return null
-  const years = differenceInYears(new Date(), new Date(dob))
+  // DOB is a calendar date: compare calendar days, never shift it by a timezone.
+  const years = differenceInYears(
+    ymdToDate(todayYmd()),
+    ymdToDate(dob.slice(0, 10)),
+  )
   return Number.isNaN(years) ? null : `${years} y`
 }
 

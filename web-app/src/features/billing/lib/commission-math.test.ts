@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   bpsToPercent,
-  formatPaisa,
-  paisaToRupeesText,
+  formatMinor,
+  minorToRupeesText,
   percentToBps,
-  rupeesToPaisa,
+  rupeesToMinor,
 } from './commission-math'
 
 describe('commission-math (frontend)', () => {
@@ -19,18 +19,18 @@ describe('commission-math (frontend)', () => {
     expect(percentToBps('')).toBeNull()
   })
 
-  it('round-trips bps and paisa to text', () => {
+  it('round-trips bps and minor to text', () => {
     expect(bpsToPercent(1250)).toBe('12.5')
     expect(bpsToPercent(4000)).toBe('40')
-    expect(rupeesToPaisa('50000.5')).toBe(5_000_050)
-    expect(rupeesToPaisa('0.1')).toBe(10)
-    expect(rupeesToPaisa('1.005')).toBeNull()
-    expect(paisaToRupeesText(5_000_050)).toBe('50000.5')
+    expect(rupeesToMinor('50000.5')).toBe(5_000_050)
+    expect(rupeesToMinor('0.1')).toBe(10)
+    expect(rupeesToMinor('1.005')).toBeNull()
+    expect(minorToRupeesText(5_000_050)).toBe('50000.5')
   })
 
-  it('formats paisa without floats', () => {
-    expect(formatPaisa(5_000_050)).toBe('PKR 50,000.50')
-    expect(formatPaisa(40_000)).toBe('PKR 400')
-    expect(formatPaisa(-1_234)).toBe('-PKR 12.34')
+  it('formats minor without floats', () => {
+    expect(formatMinor(5_000_050)).toBe('PKR 50,000.50')
+    expect(formatMinor(40_000)).toBe('PKR 400')
+    expect(formatMinor(-1_234)).toBe('-PKR 12.34')
   })
 })

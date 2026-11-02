@@ -1,4 +1,4 @@
-import { fromPaisa, lineGross } from '../../common/money';
+import { fromMinor, lineGross } from '../../common/money';
 import { Charge } from '../../entities/charge.entity';
 import {
   ChargeSource,
@@ -165,7 +165,7 @@ export class ChargeDraftFactory {
       | 'needsPricing'
     >,
   ): ChargeDraft {
-    const gross = fromPaisa(lineGross(specific.quantity, specific.unitPrice));
+    const gross = fromMinor(lineGross(specific.quantity, specific.unitPrice));
     return {
       organizationId: common.organizationId,
       locationId: common.locationId,

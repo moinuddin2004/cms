@@ -12,7 +12,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { Patient } from 'src/patients/entities/patient.entity';
 import {
@@ -26,13 +26,13 @@ import { LabPayment } from './lab-payment.entity';
  * Corrects an issued invoice downwards (lab ERD §6a) — a cancelled or
  * reduced job. It lowers the invoice's balance; whatever the patient had
  * already paid above the new total is released from allocations back to
- * advance (`released_paisa`) and can then be refunded. Never deleted.
+ * advance (`released_minor`) and can then be refunded. Never deleted.
  */
 @Entity({ name: 'lab_credit_notes' })
 @Unique('uq_lab_credit_notes_org_no', ['organizationId', 'creditNoteNo'])
 @Check(
   'chk_lab_credit_notes_amounts',
-  `"amount_paisa" > 0 AND "released_paisa" BETWEEN 0 AND "amount_paisa" AND "refunded_paisa" BETWEEN 0 AND "released_paisa"`,
+  `"amount_minor" > 0 AND "released_minor" BETWEEN 0 AND "amount_minor" AND "refunded_minor" BETWEEN 0 AND "released_minor"`,
 )
 @Index('idx_lab_credit_notes_invoice', ['invoiceId'])
 export class LabCreditNote {
@@ -58,8 +58,8 @@ export class LabCreditNote {
   @Column({ name: 'patient_id', type: 'uuid' })
   patientId: string;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({ name: 'reason', type: 'text' })
   reason: string;
@@ -72,12 +72,12 @@ export class LabCreditNote {
   status: LabCreditNoteStatus;
 
   /** Paid money taken off the invoice into the patient's advance. */
-  @PaisaColumn('released_paisa')
-  releasedPaisa: number;
+  @MinorColumn('released_minor')
+  releasedMinor: number;
 
   /** Σ refunds against this note (cached). */
-  @PaisaColumn('refunded_paisa')
-  refundedPaisa: number;
+  @MinorColumn('refunded_minor')
+  refundedMinor: number;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;
@@ -100,7 +100,7 @@ export class LabCreditNote {
 @Entity({ name: 'lab_refunds' })
 @Unique('uq_lab_refunds_org_no', ['organizationId', 'refundNo'])
 @Unique('uq_lab_refunds_org_idempotency', ['organizationId', 'idempotencyKey'])
-@Check('chk_lab_refunds_amount', `"amount_paisa" > 0`)
+@Check('chk_lab_refunds_amount', `"amount_minor" > 0`)
 @Index('idx_lab_refunds_patient', ['organizationId', 'patientId'])
 @Index('idx_lab_refunds_credit_note', ['creditNoteId'])
 export class LabRefund {
@@ -130,8 +130,8 @@ export class LabRefund {
   @Column({ name: 'credit_note_id', type: 'uuid', nullable: true })
   creditNoteId: string | null;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({
     name: 'method',
@@ -164,7 +164,7 @@ export class LabRefund {
 
 /** Which payment's advance funded a refund. Σ = refund amount. */
 @Entity({ name: 'lab_refund_sources' })
-@Check('chk_lab_refund_sources_amount', `"amount_paisa" > 0`)
+@Check('chk_lab_refund_sources_amount', `"amount_minor" > 0`)
 @Index('idx_lab_refund_sources_refund', ['refundId'])
 @Index('idx_lab_refund_sources_payment', ['paymentId'])
 export class LabRefundSource {
@@ -188,8 +188,8 @@ export class LabRefundSource {
   @Column({ name: 'payment_id', type: 'uuid' })
   paymentId: string;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 }
 
 /**

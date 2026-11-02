@@ -3,13 +3,15 @@ import { cn } from '@/lib/utils'
 
 /**
  * The one card shape every block on the consultation screen uses: a compact
- * header row (icon, title, optional badge, right-hand action) over the body.
+ * header row (icon, title, optional badge, right-hand action) over the body,
+ * and an optional footer that stays put while a height-capped body scrolls.
  */
 export function Panel({
   icon,
   title,
   badge,
   action,
+  footer,
   children,
   className,
   bodyClassName,
@@ -18,6 +20,7 @@ export function Panel({
   title: string
   badge?: ReactNode
   action?: ReactNode
+  footer?: ReactNode
   children: ReactNode
   className?: string
   bodyClassName?: string
@@ -25,11 +28,11 @@ export function Panel({
   return (
     <section
       className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card shadow-sm',
+        'flex flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm',
         className,
       )}
     >
-      <header className="flex min-h-11 items-center justify-between gap-2 border-b border-border px-4 py-2">
+      <header className="flex min-h-11 shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-2">
         <h2 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
           <span className="shrink-0 text-primary-text [&_svg]:size-4">
             {icon}
@@ -39,7 +42,12 @@ export function Panel({
         </h2>
         {action && <div className="flex shrink-0 items-center">{action}</div>}
       </header>
-      <div className={cn('p-4', bodyClassName)}>{children}</div>
+      <div className={cn('min-h-0 p-4', bodyClassName)}>{children}</div>
+      {footer && (
+        <footer className="shrink-0 border-t border-border bg-card px-4 py-3">
+          {footer}
+        </footer>
+      )}
     </section>
   )
 }

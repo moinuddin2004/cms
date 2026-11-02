@@ -29,12 +29,12 @@ async function post<T>(
 
 export interface PaymentInput {
   labId: string
-  amountPaisa: number
+  amountMinor: number
   method: PaymentMethod
   reference?: string
   paidOn?: string
   notes?: string
-  allocations: Array<{ billId: string; amountPaisa: number }>
+  allocations: Array<{ billId: string; amountMinor: number }>
 }
 
 export interface StatementInput {
@@ -47,7 +47,7 @@ export interface StatementInput {
     labReference?: string
     lineDate?: string
     description?: string
-    amountPaisa: number
+    amountMinor: number
   }>
 }
 
@@ -85,7 +85,7 @@ export const labPayablesApi = {
       kind: BillLineKind
       description: string
       quantity: number
-      unitCostPaisa: number
+      unitCostMinor: number
     },
   ) => post<VendorBillDetail>(`${base}/bills/${id}/lines`, body),
   syncOrder: (orderId: string) =>
@@ -112,7 +112,7 @@ export const labPayablesApi = {
     id: string,
     body: {
       version: number
-      allocations: Array<{ billId: string; amountPaisa: number }>
+      allocations: Array<{ billId: string; amountMinor: number }>
     },
   ) => post<VendorPayment>(`${base}/payments/${id}/allocations`, body),
   reversePayment: (id: string, body: { version: number; reason: string }) =>

@@ -11,13 +11,13 @@ import {
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { LabInvoiceLine } from 'src/lab-billing/entities/lab-invoice.entity';
 import { Charge } from '../../entities/charge.entity';
-import { PaisaColumn } from '../../common/paisa-column';
+import { MinorColumn } from '../../common/minor-column';
 import { CommissionSourceType } from '../commission.enums';
 import { CommissionSettlement } from './commission-settlement.entity';
 
 /**
- * Append-only commission ledger (signed paisa). For each charge,
- * SUM(amount_paisa) always equals the commission target for what has been
+ * Append-only commission ledger (signed minor units). For each charge,
+ * SUM(amount_minor) always equals the commission target for what has been
  * collected on it; every change inserts only the difference. Amounts are
  * never updated and rows are never deleted (a trigger enforces it); only
  * `settlement_id` is set once, by settlement.
@@ -84,15 +84,15 @@ export class CommissionEntry {
   sourceId: string;
 
   /** Collected on the charge (capped at net) when the entry was written. */
-  @PaisaColumn('base_paisa')
-  basePaisa: number;
+  @MinorColumn('base_minor')
+  baseMinor: number;
 
   @Column({ name: 'rate_bps', type: 'int', nullable: true })
   rateBps: number | null;
 
   /** Signed: negative reverses earlier commission. */
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @ManyToOne(() => CommissionSettlement, {
     onDelete: 'RESTRICT',

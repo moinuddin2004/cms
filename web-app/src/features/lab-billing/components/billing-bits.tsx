@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper, StatusBadge } from '@/components/shared'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { fieldError } from '@/components/forms/fieldError'
 import { cn } from '@/lib/utils'
 import { correctionReasonSchema } from '../schemas/lab-billing.schema'
@@ -59,8 +59,8 @@ export const STATUS_OPTIONS: {
   { value: 'void', label: 'Void' },
 ]
 
-/** Right-aligned paisa amount; muted when zero. */
-export function Paisa({
+/** Right-aligned minor units amount; muted when zero. */
+export function MoneyAmount({
   value,
   className,
   strong,
@@ -78,7 +78,7 @@ export function Paisa({
         className,
       )}
     >
-      {formatPaisa(value)}
+      {formatMinor(value)}
     </span>
   )
 }
@@ -97,7 +97,7 @@ export function MoneyRow({
   return (
     <div className="flex items-center justify-between gap-4 text-sm">
       <span className={strong ? 'font-medium' : 'text-text-3'}>{label}</span>
-      <Paisa value={negative && value ? -value : value} strong={strong} />
+      <MoneyAmount value={negative && value ? -value : value} strong={strong} />
     </div>
   )
 }

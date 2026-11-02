@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { toClinicYmd } from '@/lib/datetime'
 import { Link } from '@tanstack/react-router'
 import { Ban, CheckCircle2, Loader2, RefreshCw, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingSkeleton, StatCard } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { formatPaisa, rupeesToPaisa } from '@/features/lab-catalog'
+import { formatMinor, rupeesToMinor } from '@/features/lab-catalog'
 import { ReasonDialog } from '@/features/lab-orders'
 import { BillStatusBadge } from '../components/payables-badges'
 import { ApproveBillSheet, PayLabSheet } from '../components/PayablesSheets'
@@ -51,16 +52,16 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
       labPayablesApi.pay(
         {
           labId: v.labId,
-          amountPaisa: rupeesToPaisa(v.values.amount) ?? 0,
+          amountMinor: rupeesToMinor(v.values.amount) ?? 0,
           method: v.values.method,
           reference: v.values.reference || undefined,
           paidOn: v.values.paidOn || undefined,
           allocations: v.values.allocations
             .map((a) => ({
               billId: a.billId,
-              amountPaisa: rupeesToPaisa(a.amount) ?? 0,
+              amountMinor: rupeesToMinor(a.amount) ?? 0,
             }))
-            .filter((a) => a.amountPaisa > 0),
+            .filter((a) => a.amountMinor > 0),
         },
         v.key,
       ),
@@ -103,7 +104,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
   }
 
   const payable = bill.status === 'approved' || bill.status === 'partially_paid'
-  const canVoid = bill.status !== 'void' && bill.paidPaisa === 0
+  const canVoid = bill.status !== 'void' && bill.paidMinor === 0
   const actions = (
     <div className="flex items-center gap-2">
       {bill.status === 'draft' && bill.labOrderId && (
@@ -129,7 +130,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
       {bill.status === 'draft' && (
         <Button
           onClick={() => setApproving(true)}
-          disabled={bill.totalPaisa <= 0}
+          disabled={bill.totalMinor <= 0}
         >
           <CheckCircle2 className="size-4" /> Approve
         </Button>
@@ -168,14 +169,14 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Total" value={formatPaisa(bill.totalPaisa)} />
-          <StatCard label="Paid" value={formatPaisa(bill.paidPaisa)} />
+          <StatCard label="Total" value={formatMinor(bill.totalMinor)} />
+          <StatCard label="Paid" value={formatMinor(bill.paidMinor)} />
           <StatCard
             label="Balance"
             value={
               bill.status === 'draft'
                 ? 'Not approved'
-                : formatPaisa(bill.balancePaisa)
+                : formatMinor(bill.balanceMinor)
             }
           />
         </div>
@@ -214,10 +215,10 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
                       {l.quantity}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
-                      {formatPaisa(l.unitCostPaisa)}
+                      {formatMinor(l.unitCostMinor)}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
-                      {formatPaisa(l.lineTotalPaisa)}
+                      {formatMinor(l.lineTotalMinor)}
                     </td>
                   </tr>
                 ))}
@@ -228,7 +229,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
                     Subtotal
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">
-                    {formatPaisa(bill.subtotalPaisa)}
+                    {formatMinor(bill.subtotalMinor)}
                   </td>
                 </tr>
                 <tr>
@@ -236,7 +237,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
                     Tax ({bill.taxBp / 100}%)
                   </td>
                   <td className="px-4 py-2 text-right tabular-nums">
-                    {formatPaisa(bill.taxPaisa)}
+                    {formatMinor(bill.taxMinor)}
                   </td>
                 </tr>
               </tfoot>
@@ -255,7 +256,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
               {bill.allocations.map((a) => (
                 <li key={a.id} className="flex justify-between py-2">
                   <span>
-                    {a.paymentNo} · {a.createdAt.slice(0, 10)}
+                    {a.paymentNo} · {toClinicYmd(a.createdAt)}
                     {a.reversedAt && (
                       <span className="ml-2 text-xs text-red-500">
                         reversed
@@ -265,7 +266,7 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
                   <span
                     className={`tabular-nums ${a.reversedAt ? 'line-through text-text-3' : ''}`}
                   >
-                    {formatPaisa(a.amountPaisa)}
+                    {formatMinor(a.amountMinor)}
                   </span>
                 </li>
               ))}

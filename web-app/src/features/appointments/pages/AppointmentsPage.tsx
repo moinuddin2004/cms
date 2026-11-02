@@ -16,6 +16,7 @@ import { AppointmentModal } from '@/features/appointments/components/Appointment
 import { AppointmentDetailModal } from '@/features/appointments/components/AppointmentDetailModal'
 import { AppointmentsList } from '@/features/appointments/components/AppointmentsList'
 import { QueueBoard } from '@/features/queue'
+import { clinicDayBounds } from '@/lib/datetime'
 import { AppointmentsToolbar } from '@/features/appointments/components/AppointmentsToolbar'
 import {
   AppointmentFilters,
@@ -62,12 +63,15 @@ export function AppointmentsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
+  // selectedDate is a calendar day; the API gets that day's bounds on the
+  // CLINIC's clock (location timezone), not the browser's.
   const { rangeStart, rangeEnd } = useMemo(() => {
     const d = new Date(selectedDate)
     if (calendarView === 'dayGridMonth') {
-      const start = new Date(d.getFullYear(), d.getMonth(), -7)
-      const end = new Date(d.getFullYear(), d.getMonth() + 1, 14)
-      return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+      return {
+        rangeStart: clinicDayBounds(new Date(d.getFullYear(), d.getMonth(), -7)).start,
+        rangeEnd: clinicDayBounds(new Date(d.getFullYear(), d.getMonth() + 1, 14)).end,
+      }
     }
     if (
       calendarView === 'resourceTimeGridWeek' ||
@@ -75,31 +79,25 @@ export function AppointmentsPage() {
     ) {
       const start = new Date(d)
       start.setDate(d.getDate() - d.getDay())
-      start.setHours(0, 0, 0, 0)
       const end = new Date(start)
       end.setDate(start.getDate() + 6)
-      end.setHours(23, 59, 59, 999)
-      return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+      return {
+        rangeStart: clinicDayBounds(start).start,
+        rangeEnd: clinicDayBounds(end).end,
+      }
     }
-    const start = new Date(d)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(d)
-    end.setHours(23, 59, 59, 999)
-    return { rangeStart: start.toISOString(), rangeEnd: end.toISOString() }
+    const { start, end } = clinicDayBounds(d)
+    return { rangeStart: start, rangeEnd: end }
   }, [selectedDate, calendarView])
 
   const monthStart = useMemo(() => {
     const d = new Date(selectedDate)
-    d.setDate(1)
-    d.setHours(0, 0, 0, 0)
-    return d.toISOString()
+    return clinicDayBounds(new Date(d.getFullYear(), d.getMonth(), 1)).start
   }, [selectedDate])
 
   const monthEnd = useMemo(() => {
     const d = new Date(selectedDate)
-    d.setMonth(d.getMonth() + 1, 0)
-    d.setHours(23, 59, 59, 999)
-    return d.toISOString()
+    return clinicDayBounds(new Date(d.getFullYear(), d.getMonth() + 1, 0)).end
   }, [selectedDate])
 
   const { data: appointmentsData, isLoading: loadingAppts } = useAppointments(

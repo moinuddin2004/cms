@@ -1,5 +1,7 @@
 import { DataSource } from 'typeorm';
 import { UUID_V7_FUNCTION_SQL } from './uuid-v7';
+import { upgradeNaiveTimestamps } from './timestamptz';
+import { renamePaisaToMinor } from './minor-units';
 
 /**
  * Postgres extensions (and functions) the entities rely on but TypeORM's
@@ -27,6 +29,9 @@ export async function ensurePostgresExtensions(
       await ds.query(`CREATE EXTENSION IF NOT EXISTS ${ext}`);
     }
     await ds.query(UUID_V7_FUNCTION_SQL);
+    // Not an extension, but it too has to happen before synchronize.
+    await upgradeNaiveTimestamps(ds);
+    await renamePaisaToMinor(ds);
   } finally {
     await ds.destroy();
   }

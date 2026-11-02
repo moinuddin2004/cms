@@ -719,7 +719,7 @@ The workflow chapters (46 to 55) follow one business process across several modu
 |---|---|---|---|
 | 62 | ClockService and location timezone | [Implemented] |  |
 | 62 | Server-clock leftovers | [Partial] | Jobs, credit expiry, daily summary, purchase order and prescription year, leave year, lab catalog day |
-| 62 | Money storage and half-up rounding | [Implemented] | Paisa integers or numeric columns |
+| 62 | Money storage and half-up rounding | [Implemented] | Minor integers or numeric columns |
 | 62 | Exclusive tax | [Implemented] |  |
 | 62 | Currency label | [Implemented] | Label only; no conversion |
 | 62 | document_sequences and number_sequences | [Implemented] | Safe for billing and lab documents |

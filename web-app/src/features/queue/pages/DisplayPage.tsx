@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Loader2, WifiOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { format } from 'date-fns'
+import { inClinic } from '@/lib/datetime'
 import { useDisplayState } from '../hooks/useQueueData'
 
 /**
@@ -47,10 +49,7 @@ export function DisplayPage({ locationId }: { locationId: string }) {
         </div>
         <div className="text-right">
           <p className="text-4xl font-semibold tabular-nums md:text-5xl">
-            {clock.toLocaleTimeString([], {
-              hour: 'numeric',
-              minute: '2-digit',
-            })}
+            {format(clock, 'h:mm a', inClinic(data.timezone))}
           </p>
           {!live && <p className="text-sm text-amber-400">Reconnecting…</p>}
         </div>

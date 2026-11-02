@@ -17,6 +17,7 @@ import { FormSelect } from '@/components/forms/FormSelect'
 import { fieldError } from '@/components/forms/fieldError'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { TIMEZONE_OPTIONS, timezoneLabel } from '@/lib/datetime'
 import { LocationTable } from './components/LocationTable'
 import { useLocationForm } from './hooks/useLocationForm'
 import type {
@@ -34,6 +35,7 @@ export interface Location {
   country?: string
   phone?: string
   email?: string
+  timezone?: string
   isActive: boolean
   organization?: {
     id: string
@@ -43,7 +45,7 @@ export interface Location {
 
 export const LocationManagementView = forwardRef<{ create: () => void }>(
   function LocationManagementView(_props, ref) {
-    const { isSuperAdmin } = useAuthStore()
+    const { isSuperAdmin, setLocationTimezone } = useAuthStore()
     const queryClient = useQueryClient()
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [locToEdit, setLocToEdit] = useState<Location | null>(null)
@@ -88,7 +90,9 @@ export const LocationManagementView = forwardRef<{ create: () => void }>(
         id: string
         data: LocationUpdatePayload
       }) => apiClient.patch(`/locations/${id}`, data),
-      onSuccess: () => {
+      onSuccess: (_res, { id, data }) => {
+        // Times on screen follow the new zone right away, no re-login needed.
+        setLocationTimezone(id, data.timezone)
         queryClient.invalidateQueries({ queryKey: ['locations'] })
         setIsFormOpen(false)
         toast.success('Location updated successfully')
@@ -294,6 +298,29 @@ export const LocationManagementView = forwardRef<{ create: () => void }>(
                 })}
                 {text('email', 'Email', { type: 'email', inputMode: 'email' })}
               </div>
+
+              <form.Field name="timezone">
+                {(f) => (
+                  <FormSelect
+                    label="Timezone"
+                    required
+                    value={f.state.value}
+                    onValueChange={(v) => {
+                      f.handleChange(v)
+                      f.handleBlur()
+                    }}
+                    options={(TIMEZONE_OPTIONS.includes(f.state.value)
+                      ? TIMEZONE_OPTIONS
+                      : [f.state.value, ...TIMEZONE_OPTIONS]
+                    ).map((zone) => ({
+                      value: zone,
+                      label: timezoneLabel(zone),
+                    }))}
+                    error={fieldError(f)}
+                    hint="Appointments, queue and reports at this location use this clock."
+                  />
+                )}
+              </form.Field>
 
               <div className="flex justify-end pt-4">
                 <Button

@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -8,15 +7,16 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { DatePicker } from '@/components/shared/DatePicker'
+import { clinicDayBounds, todayYmd, toClinicYmd } from '@/lib/datetime'
 import type { OrgFeature } from '../services/feature-flags.api'
 
-/** `yyyy-MM-dd` → the end of that day (local) as ISO: the trial lasts the whole day. */
+/** `yyyy-MM-dd` → the end of that day (clinic time) as ISO: the trial lasts the whole day. */
 export function trialUntilIso(ymd: string): string | null {
-  return ymd ? new Date(`${ymd}T23:59:59`).toISOString() : null
+  return ymd ? clinicDayBounds(ymd).end : null
 }
 
 function toYmd(iso: string | null): string {
-  return iso ? format(new Date(iso), 'yyyy-MM-dd') : ''
+  return iso ? toClinicYmd(iso) : ''
 }
 
 function LabeledSwitch({
@@ -66,7 +66,7 @@ export function EntitlementRow({
   onEntitle: (entitled: boolean, until: string | null) => void
   onEnable: (enabled: boolean) => void
 }) {
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = todayYmd()
   const expired = feature.lockedReason === 'trial_expired'
 
   return (

@@ -107,7 +107,7 @@ export const LabBillingLocks = {
         patientId,
       })
       .andWhere('p.status = :posted', { posted: LabPaymentStatus.POSTED })
-      .andWhere('p.amount_paisa - p.allocated_paisa - p.refunded_paisa > 0')
+      .andWhere('p.amount_minor - p.allocated_minor - p.refunded_minor > 0')
       .orderBy('p.id', 'ASC')
       .getMany();
     return rows.sort(
@@ -118,13 +118,13 @@ export const LabBillingLocks = {
   },
 };
 
-/** Free money (advance) of one payment, in paisa. */
+/** Free money (advance) of one payment, in minor units. */
 export const advanceOf = (
   p: Pick<
     LabPayment,
-    'amountPaisa' | 'allocatedPaisa' | 'refundedPaisa' | 'status'
+    'amountMinor' | 'allocatedMinor' | 'refundedMinor' | 'status'
   >,
 ): number =>
   p.status === LabPaymentStatus.POSTED
-    ? Math.max(0, p.amountPaisa - p.allocatedPaisa - p.refundedPaisa)
+    ? Math.max(0, p.amountMinor - p.allocatedMinor - p.refundedMinor)
     : 0;

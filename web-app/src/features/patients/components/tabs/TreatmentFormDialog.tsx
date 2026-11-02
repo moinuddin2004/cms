@@ -24,6 +24,7 @@ import { Loader2, Plus } from 'lucide-react'
 import { usePatientHistory } from '../../hooks/usePatientSubEntities'
 import { useTreatmentForm } from '../../hooks/useTreatmentForm'
 import { usePlanTemplates } from '@/features/plan-templates'
+import { formatDate } from '@/lib/datetime'
 
 interface TreatmentFormDialogProps {
   patientId: string
@@ -228,7 +229,7 @@ export function TreatmentFormDialog({
                       </SelectItem>
                       {encounters.map((e) => (
                         <SelectItem key={e.id} value={e.id}>
-                          {new Date(e.encounterDate).toLocaleDateString()}
+                          {formatDate(e.encounterDate)}
                           {e.reason ? ` — ${e.reason}` : ''}
                         </SelectItem>
                       ))}

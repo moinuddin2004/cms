@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import { rupeesToPaisa } from '@/features/lab-catalog'
+import { rupeesToMinor } from '@/features/lab-catalog'
 
 const text = (n: number) => z.string().trim().max(n, `At most ${n} characters`)
 
-/** Rupees as typed ("4500.5"), checked to be a whole number of paisa. */
+/** Rupees as typed ("4500.5"), checked to be a whole number of minor units. */
 const rupees = (opts: { min?: number; max?: number; label?: string } = {}) =>
   z.string().superRefine((v, ctx) => {
-    const p = rupeesToPaisa(v)
+    const p = rupeesToMinor(v)
     if (p === null) {
       ctx.addIssue({ code: 'custom', message: 'Enter an amount, e.g. 4500' })
       return
@@ -34,7 +34,7 @@ export function percentToBp(v: string): number | null {
 }
 
 /** New estimate / invoice from a lab order (or edit of an estimate). */
-export const invoiceSchema = (subtotalPaisa: number) =>
+export const invoiceSchema = (subtotalMinor: number) =>
   z
     .object({
       itemIds: z.array(z.string()),
@@ -51,14 +51,14 @@ export const invoiceSchema = (subtotalPaisa: number) =>
           path: ['itemIds'],
           message: 'Pick at least one item to bill',
         })
-      const d = v.discount.trim() ? rupeesToPaisa(v.discount) : 0
+      const d = v.discount.trim() ? rupeesToMinor(v.discount) : 0
       if (d === null)
         ctx.addIssue({
           code: 'custom',
           path: ['discount'],
           message: 'Enter an amount, e.g. 2000',
         })
-      else if (d > subtotalPaisa)
+      else if (d > subtotalMinor)
         ctx.addIssue({
           code: 'custom',
           path: ['discount'],
@@ -75,7 +75,7 @@ export type InvoiceValues = z.input<ReturnType<typeof invoiceSchema>>
 
 export const PAYMENT_TARGETS = ['invoice', 'auto', 'advance'] as const
 
-/** Collect a payment; `maxPaisa` caps it when it settles one invoice only. */
+/** Collect a payment; `maxMinor` caps it when it settles one invoice only. */
 export const paymentSchema = z.object({
   amount: rupees({ min: 1 }),
   method: z.enum(['cash', 'card', 'bank_transfer', 'wallet']),
@@ -85,16 +85,16 @@ export const paymentSchema = z.object({
 })
 export type PaymentValues = z.input<typeof paymentSchema>
 
-export const creditNoteSchema = (maxPaisa: number) =>
+export const creditNoteSchema = (maxMinor: number) =>
   z.object({
-    amount: rupees({ min: 1, max: maxPaisa }),
+    amount: rupees({ min: 1, max: maxMinor }),
     reason: text(500).min(3, 'Say why (at least 3 characters)'),
   })
 export type CreditNoteValues = z.input<ReturnType<typeof creditNoteSchema>>
 
-export const refundSchema = (maxPaisa: number) =>
+export const refundSchema = (maxMinor: number) =>
   z.object({
-    amount: rupees({ min: 1, max: maxPaisa }),
+    amount: rupees({ min: 1, max: maxMinor }),
     method: z.enum(['cash', 'card', 'bank_transfer', 'wallet']),
     reference: text(80),
     reason: text(500).min(3, 'Say why (at least 3 characters)'),

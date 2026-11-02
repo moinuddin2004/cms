@@ -17,7 +17,7 @@ import {
   Pagination,
   StatusBadge,
 } from '@/components/shared'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import {
   BillStatusBadge,
   LINE_KIND_LABEL,
@@ -191,10 +191,10 @@ function Bills() {
                   </td>
                   <td className={td}>{b.dueOn ?? '—'}</td>
                   <td className={`${td} text-right tabular-nums`}>
-                    {formatPaisa(b.totalPaisa)}
+                    {formatMinor(b.totalMinor)}
                   </td>
                   <td className={`${td} text-right tabular-nums`}>
-                    {formatPaisa(b.balancePaisa)}
+                    {formatMinor(b.balanceMinor)}
                   </td>
                   <td className={td}>
                     <Button
@@ -256,7 +256,7 @@ function BillSheet({
                       {l.description} × {l.quantity}
                     </span>
                     <span className="tabular-nums">
-                      {formatPaisa(l.lineTotalPaisa)}
+                      {formatMinor(l.lineTotalMinor)}
                     </span>
                   </li>
                 ))}
@@ -265,19 +265,19 @@ function BillSheet({
                 <div className="flex justify-between">
                   <span>Total</span>
                   <span className="tabular-nums">
-                    {formatPaisa(b.totalPaisa)}
+                    {formatMinor(b.totalMinor)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Paid</span>
                   <span className="tabular-nums">
-                    {formatPaisa(b.paidPaisa)}
+                    {formatMinor(b.paidMinor)}
                   </span>
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span>Balance</span>
                   <span className="tabular-nums">
-                    {formatPaisa(b.balancePaisa)}
+                    {formatMinor(b.balanceMinor)}
                   </span>
                 </div>
               </div>
@@ -330,7 +330,7 @@ function Payments() {
                 <td className={td}>{p.paidOn}</td>
                 <td className={td}>{METHOD_LABEL[p.method]}</td>
                 <td className={`${td} text-right tabular-nums`}>
-                  {formatPaisa(p.amountPaisa)}
+                  {formatMinor(p.amountMinor)}
                 </td>
                 <td className={td}>
                   <StatusBadge
@@ -383,7 +383,7 @@ function Statements() {
                 <td className={td}>{s.clinicName}</td>
                 <td className={td}>{s.statementRef ?? '—'}</td>
                 <td className={`${td} text-right tabular-nums`}>
-                  {formatPaisa(s.totalPaisa)}
+                  {formatMinor(s.totalMinor)}
                 </td>
                 <td className={td}>
                   <StatementStatusBadge status={s.status} />

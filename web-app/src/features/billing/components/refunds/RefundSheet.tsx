@@ -32,21 +32,30 @@ export type RefundTarget =
         operations: InvoiceEditOp[]
         reason: string
       }
+      /**
+       * Everything was already filled in on the edit sheet: skip the form
+       * and go straight to the confirm.
+       */
+      payout?: { paymentAccountId: string; referenceNumber: string }
     }
 
 /**
  * Refund from advance, or against an invoice after an optional edit, in
  * one server transaction (D14, plan §8.3). Always confirms with a sentence
- * naming the amount, method and patient.
+ * naming the amount, method and patient. With a `payout` already chosen on
+ * the edit sheet there is no form — only that confirm, then the voucher.
  */
 export function RefundSheet({
   target,
   open,
   onOpenChange,
+  onDone,
 }: {
   target: RefundTarget | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Called once the refund is recorded. */
+  onDone?: () => void
 }) {
   const accounts = usePaymentAccounts(true)
   const [clientRequestId, setClientRequestId] = useState(newClientRequestId)
@@ -81,16 +90,21 @@ export function RefundSheet({
     onSubmit: ({ value }) => setConfirming(value),
   })
 
+  const direct = target?.kind === 'invoice' ? target.payout : undefined
+
   useEffect(() => {
     if (!open || !target) return
-    form.reset({
+    const values: RefundValues = {
       amount: target.max > 0 ? String(target.max) : '',
-      paymentAccountId: accounts.data?.[0]?.id ?? '',
-      referenceNumber: '',
+      paymentAccountId:
+        direct?.paymentAccountId ?? accounts.data?.[0]?.id ?? '',
+      referenceNumber: direct?.referenceNumber ?? '',
       reason: target.kind === 'invoice' ? (target.edit?.reason ?? '') : '',
-    })
+    }
+    form.reset(values)
     setClientRequestId(newClientRequestId())
     setDoneId(null)
+    setConfirming(direct ? values : null)
   }, [open])
 
   if (!target) return null
@@ -99,7 +113,7 @@ export function RefundSheet({
   return (
     <>
       <FormSheet
-        open={open}
+        open={open && (!direct || !!doneId)}
         onOpenChange={onOpenChange}
         widthClassName="sm:max-w-md"
         title={
@@ -225,7 +239,12 @@ export function RefundSheet({
       </FormSheet>
       <ConfirmDialog
         open={!!confirming}
-        onOpenChange={(o) => !o && setConfirming(null)}
+        onOpenChange={(o) => {
+          if (o) return
+          setConfirming(null)
+          // No form behind the confirm: backing out ends the refund.
+          if (direct && !doneId) onOpenChange(false)
+        }}
         title="Confirm refund"
         description={
           confirming
@@ -241,6 +260,7 @@ export function RefundSheet({
             onSuccess: (r) => {
               setDoneId(r.id)
               setConfirming(null)
+              onDone?.()
             },
           })
         }}

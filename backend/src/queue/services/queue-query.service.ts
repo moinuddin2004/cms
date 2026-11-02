@@ -384,6 +384,8 @@ export class QueueQueryService {
     return {
       locationId,
       locationName: location.name,
+      // The TV runs without a login, so it needs the clock it should show.
+      timezone: policy.timezone,
       serviceDate,
       now,
       doctors: sessions.map((s) => {

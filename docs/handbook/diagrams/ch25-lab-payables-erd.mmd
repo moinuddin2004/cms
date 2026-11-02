@@ -20,29 +20,29 @@ erDiagram
     varchar bill_no "unique per org"
     varchar vendor_invoice_no
     enum status
-    bigint total_paisa
-    bigint balance_paisa
+    bigint total_minor
+    bigint balance_minor
   }
   vendor_bill_lines {
     uuid id PK
     uuid vendor_bill_id FK
     enum line_kind
-    bigint line_total_paisa
+    bigint line_total_minor
     bool is_manual
   }
   vendor_payments {
     uuid id PK
     uuid lab_id FK
     varchar payment_no "unique per org"
-    bigint amount_paisa
-    bigint allocated_paisa
+    bigint amount_minor
+    bigint allocated_minor
     enum status
   }
   vendor_payment_allocations {
     uuid id PK
     uuid vendor_payment_id FK
     uuid vendor_bill_id FK
-    bigint amount_paisa
+    bigint amount_minor
     timestamptz reversed_at
   }
   lab_statements {
@@ -50,13 +50,13 @@ erDiagram
     uuid lab_id FK
     date period_start
     date period_end
-    bigint total_paisa
+    bigint total_minor
     enum status
   }
   lab_statement_lines {
     uuid id PK
     uuid statement_id FK
-    bigint amount_paisa
+    bigint amount_minor
     enum match_status
   }
   labs {

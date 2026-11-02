@@ -186,7 +186,7 @@ describe('Billing integration — doctor commissions', () => {
       order: { createdAt: 'ASC' },
     });
   const amounts = async (chargeId: string) =>
-    (await entriesOf(chargeId)).map((e) => e.amountPaisa);
+    (await entriesOf(chargeId)).map((e) => e.amountMinor);
   const pay = (
     patientId: string,
     chargeId: string,
@@ -220,7 +220,7 @@ describe('Billing integration — doctor commissions', () => {
     expect(c.performingAssignmentId).toBe(drAssignment);
     expect(c.commissionPlanId).not.toBeNull();
     expect(c.commissionRateBps).toBe(4000);
-    expect(c.commissionFixedPaisa).toBeNull();
+    expect(c.commissionFixedMinor).toBeNull();
   });
 
   it('full payment → one entry', async () => {
@@ -230,8 +230,8 @@ describe('Billing integration — doctor commissions', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({
       sourceType: CommissionSourceType.ALLOCATION,
-      amountPaisa: 40_000,
-      basePaisa: 100_000,
+      amountMinor: 40_000,
+      baseMinor: 100_000,
       rateBps: 4000,
       settlementId: null,
     });
@@ -266,7 +266,7 @@ describe('Billing integration — doctor commissions', () => {
       reason: 'Paid by mistake',
     });
     const entries = await entriesOf(chargeId);
-    expect(entries.map((e) => [e.sourceType, e.amountPaisa])).toEqual([
+    expect(entries.map((e) => [e.sourceType, e.amountMinor])).toEqual([
       [CommissionSourceType.ALLOCATION, 40_000],
       [CommissionSourceType.UNAPPLY, -40_000],
     ]);
@@ -313,7 +313,7 @@ describe('Billing integration — doctor commissions', () => {
       'Patient not seen',
     );
     const entries = await entriesOf(chargeId);
-    expect(entries.map((e) => [e.sourceType, e.amountPaisa])).toEqual([
+    expect(entries.map((e) => [e.sourceType, e.amountMinor])).toEqual([
       [CommissionSourceType.ALLOCATION, 40_000],
       [CommissionSourceType.VOID, -40_000],
     ]);
@@ -362,7 +362,7 @@ describe('Billing integration — doctor commissions', () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({
       sourceType: CommissionSourceType.ALLOCATION,
-      amountPaisa: 40_000,
+      amountMinor: 40_000,
     });
   });
 
@@ -382,7 +382,7 @@ describe('Billing integration — doctor commissions', () => {
       dto,
     );
     expect(asReception.doctorShare).toBeNull();
-    expect(asAdmin.doctorShare?.totalPaisa).toBe(24_000);
+    expect(asAdmin.doctorShare?.totalMinor).toBe(24_000);
     await pay(patientId, chargeId, 600);
     expect(await amounts(chargeId)).toEqual([24_000]);
   });
@@ -391,7 +391,7 @@ describe('Billing integration — doctor commissions', () => {
     const dr = await newDoctor('Salaried Doc');
     await plans.create(fx.clinicA.tenant, admin, dr.assignmentId, {
       type: CompensationPlanType.SALARY,
-      baseSalaryPaisa: 5_000_000,
+      baseSalaryMinor: 5_000_000,
       effectiveFrom: '2024-01-01',
     });
     const { patientId, chargeId } = await visit(dr.employeeId);
@@ -451,7 +451,7 @@ describe('Billing integration — doctor commissions', () => {
       type: CompensationPlanType.COMMISSION,
       defaultRateBps: 1000,
       effectiveFrom: '2024-01-01',
-      rules: [{ serviceId: scalingId, fixedAmountPaisa: 25_000 }],
+      rules: [{ serviceId: scalingId, fixedAmountMinor: 25_000 }],
     });
     const v = await visit(fixedDr.employeeId);
     await pay(v.patientId, v.chargeId, 400);
@@ -542,13 +542,13 @@ describe('Billing integration — doctor commissions', () => {
       salaryDr = await newDoctor('Payroll Salary Doc');
       await plans.create(A.tenant, admin, salaryDr.assignmentId, {
         type: CompensationPlanType.SALARY,
-        baseSalaryPaisa: 6_000_000,
+        baseSalaryMinor: 6_000_000,
         effectiveFrom: '2024-01-01',
       });
       hybridDr = await newDoctor('Payroll Hybrid Doc');
       await plans.create(A.tenant, admin, hybridDr.assignmentId, {
         type: CompensationPlanType.SALARY_PLUS_COMMISSION,
-        baseSalaryPaisa: 3_000_000,
+        baseSalaryMinor: 3_000_000,
         defaultRateBps: 2000,
         effectiveFrom: '2024-01-01',
       });
@@ -563,7 +563,7 @@ describe('Billing integration — doctor commissions', () => {
         .split('-')
         .map(Number);
       const unsettledBefore: Array<{ s: string }> = await fx.dataSource.query(
-        `SELECT COALESCE(SUM(amount_paisa), 0)::bigint AS s FROM commission_entries
+        `SELECT COALESCE(SUM(amount_minor), 0)::bigint AS s FROM commission_entries
           WHERE assignment_id = $1 AND settlement_id IS NULL`,
         [drAssignment],
       );
@@ -578,21 +578,21 @@ describe('Billing integration — doctor commissions', () => {
 
       const salary = await rec(salaryDr.employeeId);
       expect([
-        salary.baseSalaryPaisa,
-        salary.commissionPaisa,
-        salary.totalPaisa,
+        salary.baseSalaryMinor,
+        salary.commissionMinor,
+        salary.totalMinor,
       ]).toEqual([6_000_000, 0, 6_000_000]);
 
       const commissionOnly = await rec(drEmployee);
-      expect(commissionOnly.baseSalaryPaisa).toBe(0);
-      expect(commissionOnly.commissionPaisa).toBe(Number(unsettledBefore[0].s));
-      expect(commissionOnly.totalPaisa).toBe(commissionOnly.commissionPaisa);
+      expect(commissionOnly.baseSalaryMinor).toBe(0);
+      expect(commissionOnly.commissionMinor).toBe(Number(unsettledBefore[0].s));
+      expect(commissionOnly.totalMinor).toBe(commissionOnly.commissionMinor);
 
       const hybrid = await rec(hybridDr.employeeId);
       expect([
-        hybrid.baseSalaryPaisa,
-        hybrid.commissionPaisa,
-        hybrid.totalPaisa,
+        hybrid.baseSalaryMinor,
+        hybrid.commissionMinor,
+        hybrid.totalMinor,
       ]).toEqual([3_000_000, 20_000, 3_020_000]);
       expect(Number(hybrid.salaryAmount)).toBe(30_200);
 
@@ -600,7 +600,7 @@ describe('Billing integration — doctor commissions', () => {
       const s = await fx.dataSource
         .getRepository(CommissionSettlement)
         .findOneByOrFail({ payrollRecordId: hybrid.id });
-      expect(s.totalPaisa).toBe(20_000);
+      expect(s.totalMinor).toBe(20_000);
       const [{ open }]: Array<{ open: number }> = await fx.dataSource.query(
         `SELECT COUNT(*)::int AS open FROM commission_entries
           WHERE assignment_id = ANY($1::uuid[]) AND settlement_id IS NULL`,
@@ -641,7 +641,7 @@ describe('Billing integration — doctor commissions', () => {
         },
       );
       const all = await entriesOf(settled.chargeId!);
-      expect(all.map((e) => [e.amountPaisa, !!e.settlementId])).toEqual([
+      expect(all.map((e) => [e.amountMinor, !!e.settlementId])).toEqual([
         [20_000, true],
         [-20_000, false],
       ]);
@@ -653,7 +653,7 @@ describe('Billing integration — doctor commissions', () => {
           new Date(Date.now() + 86_400_000 * 40),
         ),
       );
-      expect(next.totalPaisa).toBe(-20_000);
+      expect(next.totalMinor).toBe(-20_000);
     });
 
     it('doctor earnings report and /me/earnings agree with the ledger', async () => {
@@ -666,9 +666,9 @@ describe('Billing integration — doctor commissions', () => {
       const row = report.rows.find(
         (r) => r.assignmentId === hybridDr.assignmentId,
       )!;
-      expect(row.earnedPaisa).toBe(0); // +200 −200 this month
-      expect(row.settledPaisa).toBe(20_000);
-      expect(row.pendingPaisa).toBe(-20_000);
+      expect(row.earnedMinor).toBe(0); // +200 −200 this month
+      expect(row.settledMinor).toBe(20_000);
+      expect(row.pendingMinor).toBe(-20_000);
       const me = await reports.myEarnings(A.tenant, A.people.doctor.userId, {});
       expect(me.rows.map((r) => r.assignmentId)).toEqual([drAssignment]);
       expect(me.entries.every((e) => e.assignmentId === drAssignment)).toBe(

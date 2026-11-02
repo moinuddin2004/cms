@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import type { ColumnDef } from '@/components/shared/table-features'
 import { useNavigate } from '@tanstack/react-router'
 import { FlaskConical, Plus } from 'lucide-react'
@@ -23,7 +24,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { ListToolbar } from '@/components/shared/ListToolbar'
 import { useDoctors } from '@/features/appointments'
-import { formatPaisa, useClinicServices } from '@/features/lab-catalog'
+import { formatMinor, useClinicServices } from '@/features/lab-catalog'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useAccess } from '@/features/access'
 import { LabOrderSheet } from '../components/LabOrderSheet'
@@ -35,13 +36,7 @@ import { useLabOrders } from '../hooks/useLabOrders'
 import type { LabOrderRow } from '../types'
 
 const ALL = 'all'
-const fmtDate = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-      })
-    : '—'
+const fmtDate = (iso: string | null) => formatInClinic(iso, 'd MMM')
 
 /** The clinic's lab orders (lab ERD §14) — drafts, in progress and done. */
 export function LabOrdersPage() {
@@ -152,12 +147,12 @@ export function LabOrdersPage() {
       {
         id: 'cost',
         header: 'Lab cost',
-        accessorFn: (o) => o.labCostPaisa ?? -1,
+        accessorFn: (o) => o.labCostMinor ?? -1,
         cell: ({ row }) => (
           <span className="text-sm tabular-nums">
-            {row.original.labCostPaisa === null
+            {row.original.labCostMinor === null
               ? '—'
-              : formatPaisa(row.original.labCostPaisa)}
+              : formatMinor(row.original.labCostMinor)}
           </span>
         ),
       },
@@ -344,9 +339,9 @@ export function LabOrdersPage() {
                       {o.labExpectedOn ? ` · due ${o.labExpectedOn}` : ''}
                     </span>
                     <span className="tabular-nums">
-                      {o.labCostPaisa === null
+                      {o.labCostMinor === null
                         ? ''
-                        : formatPaisa(o.labCostPaisa)}
+                        : formatMinor(o.labCostMinor)}
                     </span>
                   </div>
                 </button>

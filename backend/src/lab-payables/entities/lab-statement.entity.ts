@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { Lab } from 'src/labs/entities/lab.entity';
 import { StatementMatch, StatementStatus } from '../enums/payables.enums';
@@ -49,8 +49,8 @@ export class LabStatement {
   statementRef: string | null;
 
   /** What the lab says is owed for the period. */
-  @PaisaColumn('total_paisa')
-  totalPaisa: number;
+  @MinorColumn('total_minor')
+  totalMinor: number;
 
   /** No storage for statement files yet (attachments are order-scoped). */
   @Column({ name: 'attachment_id', type: 'uuid', nullable: true })
@@ -124,12 +124,12 @@ export class LabStatementLine {
   description: string | null;
 
   /** The lab's amount; 0 on `missing_in_statement` rows. */
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   /** What the clinic's bills say for the same reference. */
-  @PaisaColumn('system_amount_paisa', { nullable: true })
-  systemAmountPaisa: number | null;
+  @MinorColumn('system_amount_minor', { nullable: true })
+  systemAmountMinor: number | null;
 
   @Column({ name: 'matched_bill_line_id', type: 'uuid', nullable: true })
   matchedBillLineId: string | null;

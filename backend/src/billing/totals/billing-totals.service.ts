@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { sqlRows } from 'src/common/database/sql';
 import { invariant } from '../common/billing-errors';
-import { toPaisa } from '../common/money';
+import { toMinor } from '../common/money';
 
 const unique = (ids: Iterable<string | null | undefined>): string[] => [
   ...new Set([...ids].filter((x): x is string => !!x)),
@@ -39,9 +39,9 @@ export class BillingTotalsService {
       [list],
     );
     for (const r of rows) {
-      const allocated = toPaisa(r.allocated_amount);
+      const allocated = toMinor(r.allocated_amount);
       const cap =
-        r.status === 'VOID' ? 0 : toPaisa(r.net_amount) + toPaisa(r.tax_amount);
+        r.status === 'VOID' ? 0 : toMinor(r.net_amount) + toMinor(r.tax_amount);
       invariant(
         allocated >= 0 && allocated <= cap,
         `Charge ${r.id}: allocated outside [0, net + tax]`,
@@ -98,13 +98,13 @@ export class BillingTotalsService {
       [list],
     );
     for (const r of rows) {
-      const refunded = toPaisa(r.refunded_amount);
+      const refunded = toMinor(r.refunded_amount);
       invariant(
-        refunded >= 0 && refunded <= toPaisa(r.released_amount),
+        refunded >= 0 && refunded <= toMinor(r.released_amount),
         `Invoice ${r.id}: refunded exceeds released`,
       );
       invariant(
-        toPaisa(r.balance_due) >= 0,
+        toMinor(r.balance_due) >= 0,
         `Invoice ${r.id}: negative balance`,
       );
     }
@@ -134,12 +134,12 @@ export class BillingTotalsService {
       [list],
     );
     for (const r of rows) {
-      const allocated = toPaisa(r.allocated_amount);
-      const refunded = toPaisa(r.refunded_amount);
+      const allocated = toMinor(r.allocated_amount);
+      const refunded = toMinor(r.refunded_amount);
       invariant(
         allocated >= 0 &&
           refunded >= 0 &&
-          allocated + refunded <= toPaisa(r.amount),
+          allocated + refunded <= toMinor(r.amount),
         `Payment ${r.id}: allocated + refunded exceeds amount`,
       );
     }

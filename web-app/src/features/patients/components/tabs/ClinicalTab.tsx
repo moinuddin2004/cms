@@ -9,6 +9,7 @@ import {
   PrescriptionStatusBadge,
   usePrescriptionsByPatient,
 } from '@/features/prescriptions'
+import { formatInClinic } from '@/lib/datetime'
 
 export function ClinicalTab({ patient }: { patient: Patient }) {
   const rxQuery = usePrescriptionsByPatient(patient.id, 1, 20)
@@ -74,7 +75,7 @@ export function ClinicalTab({ patient }: { patient: Patient }) {
                         <PrescriptionStatusBadge status={rx.status} />
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {new Date(rx.createdAt).toLocaleDateString('en-GB')}
+                        {formatInClinic(rx.createdAt, 'dd/MM/yyyy')}
                         {rx.doctor?.fullName && ` · Dr. ${rx.doctor.fullName}`}
                         {' · '}
                         {rx.medicines.length} medicine

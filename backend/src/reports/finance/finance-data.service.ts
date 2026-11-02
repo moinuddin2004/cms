@@ -24,7 +24,7 @@ type ComponentKey = Exclude<keyof PnlComponents, 'expenses'> | 'expense';
 /**
  * The P&L building blocks per month, read straight from the money tables of
  * billing v2, lab billing, lab payables, commissions, payroll and expenses.
- * One round trip; everything is summed in integer paisa.
+ * One round trip; everything is summed in integer minor units.
  */
 @Injectable()
 export class FinanceDataService {
@@ -63,12 +63,12 @@ export class FinanceDataService {
           AND pa.created_at >= $5 AND pa.created_at < $6 AND c.tax_amount > 0
         GROUP BY 2
        UNION ALL
-       SELECT 'labCollected', to_char(received_on, 'YYYY-MM'), NULL, SUM(amount_paisa)
+       SELECT 'labCollected', to_char(received_on, 'YYYY-MM'), NULL, SUM(amount_minor)
          FROM lab_payments
         WHERE organization_id = $1 AND location_id = ANY($2) AND received_on BETWEEN $3 AND $4
         GROUP BY 2
        UNION ALL
-       SELECT 'labCollected', to_char(refunded_at AT TIME ZONE $7, 'YYYY-MM'), NULL, -SUM(amount_paisa)
+       SELECT 'labCollected', to_char(refunded_at AT TIME ZONE $7, 'YYYY-MM'), NULL, -SUM(amount_minor)
          FROM lab_refunds
         WHERE organization_id = $1 AND location_id = ANY($2) AND refunded_at >= $5 AND refunded_at < $6
         GROUP BY 2
@@ -79,28 +79,28 @@ export class FinanceDataService {
           AND issue_date BETWEEN $3 AND $4
         GROUP BY 2
        UNION ALL
-       SELECT 'labBilled', to_char(issued_on, 'YYYY-MM'), NULL, SUM(total_paisa - credited_paisa)
+       SELECT 'labBilled', to_char(issued_on, 'YYYY-MM'), NULL, SUM(total_minor - credited_minor)
          FROM lab_invoices
         WHERE organization_id = $1 AND location_id = ANY($2) AND status IN ${LAB_INVOICE_LIVE}
           AND issued_on BETWEEN $3 AND $4
         GROUP BY 2
        UNION ALL
-       SELECT 'labCost', to_char(bill_date, 'YYYY-MM'), NULL, SUM(total_paisa)
+       SELECT 'labCost', to_char(bill_date, 'YYYY-MM'), NULL, SUM(total_minor)
          FROM vendor_bills
         WHERE organization_id = $1 AND location_id = ANY($2) AND status IN ${VENDOR_BILL_LIVE}
           AND bill_date BETWEEN $3 AND $4
         GROUP BY 2
        UNION ALL
-       SELECT 'commission', to_char(created_at AT TIME ZONE $7, 'YYYY-MM'), NULL, SUM(amount_paisa)
+       SELECT 'commission', to_char(created_at AT TIME ZONE $7, 'YYYY-MM'), NULL, SUM(amount_minor)
          FROM commission_entries
         WHERE organization_id = $1 AND location_id = ANY($2) AND created_at >= $5 AND created_at < $6
         GROUP BY 2
        UNION ALL
        -- Base salary only: payroll's commission part is already counted as
        -- commission when it was earned. Rows from before the breakdown
-       -- (total_paisa = 0) are all salary.
+       -- (total_minor = 0) are all salary.
        SELECT 'salaries', to_char(make_date(year, month, 1), 'YYYY-MM'), NULL,
-              SUM(CASE WHEN total_paisa > 0 THEN base_salary_paisa
+              SUM(CASE WHEN total_minor > 0 THEN base_salary_minor
                        ELSE ROUND(salary_amount * 100)::bigint END)
          FROM payroll_records
         WHERE organization_id = $1 AND location_id = ANY($2)

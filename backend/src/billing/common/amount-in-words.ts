@@ -69,11 +69,11 @@ export function integerInWords(n: number): string {
 }
 
 export function amountInWords(rupees: number): string {
-  const paisaTotal = Math.round(Math.abs(rupees) * 100);
-  const whole = Math.floor(paisaTotal / 100);
-  const paisa = paisaTotal % 100;
+  const minorTotal = Math.round(Math.abs(rupees) * 100);
+  const whole = Math.floor(minorTotal / 100);
+  const minor = minorTotal % 100;
   const words = `Rupees ${integerInWords(whole)}`;
-  return paisa
-    ? `${words} and ${integerInWords(paisa)} Paisa Only`
+  return minor
+    ? `${words} and ${integerInWords(minor)} Paisa Only`
     : `${words} Only`;
 }

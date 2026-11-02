@@ -19,7 +19,7 @@ import { LabPaymentMethod } from 'src/lab-billing/enums/lab-billing.enums';
 import type { LabCommissionDelta } from './lab-commission.service';
 
 const sum = (refs: AllocationRef[]) =>
-  refs.reduce((a, r) => a + r.amountPaisa, 0);
+  refs.reduce((a, r) => a + r.amountMinor, 0);
 
 const cashAccount = (method: string) =>
   method === (LabPaymentMethod.CASH as string) ? ACCOUNT.CASH : ACCOUNT.BANK;
@@ -52,13 +52,13 @@ export class LabReceivablesLedger {
     m: EntityManager,
     e: LabBillingEventMap['invoiceIssued'],
   ): Promise<void> {
-    if (e.totalPaisa <= 0) return;
-    const [inv] = await sqlRows<{ tax_paisa: string; order_id: string | null }>(
+    if (e.totalMinor <= 0) return;
+    const [inv] = await sqlRows<{ tax_minor: string; order_id: string | null }>(
       m,
-      `SELECT tax_paisa, order_id FROM lab_invoices WHERE id = $1`,
+      `SELECT tax_minor, order_id FROM lab_invoices WHERE id = $1`,
       [e.invoiceId],
     );
-    const tax = Number(inv.tax_paisa);
+    const tax = Number(inv.tax_minor);
     const tag = { patientId: e.patientId, labOrderId: inv.order_id };
     await this.gl.post(m, {
       organizationId: e.organizationId,
@@ -71,15 +71,15 @@ export class LabReceivablesLedger {
       lines: [
         {
           accountCode: ACCOUNT.PATIENT_RECEIVABLE,
-          debitPaisa: e.totalPaisa,
+          debitMinor: e.totalMinor,
           ...tag,
         },
         {
           accountCode: ACCOUNT.LAB_REVENUE,
-          creditPaisa: e.totalPaisa - tax,
+          creditMinor: e.totalMinor - tax,
           ...tag,
         },
-        { accountCode: ACCOUNT.TAX_PAYABLE, creditPaisa: tax, ...tag },
+        { accountCode: ACCOUNT.TAX_PAYABLE, creditMinor: tax, ...tag },
       ],
     });
   }
@@ -122,17 +122,17 @@ export class LabReceivablesLedger {
       lines: [
         {
           accountCode: cashAccount(e.method),
-          debitPaisa: e.amountPaisa,
+          debitMinor: e.amountMinor,
           ...tag,
         },
         {
           accountCode: ACCOUNT.PATIENT_RECEIVABLE,
-          creditPaisa: allocated,
+          creditMinor: allocated,
           ...tag,
         },
         {
           accountCode: ACCOUNT.PATIENT_ADVANCES,
-          creditPaisa: e.amountPaisa - allocated,
+          creditMinor: e.amountMinor - allocated,
           ...tag,
         },
       ],
@@ -149,7 +149,7 @@ export class LabReceivablesLedger {
     for (const a of e.allocations)
       byPayment.set(
         a.paymentId,
-        (byPayment.get(a.paymentId) ?? 0) + a.amountPaisa,
+        (byPayment.get(a.paymentId) ?? 0) + a.amountMinor,
       );
     const tag = { patientId: e.patientId };
     for (const [paymentId, amount] of byPayment) {
@@ -163,10 +163,10 @@ export class LabReceivablesLedger {
         memo: 'Lab advance applied',
         createdBy: e.actorUserId,
         lines: [
-          { accountCode: ACCOUNT.PATIENT_ADVANCES, debitPaisa: amount, ...tag },
+          { accountCode: ACCOUNT.PATIENT_ADVANCES, debitMinor: amount, ...tag },
           {
             accountCode: ACCOUNT.PATIENT_RECEIVABLE,
-            creditPaisa: amount,
+            creditMinor: amount,
             ...tag,
           },
         ],
@@ -192,17 +192,17 @@ export class LabReceivablesLedger {
       lines: [
         {
           accountCode: ACCOUNT.PATIENT_RECEIVABLE,
-          debitPaisa: released,
+          debitMinor: released,
           ...tag,
         },
         {
           accountCode: ACCOUNT.PATIENT_ADVANCES,
-          debitPaisa: e.amountPaisa - released,
+          debitMinor: e.amountMinor - released,
           ...tag,
         },
         {
           accountCode: cashAccount(e.method),
-          creditPaisa: e.amountPaisa,
+          creditMinor: e.amountMinor,
           ...tag,
         },
       ],
@@ -215,20 +215,20 @@ export class LabReceivablesLedger {
     entryOn: string,
   ): Promise<void> {
     const [inv] = await sqlRows<{
-      tax_paisa: string;
-      total_paisa: string;
+      tax_minor: string;
+      total_minor: string;
       order_id: string | null;
     }>(
       m,
-      `SELECT tax_paisa, total_paisa, order_id FROM lab_invoices WHERE id = $1`,
+      `SELECT tax_minor, total_minor, order_id FROM lab_invoices WHERE id = $1`,
       [e.invoiceId],
     );
-    const total = Number(inv.total_paisa);
+    const total = Number(inv.total_minor);
     const tax =
       total > 0
         ? Number(
             divRoundHalfUp(
-              BigInt(e.amountPaisa) * BigInt(inv.tax_paisa),
+              BigInt(e.amountMinor) * BigInt(inv.tax_minor),
               BigInt(total),
             ),
           )
@@ -238,20 +238,20 @@ export class LabReceivablesLedger {
     const lines: JournalLineInput[] = [
       {
         accountCode: ACCOUNT.LAB_REVENUE,
-        debitPaisa: e.amountPaisa - tax,
+        debitMinor: e.amountMinor - tax,
         ...tag,
       },
-      { accountCode: ACCOUNT.TAX_PAYABLE, debitPaisa: tax, ...tag },
+      { accountCode: ACCOUNT.TAX_PAYABLE, debitMinor: tax, ...tag },
       {
         accountCode: ACCOUNT.PATIENT_RECEIVABLE,
-        creditPaisa: e.amountPaisa,
+        creditMinor: e.amountMinor,
         ...tag,
       },
     ];
     if (moved > 0)
       lines.push(
-        { accountCode: ACCOUNT.PATIENT_RECEIVABLE, debitPaisa: moved, ...tag },
-        { accountCode: ACCOUNT.PATIENT_ADVANCES, creditPaisa: moved, ...tag },
+        { accountCode: ACCOUNT.PATIENT_RECEIVABLE, debitMinor: moved, ...tag },
+        { accountCode: ACCOUNT.PATIENT_ADVANCES, creditMinor: moved, ...tag },
       );
     await this.gl.post(m, {
       organizationId: e.organizationId,
@@ -282,12 +282,12 @@ export class LabReceivablesLedger {
       lines: [
         {
           accountCode: ACCOUNT.PATIENT_ADVANCES,
-          debitPaisa: e.amountPaisa,
+          debitMinor: e.amountMinor,
           ...tag,
         },
         {
           accountCode: cashAccount(e.method),
-          creditPaisa: e.amountPaisa,
+          creditMinor: e.amountMinor,
           ...tag,
         },
       ],
@@ -310,14 +310,14 @@ export class LabReceivablesLedger {
         patientId: d.patientId,
         labOrderId: d.orderId,
       };
-      const amount = Math.abs(d.amountPaisa);
+      const amount = Math.abs(d.amountMinor);
       const [debit, credit] =
-        d.amountPaisa > 0
+        d.amountMinor > 0
           ? [ACCOUNT.COMMISSION_EXPENSE, ACCOUNT.COMMISSION_PAYABLE]
           : [ACCOUNT.COMMISSION_PAYABLE, ACCOUNT.COMMISSION_EXPENSE];
       lines.push(
-        { accountCode: debit, debitPaisa: amount, ...tag },
-        { accountCode: credit, creditPaisa: amount, ...tag },
+        { accountCode: debit, debitMinor: amount, ...tag },
+        { accountCode: credit, creditMinor: amount, ...tag },
       );
     }
     await this.gl.post(m, {
@@ -327,7 +327,7 @@ export class LabReceivablesLedger {
       sourceType: JournalSource.COMMISSION,
       sourceId,
       memo:
-        deltas.reduce((a, d) => a + d.amountPaisa, 0) >= 0
+        deltas.reduce((a, d) => a + d.amountMinor, 0) >= 0
           ? 'Doctor commission on lab work'
           : 'Doctor commission reversed (lab work)',
       createdBy: base.actorUserId,

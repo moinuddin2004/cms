@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { type ColumnDef } from '@/components/shared/table-features'
-import { format, formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { Eye, Stethoscope } from 'lucide-react'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar } from '@/components/shared'
@@ -9,6 +9,7 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import type { Prescription, PrescriptionStatus } from '../types'
 import { PrescriptionStatusBadge } from './PrescriptionStatusBadge'
 import { MedicineChips } from './MedicineChips'
+import { formatInClinic } from '@/lib/datetime'
 
 interface PrescriptionTableProps {
   prescriptions: Prescription[]
@@ -94,7 +95,7 @@ export function PrescriptionTable({
           const d = new Date(getValue<string>())
           return (
             <div>
-              <p className="text-sm">{format(d, 'dd MMM yyyy')}</p>
+              <p className="text-sm">{formatInClinic(d, 'dd MMM yyyy')}</p>
               <p className="text-[11px] text-text-3">
                 {formatDistanceToNow(d, { addSuffix: true })}
               </p>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -8,8 +10,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/shared/SearchableSelect'
-import { Coins, Calendar, Loader2, Play, Plus } from 'lucide-react'
+import {
+  Calendar,
+  CheckCircle,
+  Clock,
+  Coins,
+  PauseCircle,
+  Play,
+  Plus,
+  Receipt,
+} from 'lucide-react'
 import { formatCurrency } from '@/lib/formatters'
+import { nowInClinic } from '@/lib/datetime'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import {
   useLocationPayroll,
@@ -35,14 +47,51 @@ const MONTHS = [
 ]
 
 export function PayrollPage() {
-  const now = new Date()
+  const now = nowInClinic()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false)
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false)
   const [editingRecord, setEditingRecord] = useState<PayrollRecord | null>(null)
 
-  const { data: payrollData, isLoading } = useLocationPayroll(month, year)
+  const {
+    data: payrollData,
+    isLoading,
+    isError,
+    refetch,
+  } = useLocationPayroll(month, year)
+  const summary = payrollData?.summary
+  const records = payrollData?.records ?? []
+  const stats = [
+    {
+      label: 'Total payroll',
+      value: formatCurrency(summary?.totalAmount ?? 0),
+      hint: `${summary?.totalEmployees ?? 0} employees`,
+      icon: Coins,
+      tone: 'bg-primary-soft text-primary-text',
+    },
+    {
+      label: 'Paid',
+      value: formatCurrency(summary?.paidAmount ?? 0),
+      hint: `${summary?.paidCount ?? 0} records`,
+      icon: CheckCircle,
+      tone: 'bg-emerald-soft text-emerald',
+    },
+    {
+      label: 'Pending',
+      value: formatCurrency(summary?.pendingAmount ?? 0),
+      hint: `${summary?.pendingCount ?? 0} records`,
+      icon: Clock,
+      tone: 'bg-amber-soft text-amber',
+    },
+    {
+      label: 'On hold',
+      value: String(summary?.onHoldCount ?? 0),
+      hint: 'records',
+      icon: PauseCircle,
+      tone: 'bg-danger-soft text-danger',
+    },
+  ]
 
   const openCreate = () => {
     setEditingRecord(null)
@@ -56,149 +105,140 @@ export function PayrollPage() {
   return (
     <>
       <PageWrapper
-        title="Location Payroll"
-        subtitle="Manage monthly payroll for this location"
+        title="Payroll"
+        subtitle="Monthly pay records for this location"
         actions={
-          <div className="flex items-center gap-2">
-            <Select
-              clearable={false}
-              value={String(month)}
-              onValueChange={(v) => setMonth(Number(v))}
-            >
-              <SelectTrigger className="h-9 w-[120px] text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MONTHS.map((name, idx) => (
-                  <SelectItem key={idx + 1} value={String(idx + 1)}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              clearable={false}
-              value={String(year)}
-              onValueChange={(v) => setYear(Number(v))}
-            >
-              <SelectTrigger className="h-9 w-[90px] text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.from(
-                  { length: 5 },
-                  (_, i) => now.getFullYear() - 2 + i,
-                ).map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="outline" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
-              Create Payroll
+              Add record
             </Button>
             <Button size="sm" onClick={() => setIsGenerateModalOpen(true)}>
               <Play className="size-3.5" />
-              Generate Payroll
+              Generate payroll
             </Button>
           </div>
         }
       >
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[11px] font-medium text-text-2">
-                    Total Payroll
-                  </p>
-                  {isLoading ? (
-                    <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
-                  ) : (
-                    <h3 className="mt-0.5 text-base font-bold">
-                      {formatCurrency(payrollData?.summary.totalAmount || 0)}
-                    </h3>
-                  )}
-                </div>
-                <div className="rounded-md bg-primary-soft p-1">
-                  <Coins className="size-3.5 text-primary-text" />
-                </div>
-              </div>
-              <p className="mt-2 text-[11px] text-text-3">
-                {payrollData?.summary.totalEmployees || 0} employees
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-[11px] font-medium text-text-2">Paid Amount</p>
-              {isLoading ? (
-                <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
-              ) : (
-                <h3 className="mt-0.5 text-base font-bold text-emerald">
-                  {formatCurrency(payrollData?.summary.paidAmount || 0)}
-                </h3>
-              )}
-              <p className="mt-2 text-[11px] text-text-3">
-                {payrollData?.summary.paidCount || 0} paid records
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-[11px] font-medium text-text-2">
-                Pending Amount
-              </p>
-              {isLoading ? (
-                <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
-              ) : (
-                <h3 className="mt-0.5 text-base font-bold text-amber">
-                  {formatCurrency(payrollData?.summary.pendingAmount || 0)}
-                </h3>
-              )}
-              <p className="mt-2 text-[11px] text-text-3">
-                {payrollData?.summary.pendingCount || 0} pending records
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-[11px] font-medium text-text-2">On Hold</p>
-              {isLoading ? (
-                <Loader2 className="mt-1 size-4 animate-spin text-text-3" />
-              ) : (
-                <h3 className="mt-0.5 text-base font-bold text-danger">
-                  {payrollData?.summary.onHoldCount || 0}
-                </h3>
-              )}
-              <p className="mt-2 text-[11px] text-text-3">Records on hold</p>
-            </CardContent>
-          </Card>
-        </div>
-
         <div className="flex items-center gap-2">
-          <Calendar className="size-4 text-primary-text" />
-          <h3 className="text-sm font-semibold">
-            Records for {MONTHS[month - 1]} {year}
-          </h3>
+          <Select
+            clearable={false}
+            value={String(month)}
+            onValueChange={(v) => setMonth(Number(v))}
+          >
+            <SelectTrigger className="h-9 w-[120px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((name, idx) => (
+                <SelectItem key={idx + 1} value={String(idx + 1)}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            clearable={false}
+            value={String(year)}
+            onValueChange={(v) => setYear(Number(v))}
+          >
+            <SelectTrigger className="h-9 w-[90px] text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from(
+                { length: 5 },
+                (_, i) => now.getFullYear() - 2 + i,
+              ).map((y) => (
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-text-3" />
-          </div>
-        ) : (
-          <PayrollTable
-            records={payrollData?.records || []}
-            showEmployeeName={true}
-            onEdit={openEdit}
-          />
-        )}
+        {/* Same compact strip as the appointments stats */}
+        <div className="grid grid-cols-2 divide-x divide-y rounded-xl border bg-card sm:grid-cols-4 sm:divide-y-0">
+          {stats.map(({ label, value, hint, icon: Icon, tone }) => (
+            <div
+              key={label}
+              className="flex items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-accent/40"
+            >
+              <span
+                className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${tone}`}
+              >
+                <Icon className="size-4" />
+              </span>
+              <div className="min-w-0 leading-none">
+                <p className="truncate text-[11px] font-medium text-text-3">
+                  {label}
+                </p>
+                {isLoading ? (
+                  <Skeleton className="mt-1 h-4 w-16" />
+                ) : (
+                  <p className="mt-1 truncate text-base leading-none font-bold tabular-nums">
+                    {value}
+                  </p>
+                )}
+                <p className="mt-1 truncate text-[11px] text-text-3">{hint}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg font-medium">
+                <Calendar className="size-5 text-muted-foreground" />
+                {MONTHS[month - 1]} {year}
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isLoading
+                  ? 'Loading records…'
+                  : `${records.length} record${records.length === 1 ? '' : 's'}`}
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <LoadingSkeleton variant="table" rows={4} />
+            ) : isError ? (
+              <ErrorState
+                description="Could not load payroll."
+                onRetry={() => void refetch()}
+              />
+            ) : records.length === 0 ? (
+              <EmptyState
+                icon={Receipt}
+                title={`No payroll for ${MONTHS[month - 1]} ${year}`}
+                description="Generate records for everyone with pay set up, or add one by hand."
+                action={
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button variant="outline" size="sm" onClick={openCreate}>
+                      <Plus className="size-3.5" />
+                      Add record
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setIsGenerateModalOpen(true)}
+                    >
+                      <Play className="size-3.5" />
+                      Generate payroll
+                    </Button>
+                  </div>
+                }
+              />
+            ) : (
+              <PayrollTable
+                records={records}
+                showEmployeeName={true}
+                onEdit={openEdit}
+              />
+            )}
+          </CardContent>
+        </Card>
       </PageWrapper>
 
       <GeneratePayrollModal

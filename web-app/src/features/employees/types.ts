@@ -235,10 +235,10 @@ export interface PayrollRecord {
   year: number
   periodLabel: string
   salaryAmount: number
-  /** Breakdown in integer paisa (total = base salary + commission). */
-  baseSalaryPaisa?: number
-  commissionPaisa?: number
-  totalPaisa?: number
+  /** Breakdown in integer minor units (total = base salary + commission). */
+  baseSalaryMinor?: number
+  commissionMinor?: number
+  totalMinor?: number
   status: PayrollStatus
   paidAt: string | null
   paymentMethod: PaymentMethod | null

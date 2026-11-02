@@ -1,11 +1,11 @@
 import {
   basisPointsOf,
-  fromPaisa,
-  Paisa,
+  fromMinor,
+  Minor,
   percentToBasisPoints,
   splitProportionally,
-  sumPaisa,
-  toPaisa,
+  sumMinor,
+  toMinor,
 } from '../common/money';
 import { ChargeStatus } from '../enums/billing.enums';
 
@@ -21,7 +21,7 @@ import { ChargeStatus } from '../enums/billing.enums';
  * never the current setting. Payments are allocated per charge, so the
  * invoice tax is spread over its ACTIVE charges (`charges.tax_amount`) and
  * a charge is payable up to net + tax. Tax is never revenue and never earns
- * commission (see `preTaxPaisa`). Pure: no NestJS / TypeORM imports.
+ * commission (see `preTaxMinor`). Pure: no NestJS / TypeORM imports.
  */
 
 export interface TaxableCharge {
@@ -30,22 +30,22 @@ export interface TaxableCharge {
   taxAmount: number;
 }
 
-/** Tax on a taxable amount (paisa) at `ratePercent` (e.g. 17 or 17.5). */
-export const taxOnPaisa = (
-  taxablePaisa: Paisa,
+/** Tax on a taxable amount (minor units) at `ratePercent` (e.g. 17 or 17.5). */
+export const taxOnMinor = (
+  taxableMinor: Minor,
   ratePercent: number | string | null | undefined,
-): Paisa => basisPointsOf(taxablePaisa, percentToBasisPoints(ratePercent));
+): Minor => basisPointsOf(taxableMinor, percentToBasisPoints(ratePercent));
 
 /** Invoice tax for these charges: on the sum of ACTIVE nets, rounded once. */
-export const invoiceTaxPaisa = (
+export const invoiceTaxMinor = (
   charges: readonly TaxableCharge[],
   ratePercent: number | string | null | undefined,
-): Paisa =>
-  taxOnPaisa(
-    sumPaisa(
+): Minor =>
+  taxOnMinor(
+    sumMinor(
       charges
         .filter((c) => c.status === ChargeStatus.ACTIVE)
-        .map((c) => toPaisa(c.netAmount)),
+        .map((c) => toMinor(c.netAmount)),
     ),
     ratePercent,
   );
@@ -60,15 +60,15 @@ export const invoiceTaxPaisa = (
 export function splitInvoiceTax(
   charges: readonly TaxableCharge[],
   ratePercent: number | string | null | undefined,
-): Paisa[] {
+): Minor[] {
   const bp = percentToBasisPoints(ratePercent);
   const nets = charges.map((c) =>
-    c.status === ChargeStatus.ACTIVE ? Math.max(0, toPaisa(c.netAmount)) : 0,
+    c.status === ChargeStatus.ACTIVE ? Math.max(0, toMinor(c.netAmount)) : 0,
   );
   if (bp === 0) return nets.map(() => 0);
-  const total = basisPointsOf(sumPaisa(nets), bp);
+  const total = basisPointsOf(sumMinor(nets), bp);
   const shares = nets.map((n) => basisPointsOf(n, bp));
-  const diff = total - sumPaisa(shares);
+  const diff = total - sumMinor(shares);
   if (diff === 0) return shares;
   let largest = 0;
   nets.forEach((n, i) => {
@@ -83,39 +83,39 @@ export function splitInvoiceTax(
 
 /**
  * Writes `taxAmount` on every charge in memory (VOID → 0) and returns the
- * invoice tax in paisa. Callers persist the charges.
+ * invoice tax in minor units. Callers persist the charges.
  */
 export function applyInvoiceTax<T extends TaxableCharge>(
   charges: readonly T[],
   ratePercent: number | string | null | undefined,
-): Paisa {
+): Minor {
   const shares = splitInvoiceTax(charges, ratePercent);
-  charges.forEach((c, i) => (c.taxAmount = fromPaisa(shares[i])));
-  return sumPaisa(shares);
+  charges.forEach((c, i) => (c.taxAmount = fromMinor(shares[i])));
+  return sumMinor(shares);
 }
 
-/** What the patient owes on a charge: net + tax (VOID = 0), in paisa. */
-export const chargePayablePaisa = (
+/** What the patient owes on a charge: net + tax (VOID = 0), in minor units. */
+export const chargePayableMinor = (
   c: Pick<TaxableCharge, 'status' | 'netAmount' | 'taxAmount'>,
-): Paisa =>
+): Minor =>
   c.status === ChargeStatus.VOID
     ? 0
-    : toPaisa(c.netAmount) + toPaisa(c.taxAmount ?? 0);
+    : toMinor(c.netAmount) + toMinor(c.taxAmount ?? 0);
 
 /**
  * The pre-tax part of money collected on a charge: allocations cover net
  * and tax pro rata, so collected × net / (net + tax), half-up, capped at
  * net. Tax 0 → the collected amount itself (capped at net).
  */
-export function preTaxPaisa(
-  collectedPaisa: Paisa,
-  netPaisa: Paisa,
-  taxPaisa: Paisa,
-): Paisa {
-  const net = Math.max(0, netPaisa);
-  const collected = Math.max(0, collectedPaisa);
+export function preTaxMinor(
+  collectedMinor: Minor,
+  netMinor: Minor,
+  taxMinor: Minor,
+): Minor {
+  const net = Math.max(0, netMinor);
+  const collected = Math.max(0, collectedMinor);
   if (net === 0 || collected === 0) return 0;
-  const tax = Math.max(0, taxPaisa);
+  const tax = Math.max(0, taxMinor);
   if (tax === 0) return Math.min(collected, net);
   const n = BigInt(collected) * BigInt(net);
   const d = BigInt(net + tax);
@@ -124,7 +124,7 @@ export function preTaxPaisa(
 
 /**
  * SQL for the pre-tax part of an allocation `pa` on charge `c` (rupees,
- * numeric). Same rule as `preTaxPaisa`; for revenue reports, where tax is
+ * numeric). Same rule as `preTaxMinor`; for revenue reports, where tax is
  * not clinic revenue.
  */
 export const preTaxAllocationSql = (pa = 'pa', c = 'c'): string =>

@@ -23,8 +23,8 @@ erDiagram
         uuid id PK
         uuid lab_service_id FK
         uuid organization_id FK
-        bigint unit_price_paisa
-        bigint rush_surcharge_paisa
+        bigint unit_price_minor
+        bigint rush_surcharge_minor
         date effective_from
         date effective_to
         timestamptz voided_at
@@ -33,7 +33,7 @@ erDiagram
         uuid id PK
         uuid lab_service_id FK
         varchar code
-        bigint extra_cost_paisa
+        bigint extra_cost_minor
     }
     service_mappings {
         uuid id PK

@@ -12,6 +12,7 @@ import {
 import type { DateRange, Matcher } from 'react-day-picker'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { todayYmd } from '@/lib/datetime'
 import { Calendar } from '@/components/ui/calendar'
 import {
   Popover,
@@ -38,36 +39,38 @@ const span = (from: Date, to: Date): DateRangeValue => ({
   from: toYMD(from),
   to: toYMD(to),
 })
+/** The clinic's calendar day (not the browser's), as a noon-anchored Date. */
+const today = () => fromYMD(todayYmd())
 
 /** Quick ranges shown beside the calendar. Click = select + close. */
 export const DEFAULT_DATE_PRESETS: DateRangePreset[] = [
-  { label: 'Today', range: () => span(new Date(), new Date()) },
+  { label: 'Today', range: () => span(today(), today()) },
   {
     label: 'Yesterday',
-    range: () => span(subDays(new Date(), 1), subDays(new Date(), 1)),
+    range: () => span(subDays(today(), 1), subDays(today(), 1)),
   },
   {
     label: 'Last 7 days',
-    range: () => span(subDays(new Date(), 6), new Date()),
+    range: () => span(subDays(today(), 6), today()),
   },
   {
     label: 'Last 30 days',
-    range: () => span(subDays(new Date(), 29), new Date()),
+    range: () => span(subDays(today(), 29), today()),
   },
   {
     label: 'This month',
-    range: () => span(startOfMonth(new Date()), endOfMonth(new Date())),
+    range: () => span(startOfMonth(today()), endOfMonth(today())),
   },
   {
     label: 'Last month',
     range: () => {
-      const m = subMonths(new Date(), 1)
+      const m = subMonths(today(), 1)
       return span(startOfMonth(m), endOfMonth(m))
     },
   },
   {
     label: 'This year',
-    range: () => span(startOfYear(new Date()), endOfYear(new Date())),
+    range: () => span(startOfYear(today()), endOfYear(today())),
   },
 ]
 
@@ -221,8 +224,9 @@ export function DateRangePicker({
             numberOfMonths={2}
             selected={selected}
             onDayClick={onDayClick}
+            today={today()}
             // Filters mostly look back: open on last month + this month.
-            defaultMonth={selected?.from ?? subMonths(new Date(), 1)}
+            defaultMonth={selected?.from ?? subMonths(today(), 1)}
             disabled={disabledDays.length ? disabledDays : undefined}
             classNames={{
               months: 'relative flex flex-col gap-4 sm:flex-row',

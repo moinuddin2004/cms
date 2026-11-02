@@ -147,11 +147,11 @@ export function LoginForm() {
                     />
                   )}
                 </span>
-                Keep me signed in for 30 days
+                Keep me signed in 
               </label>
-              <p className="mt-1.5 pl-[28px] text-[11.5px] text-muted-foreground/80">
+              {/* <p className="mt-1.5 pl-[28px] text-[11.5px] text-muted-foreground/80">
                 Otherwise you&rsquo;ll be signed out after 1 day.
-              </p>
+              </p> */}
             </div>
           )}
         </form.Field>

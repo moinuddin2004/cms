@@ -28,8 +28,8 @@ erDiagram
     uuid order_id FK
     int line_no
     uuid lab_service_id FK
-    bigint lab_line_cost_paisa
-    bigint patient_line_price_paisa
+    bigint lab_line_cost_minor
+    bigint patient_line_price_minor
     varchar status_code
   }
   item_teeth {
@@ -63,7 +63,7 @@ erDiagram
     uuid id PK
     uuid order_id FK
     enum kind
-    bigint amount_paisa
+    bigint amount_minor
     enum status
   }
   attachments {

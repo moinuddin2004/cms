@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { HandCoins, Receipt } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { useLabBillingMutation, useOrderBilling } from '../hooks/useLabBilling'
 import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import { labBillingApi } from '../services/lab-billing.api'
@@ -102,7 +102,7 @@ export function LabBillingPanel({
                   </span>
                   <span className="flex items-center gap-3">
                     <span className="tabular-nums">
-                      {formatPaisa(i.totalPaisa)}
+                      {formatMinor(i.totalMinor)}
                     </span>
                     <LabInvoiceStatusBadge
                       status={i.status}
@@ -114,20 +114,20 @@ export function LabBillingPanel({
             )}
           </div>
           <div className="space-y-1 rounded-lg bg-muted/40 p-3">
-            <MoneyRow label="Billed" value={data.totals.billedPaisa} />
-            {data.totals.creditedPaisa > 0 && (
+            <MoneyRow label="Billed" value={data.totals.billedMinor} />
+            {data.totals.creditedMinor > 0 && (
               <MoneyRow
                 label="Credited"
-                value={data.totals.creditedPaisa}
+                value={data.totals.creditedMinor}
                 negative
               />
             )}
-            <MoneyRow label="Paid" value={data.totals.paidPaisa} />
-            <MoneyRow label="Balance" value={data.totals.balancePaisa} strong />
-            {data.patientSummary.advancePaisa > 0 && (
+            <MoneyRow label="Paid" value={data.totals.paidMinor} />
+            <MoneyRow label="Balance" value={data.totals.balanceMinor} strong />
+            {data.patientSummary.advanceMinor > 0 && (
               <MoneyRow
                 label="Patient advance"
-                value={data.patientSummary.advancePaisa}
+                value={data.patientSummary.advanceMinor}
               />
             )}
           </div>

@@ -9,5 +9,5 @@ export const CATALOG_TIMEZONE = 'Asia/Karachi';
 /** At most this many service lines in one order template. */
 export const MAX_TEMPLATE_ITEMS = 20;
 
-/** Money is bigint paisa; this keeps every amount exactly representable in JS. */
-export const MAX_PAISA = 1_000_000_000_00; // PKR 1 billion
+/** Money is bigint minor units; this keeps every amount exactly representable in JS. */
+export const MAX_MINOR = 1_000_000_000_00; // PKR 1 billion

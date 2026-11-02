@@ -4,8 +4,7 @@ import type { PlanTemplate } from '@/features/plan-templates'
 import { treatmentSchema } from '../schemas/treatment.schema'
 import type { TreatmentFormValues } from '../schemas/treatment.schema'
 import { useCreateTreatment } from './usePatientSubEntities'
-
-const today = () => new Date().toISOString().slice(0, 10)
+import { todayYmd } from '@/lib/datetime'
 
 /** Record a treatment, optionally from a plan and/or linked to a visit. */
 export function useTreatmentForm({
@@ -25,7 +24,7 @@ export function useTreatmentForm({
     treatmentName: '',
     notes: '',
     cost: '',
-    date: today(),
+    date: todayYmd(),
     encounterId: encounterId ?? '',
   }
 

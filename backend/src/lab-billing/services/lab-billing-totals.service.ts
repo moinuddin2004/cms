@@ -31,19 +31,19 @@ export class LabBillingTotals {
     const rows = await sqlRows<{
       id: string;
       status: LabInvoiceStatus;
-      total_paisa: string;
-      credited_paisa: string;
-      paid_paisa: string;
-      balance_paisa: string;
+      total_minor: string;
+      credited_minor: string;
+      paid_minor: string;
+      balance_minor: string;
     }>(
       m,
       `WITH s AS (
          SELECT i.id,
-                COALESCE((SELECT SUM(l.quantity * l.unit_price_paisa) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS gross,
-                COALESCE((SELECT SUM(l.discount_paisa) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS disc,
-                COALESCE((SELECT SUM(l.tax_paisa) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS tax,
-                COALESCE((SELECT SUM(c.amount_paisa) FROM lab_credit_notes c WHERE c.invoice_id = i.id), 0) AS credited,
-                COALESCE((SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
+                COALESCE((SELECT SUM(l.quantity * l.unit_price_minor) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS gross,
+                COALESCE((SELECT SUM(l.discount_minor) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS disc,
+                COALESCE((SELECT SUM(l.tax_minor) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0) AS tax,
+                COALESCE((SELECT SUM(c.amount_minor) FROM lab_credit_notes c WHERE c.invoice_id = i.id), 0) AS credited,
+                COALESCE((SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
                            WHERE a.invoice_id = i.id AND a.reversed_at IS NULL), 0) AS paid
            FROM lab_invoices i
           WHERE i.id = ANY($1::uuid[]) AND i.status <> 'void'
@@ -53,9 +53,9 @@ export class LabBillingTotals {
            FROM s
        )
        UPDATE lab_invoices i
-          SET subtotal_paisa = t.gross, discount_paisa = t.disc, tax_paisa = t.tax,
-              total_paisa = t.total, credited_paisa = t.credited, paid_paisa = t.paid,
-              balance_paisa = GREATEST(t.balance, 0),
+          SET subtotal_minor = t.gross, discount_minor = t.disc, tax_minor = t.tax,
+              total_minor = t.total, credited_minor = t.credited, paid_minor = t.paid,
+              balance_minor = GREATEST(t.balance, 0),
               status = CASE
                 WHEN i.status IN ('draft', 'void') THEN i.status
                 WHEN t.balance <= 0 THEN 'paid'
@@ -63,23 +63,23 @@ export class LabBillingTotals {
                 ELSE 'issued' END
          FROM t
         WHERE i.id = t.id
-      RETURNING i.id, i.status, t.total::text AS total_paisa, t.credited::text AS credited_paisa,
-                t.paid::text AS paid_paisa, t.balance::text AS balance_paisa`,
+      RETURNING i.id, i.status, t.total::text AS total_minor, t.credited::text AS credited_minor,
+                t.paid::text AS paid_minor, t.balance::text AS balance_minor`,
       [list],
     );
     for (const r of rows) {
-      const total = Number(r.total_paisa);
-      const credited = Number(r.credited_paisa);
-      const paid = Number(r.paid_paisa);
-      const balance = Number(r.balance_paisa);
+      const total = Number(r.total_minor);
+      const credited = Number(r.credited_minor);
+      const paid = Number(r.paid_minor);
+      const balance = Number(r.balance_minor);
       invariant(credited <= total, `Invoice ${r.id}: credited above total`);
       invariant(balance >= 0, `Invoice ${r.id}: negative balance`);
       invariant(
         r.status ===
           invoiceStatusFor({
             status: r.status,
-            paidPaisa: paid,
-            balancePaisa: balance,
+            paidMinor: paid,
+            balanceMinor: balance,
           }),
         `Invoice ${r.id}: status out of step`,
       );
@@ -95,24 +95,24 @@ export class LabBillingTotals {
     if (!list.length) return;
     const rows = await sqlRows<{
       id: string;
-      amount_paisa: string;
-      allocated_paisa: string;
-      refunded_paisa: string;
+      amount_minor: string;
+      allocated_minor: string;
+      refunded_minor: string;
       status: string;
     }>(
       m,
       `UPDATE lab_payments p
-          SET allocated_paisa = COALESCE((SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
+          SET allocated_minor = COALESCE((SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
                                            WHERE a.payment_id = p.id AND a.reversed_at IS NULL), 0),
-              refunded_paisa = COALESCE((SELECT SUM(s.amount_paisa) FROM lab_refund_sources s
+              refunded_minor = COALESCE((SELECT SUM(s.amount_minor) FROM lab_refund_sources s
                                           WHERE s.payment_id = p.id), 0)
         WHERE p.id = ANY($1::uuid[])
-      RETURNING p.id, p.amount_paisa, p.allocated_paisa, p.refunded_paisa, p.status`,
+      RETURNING p.id, p.amount_minor, p.allocated_minor, p.refunded_minor, p.status`,
       [list],
     );
     for (const r of rows) {
-      const amount = Number(r.amount_paisa);
-      const used = Number(r.allocated_paisa) + Number(r.refunded_paisa);
+      const amount = Number(r.amount_minor);
+      const used = Number(r.allocated_minor) + Number(r.refunded_minor);
       invariant(
         used <= Math.max(amount, 0),
         `Payment ${r.id}: allocations exceed the payment`,
@@ -133,26 +133,26 @@ export class LabBillingTotals {
     if (!list.length) return;
     const rows = await sqlRows<{
       id: string;
-      released_paisa: string;
-      refunded_paisa: string;
+      released_minor: string;
+      refunded_minor: string;
     }>(
       m,
       `UPDATE lab_credit_notes c
-          SET refunded_paisa = x.refunded,
+          SET refunded_minor = x.refunded,
               status = CASE
-                WHEN c.released_paisa = 0 THEN 'applied'
-                WHEN x.refunded >= c.released_paisa THEN 'refunded'
+                WHEN c.released_minor = 0 THEN 'applied'
+                WHEN x.refunded >= c.released_minor THEN 'refunded'
                 ELSE 'issued' END::text::lab_credit_notes_status_enum
-         FROM (SELECT c2.id, COALESCE((SELECT SUM(r.amount_paisa) FROM lab_refunds r
+         FROM (SELECT c2.id, COALESCE((SELECT SUM(r.amount_minor) FROM lab_refunds r
                                         WHERE r.credit_note_id = c2.id), 0) AS refunded
                  FROM lab_credit_notes c2 WHERE c2.id = ANY($1::uuid[])) x
         WHERE c.id = x.id
-      RETURNING c.id, c.released_paisa, c.refunded_paisa`,
+      RETURNING c.id, c.released_minor, c.refunded_minor`,
       [list],
     );
     for (const r of rows) {
       invariant(
-        Number(r.refunded_paisa) <= Number(r.released_paisa),
+        Number(r.refunded_minor) <= Number(r.released_minor),
         `Credit note ${r.id}: refunded more than released`,
       );
     }

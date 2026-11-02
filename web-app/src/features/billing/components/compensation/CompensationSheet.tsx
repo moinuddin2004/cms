@@ -12,7 +12,7 @@ import {
   useAddCompensationPlan,
   useReplaceCommissionRules,
 } from '../../hooks/use-commissions'
-import { bpsToPercent, paisaToRupeesText } from '../../lib/commission-math'
+import { bpsToPercent, minorToRupeesText } from '../../lib/commission-math'
 import {
   compensationSchema,
   rulesOnlySchema,
@@ -43,7 +43,7 @@ export function rowsFromPlan(plan: CompensationPlan | null): RuleRow[] {
     value:
       r.rateBps !== null
         ? bpsToPercent(r.rateBps)
-        : paisaToRupeesText(r.fixedAmountPaisa ?? 0),
+        : minorToRupeesText(r.fixedAmountMinor ?? 0),
   }))
 }
 
@@ -75,8 +75,8 @@ export function CompensationSheet({
   const initial = (): CompensationValues => ({
     type: current?.type ?? 'SALARY',
     salary:
-      current?.baseSalaryPaisa != null
-        ? paisaToRupeesText(current.baseSalaryPaisa)
+      current?.baseSalaryMinor != null
+        ? minorToRupeesText(current.baseSalaryMinor)
         : '',
     rate:
       current?.defaultRateBps != null

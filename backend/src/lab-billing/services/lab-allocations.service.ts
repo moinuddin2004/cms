@@ -15,7 +15,7 @@ import { advanceOf, LabBillingLocks } from './lab-billing-locks';
 export interface NewAllocation {
   paymentId: string;
   invoiceId: string;
-  amountPaisa: number;
+  amountMinor: number;
 }
 
 const OPEN = new Set([
@@ -39,7 +39,7 @@ export class LabAllocations {
     c: ClinicCall,
     rows: NewAllocation[],
   ): Promise<AllocationRef[]> {
-    const real = rows.filter((r) => r.amountPaisa > 0);
+    const real = rows.filter((r) => r.amountMinor > 0);
     if (!real.length) return [];
     const repo = m.getRepository(LabPaymentAllocation);
     const saved = await repo.save(
@@ -48,7 +48,7 @@ export class LabAllocations {
           organizationId: c.tenant.organizationId,
           paymentId: r.paymentId,
           invoiceId: r.invoiceId,
-          amountPaisa: r.amountPaisa,
+          amountMinor: r.amountMinor,
           createdBy: c.actor.userId,
         }),
       ),
@@ -57,7 +57,7 @@ export class LabAllocations {
       allocationId: a.id,
       paymentId: a.paymentId,
       invoiceId: a.invoiceId,
-      amountPaisa: a.amountPaisa,
+      amountMinor: a.amountMinor,
     }));
   }
 
@@ -85,22 +85,22 @@ export class LabAllocations {
 
   /**
    * Uses the patient's advance (oldest payment first) on a locked, open
-   * invoice — at most `maxPaisa`. Locks the advance payments (after the
+   * invoice — at most `maxMinor`. Locks the advance payments (after the
    * invoice: lock order) and recomputes totals.
    */
   async applyAdvance(
     m: EntityManager,
     c: ClinicCall,
     invoice: LabInvoice,
-    maxPaisa?: number,
+    maxMinor?: number,
   ): Promise<AllocationRef[]> {
-    if (!isOpen(invoice) || invoice.balancePaisa <= 0) return [];
+    if (!isOpen(invoice) || invoice.balanceMinor <= 0) return [];
     const payments = await LabBillingLocks.advancePayments(
       m,
       invoice.organizationId,
       invoice.patientId,
     );
-    let left = Math.min(invoice.balancePaisa, maxPaisa ?? Infinity);
+    let left = Math.min(invoice.balanceMinor, maxMinor ?? Infinity);
     const rows: NewAllocation[] = [];
     for (const p of payments) {
       if (left <= 0) break;
@@ -109,7 +109,7 @@ export class LabAllocations {
         rows.push({
           paymentId: p.id,
           invoiceId: invoice.id,
-          amountPaisa: take,
+          amountMinor: take,
         });
         left -= take;
       }

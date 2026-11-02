@@ -1,5 +1,5 @@
-import { format } from 'date-fns'
 import { formatCurrency } from '@/lib/formatters'
+import { formatYmd } from '@/lib/datetime'
 import type { ReportColumnType } from '../types/reports.types'
 
 /** Display text of a report cell (money is rupees). */
@@ -18,10 +18,8 @@ export function formatReportValue(
     case 'percent':
       return `${Number(value).toFixed(1)}%`
     case 'date':
-      return format(
-        new Date(`${String(value).slice(0, 10)}T12:00:00`),
-        'dd MMM yyyy',
-      )
+      // Calendar date (the backend already resolved it on the clinic's clock).
+      return formatYmd(String(value).slice(0, 10), 'dd MMM yyyy')
     default:
       return String(value)
   }
@@ -40,9 +38,7 @@ export function compactMoney(v: number): string {
 
 /** "01 Oct – 21 Oct 2026". */
 export function periodLabel(from: string, to: string): string {
-  const f = new Date(`${from}T12:00:00`)
-  const t = new Date(`${to}T12:00:00`)
-  if (from === to) return format(t, 'dd MMM yyyy')
-  const sameYear = f.getFullYear() === t.getFullYear()
-  return `${format(f, sameYear ? 'dd MMM' : 'dd MMM yyyy')} – ${format(t, 'dd MMM yyyy')}`
+  if (from === to) return formatYmd(to, 'dd MMM yyyy')
+  const sameYear = from.slice(0, 4) === to.slice(0, 4)
+  return `${formatYmd(from, sameYear ? 'dd MMM' : 'dd MMM yyyy')} – ${formatYmd(to, 'dd MMM yyyy')}`
 }

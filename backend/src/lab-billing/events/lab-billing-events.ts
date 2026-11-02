@@ -6,7 +6,7 @@ export interface AllocationRef {
   allocationId: string;
   paymentId: string;
   invoiceId: string;
-  amountPaisa: number;
+  amountMinor: number;
 }
 
 interface Base {
@@ -26,25 +26,25 @@ interface Base {
  * `clinic_treatment_id` for commission rules.
  */
 export interface LabBillingEventMap {
-  /** Draft → issued: receivable grows by `totalPaisa`. */
+  /** Draft → issued: receivable grows by `totalMinor`. */
   invoiceIssued: Base & {
     invoiceId: string;
     invoiceNo: string;
     issuedOn: string;
-    totalPaisa: number;
+    totalMinor: number;
   };
   /** A draft or unpaid invoice voided (an issued one reverses its receivable). */
   invoiceVoided: Base & {
     invoiceId: string;
     wasIssued: boolean;
-    totalPaisa: number;
+    totalMinor: number;
   };
   /** New money in (cash/bank ↑); `allocations` = part applied to invoices, rest is advance. */
   paymentCollected: Base & {
     paymentId: string;
     receiptNo: string;
     receivedOn: string;
-    amountPaisa: number;
+    amountMinor: number;
     method: string;
     allocations: AllocationRef[];
   };
@@ -55,16 +55,16 @@ export interface LabBillingEventMap {
     paymentId: string;
     reversalPaymentId: string;
     receiptNo: string;
-    amountPaisa: number;
+    amountMinor: number;
     method: string;
     releasedAllocations: AllocationRef[];
   };
-  /** Receivable down by `amountPaisa`; `releasedAllocations` went back to advance. */
+  /** Receivable down by `amountMinor`; `releasedAllocations` went back to advance. */
   creditNoteIssued: Base & {
     creditNoteId: string;
     creditNoteNo: string;
     invoiceId: string;
-    amountPaisa: number;
+    amountMinor: number;
     releasedAllocations: AllocationRef[];
     /** Allocations re-created for the part of a released row that stays. */
     keptAllocations: AllocationRef[];
@@ -73,10 +73,10 @@ export interface LabBillingEventMap {
   refundPaid: Base & {
     refundId: string;
     refundNo: string;
-    amountPaisa: number;
+    amountMinor: number;
     method: string;
     creditNoteId: string | null;
-    sources: Array<{ paymentId: string; amountPaisa: number }>;
+    sources: Array<{ paymentId: string; amountMinor: number }>;
   };
 }
 

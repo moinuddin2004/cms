@@ -119,7 +119,7 @@ export function financeReports(
            clinic_in AS (SELECT payment_date AS day, (SUM(amount) * 100)::bigint AS v FROM payments
                           WHERE organization_id = $1 AND location_id = ANY($2) AND payment_date BETWEEN $3 AND $4
                           GROUP BY 1),
-           lab_in AS (SELECT received_on AS day, SUM(amount_paisa) AS v FROM lab_payments
+           lab_in AS (SELECT received_on AS day, SUM(amount_minor) AS v FROM lab_payments
                        WHERE organization_id = $1 AND location_id = ANY($2) AND received_on BETWEEN $3 AND $4
                        GROUP BY 1),
            refunds_out AS (
@@ -128,18 +128,18 @@ export function financeReports(
                 WHERE organization_id = $1 AND location_id = ANY($2) AND refund_date BETWEEN $3 AND $4
                 GROUP BY 1
                UNION ALL
-               SELECT (refunded_at AT TIME ZONE $7)::date, SUM(amount_paisa) FROM lab_refunds
+               SELECT (refunded_at AT TIME ZONE $7)::date, SUM(amount_minor) FROM lab_refunds
                 WHERE organization_id = $1 AND location_id = ANY($2) AND refunded_at >= $5 AND refunded_at < $6
                 GROUP BY 1) r GROUP BY 1),
            expenses_out AS (SELECT expense_date AS day, (SUM(amount) * 100)::bigint AS v FROM expenses
                              WHERE organization_id = $1 AND location_id = ANY($2) AND expense_date BETWEEN $3 AND $4
                              GROUP BY 1),
-           lab_out AS (SELECT paid_on AS day, SUM(amount_paisa) AS v FROM vendor_payments
+           lab_out AS (SELECT paid_on AS day, SUM(amount_minor) AS v FROM vendor_payments
                         WHERE organization_id = $1 AND location_id = ANY($2) AND status = 'posted'
                           AND paid_on BETWEEN $3 AND $4
                         GROUP BY 1),
            salary_out AS (SELECT (paid_at AT TIME ZONE $7)::date AS day,
-                                 SUM(CASE WHEN total_paisa > 0 THEN total_paisa
+                                 SUM(CASE WHEN total_minor > 0 THEN total_minor
                                           ELSE ROUND(salary_amount * 100)::bigint END) AS v
                             FROM payroll_records
                            WHERE organization_id = $1 AND location_id = ANY($2) AND status = 'paid'

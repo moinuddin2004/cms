@@ -22,6 +22,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import type { Patient } from '../types'
+import { formatYmd } from '@/lib/datetime'
 
 interface PatientCardProps {
   patient: Patient
@@ -40,11 +41,7 @@ function getAge(dob: string | null): string {
 
 function getDobDisplay(dob: string | null): string {
   if (!dob) return '—'
-  return new Date(dob).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  return formatYmd(dob, 'MMM d, yyyy')
 }
 
 export function PatientCard({

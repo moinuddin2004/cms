@@ -9,7 +9,7 @@ import { assertBillingCan, BillingContext } from '../common/billing-context';
 import { billingError } from '../common/billing-errors';
 import { BillingLocks } from '../common/billing-locks';
 import { BillingLookups } from '../common/billing-lookups';
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import { ChargeQueries } from '../charges/charges.queries';
 import {
   CreateInvoiceDto,
@@ -39,7 +39,7 @@ import { BillingTotalsService } from '../totals/billing-totals.service';
 import { InvoiceEditHandlers } from './edit-operations/invoice-edit.handlers';
 import { InvoiceEditOperationInput } from './edit-operations/invoice-edit.types';
 import { InvoiceIssuer } from './invoice-issuer.service';
-import { applyInvoiceTax, chargePayablePaisa } from '../tax/invoice-tax';
+import { applyInvoiceTax, chargePayableMinor } from '../tax/invoice-tax';
 import { CommissionService } from '../commissions/commission.service';
 import { CommissionSourceType } from '../commissions/commission.enums';
 import {
@@ -233,10 +233,10 @@ export class InvoicesService {
       const paid = charges.reduce(
         (a, c) =>
           a +
-          (c.status === ChargeStatus.ACTIVE ? toPaisa(c.allocatedAmount) : 0),
+          (c.status === ChargeStatus.ACTIVE ? toMinor(c.allocatedAmount) : 0),
         0,
       );
-      if (paid > 0 || toPaisa(invoice.paidAmount) > 0) {
+      if (paid > 0 || toMinor(invoice.paidAmount) > 0) {
         throw billingError(
           'BILLING_INVOICE_HAS_PAYMENTS',
           'Unapply its payments before cancelling this invoice',
@@ -369,12 +369,12 @@ export class InvoicesService {
     const afterCharges = await manager
       .getRepository(Charge)
       .findBy({ invoiceId: invoice.id });
-    const delta = toPaisa(after.totalAmount) - toPaisa(invoice.totalAmount);
+    const delta = toMinor(after.totalAmount) - toMinor(invoice.totalAmount);
     await this.ledger.post(manager, ctx, {
       patientId: invoice.patientId,
       type: LedgerEntryType.INVOICE_ADJUSTED,
       entryDate: time.today,
-      amount: fromPaisa(delta),
+      amount: fromMinor(delta),
       description: `Invoice ${invoice.invoiceNumber} (Rev ${revision})`,
       invoiceId: invoice.id,
       invoiceRevision: revision,
@@ -386,7 +386,7 @@ export class InvoicesService {
       before,
       after: { revision, ...invoiceSnapshot(after, afterCharges) },
       reason,
-      amount: fromPaisa(delta),
+      amount: fromMinor(delta),
     });
     return {
       invoice: after,
@@ -394,7 +394,7 @@ export class InvoicesService {
       newTotal: after.totalAmount,
       releases: releases.map((r) => ({
         paymentId: r.paymentId,
-        amount: fromPaisa(r.amountPaisa),
+        amount: fromMinor(r.amountMinor),
       })),
     };
   }
@@ -405,13 +405,13 @@ export class InvoicesService {
     ctx: BillingContext,
     charges: Charge[],
     reason: string,
-  ): Promise<Array<{ paymentId: string; amountPaisa: number }>> {
-    const out: Array<{ paymentId: string; amountPaisa: number }> = [];
+  ): Promise<Array<{ paymentId: string; amountMinor: number }>> {
+    const out: Array<{ paymentId: string; amountMinor: number }> = [];
     for (const c of charges) {
-      // Not `-chargeBalancePaisa(c)`: that is 0 for a VOID charge, whose whole
+      // Not `-chargeBalanceMinor(c)`: that is 0 for a VOID charge, whose whole
       // allocation must go back to advance (net counts as 0).
-      const cap = chargePayablePaisa(c);
-      const excess = toPaisa(c.allocatedAmount) - cap;
+      const cap = chargePayableMinor(c);
+      const excess = toMinor(c.allocatedAmount) - cap;
       if (excess <= 0) continue;
       out.push(
         ...(await this.allocations.releaseFromCharge(
@@ -472,12 +472,12 @@ export class InvoicesService {
       revision: out.invoice.revision,
       oldTotal: out.oldTotal,
       newTotal: out.newTotal,
-      delta: fromPaisa(toPaisa(out.newTotal) - toPaisa(out.oldTotal)),
+      delta: fromMinor(toMinor(out.newTotal) - toMinor(out.oldTotal)),
       taxRate: out.invoice.taxRate,
       newTaxAmount: out.invoice.taxAmount,
       newBalanceDue: out.invoice.balanceDue,
-      releasedToAdvance: fromPaisa(
-        out.releases.reduce((a, r) => a + toPaisa(r.amount), 0),
+      releasedToAdvance: fromMinor(
+        out.releases.reduce((a, r) => a + toMinor(r.amount), 0),
       ),
       releases: out.releases.map((r) => ({
         ...r,

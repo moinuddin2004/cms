@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { nowInClinic } from '@/lib/datetime'
 import { payrollFormSchema } from '../schemas/employee.schema'
 import type { PayrollFormValues } from '../schemas/employee.schema'
 import { PayrollStatus } from '../types'
@@ -12,7 +13,7 @@ function defaultsFor(
   defaultMonth?: number,
   defaultYear?: number,
 ): PayrollFormValues {
-  const now = new Date()
+  const now = nowInClinic()
   if (record) {
     return {
       employeeId: record.employeeId,

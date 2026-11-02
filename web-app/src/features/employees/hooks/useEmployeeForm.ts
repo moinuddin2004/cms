@@ -1,5 +1,6 @@
 import { useForm } from '@tanstack/react-form'
 import { useAuthStore } from '@/store/useAuthStore'
+import { todayYmd } from '@/lib/datetime'
 import { employeeFormSchema } from '../schemas/employee.schema'
 import type { EmployeeFormValues } from '../schemas/employee.schema'
 import { EmploymentType } from '../types'
@@ -23,7 +24,7 @@ function defaultsFor(
       ? employee.joiningDate
         ? employee.joiningDate.split('T')[0]
         : ''
-      : new Date().toISOString().split('T')[0],
+      : todayYmd(),
     primaryLocationId: employee?.primaryLocationId ?? activeLocationId ?? '',
     gender: employee?.gender ?? '',
     dob: employee?.dob ? employee.dob.split('T')[0] : '',

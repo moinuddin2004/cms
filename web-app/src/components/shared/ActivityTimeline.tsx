@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { formatInClinic } from '@/lib/datetime'
 import { ArrowRight, History, Pencil, Plus, Trash2 } from 'lucide-react'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ErrorState } from '@/components/feedback/ErrorState'
@@ -45,7 +45,7 @@ const humanize = (v: unknown): string => {
   }
   if (typeof v === 'object') return '(details)'
   if (typeof v === 'string' && ISO_DATETIME.test(v)) {
-    return format(new Date(v), 'd MMM yyyy, h:mm a')
+    return formatInClinic(v, 'd MMM yyyy, h:mm a')
   }
   return String(v).replace(/_/g, ' ')
 }
@@ -197,7 +197,7 @@ export function ActivityTimeline({
                 </p>
               ))}
               <p className="mt-1 text-xs text-text-3">
-                {format(new Date(entry.createdAt), 'd MMM yyyy, h:mm a')}
+                {formatInClinic(entry.createdAt, 'd MMM yyyy, h:mm a')}
                 {' · '}
                 {entry.actor?.name ?? 'System'} ({SIDE_LABEL[entry.actorSide]})
               </p>

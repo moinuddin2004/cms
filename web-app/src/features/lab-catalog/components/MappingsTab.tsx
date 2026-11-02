@@ -28,7 +28,7 @@ import {
   useServiceMappings,
   useUpdateMapping,
 } from '../hooks/useClinicCatalog'
-import { formatPaisa } from '../lib/money'
+import { formatMinor } from '../lib/money'
 import type { ServiceMapping } from '../types'
 import { MappingSheet } from './MappingSheet'
 
@@ -106,7 +106,7 @@ export function MappingsTab() {
               {row.original.clinicTreatment.name}
             </p>
             <p className="text-xs tabular-nums text-text-3">
-              {formatPaisa(row.original.clinicTreatment.defaultPricePaisa)}{' '}
+              {formatMinor(row.original.clinicTreatment.defaultPriceMinor)}{' '}
               default price
             </p>
           </div>
@@ -223,7 +223,7 @@ export function MappingsTab() {
                     {m.clinicTreatment.name}
                   </h3>
                   <p className="text-xs tabular-nums text-text-3">
-                    {formatPaisa(m.clinicTreatment.defaultPricePaisa)}
+                    {formatMinor(m.clinicTreatment.defaultPriceMinor)}
                   </p>
                 </div>
                 {m.isDefault && <Badge className="font-normal">Default</Badge>}

@@ -10,7 +10,7 @@ import {
   VersionColumn,
 } from 'typeorm';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { OptionType } from '../enums/catalog.enums';
 import { LabService } from './lab-service.entity';
 
@@ -20,7 +20,7 @@ import { LabService } from './lab-service.entity';
  */
 @Entity({ name: 'lab_service_options' })
 @Unique('uq_lab_service_options_code', ['labServiceId', 'code'])
-@Check('chk_lab_service_options_cost', `"extra_cost_paisa" >= 0`)
+@Check('chk_lab_service_options_cost', `"extra_cost_minor" >= 0`)
 export class LabServiceOption {
   @UuidV7PrimaryColumn()
   id: string;
@@ -41,8 +41,8 @@ export class LabServiceOption {
   @Column({ name: 'name', type: 'varchar', length: 150 })
   name: string;
 
-  @PaisaColumn('extra_cost_paisa')
-  extraCostPaisa: number;
+  @MinorColumn('extra_cost_minor')
+  extraCostMinor: number;
 
   @Column({ name: 'sort_order', type: 'int', default: 0 })
   sortOrder: number;

@@ -229,7 +229,7 @@ describe('Lab production (API)', () => {
     const service = async (
       code: string,
       name: string,
-      paisa: number,
+      minor: number,
       stageTemplateId: string | null,
     ) => {
       const s = await fx.platform(
@@ -250,7 +250,7 @@ describe('Lab production (API)', () => {
         'post',
         `/platform/labs/${lab.id}/services/${s.body.data.id}/prices`,
         fx.superAdmin,
-        { unitPricePaisa: paisa, effectiveFrom: today },
+        { unitPriceMinor: minor, effectiveFrom: today },
       );
       expect(p.status).toBe(201);
       return s.body.data as { id: string };
@@ -607,8 +607,8 @@ describe('Lab production (API)', () => {
       expect(agreed.remakeRequests[0]).toMatchObject({
         status: 'agreed',
         newItemId: newItem.id,
-        labChargePaisa: 800_000,
-        patientChargePaisa: 0,
+        labChargeMinor: 800_000,
+        patientChargeMinor: 0,
       });
       expect(await orderStatus(orderId)).not.toBe('completed');
       expect(await itemStatus(itemId)).toBe('delivered');
@@ -802,7 +802,7 @@ describe('Lab production (API)', () => {
       const labList = ok(
         await portal('get', '/lab-portal/production/remake-requests'),
       );
-      expect(JSON.stringify(labList)).not.toMatch(/patientChargePaisa/);
+      expect(JSON.stringify(labList)).not.toMatch(/patientChargeMinor/);
       ok(
         await portal(
           'post',
@@ -828,8 +828,8 @@ describe('Lab production (API)', () => {
       );
       expect(agreed.remakeRequests[0]).toMatchObject({
         status: 'agreed',
-        labChargePaisa: 0,
-        patientChargePaisa: 0,
+        labChargeMinor: 0,
+        patientChargeMinor: 0,
       });
       const order = (await clinic('get', `/lab-orders/${o.id}`)).body.data;
       const remade = order.items.find(
@@ -837,7 +837,7 @@ describe('Lab production (API)', () => {
       );
       expect(remade).toMatchObject({
         status: 'pending_acceptance',
-        prices: { labLineCostPaisa: 0, patientLinePricePaisa: 0 },
+        prices: { labLineCostMinor: 0, patientLinePriceMinor: 0 },
       });
       expect(order.status).toBe('submitted');
       const [history] = await sqlRows<{ action_code: string }>(
@@ -871,10 +871,10 @@ describe('Lab production (API)', () => {
         ),
       );
       expect(agreed.remakeRequests[0]).toMatchObject({
-        labChargePaisa: o.items[0].prices.labLineCostPaisa,
-        patientChargePaisa: o.items[0].prices.patientLinePricePaisa,
+        labChargeMinor: o.items[0].prices.labLineCostMinor,
+        patientChargeMinor: o.items[0].prices.patientLinePriceMinor,
       });
-      expect(o.items[0].prices.patientLinePricePaisa).toBeGreaterThan(0);
+      expect(o.items[0].prices.patientLinePriceMinor).toBeGreaterThan(0);
     });
   });
 

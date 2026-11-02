@@ -8,7 +8,7 @@ import {
   useClinicServices,
   useClinicTreatments,
 } from '../hooks/useClinicCatalog'
-import { formatPaisa } from '../lib/money'
+import { formatMinor } from '../lib/money'
 
 /**
  * Bill a lab service as one of the clinic's treatments. Either side can be
@@ -37,7 +37,7 @@ export function MappingSheet({
     .filter((t) => t.isActive)
     .map((t) => ({
       value: t.id,
-      label: `${t.name} — ${formatPaisa(t.pricePaisa)}`,
+      label: `${t.name} — ${formatMinor(t.priceMinor)}`,
     }))
   const serviceOptions = (services.data?.data ?? []).map((s) => ({
     value: s.id,

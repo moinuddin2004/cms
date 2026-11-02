@@ -8,7 +8,7 @@ import {
   ManyToOne,
   OneToMany,
 } from 'typeorm';
-import { PaisaColumn } from '../../common/paisa-column';
+import { MinorColumn } from '../../common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 
 /** What a journal records (lab ERD §6c `source_type`). */
@@ -88,8 +88,8 @@ export class LedgerJournal {
   memo: string;
 
   /** Σ debit = Σ credit of the lines. */
-  @PaisaColumn('total_paisa')
-  totalPaisa: number;
+  @MinorColumn('total_minor')
+  totalMinor: number;
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string | null;
@@ -105,7 +105,7 @@ export class LedgerJournal {
 @Entity({ name: 'ledger_journal_lines' })
 @Check(
   'chk_ledger_journal_lines_side',
-  `("debit_paisa" > 0 AND "credit_paisa" = 0) OR ("credit_paisa" > 0 AND "debit_paisa" = 0)`,
+  `("debit_minor" > 0 AND "credit_minor" = 0) OR ("credit_minor" > 0 AND "debit_minor" = 0)`,
 )
 @Index('idx_ledger_journal_lines_journal', ['journalId'])
 @Index('idx_ledger_journal_lines_account', ['organizationId', 'accountCode'])
@@ -130,11 +130,11 @@ export class LedgerJournalLine {
   @Column({ name: 'account_code', type: 'varchar', length: 40 })
   accountCode: string;
 
-  @PaisaColumn('debit_paisa')
-  debitPaisa: number;
+  @MinorColumn('debit_minor')
+  debitMinor: number;
 
-  @PaisaColumn('credit_paisa')
-  creditPaisa: number;
+  @MinorColumn('credit_minor')
+  creditMinor: number;
 
   @Column({ name: 'patient_id', type: 'uuid', nullable: true })
   patientId: string | null;

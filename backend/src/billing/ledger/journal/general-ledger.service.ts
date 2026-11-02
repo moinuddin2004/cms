@@ -8,8 +8,8 @@ import {
 
 export interface JournalLineInput {
   accountCode: string;
-  debitPaisa?: number;
-  creditPaisa?: number;
+  debitMinor?: number;
+  creditMinor?: number;
   patientId?: string | null;
   labId?: string | null;
   doctorId?: string | null;
@@ -39,8 +39,8 @@ export function checkJournal(lines: JournalLineInput[]): number {
   let debit = 0;
   let credit = 0;
   for (const l of lines) {
-    const d = l.debitPaisa ?? 0;
-    const c = l.creditPaisa ?? 0;
+    const d = l.debitMinor ?? 0;
+    const c = l.creditMinor ?? 0;
     if (!Number.isSafeInteger(d) || !Number.isSafeInteger(c) || d < 0 || c < 0)
       throw new UnbalancedJournalError(`Bad amount on ${l.accountCode}`);
     if (d > 0 && c > 0)
@@ -61,7 +61,7 @@ export function checkJournal(lines: JournalLineInput[]): number {
 export class GeneralLedgerService {
   async post(m: EntityManager, input: JournalInput): Promise<LedgerJournal> {
     const lines = input.lines.filter(
-      (l) => (l.debitPaisa ?? 0) > 0 || (l.creditPaisa ?? 0) > 0,
+      (l) => (l.debitMinor ?? 0) > 0 || (l.creditMinor ?? 0) > 0,
     );
     const total = checkJournal(lines);
     return this.insert(m, input, lines, total, null);
@@ -79,8 +79,8 @@ export class GeneralLedgerService {
     });
     const lines: JournalLineInput[] = original.lines.map((l) => ({
       accountCode: l.accountCode,
-      debitPaisa: l.creditPaisa,
-      creditPaisa: l.debitPaisa,
+      debitMinor: l.creditMinor,
+      creditMinor: l.debitMinor,
       patientId: l.patientId,
       labId: l.labId,
       doctorId: l.doctorId,
@@ -135,7 +135,7 @@ export class GeneralLedgerService {
         sourceId: input.sourceId,
         reversalOfId,
         memo: input.memo.slice(0, 200),
-        totalPaisa: total,
+        totalMinor: total,
         createdBy: input.createdBy,
       }),
     );
@@ -145,8 +145,8 @@ export class GeneralLedgerService {
         organizationId: input.organizationId,
         locationId: input.locationId ?? null,
         accountCode: l.accountCode,
-        debitPaisa: l.debitPaisa ?? 0,
-        creditPaisa: l.creditPaisa ?? 0,
+        debitMinor: l.debitMinor ?? 0,
+        creditMinor: l.creditMinor ?? 0,
         patientId: l.patientId ?? null,
         labId: l.labId ?? null,
         doctorId: l.doctorId ?? null,

@@ -1,12 +1,10 @@
-// Doctor compensation / commissions. Money is integer paisa and rates are
+// Doctor compensation / commissions. Money is integer minor units and rates are
 // integer basis points (4000 = 40.00%) — never floats.
 
 import type { ServiceKind } from './billing.types'
 
 export type CompensationPlanType =
-  | 'SALARY'
-  | 'COMMISSION'
-  | 'SALARY_PLUS_COMMISSION'
+  'SALARY' | 'COMMISSION' | 'SALARY_PLUS_COMMISSION'
 
 export type CommissionBasis = 'NET' | 'GROSS'
 
@@ -16,14 +14,14 @@ export interface CommissionRule {
   serviceName: string | null
   serviceCategory: ServiceKind | null
   rateBps: number | null
-  fixedAmountPaisa: number | null
+  fixedAmountMinor: number | null
 }
 
 export interface CompensationPlan {
   id: string
   assignmentId: string
   type: CompensationPlanType
-  baseSalaryPaisa: number | null
+  baseSalaryMinor: number | null
   defaultRateBps: number | null
   commissionBasis: CommissionBasis
   effectiveFrom: string
@@ -46,12 +44,12 @@ export interface CommissionRuleInput {
   serviceId?: string
   serviceCategory?: ServiceKind
   rateBps?: number
-  fixedAmountPaisa?: number
+  fixedAmountMinor?: number
 }
 
 export interface CompensationPlanInput {
   type: CompensationPlanType
-  baseSalaryPaisa?: number
+  baseSalaryMinor?: number
   defaultRateBps?: number
   commissionBasis?: CommissionBasis
   effectiveFrom?: string
@@ -59,11 +57,7 @@ export interface CompensationPlanInput {
 }
 
 export type CommissionSourceType =
-  | 'ALLOCATION'
-  | 'UNAPPLY'
-  | 'CHARGE_ADJUST'
-  | 'VOID'
-  | 'MANUAL'
+  'ALLOCATION' | 'UNAPPLY' | 'CHARGE_ADJUST' | 'VOID' | 'MANUAL'
 
 export interface CommissionEntryRow {
   id: string
@@ -75,9 +69,9 @@ export interface CommissionEntryRow {
   patientName: string
   invoiceNumber: string | null
   sourceType: CommissionSourceType
-  basePaisa: number
+  baseMinor: number
   rateBps: number | null
-  amountPaisa: number
+  amountMinor: number
   settled: boolean
 }
 
@@ -87,19 +81,19 @@ export interface DoctorEarningsRow {
   doctorName: string
   locationName: string
   planType: CompensationPlanType | null
-  collectedPaisa: number
-  earnedPaisa: number
-  settledPaisa: number
-  pendingPaisa: number
+  collectedMinor: number
+  earnedMinor: number
+  settledMinor: number
+  pendingMinor: number
 }
 
 export interface DoctorEarningsReport {
   rows: DoctorEarningsRow[]
   totals: {
-    collectedPaisa: number
-    earnedPaisa: number
-    settledPaisa: number
-    pendingPaisa: number
+    collectedMinor: number
+    earnedMinor: number
+    settledMinor: number
+    pendingMinor: number
   }
 }
 

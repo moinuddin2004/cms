@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Not } from 'typeorm';
-import { toPaisa } from 'src/billing/common/money';
+import { toMinor } from 'src/billing/common/money';
 import { CatalogService } from 'src/billing/entities/catalog-service.entity';
 import { ActorRef, AuditAction } from 'src/common/audit/audit.enums';
 import { snapshotOf } from 'src/common/audit/audit-diff';
@@ -340,7 +340,7 @@ function toMappingResponse(sm: ServiceMapping): MappingResponse {
       name: sm.clinicTreatment.name,
       code: sm.clinicTreatment.code,
       isActive: sm.clinicTreatment.isActive,
-      defaultPricePaisa: toPaisa(sm.clinicTreatment.defaultPrice),
+      defaultPriceMinor: toMinor(sm.clinicTreatment.defaultPrice),
     },
     labService: {
       id: sm.labService.id,

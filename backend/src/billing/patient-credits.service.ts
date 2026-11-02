@@ -10,6 +10,7 @@ import { AppLogger } from 'src/common/services/logger.service';
 import { PatientCredit } from './entities/patient-credit.entity';
 import { CreditStatus } from './enums/billing.enums';
 import { CreditPackagesService } from './credit-packages.service';
+import { BillingClock } from './common/billing-clock.service';
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -26,22 +27,25 @@ export class PatientCreditsService {
     private readonly creditRepo: Repository<PatientCredit>,
     private readonly packagesService: CreditPackagesService,
     private readonly logger: AppLogger,
+    private readonly clinicClock: BillingClock,
   ) {}
 
   async purchasePackage(
     patientId: string,
     packageId: string,
     organizationId: string,
+    locationId: string,
     soldBy: string,
   ): Promise<PatientCredit> {
     const pkg = await this.packagesService.getOrFail(packageId, organizationId);
 
-    const purchaseDate = new Date();
+    // `purchase_date` / `expiry_date` are `date` columns: the clinic's day.
+    const { today } = await this.clinicClock.read(locationId);
+    const asDate = (ymd: string) => new Date(`${ymd}T00:00:00Z`);
+    const purchaseDate = asDate(today);
     let expiryDate: Date | null = null;
     if (pkg.validityDays != null) {
-      expiryDate = new Date(
-        purchaseDate.getTime() + pkg.validityDays * 24 * 60 * 60 * 1000,
-      );
+      expiryDate = asDate(this.clinicClock.addDays(today, pkg.validityDays));
     }
 
     const credit = this.creditRepo.create({
@@ -110,13 +114,15 @@ export class PatientCreditsService {
 
   @Cron('0 1 * * *')
   async checkExpiredCredits(): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Global sweep across orgs: the UTC calendar date is accepted here (a
+    // credit may flip a few hours off the clinic's local midnight).
+    const today = new Date().toISOString().slice(0, 10);
 
     const expired = await this.creditRepo.find({
       where: {
         status: In([CreditStatus.ACTIVE]),
-        expiryDate: LessThan(today),
+        // `expiry_date` is a `date` column — compare as 'YYYY-MM-DD'.
+        expiryDate: LessThan(today as unknown as Date),
       },
     });
     if (expired.length === 0) return;

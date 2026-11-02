@@ -64,7 +64,7 @@ The tab shows "Payroll History" with a **Generate This Month** button (when this
 **Rules and validations.**
 - Month 1–12, year at least 2020 (body); not in the future.
 - Unique per employee, location and month (database constraint and a prior read).
-- Base salary = `base_salary_paisa` of the compensation plan in force on the last day of the month, else on the first day; if the assignment has no plan at all, the deprecated `gross_salary` is used.
+- Base salary = `base_salary_minor` of the compensation plan in force on the last day of the month, else on the first day; if the assignment has no plan at all, the deprecated `gross_salary` is used.
 - Commission = sum of the assignment's unsettled `commission_entries` created before the end of the month's last clinic day (location timezone), locked `FOR UPDATE`. A net-negative sum is not settled and is carried to a later month; the record then has commission 0.
 - Total = base + commission; `salary_amount` (rupees) mirrors the total.
 - Nothing to pay (both zero) → no record; the name goes into `noSalary`.
@@ -94,7 +94,7 @@ Figure 38.6 shows the job, including the commission settlement.
 
 *Figure 38.6 — The month-end job, with commission settlement, per location and per assignment.*
 
-The diagram has six participants: Scheduler, PayrollService, EmployeesService, CompensationPlanVersions, CommissionSettlements and PostgreSQL. In step 1 the scheduler calls `runMonthEndPayroll` at 05:00 server time on the 1st. In step 2 the service loads every active location. A first box, "loop: each active location, in its own transaction", contains the rest. Step 3 asks EmployeesService for the active assignments of the location and step 4 returns them with their employees. A second box, "loop: each assignment", opens with step 5, a check whether a record for this employee, location and month exists. An "alt" box has two branches. If a record exists (step 6) it is counted as skipped. Otherwise step 7 asks CompensationPlanVersions for the plan in force on the last day of the month, else the first day, and step 8 returns the plan with `base_salary_paisa`. Step 9 calls `lockUnsettled` on CommissionSettlements for entries before the period end with a row lock and step 10 returns the entry ids and their total. A nested "alt" box then decides: if base and commission are both zero (step 11) the name is added to the no-salary list; otherwise step 12 inserts a PENDING payroll record whose total is base plus commission, and an optional step 13, taken only when entries were found and their total is not negative, creates a PENDING settlement and sets `settlement_id` on the entries. Step 14, after the loops, commits the location, or rolls back only that location.
+The diagram has six participants: Scheduler, PayrollService, EmployeesService, CompensationPlanVersions, CommissionSettlements and PostgreSQL. In step 1 the scheduler calls `runMonthEndPayroll` at 05:00 server time on the 1st. In step 2 the service loads every active location. A first box, "loop: each active location, in its own transaction", contains the rest. Step 3 asks EmployeesService for the active assignments of the location and step 4 returns them with their employees. A second box, "loop: each assignment", opens with step 5, a check whether a record for this employee, location and month exists. An "alt" box has two branches. If a record exists (step 6) it is counted as skipped. Otherwise step 7 asks CompensationPlanVersions for the plan in force on the last day of the month, else the first day, and step 8 returns the plan with `base_salary_minor`. Step 9 calls `lockUnsettled` on CommissionSettlements for entries before the period end with a row lock and step 10 returns the entry ids and their total. A nested "alt" box then decides: if base and commission are both zero (step 11) the name is added to the no-salary list; otherwise step 12 inserts a PENDING payroll record whose total is base plus commission, and an optional step 13, taken only when entries were found and their total is not negative, creates a PENDING settlement and sets `settlement_id` on the entries. Step 14, after the loops, commits the location, or rolls back only that location.
 
 **Behind the scenes — in simple terms.** It is the same work as manual generation, run for every clinic in one go. If one clinic fails, the others still run. Running it twice, or after a manual generation, is safe because existing records are skipped.
 
@@ -124,7 +124,7 @@ The diagram has six participants: Scheduler, PayrollService, EmployeesService, C
 
 **Behind the scenes — in simple terms.** The amount you type is stored as the base salary with zero commission. This record does not settle any commission.
 
-**Behind the scenes — technically.** `POST /payroll` → `PayrollService.createManual`: refuses a duplicate (400 "A payroll record already exists for this employee and period"), then inserts with `base_salary_paisa = total_paisa` = rupee amount converted to paisa (at most 2 decimals), `commission_paisa = 0`, status from the request (default pending) and the notes.
+**Behind the scenes — technically.** `POST /payroll` → `PayrollService.createManual`: refuses a duplicate (400 "A payroll record already exists for this employee and period"), then inserts with `base_salary_minor = total_minor` = rupee amount converted to paisa (at most 2 decimals), `commission_minor = 0`, status from the request (default pending) and the notes.
 
 **Rules and validations.**
 - Month 1–12, year at least 2020, amount at least 0.
@@ -233,7 +233,7 @@ The diagram has six participants: Scheduler, PayrollService, EmployeesService, C
 
 **Behind the scenes — in simple terms.** The amount you edit is the total. Commission already inside the record stays as it is, and the difference is treated as base salary.
 
-**Behind the scenes — technically.** `PATCH /payroll/:id` → `PayrollService.update`: for a new amount, total = paisa(amount); the amount may not be below `commission_paisa`; `base_salary_paisa = total − commission`. Month and year changes rebuild the period label. The save maps a unique-key clash (23505) to 400.
+**Behind the scenes — technically.** `PATCH /payroll/:id` → `PayrollService.update`: for a new amount, total = minor(amount); the amount may not be below `commission_minor`; `base_salary_minor = total − commission`. Month and year changes rebuild the period label. The save maps a unique-key clash (23505) to 400.
 
 **Rules and validations.**
 - Amount at least 0, at most 2 decimals; month 1–12; year at least 2020.
@@ -353,7 +353,7 @@ The diagram has six participants: Scheduler, PayrollService, EmployeesService, C
 
 *Figure 38.7 — The payroll record and the tables that feed it.*
 
-The diagram has `payroll_records` at the top, showing `id`, `employee_id`, `organization_id`, `location_id`, `month`, `year`, `base_salary_paisa`, `commission_paisa`, `total_paisa` and `status`. Three lines come into it from `employees` ("is paid"), `organizations` ("owns") and `locations` ("pays at"). A one-to-one optional line labelled "pays out" connects it to `commission_settlements` (`assignment_id`, `payroll_record_id`, `total_paisa`, `status`). `commission_settlements` has an optional one-to-many line "settles" to `commission_entries` (`assignment_id`, `settlement_id`, `amount_paisa`), and a line "is settled" from `employee_org_location_assignments` (shown only as a relationship). The same assignment has a line "is paid by" to `compensation_plans` (`type`, `base_salary_paisa`).
+The diagram has `payroll_records` at the top, showing `id`, `employee_id`, `organization_id`, `location_id`, `month`, `year`, `base_salary_minor`, `commission_minor`, `total_minor` and `status`. Three lines come into it from `employees` ("is paid"), `organizations` ("owns") and `locations` ("pays at"). A one-to-one optional line labelled "pays out" connects it to `commission_settlements` (`assignment_id`, `payroll_record_id`, `total_minor`, `status`). `commission_settlements` has an optional one-to-many line "settles" to `commission_entries` (`assignment_id`, `settlement_id`, `amount_minor`), and a line "is settled" from `employee_org_location_assignments` (shown only as a relationship). The same assignment has a line "is paid by" to `compensation_plans` (`type`, `base_salary_minor`).
 
 The relationships in words:
 

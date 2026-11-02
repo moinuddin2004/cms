@@ -20,21 +20,21 @@ erDiagram
     uuid patient_id FK
     uuid order_id FK
     enum status
-    bigint total_paisa
-    bigint balance_paisa
+    bigint total_minor
+    bigint balance_minor
   }
   lab_invoice_lines {
     uuid id PK
     uuid invoice_id FK
     enum line_kind
     uuid lab_order_item_id FK
-    bigint line_total_paisa
+    bigint line_total_minor
     bool is_void
   }
   lab_payments {
     uuid id PK
     varchar receipt_no "unique per org"
-    bigint amount_paisa "negative on reversal"
+    bigint amount_minor "negative on reversal"
     uuid reversal_of_id FK "unique"
     enum status
   }
@@ -42,26 +42,26 @@ erDiagram
     uuid id PK
     uuid payment_id FK
     uuid invoice_id FK
-    bigint amount_paisa
+    bigint amount_minor
     timestamptz reversed_at
   }
   lab_credit_notes {
     uuid id PK
     uuid invoice_id FK
-    bigint amount_paisa
-    bigint released_paisa
+    bigint amount_minor
+    bigint released_minor
     enum status
   }
   lab_refunds {
     uuid id PK
     uuid credit_note_id FK
-    bigint amount_paisa
+    bigint amount_minor
   }
   lab_refund_sources {
     uuid id PK
     uuid refund_id FK
     uuid payment_id FK
-    bigint amount_paisa
+    bigint amount_minor
   }
   lab_billing_settings {
     uuid organization_id PK

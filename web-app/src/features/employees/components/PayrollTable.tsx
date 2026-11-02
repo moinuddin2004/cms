@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import { formatPaisa } from '@/features/billing/lib/commission-math'
-import { type ColumnDef } from '@/components/shared/table-features'
+import { formatMinor } from '@/features/billing/lib/commission-math'
+import type { ColumnDef } from '@/components/shared/table-features'
 import type { PayrollRecord, PayrollStatus } from '../types'
 import { formatCurrency, formatDate } from '@/lib/formatters'
 import { PayrollStatusBadge } from './PayrollStatusBadge'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/shared/DataTable'
+import { TooltipButton } from '@/components/shared/TooltipButton'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { MarkPaidModal } from './MarkPaidModal'
 import { useDeletePayroll } from '../hooks/useDeletePayroll'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -21,20 +23,16 @@ export function PayrollTable({
   showEmployeeName = false,
   onEdit,
 }: PayrollTableProps) {
-  const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(null)
+  const [selectedRecord, setSelectedRecord] = useState<PayrollRecord | null>(
+    null,
+  )
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [deleting, setDeleting] = useState<PayrollRecord | null>(null)
   const deleteMutation = useDeletePayroll()
 
   const handleMarkPaidClick = (record: PayrollRecord) => {
     setSelectedRecord(record)
     setIsModalOpen(true)
-  }
-
-  const handleDelete = (record: PayrollRecord) => {
-    const ok = window.confirm(
-      `Delete the payroll record for ${record.employee?.fullName ?? 'this employee'} (${record.periodLabel})? This cannot be undone.`,
-    )
-    if (ok) deleteMutation.mutate(record.id)
   }
 
   const columns = useMemo<ColumnDef<PayrollRecord, unknown>[]>(
@@ -83,10 +81,10 @@ export function PayrollTable({
             <span className="font-medium">
               {formatCurrency(Number(row.original.salaryAmount))}
             </span>
-            {!!row.original.commissionPaisa && (
+            {!!row.original.commissionMinor && (
               <p className="text-xs text-muted-foreground tabular-nums">
-                Salary {formatPaisa(row.original.baseSalaryPaisa ?? 0)} +
-                commission {formatPaisa(row.original.commissionPaisa)}
+                Salary {formatMinor(row.original.baseSalaryMinor ?? 0)} +
+                commission {formatMinor(row.original.commissionMinor)}
               </p>
             )}
           </div>
@@ -140,32 +138,31 @@ export function PayrollTable({
                 </Button>
               )}
               {onEdit && (
-                <Button
+                <TooltipButton
+                  tooltip="Edit payroll"
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  aria-label="Edit payroll"
                   onClick={() => onEdit(record)}
                 >
                   <Pencil className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                </TooltipButton>
               )}
-              <Button
+              <TooltipButton
+                tooltip="Delete payroll"
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-destructive hover:text-destructive"
-                aria-label="Delete payroll"
-                disabled={deleteMutation.isPending}
-                onClick={() => handleDelete(record)}
+                onClick={() => setDeleting(record)}
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
+              </TooltipButton>
             </div>
           )
         },
       },
     ],
-    [showEmployeeName, onEdit, deleteMutation.isPending],
+    [showEmployeeName, onEdit],
   )
 
   return (
@@ -181,6 +178,26 @@ export function PayrollTable({
         record={selectedRecord}
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
+      />
+
+      <ConfirmDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title="Delete payroll record?"
+        description={
+          deleting
+            ? `The ${deleting.periodLabel} record for ${deleting.employee?.fullName ?? 'this employee'} will be removed. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        destructive
+        isLoading={deleteMutation.isPending}
+        onConfirm={() =>
+          deleting &&
+          deleteMutation.mutate(deleting.id, {
+            onSuccess: () => setDeleting(null),
+          })
+        }
       />
     </>
   )

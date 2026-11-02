@@ -590,7 +590,7 @@ The diagram has six participants: the Receptionist, the Web app, the API, the Pa
 
 **Behind the scenes — in simple terms.** Tax = rate × (sum of the active charges' nets), rounded once. Because payments go to charges, the tax is shared out over the charges. The rate is frozen on the invoice; later edits use the frozen rate, not the current one.
 
-**Behind the scenes — technically.** `locationTaxRate` reads `location_settings.tax_rate` (no row → 0), normalised to basis points. `splitInvoiceTax` gives each charge the tax on its own net and puts the rounding difference on the largest charge; `basisPointsOf` uses BigInt half-up rounding. A charge's payable = net + tax. Tax is not revenue: commission and revenue reports use the pre-tax part (`preTaxPaisa`).
+**Behind the scenes — technically.** `locationTaxRate` reads `location_settings.tax_rate` (no row → 0), normalised to basis points. `splitInvoiceTax` gives each charge the tax on its own net and puts the rounding difference on the largest charge; `basisPointsOf` uses BigInt half-up rounding. A charge's payable = net + tax. Tax is not revenue: commission and revenue reports use the pre-tax part (`preTaxMinor`).
 
 **Rules and validations.** Rate 0–100 with 2 decimals. A cancelled invoice keeps its frozen totals; its charges return to unbilled with tax 0.
 
@@ -1006,7 +1006,7 @@ The diagram has six participants: the Receptionist, the Web app, the API, the Pa
 
 **Behind the scenes — in simple terms.** Later changes to a doctor's plan do not change old charges.
 
-**Behind the scenes — technically.** `CommissionService.snapshot` in `syncForEncounter` and `ChargesService.update`; columns `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps` (0–10 000, checked), `commission_fixed_paisa` (bigint paisa).
+**Behind the scenes — technically.** `CommissionService.snapshot` in `syncForEncounter` and `ChargesService.update`; columns `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps` (0–10 000, checked), `commission_fixed_minor` (bigint paisa).
 
 **Rules and validations.** Manual charges have no snapshot.
 

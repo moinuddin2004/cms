@@ -51,7 +51,7 @@ export class LabPortalPayablesService extends LabScopedService {
       .skip((page - 1) * limit)
       .take(limit);
     if (q.status) qb.andWhere('b.status = :status', { status: q.status });
-    if (q.open === 'true') qb.andWhere('b.balance_paisa > 0');
+    if (q.open === 'true') qb.andWhere('b.balance_minor > 0');
     if (q.search?.trim())
       qb.andWhere('(b.bill_no ILIKE :s OR b.vendor_invoice_no ILIKE :s)', {
         s: `%${q.search.trim()}%`,

@@ -58,11 +58,11 @@ One row is one product of one lab, for example a zirconia crown. It has no organ
 
 ### `lab_service_options` — materials and variants
 
-A material or variant of a service, such as "Emax" on a crown, with `extra_cost_paisa` (not negative) added to the resolved price. Unique per service and code.
+A material or variant of a service, such as "Emax" on a crown, with `extra_cost_minor` (not negative) added to the resolved price. Unique per service and code.
 
 ### `lab_service_prices` — price windows
 
-One row is a price for a service over a date window (`effective_from` to `effective_to`, inclusive; an empty end means open-ended). If `organization_id` is empty, it is the lab's list price; if set, it is a negotiated price for that clinic, which wins over the list price. Columns include `unit_price_paisa`, `rush_surcharge_paisa` and `currency` (default PKR). A price entered by mistake is voided (`voided_at`, `void_reason`), not deleted.
+One row is a price for a service over a date window (`effective_from` to `effective_to`, inclusive; an empty end means open-ended). If `organization_id` is empty, it is the lab's list price; if set, it is a negotiated price for that clinic, which wins over the list price. Columns include `unit_price_minor`, `rush_surcharge_minor` and `currency` (default PKR). A price entered by mistake is voided (`voided_at`, `void_reason`), not deleted.
 
 Constraint that matters: `excl_lab_service_prices_overlap`, an EXCLUDE constraint (using `btree_gist`), forbids two non-voided windows for the same service and clinic (or the same list price) from overlapping.
 
@@ -95,7 +95,7 @@ Constraints that matter: `order_no` is unique per organization; the idempotency 
 
 One row is one piece of work in an order, such as a crown or a bridge, numbered by `line_no` (unique per order). Key columns:
 - Snapshots frozen at submit: `service_code_snap`, `service_name_snap`, `unit_type`, `options_snap`.
-- Prices frozen at submit: `lab_unit_cost_paisa`, `lab_line_cost_paisa` (what the lab charges the clinic), `patient_unit_price_paisa`, `patient_line_price_paisa` (what the clinic charges the patient), `priced_on`, `currency`.
+- Prices frozen at submit: `lab_unit_cost_minor`, `lab_line_cost_minor` (what the lab charges the clinic), `patient_unit_price_minor`, `patient_line_price_minor` (what the clinic charges the patient), `priced_on`, `currency`.
 - Draft inputs: `lab_service_id`, `option_ids`, `rush`, `quantity` (above zero), `clinic_treatment_id`.
 - Engine: the pinned `form_schema_version_id` and `workflow_template_version_id`, the copied `stage_template_id`, `status_code` (empty while the order is a draft) and `current_stage_seq`.
 - `remake_of_item_id`: set when this item remakes an earlier one.
@@ -112,7 +112,7 @@ Only a revision or an approved charge request may change the frozen columns. CHE
 
 - `order_messages`: the clinic-to-lab conversation on an order or one item. `author_side` is clinic or lab; `kind` is note, clarification_request or reply; a clarification is resolved by the clinic's reply (`resolved_at`).
 - `order_revisions`: what the lab was asked to make, as of one revision. Revision 1 is written at submit; each later change adds a revision with a full `snapshot` and a `reason`. The lab acknowledges each one (`lab_acknowledged_at`). Unique per order and revision number.
-- `order_charge_requests`: an extra charge the lab asks for after submit (`kind` rush, material, shipping or other) with `amount_paisa` above zero, a required `reason`, and `status` pending, approved or rejected. An approved item-level request is added to the item's lab line cost.
+- `order_charge_requests`: an extra charge the lab asks for after submit (`kind` rush, material, shipping or other) with `amount_minor` above zero, a required `reason`, and `status` pending, approved or rejected. An approved item-level request is added to the item's lab line cost.
 - `attachments`: a file on an order or item. The file itself is in private storage; the row keeps `storage_key`, `file_name`, `mime_type`, `size_bytes` and `sha256`. `entity_type` is limited by a CHECK to `lab_order` or `lab_order_item`. `visibility` is internal, lab_shared or patient_shared (the lab sees only lab_shared), and `uploaded_side` is clinic or lab. Downloads use short-lived signed URLs.
 
 ## 25.5 Production
@@ -157,11 +157,11 @@ The figure shows `patients` with solid lines to `lab_invoices` ("billed"), `lab_
 
 This side mirrors the clinic billing design (the Billing core chapter, Chapter 20) but with its own tables and in paisa. The UI calls these **patient lab invoices**.
 
-- **`lab_invoices`.** A patient invoice for lab work, optionally for one order. A `draft` is an estimate: it has no number, can be edited and owes nothing. Issuing gives it an `invoice_no` (unique per organization) and freezes the lines. `status` is draft, issued, partially_paid, paid or void. Cached totals (`subtotal_paisa`, `discount_paisa`, `tax_paisa`, `total_paisa`, `credited_paisa`, `paid_paisa`, `balance_paisa`) are recomputed from source rows by one service. CHECK `chk_lab_invoices_math`: total = subtotal − discount + tax, and balance, paid and credited are not negative.
+- **`lab_invoices`.** A patient invoice for lab work, optionally for one order. A `draft` is an estimate: it has no number, can be edited and owes nothing. Issuing gives it an `invoice_no` (unique per organization) and freezes the lines. `status` is draft, issued, partially_paid, paid or void. Cached totals (`subtotal_minor`, `discount_minor`, `tax_minor`, `total_minor`, `credited_minor`, `paid_minor`, `balance_minor`) are recomputed from source rows by one service. CHECK `chk_lab_invoices_math`: total = subtotal − discount + tax, and balance, paid and credited are not negative.
 - **`lab_invoice_lines`.** One billed thing: `line_kind` lab_item, lab_charge or manual. CHECK `chk_lab_invoice_lines_math` enforces quantity × unit − discount + tax = line total. Two partial unique indexes make sure a lab order item or charge request sits on at most one non-void line, so it is never billed twice; voiding the invoice copies `is_void` onto the lines and frees them. Lines also carry a commission snapshot (`doctor_id`, `performing_assignment_id`, `commission_plan_id`, rate and fixed amount), all without foreign keys; the commission ledger links to these lines (the Compensation chapter, Chapter 22).
 - **`lab_payments`.** Money received from a patient for lab work. It belongs to the patient; the unallocated, unrefunded part is the patient's advance. A wrong payment is never deleted: a reversal row with a negative amount points at it through `reversal_of_id` (unique). `received_on` is the location-local day. `receipt_no` and `idempotency_key` are each unique per organization. CHECK `chk_lab_payments_amounts` ties the sign of the amount to whether it is a reversal and keeps allocated + refunded within the amount.
 - **`lab_payment_allocations`.** "This much of payment P settles invoice I", always positive. A reversal or credit note stops it counting by setting `reversed_at` and `release_reason`; rows are not deleted.
-- **`lab_credit_notes`.** Corrects an issued invoice downwards. Money the patient already paid above the new total is released back to advance (`released_paisa`) and may then be refunded (`refunded_paisa`). `credit_note_no` is unique per organization. CHECK: refunded ≤ released ≤ amount.
+- **`lab_credit_notes`.** Corrects an issued invoice downwards. Money the patient already paid above the new total is released back to advance (`released_minor`) and may then be refunded (`refunded_minor`). `credit_note_no` is unique per organization. CHECK: refunded ≤ released ≤ amount.
 - **`lab_refunds`** and **`lab_refund_sources`.** A refund pays money back out of advance; refund sources say which payments funded it. `credit_note_id` set means the refund pays out a credit note. `refund_no` and `idempotency_key` are unique per organization.
 - **`lab_billing_settings`.** One row per organization (primary key = organization id): `tax_rate_bp` (0–10,000, default 0 until the accountant confirms) and `due_days`. A missing row means defaults.
 
@@ -176,7 +176,7 @@ The figure shows `labs` with solid lines to `vendor_bills` ("owed"), `vendor_pay
 - **`vendor_bills`.** What the clinic owes a lab. One draft per lab order is created when the lab accepts the order, from the items' frozen lab costs (a partial unique index allows only one draft per order). Nothing reaches the general ledger until approval, which posts a Lab Cost / Lab Payable journal (`journal_id`). `status` is draft, approved, partially_paid, paid or void. `bill_no` is unique per organization; the lab's own invoice number (`vendor_invoice_no`), entered at approval, is unique per organization and lab among non-void bills. CHECK: total = subtotal + tax, and paid and balance are not negative. Bills are voided, never deleted.
 - **`vendor_bill_lines`.** One cost on a bill: `line_kind` service, rush, shipping, material, remake or other. Lines of a draft follow the order and are re-synced; after approval they are frozen. `is_manual` marks lines added by hand. Links to the order, item, charge request and remake request have no foreign keys.
 - **`vendor_payments`** and **`vendor_payment_allocations`.** Money the clinic paid a lab, split over approved bills by allocations. An unallocated rest is an advance to the lab. `payment_no` is unique per organization. A mistake is reversed (`status` reversed, `reversed_at`), with a mirror journal; allocations are reversed with `reversed_at`, never deleted.
-- **`lab_statements`** and **`lab_statement_lines`.** A lab's monthly statement, typed in by the clinic and reconciled against the bills of the period. `status` is uploaded, reconciling, reconciled or disputed. Each line has the lab's reference, date and amount, the clinic's `system_amount_paisa` for the same reference, and `match_status` (matched, amount_mismatch, missing_in_system or missing_in_statement).
+- **`lab_statements`** and **`lab_statement_lines`.** A lab's monthly statement, typed in by the clinic and reconciled against the bills of the period. `status` is uploaded, reconciling, reconciled or disputed. Each line has the lab's reference, date and amount, the clinic's `system_amount_minor` for the same reference, and `match_status` (matched, amount_mismatch, missing_in_system or missing_in_statement).
 
 **Status of statement files:** [Not implemented]. `lab_statements.attachment_id` exists, but the column comment says there is no storage for statement files yet, because attachments are order-scoped.
 

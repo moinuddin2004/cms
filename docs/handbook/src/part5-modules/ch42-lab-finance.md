@@ -161,7 +161,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 **Behind the scenes — technically.** `POST /lab-billing/invoices/:id/void` → `LabInvoicesService.void`: locks the invoice, checks `version`, sets status `void` with reason, time and user, marks all lines `is_void`, writes a status-history row and emits `invoiceVoided` (with `wasIssued`). `LabFinanceListeners` mirrors the receivable journal for an issued invoice.
 
 **Rules and validations.**
-- Refused when payments (`paid_paisa > 0`) or credit notes exist; use a payment reversal or a credit note instead.
+- Refused when payments (`paid_minor > 0`) or credit notes exist; use a payment reversal or a credit note instead.
 - Refused if already void.
 
 **Who can do it.** `lab.billing.manage` **and** `billing.invoice.void` (both required; the second belongs to feature `billing.invoices`). Default: Admin, Accountant.
@@ -191,7 +191,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 **Behind the scenes — technically.** `POST /lab-billing/payments` → `LabPaymentsService.collect` (header `Idempotency-Key` required). A replay is found first by `byKey`; the unique index `uq_lab_payments_org_idempotency` settles parallel retries. `runCollect` does, in one transaction: patient check → lock invoices → validate → receipt number (sequence `lab_receipt`, prefix `LRC`) → insert payment → insert `lab_payment_allocations` → `LabBillingTotals.recomputeInvoices` / `recomputePayments` → audit → `paymentCollected` event → `payment.receipt` notification to the outbox. Event listeners post the cash journal and the commission (42.3.12, 42.3.13). Invoice status is written only by `LabBillingTotals` (partially_paid when something is allocated, paid when the balance is zero).
 
 **Rules and validations.**
-- Amount 1 to `MAX_PAISA`, in paisa; at most 50 allocations.
+- Amount 1 to `MAX_MINOR`, in paisa; at most 50 allocations.
 - An invoice may appear once; it must belong to the same patient and be open (issued or partly paid, not a draft or void).
 - Each allocation is at most the invoice's balance; the allocations together are at most the payment.
 - Without allocations, the payment is spread over the patient's open invoices, oldest first (`autoAllocate`, default true); with `autoAllocate` false the whole amount is advance. Any rest is advance.
@@ -218,7 +218,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 
 **Behind the scenes — in simple terms.** The system takes from the patient's oldest advance first, never more than the invoice balance. This also happens automatically when an invoice is issued.
 
-**Behind the scenes — technically.** `POST /lab-billing/invoices/:id/apply-advance` → `LabPaymentsService.applyAdvance` → `LabAllocations.applyAdvance` (header `Idempotency-Key` required; optional `amountPaisa`). It locks the invoice, then the advance payments (lock order: invoices before payments), inserts allocations, recomputes totals and emits `advanceApplied`.
+**Behind the scenes — technically.** `POST /lab-billing/invoices/:id/apply-advance` → `LabPaymentsService.applyAdvance` → `LabAllocations.applyAdvance` (header `Idempotency-Key` required; optional `amountMinor`). It locks the invoice, then the advance payments (lock order: invoices before payments), inserts allocations, recomputes totals and emits `advanceApplied`.
 
 **Rules and validations.** The invoice must be open with a balance; the patient must have advance.
 
@@ -246,7 +246,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 
 **Behind the scenes — technically.** `POST /lab-billing/payments/:id/reverse` → `LabPaymentsService.reverse` / `runReverse` (header `Idempotency-Key`). The service reads the touched invoice ids, locks them, then the payment; sets the original to `reversed`; inserts the mirror row (`reversal_of_id`, sequence `lab_payment_reversal`, prefix `LRV`); sets `reversed_at` on the allocations with reason `payment_reversed`; recomputes totals; emits `paymentReversed`. The ledger posts the exact opposite of what the payment still holds, not a plain mirror, because a credit note may have moved part of it into advance.
 
-**Rules and validations.** A reversal cannot be reversed; an already reversed payment cannot be reversed again; a payment with `refunded_paisa > 0` cannot be reversed; reason 3 to 500 characters.
+**Rules and validations.** A reversal cannot be reversed; an already reversed payment cannot be reversed again; a payment with `refunded_minor > 0` cannot be reversed; reason 3 to 500 characters.
 
 **Who can do it.** `lab.billing.manage` **and** `billing.refund.issue`. Default: Admin, Accountant.
 
@@ -298,7 +298,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 
 **Behind the scenes — in simple terms.** The refund is taken from the patient's advance payments, oldest first. A payment that was partly refunded can no longer be reversed.
 
-**Behind the scenes — technically.** `POST /lab-billing/refunds` → `LabCreditsService.refund` (header `Idempotency-Key`, unique on the refund's own key). It locks the credit note (if any) and the advance payments, writes one `lab_refunds` row (sequence `lab_refund`, prefix `LRF`) and one `lab_refund_sources` row per payment, raises each payment's `refunded_paisa`, updates the credit note's refunded total and status (`refunded` when fully paid out), and emits `refundPaid`. The response carries the patient's updated billing summary.
+**Behind the scenes — technically.** `POST /lab-billing/refunds` → `LabCreditsService.refund` (header `Idempotency-Key`, unique on the refund's own key). It locks the credit note (if any) and the advance payments, writes one `lab_refunds` row (sequence `lab_refund`, prefix `LRF`) and one `lab_refund_sources` row per payment, raises each payment's `refunded_minor`, updates the credit note's refunded total and status (`refunded` when fully paid out), and emits `refundPaid`. The response carries the patient's updated billing summary.
 
 **Rules and validations.** The credit note must belong to the patient; the amount is at most what is left on the credit note, and at most the patient's advance.
 
@@ -474,7 +474,7 @@ The Reports tab has three sub-tabs: Payables aging (owed per lab by days overdue
 
 **Behind the scenes — in simple terms.** Before approval the bill is re-synced from the order. If anything changed, the approval is refused with a stale-version message, so the accountant approves exactly what they saw. Approval books the cost and the debt in one step. A voided approved bill gets a mirror journal.
 
-**Behind the scenes — technically.** `GET /lab-payables/bills`, `GET /lab-payables/bills/:id`; `PATCH /lab-payables/bills/:id` (`VendorBillsService.update`: vendor invoice number, bill date, due date, tax in basis points, notes); `POST /lab-payables/bills/:id/lines` (`addLine`: kind, description, quantity, unit cost; creates a manual line); `POST /lab-payables/orders/:orderId/sync` (`syncOrder`); `POST /lab-payables/bills/:id/approve` (`approve`); `POST /lab-payables/bills/:id/void` (`void`). Approve: sync in its own transaction, then one transaction: lock draft and check `version`, recompute totals with `billTotals` (tax rounded half up on integer paisa), refuse total 0, set `due_on` (the given date, else bill date plus the lab link's `payment_terms_days`, default 30), post journal debit Lab Cost / credit Lab Payable, set status `approved`, balance = total, store `journal_id`, audit. Void: refused when `paid_paisa > 0` or already void; a draft is closed without a journal; an approved bill is reversed with a mirror journal. The web screen calls approve, void, sync, list and read; `updateBill` and `addLine` exist in `lab-payables.api.ts` but no page uses them.
+**Behind the scenes — technically.** `GET /lab-payables/bills`, `GET /lab-payables/bills/:id`; `PATCH /lab-payables/bills/:id` (`VendorBillsService.update`: vendor invoice number, bill date, due date, tax in basis points, notes); `POST /lab-payables/bills/:id/lines` (`addLine`: kind, description, quantity, unit cost; creates a manual line); `POST /lab-payables/orders/:orderId/sync` (`syncOrder`); `POST /lab-payables/bills/:id/approve` (`approve`); `POST /lab-payables/bills/:id/void` (`void`). Approve: sync in its own transaction, then one transaction: lock draft and check `version`, recompute totals with `billTotals` (tax rounded half up on integer paisa), refuse total 0, set `due_on` (the given date, else bill date plus the lab link's `payment_terms_days`, default 30), post journal debit Lab Cost / credit Lab Payable, set status `approved`, balance = total, store `journal_id`, audit. Void: refused when `paid_minor > 0` or already void; a draft is closed without a journal; an approved bill is reversed with a mirror journal. The web screen calls approve, void, sync, list and read; `updateBill` and `addLine` exist in `lab-payables.api.ts` but no page uses them.
 
 **Rules and validations.**
 - Only a draft can be edited, have lines added or be approved.

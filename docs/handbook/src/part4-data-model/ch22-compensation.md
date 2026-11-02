@@ -14,13 +14,13 @@ Pay is set per **assignment**, which is an employee's link to one organization a
 
 *Figure 22.1 — Compensation plans, commission rules, the commission ledger and settlements, with their links to billing and payroll.*
 
-The figure shows `employee_org_location_assignments` with three solid lines: to `compensation_plans` ("paid under, CASCADE"), to `commission_entries` ("earns, RESTRICT") and to `commission_settlements` ("batched for, RESTRICT"). `compensation_plans` connects to `commission_rules` ("overridden by, CASCADE") and to `charges` ("rate snapshot, RESTRICT"), and has a dotted line to `lab_invoice_lines` (commission_plan_id, no FK). `services` connects to `commission_rules` ("service rule, CASCADE"). `commission_entries` receives solid lines from `charges` ("on clinic charge"), `lab_invoice_lines` ("on lab line") and `commission_settlements` ("settles"), all RESTRICT. `payroll_records` connects one-to-one with `commission_settlements` ("paid through, RESTRICT"). Each main box shows its key columns, and `amount_paisa` on the entry is marked "signed".
+The figure shows `employee_org_location_assignments` with three solid lines: to `compensation_plans` ("paid under, CASCADE"), to `commission_entries` ("earns, RESTRICT") and to `commission_settlements` ("batched for, RESTRICT"). `compensation_plans` connects to `commission_rules` ("overridden by, CASCADE") and to `charges` ("rate snapshot, RESTRICT"), and has a dotted line to `lab_invoice_lines` (commission_plan_id, no FK). `services` connects to `commission_rules` ("service rule, CASCADE"). `commission_entries` receives solid lines from `charges` ("on clinic charge"), `lab_invoice_lines` ("on lab line") and `commission_settlements` ("settles"), all RESTRICT. `payroll_records` connects one-to-one with `commission_settlements` ("paid through, RESTRICT"). Each main box shows its key columns, and `amount_minor` on the entry is marked "signed".
 
 ## 22.2 Tables
 
 ### `compensation_plans` — how an assignment is paid
 
-One row is one version of an assignment's pay, valid from `effective_from` to `effective_to` (both inclusive; an empty `effective_to` means "current"). `type` is SALARY, COMMISSION or SALARY_PLUS_COMMISSION. `base_salary_paisa` holds the salary, `default_rate_bps` the default commission rate, and `commission_basis` (NET by default, or GROSS) which charge amount the commission rate is applied to. A change of pay closes the current version and adds a new one, so old charges keep the rate that was copied onto them.
+One row is one version of an assignment's pay, valid from `effective_from` to `effective_to` (both inclusive; an empty `effective_to` means "current"). `type` is SALARY, COMMISSION or SALARY_PLUS_COMMISSION. `base_salary_minor` holds the salary, `default_rate_bps` the default commission rate, and `commission_basis` (NET by default, or GROSS) which charge amount the commission rate is applied to. A change of pay closes the current version and adds a new one, so old charges keep the rate that was copied onto them.
 
 Constraints that matter:
 - `excl_compensation_plans_overlap` (an EXCLUDE constraint using the `btree_gist` extension): two versions of the same assignment can never have overlapping date ranges.
@@ -29,7 +29,7 @@ Constraints that matter:
 
 ### `commission_rules` — per-service and per-category overrides
 
-One row overrides the plan's default for either one catalog service (`service_id`) or one service category (`service_category`: CONSULTATION, PROCEDURE or OTHER), never both. It holds either a rate (`rate_bps`) or a fixed amount per fully paid charge (`fixed_amount_paisa`), never both. When the Platform looks up the rate for a charge, it tries the service rule first, then the category rule, then the plan default.
+One row overrides the plan's default for either one catalog service (`service_id`) or one service category (`service_category`: CONSULTATION, PROCEDURE or OTHER), never both. It holds either a rate (`rate_bps`) or a fixed amount per fully paid charge (`fixed_amount_minor`), never both. When the Platform looks up the rate for a charge, it tries the service rule first, then the category rule, then the plan default.
 
 Constraints that matter:
 - `chk_commission_rules_target` and `chk_commission_rules_amount`: exactly one target and exactly one kind of amount.
@@ -38,7 +38,7 @@ Constraints that matter:
 
 ### `commission_entries` — the commission ledger
 
-One row is one change in what an assignment has earned on one source line. The source line is either a clinic charge (`charge_id`) or a lab invoice line (`lab_invoice_line_id`), never both. `source_type` says what caused the entry: ALLOCATION (new money), UNAPPLY, CHARGE_ADJUST, VOID or MANUAL; `source_id` is the payment or operation behind it. `base_paisa` is how much had been collected on the line (capped at its net amount) when the entry was written, `rate_bps` the rate used, and `amount_paisa` the signed difference. For each line, the sum of its entries always equals the commission due on what has been collected so far. `settlement_id` is empty until the entry is settled.
+One row is one change in what an assignment has earned on one source line. The source line is either a clinic charge (`charge_id`) or a lab invoice line (`lab_invoice_line_id`), never both. `source_type` says what caused the entry: ALLOCATION (new money), UNAPPLY, CHARGE_ADJUST, VOID or MANUAL; `source_id` is the payment or operation behind it. `base_minor` is how much had been collected on the line (capped at its net amount) when the entry was written, `rate_bps` the rate used, and `amount_minor` the signed difference. For each line, the sum of its entries always equals the commission due on what has been collected so far. `settlement_id` is empty until the entry is settled.
 
 Constraints that matter:
 - `chk_commission_entries_target`: exactly one of `charge_id` and `lab_invoice_line_id` is set.
@@ -55,7 +55,7 @@ It is one of only three tables in the Platform whose append-only rule is enforce
 
 ### `commission_settlements` — a payout batch
 
-One row groups unsettled commission entries of one assignment for a period (`period_start`, `period_end`) and links them to one payroll record. `total_paisa` is the sum of the entries; it is signed, because a period with only reversals can be negative. `status` is PENDING, then PAID, with `paid_at` and `paid_by`.
+One row groups unsettled commission entries of one assignment for a period (`period_start`, `period_end`) and links them to one payroll record. `total_minor` is the sum of the entries; it is signed, because a period with only reversals can be negative. `status` is PENDING, then PAID, with `paid_at` and `paid_by`.
 
 How it is used in the code:
 - When payroll is generated, the unsettled entries created before the cut-off are locked (`SELECT … FOR UPDATE`), so one entry can never land in two settlements. A PENDING settlement is created and the entries are pointed at it.

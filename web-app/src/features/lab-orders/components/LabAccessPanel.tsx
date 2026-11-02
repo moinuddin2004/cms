@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Ban, Copy, Loader2, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,13 +16,7 @@ import { labOrderKeys } from '../query-keys'
 import { labOrdersApi } from '../services/lab-orders.api'
 import type { LabOrderDetail, OrderMagicLink } from '../types'
 
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+const fmt = (iso: string) => formatInClinic(iso, 'd MMM, HH:mm')
 
 const STATE_BADGE: Record<
   OrderMagicLink['state'],

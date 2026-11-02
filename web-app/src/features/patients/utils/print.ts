@@ -2,6 +2,7 @@ import type {
   Patient,
   PatientConsent,
 } from '../types'
+import { formatDateTime } from '@/lib/datetime'
 
 /**
  * Lightweight client-side printing: open a new window with a self-contained,
@@ -87,7 +88,7 @@ export function printConsent(consent: PatientConsent, patient: Patient) {
       <h2>Agreement</h2>
       <div class="block"><span class="label">Status:</span> ${consent.isAgreed ? 'Agreed' : 'Pending / Revoked'}</div>
       <div class="block"><span class="label">Signed by:</span> ${escapeHtml(consent.signedByName)} (${escapeHtml(consent.signedByType)})</div>
-      <div class="block"><span class="label">Date:</span> ${consent.agreedAt ? new Date(consent.agreedAt).toLocaleString() : 'N/A'}</div>
+      <div class="block"><span class="label">Date:</span> ${consent.agreedAt ? formatDateTime(consent.agreedAt) : 'N/A'}</div>
       ${sig}
     `,
   )

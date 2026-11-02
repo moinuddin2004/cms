@@ -38,6 +38,12 @@ import { useLocationSlotDuration } from '@/features/appointments/hooks/useLocati
 import { fetchAppointmentById } from '@/features/appointments/services/appointments.api'
 import { usePatientSearch } from '@/features/patients'
 import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import {
+  clinicInputToUtc,
+  formatInClinic,
+  toClinicYmd,
+  ymdToDate,
+} from '@/lib/datetime'
 import { fieldError } from '@/components/forms/fieldError'
 import { appointmentModalSchema } from '@/features/appointments/schemas/appointment.schema'
 import type { AppointmentModalValues } from '@/features/appointments/schemas/appointment.schema'
@@ -121,7 +127,7 @@ export function AppointmentModal() {
     onSubmit: async ({ value }) => {
       const payload = {
         ...(value as AppointmentFormData),
-        startTime: new Date(value.startTime).toISOString(),
+        startTime: clinicInputToUtc(value.startTime),
       }
       try {
         if (isEditing && selectedAppointmentId) {
@@ -145,7 +151,7 @@ export function AppointmentModal() {
           toast.success('Appointment updated successfully')
         } else {
           await createMutation.mutateAsync(payload)
-          setSelectedDate(new Date(payload.startTime))
+          setSelectedDate(ymdToDate(toClinicYmd(payload.startTime)))
           toast.success('Appointment created successfully')
         }
         closeModal()
@@ -177,7 +183,7 @@ export function AppointmentModal() {
           setWatchedStartTime(startTime)
           setWatchedDuration(appt.durationMinutes)
           setOriginal({
-            startTime: new Date(startTime).toISOString(),
+            startTime: clinicInputToUtc(startTime),
             duration: appt.durationMinutes,
           })
           if (appt.patient) {
@@ -240,7 +246,7 @@ export function AppointmentModal() {
       validateMutation.mutate(
         {
           doctorId: watchedDoctorId,
-          startTime: new Date(watchedStartTime).toISOString(),
+          startTime: clinicInputToUtc(watchedStartTime),
           duration: watchedDuration,
           excludeAppointmentId: selectedAppointmentId || undefined,
         },
@@ -456,12 +462,7 @@ export function AppointmentModal() {
                       >
                         <Lightbulb className="w-3.5 h-3.5" />
                         Suggested:{' '}
-                        {new Date(
-                          validation.suggestedStartTime,
-                        ).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatInClinic(validation.suggestedStartTime, 'hh:mm a')}
                         <span className="underline ml-1">Apply</span>
                       </button>
                     )}

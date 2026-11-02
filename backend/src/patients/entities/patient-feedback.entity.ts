@@ -73,6 +73,6 @@ export class PatientFeedback {
   @Column({ name: 'responded_at', type: 'timestamptz', nullable: true })
   respondedAt: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

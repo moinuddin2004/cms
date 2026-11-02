@@ -1,6 +1,6 @@
-import { format } from 'date-fns'
 import { History } from 'lucide-react'
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
+import { formatInClinic } from '@/lib/datetime'
 import { formatValue } from '../lib/diff'
 import type { TimelineEntry } from '../types'
 
@@ -64,7 +64,7 @@ export function StudioActivity({
               </p>
             ))}
             <p className="mt-1 text-xs text-text-3">
-              {format(new Date(entry.createdAt), 'd MMM yyyy, h:mm a')} ·{' '}
+              {formatInClinic(entry.createdAt, 'd MMM yyyy, h:mm a')} ·{' '}
               {entry.actor?.name ?? 'System'}
             </p>
           </li>

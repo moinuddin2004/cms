@@ -39,6 +39,7 @@ import {
   DateBlock,
   HistorySearch,
 } from './history/HistoryParts'
+import { formatDate } from '@/lib/datetime'
 
 type When = 'all' | 'upcoming' | 'past'
 
@@ -97,9 +98,7 @@ export function AppointmentsTab({ patient }: { patient: Patient }) {
         accessorFn: (r) => r.at.getTime(),
         cell: ({ row }) => (
           <div>
-            <p className="text-sm font-medium">
-              {row.original.at.toLocaleDateString([], { dateStyle: 'medium' })}
-            </p>
+            <p className="text-sm font-medium">{formatDate(row.original.at)}</p>
             <p className="text-xs text-muted-foreground">
               {row.original.timeLabel}
             </p>

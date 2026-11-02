@@ -1,3 +1,5 @@
+import { localDate } from 'src/common/clock/tz.util';
+import { ClockService } from 'src/common/clock/clock.service';
 import {
   Injectable,
   ConflictException,
@@ -121,6 +123,7 @@ export class PatientsService {
     private readonly logger: AppLogger,
     private readonly dataSource: DataSource,
     private readonly audit: AuditService,
+    private readonly clock: ClockService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -273,6 +276,8 @@ export class PatientsService {
     organizationId: string,
     query: PatientQueryDto,
     access: AccessContext,
+    /** Active location's timezone — "Registered on" is the clinic's date. */
+    tz: string,
   ): Promise<{ csv: string; rows: number; truncated: boolean }> {
     const patients = await this.listQuery(organizationId, query, access)
       .take(EXPORT_MAX_ROWS + 1)
@@ -304,7 +309,7 @@ export class PatientsService {
         p.city,
         p.source,
         p.isActive ? 'yes' : 'no',
-        p.createdAt.toISOString().slice(0, 10),
+        localDate(tz, p.createdAt),
       ]
         .map(csvCell)
         .join(','),
@@ -647,12 +652,17 @@ export class PatientsService {
   ) {
     await this.getPatientOrFail(patientId, ctx.organizationId);
     const prescriptionNumber = await this.generateRxNumber(ctx.organizationId);
+    // The clinic's day — the column's CURRENT_DATE default is the DB's (UTC).
+    const today = this.clock.today(
+      await this.clock.timezoneFor(ctx.locationId),
+    );
 
     const rx = this.prescriptionRepo.create({
       ...dto,
       patientId,
       locationId: ctx.locationId,
       organizationId: ctx.organizationId,
+      prescriptionDate: new Date(`${today}T00:00:00Z`),
       prescriptionNumber,
       followUpDate: dto.followUpDate ? new Date(dto.followUpDate) : null,
     });

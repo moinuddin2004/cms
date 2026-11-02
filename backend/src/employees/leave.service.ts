@@ -15,6 +15,7 @@ import {
 } from './dto/update-leave.dto';
 import { LeaveStatus, LeaveType } from './enums/employee.enums';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { ClockService } from 'src/common/clock/clock.service';
 
 export interface LeaveBalance {
   year: number;
@@ -30,6 +31,7 @@ export class LeaveService {
     private readonly leaveRepo: Repository<EmployeeLeave>,
     @InjectRepository(EmployeeOrgLocationAssignment)
     private readonly assignmentRepo: Repository<EmployeeOrgLocationAssignment>,
+    private readonly clock: ClockService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -260,7 +262,10 @@ export class LeaveService {
   ): Promise<LeaveBalance> {
     await this.verifyAssignment(employeeId, ctx);
 
-    const year = new Date().getFullYear();
+    // The clinic's (location) year, not the server's.
+    const year = Number(
+      this.clock.today(await this.clock.timezoneFor(ctx.locationId)).slice(0, 4),
+    );
     const yearStart = `${year}-01-01`;
     const yearEnd = `${year}-12-31`;
 

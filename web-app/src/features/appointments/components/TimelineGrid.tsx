@@ -10,6 +10,7 @@ import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { clinicDate, dateToYmd, nowInClinic, todayYmd } from '@/lib/datetime'
 
 interface TimelineGridProps {
   appointments: Appointment[]
@@ -36,9 +37,9 @@ export function TimelineGrid({
     return map
   }, [appointments, doctors])
 
-  // Current time indicator
-  const now = new Date()
-  const isToday = selectedDate.toDateString() === now.toDateString()
+  // Current time indicator — on the clinic's clock
+  const now = nowInClinic()
+  const isToday = dateToYmd(selectedDate) === todayYmd()
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const firstHour = HOURS[0]
   const nowOffset = (nowMinutes - firstHour * 60) * MINUTE_HEIGHT
@@ -57,6 +58,7 @@ export function TimelineGrid({
     const hour = Math.floor(snappedMinutes / 60)
     const minute = snappedMinutes % 60
 
+    // Cell date from local fields = clinic wall time (see toDateTimeLocalValue).
     const clickDate = new Date(selectedDate)
     clickDate.setHours(hour, minute, 0, 0)
 
@@ -157,7 +159,7 @@ export function TimelineGrid({
 
             {/* Appointments */}
             {(appointmentsByDoctor.get(doc.id) || []).map((appt) => {
-              const apptStart = new Date(appt.startTime)
+              const apptStart = clinicDate(appt.startTime)
               const apptMinutesFromTop =
                 (apptStart.getHours() * 60 +
                   apptStart.getMinutes() -

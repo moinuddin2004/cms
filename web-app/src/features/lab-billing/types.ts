@@ -1,11 +1,7 @@
-// Lab billing (lab ERD §6a). Money is always integer paisa.
+// Lab billing (lab ERD §6a). Money is always integer minor units.
 
 export type LabInvoiceStatus =
-  | 'draft'
-  | 'issued'
-  | 'partially_paid'
-  | 'paid'
-  | 'void'
+  'draft' | 'issued' | 'partially_paid' | 'paid' | 'void'
 export type LabPaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'wallet'
 export type LabLineKind = 'lab_item' | 'lab_charge' | 'manual'
 
@@ -32,26 +28,26 @@ export interface LabInvoiceRow {
   order: { id: string; orderNo: string | null } | null
   issuedOn: string | null
   dueOn: string | null
-  subtotalPaisa: number
-  discountPaisa: number
-  taxPaisa: number
-  totalPaisa: number
-  creditedPaisa: number
-  paidPaisa: number
-  balancePaisa: number
+  subtotalMinor: number
+  discountMinor: number
+  taxMinor: number
+  totalMinor: number
+  creditedMinor: number
+  paidMinor: number
+  balanceMinor: number
   createdAt: string
   version: number
 }
 
 export interface PatientBillingSummary {
   patientId: string
-  invoicedPaisa: number
-  creditedPaisa: number
-  paidPaisa: number
-  receivablePaisa: number
-  collectedPaisa: number
-  refundedPaisa: number
-  advancePaisa: number
+  invoicedMinor: number
+  creditedMinor: number
+  paidMinor: number
+  receivableMinor: number
+  collectedMinor: number
+  refundedMinor: number
+  advanceMinor: number
 }
 
 export interface LabInvoiceLine {
@@ -62,11 +58,11 @@ export interface LabInvoiceLine {
   chargeRequestId: string | null
   description: string
   quantity: number
-  unitPricePaisa: number
-  discountPaisa: number
+  unitPriceMinor: number
+  discountMinor: number
   taxRateBp: number
-  taxPaisa: number
-  lineTotalPaisa: number
+  taxMinor: number
+  lineTotalMinor: number
   doctor: { id: string; fullName: string } | null
 }
 
@@ -77,7 +73,7 @@ export interface LabAllocation {
   method: LabPaymentMethod
   receivedAt: string
   paymentStatus: 'posted' | 'reversed'
-  amountPaisa: number
+  amountMinor: number
   createdAt: string
   reversedAt: string | null
   releaseReason: 'payment_reversed' | 'credit_note' | null
@@ -86,9 +82,9 @@ export interface LabAllocation {
 export interface LabCreditNote {
   id: string
   creditNoteNo: string
-  amountPaisa: number
-  releasedPaisa: number
-  refundedPaisa: number
+  amountMinor: number
+  releasedMinor: number
+  refundedMinor: number
   status: 'issued' | 'applied' | 'refunded'
   reason: string
   createdAt: string
@@ -116,7 +112,7 @@ export interface LabInvoiceDetail extends LabInvoiceRow {
   refunds: Array<{
     id: string
     refundNo: string
-    amountPaisa: number
+    amountMinor: number
     method: LabPaymentMethod
     refundedAt: string
     creditNoteId: string | null
@@ -129,7 +125,7 @@ export interface LabPaymentRow {
   id: string
   receiptNo: string
   patient: PatientRef
-  amountPaisa: number
+  amountMinor: number
   method: LabPaymentMethod
   reference: string | null
   notes: string | null
@@ -141,9 +137,9 @@ export interface LabPaymentRow {
   reversalOf: { id: string; receiptNo: string } | null
   reversedBy: { id: string; receiptNo: string } | null
   reason: string | null
-  allocatedPaisa: number
-  refundedPaisa: number
-  advancePaisa: number
+  allocatedMinor: number
+  refundedMinor: number
+  advanceMinor: number
 }
 
 export interface LabPaymentDetail extends LabPaymentRow {
@@ -151,7 +147,7 @@ export interface LabPaymentDetail extends LabPaymentRow {
     id: string
     invoiceId: string
     invoiceNo: string | null
-    amountPaisa: number
+    amountMinor: number
     createdAt: string
     reversedAt: string | null
     releaseReason: string | null
@@ -159,7 +155,7 @@ export interface LabPaymentDetail extends LabPaymentRow {
   refunds: Array<{
     id: string
     refundNo: string
-    amountPaisa: number
+    amountMinor: number
     refundedAt: string
   }>
 }
@@ -172,20 +168,20 @@ export interface OrderBilling {
     id: string
     description: string
     quantity: number
-    patientLinePricePaisa: number
+    patientLinePriceMinor: number
     status: string
   }>
   unbilledCharges: Array<{
     id: string
     kind: string
     reason: string
-    amountPaisa: number
+    amountMinor: number
   }>
   totals: {
-    billedPaisa: number
-    creditedPaisa: number
-    paidPaisa: number
-    balancePaisa: number
+    billedMinor: number
+    creditedMinor: number
+    paidMinor: number
+    balanceMinor: number
   }
   patientSummary: PatientBillingSummary
 }
@@ -196,15 +192,15 @@ export interface InvoiceLineInput {
   chargeRequestId?: string
   description?: string
   quantity?: number
-  unitPricePaisa?: number
-  discountPaisa?: number
+  unitPriceMinor?: number
+  discountMinor?: number
 }
 
 export interface InvoiceInput {
   orderId?: string
   patientId?: string
   lines?: InvoiceLineInput[]
-  discountPaisa?: number
+  discountMinor?: number
   taxRateBp?: number
   notes?: string
   issue?: boolean
@@ -212,11 +208,11 @@ export interface InvoiceInput {
 
 export interface PaymentInput {
   patientId: string
-  amountPaisa: number
+  amountMinor: number
   method: LabPaymentMethod
   reference?: string
   notes?: string
-  allocations?: Array<{ invoiceId: string; amountPaisa: number }>
+  allocations?: Array<{ invoiceId: string; amountMinor: number }>
   autoAllocate?: boolean
 }
 

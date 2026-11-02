@@ -8,7 +8,7 @@ import {
   ManyToOne,
   Unique,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { Patient } from 'src/patients/entities/patient.entity';
 import {
@@ -22,7 +22,7 @@ import { LabInvoice } from './lab-invoice.entity';
  * Money received from a patient for lab work (lab ERD §6a). Belongs to the
  * patient, not an invoice (billing v2 D6): the part not allocated or
  * refunded is the patient's advance. Immutable except the cached
- * `allocated_paisa` / `refunded_paisa` and `status`. A wrong payment is
+ * `allocated_minor` / `refunded_minor` and `status`. A wrong payment is
  * never deleted: it is reversed by a mirror row (negative amount,
  * `reversal_of_id`) — at most one per payment.
  */
@@ -32,7 +32,7 @@ import { LabInvoice } from './lab-invoice.entity';
 @Unique('uq_lab_payments_reversal_of', ['reversalOfId'])
 @Check(
   'chk_lab_payments_amounts',
-  `"amount_paisa" <> 0 AND "allocated_paisa" >= 0 AND "refunded_paisa" >= 0 AND ("reversal_of_id" IS NULL) = ("amount_paisa" > 0) AND "allocated_paisa" + "refunded_paisa" <= GREATEST("amount_paisa", 0)`,
+  `"amount_minor" <> 0 AND "allocated_minor" >= 0 AND "refunded_minor" >= 0 AND ("reversal_of_id" IS NULL) = ("amount_minor" > 0) AND "allocated_minor" + "refunded_minor" <= GREATEST("amount_minor", 0)`,
 )
 @Index('idx_lab_payments_patient', ['organizationId', 'patientId'])
 @Index('idx_lab_payments_received', ['organizationId', 'receivedOn'])
@@ -57,8 +57,8 @@ export class LabPayment {
   patientId: string;
 
   /** Negative on a reversal row. */
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({ name: 'currency', type: 'char', length: 3, default: 'PKR' })
   currency: string;
@@ -106,12 +106,12 @@ export class LabPayment {
   reason: string | null;
 
   /** Σ active allocations (cached). */
-  @PaisaColumn('allocated_paisa')
-  allocatedPaisa: number;
+  @MinorColumn('allocated_minor')
+  allocatedMinor: number;
 
   /** Σ refund sources (cached). */
-  @PaisaColumn('refunded_paisa')
-  refundedPaisa: number;
+  @MinorColumn('refunded_minor')
+  refundedMinor: number;
 
   @Column({ name: 'idempotency_key', type: 'varchar', length: 150 })
   idempotencyKey: string;
@@ -126,7 +126,7 @@ export class LabPayment {
  * (lab ERD §10). Inv. 5: Σ active allocations of a payment ≤ its amount.
  */
 @Entity({ name: 'lab_payment_allocations' })
-@Check('chk_lab_payment_allocations_amount', `"amount_paisa" > 0`)
+@Check('chk_lab_payment_allocations_amount', `"amount_minor" > 0`)
 @Index('idx_lab_payment_allocations_payment', ['paymentId'])
 @Index('idx_lab_payment_allocations_invoice', ['invoiceId'])
 export class LabPaymentAllocation {
@@ -150,8 +150,8 @@ export class LabPaymentAllocation {
   @Column({ name: 'invoice_id', type: 'uuid' })
   invoiceId: string;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({ name: 'created_by', type: 'uuid' })
   createdBy: string;

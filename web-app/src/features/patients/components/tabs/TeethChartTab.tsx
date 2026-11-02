@@ -27,6 +27,7 @@ import {
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAccess } from '@/features/access/hooks/useAccess'
 import type { Patient, PatientTeethChart } from '../../types'
+import { formatDate } from '@/lib/datetime'
 
 // FDI two-digit notation, arranged left→right as seen facing the patient.
 const TEETH_UPPER = [
@@ -264,7 +265,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-1">
                       <span className="font-semibold text-primary-text">
-                        {new Date(chart.recordedAt).toLocaleDateString()}
+                        {formatDate(chart.recordedAt)}
                       </span>
                       {chart.isInitialChart && (
                         <Badge
@@ -531,7 +532,7 @@ function ChartViewer({
       <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-md">
-            Chart — {new Date(chart.recordedAt).toLocaleDateString()}
+            Chart — {formatDate(chart.recordedAt)}
           </CardTitle>
           <CardDescription>Read-only snapshot.</CardDescription>
         </div>

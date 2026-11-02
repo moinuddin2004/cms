@@ -31,14 +31,14 @@ export type CommissionSnapshot = Pick<
   | 'performingAssignmentId'
   | 'commissionPlanId'
   | 'commissionRateBps'
-  | 'commissionFixedPaisa'
+  | 'commissionFixedMinor'
 >;
 
 const EMPTY_SNAPSHOT: CommissionSnapshot = {
   performingAssignmentId: null,
   commissionPlanId: null,
   commissionRateBps: null,
-  commissionFixedPaisa: null,
+  commissionFixedMinor: null,
 };
 
 /** Charge sources that come from a doctor's visit and can earn commission. */
@@ -53,14 +53,14 @@ interface ChargeCommissionRow {
   location_id: string;
   assignment_id: string;
   rate_bps: number | null;
-  fixed_paisa: string | null;
+  fixed_minor: string | null;
   basis: CommissionBasis;
   status: string;
-  gross_paisa: string;
-  net_paisa: string;
-  tax_paisa: string;
-  allocated_paisa: string;
-  already_paisa: string;
+  gross_minor: string;
+  net_minor: string;
+  tax_minor: string;
+  allocated_minor: string;
+  already_minor: string;
 }
 
 /**
@@ -128,7 +128,7 @@ export class CommissionService {
         performingAssignmentId: assignment.id,
         commissionPlanId: plan?.id ?? null,
         commissionRateBps: resolved?.rateBps ?? null,
-        commissionFixedPaisa: resolved?.fixedPaisa ?? null,
+        commissionFixedMinor: resolved?.fixedMinor ?? null,
       };
     });
   }
@@ -153,8 +153,8 @@ export class CommissionService {
     const sourceId = source.id ?? randomUUID();
     const entries: CommissionEntryRow[] = [];
     for (const r of rows) {
-      const { collectedPaisa, targetPaisa } = this.targetOf(r);
-      const diff = targetPaisa - Number(r.already_paisa);
+      const { collectedMinor, targetMinor } = this.targetOf(r);
+      const diff = targetMinor - Number(r.already_minor);
       if (diff === 0) continue;
       entries.push({
         organizationId: r.organization_id,
@@ -167,9 +167,9 @@ export class CommissionService {
             ? CommissionSourceType.VOID
             : source.type,
         sourceId,
-        basePaisa: collectedPaisa,
+        baseMinor: collectedMinor,
         rateBps: r.rate_bps,
-        amountPaisa: diff,
+        amountMinor: diff,
       });
     }
     if (!entries.length) return [];
@@ -185,32 +185,32 @@ export class CommissionService {
    */
   async previewForAllocations(
     manager: EntityManager,
-    lines: Array<{ chargeId: string; amountPaisa: number }>,
+    lines: Array<{ chargeId: string; amountMinor: number }>,
     /** Tax shares not saved yet (unbilled charges about to be invoiced). */
     taxOverrides: ReadonlyMap<string, number> = new Map(),
   ): Promise<{
-    totalPaisa: number;
+    totalMinor: number;
     byDoctor: Array<{
       assignmentId: string;
       doctorName: string;
-      amountPaisa: number;
+      amountMinor: number;
     }>;
   }> {
     const added = new Map<string, number>();
     for (const l of lines) {
-      added.set(l.chargeId, (added.get(l.chargeId) ?? 0) + l.amountPaisa);
+      added.set(l.chargeId, (added.get(l.chargeId) ?? 0) + l.amountMinor);
     }
     const rows = await this.loadTargets(manager, [...added.keys()]);
     const byAssignment = new Map<string, number>();
     for (const r of rows) {
-      const { targetPaisa } = this.targetOf({
+      const { targetMinor } = this.targetOf({
         ...r,
-        tax_paisa: String(taxOverrides.get(r.id) ?? r.tax_paisa),
-        allocated_paisa: String(
-          Number(r.allocated_paisa) + (added.get(r.id) ?? 0),
+        tax_minor: String(taxOverrides.get(r.id) ?? r.tax_minor),
+        allocated_minor: String(
+          Number(r.allocated_minor) + (added.get(r.id) ?? 0),
         ),
       });
-      const diff = targetPaisa - Number(r.already_paisa);
+      const diff = targetMinor - Number(r.already_minor);
       byAssignment.set(
         r.assignment_id,
         (byAssignment.get(r.assignment_id) ?? 0) + diff,
@@ -229,51 +229,51 @@ export class CommissionService {
     const byDoctor = ids.map((id) => ({
       assignmentId: id,
       doctorName: nameOf.get(id) ?? '',
-      amountPaisa: byAssignment.get(id) ?? 0,
+      amountMinor: byAssignment.get(id) ?? 0,
     }));
     return {
-      totalPaisa: byDoctor.reduce((a, d) => a + d.amountPaisa, 0),
+      totalMinor: byDoctor.reduce((a, d) => a + d.amountMinor, 0),
       byDoctor,
     };
   }
 
   private targetOf(r: ChargeCommissionRow) {
     return commissionTarget({
-      allocatedPaisa: Number(r.allocated_paisa),
-      netPaisa: r.status === 'VOID' ? 0 : Number(r.net_paisa),
-      taxPaisa: r.status === 'VOID' ? 0 : Number(r.tax_paisa),
-      grossPaisa: Number(r.gross_paisa),
+      allocatedMinor: Number(r.allocated_minor),
+      netMinor: r.status === 'VOID' ? 0 : Number(r.net_minor),
+      taxMinor: r.status === 'VOID' ? 0 : Number(r.tax_minor),
+      grossMinor: Number(r.gross_minor),
       basis: r.basis,
       rateBps: r.rate_bps,
-      fixedPaisa: r.fixed_paisa === null ? null : Number(r.fixed_paisa),
+      fixedMinor: r.fixed_minor === null ? null : Number(r.fixed_minor),
     });
   }
 
-  /** Charges with a snapshot + their allocations and recorded commission, in paisa. */
+  /** Charges with a snapshot + their allocations and recorded commission, in minor units. */
   private loadTargets(
     manager: EntityManager,
     ids: string[],
   ): Promise<ChargeCommissionRow[]> {
-    // numeric(12,2) × 100 → bigint is exact: no float on the way to paisa.
+    // numeric(12,2) × 100 → bigint is exact: no float on the way to minor units.
     return sqlRows<ChargeCommissionRow>(
       manager,
       `SELECT c.id, c.organization_id, c.location_id,
               c.performing_assignment_id AS assignment_id,
               c.commission_rate_bps AS rate_bps,
-              c.commission_fixed_paisa AS fixed_paisa,
+              c.commission_fixed_minor AS fixed_minor,
               p.commission_basis AS basis, c.status,
-              (c.gross_amount * 100)::bigint AS gross_paisa,
-              (c.net_amount * 100)::bigint AS net_paisa,
-              (c.tax_amount * 100)::bigint AS tax_paisa,
+              (c.gross_amount * 100)::bigint AS gross_minor,
+              (c.net_amount * 100)::bigint AS net_minor,
+              (c.tax_amount * 100)::bigint AS tax_minor,
               COALESCE((SELECT (SUM(pa.amount) * 100)::bigint
-                          FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS allocated_paisa,
-              COALESCE((SELECT SUM(ce.amount_paisa)
-                          FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS already_paisa
+                          FROM payment_allocations pa WHERE pa.charge_id = c.id), 0) AS allocated_minor,
+              COALESCE((SELECT SUM(ce.amount_minor)
+                          FROM commission_entries ce WHERE ce.charge_id = c.id), 0) AS already_minor
          FROM charges c
          JOIN compensation_plans p ON p.id = c.commission_plan_id
         WHERE c.id = ANY($1::uuid[])
           AND c.performing_assignment_id IS NOT NULL
-          AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_paisa IS NOT NULL)
+          AND (c.commission_rate_bps IS NOT NULL OR c.commission_fixed_minor IS NOT NULL)
         ORDER BY c.id`,
       [ids],
     );

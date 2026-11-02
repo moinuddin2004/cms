@@ -1,8 +1,8 @@
-import { fromPaisa, lineGross, percentOf, toPaisa } from '../common/money';
+import { fromMinor, lineGross, percentOf, toMinor } from '../common/money';
 import { Charge } from '../entities/charge.entity';
 import { ChargeStatus, DiscountKind } from '../enums/billing.enums';
 import { ResolvedDiscount } from '../discounts/discount-policy';
-import { chargePayablePaisa } from '../tax/invoice-tax';
+import { chargePayableMinor } from '../tax/invoice-tax';
 
 /**
  * In-memory charge arithmetic shared by charge routes and invoice-edit
@@ -16,7 +16,7 @@ import { chargePayablePaisa } from '../tax/invoice-tax';
  */
 export function recalcCharge(charge: Charge): void {
   const gross = lineGross(charge.quantity, charge.unitPrice);
-  let discount = toPaisa(charge.discountAmount);
+  let discount = toMinor(charge.discountAmount);
   if (
     charge.discountKind === DiscountKind.PERCENTAGE &&
     charge.discountValue != null
@@ -24,16 +24,16 @@ export function recalcCharge(charge: Charge): void {
     discount = percentOf(gross, charge.discountValue);
   }
   discount = Math.max(0, Math.min(discount, gross));
-  charge.grossAmount = fromPaisa(gross);
-  charge.discountAmount = fromPaisa(discount);
-  charge.netAmount = fromPaisa(gross - discount);
+  charge.grossAmount = fromMinor(gross);
+  charge.discountAmount = fromMinor(discount);
+  charge.netAmount = fromMinor(gross - discount);
 }
 
 /** Exactly one discount per charge; a new one replaces the old (D8). */
 export function applyDiscount(
   charge: Charge,
   discount: ResolvedDiscount,
-  amountPaisa: number,
+  amountMinor: number,
   actorId: string,
 ): void {
   charge.discountTypeId = discount.typeId;
@@ -44,10 +44,10 @@ export function applyDiscount(
   charge.discountAppliedBy = actorId;
   charge.isCustomDiscount = discount.isCustom;
   const gross = lineGross(charge.quantity, charge.unitPrice);
-  const amount = Math.max(0, Math.min(amountPaisa, gross));
-  charge.grossAmount = fromPaisa(gross);
-  charge.discountAmount = fromPaisa(amount);
-  charge.netAmount = fromPaisa(gross - amount);
+  const amount = Math.max(0, Math.min(amountMinor, gross));
+  charge.grossAmount = fromMinor(gross);
+  charge.discountAmount = fromMinor(amount);
+  charge.netAmount = fromMinor(gross - amount);
 }
 
 export function clearDiscount(charge: Charge): void {
@@ -74,13 +74,13 @@ export function voidCharge(
   charge.voidReason = reason;
 }
 
-/** Charge balance in paisa: net + tax − allocated (VOID = 0). */
-export const chargeBalancePaisa = (
+/** Charge balance in minor units: net + tax − allocated (VOID = 0). */
+export const chargeBalanceMinor = (
   c: Pick<Charge, 'status' | 'netAmount' | 'taxAmount' | 'allocatedAmount'>,
 ): number =>
   c.status === ChargeStatus.VOID
     ? 0
-    : chargePayablePaisa(c) - toPaisa(c.allocatedAmount);
+    : chargePayableMinor(c) - toMinor(c.allocatedAmount);
 
 /** Plain snapshot for audit rows (no relations, no Date objects lost). */
 export function chargeSnapshot(c: Charge): Record<string, unknown> {
@@ -95,6 +95,6 @@ export function chargeSnapshot(c: Charge): Record<string, unknown> {
   delete snapshot.commissionPlan;
   delete snapshot.commissionPlanId;
   delete snapshot.commissionRateBps;
-  delete snapshot.commissionFixedPaisa;
+  delete snapshot.commissionFixedMinor;
   return snapshot;
 }

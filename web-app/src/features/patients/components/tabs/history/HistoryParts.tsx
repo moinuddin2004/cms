@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
+import { formatDateTime, formatInClinic, formatTime } from '@/lib/datetime'
 
 /** Calendar-leaf date block used on appointment and visit cards / sheets. */
 export function DateBlock({
@@ -26,7 +27,7 @@ export function DateBlock({
       )}
     >
       <span className="text-[10px] font-bold uppercase leading-none opacity-70">
-        {date.toLocaleDateString([], { month: 'short' })}
+        {formatInClinic(date, 'MMM')}
       </span>
       <span
         className={cn(
@@ -34,11 +35,11 @@ export function DateBlock({
           size === 'sm' ? 'text-base' : 'text-xl',
         )}
       >
-        {date.getDate()}
+        {formatInClinic(date, 'd')}
       </span>
       {size === 'md' && (
         <span className="text-[10px] leading-none opacity-70">
-          {date.toLocaleDateString([], { weekday: 'short' })}
+          {formatInClinic(date, 'EEE')}
         </span>
       )}
     </div>
@@ -152,10 +153,7 @@ export function Timeline({
           />
           <p className="text-sm font-medium">{s.label}</p>
           <p className="text-xs text-muted-foreground">
-            {new Date(s.at as string).toLocaleString([], {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}
+            {formatDateTime(s.at as string)}
           </p>
         </li>
       ))}
@@ -197,8 +195,7 @@ export function HistorySearch({
   )
 }
 
-export const timeOf = (d: Date) =>
-  d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+export const timeOf = (d: Date) => formatTime(d)
 
 export const num = (v: number | string | null | undefined) =>
   v == null ? 0 : typeof v === 'string' ? parseFloat(v) || 0 : v

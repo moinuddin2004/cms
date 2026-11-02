@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
 import { ShieldAlert, User as UserIcon, Edit, Trash } from 'lucide-react'
-import { format } from 'date-fns'
+import { formatInClinic } from '@/lib/datetime'
 
 interface UserTableProps {
   users: User[]
@@ -102,7 +102,7 @@ export function UserTable({
           const val = getValue<string | null>()
           return (
             <span className="text-sm text-muted-foreground">
-              {val ? format(new Date(val), 'MMM dd, yyyy') : 'N/A'}
+              {val ? formatInClinic(val, 'MMM dd, yyyy') : 'N/A'}
             </span>
           )
         },

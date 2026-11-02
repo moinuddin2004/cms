@@ -5,8 +5,8 @@ import { assertSnapshotWrite, frozenChanges } from './snapshot-freeze';
 const submitted: Partial<LabOrderItem> = {
   statusCode: 'pending_acceptance',
   quantity: 1,
-  labUnitCostPaisa: 500_000,
-  labLineCostPaisa: 500_000,
+  labUnitCostMinor: 500_000,
+  labLineCostMinor: 500_000,
   optionIds: ['o1'],
   serviceNameSnap: 'Crown',
 };
@@ -25,11 +25,11 @@ describe('snapshot freeze (inv. 3)', () => {
     expect(
       frozenChanges(submitted, {
         ...submitted,
-        labLineCostPaisa: 1,
+        labLineCostMinor: 1,
         statusCode: 'accepted',
         currentStageSeq: 2,
       }),
-    ).toEqual(['labLineCostPaisa']);
+    ).toEqual(['labLineCostMinor']);
     expect(
       frozenChanges(submitted, { ...submitted, optionIds: ['o1'] }),
     ).toEqual([]);
@@ -43,7 +43,7 @@ describe('snapshot freeze (inv. 3)', () => {
       code(() =>
         assertSnapshotWrite(
           submitted,
-          { ...submitted, labUnitCostPaisa: 1 },
+          { ...submitted, labUnitCostMinor: 1 },
           undefined,
         ),
       ),
@@ -51,7 +51,7 @@ describe('snapshot freeze (inv. 3)', () => {
   });
 
   it('allows revisions, approved charges, drafts and non-frozen columns', () => {
-    const change = { ...submitted, labLineCostPaisa: 600_000 };
+    const change = { ...submitted, labLineCostMinor: 600_000 };
     expect(
       code(() => assertSnapshotWrite(submitted, change, 'revision')),
     ).toBeNull();

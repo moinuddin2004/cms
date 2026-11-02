@@ -6,15 +6,14 @@ import {
   Loader2,
   PencilLine,
 } from 'lucide-react'
-import { format } from 'date-fns'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
+import { formatInClinic } from '@/lib/datetime'
 import type { VersionRow } from '../types'
 import { DefinitionStatusBadge } from './studio-badges'
 
-const when = (iso: string | null) =>
-  iso ? format(new Date(iso), 'd MMM yyyy, HH:mm') : '—'
+const when = (iso: string | null) => formatInClinic(iso, 'd MMM yyyy, HH:mm')
 
 /**
  * Every version of a form or workflow, newest first: open one in the

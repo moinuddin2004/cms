@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/formatters'
+import { formatInClinic, formatTime } from '@/lib/datetime'
 import {
   type Appointment,
   AppointmentStatus,
@@ -32,18 +33,11 @@ const STATUS_LABELS: Record<AppointmentStatus, string> = {
 }
 
 function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  return formatTime(iso)
 }
 
 function fmtDay(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
+  return formatInClinic(iso, 'EEE, MMM d')
 }
 
 export const RecentAppointmentsCard = memo(function RecentAppointmentsCard({

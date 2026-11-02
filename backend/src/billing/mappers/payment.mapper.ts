@@ -1,4 +1,4 @@
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import { Payment } from '../entities/payment.entity';
 import { Refund } from '../entities/refund.entity';
 import {
@@ -12,8 +12,8 @@ export function toPaymentResponse(
   patient: PatientRef,
   receivedByName: string | null,
 ): PaymentResponse {
-  const refunded = toPaisa(p.refundedAmount);
-  const amount = toPaisa(p.amount);
+  const refunded = toMinor(p.refundedAmount);
+  const amount = toMinor(p.amount);
   return {
     id: p.id,
     receiptNumber: p.receiptNumber,
@@ -29,7 +29,7 @@ export function toPaymentResponse(
     notes: p.notes,
     allocatedAmount: p.allocatedAmount,
     refundedAmount: p.refundedAmount,
-    advance: fromPaisa(amount - toPaisa(p.allocatedAmount) - refunded),
+    advance: fromMinor(amount - toMinor(p.allocatedAmount) - refunded),
     refundStatus:
       refunded === 0 ? 'NONE' : refunded >= amount ? 'FULL' : 'PARTIAL',
   };

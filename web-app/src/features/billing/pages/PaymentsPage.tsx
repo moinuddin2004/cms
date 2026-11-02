@@ -29,6 +29,13 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { ErrorState, PageWrapper } from '@/components/shared'
 import { Can } from '@/features/access'
 import { formatCurrency } from '@/lib/formatters'
+import {
+  dateToYmd,
+  formatDate,
+  formatInClinic,
+  todayYmd,
+  ymdToDate,
+} from '@/lib/datetime'
 import { cn } from '@/lib/utils'
 import {
   useCashCloseHistory,
@@ -55,17 +62,16 @@ import { OptionSelect } from '../components/shared/OptionSelect'
 
 type AccountRow = DailyCollection['accounts'][number]
 const ALL = 'ALL'
-const ymd = (d: Date) => d.toLocaleDateString('en-CA')
 const shift = (day: string, n: number) => {
-  const d = new Date(`${day}T12:00:00`)
+  const d = ymdToDate(day)
   d.setDate(d.getDate() + n)
-  return ymd(d)
+  return dateToYmd(d)
 }
 
 /** Payments — the day's collection per account, receipts and counter closes (Appointments layout). */
 export function PaymentsPage() {
   const navigate = useNavigate()
-  const today = ymd(new Date())
+  const today = todayYmd()
   const [day, setDay] = useState(today)
   const [accountId, setAccountId] = useState(ALL)
   const [page, setPage] = useState(1)
@@ -148,10 +154,7 @@ export function PaymentsPage() {
         header: 'Time',
         cell: ({ row }) => (
           <div className="font-medium">
-            {new Date(row.original.receivedAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatInClinic(row.original.receivedAt, 'hh:mm a')}
             <div className="font-mono text-xs text-muted-foreground">
               {row.original.receiptNumber}
             </div>
@@ -458,21 +461,11 @@ export function CashCloseHistory() {
         header: 'Period',
         cell: ({ row }) => (
           <div className="font-medium">
-            {new Date(row.original.periodEnd).toLocaleDateString([], {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
+            {formatDate(row.original.periodEnd)}
             <div className="text-xs text-muted-foreground">
-              {new Date(row.original.periodStart).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}{' '}
+              {formatInClinic(row.original.periodStart, 'hh:mm a')}{' '}
               –{' '}
-              {new Date(row.original.periodEnd).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
+              {formatInClinic(row.original.periodEnd, 'hh:mm a')}
             </div>
           </div>
         ),

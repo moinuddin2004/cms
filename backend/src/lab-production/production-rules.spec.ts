@@ -7,28 +7,28 @@ import {
 
 describe('remake pricing (lab ERD §10 "Remake decision")', () => {
   const original = {
-    labLineCostPaisa: 800_000,
-    patientLinePricePaisa: 2_500_000,
+    labLineCostMinor: 800_000,
+    patientLinePriceMinor: 2_500_000,
   };
 
   it('lab fault → lab cost and patient price both 0', () => {
     expect(remakeCharges(ResponsibleParty.LAB, original)).toEqual({
-      labPaisa: 0,
-      patientPaisa: 0,
+      labMinor: 0,
+      patientMinor: 0,
     });
   });
 
   it('clinic fault → the clinic pays the lab, the patient pays nothing', () => {
     expect(remakeCharges(ResponsibleParty.CLINIC, original)).toEqual({
-      labPaisa: 800_000,
-      patientPaisa: 0,
+      labMinor: 800_000,
+      patientMinor: 0,
     });
   });
 
   it('patient fault → both charged as originally priced', () => {
     expect(remakeCharges(ResponsibleParty.PATIENT, original)).toEqual({
-      labPaisa: 800_000,
-      patientPaisa: 2_500_000,
+      labMinor: 800_000,
+      patientMinor: 2_500_000,
     });
   });
 

@@ -16,8 +16,8 @@ import { LabInvoicesService } from './lab-invoices.service';
 
 const INVOICE_COLUMNS = `
   i.id, i.invoice_no, i.status, i.order_id, o.order_no, i.issued_on::text AS issued_on,
-  i.due_on::text AS due_on, i.subtotal_paisa, i.discount_paisa, i.tax_paisa, i.total_paisa,
-  i.credited_paisa, i.paid_paisa, i.balance_paisa, i.created_at, i.version,
+  i.due_on::text AS due_on, i.subtotal_minor, i.discount_minor, i.tax_minor, i.total_minor,
+  i.credited_minor, i.paid_minor, i.balance_minor, i.created_at, i.version,
   p.id AS patient_id, p.full_name AS patient_name, p.patient_number`;
 
 interface InvoiceSqlRow {
@@ -28,13 +28,13 @@ interface InvoiceSqlRow {
   order_no: string | null;
   issued_on: string | null;
   due_on: string | null;
-  subtotal_paisa: string;
-  discount_paisa: string;
-  tax_paisa: string;
-  total_paisa: string;
-  credited_paisa: string;
-  paid_paisa: string;
-  balance_paisa: string;
+  subtotal_minor: string;
+  discount_minor: string;
+  tax_minor: string;
+  total_minor: string;
+  credited_minor: string;
+  paid_minor: string;
+  balance_minor: string;
   created_at: Date;
   version: number;
   patient_id: string;
@@ -43,9 +43,9 @@ interface InvoiceSqlRow {
 }
 
 const PAYMENT_COLUMNS = `
-  pm.id, pm.receipt_no, pm.amount_paisa, pm.method, pm.reference, pm.notes, pm.received_at,
+  pm.id, pm.receipt_no, pm.amount_minor, pm.method, pm.reference, pm.notes, pm.received_at,
   pm.received_on::text AS received_on, pm.status, pm.reversal_of_id, pm.reason,
-  pm.allocated_paisa, pm.refunded_paisa, pm.created_at,
+  pm.allocated_minor, pm.refunded_minor, pm.created_at,
   p.id AS patient_id, p.full_name AS patient_name, p.patient_number,
   COALESCE(u.name, u.email) AS received_by_name,
   rv.id AS reversed_by_id, rv.receipt_no AS reversed_by_receipt, orig.receipt_no AS reversal_of_receipt`;
@@ -53,7 +53,7 @@ const PAYMENT_COLUMNS = `
 interface PaymentSqlRow {
   id: string;
   receipt_no: string;
-  amount_paisa: string;
+  amount_minor: string;
   method: string;
   reference: string | null;
   notes: string | null;
@@ -62,8 +62,8 @@ interface PaymentSqlRow {
   status: string;
   reversal_of_id: string | null;
   reason: string | null;
-  allocated_paisa: string;
-  refunded_paisa: string;
+  allocated_minor: string;
+  refunded_minor: string;
   created_at: Date;
   patient_id: string;
   patient_name: string;
@@ -91,7 +91,7 @@ export class LabBillingQueries {
   }
 
   private invoiceRow(r: InvoiceSqlRow, today: string) {
-    const balancePaisa = n(r.balance_paisa);
+    const balanceMinor = n(r.balance_minor);
     return {
       id: r.id,
       invoiceNo: r.invoice_no,
@@ -108,13 +108,13 @@ export class LabBillingQueries {
       order: r.order_id ? { id: r.order_id, orderNo: r.order_no } : null,
       issuedOn: r.issued_on,
       dueOn: r.due_on,
-      subtotalPaisa: n(r.subtotal_paisa),
-      discountPaisa: n(r.discount_paisa),
-      taxPaisa: n(r.tax_paisa),
-      totalPaisa: n(r.total_paisa),
-      creditedPaisa: n(r.credited_paisa),
-      paidPaisa: n(r.paid_paisa),
-      balancePaisa,
+      subtotalMinor: n(r.subtotal_minor),
+      discountMinor: n(r.discount_minor),
+      taxMinor: n(r.tax_minor),
+      totalMinor: n(r.total_minor),
+      creditedMinor: n(r.credited_minor),
+      paidMinor: n(r.paid_minor),
+      balanceMinor,
       createdAt: r.created_at,
       version: r.version,
     };
@@ -133,8 +133,13 @@ export class LabBillingQueries {
     } else if (q.status) add('i.status = ?', q.status);
     if (q.patientId) add('i.patient_id = ?', q.patientId);
     if (q.orderId) add('i.order_id = ?', q.orderId);
-    if (q.from) add('COALESCE(i.issued_on, i.created_at::date) >= ?', q.from);
-    if (q.to) add('COALESCE(i.issued_on, i.created_at::date) <= ?', q.to);
+    if (q.from || q.to) {
+      // Drafts have no issue date: use their creation day in the clinic's tz.
+      params.push(await this.clock.timezoneFor(c.tenant.locationId));
+      const day = `COALESCE(i.issued_on, (i.created_at AT TIME ZONE $${params.length})::date)`;
+      if (q.from) add(`${day} >= ?`, q.from);
+      if (q.to) add(`${day} <= ?`, q.to);
+    }
     if (q.search?.trim())
       add(
         '(i.invoice_no ILIKE ? OR p.full_name ILIKE ? OR p.patient_number ILIKE ? OR o.order_no ILIKE ?)',
@@ -190,8 +195,8 @@ export class LabBillingQueries {
         sqlRows<Record<string, string | number | null>>(
           this.dataSource,
           `SELECT l.id, l.line_no, l.line_kind, l.lab_order_item_id, l.order_charge_request_id,
-                l.description, l.quantity, l.unit_price_paisa, l.discount_paisa, l.tax_rate_bp,
-                l.tax_paisa, l.line_total_paisa, l.doctor_id, e.full_name AS doctor_name
+                l.description, l.quantity, l.unit_price_minor, l.discount_minor, l.tax_rate_bp,
+                l.tax_minor, l.line_total_minor, l.doctor_id, e.full_name AS doctor_name
            FROM lab_invoice_lines l LEFT JOIN employees e ON e.id = l.doctor_id
           WHERE l.invoice_id = $1 ORDER BY l.line_no`,
           [id],
@@ -199,20 +204,20 @@ export class LabBillingQueries {
         sqlRows<Record<string, string | Date | null>>(
           this.dataSource,
           `SELECT a.id, a.payment_id, pm.receipt_no, pm.method, pm.received_at, pm.status AS payment_status,
-                a.amount_paisa, a.created_at, a.reversed_at, a.release_reason
+                a.amount_minor, a.created_at, a.reversed_at, a.release_reason
            FROM lab_payment_allocations a JOIN lab_payments pm ON pm.id = a.payment_id
           WHERE a.invoice_id = $1 ORDER BY a.created_at, a.id`,
           [id],
         ),
         sqlRows<Record<string, string | Date>>(
           this.dataSource,
-          `SELECT id, credit_note_no, amount_paisa, released_paisa, refunded_paisa, status, reason, created_at
+          `SELECT id, credit_note_no, amount_minor, released_minor, refunded_minor, status, reason, created_at
            FROM lab_credit_notes WHERE invoice_id = $1 ORDER BY created_at`,
           [id],
         ),
         sqlRows<Record<string, string | Date | null>>(
           this.dataSource,
-          `SELECT r.id, r.refund_no, r.amount_paisa, r.method, r.refunded_at, r.credit_note_id
+          `SELECT r.id, r.refund_no, r.amount_minor, r.method, r.refunded_at, r.credit_note_id
            FROM lab_refunds r JOIN lab_credit_notes c ON c.id = r.credit_note_id
           WHERE c.invoice_id = $1 ORDER BY r.refunded_at`,
           [id],
@@ -239,11 +244,11 @@ export class LabBillingQueries {
         chargeRequestId: l.order_charge_request_id,
         description: l.description,
         quantity: l.quantity,
-        unitPricePaisa: n(l.unit_price_paisa),
-        discountPaisa: n(l.discount_paisa),
+        unitPriceMinor: n(l.unit_price_minor),
+        discountMinor: n(l.discount_minor),
         taxRateBp: l.tax_rate_bp,
-        taxPaisa: n(l.tax_paisa),
-        lineTotalPaisa: n(l.line_total_paisa),
+        taxMinor: n(l.tax_minor),
+        lineTotalMinor: n(l.line_total_minor),
         doctor: l.doctor_id
           ? { id: l.doctor_id, fullName: l.doctor_name }
           : null,
@@ -255,7 +260,7 @@ export class LabBillingQueries {
         method: a.method,
         receivedAt: a.received_at,
         paymentStatus: a.payment_status,
-        amountPaisa: n(a.amount_paisa as string),
+        amountMinor: n(a.amount_minor as string),
         createdAt: a.created_at,
         reversedAt: a.reversed_at,
         releaseReason: a.release_reason,
@@ -263,9 +268,9 @@ export class LabBillingQueries {
       creditNotes: creditNotes.map((x) => ({
         id: x.id,
         creditNoteNo: x.credit_note_no,
-        amountPaisa: n(x.amount_paisa as string),
-        releasedPaisa: n(x.released_paisa as string),
-        refundedPaisa: n(x.refunded_paisa as string),
+        amountMinor: n(x.amount_minor as string),
+        releasedMinor: n(x.released_minor as string),
+        refundedMinor: n(x.refunded_minor as string),
         status: x.status,
         reason: x.reason,
         createdAt: x.created_at,
@@ -273,7 +278,7 @@ export class LabBillingQueries {
       refunds: refunds.map((x) => ({
         id: x.id,
         refundNo: x.refund_no,
-        amountPaisa: n(x.amount_paisa as string),
+        amountMinor: n(x.amount_minor as string),
         method: x.method,
         refundedAt: x.refunded_at,
         creditNoteId: x.credit_note_id,
@@ -288,30 +293,30 @@ export class LabBillingQueries {
     const org = c.tenant.organizationId;
     const [inv] = await sqlRows<Record<string, string>>(
       this.dataSource,
-      `SELECT COALESCE(SUM(total_paisa), 0) AS invoiced, COALESCE(SUM(credited_paisa), 0) AS credited,
-              COALESCE(SUM(paid_paisa), 0) AS paid, COALESCE(SUM(balance_paisa), 0) AS balance
+      `SELECT COALESCE(SUM(total_minor), 0) AS invoiced, COALESCE(SUM(credited_minor), 0) AS credited,
+              COALESCE(SUM(paid_minor), 0) AS paid, COALESCE(SUM(balance_minor), 0) AS balance
          FROM lab_invoices
         WHERE organization_id = $1 AND patient_id = $2 AND status NOT IN ('draft', 'void')`,
       [org, patientId],
     );
     const [pay] = await sqlRows<Record<string, string>>(
       this.dataSource,
-      `SELECT COALESCE(SUM(amount_paisa) FILTER (WHERE status = 'posted' AND amount_paisa > 0), 0) AS collected,
-              COALESCE(SUM(amount_paisa - allocated_paisa - refunded_paisa)
-                       FILTER (WHERE status = 'posted' AND amount_paisa > 0), 0) AS advance,
-              COALESCE(SUM(refunded_paisa), 0) AS refunded
+      `SELECT COALESCE(SUM(amount_minor) FILTER (WHERE status = 'posted' AND amount_minor > 0), 0) AS collected,
+              COALESCE(SUM(amount_minor - allocated_minor - refunded_minor)
+                       FILTER (WHERE status = 'posted' AND amount_minor > 0), 0) AS advance,
+              COALESCE(SUM(refunded_minor), 0) AS refunded
          FROM lab_payments WHERE organization_id = $1 AND patient_id = $2`,
       [org, patientId],
     );
     return {
       patientId,
-      invoicedPaisa: n(inv.invoiced),
-      creditedPaisa: n(inv.credited),
-      paidPaisa: n(inv.paid),
-      receivablePaisa: n(inv.balance),
-      collectedPaisa: n(pay.collected),
-      refundedPaisa: n(pay.refunded),
-      advancePaisa: n(pay.advance),
+      invoicedMinor: n(inv.invoiced),
+      creditedMinor: n(inv.credited),
+      paidMinor: n(inv.paid),
+      receivableMinor: n(inv.balance),
+      collectedMinor: n(pay.collected),
+      refundedMinor: n(pay.refunded),
+      advanceMinor: n(pay.advance),
     };
   }
 
@@ -353,7 +358,7 @@ export class LabBillingQueries {
           description:
             i.service_name_snap + (i.teeth ? ` — teeth ${i.teeth}` : ''),
           quantity: i.quantity,
-          patientLinePricePaisa: n(i.patient_line_price_paisa),
+          patientLinePriceMinor: n(i.patient_line_price_minor),
           status: i.status_code,
         })),
       unbilledCharges: charges
@@ -362,22 +367,22 @@ export class LabBillingQueries {
           id: x.id,
           kind: x.kind,
           reason: x.reason,
-          amountPaisa: n(x.amount_paisa),
+          amountMinor: n(x.amount_minor),
         })),
       totals: {
-        billedPaisa: live.reduce((s, i) => s + i.totalPaisa, 0),
-        creditedPaisa: live.reduce((s, i) => s + i.creditedPaisa, 0),
-        paidPaisa: live.reduce((s, i) => s + i.paidPaisa, 0),
-        balancePaisa: live.reduce((s, i) => s + i.balancePaisa, 0),
+        billedMinor: live.reduce((s, i) => s + i.totalMinor, 0),
+        creditedMinor: live.reduce((s, i) => s + i.creditedMinor, 0),
+        paidMinor: live.reduce((s, i) => s + i.paidMinor, 0),
+        balanceMinor: live.reduce((s, i) => s + i.balanceMinor, 0),
       },
       patientSummary: summary,
     };
   }
 
   private paymentRow(r: PaymentSqlRow) {
-    const amount = n(r.amount_paisa);
-    const allocated = n(r.allocated_paisa);
-    const refunded = n(r.refunded_paisa);
+    const amount = n(r.amount_minor);
+    const allocated = n(r.allocated_minor);
+    const refunded = n(r.refunded_minor);
     return {
       id: r.id,
       receiptNo: r.receipt_no,
@@ -386,7 +391,7 @@ export class LabBillingQueries {
         fullName: r.patient_name,
         patientNumber: r.patient_number,
       },
-      amountPaisa: amount,
+      amountMinor: amount,
       method: r.method,
       reference: r.reference,
       notes: r.notes,
@@ -402,9 +407,9 @@ export class LabBillingQueries {
         ? { id: r.reversed_by_id, receiptNo: r.reversed_by_receipt }
         : null,
       reason: r.reason,
-      allocatedPaisa: allocated,
-      refundedPaisa: refunded,
-      advancePaisa:
+      allocatedMinor: allocated,
+      refundedMinor: refunded,
+      advanceMinor:
         r.status === 'posted' && amount > 0 ? amount - allocated - refunded : 0,
     };
   }
@@ -467,14 +472,14 @@ export class LabBillingQueries {
     const [allocations, refunds] = await Promise.all([
       sqlRows<Record<string, string | Date | null>>(
         this.dataSource,
-        `SELECT a.id, a.invoice_id, i.invoice_no, a.amount_paisa, a.created_at, a.reversed_at, a.release_reason
+        `SELECT a.id, a.invoice_id, i.invoice_no, a.amount_minor, a.created_at, a.reversed_at, a.release_reason
            FROM lab_payment_allocations a JOIN lab_invoices i ON i.id = a.invoice_id
           WHERE a.payment_id = $1 ORDER BY a.created_at, a.id`,
         [id],
       ),
       sqlRows<Record<string, string | Date>>(
         this.dataSource,
-        `SELECT r.id, r.refund_no, s.amount_paisa, r.refunded_at
+        `SELECT r.id, r.refund_no, s.amount_minor, r.refunded_at
            FROM lab_refund_sources s JOIN lab_refunds r ON r.id = s.refund_id
           WHERE s.payment_id = $1 ORDER BY r.refunded_at`,
         [id],
@@ -486,7 +491,7 @@ export class LabBillingQueries {
         id: a.id,
         invoiceId: a.invoice_id,
         invoiceNo: a.invoice_no,
-        amountPaisa: n(a.amount_paisa as string),
+        amountMinor: n(a.amount_minor as string),
         createdAt: a.created_at,
         reversedAt: a.reversed_at,
         releaseReason: a.release_reason,
@@ -494,7 +499,7 @@ export class LabBillingQueries {
       refunds: refunds.map((x) => ({
         id: x.id,
         refundNo: x.refund_no,
-        amountPaisa: n(x.amount_paisa as string),
+        amountMinor: n(x.amount_minor as string),
         refundedAt: x.refunded_at,
       })),
     };

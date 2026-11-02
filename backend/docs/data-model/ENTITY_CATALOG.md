@@ -984,9 +984,9 @@ Foreign keys (enforced):
 | `year` | year | integer | no |  |  |  |
 | `period_label` | periodLabel | character varying(50) | no |  |  |  |
 | `salary_amount` | salaryAmount | numeric(10,2) | no |  |  |  |
-| `base_salary_paisa` | baseSalaryPaisa | bigint | no | '0' |  | Breakdown in integer paisa. total = base salary + commission; the rupee `salaryAmount` above mirrors total for older screens. |
-| `commission_paisa` | commissionPaisa | bigint | no | '0' |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  |  |
+| `base_salary_minor` | baseSalaryMinor | bigint | no | '0' |  | Breakdown in integer paisa. total = base salary + commission; the rupee `salaryAmount` above mirrors total for older screens. |
+| `commission_minor` | commissionMinor | bigint | no | '0' |  |  |
+| `total_minor` | totalMinor | bigint | no | '0' |  |  |
 | `status` | status | enum(pending, paid, on_hold) | no | 'pending' |  |  |
 | `paid_at` | paidAt | timestamp with time zone | yes |  |  |  |
 | `payment_method` | paymentMethod | enum(cash, bank_transfer, cheque) | yes |  |  |  |
@@ -3075,7 +3075,7 @@ Logical references (no FK):
 | `performing_assignment_id` | performingAssignmentId | uuid | yes |  | FK→`employee_org_location_assignments` |  |
 | `commission_plan_id` | commissionPlanId | uuid | yes |  | FK→`compensation_plans` |  |
 | `commission_rate_bps` | commissionRateBps | integer | yes |  |  |  |
-| `commission_fixed_paisa` | commissionFixedPaisa | bigint | yes |  |  |  |
+| `commission_fixed_minor` | commissionFixedMinor | bigint | yes |  |  |  |
 | `service_kind` | serviceKind | enum(CONSULTATION, PROCEDURE, OTHER) | no | 'OTHER' |  | Snapshot; MANUAL "Other" charges count as OTHER for discount rules. |
 | `description` | description | character varying(200) | no |  |  |  |
 | `quantity` | quantity | integer | no | '1' |  |  |
@@ -3139,7 +3139,7 @@ Logical references (no FK):
 <a id="commission-entries"></a>
 #### `CommissionEntry` → `commission_entries`
 
-> Append-only commission ledger (signed paisa). For each charge, SUM(amount_paisa) always equals the commission target for what has been collected on it; every change inserts only the difference. Amounts are never updated and rows are never deleted (a trigger enforces it); only `settlement_id` is set…
+> Append-only commission ledger (signed paisa). For each charge, SUM(amount_minor) always equals the commission target for what has been collected on it; every change inserts only the difference. Amounts are never updated and rows are never deleted (a trigger enforces it); only `settlement_id` is set…
 
 - **File:** `src/billing/commissions/entities/commission-entry.entity.ts`
 - **PK:** `id` (uuid, generated: uuid)
@@ -3157,9 +3157,9 @@ Logical references (no FK):
 | `lab_invoice_line_id` | labInvoiceLineId | uuid | yes |  | FK→`lab_invoice_lines` |  |
 | `source_type` | sourceType | enum(ALLOCATION, UNAPPLY, CHARGE_ADJUST, VOID, MANUAL) | no |  |  |  |
 | `source_id` | sourceId | uuid | no |  | L | The payment (new money) or the operation id that caused the entry. |
-| `base_paisa` | basePaisa | bigint | no | '0' |  | Collected on the charge (capped at net) when the entry was written. |
+| `base_minor` | baseMinor | bigint | no | '0' |  | Collected on the charge (capped at net) when the entry was written. |
 | `rate_bps` | rateBps | integer | yes |  |  |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  | Signed: negative reverses earlier commission. |
+| `amount_minor` | amountMinor | bigint | no | '0' |  | Signed: negative reverses earlier commission. |
 | `settlement_id` | settlementId | uuid | yes |  | FK→`commission_settlements` |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 
@@ -3207,7 +3207,7 @@ Logical references (no FK):
 | `service_id` | serviceId | uuid | yes |  | FK→`services` |  |
 | `service_category` | serviceCategory | enum(CONSULTATION, PROCEDURE, OTHER) | yes |  |  |  |
 | `rate_bps` | rateBps | integer | yes |  |  |  |
-| `fixed_amount_paisa` | fixedAmountPaisa | bigint | yes |  |  |  |
+| `fixed_amount_minor` | fixedAmountMinor | bigint | yes |  |  |  |
 
 Indexes and unique constraints:
 
@@ -3217,9 +3217,9 @@ Indexes and unique constraints:
 Constraints:
 
 - CHECK `chk_commission_rules_target`: `("service_id" IS NULL) <> ("service_category" IS NULL)`
-- CHECK `chk_commission_rules_fixed`: `"fixed_amount_paisa" IS NULL OR "fixed_amount_paisa" >= 0`
+- CHECK `chk_commission_rules_fixed`: `"fixed_amount_minor" IS NULL OR "fixed_amount_minor" >= 0`
 - CHECK `chk_commission_rules_rate`: `"rate_bps" IS NULL OR "rate_bps" BETWEEN 0 AND 10000`
-- CHECK `chk_commission_rules_amount`: `("rate_bps" IS NULL) <> ("fixed_amount_paisa" IS NULL)`
+- CHECK `chk_commission_rules_amount`: `("rate_bps" IS NULL) <> ("fixed_amount_minor" IS NULL)`
 
 Foreign keys (enforced):
 
@@ -3245,7 +3245,7 @@ Foreign keys (enforced):
 | `assignment_id` | assignmentId | uuid | no |  | FK→`employee_org_location_assignments` |  |
 | `period_start` | periodStart | date | no |  |  |  |
 | `period_end` | periodEnd | date | no |  |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  | Signed: a period with only reversals can be negative. |
+| `total_minor` | totalMinor | bigint | no | '0' |  | Signed: a period with only reversals can be negative. |
 | `status` | status | enum(PENDING, PAID) | no | 'PENDING' |  |  |
 | `payroll_record_id` | payrollRecordId | uuid | yes |  | FK→`payroll_records` UQ |  |
 | `paid_at` | paidAt | timestamp with time zone | yes |  |  |  |
@@ -3285,7 +3285,7 @@ Logical references (no FK):
 | `organization_id` | organizationId | uuid | no |  | L |  |
 | `assignment_id` | assignmentId | uuid | no |  | FK→`employee_org_location_assignments` |  |
 | `type` | type | enum(SALARY, COMMISSION, SALARY_PLUS_COMMISSION) | no |  |  |  |
-| `base_salary_paisa` | baseSalaryPaisa | bigint | yes |  |  |  |
+| `base_salary_minor` | baseSalaryMinor | bigint | yes |  |  |  |
 | `default_rate_bps` | defaultRateBps | integer | yes |  |  | Basis points: 4000 = 40.00%. |
 | `commission_basis` | commissionBasis | enum(NET, GROSS) | no | 'NET' |  |  |
 | `effective_from` | effectiveFrom | date | no |  |  |  |
@@ -3300,9 +3300,9 @@ Indexes and unique constraints:
 Constraints:
 
 - CHECK `chk_compensation_plans_dates`: `"effective_to" IS NULL OR "effective_to" >= "effective_from"`
-- CHECK `chk_compensation_plans_salary`: `"base_salary_paisa" IS NULL OR "base_salary_paisa" >= 0`
+- CHECK `chk_compensation_plans_salary`: `"base_salary_minor" IS NULL OR "base_salary_minor" >= 0`
 - CHECK `chk_compensation_plans_rate`: `"default_rate_bps" IS NULL OR "default_rate_bps" BETWEEN 0 AND 10000`
-- CHECK `chk_compensation_plans_fields`: `("type" = 'SALARY' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NULL) OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_paisa" IS NULL) OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NOT NULL)`
+- CHECK `chk_compensation_plans_fields`: `("type" = 'SALARY' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NULL) OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_minor" IS NULL) OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NOT NULL)`
 - EXCLUDE `excl_compensation_plans_overlap`: `USING gist ("assignment_id" WITH =, daterange("effective_from", "effective_to", '[]') WITH &&)`
 
 Foreign keys (enforced):
@@ -3575,8 +3575,8 @@ Logical references (no FK):
 | `organization_id` | organizationId | uuid | no |  | L |  |
 | `location_id` | locationId | uuid | yes |  | L |  |
 | `account_code` | accountCode | character varying(40) | no |  |  |  |
-| `debit_paisa` | debitPaisa | bigint | no | '0' |  |  |
-| `credit_paisa` | creditPaisa | bigint | no | '0' |  |  |
+| `debit_minor` | debitMinor | bigint | no | '0' |  |  |
+| `credit_minor` | creditMinor | bigint | no | '0' |  |  |
 | `patient_id` | patientId | uuid | yes |  | L |  |
 | `lab_id` | labId | uuid | yes |  | L |  |
 | `doctor_id` | doctorId | uuid | yes |  | L |  |
@@ -3590,7 +3590,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_ledger_journal_lines_side`: `("debit_paisa" > 0 AND "credit_paisa" = 0) OR ("credit_paisa" > 0 AND "debit_paisa" = 0)`
+- CHECK `chk_ledger_journal_lines_side`: `("debit_minor" > 0 AND "credit_minor" = 0) OR ("credit_minor" > 0 AND "debit_minor" = 0)`
 
 Foreign keys (enforced):
 
@@ -3626,7 +3626,7 @@ Logical references (no FK):
 | `source_id` | sourceId | uuid | no |  | L |  |
 | `reversal_of_id` | reversalOfId | uuid | yes |  | L |  |
 | `memo` | memo | character varying(200) | no |  |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  | Σ debit = Σ credit of the lines. |
+| `total_minor` | totalMinor | bigint | no | '0' |  | Σ debit = Σ credit of the lines. |
 | `created_by` | createdBy | uuid | yes |  | L |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 
@@ -4932,7 +4932,7 @@ Logical references (no FK):
 | `option_type` | optionType | enum(material, variant) | no |  |  |  |
 | `code` | code | character varying(50) | no |  |  |  |
 | `name` | name | character varying(150) | no |  |  |  |
-| `extra_cost_paisa` | extraCostPaisa | bigint | no | '0' |  |  |
+| `extra_cost_minor` | extraCostMinor | bigint | no | '0' |  |  |
 | `sort_order` | sortOrder | integer | no | '0' |  |  |
 | `is_active` | isActive | boolean | no | true |  |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
@@ -4947,7 +4947,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_service_options_cost`: `"extra_cost_paisa" >= 0`
+- CHECK `chk_lab_service_options_cost`: `"extra_cost_minor" >= 0`
 
 Foreign keys (enforced):
 
@@ -4974,8 +4974,8 @@ Logical references (no FK):
 | `id` | id | uuid | no | uuid_generate_v7() | PK |  |
 | `lab_service_id` | labServiceId | uuid | no |  | FK→`lab_services` |  |
 | `organization_id` | organizationId | uuid | yes |  | FK→`organizations` | Null = the lab's list price for every clinic without a negotiated one. |
-| `unit_price_paisa` | unitPricePaisa | bigint | no | '0' |  |  |
-| `rush_surcharge_paisa` | rushSurchargePaisa | bigint | no | '0' |  |  |
+| `unit_price_minor` | unitPriceMinor | bigint | no | '0' |  |  |
+| `rush_surcharge_minor` | rushSurchargeMinor | bigint | no | '0' |  |  |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
 | `effective_from` | effectiveFrom | date | no |  |  | "YYYY-MM-DD". |
 | `effective_to` | effectiveTo | date | yes |  |  |  |
@@ -4995,7 +4995,7 @@ Indexes and unique constraints:
 Constraints:
 
 - CHECK `chk_lab_service_prices_dates`: `"effective_to" IS NULL OR "effective_to" >= "effective_from"`
-- CHECK `chk_lab_service_prices_amounts`: `"unit_price_paisa" >= 0 AND "rush_surcharge_paisa" >= 0`
+- CHECK `chk_lab_service_prices_amounts`: `"unit_price_minor" >= 0 AND "rush_surcharge_minor" >= 0`
 - EXCLUDE `excl_lab_service_prices_overlap`: `USING gist ("lab_service_id" WITH =, COALESCE("organization_id", '00000000-0000-0000-0000-000000000000'::uuid) WITH =, daterange("effective_from", "effective_to", '[]') WITH &&) WHERE ("voided_at" IS NULL)`
 
 Foreign keys (enforced):
@@ -5344,7 +5344,7 @@ Logical references (no FK):
 <a id="lab-order-items"></a>
 #### `LabOrderItem` → `lab_order_items`
 
-> One piece of work (lab ERD §5a): a crown, a bridge, a denture … with its own price snapshot, form answers, teeth and status. The `*_snap` and `*_paisa` columns are frozen once the order is submitted (inv. 3) — see `snapshot-freeze.ts`; only a revision or an approved charge request may change them.…
+> One piece of work (lab ERD §5a): a crown, a bridge, a denture … with its own price snapshot, form answers, teeth and status. The `*_snap` and `*_minor` columns are frozen once the order is submitted (inv. 3) — see `snapshot-freeze.ts`; only a revision or an approved charge request may change them.…
 
 - **File:** `src/lab-orders/entities/lab-order-item.entity.ts`
 - **PK:** `id` (uuid, default uuid_generate_v7())
@@ -5369,10 +5369,10 @@ Logical references (no FK):
 | `options_snap` | optionsSnap | jsonb | yes |  |  |  |
 | `lab_price_id` | labPriceId | uuid | yes |  | L | The `lab_service_prices` row the cost came from. |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
-| `lab_unit_cost_paisa` | labUnitCostPaisa | bigint | no | '0' |  |  |
-| `lab_line_cost_paisa` | labLineCostPaisa | bigint | no | '0' |  |  |
-| `patient_unit_price_paisa` | patientUnitPricePaisa | bigint | no | '0' |  |  |
-| `patient_line_price_paisa` | patientLinePricePaisa | bigint | no | '0' |  |  |
+| `lab_unit_cost_minor` | labUnitCostMinor | bigint | no | '0' |  |  |
+| `lab_line_cost_minor` | labLineCostMinor | bigint | no | '0' |  |  |
+| `patient_unit_price_minor` | patientUnitPriceMinor | bigint | no | '0' |  |  |
+| `patient_line_price_minor` | patientLinePriceMinor | bigint | no | '0' |  |  |
 | `priced_on` | pricedOn | date | yes |  |  |  |
 | `form_schema_version_id` | formSchemaVersionId | uuid | yes |  | FK→`form_schema_versions` | Null when the service has no form. |
 | `workflow_template_version_id` | workflowTemplateVersionId | uuid | no |  | FK→`workflow_template_versions` |  |
@@ -5395,7 +5395,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_order_items_paisa`: `"lab_unit_cost_paisa" >= 0 AND "lab_line_cost_paisa" >= 0 AND "patient_unit_price_paisa" >= 0 AND "patient_line_price_paisa" >= 0`
+- CHECK `chk_lab_order_items_minor`: `"lab_unit_cost_minor" >= 0 AND "lab_line_cost_minor" >= 0 AND "patient_unit_price_minor" >= 0 AND "patient_line_price_minor" >= 0`
 - CHECK `chk_lab_order_items_quantity`: `"quantity" > 0`
 
 Foreign keys (enforced):
@@ -5504,7 +5504,7 @@ Logical references (no FK):
 | `order_id` | orderId | uuid | no |  | FK→`lab_orders` |  |
 | `item_id` | itemId | uuid | yes |  | FK→`lab_order_items` |  |
 | `kind` | kind | enum(rush, material, shipping, other) | no |  |  |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
 | `reason` | reason | text | no |  |  |  |
 | `status` | status | enum(pending, approved, rejected) | no | 'pending' |  |  |
@@ -5522,7 +5522,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_order_charge_requests_amount`: `"amount_paisa" > 0`
+- CHECK `chk_order_charge_requests_amount`: `"amount_minor" > 0`
 
 Foreign keys (enforced):
 
@@ -5781,8 +5781,8 @@ Logical references (no FK):
 | `responsible_party` | responsibleParty | enum(lab, clinic, patient, undetermined) | no | 'undetermined' |  |  |
 | `is_warranty_claim` | isWarrantyClaim | boolean | no | false |  |  |
 | `warranty_id` | warrantyId | uuid | yes |  | L |  |
-| `lab_charge_paisa` | labChargePaisa | bigint | yes |  |  |  |
-| `patient_charge_paisa` | patientChargePaisa | bigint | yes |  |  |  |
+| `lab_charge_minor` | labChargeMinor | bigint | yes |  |  |  |
+| `patient_charge_minor` | patientChargeMinor | bigint | yes |  |  |  |
 | `status` | status | enum(requested, agreed, disputed, closed) | no | 'requested' |  |  |
 | `requested_by` | requestedBy | uuid | yes |  | L |  |
 | `decided_by` | decidedBy | uuid | yes |  | L |  |
@@ -5802,7 +5802,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_remake_requests_paisa`: `("lab_charge_paisa" IS NULL OR "lab_charge_paisa" >= 0) AND ("patient_charge_paisa" IS NULL OR "patient_charge_paisa" >= 0)`
+- CHECK `chk_remake_requests_minor`: `("lab_charge_minor" IS NULL OR "lab_charge_minor" >= 0) AND ("patient_charge_minor" IS NULL OR "patient_charge_minor" >= 0)`
 
 Foreign keys (enforced):
 
@@ -5948,7 +5948,7 @@ Logical references (no FK):
 <a id="lab-credit-notes"></a>
 #### `LabCreditNote` → `lab_credit_notes`
 
-> Corrects an issued invoice downwards (lab ERD §6a) — a cancelled or reduced job. It lowers the invoice's balance; whatever the patient had already paid above the new total is released from allocations back to advance (`released_paisa`) and can then be refunded. Never deleted.
+> Corrects an issued invoice downwards (lab ERD §6a) — a cancelled or reduced job. It lowers the invoice's balance; whatever the patient had already paid above the new total is released from allocations back to advance (`released_minor`) and can then be refunded. Never deleted.
 
 - **File:** `src/lab-billing/entities/lab-credit.entity.ts`
 - **PK:** `id` (uuid, default uuid_generate_v7())
@@ -5964,11 +5964,11 @@ Logical references (no FK):
 | `credit_note_no` | creditNoteNo | character varying(30) | no |  |  |  |
 | `invoice_id` | invoiceId | uuid | no |  | FK→`lab_invoices` |  |
 | `patient_id` | patientId | uuid | no |  | L |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 | `reason` | reason | text | no |  |  |  |
 | `status` | status | enum(issued, applied, refunded) | no |  |  |  |
-| `released_paisa` | releasedPaisa | bigint | no | '0' |  | Paid money taken off the invoice into the patient's advance. |
-| `refunded_paisa` | refundedPaisa | bigint | no | '0' |  | Σ refunds against this note (cached). |
+| `released_minor` | releasedMinor | bigint | no | '0' |  | Paid money taken off the invoice into the patient's advance. |
+| `refunded_minor` | refundedMinor | bigint | no | '0' |  | Σ refunds against this note (cached). |
 | `created_by` | createdBy | uuid | no |  | L |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 | `updated_at` | updatedAt | timestamp with time zone | no | now() |  | @UpdateDateColumn |
@@ -5981,7 +5981,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_credit_notes_amounts`: `"amount_paisa" > 0 AND "released_paisa" BETWEEN 0 AND "amount_paisa" AND "refunded_paisa" BETWEEN 0 AND "released_paisa"`
+- CHECK `chk_lab_credit_notes_amounts`: `"amount_minor" > 0 AND "released_minor" BETWEEN 0 AND "amount_minor" AND "refunded_minor" BETWEEN 0 AND "released_minor"`
 
 Foreign keys (enforced):
 
@@ -6019,14 +6019,14 @@ Logical references (no FK):
 | `performing_assignment_id` | performingAssignmentId | uuid | yes |  | L | Commission snapshot taken at issue (like billing v2's charges): the doctor's assignment at the invoice's location, the plan in force that d… |
 | `commission_plan_id` | commissionPlanId | uuid | yes |  | L |  |
 | `commission_rate_bps` | commissionRateBps | integer | yes |  |  |  |
-| `commission_fixed_paisa` | commissionFixedPaisa | bigint | yes |  |  |  |
+| `commission_fixed_minor` | commissionFixedMinor | bigint | yes |  |  |  |
 | `description` | description | character varying(200) | no |  |  |  |
 | `quantity` | quantity | integer | no | '1' |  |  |
-| `unit_price_paisa` | unitPricePaisa | bigint | no | '0' |  |  |
-| `discount_paisa` | discountPaisa | bigint | no | '0' |  |  |
+| `unit_price_minor` | unitPriceMinor | bigint | no | '0' |  |  |
+| `discount_minor` | discountMinor | bigint | no | '0' |  |  |
 | `tax_rate_bp` | taxRateBp | integer | no | '0' |  |  |
-| `tax_paisa` | taxPaisa | bigint | no | '0' |  |  |
-| `line_total_paisa` | lineTotalPaisa | bigint | no | '0' |  |  |
+| `tax_minor` | taxMinor | bigint | no | '0' |  |  |
+| `line_total_minor` | lineTotalMinor | bigint | no | '0' |  |  |
 | `is_void` | isVoid | boolean | no | false |  | Copied from the invoice on void, for the partial unique indexes. |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 
@@ -6038,7 +6038,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_invoice_lines_math`: `"quantity" > 0 AND "unit_price_paisa" >= 0 AND "discount_paisa" >= 0 AND "discount_paisa" <= "quantity" * "unit_price_paisa" AND "tax_rate_bp" BETWEEN 0 AND 10000 AND "tax_paisa" >= 0 AND "line_total_paisa" = "quantity" * "unit_price_paisa" - "discount_paisa" + "tax_paisa"`
+- CHECK `chk_lab_invoice_lines_math`: `"quantity" > 0 AND "unit_price_minor" >= 0 AND "discount_minor" >= 0 AND "discount_minor" <= "quantity" * "unit_price_minor" AND "tax_rate_bp" BETWEEN 0 AND 10000 AND "tax_minor" >= 0 AND "line_total_minor" = "quantity" * "unit_price_minor" - "discount_minor" + "tax_minor"`
 
 Foreign keys (enforced):
 
@@ -6077,13 +6077,13 @@ Logical references (no FK):
 | `issued_on` | issuedOn | date | yes |  |  |  |
 | `due_on` | dueOn | date | yes |  |  |  |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
-| `subtotal_paisa` | subtotalPaisa | bigint | no | '0' |  |  |
-| `discount_paisa` | discountPaisa | bigint | no | '0' |  |  |
-| `tax_paisa` | taxPaisa | bigint | no | '0' |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  |  |
-| `credited_paisa` | creditedPaisa | bigint | no | '0' |  | Σ credit notes (cached). |
-| `paid_paisa` | paidPaisa | bigint | no | '0' |  | Σ active allocations (cached). |
-| `balance_paisa` | balancePaisa | bigint | no | '0' |  |  |
+| `subtotal_minor` | subtotalMinor | bigint | no | '0' |  |  |
+| `discount_minor` | discountMinor | bigint | no | '0' |  |  |
+| `tax_minor` | taxMinor | bigint | no | '0' |  |  |
+| `total_minor` | totalMinor | bigint | no | '0' |  |  |
+| `credited_minor` | creditedMinor | bigint | no | '0' |  | Σ credit notes (cached). |
+| `paid_minor` | paidMinor | bigint | no | '0' |  | Σ active allocations (cached). |
+| `balance_minor` | balanceMinor | bigint | no | '0' |  |  |
 | `notes` | notes | text | yes |  |  |  |
 | `issued_by` | issuedBy | uuid | yes |  | L |  |
 | `issued_at` | issuedAt | timestamp with time zone | yes |  |  |  |
@@ -6105,7 +6105,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_invoices_math`: `"total_paisa" = "subtotal_paisa" - "discount_paisa" + "tax_paisa" AND "balance_paisa" >= 0 AND "paid_paisa" >= 0 AND "credited_paisa" >= 0`
+- CHECK `chk_lab_invoices_math`: `"total_minor" = "subtotal_minor" - "discount_minor" + "tax_minor" AND "balance_minor" >= 0 AND "paid_minor" >= 0 AND "credited_minor" >= 0`
 
 Foreign keys (enforced):
 
@@ -6138,7 +6138,7 @@ Logical references (no FK):
 | `organization_id` | organizationId | uuid | no |  | L |  |
 | `payment_id` | paymentId | uuid | no |  | FK→`lab_payments` |  |
 | `invoice_id` | invoiceId | uuid | no |  | FK→`lab_invoices` |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 | `created_by` | createdBy | uuid | no |  | L |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 | `reversed_at` | reversedAt | timestamp with time zone | yes |  |  |  |
@@ -6152,7 +6152,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_payment_allocations_amount`: `"amount_paisa" > 0`
+- CHECK `chk_lab_payment_allocations_amount`: `"amount_minor" > 0`
 
 Foreign keys (enforced):
 
@@ -6168,7 +6168,7 @@ Logical references (no FK):
 <a id="lab-payments"></a>
 #### `LabPayment` → `lab_payments`
 
-> Money received from a patient for lab work (lab ERD §6a). Belongs to the patient, not an invoice (billing v2 D6): the part not allocated or refunded is the patient's advance. Immutable except the cached `allocated_paisa` / `refunded_paisa` and `status`. A wrong payment is never deleted: it is rever…
+> Money received from a patient for lab work (lab ERD §6a). Belongs to the patient, not an invoice (billing v2 D6): the part not allocated or refunded is the patient's advance. Immutable except the cached `allocated_minor` / `refunded_minor` and `status`. A wrong payment is never deleted: it is rever…
 
 - **File:** `src/lab-billing/entities/lab-payment.entity.ts`
 - **PK:** `id` (uuid, default uuid_generate_v7())
@@ -6183,7 +6183,7 @@ Logical references (no FK):
 | `location_id` | locationId | uuid | no |  | L |  |
 | `receipt_no` | receiptNo | character varying(30) | no |  |  |  |
 | `patient_id` | patientId | uuid | no |  | FK→`patients` |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  | Negative on a reversal row. |
+| `amount_minor` | amountMinor | bigint | no | '0' |  | Negative on a reversal row. |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
 | `method` | method | enum(cash, card, bank_transfer, wallet) | no |  |  |  |
 | `reference` | reference | character varying(80) | yes |  |  |  |
@@ -6194,8 +6194,8 @@ Logical references (no FK):
 | `status` | status | enum(posted, reversed) | no | 'posted' |  |  |
 | `reversal_of_id` | reversalOfId | uuid | yes |  | FK→`lab_payments` UQ |  |
 | `reason` | reason | text | yes |  |  | On the reversal row: why. |
-| `allocated_paisa` | allocatedPaisa | bigint | no | '0' |  | Σ active allocations (cached). |
-| `refunded_paisa` | refundedPaisa | bigint | no | '0' |  | Σ refund sources (cached). |
+| `allocated_minor` | allocatedMinor | bigint | no | '0' |  | Σ active allocations (cached). |
+| `refunded_minor` | refundedMinor | bigint | no | '0' |  | Σ refund sources (cached). |
 | `idempotency_key` | idempotencyKey | character varying(150) | no |  |  |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 
@@ -6209,7 +6209,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_payments_amounts`: `"amount_paisa" <> 0 AND "allocated_paisa" >= 0 AND "refunded_paisa" >= 0 AND ("reversal_of_id" IS NULL) = ("amount_paisa" > 0) AND "allocated_paisa" + "refunded_paisa" <= GREATEST("amount_paisa", 0)`
+- CHECK `chk_lab_payments_amounts`: `"amount_minor" <> 0 AND "allocated_minor" >= 0 AND "refunded_minor" >= 0 AND ("reversal_of_id" IS NULL) = ("amount_minor" > 0) AND "allocated_minor" + "refunded_minor" <= GREATEST("amount_minor", 0)`
 
 Foreign keys (enforced):
 
@@ -6239,7 +6239,7 @@ Logical references (no FK):
 | `organization_id` | organizationId | uuid | no |  | L |  |
 | `refund_id` | refundId | uuid | no |  | FK→`lab_refunds` |  |
 | `payment_id` | paymentId | uuid | no |  | FK→`lab_payments` |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 
 Indexes and unique constraints:
 
@@ -6248,7 +6248,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_refund_sources_amount`: `"amount_paisa" > 0`
+- CHECK `chk_lab_refund_sources_amount`: `"amount_minor" > 0`
 
 Foreign keys (enforced):
 
@@ -6278,7 +6278,7 @@ Logical references (no FK):
 | `refund_no` | refundNo | character varying(30) | no |  |  |  |
 | `patient_id` | patientId | uuid | no |  | FK→`patients` |  |
 | `credit_note_id` | creditNoteId | uuid | yes |  | FK→`lab_credit_notes` |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 | `method` | method | enum(cash, card, bank_transfer, wallet) | no |  |  |  |
 | `reference` | reference | character varying(80) | yes |  |  |  |
 | `reason` | reason | text | no |  |  |  |
@@ -6296,7 +6296,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_lab_refunds_amount`: `"amount_paisa" > 0`
+- CHECK `chk_lab_refunds_amount`: `"amount_minor" > 0`
 
 Foreign keys (enforced):
 
@@ -6330,8 +6330,8 @@ Logical references (no FK):
 | `lab_reference` | labReference | character varying(60) | yes |  |  | Order no, bill no or the lab's invoice no; null on system rows. |
 | `line_date` | lineDate | date | yes |  |  |  |
 | `description` | description | character varying(300) | yes |  |  |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  | The lab's amount; 0 on `missing_in_statement` rows. |
-| `system_amount_paisa` | systemAmountPaisa | bigint | yes |  |  | What the clinic's bills say for the same reference. |
+| `amount_minor` | amountMinor | bigint | no | '0' |  | The lab's amount; 0 on `missing_in_statement` rows. |
+| `system_amount_minor` | systemAmountMinor | bigint | yes |  |  | What the clinic's bills say for the same reference. |
 | `matched_bill_line_id` | matchedBillLineId | uuid | yes |  | L |  |
 | `matched_bill_id` | matchedBillId | uuid | yes |  | L |  |
 | `match_status` | matchStatus | enum(matched, amount_mismatch, missing_in_system, missing_in_statement) | no |  |  |  |
@@ -6370,7 +6370,7 @@ Logical references (no FK):
 | `period_start` | periodStart | date | no |  |  |  |
 | `period_end` | periodEnd | date | no |  |  |  |
 | `statement_ref` | statementRef | character varying(60) | yes |  |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  | What the lab says is owed for the period. |
+| `total_minor` | totalMinor | bigint | no | '0' |  | What the lab says is owed for the period. |
 | `attachment_id` | attachmentId | uuid | yes |  | L | No storage for statement files yet (attachments are order-scoped). |
 | `status` | status | enum(uploaded, reconciling, reconciled, disputed) | no | 'uploaded' |  |  |
 | `notes` | notes | text | yes |  |  |  |
@@ -6416,8 +6416,8 @@ Logical references (no FK):
 | `remake_request_id` | remakeRequestId | uuid | yes |  | L |  |
 | `description` | description | character varying(300) | no |  |  |  |
 | `quantity` | quantity | integer | no | '1' |  |  |
-| `unit_cost_paisa` | unitCostPaisa | bigint | no | '0' |  |  |
-| `line_total_paisa` | lineTotalPaisa | bigint | no | '0' |  |  |
+| `unit_cost_minor` | unitCostMinor | bigint | no | '0' |  |  |
+| `line_total_minor` | lineTotalMinor | bigint | no | '0' |  |  |
 | `is_manual` | isManual | boolean | no | false |  | Added by hand on the draft (not synced from the order). |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
 
@@ -6429,7 +6429,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_vendor_bill_lines_paisa`: `"quantity" > 0 AND "unit_cost_paisa" >= 0 AND "line_total_paisa" >= 0`
+- CHECK `chk_vendor_bill_lines_minor`: `"quantity" > 0 AND "unit_cost_minor" >= 0 AND "line_total_minor" >= 0`
 
 Foreign keys (enforced):
 
@@ -6446,7 +6446,7 @@ Logical references (no FK):
 <a id="vendor-bills"></a>
 #### `VendorBill` → `vendor_bills`
 
-> What the clinic owes a lab (lab ERD §6b). One draft per lab order is made at lab accept from the items' frozen lab costs; nothing reaches the ledger until approval (Lab Cost / Lab Payable). `paid_paisa` / `balance_paisa` are cached and recomputed in every allocation's transaction. Never deleted: a…
+> What the clinic owes a lab (lab ERD §6b). One draft per lab order is made at lab accept from the items' frozen lab costs; nothing reaches the ledger until approval (Lab Cost / Lab Payable). `paid_minor` / `balance_minor` are cached and recomputed in every allocation's transaction. Never deleted: a…
 
 - **File:** `src/lab-payables/entities/vendor-bill.entity.ts`
 - **PK:** `id` (uuid, default uuid_generate_v7())
@@ -6467,12 +6467,12 @@ Logical references (no FK):
 | `status` | status | enum(draft, approved, partially_paid, paid, void) | no | 'draft' |  |  |
 | `bill_date` | billDate | date | no |  |  |  |
 | `due_on` | dueOn | date | yes |  |  |  |
-| `subtotal_paisa` | subtotalPaisa | bigint | no | '0' |  |  |
+| `subtotal_minor` | subtotalMinor | bigint | no | '0' |  |  |
 | `tax_bp` | taxBp | integer | no | '0' |  | Basis points of the subtotal, default 0 until the accountant sets the rate. |
-| `tax_paisa` | taxPaisa | bigint | no | '0' |  |  |
-| `total_paisa` | totalPaisa | bigint | no | '0' |  |  |
-| `paid_paisa` | paidPaisa | bigint | no | '0' |  |  |
-| `balance_paisa` | balancePaisa | bigint | no | '0' |  |  |
+| `tax_minor` | taxMinor | bigint | no | '0' |  |  |
+| `total_minor` | totalMinor | bigint | no | '0' |  |  |
+| `paid_minor` | paidMinor | bigint | no | '0' |  |  |
+| `balance_minor` | balanceMinor | bigint | no | '0' |  |  |
 | `currency` | currency | character(3) | no | 'PKR' |  |  |
 | `notes` | notes | text | yes |  |  |  |
 | `approved_by` | approvedBy | uuid | yes |  | L |  |
@@ -6496,7 +6496,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_vendor_bills_paisa`: `"subtotal_paisa" >= 0 AND "tax_paisa" >= 0 AND "total_paisa" = "subtotal_paisa" + "tax_paisa" AND "paid_paisa" >= 0 AND "balance_paisa" >= 0`
+- CHECK `chk_vendor_bills_minor`: `"subtotal_minor" >= 0 AND "tax_minor" >= 0 AND "total_minor" = "subtotal_minor" + "tax_minor" AND "paid_minor" >= 0 AND "balance_minor" >= 0`
 
 Foreign keys (enforced):
 
@@ -6530,7 +6530,7 @@ Logical references (no FK):
 | `organization_id` | organizationId | uuid | no |  | L |  |
 | `vendor_payment_id` | vendorPaymentId | uuid | no |  | FK→`vendor_payments` |  |
 | `vendor_bill_id` | vendorBillId | uuid | no |  | FK→`vendor_bills` |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
 | `reversed_at` | reversedAt | timestamp with time zone | yes |  |  |  |
 | `created_by` | createdBy | uuid | yes |  | L |  |
 | `created_at` | createdAt | timestamp with time zone | no | now() |  | @CreateDateColumn |
@@ -6542,7 +6542,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_vendor_payment_allocations_paisa`: `"amount_paisa" > 0`
+- CHECK `chk_vendor_payment_allocations_minor`: `"amount_minor" > 0`
 
 Foreign keys (enforced):
 
@@ -6572,8 +6572,8 @@ Logical references (no FK):
 | `location_id` | locationId | uuid | no |  | L |  |
 | `lab_id` | labId | uuid | no |  | FK→`labs` |  |
 | `payment_no` | paymentNo | character varying(30) | no |  |  |  |
-| `amount_paisa` | amountPaisa | bigint | no | '0' |  |  |
-| `allocated_paisa` | allocatedPaisa | bigint | no | '0' |  | Cached Σ active allocations. |
+| `amount_minor` | amountMinor | bigint | no | '0' |  |  |
+| `allocated_minor` | allocatedMinor | bigint | no | '0' |  | Cached Σ active allocations. |
 | `method` | method | enum(cash, bank_transfer, cheque, other) | no |  |  |  |
 | `reference` | reference | character varying(100) | yes |  |  |  |
 | `paid_on` | paidOn | date | no |  |  |  |
@@ -6594,7 +6594,7 @@ Indexes and unique constraints:
 
 Constraints:
 
-- CHECK `chk_vendor_payments_paisa`: `"amount_paisa" > 0 AND "allocated_paisa" >= 0 AND "allocated_paisa" <= "amount_paisa"`
+- CHECK `chk_vendor_payments_minor`: `"amount_minor" > 0 AND "allocated_minor" >= 0 AND "allocated_minor" <= "amount_minor"`
 
 Foreign keys (enforced):
 

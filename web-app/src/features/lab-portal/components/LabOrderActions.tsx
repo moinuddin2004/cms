@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { todayYmd } from '@/lib/datetime'
 import { CalendarClock, Check, HelpCircle, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -69,12 +70,6 @@ const ORDER: LabOrderAction[] = [
   'change_expected_date',
   'reject',
 ]
-
-const todayYmd = () => {
-  const d = new Date()
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
 
 /**
  * The lab's answers to an order as buttons + one dialog. Used by the lab

@@ -13,7 +13,6 @@ import { MultiSelect } from '@/components/shared/MultiSelect'
 import { Switch } from '@/components/ui/switch'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { fieldError } from '@/components/forms/fieldError'
-import { format } from 'date-fns'
 import {
   Loader2,
   ChevronLeft,
@@ -36,6 +35,7 @@ import { PATIENT_STEP_FIELDS } from '../schemas/patient.schema'
 import type { PatientFormValues } from '../schemas/patient.schema'
 import { usePatientForm } from '../hooks/usePatientForm'
 import { cn } from '@/lib/utils'
+import { todayYmd } from '@/lib/datetime'
 
 interface PatientFormProps {
   defaultValues?: Patient | null
@@ -309,7 +309,7 @@ export function PatientForm({
                             id="dob"
                             value={field.state.value}
                             onChange={field.handleChange}
-                            max={format(new Date(), 'yyyy-MM-dd')}
+                            max={todayYmd()}
                             placeholder="Select date of birth"
                             withYearDropdown
                             clearable

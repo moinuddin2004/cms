@@ -21,7 +21,7 @@ import { DatePicker } from '@/components/shared/DatePicker'
 import { useDoctors } from '@/features/appointments'
 import {
   clinicCatalogApi,
-  formatPaisa,
+  formatMinor,
   useClinicForms,
   useClinicServices,
   useOrderTemplates,
@@ -597,8 +597,8 @@ function PriceReview({
             )
           }
           const units = qty(i, q.data.labService.unitType)
-          const labLine = q.data.lab.unitPaisa * units
-          const patientLine = (q.data.patient?.unitPricePaisa ?? 0) * units
+          const labLine = q.data.lab.unitMinor * units
+          const patientLine = (q.data.patient?.unitPriceMinor ?? 0) * units
           lab += labLine
           patient += patientLine
           return (
@@ -609,7 +609,7 @@ function PriceReview({
               <div className="min-w-0">
                 <p className="font-medium">{q.data.labService.name}</p>
                 <p className="text-xs text-text-3">
-                  {units} × {formatPaisa(q.data.lab.unitPaisa)} lab cost
+                  {units} × {formatMinor(q.data.lab.unitMinor)} lab cost
                 </p>
                 {!q.data.patient && (
                   <p className="text-xs text-destructive">
@@ -619,9 +619,9 @@ function PriceReview({
                 )}
               </div>
               <div className="text-right tabular-nums">
-                <p>{formatPaisa(labLine)}</p>
+                <p>{formatMinor(labLine)}</p>
                 <p className="text-xs text-text-3">
-                  Patient {formatPaisa(patientLine)}
+                  Patient {formatMinor(patientLine)}
                 </p>
               </div>
             </div>
@@ -630,7 +630,7 @@ function PriceReview({
         <div className="flex justify-between border-t border-border pt-3 text-sm font-semibold tabular-nums">
           <span>Total</span>
           <span>
-            Lab {formatPaisa(lab)} · Patient {formatPaisa(patient)}
+            Lab {formatMinor(lab)} · Patient {formatMinor(patient)}
           </span>
         </div>
         {order?.warnings.map((w) => (

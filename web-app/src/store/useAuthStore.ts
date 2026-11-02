@@ -18,6 +18,8 @@ interface Location {
   isMainBranch: boolean
   accessSource: 'super_admin' | 'owner' | 'employee'
   isPrimary: boolean
+  /** IANA timezone from `locations.timezone`; every clinic date/time is shown in it. */
+  timezone?: string
 }
 
 /** A lab the user works in (from login / refresh / me). */
@@ -76,6 +78,9 @@ interface AuthState {
   setLocationContext: (orgId: string, locId: string) => void
 
   setActiveLab: (labId: string) => void
+
+  /** After a location's timezone is changed in settings. */
+  setLocationTimezone: (locationId: string, timezone: string) => void
 
   clearAuth: () => void
 }
@@ -139,6 +144,16 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     }),
 
   setActiveLab: (labId) => set({ activeLabId: labId }),
+
+  setLocationTimezone: (locationId, timezone) =>
+    set((s) => ({
+      accessibleOrganizations: s.accessibleOrganizations.map((o) => ({
+        ...o,
+        locations: o.locations.map((l) =>
+          l.id === locationId ? { ...l, timezone } : l,
+        ),
+      })),
+    })),
 
   clearAuth: () =>
     set({

@@ -121,12 +121,12 @@ export class VendorPaymentsService {
         );
 
       const allocations = mergeAllocations(dto.allocations);
-      const allocated = allocations.reduce((a, x) => a + x.amountPaisa, 0);
-      if (allocated > dto.amountPaisa) {
+      const allocated = allocations.reduce((a, x) => a + x.amountMinor, 0);
+      if (allocated > dto.amountMinor) {
         throw payablesError(
           'PAYABLES_ALLOCATION_LIMIT',
           'Allocations add up to more than the payment',
-          { allocatedPaisa: allocated, amountPaisa: dto.amountPaisa },
+          { allocatedMinor: allocated, amountMinor: dto.amountMinor },
         );
       }
       const bills = await this.lockBills(m, org, dto.labId, allocations);
@@ -140,8 +140,8 @@ export class VendorPaymentsService {
           locationId: c.tenant.locationId,
           labId: dto.labId,
           paymentNo: await this.sequences.next(m, org, PAYMENT_SEQUENCE),
-          amountPaisa: dto.amountPaisa,
-          allocatedPaisa: allocated,
+          amountMinor: dto.amountMinor,
+          allocatedMinor: allocated,
           method: dto.method,
           reference: dto.reference?.trim() || null,
           paidOn: dto.paidOn ?? today,
@@ -162,17 +162,17 @@ export class VendorPaymentsService {
         lines: [
           {
             accountCode: ACCOUNT.LAB_PAYABLE,
-            debitPaisa: allocated,
+            debitMinor: allocated,
             labId: dto.labId,
           },
           {
             accountCode: ACCOUNT.LAB_ADVANCES,
-            debitPaisa: dto.amountPaisa - allocated,
+            debitMinor: dto.amountMinor - allocated,
             labId: dto.labId,
           },
           {
             accountCode: moneyAccount(dto.method),
-            creditPaisa: dto.amountPaisa,
+            creditMinor: dto.amountMinor,
             labId: dto.labId,
           },
         ],
@@ -184,8 +184,8 @@ export class VendorPaymentsService {
         action: AuditAction.CREATE,
         after: {
           paymentNo: payment.paymentNo,
-          amountPaisa: payment.amountPaisa,
-          allocatedPaisa: allocated,
+          amountMinor: payment.amountMinor,
+          allocatedMinor: allocated,
           method: payment.method,
         },
       });
@@ -212,18 +212,18 @@ export class VendorPaymentsService {
       if (payment.status !== VendorPaymentStatus.POSTED)
         throw payablesError('PAYABLES_NOT_ALLOWED', 'This payment is reversed');
       const allocations = mergeAllocations(dto.allocations);
-      const adding = allocations.reduce((a, x) => a + x.amountPaisa, 0);
-      const free = payment.amountPaisa - payment.allocatedPaisa;
+      const adding = allocations.reduce((a, x) => a + x.amountMinor, 0);
+      const free = payment.amountMinor - payment.allocatedMinor;
       if (adding > free) {
         throw payablesError(
           'PAYABLES_ALLOCATION_LIMIT',
           'Allocations add up to more than what is left on the payment',
-          { unallocatedPaisa: free, allocatedPaisa: adding },
+          { unallocatedMinor: free, allocatedMinor: adding },
         );
       }
       const bills = await this.lockBills(m, org, payment.labId, allocations);
       await this.writeAllocations(m, c, payment, allocations, bills);
-      payment.allocatedPaisa += adding;
+      payment.allocatedMinor += adding;
       await m.getRepository(VendorPayment).save(payment);
       const tz = await this.clock.timezoneFor(payment.locationId);
       await this.ledger.post(m, {
@@ -237,12 +237,12 @@ export class VendorPaymentsService {
         lines: [
           {
             accountCode: ACCOUNT.LAB_PAYABLE,
-            debitPaisa: adding,
+            debitMinor: adding,
             labId: payment.labId,
           },
           {
             accountCode: ACCOUNT.LAB_ADVANCES,
-            creditPaisa: adding,
+            creditMinor: adding,
             labId: payment.labId,
           },
         ],
@@ -252,8 +252,8 @@ export class VendorPaymentsService {
         entityType: PAYABLES_ENTITY.PAYMENT,
         entityId: payment.id,
         action: AuditAction.UPDATE,
-        before: { allocatedPaisa: payment.allocatedPaisa - adding },
-        after: { allocatedPaisa: payment.allocatedPaisa },
+        before: { allocatedMinor: payment.allocatedMinor - adding },
+        after: { allocatedMinor: payment.allocatedMinor },
       });
       return this.view(m, payment);
     });
@@ -408,11 +408,11 @@ export class VendorPaymentsService {
           `Bill ${b.billNo} is ${b.status}; only approved bills can be paid`,
         );
       }
-      if (a.amountPaisa > b.balancePaisa) {
+      if (a.amountMinor > b.balanceMinor) {
         throw payablesError(
           'PAYABLES_ALLOCATION_LIMIT',
           `More than the balance of bill ${b.billNo}`,
-          { billId: b.id, balancePaisa: b.balancePaisa },
+          { billId: b.id, balanceMinor: b.balanceMinor },
         );
       }
     }
@@ -432,7 +432,7 @@ export class VendorPaymentsService {
         organizationId: payment.organizationId,
         vendorPaymentId: payment.id,
         vendorBillId: a.billId,
-        amountPaisa: a.amountPaisa,
+        amountMinor: a.amountMinor,
         createdBy: c.actor.userId,
       })),
     );
@@ -443,14 +443,14 @@ export class VendorPaymentsService {
   private async recomputeBill(m: EntityManager, billId: string) {
     const [{ paid }] = await sqlRows<{ paid: string }>(
       m,
-      `SELECT COALESCE(SUM(amount_paisa), 0) AS paid FROM vendor_payment_allocations
+      `SELECT COALESCE(SUM(amount_minor), 0) AS paid FROM vendor_payment_allocations
         WHERE vendor_bill_id = $1 AND reversed_at IS NULL`,
       [billId],
     );
     const repo = m.getRepository(VendorBill);
     const bill = await repo.findOneByOrFail({ id: billId });
-    const paidPaisa = Number(paid);
-    if (paidPaisa > bill.totalPaisa) {
+    const paidMinor = Number(paid);
+    if (paidMinor > bill.totalMinor) {
       // inv. 4: never negative — the row lock makes this unreachable.
       throw payablesError(
         'PAYABLES_ALLOCATION_LIMIT',
@@ -458,9 +458,9 @@ export class VendorPaymentsService {
       );
     }
     Object.assign(bill, {
-      paidPaisa,
-      balancePaisa: bill.totalPaisa - paidPaisa,
-      status: settledStatus(bill.totalPaisa, paidPaisa),
+      paidMinor,
+      balanceMinor: bill.totalMinor - paidMinor,
+      status: settledStatus(bill.totalMinor, paidMinor),
     });
     await repo.save(bill);
   }
@@ -469,6 +469,6 @@ export class VendorPaymentsService {
 function mergeAllocations(list: AllocationDto[]): AllocationDto[] {
   const by = new Map<string, number>();
   for (const a of list)
-    by.set(a.billId, (by.get(a.billId) ?? 0) + a.amountPaisa);
-  return [...by].map(([billId, amountPaisa]) => ({ billId, amountPaisa }));
+    by.set(a.billId, (by.get(a.billId) ?? 0) + a.amountMinor);
+  return [...by].map(([billId, amountMinor]) => ({ billId, amountMinor }));
 }

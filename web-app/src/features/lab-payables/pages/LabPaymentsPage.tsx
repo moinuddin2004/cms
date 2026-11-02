@@ -15,7 +15,7 @@ import type { ViewMode } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ListToolbar } from '@/components/shared/ListToolbar'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { formatPaisa, rupeesToPaisa } from '@/features/lab-catalog'
+import { formatMinor, rupeesToMinor } from '@/features/lab-catalog'
 import { ReasonDialog } from '@/features/lab-orders'
 import { PayLabSheet } from '../components/PayablesSheets'
 import {
@@ -62,16 +62,16 @@ export function LabPaymentsPage() {
       labPayablesApi.pay(
         {
           labId: v.labId,
-          amountPaisa: rupeesToPaisa(v.values.amount) ?? 0,
+          amountMinor: rupeesToMinor(v.values.amount) ?? 0,
           method: v.values.method,
           reference: v.values.reference || undefined,
           paidOn: v.values.paidOn || undefined,
           allocations: v.values.allocations
             .map((a) => ({
               billId: a.billId,
-              amountPaisa: rupeesToPaisa(a.amount) ?? 0,
+              amountMinor: rupeesToMinor(a.amount) ?? 0,
             }))
-            .filter((a) => a.amountPaisa > 0),
+            .filter((a) => a.amountMinor > 0),
         },
         v.key,
       ),
@@ -122,20 +122,20 @@ export function LabPaymentsPage() {
       {
         id: 'amount',
         header: 'Amount',
-        accessorKey: 'amountPaisa',
+        accessorKey: 'amountMinor',
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {formatPaisa(row.original.amountPaisa)}
+            {formatMinor(row.original.amountMinor)}
           </span>
         ),
       },
       {
         id: 'advance',
         header: 'Advance left',
-        accessorKey: 'unallocatedPaisa',
+        accessorKey: 'unallocatedMinor',
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {formatPaisa(row.original.unallocatedPaisa)}
+            {formatMinor(row.original.unallocatedMinor)}
           </span>
         ),
       },
@@ -268,7 +268,7 @@ export function LabPaymentsPage() {
                   </div>
                   <div className="flex items-center justify-between border-t border-border/60 pt-2 text-sm">
                     <span className="tabular-nums font-medium">
-                      {formatPaisa(p.amountPaisa)}
+                      {formatMinor(p.amountMinor)}
                     </span>
                     {p.status === 'posted' && (
                       <TooltipButton

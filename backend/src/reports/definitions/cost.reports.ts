@@ -117,10 +117,10 @@ export function costReports(db: DataSource): ReportDefinition[] {
           db,
           `SELECT to_char(make_date(pr.year, pr.month, 1), 'Mon YYYY') AS period,
                   e.full_name AS employee, l.name AS location,
-                  CASE WHEN pr.total_paisa > 0 THEN pr.base_salary_paisa
+                  CASE WHEN pr.total_minor > 0 THEN pr.base_salary_minor
                        ELSE ROUND(pr.salary_amount * 100)::bigint END AS base,
-                  CASE WHEN pr.total_paisa > 0 THEN pr.commission_paisa ELSE 0 END AS commission,
-                  CASE WHEN pr.total_paisa > 0 THEN pr.total_paisa
+                  CASE WHEN pr.total_minor > 0 THEN pr.commission_minor ELSE 0 END AS commission,
+                  CASE WHEN pr.total_minor > 0 THEN pr.total_minor
                        ELSE ROUND(pr.salary_amount * 100)::bigint END AS total,
                   initcap(replace(pr.status::text, '_', ' ')) AS status,
                   to_char(pr.paid_at AT TIME ZONE $5, 'YYYY-MM-DD') AS "paidOn"
@@ -167,9 +167,9 @@ export function costReports(db: DataSource): ReportDefinition[] {
         const rows = await sqlRows<Record<string, string>>(
           db,
           `SELECT e.full_name AS doctor, l.name AS location,
-                  SUM(ce.base_paisa) FILTER (WHERE ce.source_type = 'ALLOCATION') AS base,
-                  SUM(ce.amount_paisa) AS earned,
-                  COALESCE(SUM(ce.amount_paisa) FILTER (WHERE ce.settlement_id IS NOT NULL), 0) AS settled
+                  SUM(ce.base_minor) FILTER (WHERE ce.source_type = 'ALLOCATION') AS base,
+                  SUM(ce.amount_minor) AS earned,
+                  COALESCE(SUM(ce.amount_minor) FILTER (WHERE ce.settlement_id IS NOT NULL), 0) AS settled
              FROM commission_entries ce
              JOIN employee_org_location_assignments a ON a.id = ce.assignment_id
              JOIN employees e ON e.id = a.employee_id
@@ -221,9 +221,9 @@ export function costReports(db: DataSource): ReportDefinition[] {
         const rows = await sqlRows<ReportRow>(
           db,
           `SELECT vb.bill_date::text AS date, vb.bill_no AS bill, lb.name AS lab,
-                  vb.vendor_invoice_no AS "labInvoice", vb.total_paisa AS total, vb.paid_paisa AS paid,
-                  vb.balance_paisa AS balance, vb.due_on::text AS due,
-                  CASE WHEN vb.balance_paisa > 0 AND vb.due_on < $5::date THEN 'Overdue'
+                  vb.vendor_invoice_no AS "labInvoice", vb.total_minor AS total, vb.paid_minor AS paid,
+                  vb.balance_minor AS balance, vb.due_on::text AS due,
+                  CASE WHEN vb.balance_minor > 0 AND vb.due_on < $5::date THEN 'Overdue'
                        ELSE initcap(replace(vb.status::text, '_', ' ')) END AS status
              FROM vendor_bills vb JOIN labs lb ON lb.id = vb.lab_id
             WHERE vb.organization_id = $1 AND vb.location_id = ANY($2)

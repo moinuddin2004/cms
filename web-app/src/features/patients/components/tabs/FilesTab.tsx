@@ -4,6 +4,7 @@ import { FolderOpen, Loader2, FileText } from 'lucide-react'
 import { useDocuments } from '../../hooks/usePatientSubEntities'
 import type { Patient, PatientDocument } from '../../types'
 import { DocumentFormDialog } from './DocumentFormDialog'
+import { formatDate } from '@/lib/datetime'
 
 export function FilesTab({ patient }: { patient: Patient }) {
   const { data: documents = [], isLoading: loadingDocs } = useDocuments(
@@ -79,7 +80,7 @@ function DocumentRow({ document }: { document: PatientDocument }) {
               </span>
             )}
             <span className="text-[10px] text-muted-foreground">
-              {new Date(document.createdAt).toLocaleDateString()}
+              {formatDate(document.createdAt)}
             </span>
           </div>
         </div>

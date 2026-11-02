@@ -77,6 +77,6 @@ export class SecurityLog {
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage?: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

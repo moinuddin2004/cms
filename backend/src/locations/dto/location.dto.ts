@@ -6,6 +6,7 @@ import {
   IsInt,
   IsEmail,
   MaxLength,
+  IsTimeZone,
   Min,
 } from 'class-validator';
 
@@ -58,7 +59,7 @@ export class CreateLocationDto {
   email?: string;
 
   @IsOptional()
-  @IsString()
+  @IsTimeZone({ message: 'timezone must be a valid IANA timezone, e.g. Asia/Karachi' })
   timezone?: string;
 
   @IsOptional()
@@ -120,7 +121,7 @@ export class UpdateLocationDto {
   email?: string;
 
   @IsOptional()
-  @IsString()
+  @IsTimeZone({ message: 'timezone must be a valid IANA timezone, e.g. Asia/Karachi' })
   timezone?: string;
 
   @IsOptional()

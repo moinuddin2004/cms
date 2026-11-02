@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { formatCurrency } from '@/lib/formatters'
+import { formatDateTime } from '@/lib/datetime'
 import type {
   CashClose,
   Invoice,
@@ -549,7 +550,7 @@ function CashCloseDoc({
         p={p}
         title="CASH CLOSE"
         number={c.businessDate}
-        sub={`${new Date(c.periodStart).toLocaleString()} – ${new Date(c.periodEnd).toLocaleString()}`}
+        sub={`${formatDateTime(c.periodStart)} – ${formatDateTime(c.periodEnd)}`}
       />
       {(c.lines ?? []).map((l) => (
         <div key={l.paymentAccountId} style={{ marginBottom: 4 }}>

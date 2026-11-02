@@ -10,7 +10,7 @@ import {
 } from 'typeorm';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { PayrollRecord } from 'src/payroll/entities/payroll-record.entity';
-import { PaisaColumn } from '../../common/paisa-column';
+import { MinorColumn } from '../../common/minor-column';
 import { CommissionSettlementStatus } from '../commission.enums';
 
 /**
@@ -43,8 +43,8 @@ export class CommissionSettlement {
   periodEnd: string;
 
   /** Signed: a period with only reversals can be negative. */
-  @PaisaColumn('total_paisa')
-  totalPaisa: number;
+  @MinorColumn('total_minor')
+  totalMinor: number;
 
   @Column({
     name: 'status',

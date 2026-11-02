@@ -92,7 +92,7 @@ const chargesView = (b: OrderBundle) =>
     id: x.id,
     itemId: x.itemId,
     kind: x.kind,
-    amountPaisa: x.amountPaisa,
+    amountMinor: x.amountMinor,
     currency: x.currency,
     reason: x.reason,
     status: x.status,
@@ -170,8 +170,8 @@ export function toClinicOrder(
     totals: isDraft(o)
       ? null
       : {
-          labCostPaisa: sum(b.items, (i) => i.labLineCostPaisa),
-          patientPricePaisa: sum(b.items, (i) => i.patientLinePricePaisa),
+          labCostMinor: sum(b.items, (i) => i.labLineCostMinor),
+          patientPriceMinor: sum(b.items, (i) => i.patientLinePriceMinor),
         },
     items: b.items.map((i) => {
       const service = b.services.get(i.labServiceId);
@@ -191,10 +191,10 @@ export function toClinicOrder(
           ? null
           : {
               currency: i.currency,
-              labUnitCostPaisa: i.labUnitCostPaisa,
-              labLineCostPaisa: i.labLineCostPaisa,
-              patientUnitPricePaisa: i.patientUnitPricePaisa,
-              patientLinePricePaisa: i.patientLinePricePaisa,
+              labUnitCostMinor: i.labUnitCostMinor,
+              labLineCostMinor: i.labLineCostMinor,
+              patientUnitPriceMinor: i.patientUnitPriceMinor,
+              patientLinePriceMinor: i.patientLinePriceMinor,
               pricedOn: i.pricedOn,
             },
         status: i.statusCode,
@@ -247,7 +247,7 @@ export function toLabOrder(b: OrderBundle, level: PatientDataLevel) {
     clinic: { name: b.clinicName },
     patient: patientForLab(level, o.patient),
     doctor: o.doctor ? { fullName: o.doctor.fullName } : null,
-    labCostPaisa: sum(b.items, (i) => i.labLineCostPaisa),
+    labCostMinor: sum(b.items, (i) => i.labLineCostMinor),
     items: b.items.map((i) => ({
       id: i.id,
       lineNo: i.lineNo,
@@ -259,8 +259,8 @@ export function toLabOrder(b: OrderBundle, level: PatientDataLevel) {
       rush: i.rush,
       options: i.optionsSnap,
       currency: i.currency,
-      labUnitCostPaisa: i.labUnitCostPaisa,
-      labLineCostPaisa: i.labLineCostPaisa,
+      labUnitCostMinor: i.labUnitCostMinor,
+      labLineCostMinor: i.labLineCostMinor,
       status: i.statusCode,
       form: formOf(b, i),
       answers: b.answers.get(i.id)?.data ?? {},

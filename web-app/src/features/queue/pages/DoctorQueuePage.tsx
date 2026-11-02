@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { cn } from '@/lib/utils'
+import { formatYmd } from '@/lib/datetime'
 import { useMySession, useQueuePolicies } from '../hooks/useQueueData'
 import { useQueuePermissions } from '../hooks/useQueuePermissions'
 import { useDoctors } from '@/features/appointments'
@@ -217,7 +218,7 @@ export function DoctorQueuePage() {
       {picker}
       <PageWrapper
         title="My queue"
-        subtitle={`Dr. ${session.doctorName ?? ''} · ${new Date(`${session.serviceDate}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        subtitle={`Dr. ${session.doctorName ?? ''} · ${formatYmd(session.serviceDate, 'EEEE, MMMM d')}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <span

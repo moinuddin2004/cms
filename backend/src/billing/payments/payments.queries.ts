@@ -4,7 +4,7 @@ import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { DEFAULT_PAGE_SIZE } from '../billing.constants';
 import { notFound } from '../common/billing-errors';
 import { BillingLookups, toPatientRef } from '../common/billing-lookups';
-import { fromPaisa, roundRupees, toPaisa } from '../common/money';
+import { fromMinor, roundRupees, toMinor } from '../common/money';
 import { ListPaymentsQueryDto } from '../dto/payment.dto';
 import { Payment } from '../entities/payment.entity';
 import { Refund } from '../entities/refund.entity';
@@ -166,17 +166,17 @@ export const PaymentQueries = {
       paymentCount: Number(r.payment_count),
       refundsTotal: roundRupees(r.refunds),
       refundCount: Number(r.refund_count),
-      net: fromPaisa(toPaisa(r.payments) - toPaisa(r.refunds)),
+      net: fromMinor(toMinor(r.payments) - toMinor(r.refunds)),
     }));
     const sum = (k: 'paymentsTotal' | 'refundsTotal') =>
-      accounts.reduce((a, r) => a + toPaisa(r[k]), 0);
+      accounts.reduce((a, r) => a + toMinor(r[k]), 0);
     return {
       date,
       accounts,
       totals: {
-        payments: fromPaisa(sum('paymentsTotal')),
-        refunds: fromPaisa(sum('refundsTotal')),
-        net: fromPaisa(sum('paymentsTotal') - sum('refundsTotal')),
+        payments: fromMinor(sum('paymentsTotal')),
+        refunds: fromMinor(sum('refundsTotal')),
+        net: fromMinor(sum('paymentsTotal') - sum('refundsTotal')),
       },
     };
   },

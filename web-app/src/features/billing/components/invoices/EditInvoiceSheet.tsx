@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Loader2, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { NumberInput } from '@/components/forms/NumberInput'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FormSheet } from '@/components/forms/FormSheet'
 import { FieldWrapper } from '@/components/forms/FieldWrapper'
@@ -13,6 +14,7 @@ import { useBillingMutation } from '../../hooks/use-billing-mutation'
 import {
   useDiscountTypes,
   usePatientCharges,
+  usePaymentAccounts,
 } from '../../hooks/use-billing-queries'
 import { billingError } from '../../lib/billing-errors'
 import { hasTax, taxLabel } from '../../lib/tax'
@@ -33,14 +35,21 @@ export interface InvoiceEditRequest {
   reason: string
 }
 
+/** How the money released by an edit goes back to the patient. */
+export interface RefundPayout {
+  paymentAccountId: string
+  referenceNumber: string
+}
+
 const KEEP = '__keep'
 const REMOVE = '__remove'
 
 /**
  * Edit an issued invoice (D10, plan §8.3). Every number shown comes from
  * `/edit/preview`; a stale revision (409) shows "changed by someone else"
- * with Reload. "Save & refund" hands the edit to the refund sheet so edit
- * and refund commit together (6.10).
+ * with Reload. When the edit gives money back, the payout account is picked
+ * here too, so "Save & refund" only asks for a confirm — edit and refund
+ * still commit together (6.10).
  */
 export function EditInvoiceSheet({
   invoice,
@@ -52,13 +61,23 @@ export function EditInvoiceSheet({
   invoice: Invoice
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSaveAndRefund: (edit: InvoiceEditRequest, releasedToAdvance: number) => void
+  onSaveAndRefund: (
+    edit: InvoiceEditRequest,
+    releasedToAdvance: number,
+    payout: RefundPayout,
+  ) => void
   onReload: () => void
 }) {
   const { can } = useAccess()
   const canOverridePrice = can('billing.price.override')
   const canDiscount = can(DISCOUNT_PERMS)
   const canVoid = can('billing.invoice.void')
+  const canRefund = can('billing.refund.issue')
+  const accounts = usePaymentAccounts(true)
+  const [payout, setPayout] = useState<RefundPayout>({
+    paymentAccountId: '',
+    referenceNumber: '',
+  })
   const [state, dispatch] = useReducer(editInvoiceReducer, emptyEditState)
   const discountTypes = useDiscountTypes(true, open)
   const unbilled = usePatientCharges(invoice.patient.id, 'unbilled')
@@ -70,6 +89,11 @@ export function EditInvoiceSheet({
   useEffect(() => {
     if (open) dispatch({ type: 'reset' })
   }, [open])
+  // Default the payout to the first account (usually Cash).
+  const firstAccount = accounts.data?.[0]?.id ?? ''
+  useEffect(() => {
+    if (open) setPayout({ paymentAccountId: firstAccount, referenceNumber: '' })
+  }, [open, firstAccount])
 
   const operations = useMemo(
     () => toOperations(state, charges),
@@ -107,6 +131,13 @@ export function EditInvoiceSheet({
     preview.isSuccess &&
     !preview.isFetching &&
     reasonOk
+  const released = preview.data?.releasedToAdvance ?? 0
+  const payoutAccount = accounts.data?.find(
+    (a) => a.id === payout.paymentAccountId,
+  )
+  const payoutOk =
+    !!payoutAccount &&
+    (!payoutAccount.requiresReference || payout.referenceNumber.trim() !== '')
   const request: InvoiceEditRequest = {
     expectedRevision: invoice.revision,
     operations,
@@ -125,12 +156,11 @@ export function EditInvoiceSheet({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          {ready && preview.data.releasedToAdvance > 0 && (
+          {canRefund && released > 0 && (
             <Button
               variant="outline"
-              onClick={() =>
-                onSaveAndRefund(request, preview.data.releasedToAdvance)
-              }
+              disabled={!ready || !payoutOk || save.isPending}
+              onClick={() => onSaveAndRefund(request, released, payout)}
             >
               Save &amp; refund
             </Button>
@@ -260,11 +290,49 @@ export function EditInvoiceSheet({
                 </div>
                 {preview.data.releasedToAdvance > 0 && (
                   <p className="pt-1 text-emerald">
-                    <Money value={preview.data.releasedToAdvance} /> will move
-                    to the patient&apos;s advance.
+                    <Money value={preview.data.releasedToAdvance} /> goes back
+                    to the patient.{' '}
+                    {canRefund
+                      ? 'Save & refund gives it back now; Save changes keeps it as advance for the next bill.'
+                      : 'It is kept as advance for the next bill.'}
                   </p>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {canRefund && released > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FieldWrapper label="If refunding now, paid out from">
+              <OptionSelect
+                options={(accounts.data ?? []).map((a) => ({
+                  value: a.id,
+                  label: a.name,
+                }))}
+                value={payout.paymentAccountId}
+                onChange={(v) =>
+                  setPayout((p) => ({ ...p, paymentAccountId: v }))
+                }
+              />
+            </FieldWrapper>
+            {payoutAccount?.requiresReference && (
+              <FieldWrapper
+                label="Reference number"
+                htmlFor="edit-refund-ref"
+                required
+              >
+                <Input
+                  id="edit-refund-ref"
+                  value={payout.referenceNumber}
+                  onChange={(e) =>
+                    setPayout((p) => ({
+                      ...p,
+                      referenceNumber: e.target.value,
+                    }))
+                  }
+                />
+              </FieldWrapper>
             )}
           </div>
         )}

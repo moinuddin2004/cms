@@ -1,6 +1,6 @@
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { Money } from '../shared/billing-badges'
-import { formatPaisa } from '../../lib/commission-math'
+import { formatMinor } from '../../lib/commission-math'
 import { hasTax, taxLabel } from '../../lib/tax'
 import { useCollect } from './collect-context'
 
@@ -66,7 +66,7 @@ export function CollectSummary() {
               <span className="text-[11px]">(internal, admin only)</span>
             </span>
             <span className="tabular-nums font-medium">
-              {formatPaisa(preview.doctorShare.totalPaisa)}
+              {formatMinor(preview.doctorShare.totalMinor)}
             </span>
           </div>
           {preview.doctorShare.byDoctor.length > 1 &&
@@ -77,7 +77,7 @@ export function CollectSummary() {
               >
                 <span>Dr. {d.doctorName}</span>
                 <span className="tabular-nums">
-                  {formatPaisa(d.amountPaisa)}
+                  {formatMinor(d.amountMinor)}
                 </span>
               </div>
             ))}

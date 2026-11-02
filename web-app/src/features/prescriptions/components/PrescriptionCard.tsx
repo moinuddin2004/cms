@@ -1,11 +1,12 @@
 import { Link } from '@tanstack/react-router'
-import { format, formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { CalendarDays, ChevronRight, FileText, Stethoscope } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { InitialsAvatar } from '@/components/shared'
 import type { Prescription } from '../types'
 import { PrescriptionStatusBadge } from './PrescriptionStatusBadge'
 import { MedicineChips } from './MedicineChips'
+import { formatInClinic } from '@/lib/datetime'
 
 export function PrescriptionCard({ prescription: rx }: { prescription: Prescription }) {
   const patientName = rx.patient?.fullName ?? 'Unknown patient'
@@ -66,7 +67,7 @@ export function PrescriptionCard({ prescription: rx }: { prescription: Prescript
               )}
               <span
                 className="flex items-center gap-1.5"
-                title={format(created, 'dd MMM yyyy, hh:mm a')}
+                title={formatInClinic(created, 'dd MMM yyyy, hh:mm a')}
               >
                 <CalendarDays className="size-3 shrink-0" />
                 {formatDistanceToNow(created, { addSuffix: true })}

@@ -1,23 +1,15 @@
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
 import type { PayrollStatus } from '../types'
 
-const statusConfig: Record<
-  PayrollStatus,
-  { label: string; className: string }
+const statusConfig: Partial<
+  Record<
+    PayrollStatus,
+    { label: string; variant: 'warning' | 'success' | 'danger' }
+  >
 > = {
-  pending: {
-    label: 'Pending',
-    className: 'bg-amber-100 text-amber-700 hover:bg-amber-100',
-  },
-  paid: {
-    label: 'Paid',
-    className: 'bg-green-100 text-green-700 hover:bg-green-100',
-  },
-  on_hold: {
-    label: 'On Hold',
-    className: 'bg-red-100 text-red-700 hover:bg-red-100',
-  },
+  pending: { label: 'Pending', variant: 'warning' },
+  paid: { label: 'Paid', variant: 'success' },
+  on_hold: { label: 'On Hold', variant: 'danger' },
 }
 
 interface PayrollStatusBadgeProps {
@@ -25,11 +17,11 @@ interface PayrollStatusBadgeProps {
 }
 
 export function PayrollStatusBadge({ status }: PayrollStatusBadgeProps) {
-  const config = statusConfig[status] ?? { label: status, className: '' }
+  const config = statusConfig[status]
 
   return (
-    <Badge className={cn('font-normal', config.className)}>
-      {config.label}
+    <Badge variant={config?.variant ?? 'muted'}>
+      {config?.label ?? status}
     </Badge>
   )
 }

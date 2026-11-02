@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { todayYmd, ymdToDate } from '@/lib/datetime'
 
 interface AppointmentUIState {
   // Calendar state
@@ -27,7 +28,8 @@ interface AppointmentUIState {
 }
 
 export const useAppointmentStore = create<AppointmentUIState>()((set) => ({
-  selectedDate: new Date(),
+  // A calendar day (local noon carrier); today on the clinic's clock.
+  selectedDate: ymdToDate(todayYmd()),
   setSelectedDate: (date) => set({ selectedDate: date }),
 
   doctorFilter: 'all',

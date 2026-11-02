@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
+import { formatDate } from '@/lib/datetime'
 
 interface Session {
   id: string
@@ -42,7 +43,7 @@ function timeAgo(dateString: string): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
   if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
   if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`
-  return date.toLocaleDateString()
+  return formatDate(date)
 }
 
 export function SessionManagement() {

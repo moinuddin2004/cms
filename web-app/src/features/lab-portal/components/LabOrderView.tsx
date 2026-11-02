@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import { Check, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { ItemStatusBadge } from '@/features/lab-orders'
 import type {
   PortalFormField,
@@ -11,13 +12,7 @@ import type {
   PortalOrderItem,
 } from '../types'
 
-export const fmtDateTime = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+export const fmtDateTime = (iso: string) => formatInClinic(iso, 'd MMM, HH:mm')
 
 export function OrderSection({
   title,
@@ -88,7 +83,7 @@ export function LabOrderView({
         title="Work"
         action={
           <span className="text-sm tabular-nums text-text-2">
-            Lab total {formatPaisa(order.labCostPaisa)}
+            Lab total {formatMinor(order.labCostMinor)}
           </span>
         }
       >
@@ -111,7 +106,7 @@ export function LabOrderView({
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm tabular-nums">
-                      {formatPaisa(i.labLineCostPaisa)}
+                      {formatMinor(i.labLineCostMinor)}
                     </span>
                     <ItemStatusBadge status={i.status} />
                   </div>

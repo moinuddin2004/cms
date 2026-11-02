@@ -34,6 +34,7 @@ import {
   num,
   timeOf,
 } from './history/HistoryParts'
+import { formatDate } from '@/lib/datetime'
 
 interface VisitRow {
   encounter: Encounter
@@ -103,9 +104,7 @@ export function VisitsTab({
         cell: ({ row }) => (
           <div>
             <p className="text-sm font-medium">
-              {row.original.date.toLocaleDateString([], {
-                dateStyle: 'medium',
-              })}
+              {formatDate(row.original.date)}
             </p>
             <p className="text-xs text-muted-foreground">
               {timeOf(row.original.date)}

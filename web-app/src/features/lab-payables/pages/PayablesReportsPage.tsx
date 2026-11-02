@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { nowInClinic } from '@/lib/datetime'
 import { BarChart3 } from 'lucide-react'
 import { NumberInput } from '@/components/forms/NumberInput'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -10,7 +11,7 @@ import {
 } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DatePicker } from '@/components/shared/DatePicker'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import {
   ALL,
   LabFilter,
@@ -41,7 +42,7 @@ const MONTHS = [
   'Dec',
 ]
 const money = (p: number) => (
-  <span className="tabular-nums">{p ? formatPaisa(p) : '—'}</span>
+  <span className="tabular-nums">{p ? formatMinor(p) : '—'}</span>
 )
 const th = 'px-3 py-2 text-left text-xs font-medium text-text-3'
 const td = 'px-3 py-2'
@@ -122,7 +123,7 @@ function Aging() {
                 </td>
               ))}
               <td className={`${td} text-right font-semibold`}>
-                {money(l.totalPaisa)}
+                {money(l.totalMinor)}
               </td>
             </tr>
           ))}
@@ -136,7 +137,7 @@ function Aging() {
               </td>
             ))}
             <td className={`${td} text-right`}>
-              {money(data.totals.totalPaisa)}
+              {money(data.totals.totalMinor)}
             </td>
           </tr>
         </tfoot>
@@ -146,7 +147,7 @@ function Aging() {
 }
 
 function Monthly() {
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [year, setYear] = useState(() => nowInClinic().getFullYear())
   // Typed text; the report only follows once it is a full year in range.
   const [yearText, setYearText] = useState(String(year))
   const { data, isLoading, isError, refetch } = useMonthlyCostReport(year)
@@ -206,7 +207,7 @@ function Monthly() {
                     </td>
                   ))}
                   <td className={`${td} text-right font-semibold`}>
-                    {money(l.totalPaisa)}
+                    {money(l.totalMinor)}
                   </td>
                 </tr>
               ))}
@@ -220,7 +221,7 @@ function Monthly() {
                   </td>
                 ))}
                 <td className={`${td} text-right`}>
-                  {money(data.totals.totalPaisa)}
+                  {money(data.totals.totalMinor)}
                 </td>
               </tr>
             </tfoot>
@@ -320,30 +321,30 @@ function CaseProfit() {
                     <td className={td}>{r.patientName ?? '—'}</td>
                     <td className={td}>{r.labName}</td>
                     <td className={`${td} text-right`}>
-                      {money(r.patientPricePaisa)}
+                      {money(r.patientPriceMinor)}
                     </td>
                     <td className={`${td} text-right`}>
-                      {r.invoicedPaisa === null ? '—' : money(r.invoicedPaisa)}
+                      {r.invoicedMinor === null ? '—' : money(r.invoicedMinor)}
                     </td>
                     <td className={`${td} text-right text-text-3`}>
-                      {money(r.collectedPaisa)}
+                      {money(r.collectedMinor)}
                     </td>
                     <td className={`${td} text-right`}>
-                      {money(r.labCostPaisa)}
+                      {money(r.labCostMinor)}
                     </td>
                     <td className={`${td} text-right text-text-3`}>
-                      {money(r.billedLabCostPaisa)}
+                      {money(r.billedLabCostMinor)}
                     </td>
                     <td className={`${td} text-right`}>
-                      {money(r.expensesPaisa)}
+                      {money(r.expensesMinor)}
                     </td>
                     <td className={`${td} text-right`}>
-                      {money(r.commissionPaisa)}
+                      {money(r.commissionMinor)}
                     </td>
                     <td
-                      className={`${td} text-right font-semibold ${r.profitPaisa < 0 ? 'text-red-500' : ''}`}
+                      className={`${td} text-right font-semibold ${r.profitMinor < 0 ? 'text-red-500' : ''}`}
                     >
-                      {formatPaisa(r.profitPaisa)}
+                      {formatMinor(r.profitMinor)}
                     </td>
                   </tr>
                 ))}

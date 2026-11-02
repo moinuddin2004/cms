@@ -78,7 +78,7 @@ export class PatientConsumption {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
   @OneToMany(() => PatientConsumptionItem, (item) => item.consumption, {

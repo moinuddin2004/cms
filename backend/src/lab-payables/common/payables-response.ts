@@ -34,8 +34,8 @@ export const toBillLine = (l: VendorBillLine) => ({
   remakeRequestId: l.remakeRequestId,
   description: l.description,
   quantity: l.quantity,
-  unitCostPaisa: l.unitCostPaisa,
-  lineTotalPaisa: l.lineTotalPaisa,
+  unitCostMinor: l.unitCostMinor,
+  lineTotalMinor: l.lineTotalMinor,
   isManual: l.isManual,
 });
 
@@ -51,12 +51,12 @@ export const toBill = (b: VendorBill, x: BillExtras, audience: Audience) => ({
   status: b.status,
   billDate: b.billDate,
   dueOn: b.dueOn,
-  subtotalPaisa: b.subtotalPaisa,
+  subtotalMinor: b.subtotalMinor,
   taxBp: b.taxBp,
-  taxPaisa: b.taxPaisa,
-  totalPaisa: b.totalPaisa,
-  paidPaisa: b.paidPaisa,
-  balancePaisa: b.balancePaisa,
+  taxMinor: b.taxMinor,
+  totalMinor: b.totalMinor,
+  paidMinor: b.paidMinor,
+  balanceMinor: b.balanceMinor,
   currency: b.currency,
   approvedAt: b.approvedAt,
   voidedAt: b.voidedAt,
@@ -82,7 +82,7 @@ export const toAllocation = (
   paymentNo: x.paymentNo ?? null,
   vendorBillId: a.vendorBillId,
   billNo: x.billNo ?? null,
-  amountPaisa: a.amountPaisa,
+  amountMinor: a.amountMinor,
   reversedAt: a.reversedAt,
   createdAt: a.createdAt,
 });
@@ -96,11 +96,11 @@ export const toPayment = (
   paymentNo: p.paymentNo,
   labId: p.labId,
   labName: x.labName ?? null,
-  amountPaisa: p.amountPaisa,
-  allocatedPaisa: p.allocatedPaisa,
-  unallocatedPaisa:
+  amountMinor: p.amountMinor,
+  allocatedMinor: p.allocatedMinor,
+  unallocatedMinor:
     p.status === VendorPaymentStatus.POSTED
-      ? p.amountPaisa - p.allocatedPaisa
+      ? p.amountMinor - p.allocatedMinor
       : 0,
   method: p.method,
   reference: p.reference,
@@ -123,8 +123,8 @@ export const toStatementLine = (l: LabStatementLine) => ({
   labReference: l.labReference,
   lineDate: l.lineDate,
   description: l.description,
-  amountPaisa: l.amountPaisa,
-  systemAmountPaisa: l.systemAmountPaisa,
+  amountMinor: l.amountMinor,
+  systemAmountMinor: l.systemAmountMinor,
   matchedBillId: l.matchedBillId,
   matchedBillLineId: l.matchedBillLineId,
   matchStatus: l.matchStatus,
@@ -145,7 +145,7 @@ export const toStatement = (
   periodStart: s.periodStart,
   periodEnd: s.periodEnd,
   statementRef: s.statementRef,
-  totalPaisa: s.totalPaisa,
+  totalMinor: s.totalMinor,
   status: s.status,
   counts: x.counts ?? null,
   createdAt: s.createdAt,

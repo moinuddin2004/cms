@@ -67,8 +67,8 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 AND p.payment_date BETWEEN $3 AND $4
              UNION ALL
              SELECT lp.received_on::text, lp.receipt_no, 'Lab', pt.full_name, pt.patient_number,
-                    ${LAB_METHOD}, l.name, lp.amount_paisa,
-                    GREATEST(lp.amount_paisa - lp.allocated_paisa - lp.refunded_paisa, 0),
+                    ${LAB_METHOD}, l.name, lp.amount_minor,
+                    GREATEST(lp.amount_minor - lp.allocated_minor - lp.refunded_minor, 0),
                     lp.received_at
                FROM lab_payments lp
                JOIN patients pt ON pt.id = lp.patient_id
@@ -118,14 +118,14 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 WHERE organization_id = $1 AND location_id = ANY($2) AND refund_date BETWEEN $3 AND $4
                 GROUP BY 1
                UNION ALL
-               SELECT 'Lab · ' || ${LAB_METHOD}, COUNT(*) FILTER (WHERE lp.amount_paisa > 0),
-                      SUM(lp.amount_paisa), 0
+               SELECT 'Lab · ' || ${LAB_METHOD}, COUNT(*) FILTER (WHERE lp.amount_minor > 0),
+                      SUM(lp.amount_minor), 0
                  FROM lab_payments lp
                 WHERE lp.organization_id = $1 AND lp.location_id = ANY($2)
                   AND lp.received_on BETWEEN $3 AND $4
                 GROUP BY 1
                UNION ALL
-               SELECT 'Lab · ' || initcap(replace(lr.method::text, '_', ' ')), 0, 0, SUM(lr.amount_paisa)
+               SELECT 'Lab · ' || initcap(replace(lr.method::text, '_', ' ')), 0, 0, SUM(lr.amount_minor)
                  FROM lab_refunds lr
                 WHERE lr.organization_id = $1 AND lr.location_id = ANY($2)
                   AND lr.refunded_at >= $5 AND lr.refunded_at < $6
@@ -194,11 +194,11 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 AND i.issue_date BETWEEN $3 AND $4
              UNION ALL
              SELECT li.issued_on::text, li.invoice_no, 'Lab', pt.full_name,
-                    li.subtotal_paisa, li.discount_paisa + li.credited_paisa, li.tax_paisa,
-                    li.total_paisa - li.credited_paisa, li.paid_paisa, li.balance_paisa,
-                    CASE WHEN li.balance_paisa <= 0 THEN 'Paid'
+                    li.subtotal_minor, li.discount_minor + li.credited_minor, li.tax_minor,
+                    li.total_minor - li.credited_minor, li.paid_minor, li.balance_minor,
+                    CASE WHEN li.balance_minor <= 0 THEN 'Paid'
                          WHEN COALESCE(li.due_on, li.issued_on) < $5::date THEN 'Overdue'
-                         WHEN li.paid_paisa > 0 THEN 'Partly paid'
+                         WHEN li.paid_minor > 0 THEN 'Partly paid'
                          ELSE 'Unpaid' END,
                     li.issued_at
                FROM lab_invoices li JOIN patients pt ON pt.id = li.patient_id
@@ -249,10 +249,10 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                FROM invoices
               WHERE organization_id = $1 AND location_id = ANY($2) AND status = 'ISSUED' AND balance_due > 0
              UNION ALL
-             SELECT patient_id, balance_paisa, COALESCE(due_on, issued_on)
+             SELECT patient_id, balance_minor, COALESCE(due_on, issued_on)
                FROM lab_invoices
               WHERE organization_id = $1 AND location_id = ANY($2) AND status IN ${LAB_INVOICE_LIVE}
-                AND balance_paisa > 0)
+                AND balance_minor > 0)
            SELECT pt.full_name AS patient, pt.patient_number AS "patientNo", pt.phone,
                   COUNT(*)::int AS invoices,
                   COALESCE(SUM(bal) FILTER (WHERE due >= $3::date), 0) AS current,
@@ -317,7 +317,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
                 AND pa.created_at >= $5 AND pa.created_at < $6
               GROUP BY 1),
            commission AS (
-             SELECT a.employee_id AS doctor_id, SUM(ce.amount_paisa) AS commission
+             SELECT a.employee_id AS doctor_id, SUM(ce.amount_minor) AS commission
                FROM commission_entries ce
                JOIN employee_org_location_assignments a ON a.id = ce.assignment_id
               WHERE ce.organization_id = $1 AND ce.location_id = ANY($2)
@@ -478,7 +478,7 @@ export function revenueReports(db: DataSource): ReportDefinition[] {
               WHERE r.organization_id = $1 AND r.location_id = ANY($2) AND r.refund_date BETWEEN $3 AND $4
              UNION ALL
              SELECT to_char(lr.refunded_at AT TIME ZONE $7, 'YYYY-MM-DD'), lr.refund_no, 'Lab', pt.full_name,
-                    initcap(replace(lr.method::text, '_', ' ')), lr.reason, lr.amount_paisa, lr.refunded_at
+                    initcap(replace(lr.method::text, '_', ' ')), lr.reason, lr.amount_minor, lr.refunded_at
                FROM lab_refunds lr JOIN patients pt ON pt.id = lr.patient_id
               WHERE lr.organization_id = $1 AND lr.location_id = ANY($2)
                 AND lr.refunded_at >= $5 AND lr.refunded_at < $6

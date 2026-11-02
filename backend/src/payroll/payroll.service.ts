@@ -18,17 +18,26 @@ import { PayrollStatus } from './enums/payroll.enums';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { ClockService } from 'src/common/clock/clock.service';
 import { addDays } from 'src/common/clock/tz.util';
-import { rupeesToPaisa } from 'src/billing/commissions/commission-math';
+import { rupeesToMinor } from 'src/billing/commissions/commission-math';
 import { CompensationPlanVersions } from 'src/billing/commissions/compensation-plan-versions';
 import {
   CommissionSettlements,
-  paisaToDecimal,
+  minorToDecimal,
 } from 'src/billing/commissions/commission-settlements';
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April',
-  'May', 'June', 'July', 'August',
-  'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 @Injectable()
@@ -49,17 +58,18 @@ export class PayrollService {
   private period(month: number, year: number): { start: string; end: string } {
     const pad = (n: number) => String(n).padStart(2, '0');
     const start = `${year}-${pad(month)}-01`;
-    const next = month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
+    const next =
+      month === 12 ? `${year + 1}-01-01` : `${year}-${pad(month + 1)}-01`;
     return { start, end: addDays(next, -1) };
   }
 
-  /** Rupee amount from a DTO → exact paisa (no float math). */
-  private paisaOf(rupees: number): number {
-    const paisa = rupeesToPaisa(rupees);
-    if (paisa === null) {
+  /** Rupee amount from a DTO → exact minor units (no float math). */
+  private minorOf(rupees: number): number {
+    const minor = rupeesToMinor(rupees);
+    if (minor === null) {
       throw new BadRequestException('Amount must have at most 2 decimals');
     }
-    return paisa;
+    return minor;
   }
 
   private periodLabel(month: number, year: number): string {
@@ -143,7 +153,10 @@ export class PayrollService {
       const period = this.period(month, year);
       const tz = await this.clock.timezoneFor(locationId);
       // Commission up to the end of the period's last clinic day.
-      const periodEndsAt = this.clock.dayRange(tz, addDays(period.end, 1)).start;
+      const periodEndsAt = this.clock.dayRange(
+        tz,
+        addDays(period.end, 1),
+      ).start;
 
       for (const assignment of assignments) {
         // Payroll is UNIQUE per assignment (employee × location) per month.
@@ -159,12 +172,20 @@ export class PayrollService {
         // The plan in force at the end of the period (else at its start);
         // assignments never migrated to plans fall back to gross_salary.
         const plan =
-          (await CompensationPlanVersions.activeOn(m, assignment.id, period.end)) ??
-          (await CompensationPlanVersions.activeOn(m, assignment.id, period.start));
-        const basePaisa = plan
-          ? (plan.baseSalaryPaisa ?? 0)
+          (await CompensationPlanVersions.activeOn(
+            m,
+            assignment.id,
+            period.end,
+          )) ??
+          (await CompensationPlanVersions.activeOn(
+            m,
+            assignment.id,
+            period.start,
+          ));
+        const baseMinor = plan
+          ? (plan.baseSalaryMinor ?? 0)
           : assignment.grossSalary
-            ? (rupeesToPaisa(String(assignment.grossSalary)) ?? 0)
+            ? (rupeesToMinor(String(assignment.grossSalary)) ?? 0)
             : 0;
 
         // Commission: every unsettled entry up to period end, locked FOR
@@ -175,16 +196,16 @@ export class PayrollService {
           assignment.id,
           periodEndsAt,
         );
-        const settle = entries.ids.length > 0 && entries.totalPaisa >= 0;
-        const commissionPaisa = settle ? entries.totalPaisa : 0;
+        const settle = entries.ids.length > 0 && entries.totalMinor >= 0;
+        const commissionMinor = settle ? entries.totalMinor : 0;
 
-        if (basePaisa === 0 && commissionPaisa === 0) {
+        if (baseMinor === 0 && commissionMinor === 0) {
           noSalary.push(assignment.employee.fullName);
           continue;
         }
 
         // Pay SNAPSHOT at time of generation (salary + commission).
-        const totalPaisa = basePaisa + commissionPaisa;
+        const totalMinor = baseMinor + commissionMinor;
         const record = m.create(PayrollRecord, {
           employeeId: assignment.employeeId,
           organizationId,
@@ -192,10 +213,10 @@ export class PayrollService {
           month,
           year,
           periodLabel,
-          salaryAmount: paisaToDecimal(totalPaisa) as unknown as number,
-          baseSalaryPaisa: basePaisa,
-          commissionPaisa,
-          totalPaisa,
+          salaryAmount: minorToDecimal(totalMinor) as unknown as number,
+          baseSalaryMinor: baseMinor,
+          commissionMinor,
+          totalMinor,
           status: PayrollStatus.PENDING,
           createdBy: userId,
         });
@@ -313,9 +334,9 @@ export class PayrollService {
       year: dto.year,
       periodLabel: this.periodLabel(dto.month, dto.year),
       salaryAmount: dto.salaryAmount,
-      baseSalaryPaisa: this.paisaOf(dto.salaryAmount),
-      commissionPaisa: 0,
-      totalPaisa: this.paisaOf(dto.salaryAmount),
+      baseSalaryMinor: this.minorOf(dto.salaryAmount),
+      commissionMinor: 0,
+      totalMinor: this.minorOf(dto.salaryAmount),
       status: dto.status ?? PayrollStatus.PENDING,
       notes: dto.notes ?? null,
       createdBy: userId,
@@ -338,15 +359,15 @@ export class PayrollService {
 
     if (dto.salaryAmount !== undefined) {
       // The amount is the total; settled commission stays as it is.
-      const total = this.paisaOf(dto.salaryAmount);
-      if (total < record.commissionPaisa) {
+      const total = this.minorOf(dto.salaryAmount);
+      if (total < record.commissionMinor) {
         throw new BadRequestException(
           'The amount cannot be below the commission already in this payroll',
         );
       }
       record.salaryAmount = dto.salaryAmount;
-      record.totalPaisa = total;
-      record.baseSalaryPaisa = total - record.commissionPaisa;
+      record.totalMinor = total;
+      record.baseSalaryMinor = total - record.commissionMinor;
     }
     if (dto.status !== undefined) record.status = dto.status;
     if (dto.notes !== undefined) record.notes = dto.notes || null;
@@ -408,9 +429,9 @@ export class PayrollService {
       onHoldCount: number;
       paidAmount: number;
       pendingAmount: number;
-      /** Paisa breakdown of all records of the month. */
-      baseSalaryPaisa: number;
-      commissionPaisa: number;
+      /** Minor breakdown of all records of the month. */
+      baseSalaryMinor: number;
+      commissionMinor: number;
     };
   }> {
     const { organizationId, locationId } = ctx;
@@ -426,10 +447,10 @@ export class PayrollService {
         const amount = Number(r.salaryAmount);
         acc.totalEmployees++;
         acc.totalAmount += amount;
-        acc.baseSalaryPaisa += r.totalPaisa
-          ? r.baseSalaryPaisa
-          : (rupeesToPaisa(String(r.salaryAmount)) ?? 0);
-        acc.commissionPaisa += r.commissionPaisa;
+        acc.baseSalaryMinor += r.totalMinor
+          ? r.baseSalaryMinor
+          : (rupeesToMinor(String(r.salaryAmount)) ?? 0);
+        acc.commissionMinor += r.commissionMinor;
 
         if (r.status === PayrollStatus.PAID) {
           acc.paidCount++;
@@ -451,8 +472,8 @@ export class PayrollService {
         onHoldCount: 0,
         paidAmount: 0,
         pendingAmount: 0,
-        baseSalaryPaisa: 0,
-        commissionPaisa: 0,
+        baseSalaryMinor: 0,
+        commissionMinor: 0,
       },
     );
 
@@ -543,9 +564,7 @@ export class PayrollService {
     }
 
     if (record.status === PayrollStatus.PAID) {
-      throw new BadRequestException(
-        'Cannot put a paid payroll record on hold',
-      );
+      throw new BadRequestException('Cannot put a paid payroll record on hold');
     }
 
     record.status = PayrollStatus.ON_HOLD;

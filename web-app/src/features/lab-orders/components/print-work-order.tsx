@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import { formatInClinic } from '@/lib/datetime'
 import { labOrdersApi } from '../services/lab-orders.api'
 import type { WorkOrder } from '../types'
 import { QrCode } from './QrCode'
@@ -45,9 +46,7 @@ function WorkOrderDoc({ w }: { w: WorkOrder }) {
         <span>Doctor: {w.doctor?.fullName ?? '—'}</span>
         <span>
           Submitted:{' '}
-          {w.submittedAt
-            ? new Date(w.submittedAt).toLocaleDateString('en-GB')
-            : '—'}
+          {formatInClinic(w.submittedAt, 'dd/MM/yyyy')}
         </span>
         <span>Due back: {w.labExpectedOn ?? w.requestedOn ?? '—'}</span>
         <span>Revision: {w.revisionNo}</span>

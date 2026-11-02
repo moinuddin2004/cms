@@ -8,7 +8,7 @@ import {
   FormSheet,
 } from '@/components/shared'
 import { DatePicker } from '@/components/shared/DatePicker'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { fieldError } from '@/features/queue'
 import { useStatementForm } from '../hooks/usePayablesForms'
 import { parseStatementLines } from '../schemas/lab-payables.schema'
@@ -140,11 +140,11 @@ export function StatementSheet({
         <form.Subscribe selector={(s) => s.values.lines}>
           {(raw) => {
             const { lines } = parseStatementLines(raw)
-            const total = lines.reduce((a, l) => a + l.amountPaisa, 0)
+            const total = lines.reduce((a, l) => a + l.amountMinor, 0)
             return (
               <p className="text-sm text-text-3">
                 {lines.length} line{lines.length === 1 ? '' : 's'} ·{' '}
-                {formatPaisa(total)}
+                {formatMinor(total)}
               </p>
             )
           }}

@@ -72,7 +72,7 @@ export class LabCreditsService {
         key,
         requestHash({
           invoiceId,
-          amountPaisa: dto.amountPaisa,
+          amountMinor: dto.amountMinor,
           reason: dto.reason,
         }),
       );
@@ -84,16 +84,16 @@ export class LabCreditsService {
           'LAB_BILLING_INVOICE_NOT_OPEN',
           'Only an issued invoice can be credited',
         );
-      const creditable = invoice.totalPaisa - invoice.creditedPaisa;
-      if (dto.amountPaisa > creditable)
+      const creditable = invoice.totalMinor - invoice.creditedMinor;
+      if (dto.amountMinor > creditable)
         throw labBillingError(
           'LAB_BILLING_CREDIT_EXCEEDS_INVOICE',
           'More than is left on this invoice',
-          { creditablePaisa: creditable },
+          { creditableMinor: creditable },
         );
 
       // Paid above the new total → release, newest allocation first.
-      const excess = Math.max(0, dto.amountPaisa - invoice.balancePaisa);
+      const excess = Math.max(0, dto.amountMinor - invoice.balanceMinor);
       const released: AllocationRef[] = [];
       const kept: AllocationRef[] = [];
       if (excess > 0) {
@@ -105,7 +105,7 @@ export class LabCreditsService {
         const picked: Array<{ a: LabPaymentAllocation; take: number }> = [];
         for (const a of active) {
           if (left === 0) break;
-          const take = Math.min(left, a.amountPaisa);
+          const take = Math.min(left, a.amountMinor);
           picked.push({ a, take });
           left -= take;
         }
@@ -125,7 +125,7 @@ export class LabCreditsService {
             allocationId: a.id,
             paymentId: a.paymentId,
             invoiceId,
-            amountPaisa: a.amountPaisa,
+            amountMinor: a.amountMinor,
           });
         // A row only partly needed stays allocated for the rest.
         kept.push(
@@ -133,11 +133,11 @@ export class LabCreditsService {
             m,
             c,
             picked
-              .filter((p) => p.take < p.a.amountPaisa)
+              .filter((p) => p.take < p.a.amountMinor)
               .map((p) => ({
                 paymentId: p.a.paymentId,
                 invoiceId,
-                amountPaisa: p.a.amountPaisa - p.take,
+                amountMinor: p.a.amountMinor - p.take,
               })),
           )),
         );
@@ -156,13 +156,13 @@ export class LabCreditsService {
           creditNoteNo,
           invoiceId,
           patientId: invoice.patientId,
-          amountPaisa: dto.amountPaisa,
+          amountMinor: dto.amountMinor,
           reason: dto.reason.trim(),
           status:
             excess > 0
               ? LabCreditNoteStatus.ISSUED
               : LabCreditNoteStatus.APPLIED,
-          releasedPaisa: excess,
+          releasedMinor: excess,
           createdBy: c.actor.userId,
         }),
       );
@@ -181,8 +181,8 @@ export class LabCreditsService {
         after: {
           creditNoteNo,
           invoiceId,
-          amountPaisa: dto.amountPaisa,
-          releasedPaisa: excess,
+          amountMinor: dto.amountMinor,
+          releasedMinor: excess,
           reason: note.reason,
         },
       });
@@ -194,7 +194,7 @@ export class LabCreditsService {
         creditNoteId: note.id,
         creditNoteNo,
         invoiceId,
-        amountPaisa: dto.amountPaisa,
+        amountMinor: dto.amountMinor,
         releasedAllocations: released,
         keptAllocations: kept,
       });
@@ -226,11 +226,11 @@ export class LabCreditsService {
               'LAB_BILLING_INVALID',
               'The credit note is for another patient',
             );
-          if (dto.amountPaisa > note.releasedPaisa - note.refundedPaisa)
+          if (dto.amountMinor > note.releasedMinor - note.refundedMinor)
             throw labBillingError(
               'LAB_BILLING_REFUND_EXCEEDS_CREDIT',
               'More than is left to pay out on this credit note',
-              { refundablePaisa: note.releasedPaisa - note.refundedPaisa },
+              { refundableMinor: note.releasedMinor - note.refundedMinor },
             );
         }
         const payments = await LabBillingLocks.advancePayments(
@@ -239,19 +239,19 @@ export class LabCreditsService {
           dto.patientId,
         );
         const available = payments.reduce((s, p) => s + advanceOf(p), 0);
-        if (dto.amountPaisa > available)
+        if (dto.amountMinor > available)
           throw labBillingError(
             'LAB_BILLING_REFUND_EXCEEDS_ADVANCE',
             'More than the patient’s advance',
-            { advancePaisa: available },
+            { advanceMinor: available },
           );
-        const sources: Array<{ paymentId: string; amountPaisa: number }> = [];
-        let left = dto.amountPaisa;
+        const sources: Array<{ paymentId: string; amountMinor: number }> = [];
+        let left = dto.amountMinor;
         for (const p of payments) {
           if (left === 0) break;
           const take = Math.min(left, advanceOf(p));
           if (take > 0) {
-            sources.push({ paymentId: p.id, amountPaisa: take });
+            sources.push({ paymentId: p.id, amountMinor: take });
             left -= take;
           }
         }
@@ -269,7 +269,7 @@ export class LabCreditsService {
             refundNo,
             patientId: dto.patientId,
             creditNoteId: note?.id ?? null,
-            amountPaisa: dto.amountPaisa,
+            amountMinor: dto.amountMinor,
             method: dto.method,
             reference: dto.reference?.trim() || null,
             reason: dto.reason.trim(),
@@ -297,7 +297,7 @@ export class LabCreditsService {
           action: AuditAction.CREATE,
           after: {
             refundNo,
-            amountPaisa: refund.amountPaisa,
+            amountMinor: refund.amountMinor,
             method: refund.method,
             creditNoteId: refund.creditNoteId,
             reason: refund.reason,
@@ -310,7 +310,7 @@ export class LabCreditsService {
           actorUserId: c.actor.userId,
           refundId: refund.id,
           refundNo,
-          amountPaisa: refund.amountPaisa,
+          amountMinor: refund.amountMinor,
           method: refund.method,
           creditNoteId: refund.creditNoteId,
           sources,
@@ -335,7 +335,7 @@ export class LabCreditsService {
       .getRepository(LabRefund)
       .findOneBy({ organizationId: org, idempotencyKey: key });
     if (!hit) return null;
-    if (hit.patientId !== dto.patientId || hit.amountPaisa !== dto.amountPaisa)
+    if (hit.patientId !== dto.patientId || hit.amountMinor !== dto.amountMinor)
       throw labBillingError(
         'IDEMPOTENCY_KEY_REUSED',
         'This Idempotency-Key was already used for a different refund',

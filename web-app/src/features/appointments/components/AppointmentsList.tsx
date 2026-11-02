@@ -26,7 +26,16 @@ import {
 import { DataTable } from '@/components/shared/DataTable'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
+import { subDays } from 'date-fns'
 import { cn } from '@/lib/utils'
+import {
+  clinicDayBounds,
+  dateToYmd,
+  formatDate,
+  formatInClinic,
+  todayYmd,
+  ymdToDate,
+} from '@/lib/datetime'
 import { AppointmentsToolbar } from './AppointmentsToolbar'
 import { AppointmentFilters } from './AppointmentFilters'
 import { useAppointments } from '../hooks/useAppointments'
@@ -58,52 +67,31 @@ const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: 'all', label: 'All' },
 ]
 
-function toYMD(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-function startOfDay(d: Date) {
-  const x = new Date(d)
-  x.setHours(0, 0, 0, 0)
-  return x
-}
-
-function endOfDay(d: Date) {
-  const x = new Date(d)
-  x.setHours(23, 59, 59, 999)
-  return x
-}
-
+/** Preset / custom range → UTC bounds of the CLINIC's calendar days. */
 function resolveRange(
   preset: DatePreset,
   customFrom: string,
   customTo: string,
 ): { startDate?: string; endDate?: string } {
   if (preset === 'all') return {}
+  const today = todayYmd()
   if (preset === 'today') {
-    const now = new Date()
-    return {
-      startDate: startOfDay(now).toISOString(),
-      endDate: endOfDay(now).toISOString(),
-    }
+    const { start, end } = clinicDayBounds(today)
+    return { startDate: start, endDate: end }
   }
   if (preset === 'upcoming') {
-    return { startDate: startOfDay(new Date()).toISOString() }
+    return { startDate: clinicDayBounds(today).start }
   }
   if (preset === 'past30') {
-    const end = endOfDay(new Date())
-    const start = startOfDay(new Date())
-    start.setDate(start.getDate() - 30)
-    return { startDate: start.toISOString(), endDate: end.toISOString() }
+    const from = dateToYmd(subDays(ymdToDate(today), 30))
+    return {
+      startDate: clinicDayBounds(from).start,
+      endDate: clinicDayBounds(today).end,
+    }
   }
   return {
-    startDate: customFrom
-      ? startOfDay(new Date(customFrom)).toISOString()
-      : undefined,
-    endDate: customTo ? endOfDay(new Date(customTo)).toISOString() : undefined,
+    startDate: customFrom ? clinicDayBounds(customFrom).start : undefined,
+    endDate: customTo ? clinicDayBounds(customTo).end : undefined,
   }
 }
 
@@ -188,11 +176,11 @@ export function AppointmentsList() {
   // the strip highlight.
   const stripDate =
     preset === 'custom' && customFrom && customFrom === customTo
-      ? new Date(customFrom + 'T12:00:00')
+      ? ymdToDate(customFrom)
       : null
 
   const handleStripSelect = (d: Date) => {
-    const ymd = toYMD(d)
+    const ymd = dateToYmd(d)
     setPreset('custom')
     setCustomFrom(ymd)
     setCustomTo(ymd)
@@ -242,33 +230,22 @@ export function AppointmentsList() {
         accessorKey: 'startTime',
         header: 'Date & Time',
         cell: ({ row }) => {
-          const start = new Date(row.original.startTime)
-          const end = new Date(row.original.endTime)
+          const { startTime, endTime } = row.original
           const isWalkIn = row.original.kind === 'walk_in'
           return (
             <div className="font-medium">
               <div>
-                {start.toLocaleDateString([], {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+                {formatDate(startTime)}
               </div>
               <div className="text-xs text-muted-foreground">
                 {isWalkIn ? 'Arrived ' : ''}
-                {start.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {formatInClinic(startTime, 'hh:mm a')}
                 {/* A walk-in has no booked slot, so there is no end time. */}
                 {!isWalkIn && (
                   <>
                     {' '}
                     –{' '}
-                    {end.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatInClinic(endTime, 'hh:mm a')}
                   </>
                 )}
               </div>

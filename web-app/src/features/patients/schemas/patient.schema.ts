@@ -7,6 +7,7 @@ import {
   CommunicationPreference,
   PatientSource,
 } from '../types'
+import { todayYmd } from '@/lib/datetime'
 
 const phoneRe = /^[0-9+\-\s()]{7,20}$/
 const cnicRe = /^\d{5}-\d{7}-\d$/
@@ -34,7 +35,7 @@ export const patientSchema = z
     dob: z
       .string()
       .refine(
-        (v) => !v || new Date(v) <= new Date(),
+        (v) => !v || v <= todayYmd(),
         'Date of Birth cannot be in the future',
       ),
     gender: z.enum(Gender).optional(),

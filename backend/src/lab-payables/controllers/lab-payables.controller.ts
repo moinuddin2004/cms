@@ -279,7 +279,7 @@ export class LabPayablesController {
     @Query() q: CaseProfitQueryDto,
   ) {
     return ResponseWrapper.success(
-      await this.reports.caseProfit(t.organizationId, q),
+      await this.reports.caseProfit(t.organizationId, t.locationId, q),
     );
   }
 }

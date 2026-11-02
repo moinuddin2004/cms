@@ -1,5 +1,5 @@
 import { AllocationMode } from '../../enums/billing.enums';
-import { sumPaisa } from '../../common/money';
+import { sumMinor } from '../../common/money';
 import {
   AllocationInput,
   AllocationPlan,
@@ -39,14 +39,14 @@ export function planAllocation(
   input: AllocationInput,
 ): AllocationPlan {
   const charges = fifoOrder(input.charges);
-  const totalFunds = sumPaisa(input.funds.map((f) => f.availablePaisa));
+  const totalFunds = sumMinor(input.funds.map((f) => f.availableMinor));
   const targets = ALLOCATION_STRATEGIES[mode].targets(
     charges,
     totalFunds,
     input,
   );
 
-  const funds = input.funds.map((f) => ({ ...f, left: f.availablePaisa }));
+  const funds = input.funds.map((f) => ({ ...f, left: f.availableMinor }));
   const lines: PlannedLine[] = [];
   for (const charge of charges) {
     let need = targets.get(charge.id) ?? 0;
@@ -57,7 +57,7 @@ export function planAllocation(
       lines.push({
         chargeId: charge.id,
         source: fund.source,
-        amountPaisa: take,
+        amountMinor: take,
       });
       fund.left -= take;
       need -= take;
@@ -68,10 +68,10 @@ export function planAllocation(
   return {
     lines,
     perCharge: targets,
-    advanceUsedPaisa: sumPaisa(
-      lines.filter((l) => l.source !== NEW_PAYMENT).map((l) => l.amountPaisa),
+    advanceUsedMinor: sumMinor(
+      lines.filter((l) => l.source !== NEW_PAYMENT).map((l) => l.amountMinor),
     ),
-    newPaymentAdvancePaisa: newFund ? newFund.left : 0,
+    newPaymentAdvanceMinor: newFund ? newFund.left : 0,
   };
 }
 

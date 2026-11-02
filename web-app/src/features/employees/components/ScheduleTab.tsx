@@ -53,15 +53,22 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
   return (
     <Card>
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Weekly Schedule</CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <Calendar className="mt-0.5 h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-lg font-medium">
+                Weekly schedule
+              </CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Working hours used for booking.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Slot:</span>
+              <span>Slot</span>
               <form.Field name="slotDuration">
                 {(field) => (
                   <Select
@@ -99,9 +106,9 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
                   disabled={!isDirty || !canSubmit || isSubmitting}
                 >
                   {isSubmitting ? (
-                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
-                    <Save className="mr-1 h-3.5 w-3.5" />
+                    <Save className="h-3.5 w-3.5" />
                   )}
                   Save
                 </Button>
@@ -116,14 +123,14 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
             days.map((day, i) => (
               <div
                 key={day.dayOfWeek}
-                className={`flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors ${
+                className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-3 transition-colors ${
                   day.isWorking
-                    ? 'bg-background border-border'
-                    : 'bg-muted/50 border-transparent'
+                    ? 'border-border bg-background'
+                    : 'border-transparent bg-muted/50'
                 }`}
               >
                 {/* Day name */}
-                <div className="w-24 flex items-center gap-2">
+                <div className="flex w-32 items-center gap-2">
                   <Switch
                     checked={day.isWorking}
                     onCheckedChange={(val) => toggleWorking(i, val)}
@@ -144,8 +151,8 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
                           const startError = fieldError(start)
                           const endError = fieldError(end)
                           return (
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Input
                                   type="time"
                                   aria-label={`${DAY_NAMES[day.dayOfWeek]} start`}
@@ -155,7 +162,7 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
                                     start.handleChange(e.target.value)
                                   }
                                   onBlur={start.handleBlur}
-                                  className="w-32 h-8 text-sm"
+                                  className="h-8 w-32 text-sm dark:[color-scheme:dark]"
                                 />
                                 <span className="text-xs text-muted-foreground">
                                   to
@@ -169,9 +176,9 @@ export function ScheduleTab({ employeeId }: ScheduleTabProps) {
                                     end.handleChange(e.target.value)
                                   }
                                   onBlur={end.handleBlur}
-                                  className="w-32 h-8 text-sm"
+                                  className="h-8 w-32 text-sm dark:[color-scheme:dark]"
                                 />
-                                <span className="ml-2 text-xs text-muted-foreground">
+                                <span className="ml-2 hidden text-xs text-muted-foreground md:inline">
                                   {to12h(start.state.value)} –{' '}
                                   {to12h(end.state.value)}
                                 </span>

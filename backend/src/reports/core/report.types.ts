@@ -1,7 +1,7 @@
 /**
  * Report engine types. A report is a definition (columns + filters + one
  * `run`), so the same rows feed the on-screen table, the Excel file and the
- * PDF. Money crosses the API as rupees (2 decimals); `run` works in paisa
+ * PDF. Money crosses the API as rupees (2 decimals); `run` works in minor units
  * and the engine converts (billing v2 6.1).
  */
 
@@ -45,7 +45,7 @@ export interface ReportFilterSpec {
   basis?: boolean;
 }
 
-/** Money values in a row are integer paisa until the engine converts them. */
+/** Money values in a row are integer minor units until the engine converts them. */
 export type ReportRow = Record<string, string | number | null>;
 
 export interface ReportSummaryItem {

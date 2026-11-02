@@ -41,6 +41,7 @@ import { NumberInput } from '@/components/forms/NumberInput'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import { formatYmd } from '@/lib/datetime'
 import {
   usePurchaseOrders,
   usePurchaseOrder,
@@ -129,14 +130,10 @@ export function PurchaseOrdersTab() {
                     <TableCell className="font-medium">{po.poNumber}</TableCell>
                     <TableCell>{po.supplier?.name ?? '—'}</TableCell>
                     <TableCell>
-                      {po.orderDate
-                        ? new Date(po.orderDate).toLocaleDateString()
-                        : '—'}
+                      {formatYmd(po.orderDate)}
                     </TableCell>
                     <TableCell>
-                      {po.expectedDeliveryDate
-                        ? new Date(po.expectedDeliveryDate).toLocaleDateString()
-                        : '—'}
+                      {formatYmd(po.expectedDeliveryDate)}
                     </TableCell>
                     <TableCell className="text-center">
                       {po.itemsCount ?? po.items?.length ?? '—'}
@@ -463,7 +460,7 @@ function PODetailSheet({
                 <p className="font-medium">{po.supplier?.name}</p>
                 <p className="text-muted-foreground">
                   {po.orderDate
-                    ? `Ordered ${new Date(po.orderDate).toLocaleDateString()}`
+                    ? `Ordered ${formatYmd(po.orderDate)}`
                     : 'Not ordered yet'}
                 </p>
               </div>

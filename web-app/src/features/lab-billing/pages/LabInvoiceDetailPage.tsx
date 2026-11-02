@@ -15,11 +15,12 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { ErrorState, LoadingSkeleton, StatusBadge } from '@/components/shared'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
+import { formatInClinic } from '@/lib/datetime'
 import {
   LabInvoiceStatusBadge,
   MoneyRow,
-  Paisa,
+  MoneyAmount,
   ReasonDialog,
 } from '../components/billing-bits'
 import { InvoiceSheet } from '../components/InvoiceSheet'
@@ -47,13 +48,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-const fmtTime = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+const fmtTime = (iso: string) => formatInClinic(iso, 'd MMM, HH:mm')
 
 /** One lab invoice or estimate (lab ERD §6a). */
 export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
@@ -113,7 +108,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
       body,
       key,
     }: {
-      body: { amountPaisa: number; reason: string }
+      body: { amountMinor: number; reason: string }
       key: string
     }) => labBillingApi.creditNote(invoiceId, body, key),
     'Credit note issued',
@@ -151,16 +146,16 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
     )
 
   const open = inv.status === 'issued' || inv.status === 'partially_paid'
-  const advance = inv.patientSummary.advancePaisa
+  const advance = inv.patientSummary.advanceMinor
   const canVoid =
     access.canVoid &&
     inv.status !== 'void' &&
-    inv.paidPaisa === 0 &&
-    inv.creditedPaisa === 0
+    inv.paidMinor === 0 &&
+    inv.creditedMinor === 0
   const canCredit =
     access.canVoid &&
     ['issued', 'partially_paid', 'paid'].includes(inv.status) &&
-    inv.totalPaisa > inv.creditedPaisa
+    inv.totalMinor > inv.creditedMinor
 
   const actions = (
     <div className="flex flex-wrap gap-2">
@@ -197,7 +192,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
           ) : (
             <Wallet className="size-4" />
           )}
-          Use advance ({formatPaisa(advance)})
+          Use advance ({formatMinor(advance)})
         </Button>
       )}
       {open && (
@@ -287,13 +282,13 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                         {l.quantity}
                       </td>
                       <td className="py-2 pr-3 text-right">
-                        <Paisa value={l.unitPricePaisa} />
+                        <MoneyAmount value={l.unitPriceMinor} />
                       </td>
                       <td className="py-2 pr-3 text-right">
-                        <Paisa value={l.discountPaisa} />
+                        <MoneyAmount value={l.discountMinor} />
                       </td>
                       <td className="py-2 pr-3 text-right">
-                        <Paisa value={l.taxPaisa} />
+                        <MoneyAmount value={l.taxMinor} />
                         {l.taxRateBp > 0 && (
                           <span className="block text-xs text-text-3">
                             {l.taxRateBp / 100}%
@@ -301,7 +296,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                         )}
                       </td>
                       <td className="py-2 text-right">
-                        <Paisa value={l.lineTotalPaisa} strong />
+                        <MoneyAmount value={l.lineTotalMinor} strong />
                       </td>
                     </tr>
                   ))}
@@ -336,18 +331,18 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
               <p className="text-sm text-text-3">Voided: {inv.voidReason}</p>
             )}
             <div className="space-y-1 border-t border-border pt-3">
-              <MoneyRow label="Subtotal" value={inv.subtotalPaisa} />
-              <MoneyRow label="Discount" value={inv.discountPaisa} negative />
-              <MoneyRow label="Tax" value={inv.taxPaisa} />
-              <MoneyRow label="Total" value={inv.totalPaisa} strong />
-              {inv.creditedPaisa > 0 && (
-                <MoneyRow label="Credited" value={inv.creditedPaisa} negative />
+              <MoneyRow label="Subtotal" value={inv.subtotalMinor} />
+              <MoneyRow label="Discount" value={inv.discountMinor} negative />
+              <MoneyRow label="Tax" value={inv.taxMinor} />
+              <MoneyRow label="Total" value={inv.totalMinor} strong />
+              {inv.creditedMinor > 0 && (
+                <MoneyRow label="Credited" value={inv.creditedMinor} negative />
               )}
-              <MoneyRow label="Paid" value={inv.paidPaisa} negative />
+              <MoneyRow label="Paid" value={inv.paidMinor} negative />
               <MoneyRow
                 label={inv.status === 'draft' ? 'Estimate' : 'Balance'}
                 value={
-                  inv.status === 'draft' ? inv.totalPaisa : inv.balancePaisa
+                  inv.status === 'draft' ? inv.totalMinor : inv.balanceMinor
                 }
                 strong
               />
@@ -358,7 +353,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
               </p>
               <MoneyRow
                 label="Owes"
-                value={inv.patientSummary.receivablePaisa}
+                value={inv.patientSummary.receivableMinor}
               />
               <MoneyRow label="Advance" value={advance} />
               {access.canRefund && advance > 0 && (
@@ -405,7 +400,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                         }
                       />
                     )}
-                    <Paisa value={a.amountPaisa} />
+                    <MoneyAmount value={a.amountMinor} />
                   </span>
                 </li>
               ))}
@@ -424,10 +419,10 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                   <span>
                     <span className="font-medium">{c.creditNoteNo}</span> —{' '}
                     {c.reason}
-                    {c.releasedPaisa > 0 && (
+                    {c.releasedMinor > 0 && (
                       <span className="block text-xs text-text-3">
-                        {formatPaisa(c.releasedPaisa)} back to advance ·{' '}
-                        {formatPaisa(c.refundedPaisa)} refunded
+                        {formatMinor(c.releasedMinor)} back to advance ·{' '}
+                        {formatMinor(c.refundedMinor)} refunded
                       </span>
                     )}
                   </span>
@@ -436,7 +431,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
                       status={c.status}
                       tone={c.status === 'issued' ? 'warning' : 'success'}
                     />
-                    <Paisa value={c.amountPaisa} />
+                    <MoneyAmount value={c.amountMinor} />
                     {access.canRefund &&
                       c.status === 'issued' &&
                       advance > 0 && (
@@ -509,7 +504,7 @@ export function LabInvoiceDetailPage({ invoiceId }: { invoiceId: string }) {
         open={!!refundFor}
         onOpenChange={(o) => !o && setRefundFor(null)}
         patient={inv.patient}
-        maxPaisa={refundMax(inv, refundFor)}
+        maxMinor={refundMax(inv, refundFor)}
         creditNote={refundFor && refundFor !== 'advance' ? refundFor : null}
         onRefund={(body, key) => refund.mutateAsync({ body, key })}
       />
@@ -535,8 +530,8 @@ function refundMax(
   inv: LabInvoiceDetail,
   target: LabCreditNote | 'advance' | null,
 ): number {
-  const advance = inv.patientSummary.advancePaisa
+  const advance = inv.patientSummary.advanceMinor
   if (!target) return 0
   if (target === 'advance') return advance
-  return Math.min(advance, target.releasedPaisa - target.refundedPaisa)
+  return Math.min(advance, target.releasedMinor - target.refundedMinor)
 }

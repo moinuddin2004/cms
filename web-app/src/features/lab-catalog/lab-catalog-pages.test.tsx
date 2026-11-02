@@ -10,7 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { LabServicesPanel } from './components/LabServicesPanel'
-import { formatPaisa, paisaToRupeesText, rupeesToPaisa } from './lib/money'
+import { formatMinor, minorToRupeesText, rupeesToMinor } from './lib/money'
 import { LabCatalogPage } from './pages/LabCatalogPage'
 import { OrderTemplatesPage } from './pages/OrderTemplatesPage'
 import { orderTemplateSchema, priceSchema } from './schemas/catalog.schema'
@@ -97,8 +97,8 @@ const clinicRow = (over: Partial<ClinicServiceRow> = {}): ClinicServiceRow => ({
   price: {
     priceId: 'p-1',
     source: 'negotiated',
-    unitPricePaisa: 450_000,
-    rushSurchargePaisa: 100_000,
+    unitPriceMinor: 450_000,
+    rushSurchargeMinor: 100_000,
     currency: 'PKR',
     effectiveFrom: '2026-10-01',
     effectiveTo: null,
@@ -109,7 +109,7 @@ const clinicRow = (over: Partial<ClinicServiceRow> = {}): ClinicServiceRow => ({
     clinicTreatmentName: 'Zirconia crown (patient)',
     isDefault: true,
   },
-  patientPricePaisa: 1_500_050,
+  patientPriceMinor: 1_500_050,
   ...over,
 })
 
@@ -120,7 +120,7 @@ const mapping = (over: Partial<ServiceMapping> = {}): ServiceMapping => ({
     name: 'Zirconia crown (patient)',
     code: 'ZRC',
     isActive: true,
-    defaultPricePaisa: 1_200_000,
+    defaultPriceMinor: 1_200_000,
   },
   labService: {
     id: 'svc-1',
@@ -188,16 +188,16 @@ beforeEach(() => {
   granted.perms = new Set(['lab.orders.create'])
 })
 
-describe('money helpers (integer paisa)', () => {
-  it('converts typed rupees to paisa without floats', () => {
-    expect(rupeesToPaisa('4500')).toBe(450_000)
-    expect(rupeesToPaisa('4500.5')).toBe(450_050)
-    expect(rupeesToPaisa('0.07')).toBe(7)
-    expect(rupeesToPaisa('1.005')).toBeNull()
-    expect(rupeesToPaisa('-5')).toBeNull()
-    expect(rupeesToPaisa('abc')).toBeNull()
-    expect(paisaToRupeesText(450_050)).toBe('4500.5')
-    expect(formatPaisa(1_500_050)).toBe('PKR 15,000.50')
+describe('money helpers (integer minor)', () => {
+  it('converts typed rupees to minor without floats', () => {
+    expect(rupeesToMinor('4500')).toBe(450_000)
+    expect(rupeesToMinor('4500.5')).toBe(450_050)
+    expect(rupeesToMinor('0.07')).toBe(7)
+    expect(rupeesToMinor('1.005')).toBeNull()
+    expect(rupeesToMinor('-5')).toBeNull()
+    expect(rupeesToMinor('abc')).toBeNull()
+    expect(minorToRupeesText(450_050)).toBe('4500.5')
+    expect(formatMinor(1_500_050)).toBe('PKR 15,000.50')
   })
 })
 
@@ -394,8 +394,8 @@ describe('LabServicesPanel (platform)', () => {
     listPrice: {
       priceId: 'p-list',
       source: 'list',
-      unitPricePaisa: 500_000,
-      rushSurchargePaisa: 0,
+      unitPriceMinor: 500_000,
+      rushSurchargeMinor: 0,
       currency: 'PKR',
       effectiveFrom: '2026-10-01',
       effectiveTo: null,
@@ -407,8 +407,8 @@ describe('LabServicesPanel (platform)', () => {
     id: 'p-list',
     labServiceId: 'svc-1',
     organization: null,
-    unitPricePaisa: 500_000,
-    rushSurchargePaisa: 100_000,
+    unitPriceMinor: 500_000,
+    rushSurchargeMinor: 100_000,
     currency: 'PKR',
     effectiveFrom: '2026-01-01',
     effectiveTo: null,

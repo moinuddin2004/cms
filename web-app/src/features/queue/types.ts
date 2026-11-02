@@ -209,6 +209,8 @@ export interface DisplayDoctor {
 export interface DisplayState {
   locationId: string
   locationName: string
+  /** The location's IANA timezone — the TV clock runs on it. */
+  timezone: string
   serviceDate: string
   now: string
   doctors: DisplayDoctor[]

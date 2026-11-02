@@ -13,7 +13,7 @@ import {
 } from '@/components/shared/SearchableSelect'
 import { Switch } from '@/components/ui/switch'
 import { DatePicker } from '@/components/shared/DatePicker'
-import { format } from 'date-fns'
+import { todayYmd } from '@/lib/datetime'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import apiClient from '@/lib/api'
@@ -308,7 +308,7 @@ export function EmployeeForm({
               <DatePicker
                 value={field.state.value}
                 onChange={field.handleChange}
-                max={format(new Date(), 'yyyy-MM-dd')}
+                max={todayYmd()}
                 placeholder="Select date of birth"
                 withYearDropdown
                 clearable

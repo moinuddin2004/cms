@@ -168,7 +168,7 @@ describe('Lab orders (API)', () => {
       },
     );
     caseService = svc2.body.data;
-    for (const [id, paisa] of [
+    for (const [id, minor] of [
       [service.id, 500_000],
       [caseService.id, 200_000],
     ] as const) {
@@ -177,7 +177,7 @@ describe('Lab orders (API)', () => {
         `/platform/labs/${lab.id}/services/${id}/prices`,
         fx.superAdmin,
         {
-          unitPricePaisa: paisa,
+          unitPriceMinor: minor,
           effectiveFrom: today,
         },
       );
@@ -368,17 +368,17 @@ describe('Lab orders (API)', () => {
         currentRevisionNo: 1,
         labExpectedOn: addDays(today, 5),
         replayed: false,
-        totals: { labCostPaisa: 1_000_000, patientPricePaisa: 3_000_000 },
+        totals: { labCostMinor: 1_000_000, patientPriceMinor: 3_000_000 },
         items: [
           {
             status: 'pending_acceptance',
             quantity: 2,
             serviceCode: 'ZR_CROWN',
             prices: {
-              labUnitCostPaisa: 500_000,
-              labLineCostPaisa: 1_000_000,
-              patientUnitPricePaisa: 1_500_000,
-              patientLinePricePaisa: 3_000_000,
+              labUnitCostMinor: 500_000,
+              labLineCostMinor: 1_000_000,
+              patientUnitPriceMinor: 1_500_000,
+              patientLinePriceMinor: 3_000_000,
               pricedOn: today,
             },
             teeth: [
@@ -450,27 +450,27 @@ describe('Lab orders (API)', () => {
       const o = await submitted([
         { labServiceId: service.id, answers: crown(['16']) },
       ]);
-      expect(o.items[0].prices.labUnitCostPaisa).toBe(500_000);
+      expect(o.items[0].prices.labUnitCostMinor).toBe(500_000);
       await fx.dataSource.query(
-        `UPDATE lab_service_prices SET unit_price_paisa = 900000 WHERE id = $1`,
+        `UPDATE lab_service_prices SET unit_price_minor = 900000 WHERE id = $1`,
         [priceId],
       );
       try {
         const reread = (await get(o.id)).body.data;
         expect(reread.items[0].prices).toMatchObject({
-          labUnitCostPaisa: 500_000,
-          labLineCostPaisa: 500_000,
+          labUnitCostMinor: 500_000,
+          labLineCostMinor: 500_000,
         });
-        expect(reread.revisions[0].snapshot.items[0].labUnitCostPaisa).toBe(
+        expect(reread.revisions[0].snapshot.items[0].labUnitCostMinor).toBe(
           500_000,
         );
         const fresh = await submitted([
           { labServiceId: service.id, answers: crown(['16']) },
         ]);
-        expect(fresh.items[0].prices.labUnitCostPaisa).toBe(900_000);
+        expect(fresh.items[0].prices.labUnitCostMinor).toBe(900_000);
       } finally {
         await fx.dataSource.query(
-          `UPDATE lab_service_prices SET unit_price_paisa = 500000 WHERE id = $1`,
+          `UPDATE lab_service_prices SET unit_price_minor = 500000 WHERE id = $1`,
           [priceId],
         );
       }
@@ -480,9 +480,9 @@ describe('Lab orders (API)', () => {
       const o = await submitted();
       const repo = fx.dataSource.getRepository(LabOrderItem);
       const item = await repo.findOneByOrFail({ id: o.items[0].id });
-      item.labUnitCostPaisa = 1;
+      item.labUnitCostMinor = 1;
       await expect(repo.save(item)).rejects.toBeInstanceOf(OrderException);
-      item.labUnitCostPaisa = 500_000;
+      item.labUnitCostMinor = 500_000;
       item.currentStageSeq = 1;
       await expect(repo.save(item)).resolves.toBeDefined();
     });
@@ -567,7 +567,7 @@ describe('Lab orders (API)', () => {
       expect(res.status).toBe(200);
       expect(res.body.data).toMatchObject({
         patient: { ref: 'Ali Raza' },
-        items: [{ labUnitCostPaisa: 500_000 }],
+        items: [{ labUnitCostMinor: 500_000 }],
       });
       const json = JSON.stringify(res.body.data);
       expect(json).not.toMatch(
@@ -587,8 +587,8 @@ describe('Lab orders (API)', () => {
       expect(res.body.data.total).toBeGreaterThan(0);
       expect(
         res.body.data.data.every(
-          (r: { status: string; labCostPaisa: number }) =>
-            r.status === 'submitted' && r.labCostPaisa > 0,
+          (r: { status: string; labCostMinor: number }) =>
+            r.status === 'submitted' && r.labCostMinor > 0,
         ),
       ).toBe(true);
       const drafts = await fx.clinic(
@@ -599,7 +599,7 @@ describe('Lab orders (API)', () => {
       );
       expect(drafts.body.data.data[0]).toMatchObject({
         orderNo: null,
-        labCostPaisa: null,
+        labCostMinor: null,
       });
       const other = await fx.clinic('get', '/lab-orders', B, B.doctor);
       expect(other.body.data.total).toBe(0);
@@ -686,7 +686,7 @@ describe('Lab orders (API)', () => {
           {
             quantity: 3,
             details: { shade: 'B1' },
-            prices: { labLineCostPaisa: 1_500_000 },
+            prices: { labLineCostMinor: 1_500_000 },
           },
         ],
       });
@@ -710,14 +710,14 @@ describe('Lab orders (API)', () => {
         `/lab-portal/orders/${order.id}/charge-requests`,
         {
           kind: 'material',
-          amountPaisa: 50_000,
+          amountMinor: 50_000,
           reason: 'Extra layering',
           itemId: order.items[0].id,
         },
       );
       expect(res.status).toBe(201);
       const charge = res.body.data.charges[0];
-      expect(charge).toMatchObject({ status: 'pending', amountPaisa: 50_000 });
+      expect(charge).toMatchObject({ status: 'pending', amountMinor: 50_000 });
       const ok = await fx.clinic(
         'post',
         `/lab-orders/${order.id}/charge-requests/${charge.id}/decision`,
@@ -727,7 +727,7 @@ describe('Lab orders (API)', () => {
       );
       expect(ok.status).toBe(201);
       expect(ok.body.data.charges[0].status).toBe('approved');
-      expect(ok.body.data.items[0].prices.labLineCostPaisa).toBe(1_550_000);
+      expect(ok.body.data.items[0].prices.labLineCostMinor).toBe(1_550_000);
       const twice = await fx.clinic(
         'post',
         `/lab-orders/${order.id}/charge-requests/${charge.id}/decision`,
@@ -799,7 +799,7 @@ describe('Lab orders (API)', () => {
       expect(res.body.data.items[0].answers).toEqual(
         expect.arrayContaining([{ label: 'Shade', value: 'B1' }]),
       );
-      expect(JSON.stringify(res.body.data)).not.toMatch(/Paisa/);
+      expect(JSON.stringify(res.body.data)).not.toMatch(/Minor/);
     });
   });
 

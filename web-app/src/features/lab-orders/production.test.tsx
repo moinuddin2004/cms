@@ -153,7 +153,7 @@ const order = {
   items: [
     {
       id: 'i1',
-      prices: { labLineCostPaisa: 800_000, patientLinePricePaisa: 2_500_000 },
+      prices: { labLineCostMinor: 800_000, patientLinePriceMinor: 2_500_000 },
     },
   ],
 } as unknown as LabOrderDetail
@@ -179,8 +179,11 @@ describe('production schemas', () => {
       }).success,
     ).toBe(false)
     expect(
-      receiveLineSchema.safeParse({ ...base, condition: 'ok', receivedQty: '3' })
-        .success,
+      receiveLineSchema.safeParse({
+        ...base,
+        condition: 'ok',
+        receivedQty: '3',
+      }).success,
     ).toBe(false)
     expect(
       receiveLineSchema.safeParse({

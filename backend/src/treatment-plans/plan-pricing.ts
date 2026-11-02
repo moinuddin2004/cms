@@ -1,4 +1,4 @@
-import { fromPaisa, percentOf, toPaisa } from 'src/billing/common/money';
+import { fromMinor, percentOf, toMinor } from 'src/billing/common/money';
 import { DiscountKind } from 'src/billing/enums/billing.enums';
 
 export interface PlanDiscount {
@@ -21,19 +21,19 @@ export function planTotals(
   prices: ReadonlyArray<number | null>,
   discount: PlanDiscount,
 ): PlanTotals {
-  const gross = prices.reduce<number>((sum, p) => sum + toPaisa(p ?? 0), 0);
+  const gross = prices.reduce<number>((sum, p) => sum + toMinor(p ?? 0), 0);
   let off = 0;
   if (discount.kind && discount.value != null && discount.value > 0) {
     off =
       discount.kind === DiscountKind.PERCENTAGE
         ? percentOf(gross, Math.min(discount.value, 100))
-        : toPaisa(discount.value);
+        : toMinor(discount.value);
   }
   off = Math.max(0, Math.min(off, gross));
   return {
-    estimatedCost: fromPaisa(gross),
-    discountAmount: fromPaisa(off),
-    finalEstimatedCost: fromPaisa(gross - off),
+    estimatedCost: fromMinor(gross),
+    discountAmount: fromMinor(off),
+    finalEstimatedCost: fromMinor(gross - off),
   };
 }
 

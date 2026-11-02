@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { formatYmd, todayYmd, ymdToDate } from '@/lib/datetime'
 import type {
   InventoryItem,
   StockMovementType,
@@ -42,19 +43,18 @@ export function StockCell({ item }: { item: InventoryItem }) {
 }
 
 // ─── Expiry helpers ─────────────────────────────────────────────────
+/** Calendar days from the clinic's today to a "YYYY-MM-DD" date. */
 export function daysUntil(date: string | null): number | null {
   if (!date) return null
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-  const target = new Date(date)
-  target.setHours(0, 0, 0, 0)
+  const now = ymdToDate(todayYmd())
+  const target = ymdToDate(date.slice(0, 10))
   return Math.round((target.getTime() - now.getTime()) / 86_400_000)
 }
 
 export function ExpiryCell({ date }: { date: string | null }) {
   if (!date) return <span className="text-muted-foreground">—</span>
   const days = daysUntil(date)
-  const formatted = new Date(date).toLocaleDateString()
+  const formatted = formatYmd(date)
   if (days !== null && days < 0) {
     return <Badge variant="destructive">Expired</Badge>
   }

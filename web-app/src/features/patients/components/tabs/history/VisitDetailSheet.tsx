@@ -40,6 +40,7 @@ import {
   num,
   timeOf,
 } from './HistoryParts'
+import { formatDate, formatYmd } from '@/lib/datetime'
 
 interface VisitDetailSheetProps {
   patientId: string
@@ -136,8 +137,7 @@ function VisitBody({
             <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
               <span className="inline-flex items-center gap-1">
                 <CalendarClock className="size-3" />
-                {date.toLocaleDateString([], { dateStyle: 'medium' })} ·{' '}
-                {timeOf(date)}
+                {formatDate(date)} · {timeOf(date)}
               </span>
               {visit?.doctorName && (
                 <span className="inline-flex items-center gap-1">
@@ -197,9 +197,7 @@ function VisitBody({
               {encounter.followUpDate && (
                 <Chip className={CHIP_TONES.warning}>
                   <CalendarClock className="size-3" /> Follow-up{' '}
-                  {new Date(encounter.followUpDate).toLocaleDateString([], {
-                    dateStyle: 'medium',
-                  })}
+                  {formatYmd(encounter.followUpDate)}
                 </Chip>
               )}
             </div>

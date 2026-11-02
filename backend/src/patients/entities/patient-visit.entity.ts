@@ -59,9 +59,9 @@ export class PatientVisit {
   @Column({ name: 'is_preferred_location', type: 'boolean', default: false })
   isPreferredLocation: boolean;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

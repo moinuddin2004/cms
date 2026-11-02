@@ -88,6 +88,6 @@ export class PatientCommunication {
   @Column({ name: 'external_message_id', type: 'varchar', length: 200, nullable: true })
   externalMessageId: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

@@ -1,3 +1,4 @@
+import { ClockService } from 'src/common/clock/clock.service';
 import {
   Controller,
   Get,
@@ -73,6 +74,7 @@ export class PatientsController {
     private readonly audit: AuditService,
     private readonly dataSource: DataSource,
     private readonly patientImport: PatientImportService,
+    private readonly clock: ClockService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -120,10 +122,12 @@ export class PatientsController {
     @RequestActor(ActorSide.CLINIC) actor: ActorRef,
     @Res() res: Response,
   ) {
+    const tz = await this.clock.timezoneFor(ctx.locationId);
     const file = await this.patientsService.exportCsv(
       ctx.organizationId,
       query,
       access,
+      tz,
     );
     await this.audit.record(this.dataSource.manager, actor, {
       organizationId: ctx.organizationId,
@@ -136,7 +140,7 @@ export class PatientsController {
         filters: { ...query, page: undefined, limit: undefined },
       },
     });
-    const day = new Date().toISOString().slice(0, 10);
+    const day = this.clock.today(tz);
     res.set({
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="patients-${day}.csv"`,

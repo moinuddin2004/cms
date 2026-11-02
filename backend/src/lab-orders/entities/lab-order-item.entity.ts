@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { FormSchemaVersion } from 'src/engine/entities/form-schema-version.entity';
 import { WorkflowTemplateVersion } from 'src/engine/entities/workflow-template-version.entity';
@@ -23,13 +23,13 @@ export interface OptionSnap {
   id: string;
   code: string;
   name: string;
-  extraCostPaisa: number;
+  extraCostMinor: number;
 }
 
 /**
  * One piece of work (lab ERD §5a): a crown, a bridge, a denture … with its
  * own price snapshot, form answers, teeth and status. The `*_snap` and
- * `*_paisa` columns are frozen once the order is submitted (inv. 3) — see
+ * `*_minor` columns are frozen once the order is submitted (inv. 3) — see
  * `snapshot-freeze.ts`; only a revision or an approved charge request may
  * change them. Draft items have no status and no prices yet.
  */
@@ -37,8 +37,8 @@ export interface OptionSnap {
 @Unique('uq_lab_order_items_line', ['orderId', 'lineNo'])
 @Check('chk_lab_order_items_quantity', `"quantity" > 0`)
 @Check(
-  'chk_lab_order_items_paisa',
-  `"lab_unit_cost_paisa" >= 0 AND "lab_line_cost_paisa" >= 0 AND "patient_unit_price_paisa" >= 0 AND "patient_line_price_paisa" >= 0`,
+  'chk_lab_order_items_minor',
+  `"lab_unit_cost_minor" >= 0 AND "lab_line_cost_minor" >= 0 AND "patient_unit_price_minor" >= 0 AND "patient_line_price_minor" >= 0`,
 )
 @Index('idx_lab_order_items_order', ['orderId'])
 @Index('idx_lab_order_items_org_status', ['organizationId', 'statusCode'])
@@ -117,17 +117,17 @@ export class LabOrderItem {
   @Column({ name: 'currency', type: 'char', length: 3, default: 'PKR' })
   currency: string;
 
-  @PaisaColumn('lab_unit_cost_paisa')
-  labUnitCostPaisa: number;
+  @MinorColumn('lab_unit_cost_minor')
+  labUnitCostMinor: number;
 
-  @PaisaColumn('lab_line_cost_paisa')
-  labLineCostPaisa: number;
+  @MinorColumn('lab_line_cost_minor')
+  labLineCostMinor: number;
 
-  @PaisaColumn('patient_unit_price_paisa')
-  patientUnitPricePaisa: number;
+  @MinorColumn('patient_unit_price_minor')
+  patientUnitPriceMinor: number;
 
-  @PaisaColumn('patient_line_price_paisa')
-  patientLinePricePaisa: number;
+  @MinorColumn('patient_line_price_minor')
+  patientLinePriceMinor: number;
 
   @Column({ name: 'priced_on', type: 'date', nullable: true })
   pricedOn: string | null;

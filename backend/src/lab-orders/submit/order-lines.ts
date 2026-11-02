@@ -107,9 +107,9 @@ export function lineQuantity(
   return { quantity: teeth, issue: null };
 }
 
-/** Integer paisa line total. */
-export const lineTotal = (unitPaisa: number, quantity: number): number =>
-  unitPaisa * quantity;
+/** Integer minor units line total. */
+export const lineTotal = (unitMinor: number, quantity: number): number =>
+  unitMinor * quantity;
 
 /**
  * When the work should come back: the clinic's requested day if any, else

@@ -18,19 +18,19 @@ import {
   MAX_RATE_BPS,
 } from '../commission.enums';
 
-/** Money is integer paisa and rates are integer basis points (no floats). */
+/** Money is integer minor units and rates are integer basis points (no floats). */
 export class CommissionRuleDto {
   /** A rule targets one catalog service OR one service category. */
   @IsOptional() @IsUUID('4') serviceId?: string;
   @IsOptional() @IsEnum(ServiceKind) serviceCategory?: ServiceKind;
-  /** Exactly one of rateBps / fixedAmountPaisa. */
+  /** Exactly one of rateBps / fixedAmountMinor. */
   @IsOptional() @IsInt() @Min(0) @Max(MAX_RATE_BPS) rateBps?: number;
-  @IsOptional() @IsInt() @Min(0) fixedAmountPaisa?: number;
+  @IsOptional() @IsInt() @Min(0) fixedAmountMinor?: number;
 }
 
 export class CompensationPlanDto {
   @IsEnum(CompensationPlanType) type: CompensationPlanType;
-  @IsOptional() @IsInt() @Min(0) baseSalaryPaisa?: number;
+  @IsOptional() @IsInt() @Min(0) baseSalaryMinor?: number;
   @IsOptional() @IsInt() @Min(0) @Max(MAX_RATE_BPS) defaultRateBps?: number;
   @IsOptional() @IsEnum(CommissionBasis) commissionBasis?: CommissionBasis;
   /** Clinic date the version starts; default: today at the location. */

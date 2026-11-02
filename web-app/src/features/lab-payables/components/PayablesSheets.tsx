@@ -8,7 +8,7 @@ import {
   FormSheet,
 } from '@/components/shared'
 import { DatePicker } from '@/components/shared/DatePicker'
-import { formatPaisa, rupeesToPaisa } from '@/features/lab-catalog'
+import { formatMinor, rupeesToMinor } from '@/features/lab-catalog'
 import { fieldError } from '@/features/queue'
 import { useApproveBillForm, usePayLabForm } from '../hooks/usePayablesForms'
 import { percentToBp } from '../schemas/lab-payables.schema'
@@ -126,15 +126,15 @@ export function ApproveBillSheet({
         <form.Subscribe selector={(s) => s.values.taxPercent}>
           {(tax) => {
             const bp = percentToBp(tax) ?? 0
-            const sub = bill?.subtotalPaisa ?? 0
-            const taxPaisa = Math.round((sub * bp) / 10_000)
+            const sub = bill?.subtotalMinor ?? 0
+            const taxMinor = Math.round((sub * bp) / 10_000)
             return (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                <Row label="Subtotal" value={formatPaisa(sub)} />
-                <Row label="Tax" value={formatPaisa(taxPaisa)} />
+                <Row label="Subtotal" value={formatMinor(sub)} />
+                <Row label="Tax" value={formatMinor(taxMinor)} />
                 <Row
                   label="Total owed"
-                  value={formatPaisa(sub + taxPaisa)}
+                  value={formatMinor(sub + taxMinor)}
                   strong
                 />
               </div>
@@ -296,7 +296,7 @@ export function PayLabSheet({
                       <div className="min-w-0 flex-1 text-sm">
                         <p className="font-medium">{a.billNo}</p>
                         <p className="text-xs text-text-3">
-                          Balance {formatPaisa(a.balancePaisa)}
+                          Balance {formatMinor(a.balanceMinor)}
                         </p>
                       </div>
                       <FieldWrapper error={fieldError(f)} className="w-36">
@@ -317,18 +317,18 @@ export function PayLabSheet({
         </div>
         <form.Subscribe selector={(s) => s.values}>
           {(v) => {
-            const amount = rupeesToPaisa(v.amount) ?? 0
+            const amount = rupeesToMinor(v.amount) ?? 0
             const split = v.allocations.reduce(
-              (s, a) => s + (rupeesToPaisa(a.amount) ?? 0),
+              (s, a) => s + (rupeesToMinor(a.amount) ?? 0),
               0,
             )
             return (
               <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                <Row label="Paid" value={formatPaisa(amount)} />
-                <Row label="Split over bills" value={formatPaisa(split)} />
+                <Row label="Paid" value={formatMinor(amount)} />
+                <Row label="Split over bills" value={formatMinor(split)} />
                 <Row
                   label="Advance to the lab"
-                  value={formatPaisa(Math.max(0, amount - split))}
+                  value={formatMinor(Math.max(0, amount - split))}
                   strong
                 />
               </div>

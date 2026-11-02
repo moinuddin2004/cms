@@ -9,7 +9,7 @@ interface EmployeeAvatarProps {
 export function EmployeeAvatar({ name, className }: EmployeeAvatarProps) {
   return (
     <Avatar className={className}>
-      <AvatarFallback className="bg-brand-100 text-brand-700 text-xs font-semibold">
+      <AvatarFallback className="bg-primary-soft text-primary-text text-xs font-semibold">
         {getInitials(name)}
       </AvatarFallback>
     </Avatar>

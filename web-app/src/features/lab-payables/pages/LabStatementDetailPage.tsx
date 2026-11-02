@@ -8,7 +8,7 @@ import {
   StatCard,
 } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { MatchBadge, StatementStatusBadge } from '../components/payables-badges'
 import { useLabStatement, usePayablesMutation } from '../hooks/useLabPayables'
 import { labPayablesApi } from '../services/lab-payables.api'
@@ -165,12 +165,12 @@ export function LabStatementDetailPage({
                     <td className="px-4 py-2 text-right tabular-nums">
                       {l.matchStatus === 'missing_in_statement'
                         ? '—'
-                        : formatPaisa(l.amountPaisa)}
+                        : formatMinor(l.amountMinor)}
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">
-                      {l.systemAmountPaisa === null
+                      {l.systemAmountMinor === null
                         ? '—'
-                        : formatPaisa(l.systemAmountPaisa)}
+                        : formatMinor(l.systemAmountMinor)}
                     </td>
                     <td className="px-4 py-2">
                       <MatchBadge status={l.matchStatus} />

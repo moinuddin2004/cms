@@ -7,7 +7,7 @@ import { ErrorState, PageWrapper } from '@/components/shared'
 import { formatDate } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import { useDoctorEarnings, useMyEarnings } from '../hooks/use-commissions'
-import { bpsToPercent, formatPaisa } from '../lib/commission-math'
+import { bpsToPercent, formatMinor } from '../lib/commission-math'
 import type {
   CommissionEntryRow,
   CommissionSourceType,
@@ -23,10 +23,16 @@ import {
 import { useReportRange } from './BillingReportsPages'
 import { PLAN_TYPE_LABEL } from '../components/compensation/CompensationSheet'
 
-function Paisa({ value, className }: { value: number; className?: string }) {
+function MoneyAmount({
+  value,
+  className,
+}: {
+  value: number
+  className?: string
+}) {
   return (
     <span className={cn('tabular-nums', value < 0 && 'text-danger', className)}>
-      {formatPaisa(value)}
+      {formatMinor(value)}
     </span>
   )
 }
@@ -55,7 +61,7 @@ function totalsStrip(
         {
           key: 'collected',
           label: 'Collected',
-          value: formatPaisa(totals?.collectedPaisa ?? 0),
+          value: formatMinor(totals?.collectedMinor ?? 0),
           icon: Banknote,
           color: 'text-primary-text',
           bg: 'bg-primary-soft',
@@ -63,7 +69,7 @@ function totalsStrip(
         {
           key: 'earned',
           label: 'Commission earned',
-          value: formatPaisa(totals?.earnedPaisa ?? 0),
+          value: formatMinor(totals?.earnedMinor ?? 0),
           icon: HandCoins,
           color: 'text-emerald',
           bg: 'bg-emerald-soft',
@@ -71,7 +77,7 @@ function totalsStrip(
         {
           key: 'settled',
           label: 'Settled',
-          value: formatPaisa(totals?.settledPaisa ?? 0),
+          value: formatMinor(totals?.settledMinor ?? 0),
           icon: CheckCircle2,
           color: 'text-violet',
           bg: 'bg-violet-soft',
@@ -79,7 +85,7 @@ function totalsStrip(
         {
           key: 'pending',
           label: 'Pending',
-          value: formatPaisa(totals?.pendingPaisa ?? 0),
+          value: formatMinor(totals?.pendingMinor ?? 0),
           icon: Clock,
           color: 'text-amber',
           bg: 'bg-amber-soft',
@@ -118,27 +124,27 @@ const earningColumns = (
       ),
   },
   {
-    accessorKey: 'collectedPaisa',
+    accessorKey: 'collectedMinor',
     header: 'Collected',
-    cell: ({ row }) => <Paisa value={row.original.collectedPaisa} />,
+    cell: ({ row }) => <MoneyAmount value={row.original.collectedMinor} />,
   },
   {
-    accessorKey: 'earnedPaisa',
+    accessorKey: 'earnedMinor',
     header: 'Earned',
     cell: ({ row }) => (
-      <Paisa value={row.original.earnedPaisa} className="font-semibold" />
+      <MoneyAmount value={row.original.earnedMinor} className="font-semibold" />
     ),
   },
   {
-    accessorKey: 'settledPaisa',
+    accessorKey: 'settledMinor',
     header: 'Settled',
-    cell: ({ row }) => <Paisa value={row.original.settledPaisa} />,
+    cell: ({ row }) => <MoneyAmount value={row.original.settledMinor} />,
   },
   {
-    accessorKey: 'pendingPaisa',
+    accessorKey: 'pendingMinor',
     header: 'Pending',
     cell: ({ row }) => (
-      <Paisa value={row.original.pendingPaisa} className="text-amber" />
+      <MoneyAmount value={row.original.pendingMinor} className="text-amber" />
     ),
   },
 ]
@@ -185,10 +191,10 @@ const entryColumns: ColumnDef<CommissionEntryRow, unknown>[] = [
         : 'Fixed',
   },
   {
-    accessorKey: 'amountPaisa',
+    accessorKey: 'amountMinor',
     header: 'Amount',
     cell: ({ row }) => (
-      <Paisa value={row.original.amountPaisa} className="font-medium" />
+      <MoneyAmount value={row.original.amountMinor} className="font-medium" />
     ),
   },
   {

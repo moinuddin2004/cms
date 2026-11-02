@@ -13,7 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper } from '@/components/shared'
 import { fieldError } from '@/features/queue'
-import { formatPaisa, formatYmd } from '../lib/money'
+import { formatMinor, formatYmd } from '../lib/money'
 import { voidPriceSchema } from '../schemas/catalog.schema'
 import type { PriceWindow } from '../types'
 
@@ -52,7 +52,7 @@ export function VoidPriceDialog({
           <DialogTitle>Void this price?</DialogTitle>
           <DialogDescription>
             {price &&
-              `${formatPaisa(price.unitPricePaisa, price.currency)} from ${formatYmd(price.effectiveFrom)} will never apply. `}
+              `${formatMinor(price.unitPriceMinor, price.currency)} from ${formatYmd(price.effectiveFrom)} will never apply. `}
             The price before it keeps running. This can't be undone.
           </DialogDescription>
         </DialogHeader>

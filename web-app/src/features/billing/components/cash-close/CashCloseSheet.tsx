@@ -9,6 +9,7 @@ import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
 import { ErrorState, LoadingSkeleton } from '@/components/shared'
 import { formatCurrency } from '@/lib/formatters'
+import { formatDateTime } from '@/lib/datetime'
 import { cn } from '@/lib/utils'
 import {
   useCashClosePreview,
@@ -77,7 +78,7 @@ export function CashCloseSheet({
       title="Close counter"
       description={
         preview.data?.periodStart
-          ? `Since ${new Date(preview.data.periodStart).toLocaleString()}`
+          ? `Since ${formatDateTime(preview.data.periodStart)}`
           : 'Since the first payment at this location'
       }
       footer={

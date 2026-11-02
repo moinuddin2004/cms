@@ -340,7 +340,7 @@ This glossary defines every entity, role, feature, status label and key term use
 
 ## P
 
-**Paisa** — the integer minor unit of the rupee; 100 paisa is one rupee.
+**Minor** — the integer minor unit of the rupee; 100 paisa is one rupee.
 
 **Partial** — status label: some of it exists; the note says what is missing.
 

@@ -63,7 +63,8 @@ export class ExpensesService {
     if (filters.dateTo)
       qb.andWhere('e.expense_date <= :dateTo', { dateTo: filters.dateTo });
 
-    qb.orderBy('e.expense_date', 'DESC')
+    // Property name, not column: skip/take with a join breaks on raw column names.
+    qb.orderBy('e.expenseDate', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 

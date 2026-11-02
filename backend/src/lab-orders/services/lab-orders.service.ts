@@ -1,3 +1,4 @@
+import { ClockService } from 'src/common/clock/clock.service';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Brackets, DataSource, EntityManager } from 'typeorm';
@@ -77,6 +78,7 @@ export class LabOrdersService {
     private readonly reader: OrderReaderService,
     private readonly submitter: OrderSubmitService,
     private readonly prices: LabPriceResolver,
+    private readonly clock: ClockService,
   ) {}
 
   async list(c: ClinicCall, q: ListOrdersQueryDto) {
@@ -98,7 +100,7 @@ export class LabOrdersService {
       .addSelect(
         (s) =>
           s
-            .select('COALESCE(SUM(i2.lab_line_cost_paisa), 0)')
+            .select('COALESCE(SUM(i2.lab_line_cost_minor), 0)')
             .from(LabOrderItem, 'i2')
             .where('i2.order_id = o.id')
             .andWhere(`COALESCE(i2.status_code, '') <> 'cancelled'`),
@@ -107,7 +109,7 @@ export class LabOrdersService {
       .addSelect(
         (s) =>
           s
-            .select('COALESCE(SUM(i3.patient_line_price_paisa), 0)')
+            .select('COALESCE(SUM(i3.patient_line_price_minor), 0)')
             .from(LabOrderItem, 'i3')
             .where('i3.order_id = o.id')
             .andWhere(`COALESCE(i3.status_code, '') <> 'cancelled'`),
@@ -121,8 +123,18 @@ export class LabOrdersService {
       qb.andWhere('o.doctor_id = :doctorId', { doctorId: q.doctorId });
     if (q.patientId)
       qb.andWhere('o.patient_id = :patientId', { patientId: q.patientId });
-    if (q.from) qb.andWhere('o.created_at >= :from::date', { from: q.from });
-    if (q.to) qb.andWhere(`o.created_at < (:to::date + 1)`, { to: q.to });
+    if (q.from || q.to) {
+      // from/to are clinic calendar days — bound them in the location's tz.
+      const tz = await this.clock.timezoneFor(c.tenant.locationId);
+      if (q.from)
+        qb.andWhere('o.created_at >= :from', {
+          from: this.clock.dayRange(tz, q.from).start,
+        });
+      if (q.to)
+        qb.andWhere('o.created_at < :to', {
+          to: this.clock.dayRange(tz, q.to).end,
+        });
+    }
     if (q.search) {
       qb.andWhere(
         new Brackets((w) =>
@@ -160,9 +172,9 @@ export class LabOrdersService {
           : null,
         lab: { id: o.lab.id, name: o.lab.name },
         itemCount: Number(raw[idx]?.item_count ?? 0),
-        labCostPaisa:
+        labCostMinor:
           o.statusCode === 'draft' ? null : Number(raw[idx]?.lab_cost ?? 0),
-        patientPricePaisa:
+        patientPriceMinor:
           o.statusCode === 'draft'
             ? null
             : Number(raw[idx]?.patient_price ?? 0),
@@ -305,12 +317,12 @@ export class LabOrdersService {
           quantity: qty.quantity,
           optionsSnap: quote.lab.options,
           labPriceId: quote.lab.priceId,
-          labUnitCostPaisa: quote.lab.unitPaisa,
-          labLineCostPaisa: lineTotal(quote.lab.unitPaisa, qty.quantity),
-          patientUnitPricePaisa:
-            quote.patient?.unitPricePaisa ?? item.patientUnitPricePaisa,
-          patientLinePricePaisa: lineTotal(
-            quote.patient?.unitPricePaisa ?? item.patientUnitPricePaisa,
+          labUnitCostMinor: quote.lab.unitMinor,
+          labLineCostMinor: lineTotal(quote.lab.unitMinor, qty.quantity),
+          patientUnitPriceMinor:
+            quote.patient?.unitPriceMinor ?? item.patientUnitPriceMinor,
+          patientLinePriceMinor: lineTotal(
+            quote.patient?.unitPriceMinor ?? item.patientUnitPriceMinor,
             qty.quantity,
           ),
           updatedBy: c.actor.userId,
@@ -493,7 +505,7 @@ export class LabOrdersService {
         orderId: locked.id,
         itemId: dto.itemId ?? null,
         kind: dto.kind,
-        amountPaisa: dto.amountPaisa,
+        amountMinor: dto.amountMinor,
         reason: dto.reason,
         status: ChargeStatus.PENDING,
         requestedBy: l.lab.userId,
@@ -505,7 +517,7 @@ export class LabOrdersService {
         action: AuditAction.CREATE,
         after: {
           kind: dto.kind,
-          amountPaisa: dto.amountPaisa,
+          amountMinor: dto.amountMinor,
           itemId: dto.itemId ?? null,
         },
       });
@@ -562,7 +574,7 @@ export class LabOrdersService {
         const item = await m
           .getRepository(LabOrderItem)
           .findOneByOrFail({ id: charge.itemId });
-        item.labLineCostPaisa += charge.amountPaisa;
+        item.labLineCostMinor += charge.amountMinor;
         await m
           .getRepository(LabOrderItem)
           .save(item, { data: { snapshotChange: 'charge' } });
@@ -756,7 +768,7 @@ export class LabOrdersService {
       .getRepository(OrderChargeRequest)
       .createQueryBuilder('c')
       .select('c.item_id', 'itemId')
-      .addSelect('SUM(c.amount_paisa)', 'total')
+      .addSelect('SUM(c.amount_minor)', 'total')
       .where('c.order_id = :orderId', { orderId })
       .andWhere('c.status = :approved', { approved: ChargeStatus.APPROVED })
       .andWhere('c.item_id IN (:...itemIds)', { itemIds })
@@ -766,7 +778,7 @@ export class LabOrdersService {
       const item = await m
         .getRepository(LabOrderItem)
         .findOneByOrFail({ id: r.itemId });
-      item.labLineCostPaisa += Number(r.total);
+      item.labLineCostMinor += Number(r.total);
       await m
         .getRepository(LabOrderItem)
         .save(item, { data: { snapshotChange: 'charge' } });

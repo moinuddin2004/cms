@@ -21,10 +21,10 @@ import { CommissionRule } from './entities/commission-rule.entity';
 import { CompensationPlan } from './entities/compensation-plan.entity';
 import { CommissionRuleDto } from './dto/compensation.dto';
 
-/** A plan version as callers describe it (paisa / basis points). */
+/** A plan version as callers describe it (minor units / basis points). */
 export interface PlanVersionInput {
   type: CompensationPlanType;
-  baseSalaryPaisa?: number | null;
+  baseSalaryMinor?: number | null;
   defaultRateBps?: number | null;
   commissionBasis?: CommissionBasis;
   effectiveFrom: string;
@@ -52,7 +52,7 @@ export const CompensationPlanVersions = {
 
   /** Field checks that need no database (422 on failure). */
   validateFields(input: PlanVersionInput): void {
-    const salary = input.baseSalaryPaisa ?? null;
+    const salary = input.baseSalaryMinor ?? null;
     const rate = input.defaultRateBps ?? null;
     const okInt = (v: number | null, max?: number) =>
       v === null ||
@@ -60,7 +60,7 @@ export const CompensationPlanVersions = {
     if (!okInt(salary) || !okInt(rate, MAX_RATE_BPS)) {
       throw billingError(
         'COMPENSATION_PLAN_INVALID',
-        'Salary must be whole paisa and the rate between 0 and 10000 basis points',
+        'Salary must be in whole minor units and the rate between 0 and 10000 basis points',
       );
     }
     const needSalary = input.type !== CompensationPlanType.COMMISSION;
@@ -107,7 +107,7 @@ export const CompensationPlanVersions = {
           'Each rule must name one service or one service category',
         );
       }
-      if ((r.rateBps == null) === (r.fixedAmountPaisa == null)) {
+      if ((r.rateBps == null) === (r.fixedAmountMinor == null)) {
         throw billingError(
           'COMMISSION_RULE_INVALID',
           'Each rule needs either a percentage or a fixed amount',
@@ -217,7 +217,7 @@ export const CompensationPlanVersions = {
           organizationId: assignment.organizationId,
           assignmentId: assignment.id,
           type: input.type,
-          baseSalaryPaisa: input.baseSalaryPaisa ?? null,
+          baseSalaryMinor: input.baseSalaryMinor ?? null,
           defaultRateBps: earnsCommission(input.type)
             ? (input.defaultRateBps ?? null)
             : null,
@@ -252,8 +252,8 @@ export const CompensationPlanVersions = {
         serviceId: r.serviceId ?? null,
         serviceCategory: r.serviceId ? null : (r.serviceCategory ?? null),
         rateBps: r.rateBps ?? null,
-        fixedAmountPaisa:
-          r.rateBps != null ? null : (r.fixedAmountPaisa ?? null),
+        fixedAmountMinor:
+          r.rateBps != null ? null : (r.fixedAmountMinor ?? null),
       })),
     );
   },

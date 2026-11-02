@@ -104,6 +104,6 @@ export class PatientVitals {
   @Column({ name: 'recorded_at', type: 'timestamptz', default: () => 'NOW()' })
   recordedAt: Date;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

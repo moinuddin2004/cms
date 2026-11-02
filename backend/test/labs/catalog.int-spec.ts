@@ -179,17 +179,17 @@ describe('Lab catalog integration (API)', () => {
       ).toEqual(['update', 'create']);
     });
 
-    it('adds options with integer paisa costs', async () => {
+    it('adds options with integer minor costs', async () => {
       const res = await platform('post', svcUrl(`/${service.id}/options`), {
         optionType: 'material',
         code: 'layered',
         name: 'Layered porcelain',
-        extraCostPaisa: 120_000,
+        extraCostMinor: 120_000,
       });
       expect(res.status).toBe(201);
       expect(res.body.data).toMatchObject({
         code: 'LAYERED',
-        extraCostPaisa: 120_000,
+        extraCostMinor: 120_000,
       });
       option = res.body.data;
 
@@ -197,7 +197,7 @@ describe('Lab catalog integration (API)', () => {
         optionType: 'material',
         code: 'FLOAT',
         name: 'Float',
-        extraCostPaisa: 10.5,
+        extraCostMinor: 10.5,
       });
       expect(float.status).toBe(400);
     });
@@ -208,14 +208,14 @@ describe('Lab catalog integration (API)', () => {
 
     it('sets the lab list price; no back-dating', async () => {
       const res = await platform('post', svcUrl(`/${service.id}/prices`), {
-        unitPricePaisa: 500_000,
-        rushSurchargePaisa: 100_000,
+        unitPriceMinor: 500_000,
+        rushSurchargeMinor: 100_000,
         effectiveFrom: today,
       });
       expect(res.status).toBe(201);
       expect(res.body.data).toMatchObject({
         organization: null,
-        unitPricePaisa: 500_000,
+        unitPriceMinor: 500_000,
         currency: 'PKR',
         effectiveFrom: today,
         effectiveTo: null,
@@ -223,7 +223,7 @@ describe('Lab catalog integration (API)', () => {
       listPrice = res.body.data;
 
       const past = await platform('post', svcUrl(`/${service.id}/prices`), {
-        unitPricePaisa: 1,
+        unitPriceMinor: 1,
         effectiveFrom: addDays(today, -1),
       });
       expect(code(past)).toBe('LAB_PRICE_INVALID');
@@ -232,8 +232,8 @@ describe('Lab catalog integration (API)', () => {
     it('a negotiated price needs the clinic linked to the lab', async () => {
       const res = await platform('post', svcUrl(`/${service.id}/prices`), {
         organizationId: A.organizationId,
-        unitPricePaisa: 450_000,
-        rushSurchargePaisa: 100_000,
+        unitPriceMinor: 450_000,
+        rushSurchargeMinor: 100_000,
         effectiveFrom: today,
       });
       expect(code(res)).toBe('LAB_NOT_LINKED');
@@ -253,8 +253,8 @@ describe('Lab catalog integration (API)', () => {
 
       const ok = await platform('post', svcUrl(`/${service.id}/prices`), {
         organizationId: A.organizationId,
-        unitPricePaisa: 450_000,
-        rushSurchargePaisa: 100_000,
+        unitPriceMinor: 450_000,
+        rushSurchargeMinor: 100_000,
         effectiveFrom: today,
       });
       expect(ok.status).toBe(201);
@@ -265,8 +265,8 @@ describe('Lab catalog integration (API)', () => {
 
     it('a new open-ended price supersedes the running one from its start date', async () => {
       const res = await platform('post', svcUrl(`/${service.id}/prices`), {
-        unitPricePaisa: 550_000,
-        rushSurchargePaisa: 100_000,
+        unitPriceMinor: 550_000,
+        rushSurchargeMinor: 100_000,
         effectiveFrom: tomorrow,
       });
       expect(res.status).toBe(201);
@@ -287,7 +287,7 @@ describe('Lab catalog integration (API)', () => {
 
     it('refuses overlaps and edits to a price already in use', async () => {
       const overlap = await platform('post', svcUrl(`/${service.id}/prices`), {
-        unitPricePaisa: 1,
+        unitPriceMinor: 1,
         effectiveFrom: tomorrow,
         effectiveTo: addDays(tomorrow, 5),
       });
@@ -299,7 +299,7 @@ describe('Lab catalog integration (API)', () => {
       const edit = await platform(
         'patch',
         svcUrl(`/${service.id}/prices/${listPrice.id}`),
-        { unitPricePaisa: 1, version: current.version },
+        { unitPriceMinor: 1, version: current.version },
       );
       expect(code(edit)).toBe('LAB_PRICE_LOCKED');
       const voidRunning = await platform(
@@ -313,7 +313,7 @@ describe('Lab catalog integration (API)', () => {
     it('a future price can be voided; its history shows it', async () => {
       const future = await platform('post', svcUrl(`/${service.id}/prices`), {
         organizationId: A.organizationId,
-        unitPricePaisa: 999_999,
+        unitPriceMinor: 999_999,
         effectiveFrom: addDays(today, 30),
         effectiveTo: addDays(today, 40),
       });
@@ -321,7 +321,7 @@ describe('Lab catalog integration (API)', () => {
       expect(code(future)).toBe('LAB_PRICE_OVERLAP');
 
       const later = await platform('post', svcUrl(`/${service.id}/prices`), {
-        unitPricePaisa: 600_000,
+        unitPriceMinor: 600_000,
         effectiveFrom: addDays(today, 60),
       });
       const voided = await platform(
@@ -358,7 +358,7 @@ describe('Lab catalog integration (API)', () => {
       );
       expect(rowA.price).toMatchObject({
         source: 'negotiated',
-        unitPricePaisa: 450_000,
+        unitPriceMinor: 450_000,
       });
       expect(rowA.options.map((o: { code: string }) => o.code)).toEqual([
         'LAYERED',
@@ -370,7 +370,7 @@ describe('Lab catalog integration (API)', () => {
       );
       expect(rowB.price).toMatchObject({
         source: 'list',
-        unitPricePaisa: 500_000,
+        unitPriceMinor: 500_000,
       });
       expect(JSON.stringify(b.body)).not.toContain('450000');
     });
@@ -432,7 +432,7 @@ describe('Lab catalog integration (API)', () => {
         isActive: true,
         clinicTreatment: {
           id: crownTreatment.id,
-          defaultPricePaisa: 1_200_000,
+          defaultPriceMinor: 1_200_000,
         },
         labService: { id: service.id, lab: { id: lab.id } },
       });
@@ -480,15 +480,15 @@ describe('Lab catalog integration (API)', () => {
         on: today,
         lab: {
           source: 'negotiated',
-          basePaisa: 450_000,
-          optionsPaisa: 120_000,
-          rushPaisa: 100_000,
-          unitPaisa: 670_000,
+          baseMinor: 450_000,
+          optionsMinor: 120_000,
+          rushMinor: 100_000,
+          unitMinor: 670_000,
           currency: 'PKR',
         },
         patient: {
           clinicTreatmentId: crownTreatment.id,
-          unitPricePaisa: 1_500_050,
+          unitPriceMinor: 1_500_050,
           level: 'LOCATION',
         },
       });
@@ -497,7 +497,7 @@ describe('Lab catalog integration (API)', () => {
     it('resolves by date: a price change only affects days from its start', async () => {
       const change = await platform('post', svcUrl(`/${service.id}/prices`), {
         organizationId: A.organizationId,
-        unitPricePaisa: 470_000,
+        unitPriceMinor: 470_000,
         effectiveFrom: tomorrow,
       });
       expect(change.status).toBe(201);
@@ -508,8 +508,8 @@ describe('Lab catalog integration (API)', () => {
           A,
           A.doctor,
         );
-      expect((await quote(today)).body.data.lab.unitPaisa).toBe(450_000);
-      expect((await quote(tomorrow)).body.data.lab.unitPaisa).toBe(470_000);
+      expect((await quote(today)).body.data.lab.unitMinor).toBe(450_000);
+      expect((await quote(tomorrow)).body.data.lab.unitMinor).toBe(470_000);
     });
 
     it('an invited (not active) lab cannot be ordered from', async () => {

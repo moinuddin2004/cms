@@ -3,6 +3,7 @@ import type {
   PatientImportRow,
   PatientImportRowResult,
 } from '../types'
+import { todayYmd } from '@/lib/datetime'
 
 /** Rows per real import request (the API accepts up to 1000). */
 export const IMPORT_BATCH_SIZE = 500
@@ -159,6 +160,6 @@ export function downloadErrorReport(
       (r.errors ?? []).join('; '),
     ])
   }
-  const day = new Date().toISOString().slice(0, 10)
+  const day = todayYmd()
   downloadCsv(`patient-import-errors-${day}.csv`, toCsv(rows))
 }

@@ -19,6 +19,8 @@ import {
   AdjustStockDto,
 } from '../dto/inventory-item.dto';
 import { RecordConsumptionDto } from '../dto/patient-consumption.dto';
+import { ClockService } from 'src/common/clock/clock.service';
+import { addDays } from 'src/common/clock/tz.util';
 
 /** TypeORM returns decimals as strings; coerce safely. */
 function num(v: unknown): number {
@@ -52,7 +54,17 @@ export class InventoryService {
     @InjectRepository(StockMovement)
     private readonly movementRepo: Repository<StockMovement>,
     private readonly dataSource: DataSource,
+    private readonly clock: ClockService,
   ) {}
+
+  /**
+   * Last expiry date (inclusive, 'YYYY-MM-DD') that counts as "expiring":
+   * the LOCATION's today + `days`. Compared against the `date` column.
+   */
+  private async expiryCutoff(locationId: string, days: number) {
+    const tz = await this.clock.timezoneFor(locationId);
+    return addDays(this.clock.today(tz), days);
+  }
 
   // ── SKU uniqueness ──────────────────────────────────────────────────
   private async assertSkuUnique(
@@ -154,11 +166,10 @@ export class InventoryService {
       qb.andWhere('item.currentStock = 0');
 
     if (filters.expiringOnly) {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() + 30);
+      const cutoff = await this.expiryCutoff(locationId, 30);
       qb.andWhere(
         'item.expiryDate IS NOT NULL AND item.expiryDate <= :cutoff',
-        { cutoff: cutoff.toISOString().slice(0, 10) },
+        { cutoff },
       );
     }
 
@@ -382,8 +393,7 @@ export class InventoryService {
     locationId: string,
     daysAhead = 30,
   ): Promise<InventoryItem[]> {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + daysAhead);
+    const cutoff = await this.expiryCutoff(locationId, daysAhead);
     return this.itemRepo
       .createQueryBuilder('item')
       .leftJoinAndSelect('item.category', 'category')
@@ -391,9 +401,7 @@ export class InventoryService {
       .andWhere('item.locationId = :locationId', { locationId })
       .andWhere('item.isActive = :isActive', { isActive: true })
       .andWhere('item.expiryDate IS NOT NULL')
-      .andWhere('item.expiryDate <= :cutoff', {
-        cutoff: cutoff.toISOString().slice(0, 10),
-      })
+      .andWhere('item.expiryDate <= :cutoff', { cutoff })
       .orderBy('item.expiryDate', 'ASC')
       .getMany();
   }
@@ -431,9 +439,7 @@ export class InventoryService {
         .andWhere('item.locationId = :locationId', { locationId })
         .andWhere('item.isActive = :isActive', { isActive: true });
 
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + 30);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    const cutoffStr = await this.expiryCutoff(locationId, 30);
 
     const totalItems = await base().getCount();
 

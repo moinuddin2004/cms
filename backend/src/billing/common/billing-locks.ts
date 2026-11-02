@@ -4,7 +4,7 @@ import { Charge } from '../entities/charge.entity';
 import { Invoice } from '../entities/invoice.entity';
 import { Payment } from '../entities/payment.entity';
 import { billingError, notFound } from './billing-errors';
-import { toPaisa } from './money';
+import { toMinor } from './money';
 
 /**
  * Row locks for money operations (6.17). Lock order is ALWAYS
@@ -129,8 +129,8 @@ export const BillingLocks = {
   },
 };
 
-/** Advance (free money) of one payment, in paisa. */
-export const paymentAdvancePaisa = (
+/** Advance (free money) of one payment, in minor units. */
+export const paymentAdvanceMinor = (
   p: Pick<Payment, 'amount' | 'allocatedAmount' | 'refundedAmount'>,
 ): number =>
-  toPaisa(p.amount) - toPaisa(p.allocatedAmount) - toPaisa(p.refundedAmount);
+  toMinor(p.amount) - toMinor(p.allocatedAmount) - toMinor(p.refundedAmount);

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { rupeesToPaisa } from '../lib/money'
+import { rupeesToMinor } from '../lib/money'
 
 const max = (n: number) => z.string().trim().max(n, `At most ${n} characters`)
 
@@ -18,7 +18,7 @@ const rupees = (label: string) =>
     .trim()
     .min(1, `${label} is required`)
     .refine(
-      (v) => rupeesToPaisa(v) !== null,
+      (v) => rupeesToMinor(v) !== null,
       'Enter an amount like 4500 or 4500.50',
     )
 
@@ -26,7 +26,7 @@ const optionalRupees = z
   .string()
   .trim()
   .refine(
-    (v) => !v || rupeesToPaisa(v) !== null,
+    (v) => !v || rupeesToMinor(v) !== null,
     'Enter an amount like 500 or 500.50',
   )
 

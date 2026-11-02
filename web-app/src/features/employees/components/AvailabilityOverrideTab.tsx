@@ -14,6 +14,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/shared/DatePicker'
+import { TooltipButton } from '@/components/shared/TooltipButton'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { EmptyState, ErrorState } from '@/components/shared'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
@@ -41,8 +44,14 @@ interface AvailabilityOverrideTabProps {
 export function AvailabilityOverrideTab({
   employeeId,
 }: AvailabilityOverrideTabProps) {
-  const { data: overrides, isLoading } = useAvailabilityOverrides(employeeId)
+  const {
+    data: overrides,
+    isLoading,
+    isError,
+    refetch,
+  } = useAvailabilityOverrides(employeeId)
   const deleteMutation = useDeleteOverride(employeeId)
+  const [deleting, setDeleting] = useState<AvailabilityOverride | null>(null)
 
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editing, setEditing] = useState<AvailabilityOverride | null>(null)
@@ -69,32 +78,35 @@ export function AvailabilityOverrideTab({
 
   return (
     <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0">
+        <div className="flex items-start gap-2">
+          <CalendarX2 className="mt-0.5 h-5 w-5 text-primary" />
           <div>
-            <CardTitle className="text-lg">Availability Overrides</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Date-specific exceptions to the weekly schedule (days off or
-              special hours)
+            <CardTitle className="text-lg font-medium">
+              Date exceptions
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Days off or special hours that replace the weekly schedule.
             </p>
           </div>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Override
-          </Button>
         </div>
+        <Button size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          Add exception
+        </Button>
       </CardHeader>
       <CardContent>
-        {!overrides || overrides.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
-            <div className="rounded-full bg-muted p-5">
-              <CalendarX2 className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <p className="font-medium">No overrides set</p>
-            <p className="text-sm text-muted-foreground">
-              Add an override for a day off or special working hours
-            </p>
-          </div>
+        {isError ? (
+          <ErrorState
+            description="Could not load date exceptions."
+            onRetry={() => void refetch()}
+          />
+        ) : !overrides || overrides.length === 0 ? (
+          <EmptyState
+            icon={CalendarX2}
+            title="No exceptions"
+            description="Add one for a day off or special working hours."
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -108,25 +120,18 @@ export function AvailabilityOverrideTab({
             </TableHeader>
             <TableBody>
               {overrides.map((o) => (
-                <TableRow key={o.id}>
+                <TableRow
+                  key={o.id}
+                  className="transition-colors hover:bg-muted/50"
+                >
                   <TableCell className="font-medium">
                     {formatDate(o.date)}
                   </TableCell>
                   <TableCell>
                     {o.isAvailable ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-800 border-green-200"
-                      >
-                        Available
-                      </Badge>
+                      <Badge variant="success">Special hours</Badge>
                     ) : (
-                      <Badge
-                        variant="outline"
-                        className="bg-red-100 text-red-700 border-red-200"
-                      >
-                        Unavailable
-                      </Badge>
+                      <Badge variant="danger">Day off</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
@@ -140,23 +145,25 @@ export function AvailabilityOverrideTab({
                     {o.reason || '—'}
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-1">
-                      <Button
+                    <div className="flex justify-end gap-1">
+                      <TooltipButton
+                        tooltip="Edit exception"
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
                         onClick={() => openEdit(o)}
                       >
                         <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
+                      </TooltipButton>
+                      <TooltipButton
+                        tooltip="Delete exception"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-red-600 hover:text-red-700"
-                        onClick={() => deleteMutation.mutate(o.id)}
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleting(o)}
                       >
                         <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </TooltipButton>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -171,6 +178,25 @@ export function AvailabilityOverrideTab({
         isOpen={isFormOpen}
         onOpenChange={setIsFormOpen}
         override={editing}
+      />
+      <ConfirmDialog
+        open={!!deleting}
+        onOpenChange={(open) => !open && setDeleting(null)}
+        title="Delete this exception?"
+        description={
+          deleting
+            ? `${formatDate(deleting.date)} will follow the weekly schedule again.`
+            : ''
+        }
+        confirmLabel="Delete"
+        destructive
+        isLoading={deleteMutation.isPending}
+        onConfirm={() =>
+          deleting &&
+          deleteMutation.mutate(deleting.id, {
+            onSuccess: () => setDeleting(null),
+          })
+        }
       />
     </Card>
   )
@@ -203,7 +229,7 @@ function OverrideFormDialog({
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit Override' : 'New Availability Override'}
+            {isEditing ? 'Edit date exception' : 'New date exception'}
           </DialogTitle>
           <DialogDescription>
             Mark a specific date as unavailable, or set special working hours
@@ -318,7 +344,8 @@ function OverrideFormDialog({
                               </div>
                             )}
                           </form.Field>
-                          <Button
+                          <TooltipButton
+                            tooltip="Remove slot"
                             type="button"
                             variant="ghost"
                             size="icon"
@@ -326,7 +353,7 @@ function OverrideFormDialog({
                             onClick={() => (arrayField as any).removeValue(idx)}
                           >
                             <X className="h-4 w-4" />
-                          </Button>
+                          </TooltipButton>
                         </div>
                       ))}
                     </div>
@@ -370,7 +397,7 @@ function OverrideFormDialog({
                   {(isPending || isSubmitting) && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {isEditing ? 'Save Changes' : 'Create Override'}
+                  {isEditing ? 'Save changes' : 'Add exception'}
                 </Button>
               )}
             </form.Subscribe>

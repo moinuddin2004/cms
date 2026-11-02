@@ -1,3 +1,5 @@
+import { formatTime } from '@/lib/datetime'
+
 /** Error code + message from a queue API error (`{ message, error: { code, … } }`). */
 export function queueError(err: unknown): {
   code?: string
@@ -27,10 +29,7 @@ export function minutesSince(
   )
 }
 
+/** An instant on the clinic's clock, "9:30 AM". */
 export function formatClock(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  return formatTime(iso)
 }

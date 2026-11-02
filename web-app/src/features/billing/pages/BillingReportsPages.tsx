@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { DataTable } from '@/components/shared/DataTable'
 import { ErrorState, PageWrapper } from '@/components/shared'
 import { formatCurrency } from '@/lib/formatters'
+import { formatDateTime, todayYmd } from '@/lib/datetime'
 import { cn } from '@/lib/utils'
 import {
   useBillingActivity,
@@ -39,7 +40,7 @@ export function useReportRange(initial: Exclude<RangePreset, 'custom' | 'all'>) 
   const [custom, setCustom] = useState<DateRange>({})
   const range = useMemo(() => {
     const r = presetRange(preset, custom)
-    const today = new Date().toLocaleDateString('en-CA')
+    const today = todayYmd()
     return { from: r.from ?? today, to: r.to ?? r.from ?? today }
   }, [preset, custom])
   return {
@@ -300,7 +301,7 @@ export function BillingActivityPage() {
         header: 'Time',
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-muted-foreground">
-            {new Date(row.original.at).toLocaleString()}
+            {formatDateTime(row.original.at)}
           </span>
         ),
       },

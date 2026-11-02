@@ -22,8 +22,8 @@ const cost = (key: string, total: number, qty = 1): ExpectedCost => ({
   remakeRequestId: null,
   description: key,
   quantity: qty,
-  unitCostPaisa: total / qty,
-  totalPaisa: total,
+  unitCostMinor: total / qty,
+  totalMinor: total,
 });
 
 describe('bill math', () => {
@@ -32,11 +32,11 @@ describe('bill math', () => {
     expect(applyBp(1_000_000, 1700)).toBe(170_000);
     expect(applyBp(333, 1500)).toBe(50); // 49.95 → 50
     expect(
-      billTotals([{ lineTotalPaisa: 500_000 }, { lineTotalPaisa: 500_000 }], 0),
+      billTotals([{ lineTotalMinor: 500_000 }, { lineTotalMinor: 500_000 }], 0),
     ).toEqual({
-      subtotalPaisa: 1_000_000,
-      taxPaisa: 0,
-      totalPaisa: 1_000_000,
+      subtotalMinor: 1_000_000,
+      taxMinor: 0,
+      totalMinor: 1_000_000,
     });
   });
 
@@ -63,23 +63,23 @@ describe('bill math', () => {
   it('journals must balance (inv. 6)', () => {
     expect(
       checkJournal([
-        { accountCode: 'LAB_COST', debitPaisa: 10 },
-        { accountCode: 'LAB_PAYABLE', creditPaisa: 10 },
+        { accountCode: 'LAB_COST', debitMinor: 10 },
+        { accountCode: 'LAB_PAYABLE', creditMinor: 10 },
       ]),
     ).toBe(10);
     expect(() =>
       checkJournal([
-        { accountCode: 'LAB_COST', debitPaisa: 10 },
-        { accountCode: 'LAB_PAYABLE', creditPaisa: 9 },
+        { accountCode: 'LAB_COST', debitMinor: 10 },
+        { accountCode: 'LAB_PAYABLE', creditMinor: 9 },
       ]),
     ).toThrow(/balance/);
     expect(() =>
-      checkJournal([{ accountCode: 'X', debitPaisa: 5, creditPaisa: 5 }]),
+      checkJournal([{ accountCode: 'X', debitMinor: 5, creditMinor: 5 }]),
     ).toThrow();
     expect(() =>
       checkJournal([
-        { accountCode: 'X', debitPaisa: -5 },
-        { accountCode: 'Y', creditPaisa: -5 },
+        { accountCode: 'X', debitMinor: -5 },
+        { accountCode: 'Y', creditMinor: -5 },
       ]),
     ).toThrow();
   });
@@ -98,14 +98,14 @@ describe('planDraftLines', () => {
       {
         key: 'item:a',
         quantity: 2,
-        unitCostPaisa: 250_000,
-        linePaisa: 500_000,
+        unitCostMinor: 250_000,
+        lineMinor: 500_000,
       },
     ]);
   });
 
   it('re-run is idempotent; a changed cost updates the draft line', () => {
-    const lines = [{ id: 'l1', key: 'item:a', lineTotalPaisa: 500_000 }];
+    const lines = [{ id: 'l1', key: 'item:a', lineTotalMinor: 500_000 }];
     expect(
       planDraftLines([cost('item:a', 500_000)], new Map(), lines, true),
     ).toMatchObject({
@@ -115,7 +115,7 @@ describe('planDraftLines', () => {
     expect(
       planDraftLines([cost('item:a', 550_000)], new Map(), lines, true).updates,
     ).toEqual([
-      { id: 'l1', linePaisa: 550_000, quantity: 1, unitCostPaisa: 550_000 },
+      { id: 'l1', lineMinor: 550_000, quantity: 1, unitCostMinor: 550_000 },
     ]);
   });
 
@@ -141,9 +141,9 @@ describe('planDraftLines', () => {
     expect(plan.needsDraft).toBe(true);
     expect(plan.inserts).toMatchObject([
       {
-        linePaisa: 100_000,
+        lineMinor: 100_000,
         quantity: 1,
-        unitCostPaisa: 100_000,
+        unitCostMinor: 100_000,
         description: 'item:a (additional)',
       },
     ]);
@@ -165,7 +165,7 @@ describe('reconcile', () => {
       billNo: 'VB-0001',
       vendorInvoiceNo: 'INV-77',
       orderNo: 'LAB-0001',
-      totalPaisa: 1_000_000,
+      totalMinor: 1_000_000,
       firstLineId: 'l1',
     },
     {
@@ -173,7 +173,7 @@ describe('reconcile', () => {
       billNo: 'VB-0002',
       vendorInvoiceNo: null,
       orderNo: 'LAB-0002',
-      totalPaisa: 200_000,
+      totalMinor: 200_000,
       firstLineId: 'l2',
     },
     {
@@ -181,7 +181,7 @@ describe('reconcile', () => {
       billNo: 'VB-0003',
       vendorInvoiceNo: null,
       orderNo: 'LAB-0003',
-      totalPaisa: 300_000,
+      totalMinor: 300_000,
       firstLineId: 'l3',
     },
   ];
@@ -189,9 +189,9 @@ describe('reconcile', () => {
   it('matched, amount mismatch, missing in system, missing in statement', () => {
     const r = reconcile(
       [
-        { labReference: 'lab-0001', amountPaisa: 1_000_000 },
-        { labReference: 'VB-0002', amountPaisa: 250_000 },
-        { labReference: 'LAB-9999', amountPaisa: 50_000 },
+        { labReference: 'lab-0001', amountMinor: 1_000_000 },
+        { labReference: 'VB-0002', amountMinor: 250_000 },
+        { labReference: 'LAB-9999', amountMinor: 50_000 },
       ],
       bills,
     );
@@ -204,7 +204,7 @@ describe('reconcile', () => {
       matchedBillId: 'b1',
       matchedBillLineId: 'l1',
     });
-    expect(r.lines[1].systemAmountPaisa).toBe(200_000);
+    expect(r.lines[1].systemAmountMinor).toBe(200_000);
     expect(r.missingInStatement.map((b) => b.billId)).toEqual(['b3']);
     expect(r.matchedBillIds).toEqual(['b1']);
   });
@@ -215,13 +215,13 @@ describe('reconcile', () => {
       billNo: 'VB-0004',
       vendorInvoiceNo: null,
       orderNo: 'LAB-0001',
-      totalPaisa: 100_000,
+      totalMinor: 100_000,
       firstLineId: 'l4',
     };
     const r = reconcile(
       [
-        { labReference: 'LAB-0001', amountPaisa: 1_100_000 },
-        { labReference: 'LAB-0001', amountPaisa: 1_100_000 },
+        { labReference: 'LAB-0001', amountMinor: 1_100_000 },
+        { labReference: 'LAB-0001', amountMinor: 1_100_000 },
       ],
       [...bills, extra],
     );

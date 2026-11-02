@@ -27,7 +27,7 @@ import { useLabBillingAccess } from '../hooks/useLabBillingAccess'
 import { labBillingApi, newIdempotencyKey } from '../services/lab-billing.api'
 import { METHOD_LABEL } from '../types'
 import type { LabPaymentMethod, LabPaymentRow } from '../types'
-import { Paisa, ReasonDialog } from './billing-bits'
+import { MoneyAmount, ReasonDialog } from './billing-bits'
 import { RefundSheet } from './MoneySheets'
 
 const ALL = 'all'
@@ -37,7 +37,7 @@ function PaymentStatus({ p }: { p: LabPaymentRow }) {
     return <StatusBadge status="reversal" tone="danger" label="Reversal" />
   if (p.status === 'reversed')
     return <StatusBadge status="reversed" tone="muted" label="Reversed" />
-  if (p.advancePaisa > 0)
+  if (p.advanceMinor > 0)
     return <StatusBadge status="advance" tone="violet" label="Has advance" />
   return <StatusBadge status="posted" tone="success" label="Posted" />
 }
@@ -101,7 +101,7 @@ export function PaymentsList() {
   const actions = (p: LabPaymentRow) =>
     canRefund ? (
       <div className="flex justify-end gap-1">
-        {p.advancePaisa > 0 && (
+        {p.advanceMinor > 0 && (
           <TooltipButton
             tooltip="Refund advance"
             variant="ghost"
@@ -114,7 +114,7 @@ export function PaymentsList() {
             <Wallet className="size-4" />
           </TooltipButton>
         )}
-        {p.status === 'posted' && !p.isReversal && p.refundedPaisa === 0 && (
+        {p.status === 'posted' && !p.isReversal && p.refundedMinor === 0 && (
           <TooltipButton
             tooltip="Reverse payment"
             variant="ghost"
@@ -165,14 +165,16 @@ export function PaymentsList() {
       {
         id: 'amount',
         header: 'Amount',
-        accessorKey: 'amountPaisa',
-        cell: ({ row }) => <Paisa value={row.original.amountPaisa} strong />,
+        accessorKey: 'amountMinor',
+        cell: ({ row }) => (
+          <MoneyAmount value={row.original.amountMinor} strong />
+        ),
       },
       {
         id: 'advance',
         header: 'Advance',
-        accessorKey: 'advancePaisa',
-        cell: ({ row }) => <Paisa value={row.original.advancePaisa} />,
+        accessorKey: 'advanceMinor',
+        cell: ({ row }) => <MoneyAmount value={row.original.advanceMinor} />,
       },
       {
         id: 'status',
@@ -331,7 +333,7 @@ export function PaymentsList() {
                   <PaymentStatus p={p} />
                 </div>
                 <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2">
-                  <Paisa value={p.amountPaisa} strong />
+                  <MoneyAmount value={p.amountMinor} strong />
                   {actions(p)}
                 </div>
               </div>
@@ -369,7 +371,7 @@ export function PaymentsList() {
           open={!!refunding}
           onOpenChange={(o) => !o && setRefunding(null)}
           patient={refunding.patient}
-          maxPaisa={refunding.advancePaisa}
+          maxMinor={refunding.advanceMinor}
           onRefund={(body, key) => refund.mutateAsync({ body, key })}
         />
       )}

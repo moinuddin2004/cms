@@ -27,7 +27,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import {
+  calendarDateToYmd,
+  fromCalendarDate,
+  toCalendarTime,
+} from '@/features/appointments/utils/datetime'
+import {
+  clinicInputToUtc,
+  dateToYmd,
+  formatInClinic,
+  useClinicTimezone,
+  ymdToDate,
+} from '@/lib/datetime'
 
 // ─── Props ──────────────────────────────────────────────────────────
 
@@ -106,6 +117,9 @@ function getDoctorColors(): string[] {
   ]
 }
 
+/** "Now" on the clinic clock (drives the now-indicator and today highlight). */
+const calendarNow = () => toCalendarTime(Date.now())
+
 // ─── Component ──────────────────────────────────────────────────────
 
 export function FullCalendarView({
@@ -120,6 +134,8 @@ export function FullCalendarView({
   const calendarRef = useRef<FullCalendar>(null)
   const { openCreateModal, openDetailModal } = useAppointmentStore()
   const updateMutation = useUpdateAppointment()
+  // Event times are clinic wall times — rebuild them if the zone changes.
+  const clinicTz = useClinicTimezone()
 
   // ─── Is this a resource view? ─────────────────────────────────────
   const isResourceView =
@@ -131,9 +147,9 @@ export function FullCalendarView({
   useEffect(() => {
     const api = calendarRef.current?.getApi()
     if (api) {
-      const currentCalDate = api.getDate()
-      if (currentCalDate.toDateString() !== selectedDate.toDateString()) {
-        api.gotoDate(selectedDate)
+      const target = dateToYmd(selectedDate)
+      if (calendarDateToYmd(api.getDate()) !== target) {
+        api.gotoDate(target)
       }
     }
   }, [selectedDate])
@@ -178,8 +194,8 @@ export function FullCalendarView({
       return {
         id: appt.id,
         title: appt.patient?.fullName || 'Unknown Patient',
-        start: appt.startTime,
-        end: appt.endTime,
+        start: toCalendarTime(appt.startTime),
+        end: toCalendarTime(appt.endTime),
         resourceId: appt.doctorId || undefined, // Assign to doctor column
         backgroundColor: colors.bg,
         borderColor: colors.border,
@@ -202,15 +218,15 @@ export function FullCalendarView({
         },
       }
     })
-  }, [appointments])
+  }, [appointments, clinicTz])
 
   // ─── Map availability → background events ─────────────────────────
 
   const backgroundEvents = useMemo(() => {
     return availability.map((block, idx) => ({
       id: `avail-${idx}`,
-      start: block.start,
-      end: block.end,
+      start: toCalendarTime(block.start),
+      end: toCalendarTime(block.end),
       resourceId: block.doctorId, // Tie to doctor column
       display: 'background' as const,
       backgroundColor: getCssVar('--emerald-soft') || '#f0fdf4',
@@ -220,7 +236,7 @@ export function FullCalendarView({
         doctorName: block.doctorName,
       },
     }))
-  }, [availability])
+  }, [availability, clinicTz])
 
   const allEvents = useMemo(
     () => [...calendarEvents, ...backgroundEvents],
@@ -231,7 +247,7 @@ export function FullCalendarView({
 
   const handleDateSelect = useCallback(
     (selectInfo: DateSelectArg) => {
-      const startTime = toDateTimeLocalValue(selectInfo.start)
+      const startTime = fromCalendarDate(selectInfo.start)
       // If resource view, pre-fill the doctor
       const doctorId = (selectInfo as any).resource?.id || undefined
       openCreateModal(doctorId, startTime)
@@ -270,7 +286,7 @@ export function FullCalendarView({
       try {
         await updateMutation.mutateAsync({
           id: appt.id,
-          startTime: newStart.toISOString(),
+          startTime: clinicInputToUtc(fromCalendarDate(newStart)),
           duration: appt.durationMinutes,
           doctorId: newDoctorId,
         })
@@ -308,7 +324,7 @@ export function FullCalendarView({
       try {
         await updateMutation.mutateAsync({
           id: appt.id,
-          startTime: newStart.toISOString(),
+          startTime: clinicInputToUtc(fromCalendarDate(newStart)),
           duration: newDuration,
         })
         toast.success(`Duration updated to ${newDuration} min`)
@@ -423,15 +439,9 @@ export function FullCalendarView({
                     </span>
                   </div>
                   <p className="text-muted-foreground">
-                    {new Date(appt.startTime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatInClinic(appt.startTime, 'hh:mm a')}
                     {' — '}
-                    {new Date(appt.endTime).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {formatInClinic(appt.endTime, 'hh:mm a')}
                     {' '}({appt.durationMinutes} min)
                   </p>
                   {appt.notes && (
@@ -468,15 +478,9 @@ export function FullCalendarView({
                   Dr. {props.doctorName} • {statusLabel}
                 </p>
                 <p className="text-muted-foreground">
-                  {new Date(appt.startTime).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatInClinic(appt.startTime, 'hh:mm a')}
                   {' — '}
-                  {new Date(appt.endTime).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {formatInClinic(appt.endTime, 'hh:mm a')}
                 </p>
               </div>
             </TooltipContent>
@@ -623,7 +627,10 @@ export function FullCalendarView({
         ]}
         schedulerLicenseKey="CC-Attribution-NonCommercial-NoDerivatives"
         initialView={currentView}
-        initialDate={selectedDate}
+        initialDate={dateToYmd(selectedDate)}
+        // Fed clinic wall times (see utils/datetime) — shows the clinic clock.
+        timeZone="UTC"
+        now={calendarNow}
         events={allEvents}
         resources={resources}
         headerToolbar={false}
@@ -665,7 +672,7 @@ export function FullCalendarView({
         // that back into selectedDate and re-syncing was pulling the calendar
         // a month backwards, making forward navigation feel stuck.
         datesSet={(dateInfo) => {
-          onDateChange(dateInfo.view.currentStart)
+          onDateChange(ymdToDate(calendarDateToYmd(dateInfo.view.currentStart)))
           onViewChange(dateInfo.view.type)
         }}
         // ─── Other ──────────────────────────────────────

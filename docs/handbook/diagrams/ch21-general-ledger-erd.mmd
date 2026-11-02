@@ -12,14 +12,14 @@ erDiagram
     enum source_type
     uuid source_id "polymorphic"
     uuid reversal_of_id "unique"
-    bigint total_paisa
+    bigint total_minor
   }
   ledger_journal_lines {
     uuid id PK "uuid v7"
     uuid journal_id FK
     varchar account_code
-    bigint debit_paisa
-    bigint credit_paisa
+    bigint debit_minor
+    bigint credit_minor
   }
   vendor_bills {
     uuid id PK

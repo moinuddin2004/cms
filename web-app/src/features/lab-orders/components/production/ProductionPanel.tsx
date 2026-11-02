@@ -195,7 +195,7 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
   const pricesOf = (itemId: string) => {
     const p = order.items.find((i) => i.id === itemId)?.prices
     return p
-      ? { lab: p.labLineCostPaisa, patient: p.patientLinePricePaisa }
+      ? { lab: p.labLineCostMinor, patient: p.patientLinePriceMinor }
       : null
   }
 

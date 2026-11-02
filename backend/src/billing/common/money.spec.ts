@@ -4,14 +4,14 @@ import {
   percentOf,
   percentToBasisPoints,
   splitProportionally,
-  sumPaisa,
-  toPaisa,
+  sumMinor,
+  toMinor,
 } from './money';
 
 describe('money', () => {
-  it('converts rupees to paisa without float drift', () => {
-    expect(toPaisa(0.1 + 0.2)).toBe(30);
-    expect(toPaisa('1234.56')).toBe(123456);
+  it('converts rupees to minor without float drift', () => {
+    expect(toMinor(0.1 + 0.2)).toBe(30);
+    expect(toMinor('1234.56')).toBe(123456);
   });
 
   it('converts a percentage to basis points (clamped 0–100 %)', () => {
@@ -23,11 +23,11 @@ describe('money', () => {
     expect(percentToBasisPoints(150)).toBe(10_000);
   });
 
-  it('takes basis points of paisa exactly, half-up', () => {
+  it('takes basis points of minor exactly, half-up', () => {
     expect(basisPointsOf(100_000, 1700)).toBe(17_000);
     expect(basisPointsOf(105, 1000)).toBe(11); // 10.5 → 11
     expect(basisPointsOf(104, 1000)).toBe(10);
-    // 16.15% of Rs 1,000.01 = 16,150.16… paisa
+    // 16.15% of Rs 1,000.01 = 16,150.16… minor units
     expect(basisPointsOf(100_001, 1615)).toBe(16_150);
     expect(basisPointsOf(0, 1700)).toBe(0);
     expect(basisPointsOf(100, 0)).toBe(0);
@@ -47,11 +47,11 @@ describe('money', () => {
 
     it('always sums exactly to the total, remainder to the largest weight', () => {
       const shares = splitProportionally(100, [1, 1, 1]);
-      expect(sumPaisa(shares)).toBe(100);
+      expect(sumMinor(shares)).toBe(100);
       expect(shares).toEqual([34, 33, 33]);
     });
 
-    it('handles a 1-paisa total and zero weights', () => {
+    it('handles a 1-minor total and zero weights', () => {
       expect(splitProportionally(1, [5, 10])).toEqual([0, 1]);
       expect(splitProportionally(7, [0, 0])).toEqual([7, 0]);
       expect(splitProportionally(10, [])).toEqual([]);

@@ -89,6 +89,7 @@ export class PatientCreditsController {
       patientId,
       dto.creditPackageId,
       ctx.organizationId,
+      ctx.locationId,
       a.userId,
     );
     return ResponseWrapper.success(data, 'Package purchased successfully');

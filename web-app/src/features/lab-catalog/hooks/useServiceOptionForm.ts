@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
-import { paisaToRupeesText, rupeesToPaisa } from '../lib/money'
+import { minorToRupeesText, rupeesToMinor } from '../lib/money'
 import { serviceOptionSchema } from '../schemas/catalog.schema'
 import type { ServiceOptionFormValues } from '../schemas/catalog.schema'
 import type { ServiceOption } from '../types'
@@ -11,7 +11,7 @@ function optionDefaults(o: ServiceOption | null): ServiceOptionFormValues {
     optionType: o?.optionType ?? 'material',
     code: o?.code ?? '',
     name: o?.name ?? '',
-    extraCost: o ? paisaToRupeesText(o.extraCostPaisa) : '',
+    extraCost: o ? minorToRupeesText(o.extraCostMinor) : '',
   }
 }
 
@@ -40,7 +40,7 @@ export function useServiceOptionForm({
         optionType: value.optionType,
         code: value.code.trim().toUpperCase(),
         name: value.name.trim(),
-        extraCostPaisa: rupeesToPaisa(value.extraCost) ?? 0,
+        extraCostMinor: rupeesToMinor(value.extraCost) ?? 0,
       })
       onDone()
     },

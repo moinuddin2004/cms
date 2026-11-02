@@ -50,7 +50,7 @@ export interface ServiceOption {
   optionType: OptionType
   code: string
   name: string
-  extraCostPaisa: number
+  extraCostMinor: number
   sortOrder: number
   isActive: boolean
   version: number
@@ -79,8 +79,8 @@ export interface LabServiceItem {
 export interface EffectivePrice {
   priceId: string
   source: LabPriceSource
-  unitPricePaisa: number
-  rushSurchargePaisa: number
+  unitPriceMinor: number
+  rushSurchargeMinor: number
   currency: string
   effectiveFrom: string
   effectiveTo: string | null
@@ -97,8 +97,8 @@ export interface PriceWindow {
   labServiceId: string
   /** Null = the lab's list price. */
   organization: { id: string; name: string } | null
-  unitPricePaisa: number
-  rushSurchargePaisa: number
+  unitPriceMinor: number
+  rushSurchargeMinor: number
   currency: string
   effectiveFrom: string
   effectiveTo: string | null
@@ -120,7 +120,7 @@ export interface ClinicServiceRow extends LabServiceItem {
     clinicTreatmentName: string
     isDefault: boolean
   } | null
-  patientPricePaisa: number | null
+  patientPriceMinor: number | null
 }
 
 export interface ClinicTreatment {
@@ -129,7 +129,7 @@ export interface ClinicTreatment {
   code: string | null
   kind: string
   isActive: boolean
-  pricePaisa: number
+  priceMinor: number
   mappedServiceCount: number
 }
 
@@ -140,7 +140,7 @@ export interface ServiceMapping {
     name: string
     code: string | null
     isActive: boolean
-    defaultPricePaisa: number
+    defaultPriceMinor: number
   }
   labService: {
     id: string
@@ -199,15 +199,15 @@ export interface PriceQuote {
     priceId: string
     source: LabPriceSource
     currency: string
-    basePaisa: number
-    optionsPaisa: number
-    rushPaisa: number
-    unitPaisa: number
+    baseMinor: number
+    optionsMinor: number
+    rushMinor: number
+    unitMinor: number
   }
   patient: {
     clinicTreatmentId: string
     name: string
-    unitPricePaisa: number
+    unitPriceMinor: number
     level: 'DOCTOR' | 'LOCATION' | 'DEFAULT'
   } | null
 }
@@ -265,14 +265,14 @@ export interface OptionInput {
   optionType: OptionType
   code: string
   name: string
-  extraCostPaisa: number
+  extraCostMinor: number
   sortOrder?: number
 }
 
 export interface PriceInput {
   organizationId: string | null
-  unitPricePaisa: number
-  rushSurchargePaisa: number
+  unitPriceMinor: number
+  rushSurchargeMinor: number
   effectiveFrom: string
   effectiveTo: string | null
   notes: string | null

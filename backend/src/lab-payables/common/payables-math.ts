@@ -1,6 +1,6 @@
 /**
  * Lab payables arithmetic (lab ERD §6b, §15). Pure: no NestJS / TypeORM.
- * All money is integer paisa, rates integer basis points.
+ * All money is integer minor units, rates integer basis points.
  */
 
 import {
@@ -10,27 +10,27 @@ import {
 } from '../enums/payables.enums';
 
 /** round(n × bp / 10000), halves away from zero. */
-export function applyBp(paisa: number, bp: number): number {
-  const n = BigInt(paisa) * BigInt(bp);
+export function applyBp(minor: number, bp: number): number {
+  const n = BigInt(minor) * BigInt(bp);
   return Number((2n * n + 10_000n) / 20_000n);
 }
 
 export function billTotals(
-  lines: ReadonlyArray<{ lineTotalPaisa: number }>,
+  lines: ReadonlyArray<{ lineTotalMinor: number }>,
   taxBp: number,
-): { subtotalPaisa: number; taxPaisa: number; totalPaisa: number } {
-  const subtotalPaisa = lines.reduce((a, l) => a + l.lineTotalPaisa, 0);
-  const taxPaisa = applyBp(subtotalPaisa, taxBp);
-  return { subtotalPaisa, taxPaisa, totalPaisa: subtotalPaisa + taxPaisa };
+): { subtotalMinor: number; taxMinor: number; totalMinor: number } {
+  const subtotalMinor = lines.reduce((a, l) => a + l.lineTotalMinor, 0);
+  const taxMinor = applyBp(subtotalMinor, taxBp);
+  return { subtotalMinor, taxMinor, totalMinor: subtotalMinor + taxMinor };
 }
 
 /** Status of an approved bill from what has been allocated to it. */
 export function settledStatus(
-  totalPaisa: number,
-  paidPaisa: number,
+  totalMinor: number,
+  paidMinor: number,
 ): VendorBillStatus {
-  if (paidPaisa >= totalPaisa) return VendorBillStatus.PAID;
-  if (paidPaisa > 0) return VendorBillStatus.PARTIALLY_PAID;
+  if (paidMinor >= totalMinor) return VendorBillStatus.PAID;
+  if (paidMinor > 0) return VendorBillStatus.PARTIALLY_PAID;
   return VendorBillStatus.APPROVED;
 }
 
@@ -46,23 +46,23 @@ export interface ExpectedCost {
   remakeRequestId: string | null;
   description: string;
   quantity: number;
-  unitCostPaisa: number;
-  totalPaisa: number;
+  unitCostMinor: number;
+  totalMinor: number;
 }
 
 export interface DraftLineRef {
   id: string;
   key: string;
-  lineTotalPaisa: number;
+  lineTotalMinor: number;
 }
 
 export interface DraftLinePlan {
-  inserts: Array<ExpectedCost & { linePaisa: number }>;
+  inserts: Array<ExpectedCost & { lineMinor: number }>;
   updates: Array<{
     id: string;
-    linePaisa: number;
+    lineMinor: number;
     quantity: number;
-    unitCostPaisa: number;
+    unitCostMinor: number;
   }>;
   /** True when something is owed that no open draft holds yet. */
   needsDraft: boolean;
@@ -86,18 +86,18 @@ export function planDraftLines(
   const plan: DraftLinePlan = { inserts: [], updates: [], needsDraft: false };
   for (const e of expected) {
     const already = billedApproved.get(e.key) ?? 0;
-    const want = e.totalPaisa - already;
+    const want = e.totalMinor - already;
     const existing = byKey.get(e.key);
     const isDelta = already > 0;
     const quantity = isDelta ? 1 : e.quantity;
-    const unitCostPaisa = isDelta ? Math.max(want, 0) : e.unitCostPaisa;
+    const unitCostMinor = isDelta ? Math.max(want, 0) : e.unitCostMinor;
     if (existing) {
-      if (want >= 0 && existing.lineTotalPaisa !== want) {
+      if (want >= 0 && existing.lineTotalMinor !== want) {
         plan.updates.push({
           id: existing.id,
-          linePaisa: want,
+          lineMinor: want,
           quantity,
-          unitCostPaisa,
+          unitCostMinor,
         });
       }
       continue;
@@ -108,8 +108,8 @@ export function planDraftLines(
       ...e,
       description: isDelta ? `${e.description} (additional)` : e.description,
       quantity,
-      unitCostPaisa,
-      linePaisa: want,
+      unitCostMinor,
+      lineMinor: want,
     });
     if (want > 0) plan.needsDraft = true;
   }
@@ -123,18 +123,18 @@ export interface SystemBill {
   billNo: string;
   vendorInvoiceNo: string | null;
   orderNo: string | null;
-  totalPaisa: number;
+  totalMinor: number;
   firstLineId: string | null;
 }
 
 export interface StatementLineIn {
   labReference: string | null;
-  amountPaisa: number;
+  amountMinor: number;
 }
 
 export interface LineMatch {
   matchStatus: StatementMatch;
-  systemAmountPaisa: number | null;
+  systemAmountMinor: number | null;
   matchedBillId: string | null;
   matchedBillLineId: string | null;
 }
@@ -181,18 +181,18 @@ export function reconcile(
     if (!ref || !group.length) {
       return {
         matchStatus: StatementMatch.MISSING_IN_SYSTEM,
-        systemAmountPaisa: null,
+        systemAmountMinor: null,
         matchedBillId: null,
         matchedBillLineId: null,
       };
     }
     group.forEach((b) => used.add(b.billId));
-    const system = group.reduce((a, b) => a + b.totalPaisa, 0);
-    const ok = system === s.amountPaisa;
+    const system = group.reduce((a, b) => a + b.totalMinor, 0);
+    const ok = system === s.amountMinor;
     if (ok) group.forEach((b) => matched.add(b.billId));
     return {
       matchStatus: ok ? StatementMatch.MATCHED : StatementMatch.AMOUNT_MISMATCH,
-      systemAmountPaisa: system,
+      systemAmountMinor: system,
       matchedBillId: group[0].billId,
       matchedBillLineId: group[0].firstLineId,
     };

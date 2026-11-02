@@ -15,7 +15,7 @@ import {
   NO_BILLING_ACCESS,
   SYSTEM_BILLING_ROLE,
 } from '../common/billing-context';
-import { fromPaisa, splitProportionally, toPaisa } from '../common/money';
+import { fromMinor, splitProportionally, toMinor } from '../common/money';
 import { CommissionService } from '../commissions/commission.service';
 import { Charge } from '../entities/charge.entity';
 import {
@@ -191,12 +191,12 @@ export class PlanInvoicingService {
       },
     };
     const time = await this.clock.read(tenant.locationId);
-    const grossPaisa = input.lines.map((l) => toPaisa(l.price));
-    const discountPaisa = Math.min(
-      toPaisa(input.discount),
-      grossPaisa.reduce((a, b) => a + b, 0),
+    const grossMinor = input.lines.map((l) => toMinor(l.price));
+    const discountMinor = Math.min(
+      toMinor(input.discount),
+      grossMinor.reduce((a, b) => a + b, 0),
     );
-    const shares = splitProportionally(discountPaisa, grossPaisa);
+    const shares = splitProportionally(discountMinor, grossMinor);
     const label = `Plan ${input.planNumber}`.slice(0, 80);
 
     const drafts = input.lines.map((line, i) => {
@@ -223,18 +223,18 @@ export class PlanInvoicingService {
       );
       // A zero price is a real (free) line, not a missing one.
       draft.unitPrice = line.price;
-      draft.grossAmount = fromPaisa(grossPaisa[i]);
+      draft.grossAmount = fromMinor(grossMinor[i]);
       draft.needsPricing = false;
       const share = shares[i];
-      draft.discountAmount = fromPaisa(share);
-      draft.netAmount = fromPaisa(grossPaisa[i] - share);
+      draft.discountAmount = fromMinor(share);
+      draft.netAmount = fromMinor(grossMinor[i] - share);
       return {
         ...draft,
         ...(share > 0
           ? {
               discountName: label,
               discountKind: DiscountKind.FIXED,
-              discountValue: fromPaisa(share),
+              discountValue: fromMinor(share),
               discountNote: 'Treatment plan discount',
               discountAppliedBy: input.actorUserId,
               isCustomDiscount: true,

@@ -133,7 +133,7 @@ describe('Lab payables (API)', () => {
       total: string;
     }>(
       fx.dataSource,
-      `SELECT j.id, SUM(l.debit_paisa) AS d, SUM(l.credit_paisa) AS c, j.total_paisa AS total
+      `SELECT j.id, SUM(l.debit_minor) AS d, SUM(l.credit_minor) AS c, j.total_minor AS total
          FROM ledger_journals j JOIN ledger_journal_lines l ON l.journal_id = j.id
         WHERE j.organization_id = $1 GROUP BY j.id`,
       [A.organizationId],
@@ -147,7 +147,7 @@ describe('Lab payables (API)', () => {
   const accountBalance = async (account: string) => {
     const [row] = await sqlRows<{ b: string }>(
       fx.dataSource,
-      `SELECT COALESCE(SUM(debit_paisa - credit_paisa), 0) AS b FROM ledger_journal_lines
+      `SELECT COALESCE(SUM(debit_minor - credit_minor), 0) AS b FROM ledger_journal_lines
         WHERE organization_id = $1 AND account_code = $2 AND lab_id = $3`,
       [A.organizationId, account, lab.id],
     );
@@ -200,7 +200,7 @@ describe('Lab payables (API)', () => {
       },
     );
 
-    const service = async (svcCode: string, name: string, paisa: number) => {
+    const service = async (svcCode: string, name: string, minor: number) => {
       const s = await fx.platform(
         'post',
         `/platform/labs/${lab.id}/services`,
@@ -219,7 +219,7 @@ describe('Lab payables (API)', () => {
         'post',
         `/platform/labs/${lab.id}/services/${s.body.data.id}/prices`,
         fx.superAdmin,
-        { unitPricePaisa: paisa, effectiveFrom: today },
+        { unitPriceMinor: minor, effectiveFrom: today },
       );
       expect(p.status).toBe(201);
       return s.body.data as { id: string };
@@ -286,7 +286,7 @@ describe('Lab payables (API)', () => {
       let [draft] = await billsOf(order.id);
       expect(draft).toMatchObject({
         status: 'draft',
-        totalPaisa: 500_000,
+        totalMinor: 500_000,
         orderNo: order.orderNo,
       });
       await accept(order.items[1].id);
@@ -297,14 +297,14 @@ describe('Lab payables (API)', () => {
       const full = await bill(billId);
       expect(full).toMatchObject({
         status: 'draft',
-        subtotalPaisa: 1_000_000,
-        totalPaisa: 1_000_000,
+        subtotalMinor: 1_000_000,
+        totalMinor: 1_000_000,
       });
       expect(
         full.lines.map((l: any) => [
           l.lineKind,
           l.orderItemId,
-          l.lineTotalPaisa,
+          l.lineTotalMinor,
         ]),
       ).toEqual([
         ['service', order.items[0].id, 500_000],
@@ -339,28 +339,28 @@ describe('Lab payables (API)', () => {
       const approved = await approve(billId, { vendorInvoiceNo: 'SMILE-1001' });
       expect(approved).toMatchObject({
         status: 'approved',
-        balancePaisa: 1_000_000,
-        paidPaisa: 0,
+        balanceMinor: 1_000_000,
+        paidMinor: 0,
         vendorInvoiceNo: 'SMILE-1001',
       });
       expect(approved.dueOn).toBe(addDays(approved.billDate, 30));
       const lines = await sqlRows<{
         account_code: string;
-        debit_paisa: string;
-        credit_paisa: string;
+        debit_minor: string;
+        credit_minor: string;
       }>(
         fx.dataSource,
-        `SELECT l.account_code, l.debit_paisa, l.credit_paisa FROM ledger_journal_lines l
+        `SELECT l.account_code, l.debit_minor, l.credit_minor FROM ledger_journal_lines l
            JOIN ledger_journals j ON j.id = l.journal_id
           WHERE j.source_type = 'vendor_bill' AND j.source_id = $1 ORDER BY l.account_code`,
         [billId],
       );
       expect(lines).toEqual([
-        { account_code: 'LAB_COST', debit_paisa: '1000000', credit_paisa: '0' },
+        { account_code: 'LAB_COST', debit_minor: '1000000', credit_minor: '0' },
         {
           account_code: 'LAB_PAYABLE',
-          debit_paisa: '0',
-          credit_paisa: '1000000',
+          debit_minor: '0',
+          credit_minor: '1000000',
         },
       ]);
       expect(await accountBalance('LAB_PAYABLE')).toBe(-1_000_000);
@@ -374,13 +374,13 @@ describe('Lab payables (API)', () => {
 
     it('allocation limits (inv. 5): not over the payment, not over the bill balance', async () => {
       const overPayment = await pay({
-        amountPaisa: 100_000,
-        allocations: [{ billId, amountPaisa: 200_000 }],
+        amountMinor: 100_000,
+        allocations: [{ billId, amountMinor: 200_000 }],
       });
       expect(code(overPayment)).toBe('PAYABLES_ALLOCATION_LIMIT');
       const overBalance = await pay({
-        amountPaisa: 2_000_000,
-        allocations: [{ billId, amountPaisa: 1_500_000 }],
+        amountMinor: 2_000_000,
+        allocations: [{ billId, amountMinor: 1_500_000 }],
       });
       expect(code(overBalance)).toBe('PAYABLES_ALLOCATION_LIMIT');
       const [{ n }] = await sqlRows<{ n: number }>(
@@ -396,8 +396,8 @@ describe('Lab payables (API)', () => {
       const first = ok(
         await pay(
           {
-            amountPaisa: 600_000,
-            allocations: [{ billId, amountPaisa: 600_000 }],
+            amountMinor: 600_000,
+            allocations: [{ billId, amountMinor: 600_000 }],
           },
           key,
         ),
@@ -406,8 +406,8 @@ describe('Lab payables (API)', () => {
       const replay = ok(
         await pay(
           {
-            amountPaisa: 600_000,
-            allocations: [{ billId, amountPaisa: 600_000 }],
+            amountMinor: 600_000,
+            allocations: [{ billId, amountMinor: 600_000 }],
           },
           key,
         ),
@@ -415,27 +415,27 @@ describe('Lab payables (API)', () => {
       );
       expect(replay.id).toBe(first.id);
       expect((await bill(billId)).status).toBe('partially_paid');
-      expect((await bill(billId)).balancePaisa).toBe(400_000);
+      expect((await bill(billId)).balanceMinor).toBe(400_000);
       ok(
         await pay({
-          amountPaisa: 400_000,
+          amountMinor: 400_000,
           method: 'cash',
-          allocations: [{ billId, amountPaisa: 400_000 }],
+          allocations: [{ billId, amountMinor: 400_000 }],
         }),
         201,
       );
       const paid = await bill(billId);
       expect(paid).toMatchObject({
         status: 'paid',
-        balancePaisa: 0,
-        paidPaisa: 1_000_000,
+        balanceMinor: 0,
+        paidMinor: 1_000_000,
       });
       expect(paid.allocations).toHaveLength(2);
       expect(await accountBalance('LAB_PAYABLE')).toBe(0);
       expect(await accountBalance('LAB_COST')).toBe(1_000_000);
       const more = await pay({
-        amountPaisa: 100,
-        allocations: [{ billId, amountPaisa: 100 }],
+        amountMinor: 100,
+        allocations: [{ billId, amountMinor: 100 }],
       });
       expect(code(more)).toBe('PAYABLES_NOT_ALLOWED');
       expect(await assertLedgerBalanced()).toBeGreaterThanOrEqual(3);
@@ -458,14 +458,14 @@ describe('Lab payables (API)', () => {
       );
       const row = report.data.find((r: any) => r.orderId === order.id);
       expect(row).toMatchObject({
-        patientPricePaisa: 3_000_000,
-        labCostPaisa: 1_000_000,
-        billedLabCostPaisa: 1_000_000,
-        expensesPaisa: 50_000,
-        profitPaisa: 1_950_000,
+        patientPriceMinor: 3_000_000,
+        labCostMinor: 1_000_000,
+        billedLabCostMinor: 1_000_000,
+        expensesMinor: 50_000,
+        profitMinor: 1_950_000,
         // Nothing invoiced to the patient yet (Sprint 11): price snapshot, no commission.
-        invoicedPaisa: null,
-        commissionPaisa: 0,
+        invoicedMinor: null,
+        commissionMinor: 0,
       });
     });
   });
@@ -478,14 +478,14 @@ describe('Lab payables (API)', () => {
       const b = await approve(draft.id);
       const p = ok(
         await pay({
-          amountPaisa: 300_000,
-          allocations: [{ billId: b.id, amountPaisa: 100_000 }],
+          amountMinor: 300_000,
+          allocations: [{ billId: b.id, amountMinor: 100_000 }],
         }),
         201,
       );
       expect(p).toMatchObject({
-        allocatedPaisa: 100_000,
-        unallocatedPaisa: 200_000,
+        allocatedMinor: 100_000,
+        unallocatedMinor: 200_000,
       });
       expect(await accountBalance('LAB_ADVANCES')).toBe(200_000);
       const tooMuch = await admin(
@@ -493,18 +493,18 @@ describe('Lab payables (API)', () => {
         `/lab-payables/payments/${p.id}/allocations`,
         {
           version: p.version,
-          allocations: [{ billId: b.id, amountPaisa: 250_000 }],
+          allocations: [{ billId: b.id, amountMinor: 250_000 }],
         },
       );
       expect(code(tooMuch)).toBe('PAYABLES_ALLOCATION_LIMIT');
       const applied = ok(
         await admin('post', `/lab-payables/payments/${p.id}/allocations`, {
           version: p.version,
-          allocations: [{ billId: b.id, amountPaisa: 100_000 }],
+          allocations: [{ billId: b.id, amountMinor: 100_000 }],
         }),
         201,
       );
-      expect(applied.unallocatedPaisa).toBe(100_000);
+      expect(applied.unallocatedMinor).toBe(100_000);
       expect((await bill(b.id)).status).toBe('paid');
       expect(await accountBalance('LAB_ADVANCES')).toBe(100_000);
 
@@ -524,8 +524,8 @@ describe('Lab payables (API)', () => {
       expect(reversed.allocations.every((a: any) => a.reversedAt)).toBe(true);
       expect(await bill(b.id)).toMatchObject({
         status: 'approved',
-        balancePaisa: 200_000,
-        paidPaisa: 0,
+        balanceMinor: 200_000,
+        paidMinor: 0,
       });
       expect(await accountBalance('LAB_ADVANCES')).toBe(0);
       const voided = ok(
@@ -656,7 +656,7 @@ describe('Lab payables (API)', () => {
       expect(bills).toHaveLength(1);
       expect(bills[0]).toMatchObject({
         status: 'approved',
-        totalPaisa: 200_000,
+        totalMinor: 200_000,
       });
     });
 
@@ -671,13 +671,13 @@ describe('Lab payables (API)', () => {
       await accept(newItemId);
       const [draft] = await billsOf(order.id);
       const full = await bill(draft.id);
-      expect(full.totalPaisa).toBe(200_000);
+      expect(full.totalMinor).toBe(200_000);
       expect(
         full.lines.find((l: any) => l.lineKind === 'remake'),
       ).toMatchObject({
         orderItemId: newItemId,
         remakeRequestId: remakeId,
-        lineTotalPaisa: 0,
+        lineTotalMinor: 0,
       });
     });
 
@@ -689,13 +689,13 @@ describe('Lab payables (API)', () => {
       const { newItemId } = await remake(order.id, order.items[0].id, 'clinic');
       await accept(newItemId);
       const bills = await billsOf(order.id);
-      expect(bills.map((b: any) => [b.status, b.totalPaisa]).sort()).toEqual([
+      expect(bills.map((b: any) => [b.status, b.totalMinor]).sort()).toEqual([
         ['approved', 200_000],
         ['draft', 200_000],
       ]);
       const draft = bills.find((b: any) => b.status === 'draft');
       expect((await bill(draft.id)).lines).toMatchObject([
-        { lineKind: 'remake', lineTotalPaisa: 200_000 },
+        { lineKind: 'remake', lineTotalMinor: 200_000 },
       ]);
     });
 
@@ -705,7 +705,7 @@ describe('Lab payables (API)', () => {
       const req = ok(
         await portal('post', `/lab-portal/orders/${order.id}/charge-requests`, {
           kind: 'shipping',
-          amountPaisa: 30_000,
+          amountMinor: 30_000,
           reason: 'Courier to clinic',
         }),
         201,
@@ -733,12 +733,12 @@ describe('Lab payables (API)', () => {
       );
       expect(code(res)).toBe('STALE_VERSION');
       const full = await bill(draft.id);
-      expect(full.totalPaisa).toBe(230_000);
+      expect(full.totalMinor).toBe(230_000);
       expect(
         full.lines.find((l: any) => l.chargeRequestId === charge.id),
       ).toMatchObject({
         lineKind: 'shipping',
-        lineTotalPaisa: 30_000,
+        lineTotalMinor: 30_000,
       });
       expect((await approve(draft.id)).status).toBe('approved');
     });
@@ -756,9 +756,9 @@ describe('Lab payables (API)', () => {
         periodEnd: addDays(today, 1),
         statementRef: 'OCT-2026',
         lines: [
-          { labReference: o1.orderNo, amountPaisa: 200_000 },
-          { labReference: o2.orderNo, amountPaisa: 210_000 },
-          { labReference: 'LAB-NOPE', amountPaisa: 5_000 },
+          { labReference: o1.orderNo, amountMinor: 200_000 },
+          { labReference: o2.orderNo, amountMinor: 210_000 },
+          { labReference: 'LAB-NOPE', amountMinor: 5_000 },
         ],
       });
       const st = ok(res, 201);
@@ -767,12 +767,12 @@ describe('Lab payables (API)', () => {
         st.lines.find((l: any) => l.labReference === ref);
       expect(byRef(o1.orderNo)).toMatchObject({
         matchStatus: 'matched',
-        systemAmountPaisa: 200_000,
+        systemAmountMinor: 200_000,
       });
       expect(byRef(o1.orderNo).matchedBillLineId).toBeTruthy();
       expect(byRef(o2.orderNo)).toMatchObject({
         matchStatus: 'amount_mismatch',
-        systemAmountPaisa: 200_000,
+        systemAmountMinor: 200_000,
       });
       expect(byRef('LAB-NOPE')).toMatchObject({
         matchStatus: 'missing_in_system',
@@ -842,8 +842,8 @@ describe('Lab payables (API)', () => {
     it('aging and monthly lab cost', async () => {
       const aging = ok(await admin('get', '/lab-payables/reports/aging'));
       const row = aging.labs.find((l: any) => l.labId === lab.id);
-      expect(row.totalPaisa).toBeGreaterThan(0);
-      expect(row.buckets.current).toBe(row.totalPaisa);
+      expect(row.totalMinor).toBeGreaterThan(0);
+      expect(row.buckets.current).toBe(row.totalMinor);
       const monthly = ok(
         await admin(
           'get',
@@ -851,8 +851,8 @@ describe('Lab payables (API)', () => {
         ),
       );
       const m = monthly.labs.find((l: any) => l.labId === lab.id);
-      expect(m.months[Number(today.slice(5, 7)) - 1]).toBe(m.totalPaisa);
-      expect(m.totalPaisa).toBeGreaterThanOrEqual(1_000_000);
+      expect(m.months[Number(today.slice(5, 7)) - 1]).toBe(m.totalMinor);
+      expect(m.totalMinor).toBeGreaterThanOrEqual(1_000_000);
       expect(await assertLedgerBalanced()).toBeGreaterThan(0);
     });
   });

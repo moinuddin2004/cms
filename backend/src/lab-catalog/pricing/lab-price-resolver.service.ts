@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, IsNull } from 'typeorm';
-import { toPaisa } from 'src/billing/common/money';
+import { toMinor } from 'src/billing/common/money';
 import { CatalogService } from 'src/billing/entities/catalog-service.entity';
 import { ServicePrice } from 'src/billing/entities/service-price.entity';
 import { ClockService } from 'src/common/clock/clock.service';
@@ -51,22 +51,22 @@ export interface PriceQuote {
     priceId: string;
     source: LabPriceSource;
     currency: string;
-    basePaisa: number;
-    optionsPaisa: number;
-    rushPaisa: number;
-    unitPaisa: number;
+    baseMinor: number;
+    optionsMinor: number;
+    rushMinor: number;
+    unitMinor: number;
     options: {
       id: string;
       code: string;
       name: string;
-      extraCostPaisa: number;
+      extraCostMinor: number;
     }[];
   };
   /** What one unit costs the patient; null when no treatment is mapped. */
   patient: {
     clinicTreatmentId: string;
     name: string;
-    unitPricePaisa: number;
+    unitPriceMinor: number;
     level: PatientPriceLevel;
   } | null;
 }
@@ -166,7 +166,7 @@ export class LabPriceResolver {
             id: o.id,
             code: o.code,
             name: o.name,
-            extraCostPaisa: o.extraCostPaisa,
+            extraCostMinor: o.extraCostMinor,
           })),
       },
       patient: await this.patientPrice(m, q, service.id),
@@ -209,11 +209,11 @@ export class LabPriceResolver {
         })
       : [];
     const picked = pickPatientPrice(
-      toPaisa(treatment.defaultPrice),
+      toMinor(treatment.defaultPrice),
       overrides.map((o) => ({
         locationId: o.locationId,
         doctorId: o.doctorId,
-        pricePaisa: toPaisa(o.price),
+        priceMinor: toMinor(o.price),
       })),
       q.locationId,
       q.doctorId ?? null,

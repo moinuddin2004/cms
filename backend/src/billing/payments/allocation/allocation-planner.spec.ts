@@ -12,19 +12,19 @@ const charges: PlannerCharge[] = [
     id: 'filling',
     chargeDate: '2026-10-02',
     createdAt: 3,
-    balancePaisa: 180000,
+    balanceMinor: 180000,
   },
   {
     id: 'consult',
     chargeDate: '2026-10-01',
     createdAt: 1,
-    balancePaisa: 120000,
+    balanceMinor: 120000,
   },
   {
     id: 'scaling',
     chargeDate: '2026-10-01',
     createdAt: 2,
-    balancePaisa: 300000,
+    balanceMinor: 300000,
   },
 ];
 
@@ -32,22 +32,22 @@ describe('planAllocation', () => {
   it('AUTO: Rs 5,800 pays FIFO and leaves Rs 200 on the filling (S1)', () => {
     const plan = planAllocation(AllocationMode.AUTO, {
       charges,
-      funds: [{ source: NEW_PAYMENT, availablePaisa: 580000 }],
+      funds: [{ source: NEW_PAYMENT, availableMinor: 580000 }],
     });
-    expect(plan.lines.map((l) => [l.chargeId, l.amountPaisa])).toEqual([
+    expect(plan.lines.map((l) => [l.chargeId, l.amountMinor])).toEqual([
       ['consult', 120000],
       ['scaling', 300000],
       ['filling', 160000],
     ]);
-    expect(plan.newPaymentAdvancePaisa).toBe(0);
+    expect(plan.newPaymentAdvanceMinor).toBe(0);
   });
 
   it('AUTO: overpayment becomes advance (S2)', () => {
     const plan = planAllocation(AllocationMode.AUTO, {
       charges,
-      funds: [{ source: NEW_PAYMENT, availablePaisa: 700000 }],
+      funds: [{ source: NEW_PAYMENT, availableMinor: 700000 }],
     });
-    expect(plan.newPaymentAdvancePaisa).toBe(100000);
+    expect(plan.newPaymentAdvanceMinor).toBe(100000);
   });
 
   it('uses old advance before new money (S4)', () => {
@@ -57,32 +57,32 @@ describe('planAllocation', () => {
           id: 'c',
           chargeDate: '2026-10-01',
           createdAt: 1,
-          balancePaisa: 300000,
+          balanceMinor: 300000,
         },
       ],
       funds: [
-        { source: 'old-payment', availablePaisa: 100000 },
-        { source: NEW_PAYMENT, availablePaisa: 200000 },
+        { source: 'old-payment', availableMinor: 100000 },
+        { source: NEW_PAYMENT, availableMinor: 200000 },
       ],
     });
     expect(plan.lines).toEqual([
-      { chargeId: 'c', source: 'old-payment', amountPaisa: 100000 },
-      { chargeId: 'c', source: NEW_PAYMENT, amountPaisa: 200000 },
+      { chargeId: 'c', source: 'old-payment', amountMinor: 100000 },
+      { chargeId: 'c', source: NEW_PAYMENT, amountMinor: 200000 },
     ]);
-    expect(plan.advanceUsedPaisa).toBe(100000);
+    expect(plan.advanceUsedMinor).toBe(100000);
   });
 
   it('pure deposit: no charges, everything is advance (S3)', () => {
     const plan = planAllocation(AllocationMode.AUTO, {
       charges: [],
-      funds: [{ source: NEW_PAYMENT, availablePaisa: 500000 }],
+      funds: [{ source: NEW_PAYMENT, availableMinor: 500000 }],
     });
     expect(plan.lines).toEqual([]);
-    expect(plan.newPaymentAdvancePaisa).toBe(500000);
+    expect(plan.newPaymentAdvanceMinor).toBe(500000);
   });
 
   it('MANUAL: rejects amount > balance and sum > funds (S5)', () => {
-    const funds = [{ source: NEW_PAYMENT, availablePaisa: 100000 }];
+    const funds = [{ source: NEW_PAYMENT, availableMinor: 100000 }];
     expect(() =>
       planAllocation(AllocationMode.MANUAL, {
         charges,
@@ -107,11 +107,11 @@ describe('planAllocation', () => {
   it('MANUAL: honours the requested split', () => {
     const plan = planAllocation(AllocationMode.MANUAL, {
       charges,
-      funds: [{ source: NEW_PAYMENT, availablePaisa: 100000 }],
+      funds: [{ source: NEW_PAYMENT, availableMinor: 100000 }],
       requested: new Map([['filling', 100000]]),
     });
     expect(plan.lines).toEqual([
-      { chargeId: 'filling', source: NEW_PAYMENT, amountPaisa: 100000 },
+      { chargeId: 'filling', source: NEW_PAYMENT, amountMinor: 100000 },
     ]);
   });
 });

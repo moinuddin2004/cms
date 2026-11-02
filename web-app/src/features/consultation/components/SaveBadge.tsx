@@ -1,5 +1,6 @@
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatInClinic } from '@/lib/datetime'
 import type { SaveState } from '../types'
 
 /** Tiny "Saving… / Saved 12:03" indicator for an auto-saving section. */
@@ -30,10 +31,7 @@ export function SaveBadge({
           ? 'Not saved — will retry'
           : `Saved${
               savedAt
-                ? ` ${savedAt.toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}`
+                ? ` ${formatInClinic(savedAt, 'hh:mm a')}`
                 : ''
             }`}
     </span>

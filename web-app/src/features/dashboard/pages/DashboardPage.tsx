@@ -24,6 +24,12 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import {
+  clinicDayBounds,
+  formatInClinic,
+  nowInClinic,
+  todayYmd,
+} from '@/lib/datetime'
+import {
   useMonthlySummary,
   useRevenueTrend,
 } from '@/features/billing/hooks/useFinancialSummary'
@@ -59,7 +65,7 @@ const MONTHS = [
 const pad = (n: number) => String(n).padStart(2, '0')
 
 function greeting() {
-  const h = new Date().getHours()
+  const h = nowInClinic().getHours()
   if (h < 12) return 'Good morning'
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
@@ -74,7 +80,8 @@ export function DashboardPage() {
   } = useAuthStore()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const now = new Date()
+  // Clinic wall clock: month/year/weekday are the clinic's, not the browser's.
+  const now = nowInClinic()
   const [month, setMonth] = useState(now.getMonth() + 1)
   const [year, setYear] = useState(now.getFullYear())
   const isCurrentMonth =
@@ -99,13 +106,12 @@ export function DashboardPage() {
 
   const ranges = useMemo(() => {
     const lastDay = new Date(year, month, 0).getDate()
-    const today = new Date()
-    const day = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+    const today = clinicDayBounds(todayYmd())
     return {
-      monthStart: `${year}-${pad(month)}-01T00:00:00.000Z`,
-      monthEnd: `${year}-${pad(month)}-${pad(lastDay)}T23:59:59.999Z`,
-      todayStart: `${day}T00:00:00.000Z`,
-      todayEnd: `${day}T23:59:59.999Z`,
+      monthStart: clinicDayBounds(`${year}-${pad(month)}-01`).start,
+      monthEnd: clinicDayBounds(`${year}-${pad(month)}-${pad(lastDay)}`).end,
+      todayStart: today.start,
+      todayEnd: today.end,
     }
   }, [month, year])
 
@@ -248,11 +254,7 @@ export function DashboardPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-text-3">
-            {now.toLocaleDateString('en-US', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
+            {formatInClinic(now, 'EEEE, MMMM d')}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {greeting()}, {user?.name || 'there'}

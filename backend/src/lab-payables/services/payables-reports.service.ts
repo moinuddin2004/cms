@@ -39,14 +39,14 @@ export class PayablesReportsService {
       lab_id: string;
       lab_name: string;
       due: string;
-      balance_paisa: string;
+      balance_minor: string;
     }>(
       this.dataSource,
       `SELECT b.lab_id, l.name AS lab_name, to_char(COALESCE(b.due_on, b.bill_date), 'YYYY-MM-DD') AS due,
-              b.balance_paisa
+              b.balance_minor
          FROM vendor_bills b JOIN labs l ON l.id = b.lab_id
         WHERE b.organization_id = $1 AND b.status IN ('approved', 'partially_paid')
-          AND b.balance_paisa > 0 AND ($2::uuid IS NULL OR b.lab_id = $2)`,
+          AND b.balance_minor > 0 AND ($2::uuid IS NULL OR b.lab_id = $2)`,
       [organizationId, q.labId ?? null],
     );
     const byLab = new Map<
@@ -55,7 +55,7 @@ export class PayablesReportsService {
         labId: string;
         labName: string;
         buckets: Buckets;
-        totalPaisa: number;
+        totalMinor: number;
         bills: number;
       }
     >();
@@ -65,26 +65,26 @@ export class PayablesReportsService {
         labId: r.lab_id,
         labName: r.lab_name,
         buckets: emptyBuckets(),
-        totalPaisa: 0,
+        totalMinor: 0,
         bills: 0,
       };
       const bucket = agingBucket(daysBetween(r.due, today));
-      const amount = Number(r.balance_paisa);
+      const amount = Number(r.balance_minor);
       lab.buckets[bucket] += amount;
-      lab.totalPaisa += amount;
+      lab.totalMinor += amount;
       lab.bills += 1;
       totals[bucket] += amount;
       byLab.set(r.lab_id, lab);
     }
     const labs = [...byLab.values()].sort(
-      (a, b) => b.totalPaisa - a.totalPaisa,
+      (a, b) => b.totalMinor - a.totalMinor,
     );
     return {
       asOf: today,
       labs,
       totals: {
         buckets: totals,
-        totalPaisa: labs.reduce((a, l) => a + l.totalPaisa, 0),
+        totalMinor: labs.reduce((a, l) => a + l.totalMinor, 0),
       },
     };
   }
@@ -95,12 +95,12 @@ export class PayablesReportsService {
       lab_id: string;
       lab_name: string;
       month: number;
-      cost_paisa: string;
+      cost_minor: string;
       bills: number;
     }>(
       this.dataSource,
       `SELECT b.lab_id, l.name AS lab_name, EXTRACT(MONTH FROM b.bill_date)::int AS month,
-              SUM(b.total_paisa) AS cost_paisa, count(*)::int AS bills
+              SUM(b.total_minor) AS cost_minor, count(*)::int AS bills
          FROM vendor_bills b JOIN labs l ON l.id = b.lab_id
         WHERE b.organization_id = $1 AND b.status IN ('approved', 'partially_paid', 'paid')
           AND EXTRACT(YEAR FROM b.bill_date) = $2
@@ -109,17 +109,17 @@ export class PayablesReportsService {
     );
     const labs = new Map<
       string,
-      { labId: string; labName: string; months: number[]; totalPaisa: number }
+      { labId: string; labName: string; months: number[]; totalMinor: number }
     >();
     for (const r of rows) {
       const lab = labs.get(r.lab_id) ?? {
         labId: r.lab_id,
         labName: r.lab_name,
         months: Array<number>(12).fill(0),
-        totalPaisa: 0,
+        totalMinor: 0,
       };
-      lab.months[r.month - 1] += Number(r.cost_paisa);
-      lab.totalPaisa += Number(r.cost_paisa);
+      lab.months[r.month - 1] += Number(r.cost_minor);
+      lab.totalMinor += Number(r.cost_minor);
       labs.set(r.lab_id, lab);
     }
     const list = [...labs.values()];
@@ -128,7 +128,7 @@ export class PayablesReportsService {
     return {
       year: q.year,
       labs: list,
-      totals: { months, totalPaisa: months.reduce((a, v) => a + v, 0) },
+      totals: { months, totalMinor: months.reduce((a, v) => a + v, 0) },
     };
   }
 
@@ -142,19 +142,26 @@ export class PayablesReportsService {
    * commission entries on the order's invoice lines (signed, so reversals
    * net out). Invoiced and collected are shown apart (§15).
    */
-  async caseProfit(organizationId: string, q: CaseProfitQueryDto) {
+  async caseProfit(
+    organizationId: string,
+    locationId: string,
+    q: CaseProfitQueryDto,
+  ) {
     const page = q.page ?? 1;
     const limit = q.limit ?? 20;
+    // Org-wide list; from/to are read as days in the ACTIVE location's tz.
+    const tz = await this.clock.timezoneFor(locationId);
     const params = [
       organizationId,
       q.labId ?? null,
       q.from ?? null,
       q.to ?? null,
+      tz,
     ];
     const where = `o.organization_id = $1 AND o.order_no IS NOT NULL
       AND ($2::uuid IS NULL OR o.lab_id = $2)
-      AND ($3::date IS NULL OR o.submitted_at::date >= $3)
-      AND ($4::date IS NULL OR o.submitted_at::date <= $4)`;
+      AND ($3::date IS NULL OR (o.submitted_at AT TIME ZONE $5)::date >= $3)
+      AND ($4::date IS NULL OR (o.submitted_at AT TIME ZONE $5)::date <= $4)`;
     const [{ n }] = await sqlRows<{ n: number }>(
       this.dataSource,
       `SELECT count(*)::int AS n FROM lab_orders o WHERE ${where}`,
@@ -167,35 +174,35 @@ export class PayablesReportsService {
       submitted_at: Date;
       lab_name: string;
       patient_name: string | null;
-      patient_paisa: string;
-      lab_paisa: string;
-      charges_paisa: string;
-      billed_paisa: string;
-      expense_paisa: string;
-      invoiced_paisa: string | null;
-      collected_paisa: string;
-      commission_paisa: string;
+      patient_minor: string;
+      lab_minor: string;
+      charges_minor: string;
+      billed_minor: string;
+      expense_minor: string;
+      invoiced_minor: string | null;
+      collected_minor: string;
+      commission_minor: string;
     }>(
       this.dataSource,
       `SELECT o.id, o.order_no, o.status_code, o.submitted_at, l.name AS lab_name, p.full_name AS patient_name,
-              COALESCE((SELECT SUM(i.patient_line_price_paisa) FROM lab_order_items i
-                         WHERE i.order_id = o.id AND i.status_code IS DISTINCT FROM 'cancelled'), 0) AS patient_paisa,
-              COALESCE((SELECT SUM(i.lab_line_cost_paisa) FROM lab_order_items i
-                         WHERE i.order_id = o.id AND i.status_code IS DISTINCT FROM 'cancelled'), 0) AS lab_paisa,
-              COALESCE((SELECT SUM(c.amount_paisa) FROM order_charge_requests c
-                         WHERE c.order_id = o.id AND c.item_id IS NULL AND c.status = 'approved'), 0) AS charges_paisa,
-              COALESCE((SELECT SUM(b.total_paisa) FROM vendor_bills b
-                         WHERE b.lab_order_id = o.id AND b.status IN ('approved', 'partially_paid', 'paid')), 0) AS billed_paisa,
+              COALESCE((SELECT SUM(i.patient_line_price_minor) FROM lab_order_items i
+                         WHERE i.order_id = o.id AND i.status_code IS DISTINCT FROM 'cancelled'), 0) AS patient_minor,
+              COALESCE((SELECT SUM(i.lab_line_cost_minor) FROM lab_order_items i
+                         WHERE i.order_id = o.id AND i.status_code IS DISTINCT FROM 'cancelled'), 0) AS lab_minor,
+              COALESCE((SELECT SUM(c.amount_minor) FROM order_charge_requests c
+                         WHERE c.order_id = o.id AND c.item_id IS NULL AND c.status = 'approved'), 0) AS charges_minor,
+              COALESCE((SELECT SUM(b.total_minor) FROM vendor_bills b
+                         WHERE b.lab_order_id = o.id AND b.status IN ('approved', 'partially_paid', 'paid')), 0) AS billed_minor,
               COALESCE((SELECT (SUM(e.amount) * 100)::bigint FROM expenses e
-                         WHERE e.lab_order_id = o.id), 0) AS expense_paisa,
-              (SELECT SUM(li.total_paisa - li.credited_paisa) FROM lab_invoices li
-                WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')) AS invoiced_paisa,
-              COALESCE((SELECT SUM(li.paid_paisa) FROM lab_invoices li
-                         WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')), 0) AS collected_paisa,
-              COALESCE((SELECT SUM(ce.amount_paisa) FROM commission_entries ce
+                         WHERE e.lab_order_id = o.id), 0) AS expense_minor,
+              (SELECT SUM(li.total_minor - li.credited_minor) FROM lab_invoices li
+                WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')) AS invoiced_minor,
+              COALESCE((SELECT SUM(li.paid_minor) FROM lab_invoices li
+                         WHERE li.order_id = o.id AND li.status NOT IN ('draft', 'void')), 0) AS collected_minor,
+              COALESCE((SELECT SUM(ce.amount_minor) FROM commission_entries ce
                           JOIN lab_invoice_lines ll ON ll.id = ce.lab_invoice_line_id
                           JOIN lab_invoices li ON li.id = ll.invoice_id
-                         WHERE li.order_id = o.id), 0) AS commission_paisa
+                         WHERE li.order_id = o.id), 0) AS commission_minor
          FROM lab_orders o JOIN labs l ON l.id = o.lab_id
          LEFT JOIN patients p ON p.id = o.patient_id
         WHERE ${where}
@@ -204,13 +211,13 @@ export class PayablesReportsService {
       params,
     );
     const data = rows.map((r) => {
-      const patientPricePaisa = Number(r.patient_paisa);
-      const labCostPaisa = Number(r.lab_paisa) + Number(r.charges_paisa);
-      const expensesPaisa = Number(r.expense_paisa);
-      const invoicedPaisa =
-        r.invoiced_paisa === null ? null : Number(r.invoiced_paisa);
-      const commissionPaisa = Number(r.commission_paisa);
-      const revenuePaisa = invoicedPaisa ?? patientPricePaisa;
+      const patientPriceMinor = Number(r.patient_minor);
+      const labCostMinor = Number(r.lab_minor) + Number(r.charges_minor);
+      const expensesMinor = Number(r.expense_minor);
+      const invoicedMinor =
+        r.invoiced_minor === null ? null : Number(r.invoiced_minor);
+      const commissionMinor = Number(r.commission_minor);
+      const revenueMinor = invoicedMinor ?? patientPriceMinor;
       return {
         orderId: r.id,
         orderNo: r.order_no,
@@ -218,15 +225,15 @@ export class PayablesReportsService {
         submittedAt: r.submitted_at,
         labName: r.lab_name,
         patientName: r.patient_name,
-        patientPricePaisa,
-        labCostPaisa,
-        billedLabCostPaisa: Number(r.billed_paisa),
-        expensesPaisa,
-        invoicedPaisa,
-        collectedPaisa: Number(r.collected_paisa),
-        commissionPaisa,
-        profitPaisa:
-          revenuePaisa - labCostPaisa - expensesPaisa - commissionPaisa,
+        patientPriceMinor,
+        labCostMinor,
+        billedLabCostMinor: Number(r.billed_minor),
+        expensesMinor,
+        invoicedMinor,
+        collectedMinor: Number(r.collected_minor),
+        commissionMinor,
+        profitMinor:
+          revenueMinor - labCostMinor - expensesMinor - commissionMinor,
       };
     });
     return {
@@ -258,8 +265,8 @@ export class LabCaseCostService {
       billed: string | null;
     }>(
       m,
-      `SELECT i.id, i.lab_line_cost_paisa AS snapshot,
-              (SELECT SUM(l.line_total_paisa) FROM vendor_bill_lines l
+      `SELECT i.id, i.lab_line_cost_minor AS snapshot,
+              (SELECT SUM(l.line_total_minor) FROM vendor_bill_lines l
                  JOIN vendor_bills b ON b.id = l.vendor_bill_id
                 WHERE l.order_item_id = i.id AND b.status IN ('approved', 'partially_paid', 'paid')) AS billed
          FROM lab_order_items i WHERE i.id = ANY($1::uuid[])`,

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { format } from 'date-fns'
+import { formatInClinic } from '@/lib/datetime'
 import { Building2 } from 'lucide-react'
 import {
   DataTable,
@@ -61,9 +61,7 @@ export function LabClinicsPanel({ labId }: { labId: string }) {
         accessorKey: 'activatedAt',
         cell: ({ row }) => (
           <span className="text-sm text-text-2">
-            {row.original.activatedAt
-              ? format(new Date(row.original.activatedAt), 'd MMM yyyy')
-              : '—'}
+            {formatInClinic(row.original.activatedAt, 'd MMM yyyy')}
           </span>
         ),
       },

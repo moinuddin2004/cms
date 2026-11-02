@@ -7,9 +7,9 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper, FormSection, FormSheet } from '@/components/shared'
 import {
-  formatPaisa,
-  paisaToRupeesText,
-  rupeesToPaisa,
+  formatMinor,
+  minorToRupeesText,
+  rupeesToMinor,
 } from '@/features/lab-catalog'
 import { fieldError } from '@/features/queue'
 import { useInvoiceForm } from '../hooks/useLabBillingForms'
@@ -25,7 +25,7 @@ interface Option {
   id: string
   kind: 'lab_item' | 'lab_charge'
   description: string
-  pricePaisa: number
+  priceMinor: number
 }
 
 /**
@@ -55,7 +55,7 @@ export function InvoiceSheet({
         id: (l.labOrderItemId ?? l.chargeRequestId) as string,
         kind: l.kind as Option['kind'],
         description: l.description,
-        pricePaisa: l.quantity * l.unitPricePaisa,
+        priceMinor: l.quantity * l.unitPriceMinor,
       }))
     return [
       ...fromDraft,
@@ -63,13 +63,13 @@ export function InvoiceSheet({
         id: i.id,
         kind: 'lab_item' as const,
         description: i.description,
-        pricePaisa: i.patientLinePricePaisa,
+        priceMinor: i.patientLinePriceMinor,
       })),
       ...(billing?.unbilledCharges ?? []).map((c) => ({
         id: c.id,
         kind: 'lab_charge' as const,
         description: `Lab charge (${c.kind}): ${c.reason}`,
-        pricePaisa: c.amountPaisa,
+        priceMinor: c.amountMinor,
       })),
     ]
   }, [billing, draft])
@@ -87,8 +87,8 @@ export function InvoiceSheet({
         chargeIds: draft.lines.flatMap((l) =>
           l.chargeRequestId ? [l.chargeRequestId] : [],
         ),
-        discount: draft.discountPaisa
-          ? paisaToRupeesText(draft.discountPaisa)
+        discount: draft.discountMinor
+          ? minorToRupeesText(draft.discountMinor)
           : '',
         taxPercent: String((draft.lines[0]?.taxRateBp ?? 0) / 100),
         notes: draft.notes ?? '',
@@ -106,7 +106,7 @@ export function InvoiceSheet({
   const form = useInvoiceForm({
     open,
     initial,
-    subtotalOf: (v) => pick(v).reduce((a, o) => a + o.pricePaisa, 0),
+    subtotalOf: (v) => pick(v).reduce((a, o) => a + o.priceMinor, 0),
     onSubmit: async (v) => {
       await onSave({
         lines: pick(v).map((o) =>
@@ -114,7 +114,7 @@ export function InvoiceSheet({
             ? { kind: 'lab_item', itemId: o.id }
             : { kind: 'lab_charge', chargeRequestId: o.id },
         ),
-        discountPaisa: v.discount.trim() ? (rupeesToPaisa(v.discount) ?? 0) : 0,
+        discountMinor: v.discount.trim() ? (rupeesToMinor(v.discount) ?? 0) : 0,
         taxRateBp: percentToBp(v.taxPercent || '0') ?? 0,
         notes: v.notes.trim() || undefined,
         issue: v.issue,
@@ -196,7 +196,7 @@ export function InvoiceSheet({
                                 {o.description}
                               </span>
                               <span className="tabular-nums">
-                                {formatPaisa(o.pricePaisa)}
+                                {formatMinor(o.priceMinor)}
                               </span>
                             </label>
                           )
@@ -249,16 +249,16 @@ export function InvoiceSheet({
           <form.Subscribe selector={(s) => s.values}>
             {(v) => {
               const p = previewInvoice(
-                pick(v).map((o) => o.pricePaisa),
-                rupeesToPaisa(v.discount || '0') ?? 0,
+                pick(v).map((o) => o.priceMinor),
+                rupeesToMinor(v.discount || '0') ?? 0,
                 percentToBp(v.taxPercent || '0') ?? 0,
               )
               return (
                 <div className="space-y-1 rounded-lg bg-muted/40 p-3">
-                  <MoneyRow label="Subtotal" value={p.subtotalPaisa} />
-                  <MoneyRow label="Discount" value={p.discountPaisa} negative />
-                  <MoneyRow label="Tax" value={p.taxPaisa} />
-                  <MoneyRow label="Total" value={p.totalPaisa} strong />
+                  <MoneyRow label="Subtotal" value={p.subtotalMinor} />
+                  <MoneyRow label="Discount" value={p.discountMinor} negative />
+                  <MoneyRow label="Tax" value={p.taxMinor} />
+                  <MoneyRow label="Total" value={p.totalMinor} strong />
                 </div>
               )
             }}

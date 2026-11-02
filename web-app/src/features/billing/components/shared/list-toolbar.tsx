@@ -2,6 +2,7 @@ import type { ComponentType, ReactNode } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { cn } from '@/lib/utils'
+import { dateToYmd, todayYmd, ymdToDate } from '@/lib/datetime'
 
 /**
  * Listing chrome copied from the Appointments page so billing lists look
@@ -165,11 +166,12 @@ export interface DateRange {
   to?: string
 }
 
-const ymd = (d: Date) => d.toLocaleDateString('en-CA')
+const ymd = dateToYmd
 
 /** Clinic-local `{from, to}` of a preset (custom → `custom`). */
 export function presetRange(p: RangePreset, custom: DateRange = {}): DateRange {
-  const t = new Date()
+  // Clinic "today" as a calendar-day carrier; plain local math from here.
+  const t = ymdToDate(todayYmd())
   switch (p) {
     case 'today':
       return { from: ymd(t), to: ymd(t) }

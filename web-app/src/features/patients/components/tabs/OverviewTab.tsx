@@ -27,6 +27,7 @@ import type { Patient } from '../../types'
 import { useVitals } from '../../hooks/usePatientSubEntities'
 import { EditPatientSheet } from '../EditPatientSheet'
 import { CHIP_TONES, Chip } from './history/HistoryParts'
+import { formatDateTime, formatInClinic } from '@/lib/datetime'
 
 function ageOf(dob: string | null): string | null {
   if (!dob) return null
@@ -82,10 +83,7 @@ export function OverviewTab({ patient }: { patient: Patient }) {
         <GlanceTile
           icon={CalendarDays}
           label="Patient since"
-          value={new Date(patient.createdAt).toLocaleDateString([], {
-            month: 'short',
-            year: 'numeric',
-          })}
+          value={formatInClinic(patient.createdAt, 'MMM yyyy')}
         />
         <GlanceTile icon={Tag} label="Source" value={pretty(patient.source)} />
       </div>
@@ -339,10 +337,7 @@ function LatestVitalsStrip({ patientId }: { patientId: string }) {
         <div>
           <p className="text-sm font-semibold">Latest vitals</p>
           <p className="text-[11px] text-muted-foreground">
-            {new Date(latest.recordedAt).toLocaleString([], {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}
+            {formatDateTime(latest.recordedAt)}
           </p>
         </div>
       </div>

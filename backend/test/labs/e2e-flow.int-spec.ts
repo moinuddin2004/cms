@@ -162,16 +162,16 @@ describe('Lab case end to end (API)', () => {
 
   const invoice = async () =>
     ok(await admin('get', `/lab-billing/invoices/${invoiceId}`));
-  const collect = async (amountPaisa: number, key = randomUUID()) =>
+  const collect = async (amountMinor: number, key = randomUUID()) =>
     ok(
       await admin(
         'post',
         '/lab-billing/payments',
         {
           patientId: ali,
-          amountPaisa,
+          amountMinor,
           method: 'cash',
-          allocations: [{ invoiceId, amountPaisa }],
+          allocations: [{ invoiceId, amountMinor }],
         },
         key,
       ),
@@ -181,7 +181,7 @@ describe('Lab case end to end (API)', () => {
   const commission = async () => {
     const [row] = await sqlRows<{ s: string; n: number }>(
       fx.dataSource,
-      `SELECT COALESCE(SUM(ce.amount_paisa), 0) AS s, count(*)::int AS n
+      `SELECT COALESCE(SUM(ce.amount_minor), 0) AS s, count(*)::int AS n
          FROM commission_entries ce
          JOIN lab_invoice_lines l ON l.id = ce.lab_invoice_line_id
          JOIN lab_invoices i ON i.id = l.invoice_id
@@ -194,7 +194,7 @@ describe('Lab case end to end (API)', () => {
   const balance = async (account: string) => {
     const [row] = await sqlRows<{ b: string }>(
       fx.dataSource,
-      `SELECT COALESCE(SUM(debit_paisa - credit_paisa), 0) AS b FROM ledger_journal_lines
+      `SELECT COALESCE(SUM(debit_minor - credit_minor), 0) AS b FROM ledger_journal_lines
         WHERE organization_id = $1 AND account_code = $2`,
       [A.organizationId, account],
     );
@@ -204,7 +204,7 @@ describe('Lab case end to end (API)', () => {
   const assertLedgerBalanced = async () => {
     const rows = await sqlRows<{ d: string; c: string; total: string }>(
       fx.dataSource,
-      `SELECT SUM(l.debit_paisa) AS d, SUM(l.credit_paisa) AS c, j.total_paisa AS total
+      `SELECT SUM(l.debit_minor) AS d, SUM(l.credit_minor) AS c, j.total_minor AS total
          FROM ledger_journals j JOIN ledger_journal_lines l ON l.journal_id = j.id
         WHERE j.organization_id = $1 GROUP BY j.id`,
       [A.organizationId],
@@ -216,7 +216,7 @@ describe('Lab case end to end (API)', () => {
     }
     const [all] = await sqlRows<{ d: string; c: string }>(
       fx.dataSource,
-      `SELECT SUM(debit_paisa) AS d, SUM(credit_paisa) AS c FROM ledger_journal_lines WHERE organization_id = $1`,
+      `SELECT SUM(debit_minor) AS d, SUM(credit_minor) AS c FROM ledger_journal_lines WHERE organization_id = $1`,
       [A.organizationId],
     );
     expect(all.d).toBe(all.c);
@@ -307,7 +307,7 @@ describe('Lab case end to end (API)', () => {
         'post',
         `/platform/labs/${lab.id}/services/${crown.id}/prices`,
         fx.superAdmin,
-        { unitPricePaisa: 500_000, effectiveFrom: today },
+        { unitPriceMinor: 500_000, effectiveFrom: today },
       ),
       201,
     ).id;
@@ -372,8 +372,8 @@ describe('Lab case end to end (API)', () => {
     const q = ok(
       await doctor('get', `/lab-catalog/price-quote?labServiceId=${crown.id}`),
     );
-    expect(q.lab.unitPaisa).toBe(500_000);
-    expect(q.patient.unitPricePaisa).toBe(1_500_000);
+    expect(q.lab.unitMinor).toBe(500_000);
+    expect(q.patient.unitPriceMinor).toBe(1_500_000);
   });
 
   it('§14.2–4: a draft saves, submit freezes both prices, pins versions (inv. 7) and is idempotent (inv. 10)', async () => {
@@ -399,10 +399,10 @@ describe('Lab case end to end (API)', () => {
     expect(order.orderNo).toBeTruthy();
     for (const item of order.items)
       expect(item.prices).toMatchObject({
-        labUnitCostPaisa: 500_000,
-        labLineCostPaisa: 500_000,
-        patientUnitPricePaisa: 1_500_000,
-        patientLinePricePaisa: 1_500_000,
+        labUnitCostMinor: 500_000,
+        labLineCostMinor: 500_000,
+        patientUnitPriceMinor: 1_500_000,
+        patientLinePriceMinor: 1_500_000,
       });
     const again = ok(await submit(), 201);
     expect(again.id).toBe(order.id);
@@ -422,7 +422,7 @@ describe('Lab case end to end (API)', () => {
 
   it('§19: a catalog price change does not touch the submitted order', async () => {
     await fx.dataSource.query(
-      `UPDATE lab_service_prices SET unit_price_paisa = 700000 WHERE id = $1`,
+      `UPDATE lab_service_prices SET unit_price_minor = 700000 WHERE id = $1`,
       [crownPriceId],
     );
     await fx.dataSource.query(
@@ -432,13 +432,13 @@ describe('Lab case end to end (API)', () => {
     const q = ok(
       await doctor('get', `/lab-catalog/price-quote?labServiceId=${crown.id}`),
     );
-    expect(q.lab.unitPaisa).toBe(700_000);
-    expect(q.patient.unitPricePaisa).toBe(2_000_000);
+    expect(q.lab.unitMinor).toBe(700_000);
+    expect(q.patient.unitPriceMinor).toBe(2_000_000);
     const view = await orderView();
     for (const item of view.items)
       expect(item.prices).toMatchObject({
-        labLineCostPaisa: 500_000,
-        patientLinePricePaisa: 1_500_000,
+        labLineCostMinor: 500_000,
+        patientLinePriceMinor: 1_500_000,
       });
   });
 
@@ -465,7 +465,7 @@ describe('Lab case end to end (API)', () => {
       await admin('get', `/lab-payables/bills?labOrderId=${order.id}`),
     ).data;
     billId = bill.id;
-    expect(bill).toMatchObject({ status: 'draft', totalPaisa: 1_000_000 });
+    expect(bill).toMatchObject({ status: 'draft', totalMinor: 1_000_000 });
     const [{ n }] = await sqlRows<{ n: number }>(
       fx.dataSource,
       `SELECT count(*)::int AS n FROM ledger_journals WHERE source_id = $1`,
@@ -570,12 +570,12 @@ describe('Lab case end to end (API)', () => {
     const draft = ok(
       await admin('post', '/lab-billing/invoices', {
         orderId: order.id,
-        discountPaisa: 200_000,
+        discountMinor: 200_000,
       }),
       201,
     );
     invoiceId = draft.id;
-    expect(draft.subtotalPaisa).toBe(3_000_000);
+    expect(draft.subtotalMinor).toBe(3_000_000);
     const inv = ok(
       await admin('post', `/lab-billing/invoices/${invoiceId}/issue`, {
         version: draft.version,
@@ -583,8 +583,8 @@ describe('Lab case end to end (API)', () => {
     );
     expect(inv).toMatchObject({
       status: 'issued',
-      totalPaisa: 2_800_000,
-      balancePaisa: 2_800_000,
+      totalMinor: 2_800_000,
+      balanceMinor: 2_800_000,
     });
     expect(await balance('PATIENT_RECEIVABLE')).toBe(2_800_000);
     expect(await balance('LAB_REVENUE')).toBe(-2_800_000);
@@ -605,7 +605,7 @@ describe('Lab case end to end (API)', () => {
     await collect(1_000_000);
     expect(await invoice()).toMatchObject({
       status: 'partially_paid',
-      balancePaisa: 1_800_000,
+      balanceMinor: 1_800_000,
     });
     // 5,000 of each crown collected: 5,000 × (14,000 − 5,000) × 40% / 14,000.
     expect(await commission()).toBe(2 * 128_571);
@@ -636,16 +636,16 @@ describe('Lab case end to end (API)', () => {
       }),
     );
     expect(await balance('LAB_PAYABLE')).toBe(-1_000_000);
-    for (const amountPaisa of [600_000, 400_000])
+    for (const amountMinor of [600_000, 400_000])
       ok(
         await admin(
           'post',
           '/lab-payables/payments',
           {
             labId: lab.id,
-            amountPaisa,
+            amountMinor,
             method: 'bank_transfer',
-            allocations: [{ billId, amountPaisa }],
+            allocations: [{ billId, amountMinor }],
           },
           randomUUID(),
         ),
@@ -655,7 +655,7 @@ describe('Lab case end to end (API)', () => {
       ok(await admin('get', `/lab-payables/bills/${billId}`)),
     ).toMatchObject({
       status: 'paid',
-      balancePaisa: 0,
+      balanceMinor: 0,
     });
     expect(await balance('LAB_PAYABLE')).toBe(0);
     expect(await balance('LAB_COST')).toBe(1_000_000);
@@ -663,7 +663,7 @@ describe('Lab case end to end (API)', () => {
 
   it('§15 step 7: Ali pays 18,000 → paid, receivable 0; commission 7,200 = 40% × (28,000 − 10,000)', async () => {
     finalPaymentId = (await collect(1_800_000)).id;
-    expect(await invoice()).toMatchObject({ status: 'paid', balancePaisa: 0 });
+    expect(await invoice()).toMatchObject({ status: 'paid', balanceMinor: 0 });
     expect(await balance('PATIENT_RECEIVABLE')).toBe(0);
     expect(await commission()).toBe(720_000);
     expect(await balance('COMMISSION_PAYABLE')).toBe(-720_000);
@@ -681,8 +681,8 @@ describe('Lab case end to end (API)', () => {
     expect(rev.status).toBe(200);
     expect(await invoice()).toMatchObject({
       status: 'partially_paid',
-      paidPaisa: 1_000_000,
-      balancePaisa: 1_800_000,
+      paidMinor: 1_000_000,
+      balanceMinor: 1_800_000,
     });
     // Back to what the 10,000 advance earned.
     expect(await commission()).toBe(2 * 128_571);
@@ -696,14 +696,14 @@ describe('Lab case end to end (API)', () => {
       fx.dataSource,
       `SELECT count(*)::int AS neg FROM commission_entries ce
          JOIN lab_invoice_lines l ON l.id = ce.lab_invoice_line_id
-        WHERE l.invoice_id = $1 AND ce.amount_paisa < 0 AND ce.source_type = 'UNAPPLY'`,
+        WHERE l.invoice_id = $1 AND ce.amount_minor < 0 AND ce.source_type = 'UNAPPLY'`,
       [invoiceId],
     );
     expect(neg).toBe(2);
 
     // "Ghalat entry: reversal entry aur phir sahi entry."
     await collect(1_800_000);
-    expect(await invoice()).toMatchObject({ status: 'paid', balancePaisa: 0 });
+    expect(await invoice()).toMatchObject({ status: 'paid', balanceMinor: 0 });
     expect(await commission()).toBe(720_000);
     expect(await balance('PATIENT_RECEIVABLE')).toBe(0);
     expect(await balance('CASH')).toBe(2_800_000);
@@ -716,21 +716,21 @@ describe('Lab case end to end (API)', () => {
     );
     const row = report.data.find((r: any) => r.orderId === order.id);
     expect(row).toMatchObject({
-      patientPricePaisa: 3_000_000,
-      invoicedPaisa: 2_800_000,
-      collectedPaisa: 2_800_000,
-      labCostPaisa: 1_000_000,
-      billedLabCostPaisa: 1_000_000,
-      expensesPaisa: 50_000,
-      commissionPaisa: 720_000,
-      profitPaisa: 2_800_000 - 1_000_000 - 50_000 - 720_000,
+      patientPriceMinor: 3_000_000,
+      invoicedMinor: 2_800_000,
+      collectedMinor: 2_800_000,
+      labCostMinor: 1_000_000,
+      billedLabCostMinor: 1_000_000,
+      expensesMinor: 50_000,
+      commissionMinor: 720_000,
+      profitMinor: 2_800_000 - 1_000_000 - 50_000 - 720_000,
     });
   });
 
   it('§19: the issued invoice still carries the old (frozen) amounts after the catalog change', async () => {
     const inv = await invoice();
-    expect(inv.totalPaisa).toBe(2_800_000);
-    expect(inv.lines.map((l: any) => l.unitPricePaisa)).toEqual([
+    expect(inv.totalMinor).toBe(2_800_000);
+    expect(inv.lines.map((l: any) => l.unitPriceMinor)).toEqual([
       1_500_000, 1_500_000,
     ]);
   });
@@ -753,15 +753,15 @@ describe('Lab case end to end (API)', () => {
       fx.dataSource,
       `SELECT i.id FROM lab_invoices i
         WHERE i.organization_id = $1 AND i.status <> 'draft' AND (
-              i.total_paisa <> COALESCE((SELECT SUM(l.line_total_paisa) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0)
-           OR i.balance_paisa <> i.total_paisa - i.credited_paisa
-                - COALESCE((SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
+              i.total_minor <> COALESCE((SELECT SUM(l.line_total_minor) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0)
+           OR i.balance_minor <> i.total_minor - i.credited_minor
+                - COALESCE((SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
                              WHERE a.invoice_id = i.id AND a.reversed_at IS NULL), 0)
-           OR i.balance_paisa < 0)
+           OR i.balance_minor < 0)
        UNION ALL
        SELECT p.id FROM lab_payments p
-        WHERE p.organization_id = $1 AND p.amount_paisa > 0 AND p.amount_paisa <
-              COALESCE((SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
+        WHERE p.organization_id = $1 AND p.amount_minor > 0 AND p.amount_minor <
+              COALESCE((SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
                          WHERE a.payment_id = p.id AND a.reversed_at IS NULL), 0)`,
       [A.organizationId],
     );
@@ -800,8 +800,8 @@ describe('Lab case end to end (API)', () => {
     const view = ok(await portal('get', `/lab-portal/orders/${order.id}`));
     const json = JSON.stringify(view);
     for (const leak of [
-      'patientUnitPricePaisa',
-      'patientLinePricePaisa',
+      'patientUnitPriceMinor',
+      'patientLinePriceMinor',
       'patientPrice',
       'invoiceNo',
       'LINV-',

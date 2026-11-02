@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { format } from 'date-fns'
+import { formatInClinic } from '@/lib/datetime'
 import { MessageSquareText } from 'lucide-react'
 import {
   Select,
@@ -57,7 +57,7 @@ function LogStatus({ entry }: { entry: OutboxLogEntry }) {
   )
 }
 
-const when = (iso: string) => format(new Date(iso), 'd MMM, HH:mm')
+const when = (iso: string) => formatInClinic(iso, 'd MMM, HH:mm')
 
 /** §16 message log: what went out, when, and why the rest didn't. */
 export function MessageLogPanel() {

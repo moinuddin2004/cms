@@ -13,7 +13,7 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { PayrollStatus, PaymentMethod } from '../enums/payroll.enums';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 
 @Entity({ name: 'payroll_records' })
 // One record per assignment (employee × location) per month.
@@ -63,17 +63,17 @@ export class PayrollRecord {
   salaryAmount: number;
 
   /*
-   * Breakdown in integer paisa. total = base salary + commission; the
+   * Breakdown in integer minor units. total = base salary + commission; the
    * rupee `salaryAmount` above mirrors total for older screens.
    */
-  @PaisaColumn('base_salary_paisa')
-  baseSalaryPaisa: number;
+  @MinorColumn('base_salary_minor')
+  baseSalaryMinor: number;
 
-  @PaisaColumn('commission_paisa')
-  commissionPaisa: number;
+  @MinorColumn('commission_minor')
+  commissionMinor: number;
 
-  @PaisaColumn('total_paisa')
-  totalPaisa: number;
+  @MinorColumn('total_minor')
+  totalMinor: number;
 
   @Column({
     name: 'status',
@@ -106,9 +106,9 @@ export class PayrollRecord {
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
-  @UpdateDateColumn({ name: 'updated_at' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 }

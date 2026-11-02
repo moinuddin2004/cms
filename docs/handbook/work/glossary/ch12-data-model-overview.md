@@ -7,7 +7,7 @@
 - **Legacy baseline** — The migration `1776356529788-create-table`, recorded as applied but never executed.
 - **Append-only trigger** — A database trigger that blocks UPDATE and DELETE on a table (`commission_entries`, `audit_logs`, `status_history`).
 - **uuid v7** — A time-ordered uuid produced by `uuid_generate_v7()`; primary-key default of the newer tables.
-- **Paisa** — Integer minor unit of the rupee (100 paisa = 1 rupee); columns ending in `_paisa`.
+- **Minor** — Integer minor unit of the rupee (100 paisa = 1 rupee); columns ending in `_minor`.
 - **Logical reference** — A column that holds another row's id without a foreign key; the database does not check it.
 - **Polymorphic reference** — A type + id column pair (for example `entity_type` + `entity_id`) that can point to rows of different tables; no foreign key is possible.
 - **Actor column** — A column such as `created_by` or `approved_by` that records which user did something; holds a user id without a foreign key.

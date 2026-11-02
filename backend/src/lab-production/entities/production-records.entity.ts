@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { LabOrderItem } from 'src/lab-orders/entities/lab-order-item.entity';
 import { LabOrder } from 'src/lab-orders/entities/lab-order.entity';
@@ -249,8 +249,8 @@ export class ShipmentItem {
 @Index('idx_remake_requests_lab_status', ['labId', 'status'])
 @Index('idx_remake_requests_order', ['orderId'])
 @Check(
-  'chk_remake_requests_paisa',
-  `("lab_charge_paisa" IS NULL OR "lab_charge_paisa" >= 0) AND ("patient_charge_paisa" IS NULL OR "patient_charge_paisa" >= 0)`,
+  'chk_remake_requests_minor',
+  `("lab_charge_minor" IS NULL OR "lab_charge_minor" >= 0) AND ("patient_charge_minor" IS NULL OR "patient_charge_minor" >= 0)`,
 )
 export class RemakeRequest {
   @UuidV7PrimaryColumn()
@@ -303,11 +303,11 @@ export class RemakeRequest {
   @Column({ name: 'warranty_id', type: 'uuid', nullable: true })
   warrantyId: string | null;
 
-  @PaisaColumn('lab_charge_paisa', { nullable: true })
-  labChargePaisa: number | null;
+  @MinorColumn('lab_charge_minor', { nullable: true })
+  labChargeMinor: number | null;
 
-  @PaisaColumn('patient_charge_paisa', { nullable: true })
-  patientChargePaisa: number | null;
+  @MinorColumn('patient_charge_minor', { nullable: true })
+  patientChargeMinor: number | null;
 
   @Column({
     name: 'status',

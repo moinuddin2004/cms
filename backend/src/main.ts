@@ -1,3 +1,4 @@
+import './bootstrap/utc';
 import { bootstrapHttp } from './bootstrap/http';
 
 // Single process (dev): HTTP + Socket.IO + outbox relay + jobs, no Redis

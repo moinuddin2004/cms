@@ -1,4 +1,4 @@
-import { fromPaisa, Paisa, sumPaisa, toPaisa } from '../common/money';
+import { fromMinor, Minor, sumMinor, toMinor } from '../common/money';
 
 /** Cash close math (D23, 6.20). Pure. */
 
@@ -34,26 +34,26 @@ export function calculateCashClose(
 ): CashCloseCalc {
   const missingCounts: string[] = [];
   const lines = accounts.map((a) => {
-    const expected: Paisa = toPaisa(a.paymentsTotal) - toPaisa(a.refundsTotal);
+    const expected: Minor = toMinor(a.paymentsTotal) - toMinor(a.refundsTotal);
     const raw = counted.get(a.paymentAccountId);
     if (a.countedInCashClose && raw == null)
       missingCounts.push(a.paymentAccountName);
-    const count = a.countedInCashClose && raw != null ? toPaisa(raw) : null;
+    const count = a.countedInCashClose && raw != null ? toMinor(raw) : null;
     return {
       ...a,
-      expected: fromPaisa(expected),
-      counted: count === null ? null : fromPaisa(count),
-      variance: count === null ? 0 : fromPaisa(count - expected),
+      expected: fromMinor(expected),
+      counted: count === null ? null : fromMinor(count),
+      variance: count === null ? 0 : fromMinor(count - expected),
     };
   });
-  const variances = lines.map((l) => toPaisa(l.variance));
+  const variances = lines.map((l) => toMinor(l.variance));
   return {
     lines,
-    totalExpected: fromPaisa(sumPaisa(lines.map((l) => toPaisa(l.expected)))),
-    totalCounted: fromPaisa(
-      sumPaisa(lines.map((l) => toPaisa(l.counted ?? 0))),
+    totalExpected: fromMinor(sumMinor(lines.map((l) => toMinor(l.expected)))),
+    totalCounted: fromMinor(
+      sumMinor(lines.map((l) => toMinor(l.counted ?? 0))),
     ),
-    totalVariance: fromPaisa(sumPaisa(variances)),
+    totalVariance: fromMinor(sumMinor(variances)),
     missingCounts,
     hasVariance: variances.some((v) => v !== 0),
   };

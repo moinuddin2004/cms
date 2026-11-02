@@ -5,7 +5,7 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PatientTreatmentPlan } from 'src/patients/entities/patient-treatment-plan.entity';
 import { BillingClock } from '../common/billing-clock.service';
 import { notFound } from '../common/billing-errors';
-import { fromPaisa, roundRupees, toPaisa } from '../common/money';
+import { fromMinor, roundRupees, toMinor } from '../common/money';
 import { preTaxAllocationSql } from '../tax/invoice-tax';
 
 export interface DoctorRevenueRow {
@@ -84,7 +84,7 @@ export class BillingReportsService {
       collected: roundRupees(r.collected),
     }));
     const sum = (k: 'billed' | 'discounts' | 'collected') =>
-      fromPaisa(mapped.reduce((a, r) => a + toPaisa(r[k]), 0));
+      fromMinor(mapped.reduce((a, r) => a + toMinor(r[k]), 0));
     return {
       rows: mapped,
       totals: {
@@ -121,21 +121,21 @@ export class BillingReportsService {
         AND c.source_id IN (SELECT id FROM treatment_plan_items WHERE plan_id = $3)`,
       [tenant.organizationId, tenant.locationId, planId],
     );
-    const estimate = toPaisa(
+    const estimate = toMinor(
       plan.finalEstimatedCost ?? plan.estimatedCost ?? row.items_total,
     );
-    const billed = toPaisa(row.billed);
-    const unbilled = toPaisa(row.unbilled);
-    const paid = toPaisa(row.paid);
+    const billed = toMinor(row.billed);
+    const unbilled = toMinor(row.unbilled);
+    const paid = toMinor(row.paid);
     return {
       planId,
-      estimate: fromPaisa(estimate),
-      billed: fromPaisa(billed),
-      unbilled: fromPaisa(unbilled),
-      notYetCharged: fromPaisa(Math.max(0, estimate - billed - unbilled)),
-      paid: fromPaisa(paid),
+      estimate: fromMinor(estimate),
+      billed: fromMinor(billed),
+      unbilled: fromMinor(unbilled),
+      notYetCharged: fromMinor(Math.max(0, estimate - billed - unbilled)),
+      paid: fromMinor(paid),
       // Billed is pre-tax (vs the plan estimate); what is owed includes tax.
-      balance: fromPaisa(billed + toPaisa(row.tax) - paid),
+      balance: fromMinor(billed + toMinor(row.tax) - paid),
     };
   }
 }

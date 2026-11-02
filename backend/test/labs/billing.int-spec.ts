@@ -134,7 +134,7 @@ describe('Lab billing (API)', () => {
         `/platform/labs/${lab.id}/services/${crown.id}/prices`,
         fx.superAdmin,
         {
-          unitPricePaisa: 500_000,
+          unitPriceMinor: 500_000,
           effectiveFrom: today,
         },
       ),
@@ -202,7 +202,7 @@ describe('Lab billing (API)', () => {
       const panel = ok(await call('get', `/lab-billing/orders/${orderId}`));
       expect(panel.invoices).toEqual([]);
       expect(
-        panel.unbilledItems.map((i: any) => i.patientLinePricePaisa),
+        panel.unbilledItems.map((i: any) => i.patientLinePriceMinor),
       ).toEqual([1_500_000, 1_500_000]);
     });
 
@@ -210,7 +210,7 @@ describe('Lab billing (API)', () => {
       const est = ok(
         await call('post', '/lab-billing/invoices', {
           orderId,
-          discountPaisa: 200_000,
+          discountMinor: 200_000,
         }),
         201,
       );
@@ -218,15 +218,15 @@ describe('Lab billing (API)', () => {
       expect(est).toMatchObject({
         status: 'draft',
         invoiceNo: null,
-        subtotalPaisa: 3_000_000,
-        discountPaisa: 200_000,
-        taxPaisa: 0,
-        totalPaisa: 2_800_000,
+        subtotalMinor: 3_000_000,
+        discountMinor: 200_000,
+        taxMinor: 0,
+        totalMinor: 2_800_000,
       });
-      expect(est.lines.map((l: any) => l.discountPaisa)).toEqual([
+      expect(est.lines.map((l: any) => l.discountMinor)).toEqual([
         100_000, 100_000,
       ]);
-      expect((await summary(ali)).receivablePaisa).toBe(0);
+      expect((await summary(ali)).receivableMinor).toBe(0);
     });
 
     it('step 1 — issue: 30,000 − 2,000 → invoice 28,000, receivable 28,000', async () => {
@@ -239,15 +239,15 @@ describe('Lab billing (API)', () => {
       expect(inv.invoiceNo).toMatch(/^LINV-\d{4}$/);
       expect(inv).toMatchObject({
         status: 'issued',
-        totalPaisa: 2_800_000,
-        paidPaisa: 0,
-        balancePaisa: 2_800_000,
+        totalMinor: 2_800_000,
+        paidMinor: 0,
+        balanceMinor: 2_800_000,
         issuedOn: today,
       });
       expect(await summary(ali)).toMatchObject({
-        invoicedPaisa: 2_800_000,
-        receivablePaisa: 2_800_000,
-        advancePaisa: 0,
+        invoicedMinor: 2_800_000,
+        receivableMinor: 2_800_000,
+        advanceMinor: 0,
       });
     });
 
@@ -256,9 +256,9 @@ describe('Lab billing (API)', () => {
       const p = await pay(
         {
           patientId: ali,
-          amountPaisa: 1_000_000,
+          amountMinor: 1_000_000,
           method: 'cash',
-          allocations: [{ invoiceId, amountPaisa: 1_000_000 }],
+          allocations: [{ invoiceId, amountMinor: 1_000_000 }],
         },
         advanceKey,
       );
@@ -268,21 +268,21 @@ describe('Lab billing (API)', () => {
       const inv = await invoice(invoiceId);
       expect(inv).toMatchObject({
         status: 'partially_paid',
-        paidPaisa: 1_000_000,
-        balancePaisa: 1_800_000,
+        paidMinor: 1_000_000,
+        balanceMinor: 1_800_000,
       });
       expect(await summary(ali)).toMatchObject({
-        invoicedPaisa: 2_800_000,
-        collectedPaisa: 1_000_000,
-        receivablePaisa: 1_800_000,
+        invoicedMinor: 2_800_000,
+        collectedMinor: 1_000_000,
+        receivableMinor: 1_800_000,
       });
       // The hook Sprint 10's ledger + commission use.
       expect(collected.at(-1)).toMatchObject({
         event: 'paymentCollected',
         payload: {
           paymentId: p.id,
-          amountPaisa: 1_000_000,
-          allocations: [{ invoiceId, amountPaisa: 1_000_000 }],
+          amountMinor: 1_000_000,
+          allocations: [{ invoiceId, amountMinor: 1_000_000 }],
         },
       });
     });
@@ -291,9 +291,9 @@ describe('Lab billing (API)', () => {
       const again = await pay(
         {
           patientId: ali,
-          amountPaisa: 1_000_000,
+          amountMinor: 1_000_000,
           method: 'cash',
-          allocations: [{ invoiceId, amountPaisa: 1_000_000 }],
+          allocations: [{ invoiceId, amountMinor: 1_000_000 }],
         },
         advanceKey,
       );
@@ -304,12 +304,12 @@ describe('Lab billing (API)', () => {
         [ali],
       );
       expect(Number(n)).toBe(1);
-      expect((await invoice(invoiceId)).balancePaisa).toBe(1_800_000);
+      expect((await invoice(invoiceId)).balanceMinor).toBe(1_800_000);
 
       const reused = await call(
         'post',
         '/lab-billing/payments',
-        { patientId: ali, amountPaisa: 5_000, method: 'cash' },
+        { patientId: ali, amountMinor: 5_000, method: 'cash' },
         { key: advanceKey },
       );
       expect(reused.status).toBe(422);
@@ -317,7 +317,7 @@ describe('Lab billing (API)', () => {
 
       const noKey = await call('post', '/lab-billing/payments', {
         patientId: ali,
-        amountPaisa: 5_000,
+        amountMinor: 5_000,
         method: 'cash',
       });
       expect(noKey.status).toBe(400);
@@ -325,13 +325,13 @@ describe('Lab billing (API)', () => {
     });
 
     it('steps 3–6 are lab-side (Sprint 10) and leave the receivable alone', async () => {
-      expect((await summary(ali)).receivablePaisa).toBe(1_800_000);
+      expect((await summary(ali)).receivableMinor).toBe(1_800_000);
     });
 
     it('step 7 — Ali pays 18,000 (oldest invoice first) → receivable 0, invoice paid', async () => {
       const p = await pay({
         patientId: ali,
-        amountPaisa: 1_800_000,
+        amountMinor: 1_800_000,
         method: 'card',
         reference: 'POS-1',
       });
@@ -339,20 +339,20 @@ describe('Lab billing (API)', () => {
       expect(p.allocations).toEqual([
         expect.objectContaining({
           invoiceId,
-          amountPaisa: 1_800_000,
+          amountMinor: 1_800_000,
           reversedAt: null,
         }),
       ]);
       expect(await invoice(invoiceId)).toMatchObject({
         status: 'paid',
-        paidPaisa: 2_800_000,
-        balancePaisa: 0,
+        paidMinor: 2_800_000,
+        balanceMinor: 0,
       });
       expect(await summary(ali)).toMatchObject({
-        invoicedPaisa: 2_800_000,
-        collectedPaisa: 2_800_000,
-        receivablePaisa: 0,
-        advancePaisa: 0,
+        invoicedMinor: 2_800_000,
+        collectedMinor: 2_800_000,
+        receivableMinor: 0,
+        advanceMinor: 0,
       });
     });
 
@@ -368,7 +368,7 @@ describe('Lab billing (API)', () => {
       );
       expect(rev).toMatchObject({
         isReversal: true,
-        amountPaisa: -1_800_000,
+        amountMinor: -1_800_000,
         reversalOf: { id: finalPaymentId },
       });
       expect(rev.receiptNo).toMatch(/^LRV-\d{4}$/);
@@ -377,23 +377,23 @@ describe('Lab billing (API)', () => {
       );
       expect(original).toMatchObject({
         status: 'reversed',
-        allocatedPaisa: 0,
+        allocatedMinor: 0,
         reversedBy: { id: rev.id },
       });
       expect(original.allocations[0].reversedAt).not.toBeNull();
       expect(original.allocations[0].releaseReason).toBe('payment_reversed');
       expect(await invoice(invoiceId)).toMatchObject({
         status: 'partially_paid',
-        paidPaisa: 1_000_000,
-        balancePaisa: 1_800_000,
+        paidMinor: 1_000_000,
+        balanceMinor: 1_800_000,
       });
-      expect((await summary(ali)).receivablePaisa).toBe(1_800_000);
+      expect((await summary(ali)).receivableMinor).toBe(1_800_000);
       expect(collected.at(-1)).toMatchObject({
         event: 'paymentReversed',
         payload: {
           paymentId: finalPaymentId,
           reversalPaymentId: rev.id,
-          amountPaisa: 1_800_000,
+          amountMinor: 1_800_000,
         },
       });
 
@@ -417,12 +417,12 @@ describe('Lab billing (API)', () => {
       expect(code(twice)).toBe('LAB_BILLING_PAYMENT_REVERSED');
 
       // The correct entry after the reversal settles it again.
-      await pay({ patientId: ali, amountPaisa: 1_800_000, method: 'cash' });
+      await pay({ patientId: ali, amountMinor: 1_800_000, method: 'cash' });
       expect(await invoice(invoiceId)).toMatchObject({
         status: 'paid',
-        balancePaisa: 0,
+        balanceMinor: 0,
       });
-      expect((await summary(ali)).receivablePaisa).toBe(0);
+      expect((await summary(ali)).receivableMinor).toBe(0);
     });
 
     it('an item already on an invoice is never billed twice', async () => {
@@ -431,9 +431,9 @@ describe('Lab billing (API)', () => {
       const panel = ok(await call('get', `/lab-billing/orders/${orderId}`));
       expect(panel.unbilledItems).toEqual([]);
       expect(panel.totals).toMatchObject({
-        billedPaisa: 2_800_000,
-        paidPaisa: 2_800_000,
-        balancePaisa: 0,
+        billedMinor: 2_800_000,
+        paidMinor: 2_800_000,
+        balanceMinor: 0,
       });
     });
   });
@@ -456,9 +456,9 @@ describe('Lab billing (API)', () => {
     it('tax in basis points, half-up per line', async () => {
       // 15,000 × 17% = 2,550 → total 17,550.
       expect(await invoice(invoiceId)).toMatchObject({
-        taxPaisa: 255_000,
-        totalPaisa: 1_755_000,
-        balancePaisa: 1_755_000,
+        taxMinor: 255_000,
+        totalMinor: 1_755_000,
+        balanceMinor: 1_755_000,
       });
     });
 
@@ -468,9 +468,9 @@ describe('Lab billing (API)', () => {
         '/lab-billing/payments',
         {
           patientId: sana,
-          amountPaisa: 100_000,
+          amountMinor: 100_000,
           method: 'cash',
-          allocations: [{ invoiceId, amountPaisa: 200_000 }],
+          allocations: [{ invoiceId, amountMinor: 200_000 }],
         },
         { key: randomUUID() },
       );
@@ -481,9 +481,9 @@ describe('Lab billing (API)', () => {
         '/lab-billing/payments',
         {
           patientId: sana,
-          amountPaisa: 5_000_000,
+          amountMinor: 5_000_000,
           method: 'cash',
-          allocations: [{ invoiceId, amountPaisa: 2_000_000 }],
+          allocations: [{ invoiceId, amountMinor: 2_000_000 }],
         },
         { key: randomUUID() },
       );
@@ -508,9 +508,9 @@ describe('Lab billing (API)', () => {
       );
       const body = {
         patientId: sana,
-        amountPaisa: 1_500_000,
+        amountMinor: 1_500_000,
         method: 'cash',
-        allocations: [{ invoiceId: inv.id, amountPaisa: 1_500_000 }],
+        allocations: [{ invoiceId: inv.id, amountMinor: 1_500_000 }],
       };
       const [a, b] = await Promise.all([
         call('post', '/lab-billing/payments', body, { key: randomUUID() }),
@@ -522,19 +522,19 @@ describe('Lab billing (API)', () => {
       expect(code(loser)).toBe('LAB_BILLING_INVOICE_NOT_OPEN');
       expect(await invoice(inv.id)).toMatchObject({
         status: 'paid',
-        paidPaisa: 1_500_000,
-        balancePaisa: 0,
+        paidMinor: 1_500_000,
+        balanceMinor: 0,
       });
     });
 
     it('an unallocated payment is advance; issuing an invoice uses it (§6a)', async () => {
       const p = await pay({
         patientId: sana,
-        amountPaisa: 2_000_000,
+        amountMinor: 2_000_000,
         method: 'bank_transfer',
         autoAllocate: false,
       });
-      expect(p).toMatchObject({ allocatedPaisa: 0, advancePaisa: 2_000_000 });
+      expect(p).toMatchObject({ allocatedMinor: 0, advanceMinor: 2_000_000 });
       // Put the advance on the open invoice explicitly…
       ok(
         await call(
@@ -546,7 +546,7 @@ describe('Lab billing (API)', () => {
       );
       expect(await invoice(invoiceId)).toMatchObject({
         status: 'paid',
-        balancePaisa: 0,
+        balanceMinor: 0,
       });
       // …and a newly issued invoice takes the rest automatically.
       const manual = ok(
@@ -560,7 +560,7 @@ describe('Lab billing (API)', () => {
               {
                 kind: 'manual',
                 description: 'Night guard adjustment',
-                unitPricePaisa: 300_000,
+                unitPriceMinor: 300_000,
               },
             ],
           },
@@ -570,8 +570,8 @@ describe('Lab billing (API)', () => {
       );
       expect(manual).toMatchObject({
         status: 'partially_paid',
-        paidPaisa: 245_000,
-        balancePaisa: 55_000,
+        paidMinor: 245_000,
+        balanceMinor: 55_000,
       });
     });
 
@@ -580,16 +580,16 @@ describe('Lab billing (API)', () => {
         fx.dataSource,
         `SELECT i.id FROM lab_invoices i
           WHERE i.status <> 'void' AND (
-            i.total_paisa <> COALESCE((SELECT SUM(l.line_total_paisa) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0)
-            OR i.balance_paisa <> i.total_paisa - i.credited_paisa - COALESCE(
-                 (SELECT SUM(a.amount_paisa) FROM lab_payment_allocations a
+            i.total_minor <> COALESCE((SELECT SUM(l.line_total_minor) FROM lab_invoice_lines l WHERE l.invoice_id = i.id), 0)
+            OR i.balance_minor <> i.total_minor - i.credited_minor - COALESCE(
+                 (SELECT SUM(a.amount_minor) FROM lab_payment_allocations a
                    WHERE a.invoice_id = i.id AND a.reversed_at IS NULL), 0)
-            OR i.balance_paisa < 0)`,
+            OR i.balance_minor < 0)`,
       );
       expect(bad).toEqual([]);
       await expect(
         fx.dataSource.query(
-          `UPDATE lab_invoices SET balance_paisa = -1 WHERE id = $1`,
+          `UPDATE lab_invoices SET balance_minor = -1 WHERE id = $1`,
           [invoiceId],
         ),
       ).rejects.toThrow(/chk_lab_invoices_math/);
@@ -608,38 +608,38 @@ describe('Lab billing (API)', () => {
       );
       await pay({
         patientId: ali,
-        amountPaisa: 1_500_000,
+        amountMinor: 1_500_000,
         method: 'cash',
-        allocations: [{ invoiceId: inv.id, amountPaisa: 1_500_000 }],
+        allocations: [{ invoiceId: inv.id, amountMinor: 1_500_000 }],
       });
 
       const credited = ok(
         await call(
           'post',
           `/lab-billing/invoices/${inv.id}/credit-notes`,
-          { amountPaisa: 500_000, reason: 'Shade remake not needed' },
+          { amountMinor: 500_000, reason: 'Shade remake not needed' },
           { key: randomUUID() },
         ),
         201,
       );
       expect(credited).toMatchObject({
-        creditedPaisa: 500_000,
-        paidPaisa: 1_000_000,
-        balancePaisa: 0,
+        creditedMinor: 500_000,
+        paidMinor: 1_000_000,
+        balanceMinor: 0,
         status: 'paid',
       });
       const note = credited.creditNotes[0];
       expect(note).toMatchObject({
-        amountPaisa: 500_000,
-        releasedPaisa: 500_000,
+        amountMinor: 500_000,
+        releasedMinor: 500_000,
         status: 'issued',
       });
-      expect((await summary(ali)).advancePaisa).toBe(500_000);
+      expect((await summary(ali)).advanceMinor).toBe(500_000);
 
       const tooMuch = await call(
         'post',
         `/lab-billing/invoices/${inv.id}/credit-notes`,
-        { amountPaisa: 1_000_001, reason: 'Too much' },
+        { amountMinor: 1_000_001, reason: 'Too much' },
         { key: randomUUID() },
       );
       expect(code(tooMuch)).toBe('LAB_BILLING_CREDIT_EXCEEDS_INVOICE');
@@ -647,7 +647,7 @@ describe('Lab billing (API)', () => {
       const refundKey = randomUUID();
       const body = {
         patientId: ali,
-        amountPaisa: 500_000,
+        amountMinor: 500_000,
         method: 'cash',
         reason: 'Credit paid out',
         creditNoteId: note.id,
@@ -661,16 +661,16 @@ describe('Lab billing (API)', () => {
         201,
       );
       expect(r2.id).toBe(r1.id);
-      expect(r1.summary.advancePaisa).toBe(0);
+      expect(r1.summary.advanceMinor).toBe(0);
       expect((await invoice(inv.id)).creditNotes[0]).toMatchObject({
-        refundedPaisa: 500_000,
+        refundedMinor: 500_000,
         status: 'refunded',
       });
 
       const noAdvance = await call(
         'post',
         '/lab-billing/refunds',
-        { ...body, creditNoteId: undefined, amountPaisa: 1 },
+        { ...body, creditNoteId: undefined, amountMinor: 1 },
         { key: randomUUID() },
       );
       expect(code(noAdvance)).toBe('LAB_BILLING_REFUND_EXCEEDS_ADVANCE');
@@ -702,7 +702,7 @@ describe('Lab billing (API)', () => {
         await call('post', '/lab-billing/invoices', { orderId: order.id }),
         201,
       );
-      expect(again.totalPaisa).toBe(1_500_000);
+      expect(again.totalMinor).toBe(1_500_000);
     });
   });
 
@@ -718,7 +718,7 @@ describe('Lab billing (API)', () => {
     it('§19: patient notifications OFF (default) → skipped_disabled rows, nothing queued', async () => {
       const p = await pay({
         patientId: ali,
-        amountPaisa: 100,
+        amountMinor: 100,
         method: 'cash',
         autoAllocate: false,
       });
@@ -749,7 +749,7 @@ describe('Lab billing (API)', () => {
       );
       const p1 = await pay({
         patientId: ali,
-        amountPaisa: 100,
+        amountMinor: 100,
         method: 'cash',
         autoAllocate: false,
       });
@@ -765,7 +765,7 @@ describe('Lab billing (API)', () => {
       );
       const p2 = await pay({
         patientId: ali,
-        amountPaisa: 100,
+        amountMinor: 100,
         method: 'cash',
         autoAllocate: false,
       });

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
-import { format } from 'date-fns'
 import { toast } from 'sonner'
 import {
   FileSignature,
@@ -31,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SignaturePad } from '@/components/shared/SignaturePad'
 import type { SignaturePadHandle } from '@/components/shared/SignaturePad'
+import { formatYmd, toClinicYmd } from '@/lib/datetime'
 import type { PatientVitals } from '@/features/patients'
 import {
   MedicineAutocomplete,
@@ -97,8 +97,7 @@ function vitalsForRx(
   visitDate: string,
 ): Record<string, string> | undefined {
   if (!v) return undefined
-  const day = (iso: string) => format(new Date(iso), 'yyyy-MM-dd')
-  if (day(v.recordedAt) !== day(visitDate)) return undefined
+  if (toClinicYmd(v.recordedAt) !== toClinicYmd(visitDate)) return undefined
   const out: Record<string, string> = {}
   if (v.bpSystolic != null && v.bpDiastolic != null) {
     out.bp = `${v.bpSystolic}/${v.bpDiastolic}`
@@ -126,6 +125,7 @@ export function PrescriptionPanel({
   command,
   onTemplateAdvice,
   registerFlush,
+  className,
 }: {
   encounterId: string
   encounterDate: string
@@ -138,6 +138,7 @@ export function PrescriptionPanel({
   onTemplateAdvice: (text: string) => void
   /** Lets the screen save the prescription before it completes the visit. */
   registerFlush: (flush: () => Promise<boolean>) => void
+  className?: string
 }) {
   const queryClient = useQueryClient()
   const { data: forVisit, isLoading } = usePrescriptionsByEncounter(encounterId)
@@ -234,7 +235,7 @@ export function PrescriptionPanel({
       diagnosis: notes.diagnosis.trim() || undefined,
       instructionsEnglish: notes.advice.trim() || undefined,
       furtherPlan: notes.followUpDate
-        ? `Follow-up: ${format(new Date(`${notes.followUpDate}T12:00:00`), 'dd MMM yyyy')}`
+        ? `Follow-up: ${formatYmd(notes.followUpDate, 'dd MMM yyyy')}`
         : undefined,
       vitals: vitalsForRx(latestVitals, encounterDate),
     }),
@@ -420,6 +421,58 @@ export function PrescriptionPanel({
           <SaveBadge state={autosave.state} savedAt={autosave.savedAt} />
         ) : undefined
       }
+      className={className}
+      bodyClassName="flex-1 overflow-y-auto"
+      footer={
+        !isLoading && (
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+              {isFinal ? (
+                <>
+                  <Button
+                    className="h-10 flex-1 px-4"
+                    disabled={printing}
+                    onClick={() => void printAgain()}
+                  >
+                    {printing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Printer className="size-4" />
+                    )}
+                    Print
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10"
+                    onClick={() => setAmending(true)}
+                  >
+                    <Pencil className="size-4" /> Amend
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  className="h-10 flex-1 px-4"
+                  disabled={busy || completeLines.length === 0}
+                  onClick={() => void startFinalize()}
+                >
+                  {busy || finalizeMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Printer className="size-4" />
+                  )}
+                  {status === PrescriptionStatus.AMENDED || amending
+                    ? 'Sign amendment & print'
+                    : `Sign & print${completeLines.length > 0 ? ` (${completeLines.length})` : ''}`}
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Diagnosis, advice, next visit and today’s vitals from your notes
+              print on it automatically.
+            </p>
+          </div>
+        )
+      }
     >
       {isLoading ? (
         <Skeleton className="h-32 w-full" />
@@ -544,52 +597,6 @@ export function PrescriptionPanel({
               ))}
             </ul>
           )}
-
-          <p className="text-[11px] leading-snug text-muted-foreground">
-            Diagnosis, advice, next visit and today’s vitals from your notes are
-            printed on the prescription automatically.
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {isFinal ? (
-              <>
-                <Button
-                  className="h-9 px-4"
-                  disabled={printing}
-                  onClick={() => void printAgain()}
-                >
-                  {printing ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Printer className="size-4" />
-                  )}
-                  Print
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-9"
-                  onClick={() => setAmending(true)}
-                >
-                  <Pencil className="size-4" /> Amend
-                </Button>
-              </>
-            ) : (
-              <Button
-                className="h-9 px-4"
-                disabled={busy || completeLines.length === 0}
-                onClick={() => void startFinalize()}
-              >
-                {busy || finalizeMutation.isPending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Printer className="size-4" />
-                )}
-                {status === PrescriptionStatus.AMENDED || amending
-                  ? 'Sign amendment & print'
-                  : 'Sign & print'}
-              </Button>
-            )}
-          </div>
         </div>
       )}
 

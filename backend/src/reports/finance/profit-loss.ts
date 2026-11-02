@@ -1,14 +1,14 @@
 import type { RevenueBasis } from '../core/report.types';
 
 /**
- * Profit & loss math (pure, integer paisa). Revenue follows the chosen
+ * Profit & loss math (pure, integer minor units). Revenue follows the chosen
  * basis — money collected (cash in, net of refunds) or work billed
  * (issued invoices). Costs always count in the period they belong to:
  * lab bills by bill date, commission when earned, salaries by payroll
  * month, expenses by expense date.
  */
 
-/** Raw money of one period (a month, or a whole range), in paisa. */
+/** Raw money of one period (a month, or a whole range), in minor units. */
 export interface PnlComponents {
   clinicCollected: number;
   labCollected: number;

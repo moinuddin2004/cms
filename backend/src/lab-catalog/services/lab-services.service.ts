@@ -271,7 +271,7 @@ export class LabServicesService {
               optionType: dto.optionType,
               code: dto.code,
               name: dto.name,
-              extraCostPaisa: dto.extraCostPaisa,
+              extraCostMinor: dto.extraCostMinor,
               sortOrder: dto.sortOrder ?? 0,
               createdBy: actor.userId,
               updatedBy: actor.userId,
@@ -309,8 +309,8 @@ export class LabServicesService {
       assertVersion(option.version, dto.version);
       const before = snapshotOf(option, OPTION_AUDIT_FIELDS);
       if (dto.name !== undefined) option.name = dto.name;
-      if (dto.extraCostPaisa !== undefined)
-        option.extraCostPaisa = dto.extraCostPaisa;
+      if (dto.extraCostMinor !== undefined)
+        option.extraCostMinor = dto.extraCostMinor;
       if (dto.sortOrder !== undefined) option.sortOrder = dto.sortOrder;
       if (dto.isActive !== undefined) option.isActive = dto.isActive;
       const changed = await this.audit.record(m, actor, {

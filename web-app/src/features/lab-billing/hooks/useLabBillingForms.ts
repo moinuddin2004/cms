@@ -70,14 +70,14 @@ export function usePaymentForm({
 
 export function useCreditNoteForm({
   open,
-  maxPaisa,
+  maxMinor,
   onSubmit,
 }: {
   open: boolean
-  maxPaisa: number
+  maxMinor: number
   onSubmit: (v: CreditNoteValues) => Promise<unknown>
 }) {
-  const schema = useMemo(() => creditNoteSchema(maxPaisa), [maxPaisa])
+  const schema = useMemo(() => creditNoteSchema(maxMinor), [maxMinor])
   const empty: CreditNoteValues = { amount: '', reason: '' }
   const form = useForm({
     defaultValues: empty,
@@ -94,16 +94,16 @@ export function useCreditNoteForm({
 
 export function useRefundForm({
   open,
-  maxPaisa,
+  maxMinor,
   initialAmount,
   onSubmit,
 }: {
   open: boolean
-  maxPaisa: number
+  maxMinor: number
   initialAmount: string
   onSubmit: (v: RefundValues) => Promise<unknown>
 }) {
-  const schema = useMemo(() => refundSchema(maxPaisa), [maxPaisa])
+  const schema = useMemo(() => refundSchema(maxMinor), [maxMinor])
   const initial: RefundValues = {
     amount: initialAmount,
     method: 'cash',

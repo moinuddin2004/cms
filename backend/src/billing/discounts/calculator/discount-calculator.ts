@@ -1,9 +1,9 @@
 import { DiscountKind } from '../../enums/billing.enums';
 import {
-  Paisa,
+  Minor,
   splitProportionally,
-  sumPaisa,
-  toPaisa,
+  sumMinor,
+  toMinor,
 } from '../../common/money';
 import {
   DiscountStrategy,
@@ -30,13 +30,13 @@ export interface DiscountRule {
 }
 
 export function discountForCharge(
-  grossPaisa: Paisa,
+  grossMinor: Minor,
   rule: DiscountRule,
-): Paisa {
-  let amount = DISCOUNT_STRATEGIES[rule.kind].single(grossPaisa, rule.value);
+): Minor {
+  let amount = DISCOUNT_STRATEGIES[rule.kind].single(grossMinor, rule.value);
   if (rule.maxAmount != null)
-    amount = Math.min(amount, toPaisa(rule.maxAmount));
-  return Math.max(0, Math.min(amount, grossPaisa));
+    amount = Math.min(amount, toMinor(rule.maxAmount));
+  return Math.max(0, Math.min(amount, grossMinor));
 }
 
 /**
@@ -45,13 +45,13 @@ export function discountForCharge(
  * (≤ sum of gross) split by gross. Every share is capped by its gross.
  */
 export function discountsForCharges(
-  grossesPaisa: readonly Paisa[],
+  grossesMinor: readonly Minor[],
   rule: DiscountRule,
-): Paisa[] {
-  let amounts = DISCOUNT_STRATEGIES[rule.kind].bulk(grossesPaisa, rule.value);
+): Minor[] {
+  let amounts = DISCOUNT_STRATEGIES[rule.kind].bulk(grossesMinor, rule.value);
   if (rule.maxAmount != null) {
-    const cap = toPaisa(rule.maxAmount);
-    if (sumPaisa(amounts) > cap) amounts = splitProportionally(cap, amounts);
+    const cap = toMinor(rule.maxAmount);
+    if (sumMinor(amounts) > cap) amounts = splitProportionally(cap, amounts);
   }
-  return amounts.map((a, i) => Math.max(0, Math.min(a, grossesPaisa[i])));
+  return amounts.map((a, i) => Math.max(0, Math.min(a, grossesMinor[i])));
 }

@@ -2,25 +2,12 @@
 
 export type ShipmentDirection = 'to_lab' | 'to_clinic'
 export type ShipmentStatus =
-  | 'dispatched'
-  | 'partially_received'
-  | 'received'
-  | 'lost'
+  'dispatched' | 'partially_received' | 'received' | 'lost'
 export type ShipmentContents =
-  | 'impression'
-  | 'model'
-  | 'framework'
-  | 'tryin'
-  | 'final'
-  | 'other'
+  'impression' | 'model' | 'framework' | 'tryin' | 'final' | 'other'
 export type ShipmentCondition = 'ok' | 'damaged' | 'missing'
 export type RemakeReason =
-  | 'shade'
-  | 'fit'
-  | 'fracture'
-  | 'design'
-  | 'damaged'
-  | 'other'
+  'shade' | 'fit' | 'fracture' | 'design' | 'damaged' | 'other'
 export type ResponsibleParty = 'lab' | 'clinic' | 'patient' | 'undetermined'
 export type RemakeStatus = 'requested' | 'agreed' | 'disputed' | 'closed'
 
@@ -98,9 +85,9 @@ export interface RemakeRequest {
   notes: string | null
   responsibleParty: ResponsibleParty
   isWarrantyClaim: boolean
-  labChargePaisa: number | null
+  labChargeMinor: number | null
   /** Clinic side only. */
-  patientChargePaisa?: number | null
+  patientChargeMinor?: number | null
   status: RemakeStatus
   decidedAt: string | null
   decisionNote: string | null

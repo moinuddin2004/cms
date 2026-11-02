@@ -8,6 +8,7 @@ import { Expense } from './entities/expense.entity';
 import { Charge } from './entities/charge.entity';
 import { Refund } from './entities/refund.entity';
 import { preTaxAllocationSql } from './tax/invoice-tax';
+import { BillingClock } from './common/billing-clock.service';
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -45,6 +46,7 @@ export class FinancialSummaryService {
     private readonly chargeRepo: Repository<Charge>,
     @InjectRepository(Refund)
     private readonly refundRepo: Repository<Refund>,
+    private readonly clinicClock: BillingClock,
   ) {}
 
   async getDailySummary(ctx: TenantContext, date: string) {
@@ -170,7 +172,7 @@ export class FinancialSummaryService {
     const overdueInvoiceCount = await this.overdueCount(
       organizationId,
       locationId,
-      new Date().toISOString().slice(0, 10),
+      (await this.clinicClock.read(locationId)).today,
     );
 
     const revenueByDayRows = await this.paymentRepo
@@ -256,11 +258,14 @@ export class FinancialSummaryService {
     const result: Array<{ month: string; revenue: number; expenses: number }> =
       [];
 
-    const now = new Date();
+    // Months are counted back from the LOCATION's current month.
+    const { today } = await this.clinicClock.read(locationId);
+    const curY = Number(today.slice(0, 4));
+    const curM = Number(today.slice(5, 7)); // 1-12
     for (let i = months - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const m = d.getMonth() + 1;
-      const y = d.getFullYear();
+      const idx = curY * 12 + (curM - 1) - i;
+      const y = Math.floor(idx / 12);
+      const m = (idx % 12) + 1;
 
       const revRow = await this.paymentRepo
         .createQueryBuilder('p')
@@ -291,7 +296,7 @@ export class FinancialSummaryService {
 
       const tax = await this.taxCollected(organizationId, locationId, m, y);
       result.push({
-        month: `${MONTH_NAMES[d.getMonth()]} ${y}`,
+        month: `${MONTH_NAMES[m - 1]} ${y}`,
         revenue: round2(num(revRow?.sum) - num(refRow?.sum) - tax),
         expenses: num(expRow?.sum),
       });

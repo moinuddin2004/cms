@@ -14,7 +14,7 @@ import {
 import { EmptyState, ErrorState, LoadingSkeleton } from '@/components/shared'
 import { formatDate } from '@/lib/formatters'
 import { useCompensationPlans } from '../../hooks/use-commissions'
-import { bpsToPercent, formatPaisa } from '../../lib/commission-math'
+import { bpsToPercent, formatMinor } from '../../lib/commission-math'
 import type { CompensationPlan } from '../../types/commission.types'
 import {
   CommissionRulesSheet,
@@ -37,15 +37,15 @@ function ruleLabel(r: CompensationPlan['rules'][number]): string {
   const amount =
     r.rateBps !== null
       ? `${bpsToPercent(r.rateBps)}%`
-      : `${formatPaisa(r.fixedAmountPaisa ?? 0)} per charge`
+      : `${formatMinor(r.fixedAmountMinor ?? 0)} per charge`
   return `${target}: ${amount}`
 }
 
 function PlanSummary({ plan }: { plan: CompensationPlan }) {
   const items = [
     { label: 'Type', value: PLAN_TYPE_LABEL[plan.type] },
-    ...(plan.baseSalaryPaisa !== null
-      ? [{ label: 'Monthly salary', value: formatPaisa(plan.baseSalaryPaisa) }]
+    ...(plan.baseSalaryMinor !== null
+      ? [{ label: 'Monthly salary', value: formatMinor(plan.baseSalaryMinor) }]
       : []),
     ...(earns(plan)
       ? [
@@ -195,8 +195,8 @@ export function CompensationTab({ assignmentId }: { assignmentId: string }) {
                     </TableCell>
                     <TableCell>{PLAN_TYPE_LABEL[v.type]}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {v.baseSalaryPaisa !== null
-                        ? formatPaisa(v.baseSalaryPaisa)
+                      {v.baseSalaryMinor !== null
+                        ? formatMinor(v.baseSalaryMinor)
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">

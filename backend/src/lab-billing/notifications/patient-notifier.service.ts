@@ -45,7 +45,7 @@ export class LabPatientNotifier implements OnModuleInit {
       patientId: string;
       paymentId: string;
       receiptNo: string;
-      amountPaisa: number;
+      amountMinor: number;
     },
   ): Promise<EnqueuedNotification[]> {
     return this.notifications.enqueue(m, {
@@ -53,7 +53,7 @@ export class LabPatientNotifier implements OnModuleInit {
       locationId: p.locationId,
       eventCode: 'payment.receipt',
       recipients: [this.patient(p.patientId)],
-      variables: { receipt_no: p.receiptNo, amount: formatPkr(p.amountPaisa) },
+      variables: { receipt_no: p.receiptNo, amount: formatPkr(p.amountMinor) },
       entity: { type: 'lab_payment', id: p.paymentId },
     });
   }
@@ -65,7 +65,7 @@ export class LabPatientNotifier implements OnModuleInit {
       locationId: string;
       patientId: string;
       id: string;
-      balancePaisa: number;
+      balanceMinor: number;
     },
   ): Promise<EnqueuedNotification[]> {
     return this.notifications.enqueue(m, {
@@ -73,7 +73,7 @@ export class LabPatientNotifier implements OnModuleInit {
       locationId: inv.locationId,
       eventCode: 'payment.outstanding_reminder',
       recipients: [this.patient(inv.patientId)],
-      variables: { amount: formatPkr(inv.balancePaisa) },
+      variables: { amount: formatPkr(inv.balanceMinor) },
       entity: { type: 'lab_invoice', id: inv.id },
     });
   }

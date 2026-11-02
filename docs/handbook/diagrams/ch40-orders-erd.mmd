@@ -29,8 +29,8 @@ erDiagram
         uuid lab_service_id FK
         uuid remake_of_item_id FK
         varchar status_code
-        bigint lab_line_cost_paisa
-        bigint patient_line_price_paisa
+        bigint lab_line_cost_minor
+        bigint patient_line_price_minor
     }
     lab_clinic_links {
         uuid id PK
@@ -50,7 +50,7 @@ erDiagram
         uuid id PK
         uuid order_id FK
         uuid item_id FK
-        bigint amount_paisa
+        bigint amount_minor
         enum status
     }
     magic_links {

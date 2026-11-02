@@ -8,6 +8,7 @@ import {
 } from '@/components/shared'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { formatInClinic } from '@/lib/datetime'
 import { useAccountSummary } from '../hooks/useAccount'
 import {
   PAYMENT_METHOD_LABEL,
@@ -17,13 +18,7 @@ import {
 import type { AccountSummary, Plan } from '../types'
 
 export const formatDay = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—'
+  formatInClinic(iso, 'd MMM yyyy')
 
 export const planPrice = (plan: Plan) =>
   plan.monthlyPrice == null

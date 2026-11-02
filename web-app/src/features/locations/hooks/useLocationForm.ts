@@ -3,6 +3,7 @@ import { useForm } from '@tanstack/react-form'
 import { createLocationSchema } from '../schemas/location.schema'
 import type { LocationFormValues } from '../schemas/location.schema'
 import type { Location } from '../LocationManagementView'
+import { clinicTimezone } from '@/lib/datetime'
 
 export interface LocationCreatePayload {
   organizationId?: string
@@ -13,6 +14,7 @@ export interface LocationCreatePayload {
   country?: string
   phone?: string
   email?: string
+  timezone: string
 }
 
 export interface LocationUpdatePayload {
@@ -22,6 +24,7 @@ export interface LocationUpdatePayload {
   country: string | null
   phone: string | null
   email: string | null
+  timezone: string
 }
 
 function defaultsFor(loc: Location | null): LocationFormValues {
@@ -32,6 +35,8 @@ function defaultsFor(loc: Location | null): LocationFormValues {
     address: loc?.address ?? '',
     city: loc?.city ?? '',
     country: loc?.country ?? '',
+    // A new branch starts in the clinic's current timezone.
+    timezone: loc?.timezone ?? clinicTimezone(),
     phone: loc?.phone ?? '',
     email: loc?.email ?? '',
   }
@@ -83,6 +88,7 @@ export function useLocationForm({
             country: v.country || null,
             phone: v.phone || null,
             email: v.email || null,
+            timezone: value.timezone,
           })
         } else {
           await onCreate({
@@ -94,6 +100,7 @@ export function useLocationForm({
             country: v.country || undefined,
             phone: v.phone || undefined,
             email: v.email || undefined,
+            timezone: value.timezone,
           })
         }
       } catch {

@@ -28,6 +28,7 @@ import {
   Timeline,
   timeOf,
 } from './HistoryParts'
+import { formatDate, formatInClinic } from '@/lib/datetime'
 
 interface AppointmentDetailSheetProps {
   row: ApptRow | null
@@ -100,8 +101,7 @@ function Body({
             <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
               <span className="inline-flex items-center gap-1">
                 <Clock className="size-3" />
-                {row.at.toLocaleDateString([], { dateStyle: 'medium' })} ·{' '}
-                {row.timeLabel}
+                {formatDate(row.at)} · {row.timeLabel}
               </span>
               {row.doctor && (
                 <span className="inline-flex items-center gap-1">
@@ -130,12 +130,7 @@ function Body({
         <DetailSection icon={Info} title="Details">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-lg border border-border p-3">
             <InfoItem label="Date">
-              {row.at.toLocaleDateString([], {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-              })}
+              {formatInClinic(row.at, 'EEE, MMM d, yyyy')}
             </InfoItem>
             <InfoItem label="Time">{row.timeLabel}</InfoItem>
             <InfoItem label="Doctor">

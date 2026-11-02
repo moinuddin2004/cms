@@ -57,7 +57,7 @@ An exception to the weekly schedule for one date at one location: `date`, `is_av
 One row per person per location per month. (`employee_id`, `location_id`, `month`, `year`) is unique, so the same person can have a separate record at each location for the same month. Key columns:
 
 - `month`, `year` and `period_label`.
-- `base_salary_paisa`, `commission_paisa`, `total_paisa` — the breakdown in integer paisa, where total = base salary + commission.
+- `base_salary_minor`, `commission_minor`, `total_minor` — the breakdown in integer paisa, where total = base salary + commission.
 - `salary_amount` — the total in rupees (`numeric(10,2)`), kept for older screens.
 - `status` (`pending`, `paid`, `on_hold`), `paid_at`, `payment_method` (`cash`, `bank_transfer`, `cheque`), `payment_reference`, `paid_by`, `notes`.
 
@@ -69,7 +69,7 @@ The unique key changed over time. The doctor-compensation migration drops the ol
 
 *Figure 16.1 — Staff and payroll tables.*
 
-The diagram has `employees` at the top centre, showing `id`, `full_name`, `phone` and `cnic` (both marked unique) and `is_active`. Five solid lines fan out from it to its children, each "one employee to zero or more rows": `employee_org_location_assignments` ("works as"), `employee_schedules` ("weekly hours"), `employee_leaves` ("takes"), `doctor_availability_overrides` ("day exceptions") and `payroll_records` ("is paid"). The assignment box, on the left, lists `id`, `employee_id`, `organization_id`, `location_id`, `employment_role_id`, `user_id`, `employee_code` and `has_portal_access`; over it two context boxes, `employment_roles` and `users`, connect to it with optional lines labelled "role of" and "staff login". Each child box shows its `employee_id` and `location_id` foreign keys plus its key business columns (`day_of_week` and `is_working`; `leave_type` and `status`; `date` and `is_available`; `month`, `year`, `total_paisa` and `status`). The links from these tables to `organizations` and `locations` are not drawn, to keep the picture readable; they are listed in the next section.
+The diagram has `employees` at the top centre, showing `id`, `full_name`, `phone` and `cnic` (both marked unique) and `is_active`. Five solid lines fan out from it to its children, each "one employee to zero or more rows": `employee_org_location_assignments` ("works as"), `employee_schedules` ("weekly hours"), `employee_leaves` ("takes"), `doctor_availability_overrides` ("day exceptions") and `payroll_records` ("is paid"). The assignment box, on the left, lists `id`, `employee_id`, `organization_id`, `location_id`, `employment_role_id`, `user_id`, `employee_code` and `has_portal_access`; over it two context boxes, `employment_roles` and `users`, connect to it with optional lines labelled "role of" and "staff login". Each child box shows its `employee_id` and `location_id` foreign keys plus its key business columns (`day_of_week` and `is_working`; `leave_type` and `status`; `date` and `is_available`; `month`, `year`, `total_minor` and `status`). The links from these tables to `organizations` and `locations` are not drawn, to keep the picture readable; they are listed in the next section.
 
 ## 16.4 Relationships explained
 

@@ -10,7 +10,7 @@ import {
   UpdateDateColumn,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import {
   ChargeKind,
@@ -114,7 +114,7 @@ export class OrderMessage {
  * cost — the one way besides a revision that a frozen price changes.
  */
 @Entity({ name: 'order_charge_requests' })
-@Check('chk_order_charge_requests_amount', `"amount_paisa" > 0`)
+@Check('chk_order_charge_requests_amount', `"amount_minor" > 0`)
 @Index('idx_order_charge_requests_order', ['orderId', 'status'])
 export class OrderChargeRequest {
   @UuidV7PrimaryColumn()
@@ -140,8 +140,8 @@ export class OrderChargeRequest {
   @Column({ name: 'kind', type: 'enum', enum: ChargeKind })
   kind: ChargeKind;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({ name: 'currency', type: 'char', length: 3, default: 'PKR' })
   currency: string;

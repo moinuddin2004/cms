@@ -119,15 +119,15 @@ export class LabPaymentsService {
             'LAB_BILLING_INVOICE_NOT_OPEN',
             `${inv.invoiceNo ?? 'The estimate'} is ${inv.status}`,
           );
-        if (a.amountPaisa > inv.balancePaisa)
+        if (a.amountMinor > inv.balanceMinor)
           throw labBillingError(
             'LAB_BILLING_ALLOCATION_EXCEEDS_BALANCE',
             `More than the balance of ${inv.invoiceNo}`,
-            { invoiceId: inv.id, balancePaisa: inv.balancePaisa },
+            { invoiceId: inv.id, balanceMinor: inv.balanceMinor },
           );
       }
-      const sum = dto.allocations.reduce((s, a) => s + a.amountPaisa, 0);
-      if (sum > dto.amountPaisa)
+      const sum = dto.allocations.reduce((s, a) => s + a.amountMinor, 0);
+      if (sum > dto.amountMinor)
         throw labBillingError(
           'LAB_BILLING_ALLOCATION_EXCEEDS_PAYMENT',
           'The allocations add up to more than the payment',
@@ -138,8 +138,8 @@ export class LabPaymentsService {
     } else {
       const open = await LabBillingLocks.openInvoices(m, org, dto.patientId);
       plan = fifoAllocations(
-        open.map((i) => ({ id: i.id, balancePaisa: i.balancePaisa })),
-        dto.amountPaisa,
+        open.map((i) => ({ id: i.id, balanceMinor: i.balanceMinor })),
+        dto.amountMinor,
       ).map((a) => ({ paymentId: '', ...a }));
     }
 
@@ -157,7 +157,7 @@ export class LabPaymentsService {
         locationId: c.tenant.locationId,
         receiptNo,
         patientId: dto.patientId,
-        amountPaisa: dto.amountPaisa,
+        amountMinor: dto.amountMinor,
         method: dto.method,
         reference: dto.reference?.trim() || null,
         notes: dto.notes?.trim() || null,
@@ -186,9 +186,9 @@ export class LabPaymentsService {
       action: AuditAction.CREATE,
       after: {
         receiptNo,
-        amountPaisa: payment.amountPaisa,
+        amountMinor: payment.amountMinor,
         method: payment.method,
-        allocations: refs.map((r) => `${r.invoiceId}:${r.amountPaisa}`),
+        allocations: refs.map((r) => `${r.invoiceId}:${r.amountMinor}`),
       },
     });
     await this.events.emit(m, 'paymentCollected', {
@@ -199,7 +199,7 @@ export class LabPaymentsService {
       paymentId: payment.id,
       receiptNo,
       receivedOn: payment.receivedOn,
-      amountPaisa: payment.amountPaisa,
+      amountMinor: payment.amountMinor,
       method: payment.method,
       allocations: refs,
     });
@@ -209,7 +209,7 @@ export class LabPaymentsService {
       patientId: payment.patientId,
       paymentId: payment.id,
       receiptNo,
-      amountPaisa: payment.amountPaisa,
+      amountMinor: payment.amountMinor,
     });
     return payment.id;
   }
@@ -228,11 +228,11 @@ export class LabPaymentsService {
         org,
         'lab_billing.apply_advance',
         key,
-        requestHash({ invoiceId, amountPaisa: dto.amountPaisa ?? null }),
+        requestHash({ invoiceId, amountMinor: dto.amountMinor ?? null }),
       );
       if (hit) return hit.response as AllocationRef[];
       const [invoice] = await LabBillingLocks.invoices(m, org, [invoiceId]);
-      if (!isOpen(invoice) || invoice.balancePaisa <= 0)
+      if (!isOpen(invoice) || invoice.balanceMinor <= 0)
         throw labBillingError(
           'LAB_BILLING_INVOICE_NOT_OPEN',
           'Nothing is owed on this invoice',
@@ -241,7 +241,7 @@ export class LabPaymentsService {
         m,
         c,
         invoice,
-        dto.amountPaisa,
+        dto.amountMinor,
       );
       if (!refs.length)
         throw labBillingError(
@@ -254,7 +254,7 @@ export class LabPaymentsService {
         entityId: invoiceId,
         action: AuditAction.UPDATE,
         after: {
-          advanceApplied: refs.map((r) => `${r.paymentId}:${r.amountPaisa}`),
+          advanceApplied: refs.map((r) => `${r.paymentId}:${r.amountMinor}`),
         },
       });
       await this.events.emit(m, 'advanceApplied', {
@@ -347,7 +347,7 @@ export class LabPaymentsService {
         'LAB_BILLING_PAYMENT_REVERSED',
         'This payment is already reversed',
       );
-    if (payment.refundedPaisa > 0)
+    if (payment.refundedMinor > 0)
       throw labBillingError(
         'LAB_BILLING_PAYMENT_REFUNDED',
         'Part of this payment was refunded — it can no longer be reversed',
@@ -387,7 +387,7 @@ export class LabPaymentsService {
         locationId: c.tenant.locationId,
         receiptNo,
         patientId: payment.patientId,
-        amountPaisa: -payment.amountPaisa,
+        amountMinor: -payment.amountMinor,
         method: payment.method,
         reference: payment.reference,
         receivedAt: now,
@@ -423,13 +423,13 @@ export class LabPaymentsService {
       paymentId: payment.id,
       reversalPaymentId: mirror.id,
       receiptNo,
-      amountPaisa: payment.amountPaisa,
+      amountMinor: payment.amountMinor,
       method: payment.method,
       releasedAllocations: active.map((a) => ({
         allocationId: a.id,
         paymentId: a.paymentId,
         invoiceId: a.invoiceId,
-        amountPaisa: a.amountPaisa,
+        amountMinor: a.amountMinor,
       })),
     });
     return mirror.id;
@@ -448,7 +448,7 @@ export class LabPaymentsService {
     if (
       hit.reversalOfId ||
       hit.patientId !== dto.patientId ||
-      hit.amountPaisa !== dto.amountPaisa
+      hit.amountMinor !== dto.amountMinor
     )
       throw labBillingError(
         'IDEMPOTENCY_KEY_REUSED',

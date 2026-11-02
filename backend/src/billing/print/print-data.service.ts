@@ -10,7 +10,7 @@ import { THEME_SETTINGS } from 'src/settings-registry/theme/theme.settings';
 import { amountInWords } from '../common/amount-in-words';
 import { BillingClock } from '../common/billing-clock.service';
 import { BillingLookups } from '../common/billing-lookups';
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import { CashCloseService } from '../cash-close/cash-close.service';
 import { PaymentAccount } from '../entities/payment-account.entity';
 import { InvoiceStatus, PrintFormat } from '../enums/billing.enums';
@@ -118,8 +118,8 @@ export class PrintDataService {
         : null,
       bankName: account?.bankName ?? null,
       amountInWords: amountInWords(payment.amount),
-      remainingOutstanding: fromPaisa(
-        toPaisa(summary.invoicedOutstanding) + toPaisa(summary.unbilledTotal),
+      remainingOutstanding: fromMinor(
+        toMinor(summary.invoicedOutstanding) + toMinor(summary.unbilledTotal),
       ),
       advanceHeld: summary.advance,
     };
@@ -233,11 +233,11 @@ export class PrintDataService {
       today,
     );
     const own =
-      inv.status === InvoiceStatus.ISSUED ? toPaisa(inv.balanceDue) : 0;
-    return fromPaisa(
+      inv.status === InvoiceStatus.ISSUED ? toMinor(inv.balanceDue) : 0;
+    return fromMinor(
       Math.max(
         0,
-        toPaisa(s.invoicedOutstanding) + toPaisa(s.unbilledTotal) - own,
+        toMinor(s.invoicedOutstanding) + toMinor(s.unbilledTotal) - own,
       ),
     );
   }

@@ -22,7 +22,7 @@ import type { ViewMode } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DatePicker } from '@/components/shared/DatePicker'
 import { ListToolbar } from '@/components/shared/ListToolbar'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
   BILL_STATUS_OPTIONS,
@@ -116,22 +116,22 @@ export function VendorBillsPage() {
       {
         id: 'total',
         header: 'Total',
-        accessorKey: 'totalPaisa',
+        accessorKey: 'totalMinor',
         cell: ({ row }) => (
           <span className="tabular-nums">
-            {formatPaisa(row.original.totalPaisa)}
+            {formatMinor(row.original.totalMinor)}
           </span>
         ),
       },
       {
         id: 'balance',
         header: 'Balance',
-        accessorKey: 'balancePaisa',
+        accessorKey: 'balanceMinor',
         cell: ({ row }) => (
           <span className="tabular-nums font-medium">
             {row.original.status === 'draft'
               ? '—'
-              : formatPaisa(row.original.balancePaisa)}
+              : formatMinor(row.original.balanceMinor)}
           </span>
         ),
       },
@@ -287,8 +287,8 @@ export function VendorBillsPage() {
                   <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-2 text-xs text-text-3">
                     <span>{b.dueOn ? `Due ${b.dueOn}` : b.billDate}</span>
                     <span className="tabular-nums font-medium text-foreground">
-                      {formatPaisa(
-                        b.status === 'draft' ? b.totalPaisa : b.balancePaisa,
+                      {formatMinor(
+                        b.status === 'draft' ? b.totalMinor : b.balanceMinor,
                       )}
                     </span>
                   </div>

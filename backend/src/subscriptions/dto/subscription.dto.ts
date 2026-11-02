@@ -10,6 +10,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsTimeZone,
   Max,
   MaxLength,
   Min,
@@ -124,8 +125,7 @@ export class SetupClinicDto {
   specialtyTags: string[];
 
   @IsNotEmpty()
-  @IsString()
-  @MaxLength(100)
+  @IsTimeZone({ message: 'timezone must be a valid IANA timezone, e.g. Asia/Karachi' })
   timezone: string;
 
   @IsNotEmpty()

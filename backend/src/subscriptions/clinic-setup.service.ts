@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { randomBytes } from 'crypto';
-import { DataSource } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { AppLogger } from 'src/common/services/logger.service';
 import { AccessTemplatesService } from 'src/access/templates/access-templates.service';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
@@ -195,16 +195,25 @@ export class ClinicSetupService {
       org.specialtyTags = dto.specialtyTags.length
         ? dto.specialtyTags
         : ['general'];
+      const previousTimezone = org.timezone;
       org.timezone = dto.timezone;
       org.currency = dto.currency.toUpperCase();
       await repo.save(org);
-      // A new clinic's branches follow its timezone and currency.
-      await manager
-        .getRepository(Location)
-        .update(
-          { organizationId: orgId },
-          { timezone: org.timezone, currency: org.currency },
+      const locations = manager.getRepository(Location);
+      // Branches follow the clinic's currency.
+      await locations.update(
+        { organizationId: orgId },
+        { currency: org.currency },
+      );
+      // The clinic timezone is the default for branches: only those still on
+      // the old default move with it — a branch given its own timezone in
+      // location settings keeps it.
+      if (previousTimezone !== org.timezone) {
+        await locations.update(
+          { organizationId: orgId, timezone: In([previousTimezone, 'UTC']) },
+          { timezone: org.timezone },
         );
+      }
     });
     return this.get(orgId);
   }

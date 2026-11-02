@@ -73,7 +73,7 @@ One row is one billable line for one patient at one location. Charges come from 
 - Discount snapshot: `discount_type_id`, `discount_name`, `discount_kind`, `discount_value`, `discount_amount`, `discount_note`, `is_custom_discount`.
 - Results: `net_amount`, `tax_amount` (this charge's share of its invoice's sales tax; zero while unbilled) and `allocated_amount` (a cached sum of allocations).
 - Billing state: `invoice_id` (null means the charge is not yet invoiced), `status` (ACTIVE or VOID), void details, `needs_pricing` and `source_removed_at` (set when the doctor removed the source treatment after billing).
-- Commission snapshot: `doctor_id`, `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps`, `commission_fixed_paisa`.
+- Commission snapshot: `doctor_id`, `performing_assignment_id`, `commission_plan_id`, `commission_rate_bps`, `commission_fixed_minor`.
 - Links to the visit: `encounter_id` and `appointment_id`.
 
 The balance of a charge is never stored. The code computes it as net + tax − allocated.

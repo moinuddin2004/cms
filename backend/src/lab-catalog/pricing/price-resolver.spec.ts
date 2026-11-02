@@ -17,8 +17,8 @@ let seq = 0;
 const w = (p: Partial<PriceWindow>): PriceWindow => ({
   id: `p${++seq}`,
   organizationId: null,
-  unitPricePaisa: 500_000,
-  rushSurchargePaisa: 0,
+  unitPriceMinor: 500_000,
+  rushSurchargeMinor: 0,
   currency: 'PKR',
   effectiveFrom: '2026-01-01',
   effectiveTo: null,
@@ -51,14 +51,14 @@ describe('isActiveOn', () => {
 });
 
 describe('pickLabPrice', () => {
-  const list = w({ unitPricePaisa: 800_000 });
+  const list = w({ unitPriceMinor: 800_000 });
   const negotiated = w({
     organizationId: ORG,
-    unitPricePaisa: 650_000,
+    unitPriceMinor: 650_000,
     effectiveFrom: '2026-05-01',
     effectiveTo: '2026-12-31',
   });
-  const otherClinic = w({ organizationId: OTHER, unitPricePaisa: 100 });
+  const otherClinic = w({ organizationId: OTHER, unitPriceMinor: 100 });
 
   it("the clinic's negotiated price beats the lab list price", () => {
     const picked = pickLabPrice(
@@ -94,71 +94,71 @@ describe('pickLabPrice', () => {
   });
 
   it('a price change on a date: old price up to the day before, new from that day', () => {
-    const old = w({ unitPricePaisa: 500_000, effectiveTo: '2026-06-30' });
-    const next = w({ unitPricePaisa: 550_000, effectiveFrom: '2026-07-01' });
+    const old = w({ unitPriceMinor: 500_000, effectiveTo: '2026-06-30' });
+    const next = w({ unitPriceMinor: 550_000, effectiveFrom: '2026-07-01' });
     expect(
-      pickLabPrice([old, next], ORG, '2026-06-30')?.price.unitPricePaisa,
+      pickLabPrice([old, next], ORG, '2026-06-30')?.price.unitPriceMinor,
     ).toBe(500_000);
     expect(
-      pickLabPrice([old, next], ORG, '2026-07-01')?.price.unitPricePaisa,
+      pickLabPrice([old, next], ORG, '2026-07-01')?.price.unitPriceMinor,
     ).toBe(550_000);
   });
 });
 
 describe('labUnitCost', () => {
-  const price = { unitPricePaisa: 650_000, rushSurchargePaisa: 150_000 };
+  const price = { unitPriceMinor: 650_000, rushSurchargeMinor: 150_000 };
   const options = [
-    { id: 'o1', extraCostPaisa: 120_000 },
-    { id: 'o2', extraCostPaisa: 30_050 },
+    { id: 'o1', extraCostMinor: 120_000 },
+    { id: 'o2', extraCostMinor: 30_050 },
   ];
 
-  it('adds options and, only when rushed, the rush surcharge — in integer paisa', () => {
+  it('adds options and, only when rushed, the rush surcharge — in integer minor', () => {
     expect(labUnitCost(price, options, false)).toEqual({
-      basePaisa: 650_000,
-      optionsPaisa: 150_050,
-      rushPaisa: 0,
-      unitPaisa: 800_050,
+      baseMinor: 650_000,
+      optionsMinor: 150_050,
+      rushMinor: 0,
+      unitMinor: 800_050,
     });
-    expect(labUnitCost(price, options, true).unitPaisa).toBe(950_050);
-    expect(labUnitCost(price, [], false).unitPaisa).toBe(650_000);
+    expect(labUnitCost(price, options, true).unitMinor).toBe(950_050);
+    expect(labUnitCost(price, [], false).unitMinor).toBe(650_000);
   });
 
   it('stays an integer', () => {
     const cost = labUnitCost(
-      { unitPricePaisa: 1, rushSurchargePaisa: 1 },
-      [{ id: 'x', extraCostPaisa: 1 }],
+      { unitPriceMinor: 1, rushSurchargeMinor: 1 },
+      [{ id: 'x', extraCostMinor: 1 }],
       true,
     );
-    expect(Number.isInteger(cost.unitPaisa)).toBe(true);
-    expect(cost.unitPaisa).toBe(3);
+    expect(Number.isInteger(cost.unitMinor)).toBe(true);
+    expect(cost.unitMinor).toBe(3);
   });
 });
 
 describe('pickPatientPrice', () => {
   const overrides = [
-    { locationId: 'L1', doctorId: null, pricePaisa: 1_200_000 },
-    { locationId: 'L1', doctorId: 'D1', pricePaisa: 1_500_000 },
-    { locationId: 'L2', doctorId: null, pricePaisa: 900_000 },
+    { locationId: 'L1', doctorId: null, priceMinor: 1_200_000 },
+    { locationId: 'L1', doctorId: 'D1', priceMinor: 1_500_000 },
+    { locationId: 'L2', doctorId: null, priceMinor: 900_000 },
   ];
 
   it('doctor at location → location → treatment default (same as billing)', () => {
     expect(pickPatientPrice(1_000_000, overrides, 'L1', 'D1')).toEqual({
-      unitPricePaisa: 1_500_000,
+      unitPriceMinor: 1_500_000,
       level: 'DOCTOR',
     });
     expect(pickPatientPrice(1_000_000, overrides, 'L1', 'D2')).toEqual({
-      unitPricePaisa: 1_200_000,
+      unitPriceMinor: 1_200_000,
       level: 'LOCATION',
     });
     expect(pickPatientPrice(1_000_000, overrides, 'L3', 'D1')).toEqual({
-      unitPricePaisa: 1_000_000,
+      unitPriceMinor: 1_000_000,
       level: 'DEFAULT',
     });
   });
 
   it("a doctor's price at another location does not apply", () => {
     expect(
-      pickPatientPrice(1_000_000, overrides, 'L2', 'D1').unitPricePaisa,
+      pickPatientPrice(1_000_000, overrides, 'L2', 'D1').unitPriceMinor,
     ).toBe(900_000);
   });
 

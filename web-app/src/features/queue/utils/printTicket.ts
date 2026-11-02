@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { formatTime, formatYmd } from '@/lib/datetime'
 import { fetchTicket } from '../services/queue.api'
 import type { QueueTicket } from '../types'
 
@@ -36,21 +37,8 @@ export async function printQueueTicket(entryId: string): Promise<void> {
     return
   }
 
-  const date = new Date(`${ticket.serviceDate}T00:00:00`).toLocaleDateString(
-    'en-US',
-    {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    },
-  )
-  const appt = ticket.scheduledStart
-    ? new Date(ticket.scheduledStart).toLocaleTimeString([], {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : null
+  const date = formatYmd(ticket.serviceDate, 'EEE, MMM d, yyyy')
+  const appt = ticket.scheduledStart ? formatTime(ticket.scheduledStart) : null
 
   win.document.open()
   win.document

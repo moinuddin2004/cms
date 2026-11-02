@@ -62,7 +62,7 @@ export class VendorBillsService {
       qb.andWhere('b.lab_order_id = :labOrderId', { labOrderId: q.labOrderId });
     if (q.from) qb.andWhere('b.bill_date >= :from', { from: q.from });
     if (q.to) qb.andWhere('b.bill_date <= :to', { to: q.to });
-    if (q.open === 'true') qb.andWhere('b.balance_paisa > 0');
+    if (q.open === 'true') qb.andWhere('b.balance_minor > 0');
     if (q.search?.trim()) {
       qb.andWhere(
         `(b.bill_no ILIKE :s OR b.vendor_invoice_no ILIKE :s OR EXISTS (
@@ -174,8 +174,8 @@ export class VendorBillsService {
         labOrderId: bill.labOrderId,
         description: dto.description.trim(),
         quantity: dto.quantity,
-        unitCostPaisa: dto.unitCostPaisa,
-        lineTotalPaisa: dto.quantity * dto.unitCostPaisa,
+        unitCostMinor: dto.unitCostMinor,
+        lineTotalMinor: dto.quantity * dto.unitCostMinor,
         isManual: true,
       });
       await this.saveDraft(m, bill);
@@ -184,7 +184,7 @@ export class VendorBillsService {
         entityType: PAYABLES_ENTITY.BILL,
         entityId: bill.id,
         action: AuditAction.UPDATE,
-        after: { addedLine: dto.description, totalPaisa: bill.totalPaisa },
+        after: { addedLine: dto.description, totalMinor: bill.totalMinor },
       });
       return this.view(m, bill);
     });
@@ -232,7 +232,7 @@ export class VendorBillsService {
           .getRepository(VendorBillLine)
           .findBy({ vendorBillId: bill.id });
         Object.assign(bill, billTotals(lines, bill.taxBp));
-        if (bill.totalPaisa <= 0) {
+        if (bill.totalMinor <= 0) {
           throw payablesError(
             'PAYABLES_INVALID',
             'This bill is 0 — there is nothing to approve. Void it instead.',
@@ -252,13 +252,13 @@ export class VendorBillsService {
           lines: [
             {
               accountCode: ACCOUNT.LAB_COST,
-              debitPaisa: bill.totalPaisa,
+              debitMinor: bill.totalMinor,
               labId: bill.labId,
               labOrderId: bill.labOrderId,
             },
             {
               accountCode: ACCOUNT.LAB_PAYABLE,
-              creditPaisa: bill.totalPaisa,
+              creditMinor: bill.totalMinor,
               labId: bill.labId,
               labOrderId: bill.labOrderId,
             },
@@ -266,8 +266,8 @@ export class VendorBillsService {
         });
         Object.assign(bill, {
           status: VendorBillStatus.APPROVED,
-          paidPaisa: 0,
-          balancePaisa: bill.totalPaisa,
+          paidMinor: 0,
+          balanceMinor: bill.totalMinor,
           approvedBy: c.actor.userId,
           approvedAt: new Date(),
           journalId: journal.id,
@@ -303,10 +303,10 @@ export class VendorBillsService {
       const bill = await this.lock(m, c.tenant.organizationId, id);
       assertVersion(bill.version, dto.version);
       const before = this.snap(bill);
-      if (bill.status === VendorBillStatus.VOID || bill.paidPaisa > 0) {
+      if (bill.status === VendorBillStatus.VOID || bill.paidMinor > 0) {
         throw payablesError(
           'PAYABLES_NOT_ALLOWED',
-          bill.paidPaisa > 0
+          bill.paidMinor > 0
             ? 'Reverse the payments on this bill before voiding it'
             : 'This bill is already void',
         );
@@ -321,7 +321,7 @@ export class VendorBillsService {
       }
       Object.assign(bill, {
         status: VendorBillStatus.VOID,
-        balancePaisa: 0,
+        balanceMinor: 0,
         voidedBy: c.actor.userId,
         voidedAt: new Date(),
         voidReason: dto.reason.trim(),
@@ -411,7 +411,7 @@ export class VendorBillsService {
       billDate: b.billDate,
       dueOn: b.dueOn,
       taxBp: b.taxBp,
-      totalPaisa: b.totalPaisa,
+      totalMinor: b.totalMinor,
       notes: b.notes,
     };
   }

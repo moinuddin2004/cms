@@ -5,6 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ClockService } from 'src/common/clock/clock.service';
 import { IsNull, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Patient } from 'src/patients/entities/patient.entity';
@@ -32,6 +33,7 @@ export class TreatmentsService {
     private readonly catalogRepo: Repository<CatalogService>,
     @InjectRepository(ServicePrice)
     private readonly servicePriceRepo: Repository<ServicePrice>,
+    private readonly clock: ClockService,
   ) {}
 
   /**
@@ -145,7 +147,12 @@ export class TreatmentsService {
       serviceId: service?.id ?? null,
       // A catalog service prices the charge; the legacy fee only applies without one.
       cost: service ? null : (dto.cost ?? null),
-      date: dto.date ? new Date(dto.date) : new Date(),
+      // A treatment date is a calendar day stored as its UTC midnight (the
+      // UI picks a "YYYY-MM-DD"); default to the clinic's day, not UTC's.
+      date: new Date(
+        dto.date ??
+          this.clock.today(await this.clock.timezoneFor(ctx.locationId)),
+      ),
       createdBy: userId,
     });
 

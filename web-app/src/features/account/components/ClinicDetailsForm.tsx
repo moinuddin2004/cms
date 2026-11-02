@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TIMEZONE_OPTIONS, timezoneLabel } from '@/lib/datetime'
 import { cn } from '@/lib/utils'
 import { useSetupClinicForm } from '../hooks/useSetupForms'
 import { fieldError } from '../lib/fieldError'
@@ -18,17 +19,6 @@ import { errorMessage } from '../lib/session'
 import { SPECIALTY_OPTIONS } from '../types'
 import type { ClinicSetup } from '../types'
 
-const TIMEZONES = [
-  'Asia/Karachi',
-  'Asia/Dubai',
-  'Asia/Riyadh',
-  'Asia/Qatar',
-  'Asia/Kolkata',
-  'Asia/Dhaka',
-  'Europe/London',
-  'America/New_York',
-  'UTC',
-]
 const CURRENCIES = ['PKR', 'AED', 'SAR', 'QAR', 'INR', 'BDT', 'GBP', 'USD', 'EUR']
 
 /**
@@ -157,12 +147,12 @@ export function ClinicDetailsForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(TIMEZONES.includes(f.state.value)
-                    ? TIMEZONES
-                    : [f.state.value, ...TIMEZONES]
+                  {(TIMEZONE_OPTIONS.includes(f.state.value)
+                    ? TIMEZONE_OPTIONS
+                    : [f.state.value, ...TIMEZONE_OPTIONS]
                   ).map((tz) => (
                     <SelectItem key={tz} value={tz}>
-                      {tz.replace('_', ' ')}
+                      {timezoneLabel(tz)}
                     </SelectItem>
                   ))}
                 </SelectContent>

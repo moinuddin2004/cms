@@ -5,6 +5,7 @@ import type {
   PrescriptionTemplate,
 } from '../types'
 import { MealRelation } from '../types'
+import { formatInClinic, todayYmd } from '@/lib/datetime'
 
 const MEAL_LABEL: Record<MealRelation, string> = {
   [MealRelation.BEFORE_MEAL]: 'Before meal',
@@ -145,7 +146,7 @@ export function PrescriptionPreview({
         <span>
           <span className="text-muted-foreground">Date:</span>{' '}
           <span className="font-medium">
-            {new Date(data.createdAt ?? Date.now()).toLocaleDateString('en-GB')}
+            {formatInClinic(data.createdAt ?? Date.now(), 'dd/MM/yyyy')}
           </span>
         </span>
         {data.prescriptionNumber && (
@@ -362,12 +363,11 @@ function hasAny(o: Record<string, any> | null | undefined) {
 
 function ageFromDob(dob?: string | null): number | null {
   if (!dob) return null
-  const d = new Date(dob)
-  if (Number.isNaN(d.getTime())) return null
-  const now = new Date()
-  let years = now.getFullYear() - d.getFullYear()
-  const m = now.getMonth() - d.getMonth()
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) years--
+  const [y, m, d] = dob.slice(0, 10).split('-').map(Number)
+  if (!y || !m || !d) return null
+  const [ty, tm, td] = todayYmd().split('-').map(Number)
+  let years = ty - y
+  if (tm < m || (tm === m && td < d)) years--
   return years
 }
 

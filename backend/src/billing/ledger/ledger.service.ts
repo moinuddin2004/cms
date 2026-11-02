@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { BillingContext } from '../common/billing-context';
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import { LedgerEntry } from '../entities/ledger-entry.entity';
 import { LedgerEntryType } from '../enums/billing.enums';
 
@@ -26,16 +26,16 @@ export class LedgerService {
     ctx: BillingContext,
     p: LedgerPosting,
   ): Promise<void> {
-    const paisa = toPaisa(p.amount);
-    if (paisa === 0) return;
+    const minor = toMinor(p.amount);
+    if (minor === 0) return;
     await manager.getRepository(LedgerEntry).insert({
       organizationId: ctx.tenant.organizationId,
       locationId: ctx.tenant.locationId,
       patientId: p.patientId,
       type: p.type,
       entryDate: p.entryDate,
-      debit: paisa > 0 ? fromPaisa(paisa) : 0,
-      credit: paisa < 0 ? fromPaisa(-paisa) : 0,
+      debit: minor > 0 ? fromMinor(minor) : 0,
+      credit: minor < 0 ? fromMinor(-minor) : 0,
       invoiceId: p.invoiceId ?? null,
       paymentId: p.paymentId ?? null,
       refundId: p.refundId ?? null,

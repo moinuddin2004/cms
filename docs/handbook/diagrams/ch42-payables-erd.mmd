@@ -22,14 +22,14 @@ erDiagram
         uuid id PK
         uuid lab_id FK
         string payment_no
-        bigint allocated_paisa
+        bigint allocated_minor
         string status
     }
     vendor_payment_allocations {
         uuid id PK
         uuid vendor_payment_id FK
         uuid vendor_bill_id FK
-        bigint amount_paisa
+        bigint amount_minor
     }
     lab_statements {
         uuid id PK

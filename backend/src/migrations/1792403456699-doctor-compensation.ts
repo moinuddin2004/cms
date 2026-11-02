@@ -7,7 +7,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *   commission_rules, commission_entries (append-only, trigger-enforced),
  *   commission_settlements.
  * - charges: commission snapshot columns.
- * - payroll_records: paisa breakdown; unique per employee × location × month.
+ * - payroll_records: minor units breakdown; unique per employee × location × month.
  * - Backfill: one SALARY plan per existing assignment from gross_salary
  *   (null → 0, which payroll treats as "no salary" like before), effective
  *   from the assignment's joining date (created_at date as fallback);
@@ -31,11 +31,11 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
     // Salary changes made through plans go back to the deprecated column.
     await q.query(`
       UPDATE "employee_org_location_assignments" a
-         SET "gross_salary" = NULLIF(p."base_salary_paisa", 0) / 100.0
+         SET "gross_salary" = NULLIF(p."base_salary_minor", 0) / 100.0
         FROM "compensation_plans" p
        WHERE p."assignment_id" = a."id"
          AND p."effective_to" IS NULL
-         AND p."base_salary_paisa" IS NOT NULL`);
+         AND p."base_salary_minor" IS NOT NULL`);
     await q.query(
       `DROP TRIGGER IF EXISTS "trg_commission_entries_append_only" ON "commission_entries"`,
     );
@@ -77,18 +77,18 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
     await q.query(
       `ALTER TABLE "charges" DROP CONSTRAINT "chk_charges_commission_rate"`,
     );
-    await q.query(`ALTER TABLE "charges" DROP COLUMN "commission_fixed_paisa"`);
+    await q.query(`ALTER TABLE "charges" DROP COLUMN "commission_fixed_minor"`);
     await q.query(`ALTER TABLE "charges" DROP COLUMN "commission_rate_bps"`);
     await q.query(`ALTER TABLE "charges" DROP COLUMN "commission_plan_id"`);
     await q.query(
       `ALTER TABLE "charges" DROP COLUMN "performing_assignment_id"`,
     );
-    await q.query(`ALTER TABLE "payroll_records" DROP COLUMN "total_paisa"`);
+    await q.query(`ALTER TABLE "payroll_records" DROP COLUMN "total_minor"`);
     await q.query(
-      `ALTER TABLE "payroll_records" DROP COLUMN "commission_paisa"`,
+      `ALTER TABLE "payroll_records" DROP COLUMN "commission_minor"`,
     );
     await q.query(
-      `ALTER TABLE "payroll_records" DROP COLUMN "base_salary_paisa"`,
+      `ALTER TABLE "payroll_records" DROP COLUMN "base_salary_minor"`,
     );
     await q.query(`DROP TABLE "commission_entries"`);
     await q.query(`DROP TYPE "commission_entries_source_type_enum"`);
@@ -122,7 +122,7 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
       "organization_id" uuid NOT NULL,
       "assignment_id" uuid NOT NULL,
       "type" "compensation_plans_type_enum" NOT NULL,
-      "base_salary_paisa" bigint,
+      "base_salary_minor" bigint,
       "default_rate_bps" integer,
       "commission_basis" "compensation_plans_commission_basis_enum" NOT NULL DEFAULT 'NET',
       "effective_from" date NOT NULL,
@@ -130,11 +130,11 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
       "created_by" uuid,
       "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
       CONSTRAINT "chk_compensation_plans_dates" CHECK ("effective_to" IS NULL OR "effective_to" >= "effective_from"),
-      CONSTRAINT "chk_compensation_plans_salary" CHECK ("base_salary_paisa" IS NULL OR "base_salary_paisa" >= 0),
+      CONSTRAINT "chk_compensation_plans_salary" CHECK ("base_salary_minor" IS NULL OR "base_salary_minor" >= 0),
       CONSTRAINT "chk_compensation_plans_rate" CHECK ("default_rate_bps" IS NULL OR "default_rate_bps" BETWEEN 0 AND 10000),
-      CONSTRAINT "chk_compensation_plans_fields" CHECK (("type" = 'SALARY' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NULL)
-   OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_paisa" IS NULL)
-   OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_paisa" IS NOT NULL AND "default_rate_bps" IS NOT NULL)),
+      CONSTRAINT "chk_compensation_plans_fields" CHECK (("type" = 'SALARY' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NULL)
+   OR ("type" = 'COMMISSION' AND "default_rate_bps" IS NOT NULL AND "base_salary_minor" IS NULL)
+   OR ("type" = 'SALARY_PLUS_COMMISSION' AND "base_salary_minor" IS NOT NULL AND "default_rate_bps" IS NOT NULL)),
       CONSTRAINT "excl_compensation_plans_overlap" EXCLUDE USING gist ("assignment_id" WITH =, daterange("effective_from", "effective_to", '[]') WITH &&),
       CONSTRAINT "PK_04b9990665545ed3e60b19d19e8" PRIMARY KEY ("id"))`);
     await q.query(
@@ -150,11 +150,11 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
       "service_id" uuid,
       "service_category" "commission_rules_service_category_enum",
       "rate_bps" integer,
-      "fixed_amount_paisa" bigint,
+      "fixed_amount_minor" bigint,
       CONSTRAINT "chk_commission_rules_target" CHECK (("service_id" IS NULL) <> ("service_category" IS NULL)),
-      CONSTRAINT "chk_commission_rules_fixed" CHECK ("fixed_amount_paisa" IS NULL OR "fixed_amount_paisa" >= 0),
+      CONSTRAINT "chk_commission_rules_fixed" CHECK ("fixed_amount_minor" IS NULL OR "fixed_amount_minor" >= 0),
       CONSTRAINT "chk_commission_rules_rate" CHECK ("rate_bps" IS NULL OR "rate_bps" BETWEEN 0 AND 10000),
-      CONSTRAINT "chk_commission_rules_amount" CHECK (("rate_bps" IS NULL) <> ("fixed_amount_paisa" IS NULL)),
+      CONSTRAINT "chk_commission_rules_amount" CHECK (("rate_bps" IS NULL) <> ("fixed_amount_minor" IS NULL)),
       CONSTRAINT "PK_399c9fa57f7fd28dfc57acea3bd" PRIMARY KEY ("id"))`);
     await q.query(
       `CREATE UNIQUE INDEX "uq_commission_rules_category" ON "commission_rules" ("plan_id", "service_category") WHERE "service_category" IS NOT NULL`,
@@ -173,7 +173,7 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
       "assignment_id" uuid NOT NULL,
       "period_start" date NOT NULL,
       "period_end" date NOT NULL,
-      "total_paisa" bigint NOT NULL DEFAULT '0',
+      "total_minor" bigint NOT NULL DEFAULT '0',
       "status" "commission_settlements_status_enum" NOT NULL DEFAULT 'PENDING',
       "payroll_record_id" uuid,
       "paid_at" TIMESTAMP WITH TIME ZONE,
@@ -196,9 +196,9 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
       "charge_id" uuid NOT NULL,
       "source_type" "commission_entries_source_type_enum" NOT NULL,
       "source_id" uuid NOT NULL,
-      "base_paisa" bigint NOT NULL DEFAULT '0',
+      "base_minor" bigint NOT NULL DEFAULT '0',
       "rate_bps" integer,
-      "amount_paisa" bigint NOT NULL DEFAULT '0',
+      "amount_minor" bigint NOT NULL DEFAULT '0',
       "settlement_id" uuid,
       "created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
       CONSTRAINT "PK_35b5372834c1af9e381d1bd2f97" PRIMARY KEY ("id"))`);
@@ -216,18 +216,18 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
     );
 
     await q.query(
-      `ALTER TABLE "payroll_records" ADD "base_salary_paisa" bigint NOT NULL DEFAULT '0'`,
+      `ALTER TABLE "payroll_records" ADD "base_salary_minor" bigint NOT NULL DEFAULT '0'`,
     );
     await q.query(
-      `ALTER TABLE "payroll_records" ADD "commission_paisa" bigint NOT NULL DEFAULT '0'`,
+      `ALTER TABLE "payroll_records" ADD "commission_minor" bigint NOT NULL DEFAULT '0'`,
     );
     await q.query(
-      `ALTER TABLE "payroll_records" ADD "total_paisa" bigint NOT NULL DEFAULT '0'`,
+      `ALTER TABLE "payroll_records" ADD "total_minor" bigint NOT NULL DEFAULT '0'`,
     );
     await q.query(`ALTER TABLE "charges" ADD "performing_assignment_id" uuid`);
     await q.query(`ALTER TABLE "charges" ADD "commission_plan_id" uuid`);
     await q.query(`ALTER TABLE "charges" ADD "commission_rate_bps" integer`);
-    await q.query(`ALTER TABLE "charges" ADD "commission_fixed_paisa" bigint`);
+    await q.query(`ALTER TABLE "charges" ADD "commission_fixed_minor" bigint`);
     await q.query(
       `ALTER TABLE "charges" ADD CONSTRAINT "chk_charges_commission_rate" CHECK ("commission_rate_bps" IS NULL OR "commission_rate_bps" BETWEEN 0 AND 10000)`,
     );
@@ -290,12 +290,12 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
           END IF;
         END IF;
         IF (NEW.id, NEW.organization_id, NEW.location_id, NEW.assignment_id,
-            NEW.charge_id, NEW.source_type, NEW.source_id, NEW.base_paisa,
-            NEW.rate_bps, NEW.amount_paisa, NEW.created_at)
+            NEW.charge_id, NEW.source_type, NEW.source_id, NEW.base_minor,
+            NEW.rate_bps, NEW.amount_minor, NEW.created_at)
            IS DISTINCT FROM
            (OLD.id, OLD.organization_id, OLD.location_id, OLD.assignment_id,
-            OLD.charge_id, OLD.source_type, OLD.source_id, OLD.base_paisa,
-            OLD.rate_bps, OLD.amount_paisa, OLD.created_at) THEN
+            OLD.charge_id, OLD.source_type, OLD.source_id, OLD.base_minor,
+            OLD.rate_bps, OLD.amount_minor, OLD.created_at) THEN
           RAISE EXCEPTION 'commission_entries is append-only: only settlement_id may change';
         END IF;
         RETURN NEW;
@@ -313,7 +313,7 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
   private async backfill(q: QueryRunner): Promise<void> {
     await q.query(`
       INSERT INTO "compensation_plans"
-        ("organization_id", "assignment_id", "type", "base_salary_paisa",
+        ("organization_id", "assignment_id", "type", "base_salary_minor",
          "commission_basis", "effective_from")
       SELECT a."organization_id", a."id", 'SALARY',
              ROUND(COALESCE(a."gross_salary", 0) * 100)::bigint, 'NET',
@@ -323,9 +323,9 @@ export class DoctorCompensation1792403456699 implements MigrationInterface {
          SELECT 1 FROM "compensation_plans" p WHERE p."assignment_id" = a."id")`);
     await q.query(`
       UPDATE "payroll_records"
-         SET "base_salary_paisa" = ROUND("salary_amount" * 100)::bigint,
-             "commission_paisa" = 0,
-             "total_paisa" = ROUND("salary_amount" * 100)::bigint
-       WHERE "total_paisa" = 0 AND "salary_amount" <> 0`);
+         SET "base_salary_minor" = ROUND("salary_amount" * 100)::bigint,
+             "commission_minor" = 0,
+             "total_minor" = ROUND("salary_amount" * 100)::bigint
+       WHERE "total_minor" = 0 AND "salary_amount" <> 0`);
   }
 }

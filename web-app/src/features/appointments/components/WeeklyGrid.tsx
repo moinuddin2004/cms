@@ -3,6 +3,7 @@ import { type Appointment, HOURS, HOUR_HEIGHT, MINUTE_HEIGHT } from '@/features/
 import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { clinicDate, dateToYmd, nowInClinic, todayYmd } from '@/lib/datetime'
 
 interface WeeklyGridProps {
   appointments: Appointment[]
@@ -33,13 +34,15 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
     for (let i = 0; i < 7; i++) map.set(i, [])
     
     appointments.forEach((a) => {
-      const day = new Date(a.startTime).getDay()
+      const day = clinicDate(a.startTime).getDay()
       map.get(day)!.push(a)
     })
     return map
   }, [appointments])
 
-  const now = new Date()
+  // "Now" line and today highlight follow the clinic's clock
+  const now = nowInClinic()
+  const today = todayYmd()
   const firstHour = HOURS[0]
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const nowOffset = (nowMinutes - firstHour * 60) * MINUTE_HEIGHT
@@ -54,6 +57,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
     const hour = Math.floor(snappedMinutes / 60)
     const minute = snappedMinutes % 60
 
+    // Cell date from local fields = clinic wall time (see toDateTimeLocalValue).
     const clickDate = new Date(date)
     clickDate.setHours(hour, minute, 0, 0)
 
@@ -68,7 +72,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
       <div className="sticky top-0 z-20 bg-card border-b flex">
         <div className="w-[64px] flex-shrink-0 border-r bg-muted/80" />
         {weekDays.map((date, i) => {
-          const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+          const isToday = dateToYmd(date) === today
           return (
             <div key={i} className={`flex-1 min-w-[120px] p-2 border-r last:border-r-0 text-center ${isToday ? 'bg-primary/10' : 'bg-muted/80'}`}>
               <p className="text-xs font-semibold text-muted-foreground uppercase">{WEEKDAYS[i]}</p>
@@ -93,7 +97,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
 
         {/* Day Columns */}
         {weekDays.map((date, dayIndex) => {
-          const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+          const isToday = dateToYmd(date) === today
           return (
             <div key={dayIndex} className="flex-1 min-w-[120px] relative border-r last:border-r-0 cursor-crosshair" onClick={(e) => handleGridClick(date, e)}>
               {HOURS.map((hour) => (
@@ -104,7 +108,7 @@ export function WeeklyGrid({ appointments, selectedDate }: WeeklyGridProps) {
 
               {/* Appointments */}
               {(appointmentsByDay.get(dayIndex) || []).map((appt) => {
-                const apptStart = new Date(appt.startTime)
+                const apptStart = clinicDate(appt.startTime)
                 const apptMinutesFromTop = (apptStart.getHours() * 60 + apptStart.getMinutes() - firstHour * 60) * MINUTE_HEIGHT
                 const apptHeight = appt.durationMinutes * MINUTE_HEIGHT
 

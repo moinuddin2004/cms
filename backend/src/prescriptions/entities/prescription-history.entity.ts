@@ -49,6 +49,6 @@ export class PrescriptionHistory {
   @Column({ name: 'change_notes', type: 'text', nullable: true })
   changeNotes: string | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 }

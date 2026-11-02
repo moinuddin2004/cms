@@ -8,7 +8,7 @@ import type {
 } from '@/features/appointments/types'
 import { useCreateAppointment } from '@/features/appointments/hooks/useCreateAppointment'
 import { useValidateAppointment } from '@/features/appointments/hooks/useValidateAppointment'
-import { toDateTimeLocalValue } from '@/features/appointments/utils/datetime'
+import { clinicInputToUtc, utcToClinicInput } from '@/lib/datetime'
 import { firstAppointmentSchema } from '../schemas/firstAppointment.schema'
 import type { FirstAppointmentFormValues } from '../schemas/firstAppointment.schema'
 
@@ -45,7 +45,7 @@ export function useFirstAppointmentForm({
       const payload: AppointmentFormData = {
         patientId,
         doctorId: value.doctorId,
-        startTime: new Date(value.startTime).toISOString(),
+        startTime: clinicInputToUtc(value.startTime),
         duration: value.duration,
         type: value.type,
         notes: '',
@@ -79,7 +79,7 @@ export function useFirstAppointmentForm({
       validateMutation.mutate(
         {
           doctorId,
-          startTime: new Date(startTime).toISOString(),
+          startTime: clinicInputToUtc(startTime),
           duration,
         },
         {
@@ -96,7 +96,7 @@ export function useFirstAppointmentForm({
     if (validation?.suggestedStartTime) {
       form.setFieldValue(
         'startTime',
-        toDateTimeLocalValue(validation.suggestedStartTime),
+        utcToClinicInput(validation.suggestedStartTime),
       )
     }
   }

@@ -23,7 +23,7 @@ import {
   LabPaymentStatus,
 } from '../enums/lab-billing.enums';
 
-const MAX_PAISA = 1_000_000_000_00; // PKR 1 billion
+const MAX_MINOR = 1_000_000_000_00; // PKR 1 billion
 
 export class InvoiceLineDto {
   @IsEnum(LabInvoiceLineKind)
@@ -56,14 +56,14 @@ export class InvoiceLineDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  unitPricePaisa?: number;
+  @Max(MAX_MINOR)
+  unitPriceMinor?: number;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  discountPaisa?: number;
+  @Max(MAX_MINOR)
+  discountMinor?: number;
 }
 
 class InvoiceBodyBase {
@@ -79,8 +79,8 @@ class InvoiceBodyBase {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(MAX_PAISA)
-  discountPaisa?: number;
+  @Max(MAX_MINOR)
+  discountMinor?: number;
 
   /** Every line's tax rate; default = the clinic's lab billing setting. */
   @IsOptional()
@@ -142,8 +142,8 @@ export class AllocationDto {
 
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa: number;
+  @Max(MAX_MINOR)
+  amountMinor: number;
 }
 
 export class CollectPaymentDto {
@@ -152,8 +152,8 @@ export class CollectPaymentDto {
 
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa: number;
+  @Max(MAX_MINOR)
+  amountMinor: number;
 
   @IsEnum(LabPaymentMethod)
   method: LabPaymentMethod;
@@ -187,8 +187,8 @@ export class ApplyAdvanceDto {
   @IsOptional()
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa?: number;
+  @Max(MAX_MINOR)
+  amountMinor?: number;
 }
 
 export class ReasonDto {
@@ -201,8 +201,8 @@ export class ReasonDto {
 export class CreditNoteDto extends ReasonDto {
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa: number;
+  @Max(MAX_MINOR)
+  amountMinor: number;
 }
 
 export class RefundDto extends ReasonDto {
@@ -211,8 +211,8 @@ export class RefundDto extends ReasonDto {
 
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa: number;
+  @Max(MAX_MINOR)
+  amountMinor: number;
 
   @IsEnum(LabPaymentMethod)
   method: LabPaymentMethod;

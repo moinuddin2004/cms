@@ -38,7 +38,7 @@ const trim = ({ value }: { value: unknown }) =>
 const YMD = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const YMD_MESSAGE = 'Use a date like 2026-10-19';
 export const MAX_ORDER_ITEMS = 20;
-const MAX_PAISA = 100_000_000_000;
+const MAX_MINOR = 100_000_000_000;
 
 /** One line of a draft. Answers are free-form until submit. */
 export class OrderItemDto {
@@ -277,8 +277,8 @@ export class CreateChargeDto {
 
   @IsInt()
   @Min(1)
-  @Max(MAX_PAISA)
-  amountPaisa: number;
+  @Max(MAX_MINOR)
+  amountMinor: number;
 
   @Transform(trim)
   @IsString()

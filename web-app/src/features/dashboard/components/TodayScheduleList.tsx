@@ -6,6 +6,7 @@ import { Can } from '@/features/access/components/Can'
 import type { Appointment } from '@/features/appointments/types'
 import { AppointmentStatus } from '@/features/appointments/types'
 import { cn } from '@/lib/utils'
+import { formatTime } from '@/lib/datetime'
 
 interface Props {
   data: Appointment[]
@@ -40,10 +41,7 @@ const STATUS: Record<string, { label: string; className: string }> = {
 }
 
 function time(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  return formatTime(iso)
 }
 
 function label(value: string | null | undefined) {

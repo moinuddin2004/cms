@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import { format } from 'date-fns'
 import { Activity, CalendarCheck2, Pill, Repeat, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { Skeleton } from '@/components/ui/skeleton'
+import { formatInClinic } from '@/lib/datetime'
 import type { Patient, PatientVitals } from '@/features/patients'
 import { usePatientHistory } from '@/features/patients/hooks/usePatientSubEntities'
 import {
@@ -14,7 +14,7 @@ import type { PrescriptionMedicine } from '@/features/prescriptions'
 import type { RecordTab } from './RecordDrawer'
 import { Panel } from './Panel'
 
-const day = (iso: string) => format(new Date(iso), 'dd MMM yyyy')
+const day = (iso: string) => formatInClinic(iso, 'dd MMM yyyy')
 
 /**
  * Everything the doctor wants to glance at while treating: latest vitals,

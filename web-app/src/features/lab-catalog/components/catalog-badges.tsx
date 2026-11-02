@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { formatPaisa } from '../lib/money'
+import { formatMinor } from '../lib/money'
 import { PRICE_SOURCE_LABEL, UNIT_TYPE_LABEL } from '../types'
 import type { EffectivePrice, UnitType } from '../types'
 
@@ -36,7 +36,7 @@ export function PriceTag({
   return (
     <span className={cn('inline-flex items-center gap-1.5', className)}>
       <span className="text-sm font-medium tabular-nums">
-        {formatPaisa(price.unitPricePaisa, price.currency)}
+        {formatMinor(price.unitPriceMinor, price.currency)}
       </span>
       <Badge
         variant={price.source === 'negotiated' ? 'default' : 'outline'}

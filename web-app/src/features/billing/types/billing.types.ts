@@ -3,30 +3,18 @@
 
 export type ServiceKind = 'CONSULTATION' | 'PROCEDURE' | 'OTHER'
 export type ChargeSource =
-  | 'CONSULTATION'
-  | 'TREATMENT'
-  | 'TREATMENT_PLAN'
-  | 'MANUAL'
+  'CONSULTATION' | 'TREATMENT' | 'TREATMENT_PLAN' | 'MANUAL'
 export type ChargeStatus = 'ACTIVE' | 'VOID'
 export type DiscountKind = 'PERCENTAGE' | 'FIXED'
 export type DiscountAppliesTo = 'ALL' | 'SERVICE_KINDS' | 'SERVICES'
 export type InvoiceStatus = 'ISSUED' | 'CANCELLED'
 export type InvoicePaymentStatus =
-  | 'UNPAID'
-  | 'PARTIALLY_PAID'
-  | 'PAID'
-  | 'OVERDUE'
+  'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE'
 export type InvoiceRefundStatus =
-  | 'NONE'
-  | 'PARTIALLY_REFUNDED'
-  | 'FULLY_REFUNDED'
+  'NONE' | 'PARTIALLY_REFUNDED' | 'FULLY_REFUNDED'
 export type InvoiceListStatus = InvoicePaymentStatus | 'REFUNDED' | 'CANCELLED'
 export type PaymentMethod =
-  | 'CASH'
-  | 'CARD'
-  | 'BANK_TRANSFER'
-  | 'CHEQUE'
-  | 'ONLINE_WALLET'
+  'CASH' | 'CARD' | 'BANK_TRANSFER' | 'CHEQUE' | 'ONLINE_WALLET'
 export type PrintFormat = 'A4' | 'THERMAL_80'
 export type AllocationMode = 'AUTO' | 'MANUAL'
 export type ChargePaymentState = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID'
@@ -373,13 +361,13 @@ export interface PaymentPreview {
     description: string
     reason: 'NEEDS_PRICING'
   }>
-  /** Admin-only, internal: commission this collection would record (paisa). */
+  /** Admin-only, internal: commission this collection would record (minor units). */
   doctorShare?: {
-    totalPaisa: number
+    totalMinor: number
     byDoctor: Array<{
       assignmentId: string
       doctorName: string
-      amountPaisa: number
+      amountMinor: number
     }>
   } | null
 }

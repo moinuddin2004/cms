@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -87,18 +87,41 @@ export function NavBuilderEditor({
     }),
   )
 
-  const onDragStart = ({ active }: DragStartEvent) =>
+  const onDragStart = ({ active }: DragStartEvent) => {
+    lastMove.current = null
     setActiveId(String(active.id))
+  }
+
+  // A move into another list changes the layout under the pointer, which can
+  // make the row "collide" with the list it just left and bounce straight
+  // back — over and over until React gives up ("Maximum update depth").
+  // So: at most one cross-list move per frame, and never straight back.
+  const lastMove = useRef<{ from: string; to: string; at: number } | null>(null)
+  const moving = useRef(false)
 
   // Across lists: move as soon as the pointer enters another list.
   const onDragOver = ({ active, over }: DragOverEvent) => {
-    if (!over || typeOf(active.data) === 'section') return
+    if (!over || typeOf(active.data) === 'section' || moving.current) return
     const id = String(active.id)
     const overId = String(over.id)
+    const from = findContainer(state, id)
+    const to = findContainer(state, overId)
+    if (!from || !to || from === to) return
+    const prev = lastMove.current
+    if (
+      prev &&
+      prev.from === to &&
+      prev.to === from &&
+      Date.now() - prev.at < 250
+    ) {
+      return
+    }
+    lastMove.current = { from, to, at: Date.now() }
+    moving.current = true
+    requestAnimationFrame(() => {
+      moving.current = false
+    })
     update((s) => {
-      const from = findContainer(s, id)
-      const to = findContainer(s, overId)
-      if (!from || !to || from === to) return s
       const index = s.containers[to].indexOf(overId)
       return moveNode(s, id, to, index >= 0 ? index : s.containers[to].length)
     })

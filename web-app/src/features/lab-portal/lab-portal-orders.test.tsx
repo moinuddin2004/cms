@@ -99,7 +99,7 @@ const detail = (over: Partial<PortalOrderDetail> = {}): PortalOrderDetail => ({
   clinic: { name: 'Bright Smiles Clinic' },
   patient: { ref: 'Ali Raza', patientNumber: 'P-1' },
   doctor: { fullName: 'Dr Sana' },
-  labCostPaisa: 1_000_000,
+  labCostMinor: 1_000_000,
   items: [
     {
       id: 'i-1',
@@ -111,8 +111,8 @@ const detail = (over: Partial<PortalOrderDetail> = {}): PortalOrderDetail => ({
       rush: false,
       options: [],
       currency: 'PKR',
-      labUnitCostPaisa: 500_000,
-      labLineCostPaisa: 1_000_000,
+      labUnitCostMinor: 500_000,
+      labLineCostMinor: 1_000_000,
       status: 'pending_acceptance',
       form: {
         code: 'CROWN',

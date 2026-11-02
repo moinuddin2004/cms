@@ -27,7 +27,7 @@ describe('planTotals', () => {
     ).toBe(0);
   });
 
-  it('applies a percentage to the total, rounded to the paisa', () => {
+  it('applies a percentage to the total, rounded to the minor', () => {
     expect(
       planTotals([333.33, 0.01], { kind: DiscountKind.PERCENTAGE, value: 10 }),
     ).toEqual({

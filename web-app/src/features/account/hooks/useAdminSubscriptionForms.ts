@@ -2,6 +2,12 @@ import { useEffect } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { toInputValue, toNumber, toNumberOrNull } from '@/lib/zod-numbers'
 import {
+  clinicDateTimeToUtc,
+  clinicDayBounds,
+  todayYmd,
+  toClinicYmd,
+} from '@/lib/datetime'
+import {
   recordPaymentSchema,
   updateSubscriptionSchema,
 } from '../schemas/account.schema'
@@ -15,17 +21,12 @@ import {
   useUpdateAdminSubscription,
 } from './useAccount'
 
-/** `yyyy-MM-dd` for a DatePicker from an ISO timestamp. */
-export const toYmd = (iso: string | null) => {
-  if (!iso) return null
-  const d = new Date(iso)
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
-}
+/** `yyyy-MM-dd` (clinic day) for a DatePicker from an ISO timestamp. */
+export const toYmd = (iso: string | null) => (iso ? toClinicYmd(iso) : null)
 
-/** A picked day as the end of that day, local time. */
+/** A picked day as the end of that day, clinic time. */
 export const endOfDayIso = (ymd: string | null) =>
-  ymd ? new Date(`${ymd}T23:59:59`).toISOString() : null
+  ymd ? clinicDayBounds(ymd).end : null
 
 function paymentDefaults(
   sub: AdminSubscription | undefined,
@@ -39,7 +40,7 @@ function paymentDefaults(
     amount: toInputValue(price),
     method: 'bank_transfer',
     reference: '',
-    paidAt: toYmd(new Date().toISOString())!,
+    paidAt: todayYmd(),
     notes: '',
   }
 }
@@ -59,7 +60,7 @@ export function useRecordPaymentForm(
         ...value,
         months: toNumber(value.months),
         amount: toNumber(value.amount),
-        paidAt: new Date(`${value.paidAt}T12:00:00`).toISOString(),
+        paidAt: clinicDateTimeToUtc(value.paidAt, '12:00'),
       })
       form.reset(paymentDefaults(sub))
       onDone()

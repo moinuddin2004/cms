@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 import { ClockService } from 'src/common/clock/clock.service';
 import { addDays } from 'src/common/clock/tz.util';
 import { sqlRows } from 'src/common/database/sql';
-import { fromPaisa } from 'src/billing/common/money';
+import { fromMinor } from 'src/billing/common/money';
 import { preTaxAllocationSql } from 'src/billing/tax/invoice-tax';
 import {
   addMonths,
@@ -35,7 +35,7 @@ import {
 const TREND_MONTHS = 12;
 const TOP_N = 6;
 
-const r = fromPaisa;
+const r = fromMinor;
 
 /** P&L with money in rupees (the API shape). */
 function pnlToRupees(p: ProfitLoss) {
@@ -212,10 +212,10 @@ export class FinanceOverviewService {
            FROM invoices
           WHERE organization_id = $1 AND location_id = ANY($2) AND status = 'ISSUED' AND balance_due > 0
          UNION ALL
-         SELECT balance_paisa, COALESCE(due_on, issued_on)
+         SELECT balance_minor, COALESCE(due_on, issued_on)
            FROM lab_invoices
           WHERE organization_id = $1 AND location_id = ANY($2) AND status IN ${LAB_INVOICE_LIVE}
-            AND balance_paisa > 0)
+            AND balance_minor > 0)
        SELECT
          COALESCE(SUM(bal), 0) AS receivable,
          COUNT(*) AS open_invoices,
@@ -224,10 +224,10 @@ export class FinanceOverviewService {
          COALESCE(SUM(bal) FILTER (WHERE $3::date - due BETWEEN 31 AND 60), 0) AS d60,
          COALESCE(SUM(bal) FILTER (WHERE $3::date - due BETWEEN 61 AND 90), 0) AS d90,
          COALESCE(SUM(bal) FILTER (WHERE $3::date - due > 90), 0) AS d90plus,
-         (SELECT COALESCE(SUM(balance_paisa), 0) FROM vendor_bills
+         (SELECT COALESCE(SUM(balance_minor), 0) FROM vendor_bills
            WHERE organization_id = $1 AND location_id = ANY($2)
              AND status IN ('approved', 'partially_paid')) AS payable,
-         (SELECT COALESCE(SUM(balance_paisa), 0) FROM vendor_bills
+         (SELECT COALESCE(SUM(balance_minor), 0) FROM vendor_bills
            WHERE organization_id = $1 AND location_id = ANY($2)
              AND status IN ('approved', 'partially_paid') AND due_on < $3::date) AS payable_overdue,
          (SELECT COALESCE(SUM((amount - allocated_amount - refunded_amount) * 100), 0)::bigint
@@ -336,7 +336,7 @@ export class FinanceOverviewService {
           WHERE organization_id = $1 AND location_id = ANY($2) AND refund_date BETWEEN $3 AND $4
           GROUP BY 1
          UNION ALL
-         SELECT 'Lab · ' || initcap(replace(method::text, '_', ' ')), SUM(amount_paisa)
+         SELECT 'Lab · ' || initcap(replace(method::text, '_', ' ')), SUM(amount_minor)
            FROM lab_payments
           WHERE organization_id = $1 AND location_id = ANY($2) AND received_on BETWEEN $3 AND $4
           GROUP BY 1

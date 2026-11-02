@@ -1,5 +1,5 @@
 import { AllocationMode } from '../../enums/billing.enums';
-import { Paisa } from '../../common/money';
+import { Minor } from '../../common/money';
 
 /** Shared types of the allocation planner and its strategies. Pure. */
 
@@ -12,35 +12,35 @@ export interface PlannerCharge {
   chargeDate: string;
   /** Epoch ms — FIFO tie-breaker. */
   createdAt: number;
-  balancePaisa: Paisa;
+  balanceMinor: Minor;
 }
 
 export interface FundSource {
   source: FundSourceId;
-  availablePaisa: Paisa;
+  availableMinor: Minor;
 }
 
 export interface AllocationInput {
   charges: readonly PlannerCharge[];
   funds: readonly FundSource[];
-  /** MANUAL mode: chargeId → requested paisa. */
-  requested?: ReadonlyMap<string, Paisa>;
+  /** MANUAL mode: chargeId → requested minor units. */
+  requested?: ReadonlyMap<string, Minor>;
 }
 
 export interface PlannedLine {
   chargeId: string;
   source: FundSourceId;
-  amountPaisa: Paisa;
+  amountMinor: Minor;
 }
 
 export interface AllocationPlan {
   lines: PlannedLine[];
-  /** chargeId → total paisa it receives. */
-  perCharge: Map<string, Paisa>;
-  /** Paisa taken from old advance. */
-  advanceUsedPaisa: Paisa;
+  /** chargeId → total minor units it receives. */
+  perCharge: Map<string, Minor>;
+  /** Minor taken from old advance. */
+  advanceUsedMinor: Minor;
   /** Unallocated part of the new payment — becomes advance (D6). */
-  newPaymentAdvancePaisa: Paisa;
+  newPaymentAdvanceMinor: Minor;
 }
 
 export type AllocationPlanErrorCode =
@@ -61,7 +61,7 @@ export interface AllocationStrategy {
   readonly mode: AllocationMode;
   targets(
     sortedCharges: readonly PlannerCharge[],
-    totalFundsPaisa: Paisa,
+    totalFundsMinor: Minor,
     input: AllocationInput,
-  ): Map<string, Paisa>;
+  ): Map<string, Minor>;
 }

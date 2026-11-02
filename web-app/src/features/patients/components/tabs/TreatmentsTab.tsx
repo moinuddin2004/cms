@@ -7,6 +7,7 @@ import { usePatientTreatments } from '../../hooks/usePatientSubEntities'
 import type { Patient } from '../../types'
 import { TreatmentFormDialog } from './TreatmentFormDialog'
 import { VisitDetailSheet } from './history/VisitDetailSheet'
+import { formatYmd } from '@/lib/datetime'
 
 const num = (v: number | string | null | undefined) =>
   v == null ? 0 : typeof v === 'string' ? parseFloat(v) || 0 : v
@@ -98,7 +99,7 @@ export function TreatmentsTab({
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">
-                      {new Date(t.date).toLocaleDateString()}
+                      {formatYmd(t.date)}
                     </td>
                     <td className="px-4 py-2.5">
                       {t.encounterId ? (

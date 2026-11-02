@@ -28,6 +28,8 @@ import { PrescriptionPdfService } from './prescription-pdf.service';
 import type { AccessContext } from 'src/access/access-context';
 import { patientScope } from 'src/patients/access/patient-scope';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
+import { ClockService } from 'src/common/clock/clock.service';
+import { isYmd } from 'src/common/clock/tz.util';
 
 @Injectable()
 export class PrescriptionService {
@@ -44,6 +46,7 @@ export class PrescriptionService {
     @Inject(forwardRef(() => PrescriptionPdfService))
     private readonly pdfService: PrescriptionPdfService,
     private readonly dataSource: DataSource,
+    private readonly clock: ClockService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -106,6 +109,7 @@ export class PrescriptionService {
     // 3. Generate per-org sequential RX number.
     const prescriptionNumber = await this.generatePrescriptionNumber(
       ctx.organizationId,
+      ctx.locationId,
     );
 
     // 4. Save with cascade.
@@ -204,11 +208,26 @@ export class PrescriptionService {
     if (filters.status) {
       qb.andWhere('p.status = :status', { status: filters.status });
     }
+    // A bare 'YYYY-MM-DD' is a clinic day: bound it in the location's tz
+    // (inclusive of the whole `dateTo` day). Full ISO instants pass through.
+    const tz =
+      isYmd(filters.dateFrom) || isYmd(filters.dateTo)
+        ? await this.clock.timezoneFor(ctx.locationId)
+        : 'UTC';
     if (filters.dateFrom) {
-      qb.andWhere('p.created_at >= :dateFrom', { dateFrom: filters.dateFrom });
+      const dateFrom = isYmd(filters.dateFrom)
+        ? this.clock.dayRange(tz, filters.dateFrom).start
+        : filters.dateFrom;
+      qb.andWhere('p.created_at >= :dateFrom', { dateFrom });
     }
     if (filters.dateTo) {
-      qb.andWhere('p.created_at <= :dateTo', { dateTo: filters.dateTo });
+      if (isYmd(filters.dateTo)) {
+        qb.andWhere('p.created_at < :dateTo', {
+          dateTo: this.clock.dayRange(tz, filters.dateTo).end,
+        });
+      } else {
+        qb.andWhere('p.created_at <= :dateTo', { dateTo: filters.dateTo });
+      }
     }
 
     qb.orderBy('p.createdAt', 'DESC')
@@ -269,9 +288,12 @@ export class PrescriptionService {
     finalized: number;
     draft: number;
   }> {
-    const monthStart = new Date();
-    monthStart.setDate(1);
-    monthStart.setHours(0, 0, 0, 0);
+    // "This month" starts at 00:00 on the 1st in the LOCATION's timezone.
+    const tz = await this.clock.timezoneFor(ctx.locationId);
+    const monthStart = this.clock.dayRange(
+      tz,
+      `${this.clock.today(tz).slice(0, 7)}-01`,
+    ).start;
 
     const base = this.repo
       .createQueryBuilder('p')
@@ -576,12 +598,16 @@ export class PrescriptionService {
    */
   private async generatePrescriptionNumber(
     organizationId: string,
+    locationId: string,
   ): Promise<string> {
     const last = await this.repo.findOne({
       where: { organizationId },
       order: { createdAt: 'DESC' },
     });
-    const year = new Date().getFullYear();
+    // The year in the number is the clinic's year, not the server's.
+    const year = this.clock
+      .today(await this.clock.timezoneFor(locationId))
+      .slice(0, 4);
     let seq = 1;
     if (last?.prescriptionNumber) {
       const parts = last.prescriptionNumber.split('-');

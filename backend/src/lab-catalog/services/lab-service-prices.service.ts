@@ -114,8 +114,8 @@ export class LabServicePricesService {
             repo.create({
               labServiceId: service.id,
               organizationId,
-              unitPricePaisa: dto.unitPricePaisa,
-              rushSurchargePaisa: dto.rushSurchargePaisa ?? 0,
+              unitPriceMinor: dto.unitPriceMinor,
+              rushSurchargeMinor: dto.rushSurchargeMinor ?? 0,
               effectiveFrom: dto.effectiveFrom,
               effectiveTo: dto.effectiveTo ?? null,
               notes: dto.notes ?? null,
@@ -148,10 +148,10 @@ export class LabServicePricesService {
       const price = await this.lockPrice(m, serviceId, priceId);
       assertVersion(price.version, dto.version);
       const amountsChanged =
-        (dto.unitPricePaisa !== undefined &&
-          dto.unitPricePaisa !== price.unitPricePaisa) ||
-        (dto.rushSurchargePaisa !== undefined &&
-          dto.rushSurchargePaisa !== price.rushSurchargePaisa);
+        (dto.unitPriceMinor !== undefined &&
+          dto.unitPriceMinor !== price.unitPriceMinor) ||
+        (dto.rushSurchargeMinor !== undefined &&
+          dto.rushSurchargeMinor !== price.rushSurchargeMinor);
       checkWindowEdit(
         price,
         {
@@ -163,10 +163,10 @@ export class LabServicePricesService {
       );
 
       const before = snapshotOf(price, PRICE_AUDIT_FIELDS);
-      if (dto.unitPricePaisa !== undefined)
-        price.unitPricePaisa = dto.unitPricePaisa;
-      if (dto.rushSurchargePaisa !== undefined)
-        price.rushSurchargePaisa = dto.rushSurchargePaisa;
+      if (dto.unitPriceMinor !== undefined)
+        price.unitPriceMinor = dto.unitPriceMinor;
+      if (dto.rushSurchargeMinor !== undefined)
+        price.rushSurchargeMinor = dto.rushSurchargeMinor;
       if (dto.effectiveFrom !== undefined)
         price.effectiveFrom = dto.effectiveFrom;
       if (dto.effectiveTo !== undefined) price.effectiveTo = dto.effectiveTo;

@@ -9,7 +9,7 @@ import {
   OneToMany,
   VersionColumn,
 } from 'typeorm';
-import { PaisaColumn } from 'src/billing/common/paisa-column';
+import { MinorColumn } from 'src/billing/common/minor-column';
 import { UuidV7PrimaryColumn } from 'src/common/database/uuid-v7';
 import { Lab } from 'src/labs/entities/lab.entity';
 import {
@@ -29,8 +29,8 @@ import { VendorBill } from './vendor-bill.entity';
 })
 @Index('idx_vendor_payments_lab', ['organizationId', 'labId', 'paidAt'])
 @Check(
-  'chk_vendor_payments_paisa',
-  `"amount_paisa" > 0 AND "allocated_paisa" >= 0 AND "allocated_paisa" <= "amount_paisa"`,
+  'chk_vendor_payments_minor',
+  `"amount_minor" > 0 AND "allocated_minor" >= 0 AND "allocated_minor" <= "amount_minor"`,
 )
 export class VendorPayment {
   @UuidV7PrimaryColumn()
@@ -52,12 +52,12 @@ export class VendorPayment {
   @Column({ name: 'payment_no', type: 'varchar', length: 30 })
   paymentNo: string;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   /** Cached Σ active allocations. */
-  @PaisaColumn('allocated_paisa')
-  allocatedPaisa: number;
+  @MinorColumn('allocated_minor')
+  allocatedMinor: number;
 
   @Column({ name: 'method', type: 'enum', enum: VendorPaymentMethod })
   method: VendorPaymentMethod;
@@ -109,7 +109,7 @@ export class VendorPayment {
 @Entity({ name: 'vendor_payment_allocations' })
 @Index('idx_vendor_payment_allocations_payment', ['vendorPaymentId'])
 @Index('idx_vendor_payment_allocations_bill', ['vendorBillId'])
-@Check('chk_vendor_payment_allocations_paisa', `"amount_paisa" > 0`)
+@Check('chk_vendor_payment_allocations_minor', `"amount_minor" > 0`)
 export class VendorPaymentAllocation {
   @UuidV7PrimaryColumn()
   id: string;
@@ -133,8 +133,8 @@ export class VendorPaymentAllocation {
   @Column({ name: 'vendor_bill_id', type: 'uuid' })
   vendorBillId: string;
 
-  @PaisaColumn('amount_paisa')
-  amountPaisa: number;
+  @MinorColumn('amount_minor')
+  amountMinor: number;
 
   @Column({ name: 'reversed_at', type: 'timestamptz', nullable: true })
   reversedAt: Date | null;

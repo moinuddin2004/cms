@@ -6,7 +6,7 @@ import { CommissionSettlement } from './entities/commission-settlement.entity';
 /** Unsettled entries of one assignment, locked so no other settlement takes them. */
 export interface LockedEntries {
   ids: string[];
-  totalPaisa: number;
+  totalMinor: number;
 }
 
 /**
@@ -22,9 +22,9 @@ export const CommissionSettlements = {
     assignmentId: string,
     before: Date,
   ): Promise<LockedEntries> {
-    const rows = await sqlRows<{ id: string; amount_paisa: string }>(
+    const rows = await sqlRows<{ id: string; amount_minor: string }>(
       manager,
-      `SELECT id, amount_paisa FROM commission_entries
+      `SELECT id, amount_minor FROM commission_entries
         WHERE assignment_id = $1 AND settlement_id IS NULL AND created_at < $2
         ORDER BY id
           FOR UPDATE`,
@@ -32,7 +32,7 @@ export const CommissionSettlements = {
     );
     return {
       ids: rows.map((r) => r.id),
-      totalPaisa: rows.reduce((a, r) => a + Number(r.amount_paisa), 0),
+      totalMinor: rows.reduce((a, r) => a + Number(r.amount_minor), 0),
     };
   },
 
@@ -57,7 +57,7 @@ export const CommissionSettlements = {
         assignmentId: input.assignmentId,
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
-        totalPaisa: input.entries.totalPaisa,
+        totalMinor: input.entries.totalMinor,
         status: CommissionSettlementStatus.PENDING,
         payrollRecordId: input.payrollRecordId,
       }),
@@ -107,9 +107,9 @@ export const CommissionSettlements = {
   },
 };
 
-/** Paisa → exact "1234.56" for numeric(…,2) columns (no float rounding). */
-export function paisaToDecimal(paisa: number): string {
-  const sign = paisa < 0 ? '-' : '';
-  const abs = Math.abs(paisa);
+/** Minor → exact "1234.56" for numeric(…,2) columns (no float rounding). */
+export function minorToDecimal(minor: number): string {
+  const sign = minor < 0 ? '-' : '';
+  const abs = Math.abs(minor);
   return `${sign}${Math.trunc(abs / 100)}.${String(abs % 100).padStart(2, '0')}`;
 }

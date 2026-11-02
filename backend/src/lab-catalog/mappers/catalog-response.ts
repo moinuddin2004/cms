@@ -35,7 +35,7 @@ export const OPTION_AUDIT_FIELDS = [
   'optionType',
   'code',
   'name',
-  'extraCostPaisa',
+  'extraCostMinor',
   'sortOrder',
   'isActive',
 ] as const satisfies readonly (keyof LabServiceOption)[];
@@ -43,8 +43,8 @@ export const OPTION_AUDIT_FIELDS = [
 export const PRICE_AUDIT_FIELDS = [
   'labServiceId',
   'organizationId',
-  'unitPricePaisa',
-  'rushSurchargePaisa',
+  'unitPriceMinor',
+  'rushSurchargeMinor',
   'currency',
   'effectiveFrom',
   'effectiveTo',
@@ -99,7 +99,7 @@ export interface OptionResponse {
   optionType: OptionType;
   code: string;
   name: string;
-  extraCostPaisa: number;
+  extraCostMinor: number;
   sortOrder: number;
   isActive: boolean;
   version: number;
@@ -110,7 +110,7 @@ export const toOptionResponse = (o: LabServiceOption): OptionResponse => ({
   optionType: o.optionType,
   code: o.code,
   name: o.name,
-  extraCostPaisa: o.extraCostPaisa,
+  extraCostMinor: o.extraCostMinor,
   sortOrder: o.sortOrder,
   isActive: o.isActive,
   version: o.version,
@@ -120,8 +120,8 @@ export interface PriceResponse {
   id: string;
   labServiceId: string;
   organization: { id: string; name: string } | null;
-  unitPricePaisa: number;
-  rushSurchargePaisa: number;
+  unitPriceMinor: number;
+  rushSurchargeMinor: number;
   currency: string;
   effectiveFrom: string;
   effectiveTo: string | null;
@@ -138,8 +138,8 @@ export const toPriceResponse = (p: LabServicePrice): PriceResponse => ({
   organization: p.organization
     ? { id: p.organization.id, name: p.organization.name }
     : null,
-  unitPricePaisa: p.unitPricePaisa,
-  rushSurchargePaisa: p.rushSurchargePaisa,
+  unitPriceMinor: p.unitPriceMinor,
+  rushSurchargeMinor: p.rushSurchargeMinor,
   currency: p.currency,
   effectiveFrom: p.effectiveFrom,
   effectiveTo: p.effectiveTo,
@@ -154,8 +154,8 @@ export const toPriceResponse = (p: LabServicePrice): PriceResponse => ({
 export interface EffectivePrice {
   priceId: string;
   source: LabPriceSource;
-  unitPricePaisa: number;
-  rushSurchargePaisa: number;
+  unitPriceMinor: number;
+  rushSurchargeMinor: number;
   currency: string;
   effectiveFrom: string;
   effectiveTo: string | null;
@@ -167,8 +167,8 @@ export const toEffectivePrice = (
 ): EffectivePrice => ({
   priceId: p.id,
   source,
-  unitPricePaisa: p.unitPricePaisa,
-  rushSurchargePaisa: p.rushSurchargePaisa,
+  unitPriceMinor: p.unitPriceMinor,
+  rushSurchargeMinor: p.rushSurchargeMinor,
   currency: p.currency,
   effectiveFrom: p.effectiveFrom,
   effectiveTo: p.effectiveTo,
@@ -259,8 +259,8 @@ export interface MappingResponse {
     name: string;
     code: string | null;
     isActive: boolean;
-    /** Org default patient price, paisa. */
-    defaultPricePaisa: number;
+    /** Org default patient price, minor units. */
+    defaultPriceMinor: number;
   };
   labService: {
     id: string;

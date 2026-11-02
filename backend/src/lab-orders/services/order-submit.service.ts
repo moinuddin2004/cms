@@ -249,11 +249,11 @@ export class OrderSubmitService {
           optionsSnap: quote.lab.options,
           labPriceId: quote.lab.priceId,
           currency: quote.lab.currency,
-          labUnitCostPaisa: quote.lab.unitPaisa,
-          labLineCostPaisa: lineTotal(quote.lab.unitPaisa, qty.quantity),
-          patientUnitPricePaisa: quote.patient.unitPricePaisa,
-          patientLinePricePaisa: lineTotal(
-            quote.patient.unitPricePaisa,
+          labUnitCostMinor: quote.lab.unitMinor,
+          labLineCostMinor: lineTotal(quote.lab.unitMinor, qty.quantity),
+          patientUnitPriceMinor: quote.patient.unitPriceMinor,
+          patientLinePriceMinor: lineTotal(
+            quote.patient.unitPriceMinor,
             qty.quantity,
           ),
           pricedOn: today,
@@ -457,8 +457,8 @@ export class OrderSubmitService {
         quantity: item.quantity,
         rush: item.rush,
         options: item.optionsSnap,
-        labUnitCostPaisa: item.labUnitCostPaisa,
-        labLineCostPaisa: item.labLineCostPaisa,
+        labUnitCostMinor: item.labUnitCostMinor,
+        labLineCostMinor: item.labLineCostMinor,
         formSchemaVersionId: item.formSchemaVersionId,
         answers,
         teeth: teeth

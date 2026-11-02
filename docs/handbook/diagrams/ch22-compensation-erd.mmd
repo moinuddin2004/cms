@@ -14,7 +14,7 @@ erDiagram
     uuid id PK
     uuid assignment_id FK
     enum type
-    bigint base_salary_paisa
+    bigint base_salary_minor
     int default_rate_bps
     date effective_from
     date effective_to
@@ -25,7 +25,7 @@ erDiagram
     uuid service_id FK
     enum service_category
     int rate_bps
-    bigint fixed_amount_paisa
+    bigint fixed_amount_minor
   }
   commission_entries {
     uuid id PK
@@ -33,14 +33,14 @@ erDiagram
     uuid charge_id FK
     uuid lab_invoice_line_id FK
     enum source_type
-    bigint amount_paisa "signed"
+    bigint amount_minor "signed"
     uuid settlement_id FK
   }
   commission_settlements {
     uuid id PK
     uuid assignment_id FK
     uuid payroll_record_id FK "unique"
-    bigint total_paisa
+    bigint total_minor
     enum status
   }
   employee_org_location_assignments {

@@ -6,10 +6,10 @@ import { BillingAuditService } from '../audit/billing-audit.service';
 import { BillingClock, ClinicTime } from '../common/billing-clock.service';
 import { BillingContext } from '../common/billing-context';
 import { billingError } from '../common/billing-errors';
-import { BillingLocks, paymentAdvancePaisa } from '../common/billing-locks';
+import { BillingLocks, paymentAdvanceMinor } from '../common/billing-locks';
 import { BillingLookups } from '../common/billing-lookups';
-import { fromPaisa, toPaisa } from '../common/money';
-import { chargeBalancePaisa } from '../charges/charge-math';
+import { fromMinor, toMinor } from '../common/money';
+import { chargeBalanceMinor } from '../charges/charge-math';
 import {
   ApplyAdvanceDto,
   CollectPaymentDto,
@@ -113,14 +113,14 @@ export interface PaymentPreview {
   }>;
   /**
    * Admin only, with doctor commissions on: commission this collection
-   * would record, per doctor, in paisa. Internal — never on receipts.
+   * would record, per doctor, in minor units. Internal — never on receipts.
    */
   doctorShare: {
-    totalPaisa: number;
+    totalMinor: number;
     byDoctor: Array<{
       assignmentId: string;
       doctorName: string;
-      amountPaisa: number;
+      amountMinor: number;
     }>;
   } | null;
 }
@@ -221,23 +221,23 @@ export class PaymentsService {
       charges,
       dto.selections,
       advance,
-      toPaisa(dto.amount),
+      toMinor(dto.amount),
     );
     const invoices = await this.invoiceNumbers(manager, charges);
     const willInvoiceNet = unbilled.reduce(
-      (a, c) => a + toPaisa(c.netAmount),
+      (a, c) => a + toMinor(c.netAmount),
       0,
     );
-    const totalBalance = charges.reduce((a, c) => a + chargeBalancePaisa(c), 0);
-    const advanceAvailable = advance.reduce((a, f) => a + f.availablePaisa, 0);
+    const totalBalance = charges.reduce((a, c) => a + chargeBalanceMinor(c), 0);
+    const advanceAvailable = advance.reduce((a, f) => a + f.availableMinor, 0);
     const byId = new Map(charges.map((c) => [c.id, c]));
     return {
-      totalSelectedBalance: fromPaisa(totalBalance),
-      advanceAvailable: fromPaisa(advanceAvailable),
-      advanceUsed: fromPaisa(plan.advanceUsedPaisa),
-      payingNow: fromPaisa(toPaisa(dto.amount) - plan.newPaymentAdvancePaisa),
-      toAdvance: fromPaisa(plan.newPaymentAdvancePaisa),
-      amountToClearSelected: fromPaisa(
+      totalSelectedBalance: fromMinor(totalBalance),
+      advanceAvailable: fromMinor(advanceAvailable),
+      advanceUsed: fromMinor(plan.advanceUsedMinor),
+      payingNow: fromMinor(toMinor(dto.amount) - plan.newPaymentAdvanceMinor),
+      toAdvance: fromMinor(plan.newPaymentAdvanceMinor),
+      amountToClearSelected: fromMinor(
         Math.max(0, totalBalance - advanceAvailable),
       ),
       invoiceWillBeIssued: unbilled.length > 0,
@@ -247,17 +247,17 @@ export class PaymentsService {
         netAmount: c.netAmount,
         taxAmount: c.taxAmount,
       })),
-      willInvoiceNet: fromPaisa(willInvoiceNet),
+      willInvoiceNet: fromMinor(willInvoiceNet),
       willInvoiceTaxRate: unbilled.length ? taxRate : 0,
-      willInvoiceTax: fromPaisa(willInvoiceTax),
-      willInvoiceTotal: fromPaisa(willInvoiceNet + willInvoiceTax),
+      willInvoiceTax: fromMinor(willInvoiceTax),
+      willInvoiceTotal: fromMinor(willInvoiceNet + willInvoiceTax),
       lines: plan.lines.map((l) => ({
         chargeId: l.chargeId,
         description: byId.get(l.chargeId)?.description ?? '',
         invoiceNumber:
           invoices.get(byId.get(l.chargeId)?.invoiceId ?? '') ?? null,
         source: l.source === NEW_PAYMENT ? 'NEW' : 'ADVANCE',
-        amount: fromPaisa(l.amountPaisa),
+        amount: fromMinor(l.amountMinor),
       })),
       blockers: unbilled
         .filter((c) => c.needsPricing)
@@ -276,9 +276,9 @@ export class PaymentsService {
               manager,
               plan.lines.map((l) => ({
                 chargeId: l.chargeId,
-                amountPaisa: l.amountPaisa,
+                amountMinor: l.amountMinor,
               })),
-              new Map(unbilled.map((c) => [c.id, toPaisa(c.taxAmount)])),
+              new Map(unbilled.map((c) => [c.id, toMinor(c.taxAmount)])),
             )
           : null,
     };
@@ -341,7 +341,7 @@ export class PaymentsService {
         new Map(charges.map((c) => [c.id, c])),
         dto.lines?.map((l) => ({
           chargeId: l.chargeId,
-          amountPaisa: toPaisa(l.amount),
+          amountMinor: toMinor(l.amount),
         })) ?? null,
         dto.reason,
       );
@@ -360,9 +360,9 @@ export class PaymentsService {
         entityType: BillingAuditEntity.PAYMENT,
         entityId: paymentId,
         action: BillingAuditAction.UNAPPLIED,
-        after: { chargeIds, released: fromPaisa(released) },
+        after: { chargeIds, released: fromMinor(released) },
         reason: dto.reason,
-        amount: fromPaisa(released),
+        amount: fromMinor(released),
       });
     });
     const payment = await this.dataSource
@@ -381,7 +381,7 @@ export class PaymentsService {
         Pick<CollectPaymentDto, 'referenceNumber' | 'notes' | 'clientRequestId'>
       >,
   ): Promise<CollectResult> {
-    const isNewMoney = toPaisa(dto.amount) > 0;
+    const isNewMoney = toMinor(dto.amount) > 0;
     await BillingLookups.patient(manager, ctx.tenant, dto.patientId);
     const account = isNewMoney
       ? await this.accounts.resolveForUse(
@@ -413,7 +413,7 @@ export class PaymentsService {
       charges,
       dto.selections,
       advance,
-      toPaisa(dto.amount),
+      toMinor(dto.amount),
     );
     if (!isNewMoney && plan.lines.length === 0) {
       throw billingError(
@@ -438,7 +438,7 @@ export class PaymentsService {
         paymentId:
           l.source === NEW_PAYMENT ? (payment as Payment).id : l.source,
         charge: byId.get(l.chargeId) as Charge,
-        amountPaisa: l.amountPaisa,
+        amountMinor: l.amountMinor,
         reason:
           l.source === NEW_PAYMENT
             ? AllocationReason.PAYMENT
@@ -486,10 +486,10 @@ export class PaymentsService {
         payment: payment ? { ...payment } : null,
         allocations: plan.lines.map((l) => ({
           ...l,
-          amount: fromPaisa(l.amountPaisa),
+          amount: fromMinor(l.amountMinor),
         })),
       },
-      amount: payment?.amount ?? fromPaisa(plan.advanceUsedPaisa),
+      amount: payment?.amount ?? fromMinor(plan.advanceUsedMinor),
     });
 
     const fresh = payment
@@ -559,7 +559,7 @@ export class PaymentsService {
       if (
         c.patientId !== patientId ||
         c.status !== ChargeStatus.ACTIVE ||
-        (chargeBalancePaisa(c) <= 0 && !awaitingPrice)
+        (chargeBalanceMinor(c) <= 0 && !awaitingPrice)
       ) {
         throw billingError(
           'BILLING_CHARGE_NOT_OPEN',
@@ -580,7 +580,7 @@ export class PaymentsService {
     charges: Charge[],
     selections: Selection[],
     advance: FundSource[],
-    newPaisa: number,
+    newMinor: number,
   ): AllocationPlan {
     if (
       mode === AllocationMode.MANUAL &&
@@ -597,11 +597,11 @@ export class PaymentsService {
           id: c.id,
           chargeDate: c.chargeDate,
           createdAt: c.createdAt.getTime(),
-          balancePaisa: chargeBalancePaisa(c),
+          balanceMinor: chargeBalanceMinor(c),
         })),
-        funds: [...advance, { source: NEW_PAYMENT, availablePaisa: newPaisa }],
+        funds: [...advance, { source: NEW_PAYMENT, availableMinor: newMinor }],
         requested: new Map(
-          selections.map((s) => [s.chargeId, toPaisa(s.amount ?? 0)]),
+          selections.map((s) => [s.chargeId, toMinor(s.amount ?? 0)]),
         ),
       });
     } catch (err) {
@@ -619,8 +619,8 @@ export class PaymentsService {
           a.receivedAt.getTime() - b.receivedAt.getTime() ||
           a.id.localeCompare(b.id),
       )
-      .map((p) => ({ source: p.id, availablePaisa: paymentAdvancePaisa(p) }))
-      .filter((f) => f.availablePaisa > 0);
+      .map((p) => ({ source: p.id, availableMinor: paymentAdvanceMinor(p) }))
+      .filter((f) => f.availableMinor > 0);
   }
 
   private async advanceSources(
@@ -756,7 +756,7 @@ export class PaymentsService {
         chargeId: l.chargeId,
         invoiceNumber: numbers.get(invoiceOf.get(l.chargeId) ?? '') ?? null,
         source: l.source === NEW_PAYMENT ? 'NEW' : 'ADVANCE',
-        amount: fromPaisa(l.amountPaisa),
+        amount: fromMinor(l.amountMinor),
       })),
       summary,
     };

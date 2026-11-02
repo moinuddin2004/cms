@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
+import { todayYmd } from '@/lib/datetime'
 import { useForm } from '@tanstack/react-form'
-import { paisaToRupeesText } from '@/features/lab-catalog'
+import { minorToRupeesText } from '@/features/lab-catalog'
 import {
   approveBillSchema,
   payLabSchema,
@@ -13,7 +14,7 @@ import type {
 } from '../schemas/lab-payables.schema'
 import type { VendorBill } from '../types'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = todayYmd
 
 export function useApproveBillForm({
   bill,
@@ -55,15 +56,15 @@ export function usePayLabForm({
   const initial = (): PayLabValues => {
     const pre = bills.find((b) => b.id === prefillBillId)
     return {
-      amount: pre ? paisaToRupeesText(pre.balancePaisa) : '',
+      amount: pre ? minorToRupeesText(pre.balanceMinor) : '',
       method: 'bank_transfer',
       reference: '',
       paidOn: today(),
       allocations: bills.map((b) => ({
         billId: b.id,
         billNo: b.billNo,
-        balancePaisa: b.balancePaisa,
-        amount: b.id === prefillBillId ? paisaToRupeesText(b.balancePaisa) : '',
+        balanceMinor: b.balanceMinor,
+        amount: b.id === prefillBillId ? minorToRupeesText(b.balanceMinor) : '',
       })),
     }
   }

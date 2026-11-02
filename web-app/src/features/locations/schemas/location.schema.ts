@@ -22,6 +22,7 @@ export function createLocationSchema({
       address: max(1000),
       city: max(100),
       country: max(100),
+      timezone: z.string().min(1, 'Pick a timezone'),
       phone: z
         .string()
         .trim()

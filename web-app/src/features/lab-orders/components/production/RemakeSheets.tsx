@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
-import { formatPaisa } from '@/features/lab-catalog'
+import { formatMinor } from '@/features/lab-catalog'
 import { fieldError } from '@/features/queue'
 import {
   useRemakeDecisionForm,
@@ -135,9 +135,9 @@ function preview(
   if (party === 'lab')
     return 'The lab remakes it free; the patient pays nothing.'
   if (party === 'clinic') {
-    return `The clinic pays the lab ${formatPaisa(prices.lab)}; the patient pays nothing.`
+    return `The clinic pays the lab ${formatMinor(prices.lab)}; the patient pays nothing.`
   }
-  return `Charged again: lab ${formatPaisa(prices.lab)}, patient ${formatPaisa(prices.patient)}.`
+  return `Charged again: lab ${formatMinor(prices.lab)}, patient ${formatMinor(prices.patient)}.`
 }
 
 /** Agree a remake (who is responsible sets the prices) or close it. */

@@ -23,12 +23,12 @@ import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { EmploymentRole } from './entities/employment-role.entity';
 import { AccessVersionService } from 'src/access/version/access-version.service';
 import { billingError } from 'src/billing/common/billing-errors';
-import { fromPaisa } from 'src/billing/common/money';
+import { fromMinor } from 'src/billing/common/money';
 import {
   COMMISSIONS_FEATURE,
   CompensationPlanType,
 } from 'src/billing/commissions/commission.enums';
-import { rupeesToPaisa } from 'src/billing/commissions/commission-math';
+import { rupeesToMinor } from 'src/billing/commissions/commission-math';
 import {
   CompensationPlanVersions,
   PlanVersionInput,
@@ -56,14 +56,14 @@ export class EmployeesService {
     return this.clock.today(await this.clock.timezoneFor(locationId));
   }
 
-  private toPaisaOrFail(rupees: number | string): number {
-    const paisa = rupeesToPaisa(rupees);
-    if (paisa === null) {
+  private toMinorOrFail(rupees: number | string): number {
+    const minor = rupeesToMinor(rupees);
+    if (minor === null) {
       throw new BadRequestException(
         'Salary must be a positive amount with at most 2 decimals',
       );
     }
-    return paisa;
+    return minor;
   }
 
   /**
@@ -81,7 +81,7 @@ export class EmployeesService {
     const input: PlanVersionInput = c
       ? {
           type: c.type,
-          baseSalaryPaisa: c.baseSalaryPaisa ?? null,
+          baseSalaryMinor: c.baseSalaryMinor ?? null,
           defaultRateBps: c.defaultRateBps ?? null,
           commissionBasis: c.commissionBasis,
           effectiveFrom: c.effectiveFrom ?? joining,
@@ -89,8 +89,8 @@ export class EmployeesService {
         }
       : {
           type: CompensationPlanType.SALARY,
-          baseSalaryPaisa:
-            dto.grossSalary == null ? 0 : this.toPaisaOrFail(dto.grossSalary),
+          baseSalaryMinor:
+            dto.grossSalary == null ? 0 : this.toMinorOrFail(dto.grossSalary),
           effectiveFrom: joining,
         };
     CompensationPlanVersions.validateFields(input);
@@ -125,7 +125,7 @@ export class EmployeesService {
     rupees: number | string,
     userId: string | null,
   ): Promise<number> {
-    const paisa = this.toPaisaOrFail(rupees);
+    const minor = this.toMinorOrFail(rupees);
     const today = await this.clinicToday(assignment.locationId);
     await this.assignmentRepo.manager.transaction(async (m) => {
       const current = await CompensationPlanVersions.activeOn(
@@ -133,7 +133,7 @@ export class EmployeesService {
         assignment.id,
         today,
       );
-      if (current?.baseSalaryPaisa === paisa) return;
+      if (current?.baseSalaryMinor === minor) return;
       const earns = !!current && current.type !== CompensationPlanType.SALARY;
       await CompensationPlanVersions.add(
         m,
@@ -142,7 +142,7 @@ export class EmployeesService {
           type: earns
             ? CompensationPlanType.SALARY_PLUS_COMMISSION
             : CompensationPlanType.SALARY,
-          baseSalaryPaisa: paisa,
+          baseSalaryMinor: minor,
           defaultRateBps: earns ? current.defaultRateBps : null,
           commissionBasis: current?.commissionBasis,
           effectiveFrom: today,
@@ -151,14 +151,14 @@ export class EmployeesService {
                 serviceId: r.serviceId ?? undefined,
                 serviceCategory: r.serviceCategory ?? undefined,
                 rateBps: r.rateBps ?? undefined,
-                fixedAmountPaisa: r.fixedAmountPaisa ?? undefined,
+                fixedAmountMinor: r.fixedAmountMinor ?? undefined,
               }))
             : [],
         },
         userId,
       );
     });
-    return paisa;
+    return minor;
   }
 
   /** Current plans for display (salary / type), keyed by assignment id. */
@@ -179,7 +179,7 @@ export class EmployeesService {
     plan: CompensationPlan | undefined,
   ): number | null {
     if (plan) {
-      return plan.baseSalaryPaisa ? fromPaisa(plan.baseSalaryPaisa) : null;
+      return plan.baseSalaryMinor ? fromMinor(plan.baseSalaryMinor) : null;
     }
     return a.grossSalary ? Number(a.grossSalary) : null;
   }
@@ -188,16 +188,18 @@ export class EmployeesService {
   // HELPERS
   // ═══════════════════════════════════════════════════════════
 
-  private async generateEmployeeCode(
-    organizationId: string,
-  ): Promise<string> {
+  private async generateEmployeeCode(organizationId: string): Promise<string> {
     const count = await this.assignmentRepo.count({
       where: { organizationId },
     });
     return `EMP-${String(count + 1).padStart(3, '0')}`;
   }
 
-  private async createPortalUser(email: string, password: string, name: string): Promise<User> {
+  private async createPortalUser(
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<User> {
     const existing = await this.userRepo.findOneBy({ email });
     if (existing) {
       throw new ConflictException(`A user with email ${email} already exists`);
@@ -299,7 +301,8 @@ export class EmployeesService {
       employmentType:
         (dto.employmentType as EmploymentType) || EmploymentType.FULL_TIME,
       employeeCode,
-      joiningDate: dto.joiningDate ? new Date(dto.joiningDate) : new Date(),
+      // `joining_date` is a `date` column: the clinic's day (computed above).
+      joiningDate: new Date(`${joining}T00:00:00Z`),
       grossSalary: null, // deprecated: salary lives in compensation_plans
       hasPortalAccess: dto.hasPortalAccess ?? false,
       userId: resolvedUserId,
@@ -334,7 +337,14 @@ export class EmployeesService {
     limit: number;
   }> {
     const { organizationId, locationId } = ctx;
-    const { search, role, employmentType, isActive, page = 1, limit = 20 } = filters;
+    const {
+      search,
+      role,
+      employmentType,
+      isActive,
+      page = 1,
+      limit = 20,
+    } = filters;
 
     const qb = this.assignmentRepo
       .createQueryBuilder('a')
@@ -408,10 +418,7 @@ export class EmployeesService {
   // FIND ONE
   // ═══════════════════════════════════════════════════════════
 
-  async findOne(
-    employeeId: string,
-    ctx: TenantContext,
-  ): Promise<any> {
+  async findOne(employeeId: string, ctx: TenantContext): Promise<any> {
     const { organizationId, locationId } = ctx;
 
     const assignment = await this.assignmentRepo.findOne({
@@ -628,10 +635,14 @@ export class EmployeesService {
       ctx.organizationId,
       ctx.locationId,
     );
-    const paisa = await this.addSalaryVersion(assignment, dto.grossSalary, null);
+    const minor = await this.addSalaryVersion(
+      assignment,
+      dto.grossSalary,
+      null,
+    );
     return {
       assignmentId: assignment.id,
-      grossSalary: fromPaisa(paisa),
+      grossSalary: fromMinor(minor),
     };
   }
 

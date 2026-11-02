@@ -30,6 +30,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatInClinic } from '@/lib/datetime'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { fetchAppointmentById } from '../services/appointments.api'
 import {
@@ -106,15 +107,8 @@ function DetailBody({
   const confirmMutation = useConfirmAppointment()
   const [checkingIn, setCheckingIn] = useState(false)
 
-  const start = new Date(appt.startTime)
-  const end = new Date(appt.endTime)
-  const dateLabel = start.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-  const timeLabel = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  const dateLabel = formatInClinic(appt.startTime, 'EEEE, MMMM d, yyyy')
+  const timeLabel = `${formatInClinic(appt.startTime, 'hh:mm a')} – ${formatInClinic(appt.endTime, 'hh:mm a')}`
   const queueEntry = appt.queueEntry ?? null
 
   const isCancelled = appt.status === AppointmentStatus.CANCELLED

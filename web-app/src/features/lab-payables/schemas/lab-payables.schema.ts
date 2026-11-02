@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { rupeesToPaisa } from '@/features/lab-catalog'
+import { rupeesToMinor } from '@/features/lab-catalog'
 
 const text = (n: number) => z.string().trim().max(n, `At most ${n} characters`)
 const rupees = (label: string) =>
@@ -7,7 +7,7 @@ const rupees = (label: string) =>
     .string()
     .trim()
     .refine(
-      (v) => rupeesToPaisa(v) !== null,
+      (v) => rupeesToMinor(v) !== null,
       `${label}: enter an amount like 4500 or 4500.50`,
     )
 
@@ -36,7 +36,7 @@ export type ApproveBillValues = z.input<typeof approveBillSchema>
 export const payLabSchema = z
   .object({
     amount: rupees('Amount').refine(
-      (v) => (rupeesToPaisa(v) ?? 0) > 0,
+      (v) => (rupeesToMinor(v) ?? 0) > 0,
       'Enter the amount paid',
     ),
     method: z.enum(['cash', 'bank_transfer', 'cheque', 'other']),
@@ -46,17 +46,17 @@ export const payLabSchema = z
       z.object({
         billId: z.string(),
         billNo: z.string(),
-        balancePaisa: z.number(),
+        balanceMinor: z.number(),
         amount: z.string().trim(),
       }),
     ),
   })
   .superRefine((v, ctx) => {
-    const amount = rupeesToPaisa(v.amount) ?? 0
+    const amount = rupeesToMinor(v.amount) ?? 0
     let sum = 0
     v.allocations.forEach((a, i) => {
       if (!a.amount) return
-      const p = rupeesToPaisa(a.amount)
+      const p = rupeesToMinor(a.amount)
       if (p === null) {
         ctx.addIssue({
           code: 'custom',
@@ -65,7 +65,7 @@ export const payLabSchema = z
         })
         return
       }
-      if (p > a.balancePaisa) {
+      if (p > a.balanceMinor) {
         ctx.addIssue({
           code: 'custom',
           path: ['allocations', i, 'amount'],
@@ -91,7 +91,7 @@ export type PayLabValues = z.input<typeof payLabSchema>
 export function parseStatementLines(raw: string): {
   lines: Array<{
     labReference?: string
-    amountPaisa: number
+    amountMinor: number
     lineDate?: string
     description?: string
   }>
@@ -99,7 +99,7 @@ export function parseStatementLines(raw: string): {
 } {
   const lines: Array<{
     labReference?: string
-    amountPaisa: number
+    amountMinor: number
     lineDate?: string
     description?: string
   }> = []
@@ -113,8 +113,8 @@ export function parseStatementLines(raw: string): {
       const sep = l.includes('\t') ? '\t' : l.includes(';') ? ';' : ','
       const cells: Array<string | undefined> = l.split(sep).map((c) => c.trim())
       const [ref, amount = '', date, ...rest] = cells
-      const paisa = rupeesToPaisa(amount.replace(/[, ]/g, ''))
-      if (paisa === null) {
+      const minor = rupeesToMinor(amount.replace(/[, ]/g, ''))
+      if (minor === null) {
         errors.push(`Line ${i + 1}: "${amount}" is not an amount`)
         return
       }
@@ -124,7 +124,7 @@ export function parseStatementLines(raw: string): {
       }
       lines.push({
         labReference: ref || undefined,
-        amountPaisa: paisa,
+        amountMinor: minor,
         lineDate: date || undefined,
         description: rest.join(', ') || undefined,
       })

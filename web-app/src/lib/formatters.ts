@@ -4,14 +4,8 @@ import { activeCurrency } from '@/lib/currency'
 export const formatCurrency = (amount: number) =>
   `${activeCurrency()} ${amount.toLocaleString('en-PK')}`
 
-export const formatDate = (date: string | Date | undefined) => {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
+/** "Nov 2, 2026" in the clinic's timezone (see `@/lib/datetime`). */
+export { formatDate } from '@/lib/datetime'
 
 export const getInitials = (name: string) =>
   name

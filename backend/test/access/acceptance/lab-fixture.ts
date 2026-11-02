@@ -24,11 +24,8 @@ export interface LabSeed {
 export async function seedLab(env: Env): Promise<LabSeed> {
   const w = env.world;
   const sa = w.people.SA;
-  const platform = (
-    method: 'post' | 'get',
-    url: string,
-    body?: object,
-  ) => env.call(method, url, sa, { body, org: null, loc: null });
+  const platform = (method: 'post' | 'get', url: string, body?: object) =>
+    env.call(method, url, sa, { body, org: null, loc: null });
   const m = env.ds.manager;
   const platformDef = { organizationId: IsNull() };
   const crownForm = await m
@@ -70,10 +67,14 @@ export async function seedLab(env: Env): Promise<LabSeed> {
       workflowTemplateId: itemWorkflow.id,
     }).expect(201),
   );
-  await platform('post', `/platform/labs/${lab.id}/services/${service.id}/prices`, {
-    unitPricePaisa: 500_000,
-    effectiveFrom: localDate('Asia/Karachi', new Date()),
-  }).expect(201);
+  await platform(
+    'post',
+    `/platform/labs/${lab.id}/services/${service.id}/prices`,
+    {
+      unitPriceMinor: 500_000,
+      effectiveFrom: localDate('Asia/Karachi', new Date()),
+    },
+  ).expect(201);
 
   const owner = w.people.OwnerA;
   const link = dataOf<{ id: string }>(

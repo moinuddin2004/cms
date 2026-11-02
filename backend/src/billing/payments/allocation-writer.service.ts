@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 import { BillingContext } from '../common/billing-context';
 import { billingError, invariant } from '../common/billing-errors';
-import { fromPaisa, toPaisa } from '../common/money';
+import { fromMinor, toMinor } from '../common/money';
 import { Charge } from '../entities/charge.entity';
 import { PaymentAllocation } from '../entities/payment-allocation.entity';
 import { AllocationReason } from '../enums/billing.enums';
@@ -10,8 +10,8 @@ import { AllocationReason } from '../enums/billing.enums';
 export interface AllocationRow {
   paymentId: string;
   charge: Pick<Charge, 'id' | 'invoiceId' | 'patientId'>;
-  /** Signed paisa, never 0. */
-  amountPaisa: number;
+  /** Signed minor units, never 0. */
+  amountMinor: number;
   reason: AllocationReason;
   note?: string | null;
 }
@@ -19,7 +19,7 @@ export interface AllocationRow {
 export interface NetAllocation {
   paymentId: string;
   chargeId: string;
-  netPaisa: number;
+  netMinor: number;
 }
 
 /**
@@ -33,7 +33,7 @@ export class AllocationWriterService {
     ctx: BillingContext,
     rows: AllocationRow[],
   ): Promise<void> {
-    const real = rows.filter((r) => r.amountPaisa !== 0);
+    const real = rows.filter((r) => r.amountMinor !== 0);
     if (!real.length) return;
     for (const r of real) {
       // I4: every allocation points to a billed charge.
@@ -50,7 +50,7 @@ export class AllocationWriterService {
         paymentId: r.paymentId,
         chargeId: r.charge.id,
         invoiceId: r.charge.invoiceId as string,
-        amount: fromPaisa(r.amountPaisa),
+        amount: fromMinor(r.amountMinor),
         reason: r.reason,
         note: r.note ?? null,
         createdBy: ctx.actor.userId,
@@ -77,30 +77,30 @@ export class AllocationWriterService {
     return rows.map((r) => ({
       paymentId: r.payment_id,
       chargeId: r.charge_id,
-      netPaisa: toPaisa(r.net),
+      netMinor: toMinor(r.net),
     }));
   }
 
   /**
-   * Releases `releasePaisa` from a charge, newest allocation first (6.7
+   * Releases `releaseMinor` from a charge, newest allocation first (6.7
    * step 4). Returns the payments whose advance grew.
    */
   async releaseFromCharge(
     manager: EntityManager,
     ctx: BillingContext,
     charge: Pick<Charge, 'id' | 'invoiceId' | 'patientId'>,
-    releasePaisa: number,
+    releaseMinor: number,
     reason: AllocationReason,
     note: string,
-  ): Promise<Array<{ paymentId: string; amountPaisa: number }>> {
-    if (releasePaisa <= 0) return [];
+  ): Promise<Array<{ paymentId: string; amountMinor: number }>> {
+    if (releaseMinor <= 0) return [];
     const nets = await this.netAllocations(manager, { chargeIds: [charge.id] });
-    const released: Array<{ paymentId: string; amountPaisa: number }> = [];
-    let left = releasePaisa;
+    const released: Array<{ paymentId: string; amountMinor: number }> = [];
+    let left = releaseMinor;
     for (const n of nets) {
       if (left === 0) break;
-      const take = Math.min(left, n.netPaisa);
-      released.push({ paymentId: n.paymentId, amountPaisa: take });
+      const take = Math.min(left, n.netMinor);
+      released.push({ paymentId: n.paymentId, amountMinor: take });
       left -= take;
     }
     invariant(left === 0, `Charge ${charge.id}: release exceeds allocations`);
@@ -110,7 +110,7 @@ export class AllocationWriterService {
       released.map((r) => ({
         paymentId: r.paymentId,
         charge,
-        amountPaisa: -r.amountPaisa,
+        amountMinor: -r.amountMinor,
         reason,
         note,
       })),
@@ -124,18 +124,18 @@ export class AllocationWriterService {
     ctx: BillingContext,
     paymentId: string,
     charges: Map<string, Charge>,
-    lines: Array<{ chargeId: string; amountPaisa: number }> | null,
+    lines: Array<{ chargeId: string; amountMinor: number }> | null,
     note: string,
   ): Promise<number> {
     const nets = await this.netAllocations(manager, { paymentId });
-    const netByCharge = new Map(nets.map((n) => [n.chargeId, n.netPaisa]));
+    const netByCharge = new Map(nets.map((n) => [n.chargeId, n.netMinor]));
     const wanted =
       lines ??
-      nets.map((n) => ({ chargeId: n.chargeId, amountPaisa: n.netPaisa }));
+      nets.map((n) => ({ chargeId: n.chargeId, amountMinor: n.netMinor }));
     for (const l of wanted) {
       if (
-        l.amountPaisa <= 0 ||
-        l.amountPaisa > (netByCharge.get(l.chargeId) ?? 0)
+        l.amountMinor <= 0 ||
+        l.amountMinor > (netByCharge.get(l.chargeId) ?? 0)
       ) {
         throw billingError(
           'BILLING_UNAPPLY_EXCEEDS_ALLOCATION',
@@ -152,12 +152,12 @@ export class AllocationWriterService {
         return {
           paymentId,
           charge: charge as Charge,
-          amountPaisa: -l.amountPaisa,
+          amountMinor: -l.amountMinor,
           reason: AllocationReason.UNAPPLY,
           note,
         };
       }),
     );
-    return wanted.reduce((a, l) => a + l.amountPaisa, 0);
+    return wanted.reduce((a, l) => a + l.amountMinor, 0);
   }
 }

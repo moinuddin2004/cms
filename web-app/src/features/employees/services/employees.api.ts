@@ -1,7 +1,7 @@
 import api from '@/lib/api'
 import {
   percentToBps,
-  rupeesToPaisa,
+  rupeesToMinor,
 } from '@/features/billing/lib/commission-math'
 import type {
   Employee,
@@ -35,7 +35,7 @@ export async function createEmployee(
     commissionBasis,
     ...body
   } = payload
-  // Compensation step: % → basis points and rupees → paisa with integer
+  // Compensation step: % → basis points and rupees → minor units with integer
   // math only; a plain salaried employee keeps the old `grossSalary` path.
   const compensation =
     payType !== 'SALARY'
@@ -46,8 +46,8 @@ export async function createEmployee(
           effectiveFrom: body.joiningDate,
           ...(payType === 'SALARY_PLUS_COMMISSION'
             ? {
-                baseSalaryPaisa:
-                  rupeesToPaisa(String(body.grossSalary ?? '')) ?? undefined,
+                baseSalaryMinor:
+                  rupeesToMinor(String(body.grossSalary ?? '')) ?? undefined,
               }
             : {}),
         }
@@ -111,9 +111,7 @@ export async function updateSalary(
 
 // ─── Salary History ─────────────────────────────────────────────────
 
-export async function fetchSalaryHistory(
-  employeeId: string,
-): Promise<any[]> {
+export async function fetchSalaryHistory(employeeId: string): Promise<any[]> {
   const { data } = await api.get(`/employees/${employeeId}/salary-history`)
   return data.data
 }

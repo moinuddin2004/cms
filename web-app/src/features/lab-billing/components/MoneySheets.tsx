@@ -7,9 +7,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { FieldWrapper, FormSelect, FormSheet } from '@/components/shared'
 import {
-  formatPaisa,
-  paisaToRupeesText,
-  rupeesToPaisa,
+  formatMinor,
+  minorToRupeesText,
+  rupeesToMinor,
 } from '@/features/lab-catalog'
 import { fieldError } from '@/features/queue'
 import {
@@ -89,14 +89,14 @@ export function CollectPaymentSheet({
   invoice?: {
     id: string
     invoiceNo: string | null
-    balancePaisa: number
+    balanceMinor: number
   } | null
   onCollect: (body: PaymentInput, key: string) => Promise<unknown>
 }) {
   const key = useActionKey(open)
   const initial: PaymentValues = {
-    amount: invoice?.balancePaisa
-      ? paisaToRupeesText(invoice.balancePaisa)
+    amount: invoice?.balanceMinor
+      ? minorToRupeesText(invoice.balanceMinor)
       : '',
     method: 'cash',
     reference: '',
@@ -107,11 +107,11 @@ export function CollectPaymentSheet({
     open,
     initial,
     onSubmit: async (v) => {
-      const amountPaisa = rupeesToPaisa(v.amount) ?? 0
+      const amountMinor = rupeesToMinor(v.amount) ?? 0
       await onCollect(
         {
           patientId: patient.id,
-          amountPaisa,
+          amountMinor,
           method: v.method,
           reference: v.reference.trim() || undefined,
           notes: v.notes.trim() || undefined,
@@ -120,7 +120,7 @@ export function CollectPaymentSheet({
                 allocations: [
                   {
                     invoiceId: invoice.id,
-                    amountPaisa: Math.min(amountPaisa, invoice.balancePaisa),
+                    amountMinor: Math.min(amountMinor, invoice.balanceMinor),
                   },
                 ],
               }
@@ -186,7 +186,7 @@ export function CollectPaymentSheet({
               label={`Amount (${activeCurrency()})`}
               hint={
                 invoice
-                  ? `Balance ${formatPaisa(invoice.balancePaisa)}`
+                  ? `Balance ${formatMinor(invoice.balanceMinor)}`
                   : undefined
               }
             />
@@ -236,17 +236,17 @@ export function CollectPaymentSheet({
           selector={(s) => [s.values.amount, s.values.target] as const}
         >
           {([amount, target]) => {
-            const paisa = rupeesToPaisa(amount) ?? 0
+            const minor = rupeesToMinor(amount) ?? 0
             if (
               target !== 'invoice' ||
               !invoice ||
-              paisa <= invoice.balancePaisa
+              minor <= invoice.balanceMinor
             )
               return null
             return (
               <p className="rounded-lg bg-muted/40 p-3 text-sm text-text-3">
-                {formatPaisa(invoice.balancePaisa)} settles this invoice;{' '}
-                {formatPaisa(paisa - invoice.balancePaisa)} stays as the
+                {formatMinor(invoice.balanceMinor)} settles this invoice;{' '}
+                {formatMinor(minor - invoice.balanceMinor)} stays as the
                 patient’s advance.
               </p>
             )
@@ -285,23 +285,23 @@ export function CreditNoteSheet({
   onOpenChange: (open: boolean) => void
   invoice: {
     invoiceNo: string | null
-    totalPaisa: number
-    creditedPaisa: number
-    balancePaisa: number
+    totalMinor: number
+    creditedMinor: number
+    balanceMinor: number
   }
   onIssue: (
-    body: { amountPaisa: number; reason: string },
+    body: { amountMinor: number; reason: string },
     key: string,
   ) => Promise<unknown>
 }) {
   const key = useActionKey(open)
-  const maxPaisa = invoice.totalPaisa - invoice.creditedPaisa
+  const maxMinor = invoice.totalMinor - invoice.creditedMinor
   const form = useCreditNoteForm({
     open,
-    maxPaisa,
+    maxMinor,
     onSubmit: async (v) => {
       await onIssue(
-        { amountPaisa: rupeesToPaisa(v.amount) ?? 0, reason: v.reason.trim() },
+        { amountMinor: rupeesToMinor(v.amount) ?? 0, reason: v.reason.trim() },
         key,
       )
       onOpenChange(false)
@@ -312,7 +312,7 @@ export function CreditNoteSheet({
       open={open}
       onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
       title="Credit note"
-      description={`${invoice.invoiceNo ?? ''} — up to ${formatPaisa(maxPaisa)} can be credited.`}
+      description={`${invoice.invoiceNo ?? ''} — up to ${formatMinor(maxMinor)} can be credited.`}
       widthClassName="sm:max-w-md"
       footer={
         <>
@@ -343,17 +343,23 @@ export function CreditNoteSheet({
         }}
       >
         <form.Field name="amount">
-          {(f) => <AmountField field={f} id="cn-amount" label={`Amount (${activeCurrency()})`} />}
+          {(f) => (
+            <AmountField
+              field={f}
+              id="cn-amount"
+              label={`Amount (${activeCurrency()})`}
+            />
+          )}
         </form.Field>
         <form.Subscribe selector={(s) => s.values.amount}>
           {(amount) => {
             const back = Math.max(
               0,
-              (rupeesToPaisa(amount) ?? 0) - invoice.balancePaisa,
+              (rupeesToMinor(amount) ?? 0) - invoice.balanceMinor,
             )
             return back > 0 ? (
               <p className="rounded-lg bg-muted/40 p-3 text-sm text-text-3">
-                {formatPaisa(back)} was already paid and goes back to the
+                {formatMinor(back)} was already paid and goes back to the
                 patient’s advance — refund it or use it on another invoice.
               </p>
             ) : null
@@ -387,19 +393,19 @@ export function RefundSheet({
   open,
   onOpenChange,
   patient,
-  maxPaisa,
+  maxMinor,
   creditNote,
   onRefund,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   patient: PatientRef
-  maxPaisa: number
+  maxMinor: number
   creditNote?: { id: string; creditNoteNo: string } | null
   onRefund: (
     body: {
       patientId: string
-      amountPaisa: number
+      amountMinor: number
       method: string
       reference?: string
       reason: string
@@ -413,8 +419,8 @@ export function RefundSheet({
   const [busy, setBusy] = useState(false)
   const form = useRefundForm({
     open,
-    maxPaisa,
-    initialAmount: maxPaisa > 0 ? paisaToRupeesText(maxPaisa) : '',
+    maxMinor,
+    initialAmount: maxMinor > 0 ? minorToRupeesText(maxMinor) : '',
     onSubmit: async (v) => {
       setConfirm(v)
     },
@@ -426,7 +432,7 @@ export function RefundSheet({
       await onRefund(
         {
           patientId: patient.id,
-          amountPaisa: rupeesToPaisa(confirm.amount) ?? 0,
+          amountMinor: rupeesToMinor(confirm.amount) ?? 0,
           method: confirm.method,
           reference: confirm.reference.trim() || undefined,
           reason: confirm.reason.trim(),
@@ -448,7 +454,7 @@ export function RefundSheet({
         title={
           creditNote ? `Refund ${creditNote.creditNoteNo}` : 'Refund advance'
         }
-        description={`${patient.fullName} — up to ${formatPaisa(maxPaisa)} can be paid back.`}
+        description={`${patient.fullName} — up to ${formatMinor(maxMinor)} can be paid back.`}
         widthClassName="sm:max-w-md"
         footer={
           <>
@@ -478,7 +484,11 @@ export function RefundSheet({
         >
           <form.Field name="amount">
             {(f) => (
-              <AmountField field={f} id="rf-amount" label={`Amount (${activeCurrency()})`} />
+              <AmountField
+                field={f}
+                id="rf-amount"
+                label={`Amount (${activeCurrency()})`}
+              />
             )}
           </form.Field>
           <form.Field name="method">
@@ -532,7 +542,7 @@ export function RefundSheet({
         open={!!confirm}
         onOpenChange={(o) => !busy && !o && setConfirm(null)}
         title="Pay this refund?"
-        description={`${formatPaisa(rupeesToPaisa(confirm?.amount ?? '0') ?? 0)} goes back to ${patient.fullName}. A refund can’t be undone.`}
+        description={`${formatMinor(rupeesToMinor(confirm?.amount ?? '0') ?? 0)} goes back to ${patient.fullName}. A refund can’t be undone.`}
         confirmLabel="Pay refund"
         destructive
         isLoading={busy}

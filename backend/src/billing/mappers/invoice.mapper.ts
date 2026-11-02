@@ -1,11 +1,11 @@
-import { fromPaisa } from '../common/money';
+import { fromMinor } from '../common/money';
 import { chargeSnapshot } from '../charges/charge-math';
 import { Charge } from '../entities/charge.entity';
 import { Invoice } from '../entities/invoice.entity';
 import {
   invoicePaymentStatus,
   invoiceRefundStatus,
-  refundablePaisa,
+  refundableMinor,
 } from '../invoices/invoice-status';
 import { InvoiceResponse, PatientRef } from './billing-response.types';
 
@@ -35,7 +35,7 @@ export function toInvoiceResponse(
     balanceDue: inv.balanceDue,
     releasedAmount: inv.releasedAmount,
     refundedAmount: inv.refundedAmount,
-    refundableAmount: fromPaisa(refundablePaisa(inv)),
+    refundableAmount: fromMinor(refundableMinor(inv)),
     notes: inv.notes,
     issuedByName,
     cancelReason: inv.cancelReason,

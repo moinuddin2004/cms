@@ -57,12 +57,12 @@ const bill = (over: Partial<VendorBill> = {}): VendorBill => ({
   status: 'draft',
   billDate: '2026-10-20',
   dueOn: null,
-  subtotalPaisa: 1_000_000,
+  subtotalMinor: 1_000_000,
   taxBp: 0,
-  taxPaisa: 0,
-  totalPaisa: 1_000_000,
-  paidPaisa: 0,
-  balancePaisa: 0,
+  taxMinor: 0,
+  totalMinor: 1_000_000,
+  paidMinor: 0,
+  balanceMinor: 0,
   currency: 'PKR',
   approvedAt: null,
   voidedAt: null,
@@ -83,8 +83,8 @@ const detail = (over: Partial<VendorBill> = {}): VendorBillDetail => ({
       remakeRequestId: null,
       description: 'Zirconia crown',
       quantity: 2,
-      unitCostPaisa: 500_000,
-      lineTotalPaisa: 1_000_000,
+      unitCostMinor: 500_000,
+      lineTotalMinor: 1_000_000,
       isManual: false,
     },
   ],
@@ -123,13 +123,13 @@ describe('schemas', () => {
       lines: [
         {
           labReference: 'LAB-0001',
-          amountPaisa: 500_000,
+          amountMinor: 500_000,
           lineDate: undefined,
           description: undefined,
         },
         {
           labReference: 'LAB-0002',
-          amountPaisa: 125_050,
+          amountMinor: 125_050,
           lineDate: undefined,
           description: undefined,
         },
@@ -149,7 +149,7 @@ describe('schemas', () => {
       paidOn: '2026-10-20',
     }
     const alloc = (amount: string) => [
-      { billId: 'b1', billNo: 'VB-0001', balancePaisa: 400_000, amount },
+      { billId: 'b1', billNo: 'VB-0001', balanceMinor: 400_000, amount },
     ]
     expect(
       payLabSchema.safeParse({
@@ -192,8 +192,8 @@ describe('VendorBillsPage', () => {
           id: 'b2',
           billNo: 'VB-0002',
           status: 'approved',
-          balancePaisa: 200_000,
-          totalPaisa: 200_000,
+          balanceMinor: 200_000,
+          totalMinor: 200_000,
         }),
       ]),
     })
@@ -233,7 +233,7 @@ describe('VendorBillDetailPage', () => {
   it('approved: pay instead of approve, nothing paid yet', async () => {
     serve({
       '/lab-payables/bills/b1': ok(
-        detail({ status: 'approved', balancePaisa: 1_000_000 }),
+        detail({ status: 'approved', balanceMinor: 1_000_000 }),
       ),
     })
     wrap(<VendorBillDetailPage billId="b1" />)
@@ -253,7 +253,7 @@ describe('LabStatementDetailPage', () => {
         periodStart: '2026-10-01',
         periodEnd: '2026-10-31',
         statementRef: 'OCT',
-        totalPaisa: 700_000,
+        totalMinor: 700_000,
         status: 'reconciling',
         counts: { matched: 1, amount_mismatch: 1, missing_in_statement: 1 },
         createdAt: '2026-10-20T10:00:00Z',
@@ -264,8 +264,8 @@ describe('LabStatementDetailPage', () => {
             labReference: 'LAB-0001',
             lineDate: null,
             description: null,
-            amountPaisa: 500_000,
-            systemAmountPaisa: 500_000,
+            amountMinor: 500_000,
+            systemAmountMinor: 500_000,
             matchedBillId: 'b1',
             matchedBillLineId: 'l1',
             matchStatus: 'matched',
@@ -277,8 +277,8 @@ describe('LabStatementDetailPage', () => {
             labReference: 'LAB-0002',
             lineDate: null,
             description: null,
-            amountPaisa: 200_000,
-            systemAmountPaisa: 150_000,
+            amountMinor: 200_000,
+            systemAmountMinor: 150_000,
             matchedBillId: 'b2',
             matchedBillLineId: 'l2',
             matchStatus: 'amount_mismatch',
@@ -290,8 +290,8 @@ describe('LabStatementDetailPage', () => {
             labReference: null,
             lineDate: null,
             description: 'Not on the statement: VB-0003',
-            amountPaisa: 0,
-            systemAmountPaisa: 90_000,
+            amountMinor: 0,
+            systemAmountMinor: 90_000,
             matchedBillId: 'b3',
             matchedBillLineId: 'l3',
             matchStatus: 'missing_in_statement',

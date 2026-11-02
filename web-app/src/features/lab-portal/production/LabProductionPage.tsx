@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { formatInClinic } from '@/lib/datetime'
 import type { ColumnDef } from '@/components/shared/table-features'
 import {
   ClipboardCheck,
@@ -580,7 +581,7 @@ function Shipments() {
       accessorKey: 'dispatchedAt',
       cell: ({ row: { original: s } }) => (
         <span className="text-sm tabular-nums">
-          {new Date(s.dispatchedAt).toLocaleDateString('en-GB')}
+          {formatInClinic(s.dispatchedAt, 'dd/MM/yyyy')}
         </span>
       ),
     },

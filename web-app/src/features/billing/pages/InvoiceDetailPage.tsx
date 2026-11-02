@@ -21,13 +21,17 @@ import {
 } from '@/components/shared'
 import { useAccess } from '@/features/access'
 import { formatDate } from '@/lib/formatters'
+import { formatDateTime } from '@/lib/datetime'
 import { useBillingMutation } from '../hooks/use-billing-mutation'
 import { useInvoiceDetail } from '../hooks/use-billing-queries'
 import { invoicesApi } from '../services/billing-v2.api'
 import type { Charge, Invoice } from '../types/billing.types'
 import { CollectPaymentSheet } from '../components/collect-payment/CollectPaymentSheet'
 import { EditInvoiceSheet } from '../components/invoices/EditInvoiceSheet'
-import type { InvoiceEditRequest } from '../components/invoices/EditInvoiceSheet'
+import type {
+  InvoiceEditRequest,
+  RefundPayout,
+} from '../components/invoices/EditInvoiceSheet'
 import { PrintButton } from '../components/print/PrintButton'
 import { RefundSheet } from '../components/refunds/RefundSheet'
 import type { RefundTarget } from '../components/refunds/RefundSheet'
@@ -94,15 +98,24 @@ function InvoiceActions({
   const issued = invoice.status === 'ISSUED'
   const close = (o: boolean) => !o && setOpen(null)
 
-  const openRefund = (edit?: InvoiceEditRequest, released = 0) => {
+  // A refund straight from the edit sheet keeps that sheet open under the
+  // confirm, so backing out of the confirm loses nothing.
+  const [directRefund, setDirectRefund] = useState(false)
+  const openRefund = (
+    edit?: InvoiceEditRequest,
+    released = 0,
+    payout?: RefundPayout,
+  ) => {
     setRefundTarget({
       kind: 'invoice',
       patient: invoice.patient,
       invoiceId: invoice.id,
       max: invoice.refundableAmount + released,
       edit,
+      payout,
     })
-    setOpen('refund')
+    if (payout) setDirectRefund(true)
+    else setOpen('refund')
   }
 
   return (
@@ -146,13 +159,22 @@ function InvoiceActions({
           open={open === 'edit'}
           onOpenChange={close}
           onReload={onReload}
-          onSaveAndRefund={(edit, released) => openRefund(edit, released)}
+          onSaveAndRefund={(edit, released, payout) =>
+            openRefund(edit, released, payout)
+          }
         />
       )}
       <RefundSheet
         target={refundTarget}
-        open={open === 'refund'}
-        onOpenChange={close}
+        open={open === 'refund' || directRefund}
+        onOpenChange={(o) => {
+          if (o) return
+          setDirectRefund(false)
+          if (open === 'refund') setOpen(null)
+        }}
+        onDone={() => {
+          if (directRefund) setOpen(null)
+        }}
       />
       <ReasonDialog
         open={open === 'cancel'}
@@ -410,7 +432,7 @@ function InvoiceBody({ invoice: inv }: { invoice: Invoice }) {
                 <div className="flex min-w-0 items-center gap-2">
                   <Badge variant="info">Rev {r.revision}</Badge>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(r.editedAt).toLocaleString()} ·{' '}
+                    {formatDateTime(r.editedAt)} ·{' '}
                     {r.editedByName ?? '—'}
                   </span>
                   <span dir="auto" className="truncate">

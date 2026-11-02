@@ -10,6 +10,23 @@ import type {
 } from '../schemas/account.schema'
 import type { ClinicSetup } from '../types'
 import { useSaveSetupClinic, useSaveSetupLocation } from './useAccount'
+import { useAuthStore } from '@/store/useAuthStore'
+
+/**
+ * Mirror the server rule in the session: branches still on the old clinic
+ * timezone (or UTC) move to the new one, so times on screen switch at once.
+ */
+function followClinicTimezone(previous: string | undefined, next: string) {
+  if (!previous || previous === next) return
+  const { accessibleOrganizations, activeOrganizationId, setLocationTimezone } =
+    useAuthStore.getState()
+  const org = accessibleOrganizations.find((o) => o.id === activeOrganizationId)
+  for (const loc of org?.locations ?? []) {
+    if (!loc.timezone || loc.timezone === previous || loc.timezone === 'UTC') {
+      setLocationTimezone(loc.id, next)
+    }
+  }
+}
 
 export function clinicDefaults(setup: ClinicSetup | undefined): SetupClinicInput {
   const c = setup?.clinic
@@ -52,6 +69,7 @@ export function useSetupClinicForm(
         ...value,
         currency: value.currency.toUpperCase(),
       })
+      followClinicTimezone(setup?.clinic.timezone, value.timezone)
       // Saved values become the new baseline (settings: hides the save bar).
       formApi.reset(value)
       onSaved()
