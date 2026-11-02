@@ -40,11 +40,11 @@ import {
 import {
   PLAN_TEMPLATE_CATEGORY_LABELS,
   PLAN_TEMPLATE_CATEGORY_OPTIONS,
-  templateTotalCost,
 } from '../types'
 import type { PlanTemplate } from '../types'
 import { PlanTemplateForm } from '../components/PlanTemplateForm'
-import { activeCurrency } from '@/lib/currency'
+import { formatCurrency } from '@/lib/formatters'
+import { planTotals, useServiceCatalog } from '@/features/treatment-plans'
 
 /**
  * The clinic's predefined treatment plans (Root Canal, Implant…). A doctor
@@ -113,7 +113,7 @@ export function PlanTemplatesPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search templates or procedures…"
+            placeholder="Search templates or services…"
             className="pl-9"
           />
         </div>
@@ -186,8 +186,8 @@ export function PlanTemplatesPage() {
               {editing ? 'Edit template' : 'New treatment plan template'}
             </DialogTitle>
             <DialogDescription>
-              The procedures are copied into a patient&apos;s plan when a doctor
-              uses this template.
+              The services and discount are copied into a patient&apos;s plan
+              when a doctor uses this template. Prices come from the catalog.
             </DialogDescription>
           </DialogHeader>
           <PlanTemplateForm
@@ -246,7 +246,15 @@ function TemplateCard({
   onDelete: () => void
 }) {
   const sessions = t.items.reduce((n, i) => n + i.estimatedSessions, 0)
-  const total = templateTotalCost(t.items)
+  const { data: services = [] } = useServiceCatalog()
+  const prices = t.items.map(
+    (i) => services.find((s) => s.id === i.serviceId)?.price,
+  )
+  // Only price viewers get prices; show a total only when every line has one.
+  const total = prices.every((p) => p != null)
+    ? planTotals(prices, t.discountKind, t.discountValue)
+    : null
+  const unlinked = t.items.filter((i) => !i.serviceId).length
   return (
     <article
       className={
@@ -280,10 +288,19 @@ function TemplateCard({
         ))}
       </ol>
       <p className="mb-3 text-xs text-muted-foreground">
-        {t.items.length} procedure{t.items.length === 1 ? '' : 's'} · {sessions}{' '}
+        {t.items.length} service{t.items.length === 1 ? '' : 's'} · {sessions}{' '}
         visit{sessions === 1 ? '' : 's'}
-        {total != null && ` · ${activeCurrency()} ${total.toLocaleString()}`}
+        {total && ` · ${formatCurrency(total.final)}`}
+        {total &&
+          total.discount > 0 &&
+          ` (after ${formatCurrency(total.discount)} off)`}
       </p>
+      {unlinked > 0 && (
+        <p className="mb-3 text-xs text-amber-700 dark:text-amber-200">
+          {unlinked} step{unlinked === 1 ? '' : 's'} not linked to a service —
+          edit to pick them.
+        </p>
+      )}
       <div className="flex items-center justify-between border-t border-border pt-3">
         <TooltipProvider>
           <Tooltip>

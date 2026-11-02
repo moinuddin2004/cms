@@ -19,6 +19,12 @@ vi.mock('./hooks/useConsultation', () => ({
   useProcedureCatalog: () => catalog,
 }))
 
+let plans: unknown[] = []
+vi.mock('@/features/treatment-plans', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  useTreatmentPlans: () => ({ data: plans }),
+}))
+
 describe('buildTreatmentInput', () => {
   const draft = { selected: null as string | null, name: '', tooth: '' }
 
@@ -61,6 +67,7 @@ describe('TreatmentsToday', () => {
   beforeEach(() => {
     mutate.mockReset()
     catalog = { data: [filling, scaling], isLoading: false }
+    plans = []
   })
 
   const renderIt = (treatments = []) =>
@@ -108,6 +115,37 @@ describe('TreatmentsToday', () => {
         expect.any(Object),
       ),
     )
+  })
+
+  it('will not add a service that is still open on a plan (no double bill)', () => {
+    plans = [
+      {
+        id: 'pl1',
+        planName: 'RCT + Filling',
+        status: 'active',
+        items: [
+          {
+            id: 'i1',
+            serviceId: 's1',
+            status: 'pending',
+            completedSessions: 0,
+            estimatedSessions: 1,
+          },
+        ],
+      },
+    ]
+    renderIt()
+    fireEvent.click(screen.getByRole('button', { name: 'Filling' }))
+    expect(document.body.textContent).toContain(
+      'This is on plan “RCT + Filling”',
+    )
+    expect(
+      screen.getByRole('button', { name: 'Add' }).hasAttribute('disabled'),
+    ).toBe(true)
+
+    // A service not on the plan still adds normally.
+    fireEvent.click(screen.getByRole('button', { name: 'Scaling' }))
+    expect(document.body.textContent).not.toContain('This is on plan')
   })
 
   it('falls back to typing a name when the clinic has no catalog', () => {

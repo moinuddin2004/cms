@@ -23,7 +23,8 @@ export function SettingsLayout() {
       <EmbeddedLayoutContext.Provider value={HOME}>
         <div className="grid gap-6 md:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="hidden md:block">
-            <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto pb-4 pr-1">
+            {/* p-1/-m-1: room for the search box's focus ring inside the scroller */}
+            <div className="sticky top-20 -m-1 max-h-[calc(100vh-6rem)] overflow-y-auto p-1 pb-4">
               <SettingsRail />
             </div>
           </aside>

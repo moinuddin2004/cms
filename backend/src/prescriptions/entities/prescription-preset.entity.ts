@@ -10,7 +10,7 @@ import {
   Index,
 } from 'typeorm';
 import { Organization } from 'src/organizations/entities/organization.entity';
-import { TreatmentPlanTemplateMedicine } from './treatment-plan-template-medicine.entity';
+import { PrescriptionPresetMedicine } from './prescription-preset-medicine.entity';
 import { PresetCategory } from '../enums/preset-category.enum';
 
 /**
@@ -19,13 +19,13 @@ import { PresetCategory } from '../enums/preset-category.enum';
  * the medicines, further-plan text, and bilingual instructions; the doctor
  * can still edit anything before finalizing.
  *
- * Medicines are eager-loaded because templates are short lists and the
+ * Medicines are eager-loaded because presets are short lists and the
  * builder always needs them right away.
  */
-@Entity({ name: 'treatment_plan_templates' })
+@Entity({ name: 'prescription_presets' })
 @Index(['organizationId', 'isActive'])
 @Index(['organizationId', 'category'])
-export class TreatmentPlanTemplate {
+export class PrescriptionPreset {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -76,9 +76,9 @@ export class TreatmentPlanTemplate {
   updatedAt: Date;
 
   @OneToMany(
-    () => TreatmentPlanTemplateMedicine,
-    (m) => m.template,
+    () => PrescriptionPresetMedicine,
+    (m) => m.preset,
     { cascade: true, eager: true },
   )
-  medicines: TreatmentPlanTemplateMedicine[];
+  medicines: PrescriptionPresetMedicine[];
 }

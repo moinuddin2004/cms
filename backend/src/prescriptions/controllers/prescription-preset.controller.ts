@@ -12,11 +12,11 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { TreatmentPlanTemplateService } from '../services/treatment-plan-template.service';
+import { PrescriptionPresetService } from '../services/prescription-preset.service';
 import {
-  CreateTreatmentPlanTemplateDto,
-  UpdateTreatmentPlanTemplateDto,
-} from '../dto/treatment-plan-template.dto';
+  CreatePrescriptionPresetDto,
+  UpdatePrescriptionPresetDto,
+} from '../dto/prescription-preset.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { AnyMember, Can } from 'src/access/decorators/access.decorators';
@@ -25,15 +25,15 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 
 // Reads are @AnyMember, so the feature check stays at class level.
 @RequireFeature('patients.prescriptions')
-@Controller('treatment-plan-templates')
-export class TreatmentPlanTemplateController {
-  constructor(private readonly service: TreatmentPlanTemplateService) {}
+@Controller('prescription-presets')
+export class PrescriptionPresetController {
+  constructor(private readonly service: PrescriptionPresetService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Can('prescriptions.library.manage')
   async create(
-    @Body() dto: CreateTreatmentPlanTemplateDto,
+    @Body() dto: CreatePrescriptionPresetDto,
     @ActiveTenant() ctx: TenantContext,
     @Req() req: any,
   ) {
@@ -42,7 +42,7 @@ export class TreatmentPlanTemplateController {
       dto,
       req.user?.uuid ?? null,
     );
-    return ResponseWrapper.success(data, 'Treatment plan template created');
+    return ResponseWrapper.success(data, 'Prescription preset created');
   }
 
   @Get()
@@ -69,11 +69,11 @@ export class TreatmentPlanTemplateController {
   @Can('prescriptions.library.manage')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateTreatmentPlanTemplateDto,
+    @Body() dto: UpdatePrescriptionPresetDto,
     @ActiveTenant() ctx: TenantContext,
   ) {
     const data = await this.service.update(id, ctx.organizationId, dto);
-    return ResponseWrapper.success(data, 'Treatment plan template updated');
+    return ResponseWrapper.success(data, 'Prescription preset updated');
   }
 
   @Delete(':id')
@@ -83,6 +83,6 @@ export class TreatmentPlanTemplateController {
     @ActiveTenant() ctx: TenantContext,
   ) {
     const data = await this.service.deactivate(id, ctx.organizationId);
-    return ResponseWrapper.success(data, 'Treatment plan template deactivated');
+    return ResponseWrapper.success(data, 'Prescription preset deactivated');
   }
 }

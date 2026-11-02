@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogService } from 'src/billing/entities/catalog-service.entity';
+import { ServicePrice } from 'src/billing/entities/service-price.entity';
 import { Treatment } from './entities/treatment.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { Patient } from 'src/patients/entities/patient.entity';
@@ -16,6 +17,7 @@ import { TreatmentsService } from './treatments.service';
       Patient,
       PlanTemplate,
       CatalogService,
+      ServicePrice,
     ]),
   ],
   controllers: [TreatmentsController],

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MedicineDirectory } from './entities/medicine-directory.entity';
 import { PrescriptionTemplate } from './entities/prescription-template.entity';
-import { TreatmentPlanTemplate } from './entities/treatment-plan-template.entity';
-import { TreatmentPlanTemplateMedicine } from './entities/treatment-plan-template-medicine.entity';
+import { PrescriptionPreset } from './entities/prescription-preset.entity';
+import { PrescriptionPresetMedicine } from './entities/prescription-preset-medicine.entity';
 import { Prescription } from './entities/prescription.entity';
 import { PrescriptionMedicine } from './entities/prescription-medicine.entity';
 import { DoctorSignature } from './entities/doctor-signature.entity';
@@ -11,7 +11,7 @@ import { PrescriptionHistory } from './entities/prescription-history.entity';
 
 import { MedicineDirectoryService } from './services/medicine-directory.service';
 import { PrescriptionTemplateService } from './services/prescription-template.service';
-import { TreatmentPlanTemplateService } from './services/treatment-plan-template.service';
+import { PrescriptionPresetService } from './services/prescription-preset.service';
 import { DoctorSignatureService } from './services/doctor-signature.service';
 import { PrescriptionService } from './services/prescription.service';
 import { PrescriptionPdfService } from './services/prescription-pdf.service';
@@ -19,7 +19,7 @@ import { PrescriptionHistoryService } from './services/prescription-history.serv
 
 import { MedicineDirectoryController } from './controllers/medicine-directory.controller';
 import { PrescriptionTemplateController } from './controllers/prescription-template.controller';
-import { TreatmentPlanTemplateController } from './controllers/treatment-plan-template.controller';
+import { PrescriptionPresetController } from './controllers/prescription-preset.controller';
 import { DoctorSignatureController } from './controllers/doctor-signature.controller';
 import { PrescriptionController } from './controllers/prescription.controller';
 
@@ -30,8 +30,8 @@ import { StorageModule } from 'src/common/storage/storage.module';
     TypeOrmModule.forFeature([
       MedicineDirectory,
       PrescriptionTemplate,
-      TreatmentPlanTemplate,
-      TreatmentPlanTemplateMedicine,
+      PrescriptionPreset,
+      PrescriptionPresetMedicine,
       Prescription,
       PrescriptionMedicine,
       DoctorSignature,
@@ -42,14 +42,14 @@ import { StorageModule } from 'src/common/storage/storage.module';
   controllers: [
     MedicineDirectoryController,
     PrescriptionTemplateController,
-    TreatmentPlanTemplateController,
+    PrescriptionPresetController,
     DoctorSignatureController,
     PrescriptionController,
   ],
   providers: [
     MedicineDirectoryService,
     PrescriptionTemplateService,
-    TreatmentPlanTemplateService,
+    PrescriptionPresetService,
     DoctorSignatureService,
     PrescriptionService,
     PrescriptionPdfService,

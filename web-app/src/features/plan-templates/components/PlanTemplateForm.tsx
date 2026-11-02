@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useStore } from '@tanstack/react-form'
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,6 +9,15 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { FormSelect } from '@/components/forms/FormSelect'
 import { fieldError } from '@/components/forms/fieldError'
 import { NumberInput } from '@/components/forms/NumberInput'
+import { useAccess } from '@/features/access/hooks/useAccess'
+import {
+  DiscountInputs,
+  PlanTotalsView,
+  ServiceSelect,
+  planTotals,
+  useServiceCatalog,
+} from '@/features/treatment-plans'
+import type { DiscountKind, ServiceOption } from '@/features/treatment-plans'
 import { PLAN_TEMPLATE_CATEGORY_OPTIONS } from '../types'
 import type {
   PlanTemplate,
@@ -18,7 +29,11 @@ import {
   usePlanTemplateForm,
 } from '../hooks/usePlanTemplateForm'
 
-/** Create / edit one treatment plan template. */
+/**
+ * Create / edit one treatment plan template: the services a treatment needs
+ * (prices from the catalog) and an optional discount every plan made from it
+ * starts with.
+ */
 export function PlanTemplateForm({
   template,
   isPending,
@@ -30,7 +45,59 @@ export function PlanTemplateForm({
   onSubmit: (input: PlanTemplateInput) => void
   onCancel: () => void
 }) {
-  const form = usePlanTemplateForm({ template, onSubmit })
+  const { can } = useAccess()
+  const canSeePrices = can('patients.price.view')
+  const { data: services = [], isLoading } = useServiceCatalog()
+  const serviceIdByName = useMemo(
+    () => new Map(services.map((s) => [s.name.toLowerCase(), s.id])),
+    [services],
+  )
+
+  if (isLoading) {
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        Loading services…
+      </p>
+    )
+  }
+  return (
+    <TemplateFormBody
+      template={template}
+      isPending={isPending}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      services={services}
+      serviceIdByName={serviceIdByName}
+      canSeePrices={canSeePrices}
+    />
+  )
+}
+
+/** Mounted once the catalog is in, so unlinked steps can be matched by name. */
+function TemplateFormBody({
+  template,
+  isPending,
+  onSubmit,
+  onCancel,
+  services,
+  serviceIdByName,
+  canSeePrices,
+}: {
+  template: PlanTemplate | null
+  isPending: boolean
+  onSubmit: (input: PlanTemplateInput) => void
+  onCancel: () => void
+  services: ServiceOption[]
+  serviceIdByName: Map<string, string>
+  canSeePrices: boolean
+}) {
+  const form = usePlanTemplateForm({ template, serviceIdByName, onSubmit })
+  const values = useStore(form.store, (s) => s.values)
+  const totals = planTotals(
+    values.items.map((i) => services.find((s) => s.id === i.serviceId)?.price),
+    (values.discountKind || null) as DiscountKind | null,
+    Number(values.discountValue) || null,
+  )
 
   return (
     <form
@@ -53,7 +120,7 @@ export function PlanTemplateForm({
                 value={field.state.value}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
-                placeholder="e.g. Root Canal Treatment (RCT)"
+                placeholder="e.g. RCT + Crown"
               />
               {fieldError(field) && (
                 <p className="text-xs text-destructive">{fieldError(field)}</p>
@@ -97,25 +164,56 @@ export function PlanTemplateForm({
       <form.Field name="items" mode="array">
         {(items) => (
           <div className="space-y-2">
-            <Label>Procedures, in order</Label>
-            {items.state.value.map((_, i) => (
+            <Label>Services, in order</Label>
+            {services.length === 0 && (
+              <p className="text-xs text-destructive">
+                The clinic has no procedures in its service catalog yet. Add
+                them under Billing settings first.
+              </p>
+            )}
+            {items.state.value.map((row, i) => (
               <div
                 key={i}
-                className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-md border border-border p-2 sm:grid-cols-[auto_1fr_72px_110px_auto]"
+                className="grid grid-cols-[auto_minmax(0,1fr)_72px_auto] items-start gap-2 rounded-md border border-border p-2"
               >
-                <span className="pt-2 text-xs font-mono text-muted-foreground">
+                <span className="pt-2 font-mono text-xs text-muted-foreground">
                   {i + 1}.
                 </span>
-                <form.Field name={`items[${i}].procedureName`}>
+                <form.Field name={`items[${i}].serviceId`}>
+                  {(f) => (
+                    <div className="min-w-0 space-y-1">
+                      <ServiceSelect
+                        services={services}
+                        value={f.state.value}
+                        onChange={(v) => f.handleChange(v)}
+                        invalid={!!fieldError(f)}
+                      />
+                      {!f.state.value && row.procedureName && (
+                        <p className="text-xs text-muted-foreground">
+                          Was “{row.procedureName}” — pick the matching service.
+                        </p>
+                      )}
+                      {fieldError(f) && (
+                        <p className="text-xs text-destructive">
+                          {fieldError(f)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+                <form.Field name={`items[${i}].estimatedSessions`}>
                   {(f) => (
                     <div className="space-y-1">
-                      <Input
+                      <NumberInput
+                        mode="integer"
+                        placeholder="1"
                         value={f.state.value}
                         onChange={(e) => f.handleChange(e.target.value)}
                         onBlur={f.handleBlur}
-                        placeholder="Procedure"
-                        aria-label={`Procedure ${i + 1}`}
+                        aria-label="Sessions"
+                        title="Sessions (visits)"
                         aria-invalid={!!fieldError(f)}
+                        className="h-9"
                       />
                       {fieldError(f) && (
                         <p className="text-xs text-destructive">
@@ -125,48 +223,6 @@ export function PlanTemplateForm({
                     </div>
                   )}
                 </form.Field>
-                <div className="col-span-3 grid grid-cols-2 gap-2 sm:contents">
-                  <form.Field name={`items[${i}].estimatedSessions`}>
-                    {(f) => (
-                      <div className="space-y-1">
-                        <NumberInput
-                          mode="integer"
-                          placeholder="1"
-                          value={f.state.value}
-                          onChange={(e) => f.handleChange(e.target.value)}
-                          onBlur={f.handleBlur}
-                          aria-label="Sessions"
-                          title="Sessions (visits)"
-                          aria-invalid={!!fieldError(f)}
-                        />
-                        {fieldError(f) && (
-                          <p className="text-xs text-destructive">
-                            {fieldError(f)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </form.Field>
-                  <form.Field name={`items[${i}].estimatedCost`}>
-                    {(f) => (
-                      <div className="space-y-1">
-                        <NumberInput
-                          value={f.state.value}
-                          onChange={(e) => f.handleChange(e.target.value)}
-                          onBlur={f.handleBlur}
-                          placeholder="Fee (Rs.)"
-                          aria-label="Fee"
-                          aria-invalid={!!fieldError(f)}
-                        />
-                        {fieldError(f) && (
-                          <p className="text-xs text-destructive">
-                            {fieldError(f)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </form.Field>
-                </div>
                 <div className="flex">
                   <TooltipButton
                     type="button"
@@ -192,7 +248,7 @@ export function PlanTemplateForm({
                   </TooltipButton>
                   <TooltipButton
                     type="button"
-                    tooltip="Remove procedure"
+                    tooltip="Remove service"
                     variant="ghost"
                     size="icon"
                     className="size-8 text-destructive"
@@ -213,15 +269,45 @@ export function PlanTemplateForm({
               size="sm"
               onClick={() => void items.pushValue(emptyPlanTemplateItem())}
             >
-              <Plus className="size-3.5" /> Add procedure
+              <Plus className="size-3.5" /> Add service
             </Button>
             <p className="text-xs text-muted-foreground">
-              Fees are optional. Set them here once and every plan started from
-              this template carries them.
+              Prices come from the service catalog, so the template stays right
+              when a fee changes. Sessions = visits the service takes.
             </p>
           </div>
         )}
       </form.Field>
+
+      {canSeePrices && (
+        <>
+          <form.Field name="discountKind">
+            {(kindField) => (
+              <form.Field name="discountValue">
+                {(valueField) => (
+                  <div className="space-y-1.5">
+                    <Label>Discount (optional)</Label>
+                    <DiscountInputs
+                      kind={kindField.state.value}
+                      value={valueField.state.value}
+                      onKindChange={(k) =>
+                        kindField.handleChange(k as '' | 'PERCENTAGE' | 'FIXED')
+                      }
+                      onValueChange={(v) => valueField.handleChange(v)}
+                      onBlur={valueField.handleBlur}
+                      error={fieldError(valueField)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Every plan made from this template starts with it.
+                    </p>
+                  </div>
+                )}
+              </form.Field>
+            )}
+          </form.Field>
+          <PlanTotalsView totals={totals} />
+        </>
+      )}
 
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
@@ -248,7 +334,7 @@ export function PlanTemplateForm({
 }
 
 /**
- * The list-level error ("Add at least one procedure"). The list has no input
+ * The list-level error ("Add at least one service"). The list has no input
  * of its own, so it shows once anything in the form was touched — otherwise
  * Save could be disabled with no reason given.
  */

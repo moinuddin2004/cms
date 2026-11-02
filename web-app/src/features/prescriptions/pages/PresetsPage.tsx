@@ -21,16 +21,16 @@ import type { ViewMode } from '@/components/shared'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { DataTable } from '@/components/shared/DataTable'
 import { useDebounce } from '@/hooks/useDebounce'
-import type { TreatmentPlanTemplate } from '../types'
+import type { PrescriptionPreset } from '../types'
 import {
   PRESET_CATEGORY_OPTIONS,
   presetCategoryLabel,
   toPresetCategory,
 } from '../types'
 import {
-  useDeactivateTreatmentPlanTemplate,
-  useTreatmentPlanTemplates,
-} from '../hooks/useTreatmentPlanTemplates'
+  useDeactivatePrescriptionPreset,
+  usePrescriptionPresets,
+} from '../hooks/usePrescriptionPresets'
 import { LibraryShell } from '../components/library/LibraryShell'
 import { LibraryToolbar } from '../components/library/LibraryToolbar'
 import {
@@ -41,7 +41,7 @@ import {
 import { PresetSheet } from '../components/library/PresetSheet'
 
 /** First few medicine names, "+N more" after that. */
-function MedicineSummary({ preset }: { preset: TreatmentPlanTemplate }) {
+function MedicineSummary({ preset }: { preset: PrescriptionPreset }) {
   const names = preset.medicines.map((m) => m.medicineName)
   const shown = names.slice(0, 3)
   const more = names.length - shown.length
@@ -60,16 +60,16 @@ export function PresetsPage() {
     isLoading,
     isError,
     refetch,
-  } = useTreatmentPlanTemplates()
-  const deactivate = useDeactivateTreatmentPlanTemplate()
+  } = usePrescriptionPresets()
+  const deactivate = useDeactivatePrescriptionPreset()
 
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState<TreatmentPlanTemplate | null>(null)
+  const [editing, setEditing] = useState<PrescriptionPreset | null>(null)
   const [deactivating, setDeactivating] =
-    useState<TreatmentPlanTemplate | null>(null)
+    useState<PrescriptionPreset | null>(null)
   const query = useDebounce(search, 300).trim().toLowerCase()
 
   const filtered = useMemo(
@@ -94,7 +94,7 @@ export function PresetsPage() {
     resetPage()
   }
 
-  const columns = useMemo<ColumnDef<TreatmentPlanTemplate, unknown>[]>(
+  const columns = useMemo<ColumnDef<PrescriptionPreset, unknown>[]>(
     () => [
       {
         id: 'name',

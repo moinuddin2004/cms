@@ -90,6 +90,13 @@ export class Treatment {
   })
   cost: number | null;
 
+  /**
+   * Set when this is a session of a treatment-plan step. The plan's invoice
+   * already covers it, so visit billing skips it.
+   */
+  @Column({ name: 'plan_item_id', type: 'uuid', nullable: true })
+  planItemId: string | null;
+
   /** Catalog service (kind PROCEDURE) — billing prices the charge from it. */
   @Column({ name: 'service_id', type: 'uuid', nullable: true })
   serviceId: string | null;

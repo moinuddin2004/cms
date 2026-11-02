@@ -22,6 +22,7 @@ import { RefundSheet } from '../refunds/RefundSheet'
 import { BillingSummaryCards } from '../shared/BillingSummaryCards'
 import { Money } from '../shared/billing-badges'
 import { OpenChargesPanel } from './OpenChargesPanel'
+import { PatientPlansCard } from './PatientPlansCard'
 import { StatementPanel } from './StatementPanel'
 
 const TRIGGER = 'h-8 px-3 text-xs data-[state=active]:shadow-sm'
@@ -48,6 +49,8 @@ export function PatientBillingTab({
         summary={summary.data}
         isLoading={summary.isLoading}
       />
+
+      <PatientPlansCard patientId={patient.id} />
 
       <Card className="gap-0 overflow-hidden py-0 shadow-sm">
         <Tabs defaultValue="open" className="gap-0">

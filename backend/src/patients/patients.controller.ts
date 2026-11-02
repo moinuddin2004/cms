@@ -42,10 +42,6 @@ import {
   UpsertDentalInfoDto,
   CreateTeethChartDto,
   CreateVitalsDto,
-  CreateTreatmentPlanDto,
-  UpdateTreatmentPlanDto,
-  CreatePlanItemDto,
-  UpdatePlanItemDto,
   CreatePrescriptionDto,
   CreateDocumentDto,
   CreateConsentDto,
@@ -423,120 +419,6 @@ export class PatientsController {
   ) {
     const data = await this.patientsService.createVitals(id, ctx, dto, actor);
     return ResponseWrapper.success(data, 'Vitals recorded successfully');
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // TREATMENT PLANS
-  // ═══════════════════════════════════════════════════════════
-
-  @Get(':id/treatment-plans')
-  @Can('patients.clinical.view')
-  @RequireFeature('patients.treatment_plans')
-  async getTreatmentPlans(
-    @Param('id', ParseUUIDPipe) id: string,
-    @ActiveTenant() ctx: TenantContext,
-  ) {
-    const data = await this.patientsService.getTreatmentPlans(
-      id,
-      ctx.organizationId,
-    );
-    return ResponseWrapper.success(data);
-  }
-
-  @Post(':id/treatment-plans')
-  @HttpCode(HttpStatus.CREATED)
-  @Can('plans.manage')
-  async createTreatmentPlan(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CreateTreatmentPlanDto,
-    @ActiveTenant() ctx: TenantContext,
-    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
-  ) {
-    const data = await this.patientsService.createTreatmentPlan(
-      id,
-      ctx,
-      dto,
-      actor,
-    );
-    return ResponseWrapper.success(data, 'Treatment plan created successfully');
-  }
-
-  @Patch(':id/treatment-plans/:planId')
-  @Can('plans.manage')
-  async updateTreatmentPlan(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('planId', ParseUUIDPipe) planId: string,
-    @Body() dto: UpdateTreatmentPlanDto,
-    @ActiveTenant() ctx: TenantContext,
-    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
-  ) {
-    const data = await this.patientsService.updateTreatmentPlan(
-      id,
-      planId,
-      ctx.organizationId,
-      dto,
-      actor,
-    );
-    return ResponseWrapper.success(data, 'Treatment plan updated successfully');
-  }
-
-  // ─── Plan Items ─────────────────────────────────────────
-
-  @Get(':id/treatment-plans/:planId/items')
-  @Can('patients.clinical.view')
-  @RequireFeature('patients.treatment_plans')
-  async getPlanItems(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('planId', ParseUUIDPipe) planId: string,
-    @ActiveTenant() ctx: TenantContext,
-  ) {
-    const data = await this.patientsService.getPlanItems(
-      id,
-      planId,
-      ctx.organizationId,
-    );
-    return ResponseWrapper.success(data);
-  }
-
-  @Post(':id/treatment-plans/:planId/items')
-  @HttpCode(HttpStatus.CREATED)
-  @Can('plans.manage')
-  async createPlanItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('planId', ParseUUIDPipe) planId: string,
-    @Body() dto: CreatePlanItemDto,
-    @ActiveTenant() ctx: TenantContext,
-    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
-  ) {
-    const data = await this.patientsService.createPlanItem(
-      id,
-      planId,
-      ctx,
-      dto,
-      actor,
-    );
-    return ResponseWrapper.success(data, 'Plan item added successfully');
-  }
-
-  @Patch(':id/treatment-plans/:planId/items/:itemId')
-  @Can('plans.manage')
-  async updatePlanItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('planId', ParseUUIDPipe) planId: string,
-    @Param('itemId', ParseUUIDPipe) itemId: string,
-    @Body() dto: UpdatePlanItemDto,
-    @ActiveTenant() ctx: TenantContext,
-    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
-  ) {
-    const data = await this.patientsService.updatePlanItem(
-      id,
-      planId,
-      itemId,
-      ctx.organizationId,
-      dto,
-      actor,
-    );
-    return ResponseWrapper.success(data, 'Plan item updated successfully');
   }
 
   // ═══════════════════════════════════════════════════════════

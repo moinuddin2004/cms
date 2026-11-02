@@ -292,45 +292,39 @@ export function Sidebar() {
             : 'w-[var(--spacing-sidebar)]',
         )}
       >
-        {/* Brand + collapse toggle */}
+        {/* Brand */}
         <div
           className={cn(
             'flex h-16 shrink-0 items-center border-b border-border',
-            collapsed ? 'justify-center' : 'justify-between px-4',
+            collapsed ? 'justify-center' : 'px-4',
           )}
         >
-          {collapsed ? (
-            <CollapsedTip label="Expand sidebar" enabled>
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                aria-label="Expand sidebar"
-                className="flex items-center justify-center rounded-lg transition-opacity hover:opacity-90"
-              >
-                <BrandMark collapsed />
-              </button>
-            </CollapsedTip>
-          ) : (
-            <>
-              <BrandMark />
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={toggleSidebar}
-                    aria-label="Collapse sidebar"
-                    className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">
-                  Collapse sidebar
-                </TooltipContent>
-              </Tooltip>
-            </>
-          )}
+          <BrandMark collapsed={collapsed} />
         </div>
+
+        {/* Collapse toggle: a round button sitting half outside the edge,
+            level with the brand (desktop only — phones use the drawer). */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="absolute -right-3 top-8 z-10 hidden size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground lg:flex"
+            >
+              <ChevronLeft
+                size={14}
+                className={cn(
+                  'transition-transform duration-300',
+                  collapsed && 'rotate-180',
+                )}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="text-xs">
+            {collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          </TooltipContent>
+        </Tooltip>
 
         {/* Navigation */}
         <nav

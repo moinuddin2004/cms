@@ -13,7 +13,7 @@ import {
   MEAL_RELATION_OPTIONS,
   MealRelation,
 } from '../../types'
-import type { PresetCategory, TreatmentPlanTemplate } from '../../types'
+import type { PresetCategory, PrescriptionPreset } from '../../types'
 import { emptyPresetMedicine, usePresetForm } from '../../hooks/usePresetForm'
 import {
   MedicineAutocomplete,
@@ -28,7 +28,7 @@ export function PresetSheet({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  preset: TreatmentPlanTemplate | null
+  preset: PrescriptionPreset | null
 }) {
   const { form, pending } = usePresetForm({
     open,

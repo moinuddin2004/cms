@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Can } from '@/features/access/components/Can'
 import { Badge } from '@/components/ui/badge'
@@ -5,6 +6,7 @@ import { Loader2, Stethoscope, Banknote, Link2, FileText } from 'lucide-react'
 import { usePatientTreatments } from '../../hooks/usePatientSubEntities'
 import type { Patient } from '../../types'
 import { TreatmentFormDialog } from './TreatmentFormDialog'
+import { VisitDetailSheet } from './history/VisitDetailSheet'
 
 const num = (v: number | string | null | undefined) =>
   v == null ? 0 : typeof v === 'string' ? parseFloat(v) || 0 : v
@@ -18,6 +20,8 @@ export function TreatmentsTab({
   hideAmounts?: boolean
 }) {
   const { data: treatments = [], isLoading } = usePatientTreatments(patient.id)
+  // The visit a treatment was done in, opened from its "Visit" link.
+  const [openVisit, setOpenVisit] = useState<string | null>(null)
 
   return (
     <Card className="mt-4 gap-0 py-0 animate-in fade-in duration-300">
@@ -98,12 +102,14 @@ export function TreatmentsTab({
                     </td>
                     <td className="px-4 py-2.5">
                       {t.encounterId ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] bg-primary-soft text-primary-text"
+                        <button
+                          type="button"
+                          onClick={() => setOpenVisit(t.encounterId)}
+                          aria-label={`Open the visit of ${t.treatmentName}`}
+                          className="inline-flex items-center rounded-md border border-border bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary-text transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Link2 size={10} className="mr-1" /> Visit
-                        </Badge>
+                        </button>
                       ) : (
                         <span className="text-muted-foreground text-xs">
                           Standalone
@@ -129,6 +135,12 @@ export function TreatmentsTab({
           </div>
         )}
       </CardContent>
+      <VisitDetailSheet
+        patientId={patient.id}
+        encounterId={openVisit}
+        onClose={() => setOpenVisit(null)}
+        hideAmounts={hideAmounts}
+      />
     </Card>
   )
 }

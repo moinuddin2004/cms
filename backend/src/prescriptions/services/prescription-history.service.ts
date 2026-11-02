@@ -63,7 +63,7 @@ export class PrescriptionHistoryService {
       signedAt: p.signedAt,
       pdfUrl: p.pdfUrl,
       prescriptionTemplateId: p.prescriptionTemplateId,
-      treatmentPlanTemplateId: p.treatmentPlanTemplateId,
+      prescriptionPresetId: p.prescriptionPresetId,
       medicines: (p.medicines ?? []).map((m) => ({
         id: m.id,
         medicineDirectoryId: m.medicineDirectoryId,

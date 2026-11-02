@@ -260,9 +260,9 @@ export interface PrescriptionTemplate {
   updatedAt: string
 }
 
-export interface TreatmentPlanTemplateMedicine {
+export interface PrescriptionPresetMedicine {
   id: string
-  templateId: string
+  presetId: string
   medicineDirectoryId: string | null
   medicineName: string
   medicineNameUrdu: string | null
@@ -277,7 +277,7 @@ export interface TreatmentPlanTemplateMedicine {
   sortOrder: number
 }
 
-export interface TreatmentPlanTemplate {
+export interface PrescriptionPreset {
   id: string
   organizationId: string
   name: string
@@ -290,7 +290,7 @@ export interface TreatmentPlanTemplate {
   isActive: boolean
   createdAt: string
   updatedAt: string
-  medicines: TreatmentPlanTemplateMedicine[]
+  medicines: PrescriptionPresetMedicine[]
 }
 
 export interface PrescriptionMedicine {
@@ -320,7 +320,7 @@ export interface Prescription {
   encounterId?: string | null
   doctorId: string | null
   prescriptionTemplateId: string | null
-  treatmentPlanTemplateId: string | null
+  prescriptionPresetId: string | null
   diagnosis: string | null
   chiefComplaint: string | null
   furtherPlan: string | null
@@ -345,7 +345,7 @@ export interface Prescription {
   }
   doctor?: { id: string; fullName: string; designation?: string } | null
   prescriptionTemplate?: PrescriptionTemplate | null
-  treatmentPlanTemplate?: TreatmentPlanTemplate | null
+  prescriptionPreset?: PrescriptionPreset | null
 }
 
 export interface DoctorSignature {
@@ -398,7 +398,7 @@ export interface CreatePrescriptionInput {
   /** Employee id of the prescribing doctor. */
   doctorId?: string
   prescriptionTemplateId?: string
-  treatmentPlanTemplateId?: string
+  prescriptionPresetId?: string
   diagnosis?: string
   chiefComplaint?: string
   furtherPlan?: string

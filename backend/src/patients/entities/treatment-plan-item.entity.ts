@@ -29,6 +29,10 @@ export class TreatmentPlanItem {
   @Column({ name: 'plan_id', type: 'uuid' })
   planId: string;
 
+  /** Catalog service; the plan's price for it is locked in `estimatedCost`. */
+  @Column({ name: 'service_id', type: 'uuid', nullable: true })
+  serviceId: string | null;
+
   @Column({ name: 'procedure_name', type: 'varchar', length: 200 })
   procedureName: string;
 

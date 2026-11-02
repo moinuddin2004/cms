@@ -99,7 +99,7 @@ export class CreatePrescriptionDto {
   /** When set, the service pre-fills medicines + instructions from the template. */
   @IsOptional()
   @IsUUID()
-  treatmentPlanTemplateId?: string;
+  prescriptionPresetId?: string;
 
   @IsOptional()
   @IsString()

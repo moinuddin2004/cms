@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, DataSource, Repository } from 'typeorm';
 import { Prescription } from '../entities/prescription.entity';
 import { PrescriptionMedicine } from '../entities/prescription-medicine.entity';
-import { TreatmentPlanTemplate } from '../entities/treatment-plan-template.entity';
+import { PrescriptionPreset } from '../entities/prescription-preset.entity';
 import { PrescriptionStatus } from '../enums/prescription-status.enum';
 import { PrescriptionHistoryChangeType } from '../enums/prescription-history-change-type.enum';
 import { MealRelation } from '../enums/meal-relation.enum';
@@ -36,8 +36,8 @@ export class PrescriptionService {
     private readonly repo: Repository<Prescription>,
     @InjectRepository(PrescriptionMedicine)
     private readonly medicineRepo: Repository<PrescriptionMedicine>,
-    @InjectRepository(TreatmentPlanTemplate)
-    private readonly planTemplateRepo: Repository<TreatmentPlanTemplate>,
+    @InjectRepository(PrescriptionPreset)
+    private readonly presetRepo: Repository<PrescriptionPreset>,
     private readonly templateService: PrescriptionTemplateService,
     private readonly signatureService: DoctorSignatureService,
     private readonly historyService: PrescriptionHistoryService,
@@ -55,21 +55,21 @@ export class PrescriptionService {
     dto: CreatePrescriptionDto,
     doctorId: string | null,
   ): Promise<Prescription> {
-    // 1. If a treatment-plan template is selected, seed fields + medicines from it
+    // 1. If a prescription preset is selected, seed fields + medicines from it
     let seedMedicines: PrescriptionMedicineDto[] = dto.medicines ?? [];
     let seededFurtherPlan = dto.furtherPlan ?? null;
     let seededInstrEn = dto.instructionsEnglish ?? null;
     let seededInstrUr = dto.instructionsUrdu ?? null;
 
-    if (dto.treatmentPlanTemplateId) {
-      const tpl = await this.planTemplateRepo.findOne({
+    if (dto.prescriptionPresetId) {
+      const tpl = await this.presetRepo.findOne({
         where: {
-          id: dto.treatmentPlanTemplateId,
+          id: dto.prescriptionPresetId,
           organizationId: ctx.organizationId,
         },
       });
       if (!tpl) {
-        throw new NotFoundException('Treatment plan template not found');
+        throw new NotFoundException('Prescription preset not found');
       }
       // Only seed fields the caller didn't explicitly set.
       if (!dto.furtherPlan) seededFurtherPlan = tpl.furtherPlan;
@@ -118,7 +118,7 @@ export class PrescriptionService {
       encounterId: dto.encounterId ?? null,
       doctorId,
       prescriptionTemplateId,
-      treatmentPlanTemplateId: dto.treatmentPlanTemplateId ?? null,
+      prescriptionPresetId: dto.prescriptionPresetId ?? null,
       diagnosis: dto.diagnosis ?? null,
       chiefComplaint: dto.chiefComplaint ?? null,
       furtherPlan: seededFurtherPlan,
@@ -161,7 +161,7 @@ export class PrescriptionService {
         'appointment',
         'doctor',
         'prescriptionTemplate',
-        'treatmentPlanTemplate',
+        'prescriptionPreset',
       ],
     });
     if (!row) throw new NotFoundException('Prescription not found');

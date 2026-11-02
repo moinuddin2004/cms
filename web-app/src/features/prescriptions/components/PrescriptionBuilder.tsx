@@ -52,7 +52,7 @@ import {
   useDefaultPrescriptionTemplate,
   usePrescriptionTemplates,
 } from '../hooks/usePrescriptionTemplates'
-import { useTreatmentPlanTemplates } from '../hooks/useTreatmentPlanTemplates'
+import { usePrescriptionPresets } from '../hooks/usePrescriptionPresets'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import {
   useFinalizePrescription,
@@ -147,7 +147,7 @@ export function PrescriptionBuilder({
   const { data: defaultTemplate } = useDefaultPrescriptionTemplate(
     activeLocationId ?? undefined,
   )
-  const { data: planTemplates = [] } = useTreatmentPlanTemplates()
+  const { data: presets = [] } = usePrescriptionPresets()
   const { data: doctors = [] } = useDoctors()
   const { data: mySignature } = useMySignature()
   const selectedDoctor = useMemo(
@@ -250,11 +250,11 @@ export function PrescriptionBuilder({
     })
   }
 
-  // ── Plan template apply ─────────────────────────────────────────────
-  const applyPlanTemplate = (templateIdToApply: string) => {
-    const tpl = planTemplates.find((p) => p.id === templateIdToApply)
+  // ── Preset apply ───────────────────────────────────────────────────
+  const applyPreset = (templateIdToApply: string) => {
+    const tpl = presets.find((p) => p.id === templateIdToApply)
     if (!tpl) return
-    form.setFieldValue('treatmentPlanTemplateId', tpl.id)
+    form.setFieldValue('prescriptionPresetId', tpl.id)
     form.setFieldValue(
       'medicines',
       tpl.medicines.length
@@ -273,7 +273,7 @@ export function PrescriptionBuilder({
       form.setFieldValue('instructionsEnglish', tpl.instructionsEnglish)
     if (!v.instructionsUrdu && tpl.instructionsUrdu)
       form.setFieldValue('instructionsUrdu', tpl.instructionsUrdu)
-    toast.success(`Applied template: ${tpl.name}`)
+    toast.success(`Applied preset: ${tpl.name}`)
   }
 
   // ── Print existing PDF ──────────────────────────────────────────────
@@ -352,7 +352,7 @@ export function PrescriptionBuilder({
             <DropdownMenuContent className="w-64">
               <DropdownMenuLabel>Apply prescription preset</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {planTemplates.length === 0 && (
+              {presets.length === 0 && (
                 <div className="px-2 py-3 text-center">
                   <p className="text-xs text-muted-foreground mb-2">
                     No prescription presets saved yet.
@@ -369,10 +369,10 @@ export function PrescriptionBuilder({
                   </Button>
                 </div>
               )}
-              {planTemplates.map((p) => (
+              {presets.map((p) => (
                 <DropdownMenuItem
                   key={p.id}
-                  onClick={() => applyPlanTemplate(p.id)}
+                  onClick={() => applyPreset(p.id)}
                 >
                   <div className="flex flex-col">
                     <span className="text-sm">{p.name}</span>
@@ -383,7 +383,7 @@ export function PrescriptionBuilder({
                   </div>
                 </DropdownMenuItem>
               ))}
-              {planTemplates.length > 0 && (
+              {presets.length > 0 && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>

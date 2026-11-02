@@ -5,12 +5,13 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { PlanTemplate } from 'src/plan-templates/entities/plan-template.entity';
 import { CatalogService } from 'src/billing/entities/catalog-service.entity';
+import { ServicePrice } from 'src/billing/entities/service-price.entity';
 import { ServiceKind } from 'src/billing/enums/billing.enums';
 import { Treatment } from './entities/treatment.entity';
 import { CreateTreatmentDto } from './dto/create-treatment.dto';
@@ -29,24 +30,62 @@ export class TreatmentsService {
     private readonly planTemplateRepo: Repository<PlanTemplate>,
     @InjectRepository(CatalogService)
     private readonly catalogRepo: Repository<CatalogService>,
+    @InjectRepository(ServicePrice)
+    private readonly servicePriceRepo: Repository<ServicePrice>,
   ) {}
 
   /**
-   * The procedures a doctor can pick from — name only. Prices stay in billing
-   * (`GET /billing/services` is admin + reception), so doctors never see them.
+   * The procedures a doctor can pick from. `withPrices` (price viewers only)
+   * adds the price billing would use — the doctor's override at this
+   * location (when `doctorId` is given), else the location's, else the
+   * service default — so a plan can show its total before it is saved.
    */
   async listProcedureCatalog(
     ctx: TenantContext,
-  ): Promise<Array<Pick<CatalogService, 'id' | 'name' | 'code'>>> {
-    return this.catalogRepo.find({
+    withPrices = false,
+    doctorId?: string,
+  ): Promise<
+    Array<Pick<CatalogService, 'id' | 'name' | 'code'> & { price?: number }>
+  > {
+    const services = await this.catalogRepo.find({
       where: {
         organizationId: ctx.organizationId,
         isActive: true,
         kind: ServiceKind.PROCEDURE,
       },
-      select: { id: true, name: true, code: true },
+      select: { id: true, name: true, code: true, defaultPrice: true },
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
+    const scope = {
+      organizationId: ctx.organizationId,
+      locationId: ctx.locationId,
+    };
+    const overrides = withPrices
+      ? await this.servicePriceRepo.find({
+          where: [
+            { ...scope, doctorId: IsNull() },
+            ...(doctorId ? [{ ...scope, doctorId }] : []),
+          ],
+          select: { serviceId: true, price: true, doctorId: true },
+        })
+      : [];
+    const locationPrice = new Map<string, number>();
+    const doctorPrice = new Map<string, number>();
+    for (const p of overrides) {
+      (p.doctorId ? doctorPrice : locationPrice).set(p.serviceId, p.price);
+    }
+    return services.map(({ id, name, code, defaultPrice }) => ({
+      id,
+      name,
+      code,
+      ...(withPrices
+        ? {
+            price: Number(
+              doctorPrice.get(id) ?? locationPrice.get(id) ?? defaultPrice,
+            ),
+          }
+        : {}),
+    }));
   }
 
   /**
@@ -155,7 +194,10 @@ export class TreatmentsService {
     );
   }
 
-  async findByPatient(patientId: string, ctx: TenantContext): Promise<Treatment[]> {
+  async findByPatient(
+    patientId: string,
+    ctx: TenantContext,
+  ): Promise<Treatment[]> {
     return this.treatmentRepo.find({
       where: { patientId, organizationId: ctx.organizationId },
       relations: { planTemplate: true },
@@ -163,7 +205,10 @@ export class TreatmentsService {
     });
   }
 
-  async findByEncounter(encounterId: string, ctx: TenantContext): Promise<Treatment[]> {
+  async findByEncounter(
+    encounterId: string,
+    ctx: TenantContext,
+  ): Promise<Treatment[]> {
     return this.treatmentRepo.find({
       where: { encounterId, organizationId: ctx.organizationId },
       relations: { planTemplate: true },

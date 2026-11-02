@@ -6,31 +6,31 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { TreatmentPlanTemplate } from './treatment-plan-template.entity';
+import { PrescriptionPreset } from './prescription-preset.entity';
 import { MedicineDirectory } from './medicine-directory.entity';
 import { MealRelation } from '../enums/meal-relation.enum';
 
 /**
- * A medicine line inside a reusable treatment-plan template.
+ * A medicine line inside a reusable prescription preset.
  *
  * `medicineDirectoryId` links back to the catalog row that seeded this line —
- * but `medicineName` (and the rest) are stored DENORMALIZED so the template
+ * but `medicineName` (and the rest) are stored DENORMALIZED so the preset
  * keeps working unchanged if the directory row is renamed or disabled later.
  */
-@Entity({ name: 'treatment_plan_template_medicines' })
-@Index(['templateId'])
-export class TreatmentPlanTemplateMedicine {
+@Entity({ name: 'prescription_preset_medicines' })
+@Index(['presetId'])
+export class PrescriptionPresetMedicine {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => TreatmentPlanTemplate, (t) => t.medicines, {
+  @ManyToOne(() => PrescriptionPreset, (t) => t.medicines, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'template_id' })
-  template: TreatmentPlanTemplate;
+  @JoinColumn({ name: 'preset_id' })
+  preset: PrescriptionPreset;
 
-  @Column({ name: 'template_id', type: 'uuid' })
-  templateId: string;
+  @Column({ name: 'preset_id', type: 'uuid' })
+  presetId: string;
 
   @ManyToOne(() => MedicineDirectory, {
     onDelete: 'SET NULL',

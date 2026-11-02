@@ -9,8 +9,6 @@ import type {
   PatientDentalInfo,
   PatientTeethChart,
   PatientVitals,
-  PatientTreatmentPlan,
-  TreatmentPlanItem,
   PatientPrescription,
   PatientDocument,
   PatientConsent,
@@ -254,13 +252,6 @@ export async function fetchPatientVitals(
   return data.data
 }
 
-export async function fetchPatientTreatmentPlans(
-  patientId: string,
-): Promise<PatientTreatmentPlan[]> {
-  const { data } = await api.get(`/patients/${patientId}/treatment-plans`)
-  return data.data
-}
-
 export async function fetchPatientPrescriptions(
   patientId: string,
 ): Promise<PatientPrescription[]> {
@@ -343,54 +334,6 @@ export async function createPatientVitals(
   payload: any,
 ): Promise<PatientVitals> {
   const { data } = await api.post(`/patients/${patientId}/vitals`, payload)
-  return data.data
-}
-
-export async function createPatientTreatmentPlan(
-  patientId: string,
-  payload: any,
-): Promise<PatientTreatmentPlan> {
-  const { data } = await api.post(
-    `/patients/${patientId}/treatment-plans`,
-    payload,
-  )
-  return data.data
-}
-
-export async function updatePatientTreatmentPlan(
-  patientId: string,
-  planId: string,
-  payload: any,
-): Promise<PatientTreatmentPlan> {
-  const { data } = await api.patch(
-    `/patients/${patientId}/treatment-plans/${planId}`,
-    payload,
-  )
-  return data.data
-}
-
-export async function createPatientTreatmentPlanItem(
-  patientId: string,
-  planId: string,
-  payload: any,
-): Promise<TreatmentPlanItem> {
-  const { data } = await api.post(
-    `/patients/${patientId}/treatment-plans/${planId}/items`,
-    payload,
-  )
-  return data.data
-}
-
-export async function updatePatientTreatmentPlanItem(
-  patientId: string,
-  planId: string,
-  itemId: string,
-  payload: any,
-): Promise<TreatmentPlanItem> {
-  const { data } = await api.patch(
-    `/patients/${patientId}/treatment-plans/${planId}/items/${itemId}`,
-    payload,
-  )
   return data.data
 }
 

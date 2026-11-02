@@ -11,7 +11,7 @@ import type {
   PrescriptionListResponse,
   PrescriptionMedicine,
   PrescriptionTemplate,
-  TreatmentPlanTemplate,
+  PrescriptionPreset,
   UpdatePrescriptionInput,
 } from '../types'
 
@@ -99,39 +99,39 @@ export async function deactivatePrescriptionTemplate(id: string) {
   await api.delete(`/prescription-templates/${id}`)
 }
 
-// ─── Treatment plan templates ─────────────────────────────────────────
+// ─── Prescription presets ─────────────────────────────────────────
 
-export async function fetchTreatmentPlanTemplates(
+export async function fetchPrescriptionPresets(
   category?: string,
-): Promise<TreatmentPlanTemplate[]> {
-  const { data } = await api.get('/treatment-plan-templates', {
+): Promise<PrescriptionPreset[]> {
+  const { data } = await api.get('/prescription-presets', {
     params: category ? { category } : undefined,
   })
   return data.data
 }
 
-export async function fetchTreatmentPlanTemplate(id: string) {
-  const { data } = await api.get(`/treatment-plan-templates/${id}`)
-  return data.data as TreatmentPlanTemplate
+export async function fetchPrescriptionPreset(id: string) {
+  const { data } = await api.get(`/prescription-presets/${id}`)
+  return data.data as PrescriptionPreset
 }
 
-export async function createTreatmentPlanTemplate(
-  payload: Partial<TreatmentPlanTemplate>,
+export async function createPrescriptionPreset(
+  payload: Partial<PrescriptionPreset>,
 ) {
-  const { data } = await api.post('/treatment-plan-templates', payload)
-  return data.data as TreatmentPlanTemplate
+  const { data } = await api.post('/prescription-presets', payload)
+  return data.data as PrescriptionPreset
 }
 
-export async function updateTreatmentPlanTemplate(
+export async function updatePrescriptionPreset(
   id: string,
-  payload: Partial<TreatmentPlanTemplate>,
+  payload: Partial<PrescriptionPreset>,
 ) {
-  const { data } = await api.patch(`/treatment-plan-templates/${id}`, payload)
-  return data.data as TreatmentPlanTemplate
+  const { data } = await api.patch(`/prescription-presets/${id}`, payload)
+  return data.data as PrescriptionPreset
 }
 
-export async function deactivateTreatmentPlanTemplate(id: string) {
-  await api.delete(`/treatment-plan-templates/${id}`)
+export async function deactivatePrescriptionPreset(id: string) {
+  await api.delete(`/prescription-presets/${id}`)
 }
 
 // ─── Doctor signatures ────────────────────────────────────────────────

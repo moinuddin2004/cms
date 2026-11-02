@@ -75,14 +75,6 @@ export function useTeethCharts(patientId: string) {
   })
 }
 
-export function useTreatmentPlans(patientId: string) {
-  return useQuery({
-    queryKey: keys.treatmentPlans(patientId),
-    queryFn: () => api.fetchPatientTreatmentPlans(patientId),
-    enabled: !!patientId,
-  })
-}
-
 export function useConsents(patientId: string) {
   return useQuery({
     queryKey: keys.consents(patientId),
@@ -230,81 +222,6 @@ export function useCreateTeethChart() {
       toast.success('Teeth chart saved')
     },
     onError: (err) => toast.error(errMsg(err, 'Failed to save teeth chart')),
-  })
-}
-
-export function useCreateTreatmentPlan() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ patientId, ...payload }: { patientId: string } & any) =>
-      api.createPatientTreatmentPlan(patientId, payload),
-    onSuccess: (_, { patientId }) => {
-      queryClient.invalidateQueries({
-        queryKey: keys.treatmentPlans(patientId),
-      })
-      toast.success('Treatment plan created')
-    },
-    onError: (err) =>
-      toast.error(errMsg(err, 'Failed to create treatment plan')),
-  })
-}
-
-export function useCreateTreatmentPlanItem() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      patientId,
-      planId,
-      ...payload
-    }: { patientId: string; planId: string } & any) =>
-      api.createPatientTreatmentPlanItem(patientId, planId, payload),
-    onSuccess: (_, { patientId }) => {
-      queryClient.invalidateQueries({
-        queryKey: keys.treatmentPlans(patientId),
-      })
-      toast.success('Procedure added')
-    },
-    onError: (err) => toast.error(errMsg(err, 'Failed to add procedure')),
-  })
-}
-
-export function useUpdateTreatmentPlan() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      patientId,
-      planId,
-      ...payload
-    }: { patientId: string; planId: string } & any) =>
-      api.updatePatientTreatmentPlan(patientId, planId, payload),
-    onSuccess: (_, { patientId }) => {
-      queryClient.invalidateQueries({
-        queryKey: keys.treatmentPlans(patientId),
-      })
-      toast.success('Treatment plan updated')
-    },
-    onError: (err) =>
-      toast.error(errMsg(err, 'Failed to update treatment plan')),
-  })
-}
-
-export function useUpdateTreatmentPlanItem() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({
-      patientId,
-      planId,
-      itemId,
-      ...payload
-    }: { patientId: string; planId: string; itemId: string } & any) =>
-      api.updatePatientTreatmentPlanItem(patientId, planId, itemId, payload),
-    onSuccess: (_, { patientId }) => {
-      queryClient.invalidateQueries({
-        queryKey: keys.treatmentPlans(patientId),
-      })
-      toast.success('Procedure updated')
-    },
-    onError: (err) => toast.error(errMsg(err, 'Failed to update procedure')),
   })
 }
 

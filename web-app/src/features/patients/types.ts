@@ -68,22 +68,6 @@ export enum FlossingFrequency {
   UNKNOWN = 'unknown',
 }
 
-export enum TreatmentPlanStatus {
-  DRAFT = 'draft',
-  ACTIVE = 'active',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-  ON_HOLD = 'on_hold',
-}
-
-export enum PlanItemStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  SKIPPED = 'skipped',
-  POSTPONED = 'postponed',
-}
-
 export enum DocumentType {
   XRAY = 'xray',
   CBCT_SCAN = 'cbct_scan',
@@ -410,48 +394,6 @@ export interface PatientVitals {
   notes: string | null
   recordedAt: string
   createdAt: string
-}
-
-export interface TreatmentPlanItem {
-  id: string
-  planId: string
-  procedureName: string
-  procedureCode: string | null
-  toothNumber: string | null
-  toothSurface: string | null
-  estimatedSessions: number
-  completedSessions: number
-  estimatedCost: number | null
-  status: PlanItemStatus
-  sequenceOrder: number
-  assignedTo: string | null
-  clinicalNotes: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface PatientTreatmentPlan {
-  id: string
-  patientId: string
-  locationId: string
-  dentistId: string
-  planNumber: string
-  planName: string
-  description: string | null
-  estimatedCost: number | null
-  discountAmount: number
-  finalEstimatedCost: number | null
-  status: TreatmentPlanStatus
-  startDate: string | null
-  expectedEndDate: string | null
-  actualEndDate: string | null
-  patientAccepted: boolean
-  patientAcceptedAt: string | null
-  notes: string | null
-  createdAt: string
-  updatedAt: string
-  items?: TreatmentPlanItem[]
 }
 
 export interface PatientPrescription {

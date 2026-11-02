@@ -14,8 +14,9 @@ import { PrescriptionController } from 'src/prescriptions/controllers/prescripti
 import { DoctorSignatureController } from 'src/prescriptions/controllers/doctor-signature.controller';
 import { MedicineDirectoryController } from 'src/prescriptions/controllers/medicine-directory.controller';
 import { PrescriptionTemplateController } from 'src/prescriptions/controllers/prescription-template.controller';
-import { TreatmentPlanTemplateController } from 'src/prescriptions/controllers/treatment-plan-template.controller';
+import { PrescriptionPresetController } from 'src/prescriptions/controllers/prescription-preset.controller';
 import { PlanTemplatesController } from 'src/plan-templates/plan-templates.controller';
+import { TreatmentPlansController } from 'src/treatment-plans/treatment-plans.controller';
 import { TreatmentsController } from 'src/treatments/treatments.controller';
 import { InventoryController } from 'src/inventory/controllers/inventory.controller';
 import { ConsumptionTemplateController } from 'src/inventory/controllers/consumption-template.controller';
@@ -31,8 +32,9 @@ const CONTROLLERS: Array<abstract new (...args: never[]) => unknown> = [
   DoctorSignatureController,
   MedicineDirectoryController,
   PrescriptionTemplateController,
-  TreatmentPlanTemplateController,
+  PrescriptionPresetController,
   PlanTemplatesController,
+  TreatmentPlansController,
   TreatmentsController,
   InventoryController,
   ConsumptionTemplateController,
@@ -112,7 +114,15 @@ describe('M3 access coverage', () => {
     ['POST /patients/:id/vitals', 'patients.clinical.edit'],
     ['POST /patients/:id/teeth-charts', 'patients.chart.edit'],
     ['POST /patients/:id/documents', 'patients.documents.manage'],
-    ['POST /patients/:id/treatment-plans', 'plans.manage'],
+    ['POST /patients/:patientId/treatment-plans', 'plans.manage'],
+    [
+      'POST /patients/:patientId/treatment-plans/:planId/items/:itemId/session',
+      'plans.manage',
+    ],
+    [
+      'PATCH /patients/:patientId/treatment-plans/:planId/discount',
+      'billing.discount.apply + patients.price.view',
+    ],
     ['POST /plan-templates', 'plans.templates.manage'],
     ['POST /prescriptions', 'prescriptions.create'],
     ['GET /prescriptions/:id/pdf', 'patients.clinical.view'],

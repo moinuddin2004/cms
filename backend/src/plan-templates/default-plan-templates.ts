@@ -12,14 +12,14 @@ const toItems = (items: DefaultTemplate['items']): PlanTemplateItem[] =>
   items.map(([procedureName, estimatedSessions, notes]) => ({
     procedureName,
     estimatedSessions,
-    estimatedCost: null,
+    serviceId: null,
     notes: notes ?? null,
   }));
 
 /**
- * The plans every clinic starts with. Fees are left empty on purpose — they
- * belong to the clinic; set them once on the Treatment Plan Templates page and
- * every plan started from the template carries them.
+ * The plans every clinic starts with. Steps are not linked to services yet —
+ * each clinic has its own catalog; link them once on the Treatment Plan
+ * Templates page (prices then always come from the catalog).
  */
 const DEFAULTS: DefaultTemplate[] = [
   {

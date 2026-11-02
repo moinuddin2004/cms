@@ -46,11 +46,13 @@ export class PlanTemplatesController {
       ctx.organizationId,
       includeInactive === 'true',
     );
-    // Item fees live in jsonb (plain objects), out of @VisibleIf's reach.
+    // A fixed discount is money; only price viewers see it. Plans made from
+    // the template still get it (applied server-side).
     if (!access.can('patients.price.view')) {
-      for (const t of data)
-        for (const item of t.items ?? [])
-          delete (item as Partial<typeof item>).estimatedCost;
+      for (const t of data) {
+        t.discountKind = null;
+        t.discountValue = null;
+      }
     }
     return ResponseWrapper.success(data);
   }

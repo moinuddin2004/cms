@@ -26,6 +26,7 @@ import { ConsultationHeader } from '../components/ConsultationHeader'
 import { PatientSnapshot } from '../components/PatientSnapshot'
 import { VisitNotes } from '../components/VisitNotes'
 import { TreatmentsToday } from '../components/TreatmentsToday'
+import { TreatmentPlanPanel } from '../components/TreatmentPlanPanel'
 import { PrescriptionPanel } from '../components/PrescriptionPanel'
 import type { RxCommand } from '../components/PrescriptionPanel'
 import { RecordDrawer } from '../components/RecordDrawer'
@@ -211,6 +212,11 @@ export function ConsultationPage({ encounterId }: { encounterId: string }) {
             encounterId={encounterId}
             patientId={patient.id}
             treatments={encounter.treatments ?? []}
+          />
+          <TreatmentPlanPanel
+            patientId={patient.id}
+            encounterId={encounterId}
+            dentistId={doctor?.id ?? null}
           />
           <PrescriptionPanel
             encounterId={encounterId}

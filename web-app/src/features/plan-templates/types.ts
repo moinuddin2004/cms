@@ -55,12 +55,15 @@ export const PLAN_TEMPLATE_CATEGORY_OPTIONS = Object.values(
     return a.label.localeCompare(b.label)
   })
 
-/** One procedure of a template; becomes a plan item when the template is used. */
+/**
+ * One catalog service of a template; becomes a plan line when the template
+ * is used. No fee — prices always come from the service catalog.
+ */
 export interface PlanTemplateItem {
+  /** null only on predefined steps nobody has linked to a service yet. */
+  serviceId: string | null
   procedureName: string
   estimatedSessions: number
-  /** The clinic's usual fee; null until the clinic sets it. */
-  estimatedCost: number | null
   notes: string | null
 }
 
@@ -74,6 +77,9 @@ export interface PlanTemplate {
   category: PlanTemplateCategory
   description: string | null
   items: PlanTemplateItem[]
+  /** Discount plans made from it start with; hidden from non-price viewers. */
+  discountKind: 'PERCENTAGE' | 'FIXED' | null
+  discountValue: number | null
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -83,13 +89,7 @@ export interface PlanTemplateInput {
   name: string
   category: PlanTemplateCategory
   description: string | null
-  items: PlanTemplateItem[]
-}
-
-/** Total of the procedure fees that are set; null when none is. */
-export function templateTotalCost(items: PlanTemplateItem[]): number | null {
-  const fees = items
-    .map((i) => (i.estimatedCost == null ? null : Number(i.estimatedCost)))
-    .filter((f): f is number => f !== null && !Number.isNaN(f))
-  return fees.length === 0 ? null : fees.reduce((a, b) => a + b, 0)
+  items: Array<{ serviceId: string; estimatedSessions: number; notes: null }>
+  discountKind: 'PERCENTAGE' | 'FIXED' | null
+  discountValue: number | null
 }

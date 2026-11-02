@@ -16,7 +16,7 @@ import { Employee } from 'src/employees/entities/employee.entity';
 import { Appointment } from 'src/appointments/entities/appointment.entity';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { PrescriptionTemplate } from './prescription-template.entity';
-import { TreatmentPlanTemplate } from './treatment-plan-template.entity';
+import { PrescriptionPreset } from './prescription-preset.entity';
 import { PrescriptionMedicine } from './prescription-medicine.entity';
 import { PrescriptionStatus } from '../enums/prescription-status.enum';
 
@@ -103,15 +103,15 @@ export class Prescription {
   @Column({ name: 'prescription_template_id', type: 'uuid', nullable: true })
   prescriptionTemplateId: string | null;
 
-  @ManyToOne(() => TreatmentPlanTemplate, {
+  @ManyToOne(() => PrescriptionPreset, {
     onDelete: 'SET NULL',
     nullable: true,
   })
-  @JoinColumn({ name: 'treatment_plan_template_id' })
-  treatmentPlanTemplate: TreatmentPlanTemplate | null;
+  @JoinColumn({ name: 'prescription_preset_id' })
+  prescriptionPreset: PrescriptionPreset | null;
 
-  @Column({ name: 'treatment_plan_template_id', type: 'uuid', nullable: true })
-  treatmentPlanTemplateId: string | null;
+  @Column({ name: 'prescription_preset_id', type: 'uuid', nullable: true })
+  prescriptionPresetId: string | null;
 
   @Column({ name: 'diagnosis', type: 'text', nullable: true })
   diagnosis: string | null;

@@ -63,7 +63,7 @@ function defaultsFor(
       patient: null,
       doctorId: '',
       templateId: '',
-      treatmentPlanTemplateId: '',
+      prescriptionPresetId: '',
       chiefComplaint: '',
       diagnosis: '',
       furtherPlan: '',
@@ -85,7 +85,7 @@ function defaultsFor(
     },
     doctorId: existing.doctorId ?? existing.doctor?.id ?? '',
     templateId: existing.prescriptionTemplateId ?? '',
-    treatmentPlanTemplateId: existing.treatmentPlanTemplateId ?? '',
+    prescriptionPresetId: existing.prescriptionPresetId ?? '',
     chiefComplaint: existing.chiefComplaint ?? '',
     diagnosis: existing.diagnosis ?? '',
     furtherPlan: existing.furtherPlan ?? '',
@@ -168,7 +168,7 @@ export function usePrescriptionForm({
         patientId: value.patient!.id,
         appointmentId: initialAppointmentId,
         doctorId: value.doctorId || undefined,
-        treatmentPlanTemplateId: value.treatmentPlanTemplateId || undefined,
+        prescriptionPresetId: value.prescriptionPresetId || undefined,
         ...common,
       }
       let created: Prescription

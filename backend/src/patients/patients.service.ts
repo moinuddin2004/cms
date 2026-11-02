@@ -34,8 +34,6 @@ import { PatientVisit } from './entities/patient-visit.entity';
 import { PatientDentalInfo } from './entities/patient-dental-info.entity';
 import { PatientTeethChart } from './entities/patient-teeth-chart.entity';
 import { PatientVitals } from './entities/patient-vitals.entity';
-import { PatientTreatmentPlan } from './entities/patient-treatment-plan.entity';
-import { TreatmentPlanItem } from './entities/treatment-plan-item.entity';
 import { PatientPrescription } from './entities/patient-prescription.entity';
 import { PatientDocument } from './entities/patient-document.entity';
 import { PatientConsent } from './entities/patient-consent.entity';
@@ -61,10 +59,6 @@ import {
   UpsertDentalInfoDto,
   CreateTeethChartDto,
   CreateVitalsDto,
-  CreateTreatmentPlanDto,
-  UpdateTreatmentPlanDto,
-  CreatePlanItemDto,
-  UpdatePlanItemDto,
   CreatePrescriptionDto,
   CreateDocumentDto,
   CreateConsentDto,
@@ -104,10 +98,6 @@ export class PatientsService {
     private readonly teethChartRepo: Repository<PatientTeethChart>,
     @InjectRepository(PatientVitals)
     private readonly vitalsRepo: Repository<PatientVitals>,
-    @InjectRepository(PatientTreatmentPlan)
-    private readonly treatmentPlanRepo: Repository<PatientTreatmentPlan>,
-    @InjectRepository(TreatmentPlanItem)
-    private readonly planItemRepo: Repository<TreatmentPlanItem>,
     @InjectRepository(PatientPrescription)
     private readonly prescriptionRepo: Repository<PatientPrescription>,
     @InjectRepository(PatientDocument)
@@ -176,14 +166,6 @@ export class PatientsService {
       withDeleted: true,
     });
     return `P-${String(count + 1).padStart(5, '0')}`;
-  }
-
-  private async generatePlanNumber(organizationId: string): Promise<string> {
-    const count = await this.treatmentPlanRepo.count({
-      where: { organizationId },
-      withDeleted: true,
-    });
-    return `TP-${String(count + 1).padStart(5, '0')}`;
   }
 
   private async generateRxNumber(organizationId: string): Promise<string> {
@@ -645,154 +627,6 @@ export class PatientsService {
       entityType: PATIENT_AUDIT_ENTITY.VITALS,
     });
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // TREATMENT PLANS
-  // ═══════════════════════════════════════════════════════════
-
-  async getTreatmentPlans(patientId: string, organizationId: string) {
-    await this.getPatientOrFail(patientId, organizationId);
-    return this.treatmentPlanRepo.find({
-      where: { patientId, organizationId },
-      relations: ['items'],
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async createTreatmentPlan(
-    patientId: string,
-    ctx: TenantContext,
-    dto: CreateTreatmentPlanDto,
-    actor: ActorRef,
-  ) {
-    await this.getPatientOrFail(patientId, ctx.organizationId);
-    const planNumber = await this.generatePlanNumber(ctx.organizationId);
-
-    const finalEstimatedCost = dto.estimatedCost
-      ? dto.estimatedCost - (dto.discountAmount || 0)
-      : null;
-
-    const plan = this.treatmentPlanRepo.create({
-      ...dto,
-      patientId,
-      locationId: ctx.locationId,
-      organizationId: ctx.organizationId,
-      planNumber,
-      finalEstimatedCost,
-      startDate: dto.startDate ? new Date(dto.startDate) : null,
-      expectedEndDate: dto.expectedEndDate
-        ? new Date(dto.expectedEndDate)
-        : null,
-      createdBy: actor.userId,
-    });
-    return this.saveAudited(actor, PatientTreatmentPlan, plan, {
-      organizationId: ctx.organizationId,
-      patientId,
-      entityType: PATIENT_AUDIT_ENTITY.TREATMENT_PLAN,
-    });
-  }
-
-  async updateTreatmentPlan(
-    patientId: string,
-    planId: string,
-    organizationId: string,
-    dto: UpdateTreatmentPlanDto,
-    actor: ActorRef,
-  ) {
-    await this.getPatientOrFail(patientId, organizationId);
-    const plan = await this.treatmentPlanRepo.findOne({
-      where: { id: planId, patientId, organizationId },
-    });
-    if (!plan) throw new NotFoundException('Treatment plan not found');
-
-    if (dto.patientAccepted && !plan.patientAccepted) {
-      dto['patientAcceptedAt'] = new Date() as any;
-    }
-
-    // Recalculate final cost if either estimatedCost or discount changed
-    const estimatedCost = dto.estimatedCost ?? plan.estimatedCost;
-    const discountAmount = dto.discountAmount ?? plan.discountAmount;
-    if (estimatedCost != null) {
-      (dto as any).finalEstimatedCost = estimatedCost - (discountAmount || 0);
-    }
-
-    const before = this.snapshot(PatientTreatmentPlan, plan);
-    Object.assign(plan, dto);
-    return this.saveAudited(actor, PatientTreatmentPlan, plan, {
-      organizationId,
-      patientId,
-      entityType: PATIENT_AUDIT_ENTITY.TREATMENT_PLAN,
-      before,
-    });
-  }
-
-  // ─── Plan Items ─────────────────────────────────────────
-
-  async getPlanItems(
-    patientId: string,
-    planId: string,
-    organizationId: string,
-  ) {
-    await this.getPatientOrFail(patientId, organizationId);
-    return this.planItemRepo.find({
-      where: { planId },
-      order: { sequenceOrder: 'ASC' },
-    });
-  }
-
-  async createPlanItem(
-    patientId: string,
-    planId: string,
-    ctx: TenantContext,
-    dto: CreatePlanItemDto,
-    actor: ActorRef,
-  ) {
-    await this.getPatientOrFail(patientId, ctx.organizationId);
-    const plan = await this.treatmentPlanRepo.findOne({
-      where: { id: planId, patientId, organizationId: ctx.organizationId },
-    });
-    if (!plan) throw new NotFoundException('Treatment plan not found');
-
-    const item = this.planItemRepo.create({ ...dto, planId });
-    return this.saveAudited(actor, TreatmentPlanItem, item, {
-      organizationId: ctx.organizationId,
-      patientId,
-      entityType: PATIENT_AUDIT_ENTITY.PLAN_ITEM,
-    });
-  }
-
-  async updatePlanItem(
-    patientId: string,
-    planId: string,
-    itemId: string,
-    organizationId: string,
-    dto: UpdatePlanItemDto,
-    actor: ActorRef,
-  ) {
-    await this.getPatientOrFail(patientId, organizationId);
-    const plan = await this.treatmentPlanRepo.findOne({
-      where: { id: planId, patientId, organizationId },
-    });
-    if (!plan) throw new NotFoundException('Treatment plan not found');
-
-    const item = await this.planItemRepo.findOne({
-      where: { id: itemId, planId },
-    });
-    if (!item) throw new NotFoundException('Plan item not found');
-
-    const before = this.snapshot(TreatmentPlanItem, item);
-    Object.assign(item, dto);
-    // Keep completed sessions within bounds of the estimate.
-    const estimate = dto.estimatedSessions ?? item.estimatedSessions;
-    if (item.completedSessions > estimate) item.completedSessions = estimate;
-    return this.saveAudited(actor, TreatmentPlanItem, item, {
-      organizationId,
-      patientId,
-      entityType: PATIENT_AUDIT_ENTITY.PLAN_ITEM,
-      before,
-    });
-  }
-
   // ═══════════════════════════════════════════════════════════
   // PRESCRIPTIONS
   // ═══════════════════════════════════════════════════════════

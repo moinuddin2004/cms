@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Body,
+  ParseUUIDPipe,
   Query,
   Req,
   BadRequestException,
@@ -52,11 +53,20 @@ export class TreatmentsController {
     return ResponseWrapper.success(data, 'Treatment recorded successfully');
   }
 
-  /** Procedures the doctor can pick (id + name only — no prices). */
+  /** Procedures the doctor can pick; the price (for `doctorId` when given) only for price viewers. */
   @Get('catalog')
   @Can('patients.clinical.view')
-  async catalog(@ActiveTenant() ctx: TenantContext) {
-    const data = await this.treatmentsService.listProcedureCatalog(ctx);
+  async catalog(
+    @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
+    @Query('doctorId', new ParseUUIDPipe({ optional: true }))
+    doctorId: string | undefined,
+  ) {
+    const data = await this.treatmentsService.listProcedureCatalog(
+      ctx,
+      access.can('patients.price.view'),
+      doctorId,
+    );
     return ResponseWrapper.success(data, 'Procedure catalog retrieved');
   }
 

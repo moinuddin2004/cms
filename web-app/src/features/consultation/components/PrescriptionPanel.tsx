@@ -45,7 +45,7 @@ import {
   usePrescriptionsByEncounter,
   usePrescriptionsByPatient,
   useSaveMySignature,
-  useTreatmentPlanTemplates,
+  usePrescriptionPresets,
 } from '@/features/prescriptions'
 import type {
   MedicineDirectoryItem,
@@ -134,7 +134,7 @@ export function PrescriptionPanel({
   notes: VisitNotes
   latestVitals: PatientVitals | null | undefined
   command: RxCommand | null
-  /** A plan template brought its own advice text — offer it to the notes. */
+  /** A preset brought its own advice text — offer it to the notes. */
   onTemplateAdvice: (text: string) => void
   /** Lets the screen save the prescription before it completes the visit. */
   registerFlush: (flush: () => Promise<boolean>) => void
@@ -143,7 +143,7 @@ export function PrescriptionPanel({
   const { data: forVisit, isLoading } = usePrescriptionsByEncounter(encounterId)
   const { data: forPatient } = usePrescriptionsByPatient(patientId, 1, 5)
   const { data: directory = [] } = useMedicines()
-  const { data: planTemplates = [] } = useTreatmentPlanTemplates()
+  const { data: presets = [] } = usePrescriptionPresets()
   const { data: mySignature } = useMySignature()
   const finalizeMutation = useFinalizePrescription()
   const saveSignature = useSaveMySignature()
@@ -442,7 +442,7 @@ export function PrescriptionPanel({
                     <Repeat className="size-4" /> Repeat last
                   </Button>
                 )}
-                {planTemplates.length > 0 && (
+                {presets.length > 0 && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -461,7 +461,7 @@ export function PrescriptionPanel({
                       <DropdownMenuLabel>
                         Prescription presets
                       </DropdownMenuLabel>
-                      {planTemplates.map((t) => (
+                      {presets.map((t) => (
                         <DropdownMenuItem
                           key={t.id}
                           className="min-h-9"

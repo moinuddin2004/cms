@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { CatalogService } from 'src/billing/entities/catalog-service.entity';
+import { DiscountKind } from 'src/billing/enums/billing.enums';
 import {
   PlanTemplate,
   PlanTemplateItem,
@@ -13,20 +19,51 @@ import {
 import { PlanTemplateCategory } from './enums/plan-template-category.enum';
 import { DEFAULT_PLAN_TEMPLATES } from './default-plan-templates';
 
-const toItems = (items: PlanTemplateItemDto[]): PlanTemplateItem[] =>
-  items.map((i) => ({
-    procedureName: i.procedureName.trim(),
-    estimatedSessions: i.estimatedSessions,
-    estimatedCost: i.estimatedCost ?? null,
-    notes: i.notes?.trim() || null,
-  }));
+/** No kind or a zero value = no discount; a percentage tops out at 100. */
+const toDiscount = (
+  kind: DiscountKind | null | undefined,
+  value: number | null | undefined,
+) =>
+  !kind || value == null || value <= 0
+    ? { discountKind: null, discountValue: null }
+    : {
+        discountKind: kind,
+        discountValue:
+          kind === DiscountKind.PERCENTAGE ? Math.min(value, 100) : value,
+      };
 
 @Injectable()
 export class PlanTemplatesService {
   constructor(
     @InjectRepository(PlanTemplate)
     private readonly repo: Repository<PlanTemplate>,
+    @InjectRepository(CatalogService)
+    private readonly catalog: Repository<CatalogService>,
   ) {}
+
+  /** Every line must be an active service of this clinic; names come from it. */
+  private async toItems(
+    organizationId: string,
+    items: PlanTemplateItemDto[],
+  ): Promise<PlanTemplateItem[]> {
+    const ids = [...new Set(items.map((i) => i.serviceId))];
+    const services = await this.catalog.find({
+      where: { id: In(ids), organizationId, isActive: true },
+      select: { id: true, name: true },
+    });
+    const names = new Map(services.map((s) => [s.id, s.name]));
+    if (names.size !== ids.length) {
+      throw new BadRequestException(
+        'A selected service is not in the clinic catalog any more',
+      );
+    }
+    return items.map((i) => ({
+      serviceId: i.serviceId,
+      procedureName: names.get(i.serviceId) ?? '',
+      estimatedSessions: i.estimatedSessions,
+      notes: i.notes?.trim() || null,
+    }));
+  }
 
   /**
    * The clinic's templates. A clinic that has never had any gets the
@@ -54,7 +91,7 @@ export class PlanTemplatesService {
     );
   }
 
-  create(
+  async create(
     organizationId: string,
     dto: CreatePlanTemplateDto,
     createdBy: string | null,
@@ -65,7 +102,8 @@ export class PlanTemplatesService {
         name: dto.name.trim(),
         category: dto.category ?? PlanTemplateCategory.GENERAL,
         description: dto.description?.trim() || null,
-        items: toItems(dto.items),
+        items: await this.toItems(organizationId, dto.items),
+        ...toDiscount(dto.discountKind, dto.discountValue),
         createdBy,
       }),
     );
@@ -82,7 +120,20 @@ export class PlanTemplatesService {
     if (dto.description !== undefined) {
       row.description = dto.description?.trim() || null;
     }
-    if (dto.items !== undefined) row.items = toItems(dto.items);
+    if (dto.items !== undefined) {
+      row.items = await this.toItems(organizationId, dto.items);
+    }
+    if (dto.discountKind !== undefined || dto.discountValue !== undefined) {
+      Object.assign(
+        row,
+        toDiscount(
+          dto.discountKind === undefined ? row.discountKind : dto.discountKind,
+          dto.discountValue === undefined
+            ? row.discountValue
+            : dto.discountValue,
+        ),
+      );
+    }
     if (dto.isActive !== undefined) row.isActive = dto.isActive;
     return this.repo.save(row);
   }

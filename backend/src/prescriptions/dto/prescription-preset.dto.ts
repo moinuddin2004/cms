@@ -74,7 +74,7 @@ export class CreateTemplateMedicineDto {
   sortOrder?: number;
 }
 
-export class CreateTreatmentPlanTemplateDto {
+export class CreatePrescriptionPresetDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
@@ -111,7 +111,7 @@ export class CreateTreatmentPlanTemplateDto {
   medicines: CreateTemplateMedicineDto[];
 }
 
-export class UpdateTreatmentPlanTemplateDto {
+export class UpdatePrescriptionPresetDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)

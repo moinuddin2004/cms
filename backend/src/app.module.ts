@@ -29,6 +29,7 @@ import { FeatureFlagGuard } from './feature-flags/guards/feature-flag.guard';
 import { InventoryModule } from './inventory/inventory.module';
 import { PrescriptionsModule } from './prescriptions/prescriptions.module';
 import { PlanTemplatesModule } from './plan-templates/plan-templates.module';
+import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 import { ClockModule } from './common/clock/clock.module';
 import { ensurePostgresExtensions } from './common/database/ensure-extensions';
@@ -110,6 +111,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     InventoryModule,
     PrescriptionsModule,
     PlanTemplatesModule,
+    TreatmentPlansModule,
     EngineModule,
     LabsModule,
     LabCatalogModule,

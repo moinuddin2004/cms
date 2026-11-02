@@ -137,7 +137,7 @@ export const prescriptionSchema = z.object({
   ),
   doctorId: z.string().min(1, 'Select the prescribing doctor'),
   templateId: z.string(),
-  treatmentPlanTemplateId: z.string(),
+  prescriptionPresetId: z.string(),
   chiefComplaint: max(1000),
   diagnosis: max(1000),
   furtherPlan: max(4000),

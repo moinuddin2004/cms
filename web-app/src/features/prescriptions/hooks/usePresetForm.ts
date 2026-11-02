@@ -6,11 +6,11 @@ import type {
   PresetMedicineValues,
 } from '../schemas/library.schema'
 import { MealRelation, PresetCategory, toPresetCategory } from '../types'
-import type { TreatmentPlanTemplate } from '../types'
+import type { PrescriptionPreset } from '../types'
 import {
-  useCreateTreatmentPlanTemplate,
-  useUpdateTreatmentPlanTemplate,
-} from './useTreatmentPlanTemplates'
+  useCreatePrescriptionPreset,
+  useUpdatePrescriptionPreset,
+} from './usePrescriptionPresets'
 
 export const emptyPresetMedicine = (): PresetMedicineValues => ({
   medicineName: '',
@@ -21,7 +21,7 @@ export const emptyPresetMedicine = (): PresetMedicineValues => ({
   duration: '',
 })
 
-function defaultsFor(preset: TreatmentPlanTemplate | null): PresetFormValues {
+function defaultsFor(preset: PrescriptionPreset | null): PresetFormValues {
   return {
     name: preset?.name ?? '',
     category: preset
@@ -58,11 +58,11 @@ export function usePresetForm({
   onDone,
 }: {
   open: boolean
-  preset: TreatmentPlanTemplate | null
+  preset: PrescriptionPreset | null
   onDone: () => void
 }) {
-  const create = useCreateTreatmentPlanTemplate()
-  const update = useUpdateTreatmentPlanTemplate()
+  const create = useCreatePrescriptionPreset()
+  const update = useUpdatePrescriptionPreset()
 
   const form = useForm({
     defaultValues: defaultsFor(preset),

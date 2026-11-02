@@ -1,6 +1,6 @@
 /**
  * What a prescription preset (a ready-made set of medicines) is for.
- * Stored as text in `treatment_plan_templates.category`; the API only
+ * Stored as text in `prescription_presets.category`; the API only
  * accepts these values. Keep the labels in the web app
  * (`PRESET_CATEGORY_LABELS`) in step with this list.
  */

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
+  ArrayMinSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -9,26 +10,24 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
+import { DiscountKind } from 'src/billing/enums/billing.enums';
 import { PlanTemplateCategory } from '../enums/plan-template-category.enum';
 
+/** One catalog service of the template; its name and price come from the catalog. */
 export class PlanTemplateItemDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  procedureName: string;
+  @IsUUID()
+  serviceId: string;
 
   @IsInt()
   @Min(1)
+  @Max(60)
   estimatedSessions: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  estimatedCost?: number | null;
 
   @IsOptional()
   @IsString()
@@ -52,10 +51,21 @@ export class CreatePlanTemplateDto {
   description?: string | null;
 
   @IsArray()
+  @ArrayMinSize(1)
   @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => PlanTemplateItemDto)
   items: PlanTemplateItemDto[];
+
+  /** null / absent = no discount. */
+  @IsOptional()
+  @IsEnum(DiscountKind)
+  discountKind?: DiscountKind | null;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  discountValue?: number | null;
 }
 
 export class UpdatePlanTemplateDto {
@@ -76,10 +86,20 @@ export class UpdatePlanTemplateDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMinSize(1)
   @ArrayMaxSize(50)
   @ValidateNested({ each: true })
   @Type(() => PlanTemplateItemDto)
   items?: PlanTemplateItemDto[];
+
+  @IsOptional()
+  @IsEnum(DiscountKind)
+  discountKind?: DiscountKind | null;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  discountValue?: number | null;
 
   @IsOptional()
   @IsBoolean()

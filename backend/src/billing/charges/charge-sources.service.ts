@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EntityManager, In } from 'typeorm';
+import { EntityManager, In, IsNull } from 'typeorm';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
 import { Treatment } from 'src/treatments/entities/treatment.entity';
@@ -26,6 +26,7 @@ import {
 } from '../enums/billing.enums';
 import { BillingSettingsService } from '../settings/billing-settings.service';
 import { voidCharge } from './charge-math';
+import { PlanInvoicingService } from './plan-invoicing.service';
 import {
   CommissionService,
   CommissionSnapshot,
@@ -64,6 +65,7 @@ export class ChargeSourcesService {
     private readonly flags: FeatureFlagsService,
     private readonly clock: BillingClock,
     private readonly commissions: CommissionService,
+    private readonly planInvoicing: PlanInvoicingService,
   ) {}
 
   async syncForEncounter(
@@ -98,9 +100,11 @@ export class ChargeSourcesService {
       },
     };
     const treatments = await manager.getRepository(Treatment).find({
+      // Plan sessions are billed on the plan's own invoice.
       where: {
         encounterId: encounter.id,
         organizationId: tenant.organizationId,
+        planItemId: IsNull(),
       },
       select: { id: true, treatmentName: true, cost: true, serviceId: true },
     });
@@ -163,6 +167,14 @@ export class ChargeSourcesService {
       manager,
       drafts.map((d, i) => ({ ...d, ...snapshots[i] })),
     );
+    // A treatment plan given in this visit gets its one bill now.
+    await this.planInvoicing.startForVisit(manager, {
+      tenant,
+      patientId: encounter.patientId,
+      encounterId: encounter.id,
+      actorUserId: input.actorUserId,
+      at: input.completedAt,
+    });
     const voidedIds = await this.handleRemoved(
       manager,
       existing,

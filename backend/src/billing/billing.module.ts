@@ -41,6 +41,7 @@ import { CashCloseService } from './cash-close/cash-close.service';
 import { CatalogServicesService } from './catalog/catalog.service';
 import { ChargePricingService } from './catalog/charge-pricing.service';
 import { ChargeSourcesService } from './charges/charge-sources.service';
+import { PlanInvoicingService } from './charges/plan-invoicing.service';
 import { ChargesService } from './charges/charges.service';
 import { DiscountApplier } from './discounts/discount-applier.service';
 import { DiscountTypesService } from './discounts/discount-types.service';
@@ -85,7 +86,8 @@ import { CommissionsController } from './commissions/commissions.controller';
  * Billing v2: charge-based billing (D1). Money writes go through the
  * orchestrating services (collect, edit, refund…) which open ONE
  * transaction and call the helper services with its EntityManager.
- * `ChargeSourcesService` is exported for the queue's completion hook.
+ * `ChargeSourcesService` is exported for the queue's completion hook and
+ * `PlanInvoicingService` for treatment plans.
  */
 @Module({
   imports: [
@@ -148,6 +150,7 @@ import { CommissionsController } from './commissions/commissions.controller';
     DiscountApplier,
     ChargesService,
     ChargeSourcesService,
+    PlanInvoicingService,
     InvoiceIssuer,
     InvoiceEditHandlers,
     InvoicesService,
@@ -167,6 +170,6 @@ import { CommissionsController } from './commissions/commissions.controller';
     CommissionService,
     CommissionReportsService,
   ],
-  exports: [ChargeSourcesService],
+  exports: [ChargeSourcesService, PlanInvoicingService],
 })
 export class BillingModule {}

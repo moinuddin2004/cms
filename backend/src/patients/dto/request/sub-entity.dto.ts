@@ -19,8 +19,6 @@ import { Type } from 'class-transformer';
 import { GumCondition } from '../../enums/gum-condition.enum';
 import { BrushingFrequency } from '../../enums/brushing-frequency.enum';
 import { FlossingFrequency } from '../../enums/flossing-frequency.enum';
-import { TreatmentPlanStatus } from '../../enums/treatment-plan-status.enum';
-import { PlanItemStatus } from '../../enums/plan-item-status.enum';
 import { DocumentType } from '../../enums/document-type.enum';
 import { ConsentType } from '../../enums/consent-type.enum';
 import { CommType } from '../../enums/comm-type.enum';
@@ -84,63 +82,6 @@ export class CreateVitalsDto {
   @IsOptional() @IsString() anesthesiaType?: string;
   @IsOptional() @IsString() anesthesiaDose?: string;
   @IsOptional() @IsUUID() anesthesiaAdministeredBy?: string;
-  @IsOptional() @IsString() notes?: string;
-}
-
-// ─── Treatment Plans ──────────────────────────────────────
-
-export class CreateTreatmentPlanDto {
-  @IsNotEmpty() @IsUUID() dentistId: string;
-  @IsNotEmpty() @IsString() @MaxLength(200) planName: string;
-  @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsNumber() estimatedCost?: number;
-  @IsOptional() @IsNumber() discountAmount?: number;
-  @IsOptional() @IsEnum(TreatmentPlanStatus) status?: TreatmentPlanStatus;
-  @IsOptional() @IsDateString() startDate?: string;
-  @IsOptional() @IsDateString() expectedEndDate?: string;
-  @IsOptional() @IsString() notes?: string;
-}
-
-export class UpdateTreatmentPlanDto {
-  @IsOptional() @IsString() @MaxLength(200) planName?: string;
-  @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsNumber() estimatedCost?: number;
-  @IsOptional() @IsNumber() discountAmount?: number;
-  @IsOptional() @IsEnum(TreatmentPlanStatus) status?: TreatmentPlanStatus;
-  @IsOptional() @IsDateString() startDate?: string;
-  @IsOptional() @IsDateString() expectedEndDate?: string;
-  @IsOptional() @IsDateString() actualEndDate?: string;
-  @IsOptional() @IsBoolean() patientAccepted?: boolean;
-  @IsOptional() @IsString() notes?: string;
-}
-
-// ─── Treatment Plan Items ─────────────────────────────────
-
-export class CreatePlanItemDto {
-  @IsNotEmpty() @IsString() @MaxLength(200) procedureName: string;
-  @IsOptional() @IsString() @MaxLength(20) procedureCode?: string;
-  @IsOptional() @IsString() @MaxLength(10) toothNumber?: string;
-  @IsOptional() @IsString() @MaxLength(50) toothSurface?: string;
-  @IsOptional() @IsInt() @Min(1) estimatedSessions?: number;
-  @IsOptional() @IsNumber() estimatedCost?: number;
-  @IsOptional() @IsInt() @Min(1) sequenceOrder?: number;
-  @IsOptional() @IsUUID() assignedTo?: string;
-  @IsOptional() @IsString() clinicalNotes?: string;
-  @IsOptional() @IsString() notes?: string;
-}
-
-export class UpdatePlanItemDto {
-  @IsOptional() @IsString() @MaxLength(200) procedureName?: string;
-  @IsOptional() @IsString() @MaxLength(20) procedureCode?: string;
-  @IsOptional() @IsString() @MaxLength(10) toothNumber?: string;
-  @IsOptional() @IsString() @MaxLength(50) toothSurface?: string;
-  @IsOptional() @IsInt() @Min(1) estimatedSessions?: number;
-  @IsOptional() @IsInt() @Min(0) completedSessions?: number;
-  @IsOptional() @IsNumber() estimatedCost?: number;
-  @IsOptional() @IsEnum(PlanItemStatus) status?: PlanItemStatus;
-  @IsOptional() @IsInt() @Min(1) sequenceOrder?: number;
-  @IsOptional() @IsUUID() assignedTo?: string;
-  @IsOptional() @IsString() clinicalNotes?: string;
   @IsOptional() @IsString() notes?: string;
 }
 

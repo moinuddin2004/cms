@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { fieldError } from '@/components/forms/fieldError'
 import type { Treatment } from '@/features/patients'
+import {
+  isOpenPlan,
+  stepOpen,
+  useTreatmentPlans,
+} from '@/features/treatment-plans'
 import { PROCEDURE_PICKS } from '../constants/quickPicks'
 import { useProcedureCatalog } from '../hooks/useConsultation'
 import { useTreatmentForm } from '../hooks/useTreatmentForm'
@@ -47,6 +52,12 @@ export function TreatmentsToday({
   const typing = !hasCatalog || selected === OTHER_PROCEDURE
   // Add stays off until the row is complete (a pick, or a typed name).
   const complete = buildTreatmentInput(values, catalog) !== null
+  // A service still open on a plan is already on the plan's bill: record it
+  // from the plan instead, or it would be billed twice.
+  const { data: plans = [] } = useTreatmentPlans(patientId)
+  const inPlan = plans
+    .filter(isOpenPlan)
+    .find((p) => p.items.some((i) => i.serviceId === selected && stepOpen(i)))
   const visible = filterProcedures(catalog, filter)
   const pick = (value: string) => form.setFieldValue('selected', value)
 
@@ -167,7 +178,11 @@ export function TreatmentsToday({
             <Button
               type="submit"
               disabled={
-                !complete || !canSubmit || isSubmitting || add.isPending
+                !complete ||
+                !!inPlan ||
+                !canSubmit ||
+                isSubmitting ||
+                add.isPending
               }
               className="h-9"
             >
@@ -180,6 +195,12 @@ export function TreatmentsToday({
             </Button>
           )}
         </form.Subscribe>
+        {inPlan && (
+          <p className="w-full text-xs text-amber-700 dark:text-amber-200">
+            This is on plan “{inPlan.planName}” — tap its step under Treatment
+            plan instead, so it is not billed twice.
+          </p>
+        )}
         {/* Errors sit on their own line under the row. */}
         {typing && (
           <form.Field name="name">
