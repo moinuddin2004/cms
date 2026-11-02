@@ -101,7 +101,7 @@ export function OrganizationSettingsFeature({
             Default parameters used across locations unless overridden.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-6">
+        <CardContent className="grid grid-cols-1 gap-6 sm:grid-cols-3">
           {numberField('defaultSlotDuration', 'Default Slot Duration (mins)')}
           {numberField('advanceBookingDays', 'Advance Booking Days')}
           {numberField(

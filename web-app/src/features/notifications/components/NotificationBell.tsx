@@ -60,7 +60,7 @@ export function NotificationBell() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <PopoverContent align="end" className="w-[360px] p-0">
+      <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-0">
         <NotificationList
           open={open}
           hasUnread={count > 0}

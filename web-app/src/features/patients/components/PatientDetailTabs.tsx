@@ -110,9 +110,15 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
 
   return (
     <Tabs defaultValue="overview" className="mt-6">
-      <TabsList className="bg-muted/50 p-1 flex-wrap h-auto gap-1 justify-start">
+      {/* One scrollable row: wrapping broke the list's fixed height and made
+          the tabs overlap the content below on phones. */}
+      <TabsList className="bg-muted/50 p-1 w-full max-w-full justify-start gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (
-          <TabsTrigger key={tab} value={tab} className="text-sm">
+          <TabsTrigger
+            key={tab}
+            value={tab}
+            className="flex-none text-sm px-3"
+          >
             {TAB_LABELS[tab].icon}
             {TAB_LABELS[tab].label}
           </TabsTrigger>

@@ -102,7 +102,7 @@ export function StatementPanel({ patientId }: { patientId: string }) {
       <div className="flex flex-wrap items-center gap-2">
         <DateRangePicker
           aria-label="Statement period"
-          className="h-8 w-[260px] text-xs"
+          className="h-8 w-full sm:w-[260px] text-xs"
           value={range}
           onChange={setRange}
           placeholder="All dates"

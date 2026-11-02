@@ -237,7 +237,7 @@ export function AddAppointmentStep({
             )}
 
             {/* Row 3: Type + Walk-in + Emergency */}
-            <div className="grid grid-cols-3 gap-4 items-end">
+            <div className="grid grid-cols-1 gap-4 items-end sm:grid-cols-3">
               <form.Field name="type">
                 {(field) => (
                   <div className="space-y-1.5">

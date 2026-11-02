@@ -250,7 +250,7 @@ export function QueueSettingsSection({ locationId }: { locationId: string }) {
                         }
                       >
                         <SelectTrigger
-                          className="w-[260px]"
+                          className="w-full sm:w-[260px]"
                           aria-label="Save as"
                         >
                           <SelectValue />

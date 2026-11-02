@@ -142,7 +142,7 @@ export function QueueBoard() {
         </div>
         <Select value={doctorFilter} onValueChange={setDoctorFilter}>
           <SelectTrigger
-            className="h-8 w-[190px]"
+            className="h-8 w-full sm:w-[190px]"
             aria-label="Filter by doctor"
           >
             <SelectValue placeholder="All doctors" />
@@ -169,7 +169,7 @@ export function QueueBoard() {
             </Badge>
           </Button>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <span
             className={cn(
               'inline-flex items-center gap-1.5 text-xs',
@@ -255,7 +255,7 @@ export function QueueBoard() {
           onClear={clearFilters}
         />
       ) : view === 'card' ? (
-        <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
           {visibleLanes.map((lane) => (
             <QueueLaneCard
               key={lane.doctor.id}

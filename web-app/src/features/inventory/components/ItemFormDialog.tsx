@@ -147,7 +147,7 @@ export function ItemFormDialog({
             </form.Field>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {!isEdit && numberField('initialStock', 'Initial Stock')}
             <form.Field name="unit">
               {(f) => (

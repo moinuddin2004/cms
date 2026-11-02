@@ -15,7 +15,7 @@ import { useActiveLab, usePortalLab } from '../hooks/useLabPortal'
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-4 py-3 text-sm">
+    <div className="grid grid-cols-1 gap-4 py-3 text-sm sm:grid-cols-3">
       <dt className="text-text-3">{label}</dt>
       <dd className="col-span-2 break-words text-foreground">
         {children || '—'}

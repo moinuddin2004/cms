@@ -294,9 +294,9 @@ export function DoctorQueuePage() {
         }
       />
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_400px]">
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
         {/* Current patient + Call Next */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div className="rounded-lg border border-border bg-card p-5 shadow-sm">
             <p className="mb-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <Stethoscope className="size-3.5" /> Current patient
@@ -465,7 +465,7 @@ export function DoctorQueuePage() {
         </div>
 
         {/* Waiting list */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div className="rounded-lg border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold">

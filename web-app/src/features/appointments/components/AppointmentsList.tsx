@@ -503,7 +503,7 @@ export function AppointmentsList() {
                 <DateRangePicker
                   aria-label="Custom date range"
                   className={cn(
-                    'h-8 w-[240px] text-xs',
+                    'h-8 w-full sm:w-[240px] text-xs',
                     preset === 'custom' && 'border-primary',
                   )}
                   value={

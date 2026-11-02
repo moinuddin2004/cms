@@ -53,7 +53,7 @@ function FullPage({
       <Sidebar />
       <div
         className={cn(
-          'transition-all duration-300',
+          'min-w-0 max-w-full transition-all duration-300',
           // No margin on phones/tablets: the sidebar is a drawer there.
           sidebarCollapsed
             ? 'lg:ml-[var(--spacing-sidebar-collapsed)]'
@@ -61,7 +61,7 @@ function FullPage({
         )}
       >
         <Topbar />
-        <main className="px-4 py-4 sm:px-6">
+        <main className="min-w-0 px-4 py-4 sm:px-6">
           <AccountBanner />
           {/* Pages that draw their own header get the ← here, only when the
               user came from inside another page; hidden if the page already
