@@ -18,7 +18,7 @@ config();
  * `src` (ts-node) and from the build (`dist/src/data-sourse.js`).
  *
  * Entities by glob so new modules can't be forgotten. Note the glob also
- * picks up entity files no Nest module registers (e.g. chairs, inventory),
+ * picks up entity files no Nest module registers (e.g. the legacy inventory entity),
  * which the running app's `autoLoadEntities` ignores — check generated
  * migrations / `schema:log` output for tables you don't expect.
  */

@@ -46,7 +46,6 @@ import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import api from '@/lib/api'
-import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/store/useAuthStore'
 import {
   useDefaultPrescriptionTemplate,
@@ -82,6 +81,8 @@ import type { PreviewData } from './PrescriptionPreview'
 import { SignaturePad } from '@/components/shared/SignaturePad'
 import type { SignaturePadHandle } from '@/components/shared/SignaturePad'
 import { fetchPrescriptionPdf } from '../services/prescriptions.api'
+import { FreeSelect } from './builder/FreeSelect'
+import { VitalInput } from './builder/VitalInput'
 
 interface BuilderProps {
   /** Existing prescription to edit. When omitted, builder is in create mode. */
@@ -1011,97 +1012,6 @@ export function PrescriptionBuilder({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
-
-/** A combobox-lite: type free text or pick from presets. */
-function FreeSelect({
-  value,
-  onChange,
-  onBlur,
-  options,
-  placeholder,
-}: {
-  value: string
-  onChange: (v: string) => void
-  onBlur?: () => void
-  options: string[]
-  placeholder?: string
-}) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const h = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', h)
-    return () => document.removeEventListener('mousedown', h)
-  }, [open])
-
-  return (
-    <div ref={ref} className="relative">
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setOpen(true)}
-        onBlur={onBlur}
-        className="h-8 text-xs"
-        placeholder={placeholder}
-      />
-      {open && (
-        <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-popover border rounded-md shadow-lg">
-          {options.map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => {
-                onChange(o)
-                setOpen(false)
-              }}
-              className={cn(
-                'w-full text-left px-3 py-1.5 text-xs hover:bg-accent',
-                o === value && 'bg-accent',
-              )}
-            >
-              {o}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function VitalInput({
-  label,
-  value,
-  onChange,
-  onBlur,
-  error,
-  placeholder,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  onBlur: () => void
-  error?: string
-  placeholder?: string
-}) {
-  return (
-    <div>
-      <Label className="text-[10px] text-muted-foreground">{label}</Label>
-      <FieldWrapper error={error} className="mt-0.5">
-        <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={onBlur}
-          aria-invalid={!!error}
-          className="h-8 text-xs"
-          placeholder={placeholder}
-        />
-      </FieldWrapper>
     </div>
   )
 }

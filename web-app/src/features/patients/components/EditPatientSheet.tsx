@@ -35,8 +35,16 @@ export function EditPatientSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) handleCancel() }}>
-      <SheetContent side="right" className="w-full sm:max-w-6xl overflow-y-auto p-0">
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleCancel()
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-6xl overflow-y-auto p-0"
+      >
         <SheetHeader className="sr-only">
           <SheetTitle>Edit Patient</SheetTitle>
         </SheetHeader>

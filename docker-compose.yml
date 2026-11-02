@@ -1,0 +1,10 @@
+# Local/self-hosted stack. Copy backend/.env.example to backend/.env first.
+services:
+  backend:
+    build: ./backend
+    env_file: ./backend/.env
+    ports: ["5000:5000"]
+  web:
+    build: ./web-app
+    ports: ["3000:3000"]
+    depends_on: [backend]

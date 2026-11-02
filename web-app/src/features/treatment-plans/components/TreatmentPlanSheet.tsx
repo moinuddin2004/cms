@@ -23,6 +23,7 @@ import {
   emptyPlanLine,
   useTreatmentPlanForm,
 } from '../hooks/useTreatmentPlanForm'
+import type { TreatmentPlanPrefill } from '../hooks/useTreatmentPlanForm'
 import type { PlanLineValues } from '../schemas/treatmentPlan.schema'
 import type { DiscountKind, ServiceOption, TreatmentPlan } from '../types'
 import { planTotals } from '../utils/planMath'
@@ -40,6 +41,7 @@ export function TreatmentPlanSheet({
   dentistId,
   encounterId,
   plan,
+  prefill,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -49,6 +51,8 @@ export function TreatmentPlanSheet({
   /** The visit the plan is made in; completing it bills the plan. */
   encounterId?: string
   plan: TreatmentPlan | null
+  /** Starting lines / notes for a new plan. */
+  prefill?: TreatmentPlanPrefill
 }) {
   const { can } = useAccess()
   const canSeePrices = can('patients.price.view')
@@ -62,6 +66,7 @@ export function TreatmentPlanSheet({
 
   const form = useTreatmentPlanForm({
     plan,
+    prefill,
     canDiscount,
     onSubmit: (input) =>
       save.mutate(

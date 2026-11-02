@@ -21,4 +21,5 @@ export {
   ServiceSelect,
 } from './components/PlanPricing'
 export { TreatmentPlanSheet } from './components/TreatmentPlanSheet'
+export type { TreatmentPlanPrefill } from './hooks/useTreatmentPlanForm'
 export { PlanDiscountSheet } from './components/PlanDiscountSheet'

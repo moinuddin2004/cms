@@ -114,11 +114,7 @@ export function PatientDetailTabs({ patient }: PatientDetailTabsProps) {
           the tabs overlap the content below on phones. */}
       <TabsList className="bg-muted/50 p-1 w-full max-w-full justify-start gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (
-          <TabsTrigger
-            key={tab}
-            value={tab}
-            className="flex-none text-sm px-3"
-          >
+          <TabsTrigger key={tab} value={tab} className="flex-none text-sm px-3">
             {TAB_LABELS[tab].icon}
             {TAB_LABELS[tab].label}
           </TabsTrigger>

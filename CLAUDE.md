@@ -295,7 +295,7 @@ export default function PatientsRoute() {
 ## Backend Architecture
 
 ### Multi-tenancy
-All core entities have an `organizationId` foreign key. Tenant isolation via NestJS guards. JWT tokens carry organization context. Multi-location: organizations → locations → employees/chairs/appointments.
+All core entities have an `organizationId` foreign key. Tenant isolation via NestJS guards. JWT tokens carry organization context. Multi-location: organizations → locations → employees/appointments.
 
 Axios client (`web-app/src/shared/lib/axios.ts`) injects `x-organization-id` and `x-location-id` headers on every request from the Zustand auth store. Backend reads these to resolve `request.tenantContext`.
 
@@ -328,12 +328,14 @@ Each domain is a self-contained NestJS module under `src/`:
 - `feature-flags/` — per-org features: super admin sets `is_entitled` (+ optional trial `entitled_until`), owner sets `is_enabled` within that (`/admin/features`), `location_feature_overrides` can switch one off per location. Catalog seeding inserts missing keys only. Cache is invalidated across instances via Redis (only when `REDIS_URL` is set; single `all` process needs none).
 - `access/` — permission catalog, bundles, system role templates (seeded per org), resolver, guard, `/me/access`, roles admin (`/admin/roles`), nav layouts (`/admin/navigation`).
 - `settings-registry/` — `config_values` (platform → org → location cascade with locks) for theme (`theme.*`) and new long-tail settings; typed settings tables (`queue_policies`, `location_billing_settings`, …) stay as they are.
-- `chairs/`, `inventory/`, `invoices/` — entity-only stubs (no controller/service yet)
+- `inventory/` — implemented: items, categories, suppliers, purchase orders, stock movements/alerts, consumption templates, patient consumption (the single legacy `entities/inventory.entity.ts` is unregistered dead code)
+- `billing/` — charge-based billing v2 incl. `billing/invoices/`, payments, refunds, printing (there is no top-level `invoices/` module)
+- `reports/`, `lab-*`, `labs/`, `encounters/`, `treatment-plans/`, `prescriptions/`, `subscriptions/`, `engine/` — implemented (see their docs under `docs/`)
 - `common/` — shared guards, decorators, utilities
 - `session/` — user session tracking
 
 Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments (booking), queue (check-in → consultation → completion, reception board, doctor screen, TV display), patients (15+ sub-entities), payroll, feature-flags.
-Stubs/missing: reports, invoices, inventory, chairs, notifications/SMS. The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
+Missing: chair/room scheduling (the `chairs` entity was removed; locations only keep a `total_chairs` count), SMS/WhatsApp/email patient notifications (in-app only by decision). The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
 
 ### Backend Key Patterns
 - **Repository pattern** via TypeORM + injectable repositories

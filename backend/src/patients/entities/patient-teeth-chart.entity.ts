@@ -47,7 +47,13 @@ export class PatientTeethChart {
   @Column({ name: 'appointment_id', type: 'uuid', nullable: true })
   appointmentId: string | null;
 
-  /** FDI notation chart data: { "11": { condition, treatment, surface, notes }, ... } */
+  /**
+   * FDI notation chart data keyed by tooth (11–48 permanent, 51–85 primary):
+   * { "16": { condition?: CROWN|IMPLANT|EXTRACTION_NEEDED|MISSING, planned?,
+   *   rootCanal?: { planned? }, surfaces?: { M|O|I|D|B|L: { condition:
+   *   CARIES|FILLED, planned? } }, note? } }. Older rows may hold a bare
+   * condition string or { condition } — the web app normalises both.
+   */
   @Column({ name: 'chart_data', type: 'jsonb', default: '{}' })
   chartData: Record<string, any>;
 

@@ -5,6 +5,8 @@ import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { Patient } from 'src/patients/entities/patient.entity';
 import { PatientsModule } from 'src/patients/patients.module';
 import { PatientsService } from 'src/patients/patients.service';
+import { TreatmentPlansModule } from 'src/treatment-plans/treatment-plans.module';
+import { TreatmentPlansService } from 'src/treatment-plans/treatment-plans.service';
 import { PATIENT_AUDIT_ENTITY } from 'src/patients/patient-audit';
 import {
   accessFor,
@@ -16,6 +18,7 @@ import {
 describe('Patient audit trail (Postgres)', () => {
   let fx: BillingFixture;
   let patients: PatientsService;
+  let plans: TreatmentPlansService;
   let actor: ActorRef;
   let phoneSeq = Math.floor(Math.random() * 1e7);
   const phone = () => `03${String(phoneSeq++).padStart(9, '0')}`;
@@ -29,8 +32,9 @@ describe('Patient audit trail (Postgres)', () => {
     });
 
   beforeAll(async () => {
-    fx = await createBillingFixture([PatientsModule]);
+    fx = await createBillingFixture([PatientsModule, TreatmentPlansModule]);
     patients = fx.app.get(PatientsService);
+    plans = fx.app.get(TreatmentPlansService);
     actor = {
       userId: fx.clinicA.people.admin.userId,
       side: ActorSide.CLINIC,
@@ -139,9 +143,13 @@ describe('Patient audit trail (Postgres)', () => {
 
   it('compares money columns by value, not by string form', async () => {
     const p = await newPatient();
-    const plan = await patients.createTreatmentPlan(
+    const access = accessFor(tenant(), fx.clinicA.people.admin, {
+      'plans.manage': 'org',
+    });
+    const plan = await plans.create(
       p.id,
       tenant(),
+      access,
       {
         dentistId: fx.clinicA.people.doctor.employeeId,
         planName: 'Implant',
@@ -149,10 +157,11 @@ describe('Patient audit trail (Postgres)', () => {
       } as never,
       actor,
     );
-    await patients.updateTreatmentPlan(
+    await plans.update(
       p.id,
       plan.id,
-      org(),
+      tenant(),
+      access,
       {
         estimatedCost: 50000,
         notes: 'Patient wants it in two visits',

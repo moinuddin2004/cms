@@ -1,8 +1,4 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useState } from 'react'
 import { PatientForm } from './PatientForm'
 import { AddAppointmentStep } from './AddAppointmentStep'
@@ -70,13 +66,13 @@ export function CreatePatientModal({
             />
           ) : (
             <div className="mx-auto max-w-3xl">
-            <AddAppointmentStep
-              patientId={createdPatient.id}
-              patientName={createdPatient.fullName}
-              onBack={handleBack}
-              onSkip={handleClose}
-              onDone={handleClose}
-            />
+              <AddAppointmentStep
+                patientId={createdPatient.id}
+                patientName={createdPatient.fullName}
+                onBack={handleBack}
+                onSkip={handleClose}
+                onDone={handleClose}
+              />
             </div>
           )}
         </div>

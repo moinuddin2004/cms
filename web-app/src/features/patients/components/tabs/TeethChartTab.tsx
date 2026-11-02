@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import {
   Card,
   CardContent,
@@ -8,173 +8,52 @@ import {
 } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  ClipboardList,
   Loader2,
   Plus,
   Stethoscope,
   Clock,
   Save,
-  RotateCcw,
   Eye,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import {
   useTeethCharts,
   useCreateTeethChart,
 } from '../../hooks/usePatientSubEntities'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAccess } from '@/features/access/hooks/useAccess'
+import { TreatmentPlanSheet } from '@/features/treatment-plans'
+import type { TreatmentPlanPrefill } from '@/features/treatment-plans'
 import type { Patient, PatientTeethChart } from '../../types'
 import { formatDate } from '@/lib/datetime'
-
-// FDI two-digit notation, arranged left→right as seen facing the patient.
-const TEETH_UPPER = [
-  18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
-]
-const TEETH_LOWER = [
-  48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38,
-]
-
-const CONDITIONS: Record<string, { label: string; dot: string; chip: string }> =
-  {
-    HEALTHY: {
-      label: 'Healthy',
-      dot: 'bg-green-500',
-      chip: 'bg-green-100 text-green-700 border-green-300 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/40',
-    },
-    CARIES: {
-      label: 'Caries',
-      dot: 'bg-red-500',
-      chip: 'bg-red-100 text-red-700 border-red-300 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/40',
-    },
-    FILLED: {
-      label: 'Filled',
-      dot: 'bg-blue-500',
-      chip: 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/40',
-    },
-    CROWN: {
-      label: 'Crown',
-      dot: 'bg-purple-500',
-      chip: 'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/40',
-    },
-    EXTRACTION_NEEDED: {
-      label: 'Extraction',
-      dot: 'bg-orange-500',
-      chip: 'bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/40',
-    },
-    MISSING: {
-      label: 'Missing',
-      dot: 'bg-muted-foreground',
-      chip: 'bg-muted text-muted-foreground border-border',
-    },
-  }
-
-const CONDITION_KEYS = Object.keys(CONDITIONS)
-
-// Crown fill/stroke per condition for the anatomical tooth rendering.
-const TOOTH_COLORS: Record<string, { fill: string; stroke: string }> = {
-  _: { fill: '#ffffff', stroke: '#cbd5e1' },
-  HEALTHY: { fill: '#dcfce7', stroke: '#16a34a' },
-  CARIES: { fill: '#fee2e2', stroke: '#dc2626' },
-  FILLED: { fill: '#dbeafe', stroke: '#2563eb' },
-  CROWN: { fill: '#f3e8ff', stroke: '#9333ea' },
-  EXTRACTION_NEEDED: { fill: '#ffedd5', stroke: '#ea580c' },
-  MISSING: { fill: '#f1f5f9', stroke: '#94a3b8' },
-}
-
-type ToothKind = 'molar' | 'premolar' | 'canine' | 'incisor'
-
-// Map an FDI number to its anatomical type by position within the quadrant.
-function toothKind(fdi: number): ToothKind {
-  const pos = fdi % 10 // 1=central incisor … 8=third molar
-  if (pos <= 2) return 'incisor'
-  if (pos === 3) return 'canine'
-  if (pos <= 5) return 'premolar'
-  return 'molar'
-}
-
-/**
- * Anatomical tooth drawn in "upper" orientation: root tips at the top, the
- * biting (occlusal/incisal) edge at the bottom. Lower-arch teeth flip this
- * vertically. Crown shape + root count vary by tooth kind so each is
- * recognisable; the crown is filled by the charted condition.
- */
-function ToothShape({
-  kind,
-  fill,
-  stroke,
-}: {
-  kind: ToothKind
-  fill: string
-  stroke: string
-}) {
-  const root = (
-    cx: number,
-    halfW: number,
-    baseY: number,
-    tipX: number,
-    tipY: number,
-  ) =>
-    `M ${cx - halfW},${baseY} Q ${cx - halfW * 0.5},${(baseY + tipY) / 2} ${tipX},${tipY} Q ${cx + halfW * 0.5},${(baseY + tipY) / 2} ${cx + halfW},${baseY} Z`
-
-  let roots: string[] = []
-  let crown = ''
-  if (kind === 'molar') {
-    roots = [
-      root(13, 4, 30, 9, 4),
-      root(20, 4, 30, 20, 3),
-      root(27, 4, 30, 31, 4),
-    ]
-    crown = 'M5,30 Q4,54 9,57 Q14,61 20,57 Q26,61 31,57 Q36,54 35,30 Z'
-  } else if (kind === 'premolar') {
-    roots = [root(15, 4, 30, 13, 5), root(25, 4, 30, 27, 5)]
-    crown = 'M9,30 Q8,52 14,56 Q20,61 26,56 Q32,52 31,30 Z'
-  } else if (kind === 'canine') {
-    roots = [root(20, 5, 28, 20, 2)]
-    crown = 'M12,28 Q11,48 20,59 Q29,48 28,28 Z'
-  } else {
-    roots = [root(20, 4, 30, 20, 5)]
-    crown = 'M13,30 Q12,53 16,57 L24,57 Q28,53 27,30 Z'
-  }
-
-  return (
-    <>
-      {roots.map((d, i) => (
-        <path
-          key={i}
-          d={d}
-          fill="#f6efe2"
-          stroke={stroke}
-          strokeWidth={1.1}
-          opacity={0.85}
-        />
-      ))}
-      <path
-        d={crown}
-        fill={fill}
-        stroke={stroke}
-        strokeWidth={1.4}
-        strokeLinejoin="round"
-      />
-    </>
-  )
-}
-
-// Per-tooth value: { condition, note? }. Legacy charts stored a bare condition
-// string, so normalise on read to stay backward compatible.
-type ToothEntry = { condition: string; note?: string }
-const normalize = (v: unknown): ToothEntry =>
-  typeof v === 'string' ? { condition: v } : (v as ToothEntry)
-
-function asEntries(
-  chartData: Record<string, unknown> | null | undefined,
-): Record<string, ToothEntry> {
-  const out: Record<string, ToothEntry> = {}
-  for (const [k, v] of Object.entries(chartData || {})) out[k] = normalize(v)
-  return out
-}
+import {
+  CONDITIONS,
+  applyCondition,
+  chartStats,
+  chartedTeeth,
+  clearTooth,
+  cycleSurface,
+  dentitionOf,
+  entryOf,
+  findingLabel,
+  normalizeChart,
+  plannedWork,
+  removeFinding,
+  serializeChart,
+  setToothNote,
+  toggleFindingPlanned,
+} from '../../utils/teethChart'
+import type { ChartData, Dentition } from '../../utils/teethChart'
+import { ArchOdontogram, describeHover } from '../teeth-chart/ArchOdontogram'
+import type { ChartHover } from '../teeth-chart/ArchOdontogram'
+import { ChartToolbar, toolHint } from '../teeth-chart/ChartToolbar'
+import type { ChartTool } from '../teeth-chart/ChartToolbar'
+import { ToothDetailPanel } from '../teeth-chart/ToothDetailPanel'
+import { FindingsSummary } from '../teeth-chart/FindingsSummary'
 
 export function TeethChartTab({ patient }: { patient: Patient }) {
   const { data: charts = [], isLoading } = useTeethCharts(patient.id)
@@ -184,7 +63,10 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-4 animate-in fade-in duration-300">
-      <div className="xl:col-span-2 space-y-4">
+      {/* While charting, the chart takes the full width. */}
+      <div
+        className={`space-y-4 ${isAdding ? 'xl:col-span-3' : 'xl:col-span-2'}`}
+      >
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -211,11 +93,18 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
         {isAdding ? (
           <NewChartForm
             patientId={patient.id}
+            // Start from the latest chart so the doctor only charts changes.
+            baseline={charts[0]}
             onCancel={() => setIsAdding(false)}
             onSuccess={() => setIsAdding(false)}
           />
         ) : viewing ? (
-          <ChartViewer chart={viewing} onClose={() => setViewing(null)} />
+          <ChartViewer
+            key={viewing.id}
+            chart={viewing}
+            patientId={patient.id}
+            onClose={() => setViewing(null)}
+          />
         ) : (
           <Card className="min-h-[400px] flex flex-col items-center justify-center p-6 border-dashed bg-muted/20 text-muted-foreground text-center">
             <Stethoscope size={32} className="opacity-20 mb-3" />
@@ -232,7 +121,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
       </div>
 
       {/* History sidebar */}
-      <div className="space-y-4">
+      <div className={`space-y-4 ${isAdding ? 'hidden' : ''}`}>
         <h4 className="font-semibold flex items-center gap-2 text-sm text-muted-foreground uppercase tracking-wider">
           <Clock size={16} /> Chart History
         </h4>
@@ -247,48 +136,17 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
           </p>
         ) : (
           <div className="space-y-3">
-            {charts.map((chart) => {
-              const marked = Object.keys(chart.chartData || {}).length
-              return (
-                <Card
-                  key={chart.id}
-                  onClick={() => {
-                    setIsAdding(false)
-                    setViewing(chart)
-                  }}
-                  className={`text-sm cursor-pointer transition-colors shadow-sm hover:border-brand-300 ${
-                    viewing?.id === chart.id
-                      ? 'border-primary/50 ring-1 ring-primary/30'
-                      : ''
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="font-semibold text-primary-text">
-                        {formatDate(chart.recordedAt)}
-                      </span>
-                      {chart.isInitialChart && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] h-5 px-1.5"
-                        >
-                          INITIAL
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mb-1">
-                      {marked} {marked === 1 ? 'tooth' : 'teeth'} charted
-                    </p>
-                    <p className="text-muted-foreground text-xs line-clamp-2">
-                      {chart.notes || 'No notes provided.'}
-                    </p>
-                    <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-primary">
-                      <Eye size={12} /> View
-                    </span>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {charts.map((chart) => (
+              <HistoryCard
+                key={chart.id}
+                chart={chart}
+                active={viewing?.id === chart.id}
+                onOpen={() => {
+                  setIsAdding(false)
+                  setViewing(chart)
+                }}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -296,61 +154,173 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
   )
 }
 
+function HistoryCard({
+  chart,
+  active,
+  onOpen,
+}: {
+  chart: PatientTeethChart
+  active: boolean
+  onOpen: () => void
+}) {
+  const stats = useMemo(
+    () => chartStats(normalizeChart(chart.chartData)),
+    [chart.chartData],
+  )
+  return (
+    <Card
+      onClick={onOpen}
+      className={`text-sm cursor-pointer transition-colors shadow-sm hover:border-brand-300 ${
+        active ? 'border-primary/50 ring-1 ring-primary/30' : ''
+      }`}
+    >
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-1">
+          <span className="font-semibold text-primary-text">
+            {formatDate(chart.recordedAt)}
+          </span>
+          {chart.isInitialChart && (
+            <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+              INITIAL
+            </Badge>
+          )}
+        </div>
+        <p className="text-[11px] text-muted-foreground mb-1">
+          {stats.teeth} {stats.teeth === 1 ? 'tooth' : 'teeth'} charted
+          {stats.planned > 0 && (
+            <span className="text-amber-700 dark:text-amber-400">
+              {' '}
+              · {stats.planned} planned
+            </span>
+          )}
+        </p>
+        <p className="text-muted-foreground text-xs line-clamp-2">
+          {chart.notes || 'No notes provided.'}
+        </p>
+        <span className="mt-2 inline-flex items-center gap-1 text-[11px] text-primary">
+          <Eye size={12} /> View
+        </span>
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Show the arch the chart is mostly about (a child's chart → primary). */
+function initialDentition(data: ChartData): Dentition {
+  const teeth = chartedTeeth(data)
+  if (teeth.length === 0) return 'permanent'
+  const primary = teeth.filter((t) => dentitionOf(t) === 'primary').length
+  return primary > teeth.length - primary ? 'primary' : 'permanent'
+}
+
+function countOn(data: ChartData, dentition: Dentition) {
+  return chartedTeeth(data).filter((t) => dentitionOf(t) === dentition).length
+}
+
+function Legend() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5">
+        <span className="size-3 rounded-sm bg-slate-400" /> Solid = existing
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="size-3 rounded-sm bg-[repeating-linear-gradient(45deg,var(--color-slate-400)_0_2px,transparent_2px_4px)]" />
+        Striped = planned
+      </span>
+      <span>M mesial · D distal · B buccal · L lingual · O/I occlusal</span>
+    </div>
+  )
+}
+
+type History = { data: ChartData; past: ChartData[] }
+type HistoryAction =
+  | { type: 'edit'; fn: (d: ChartData) => ChartData; undoable?: boolean }
+  | { type: 'undo' }
+
+/** Chart edits with an undo stack (typing a note isn't undoable). */
+function historyReducer(s: History, a: HistoryAction): History {
+  if (a.type === 'undo')
+    return s.past.length
+      ? { data: s.past[s.past.length - 1], past: s.past.slice(0, -1) }
+      : s
+  const next = a.fn(s.data)
+  if (next === s.data) return s
+  return a.undoable === false
+    ? { ...s, data: next }
+    : { data: next, past: [...s.past.slice(-49), s.data] }
+}
+
 function NewChartForm({
   patientId,
+  baseline,
   onCancel,
   onSuccess,
 }: {
   patientId: string
+  baseline?: PatientTeethChart
   onCancel: () => void
   onSuccess: () => void
 }) {
   const { mutate, isPending } = useCreateTeethChart()
-  const [chartData, setChartData] = useState<Record<string, ToothEntry>>({})
-  const [notes, setNotes] = useState('')
-  const [activeCondition, setActiveCondition] = useState<string>('HEALTHY')
   const { user } = useAuthStore()
+  const initial = useMemo(() => normalizeChart(baseline?.chartData), [baseline])
+  const [{ data, past }, dispatch] = useReducer(
+    historyReducer,
+    initial,
+    (d): History => ({ data: d, past: [] }),
+  )
+  const [notes, setNotes] = useState('')
+  const [tool, setTool] = useState<ChartTool>('SELECT')
+  const [planned, setPlanned] = useState(false)
+  const [dentition, setDentition] = useState<Dentition>(() =>
+    initialDentition(initial),
+  )
+  const [selected, setSelected] = useState<number | null>(null)
+  const [hover, setHover] = useState<ChartHover>(null)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
-  const markedKeys = Object.keys(chartData)
-  const markedCount = markedKeys.length
+  const dirty = data !== initial || notes.trim() !== ''
 
-  const handleToothClick = (toothId: number) => {
-    const key = toothId.toString()
-    setChartData((prev) => {
-      // Click again with the same condition → unset the tooth.
-      if (prev[key]?.condition === activeCondition) {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      }
-      return {
-        ...prev,
-        [key]: { condition: activeCondition, note: prev[key]?.note },
-      }
-    })
+  const edit = (fn: (d: ChartData) => ChartData) =>
+    dispatch({ type: 'edit', fn })
+  const undo = useCallback(() => dispatch({ type: 'undo' }), [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement
+      if (el.closest('input, textarea, [contenteditable="true"]')) return
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        undo()
+      } else if (e.key === 'Escape') setTool('SELECT')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo])
+
+  const onSurfaceClick = (
+    tooth: number,
+    surface: Parameters<typeof applyCondition>[4] | null,
+  ) => {
+    if (tool === 'SELECT') return
+    if (CONDITIONS[tool].scope === 'surface' && !surface) return
+    edit((d) => applyCondition(d, tooth, tool, planned, surface ?? undefined))
   }
 
-  const setToothNote = (key: string, note: string) =>
-    setChartData((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], note },
-    }))
+  const selectTooth = (t: number) => {
+    setSelected(t)
+    if (dentitionOf(t) !== dentition) setDentition(dentitionOf(t))
+  }
 
   const handleSubmit = () => {
     if (!user?.uuid) {
       toast.error('Your session is missing — please sign in again.')
       return
     }
-    if (markedCount === 0 && !notes.trim()) {
+    const cleaned = serializeChart(data)
+    if (Object.keys(cleaned).length === 0 && !notes.trim()) {
       toast.error('Mark at least one tooth or add a note before saving.')
       return
-    }
-    // Drop empty notes so the stored JSON stays clean.
-    const cleaned: Record<string, ToothEntry> = {}
-    for (const [k, v] of Object.entries(chartData)) {
-      cleaned[k] = v.note?.trim()
-        ? { condition: v.condition, note: v.note.trim() }
-        : { condition: v.condition }
     }
     mutate(
       {
@@ -363,122 +333,93 @@ function NewChartForm({
     )
   }
 
+  const entry = selected !== null ? entryOf(data, selected) : undefined
+  const hint = describeHover(hover, data) ?? toolHint(tool)
+
   return (
     <Card className="border-primary/20 shadow-md ring-1 ring-primary/10">
       <CardHeader className="bg-muted/30 pb-4 border-b">
-        <CardTitle className="text-md">Interactive FDI Chart</CardTitle>
+        <CardTitle className="text-md">New dental chart</CardTitle>
         <CardDescription>
-          Pick a condition, then click teeth to mark them. Click a marked tooth
-          again to clear it. Add a per-tooth note below.
+          {baseline
+            ? `Started from the chart of ${formatDate(baseline.recordedAt)} — update what changed.`
+            : 'Pick a condition and click the tooth surfaces, or select a tooth and chart it in the side panel.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6 space-y-6">
-        {/* Condition toolbar */}
-        <div className="flex flex-wrap gap-2 justify-center p-3 rounded-lg bg-muted/30 border">
-          {CONDITION_KEYS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setActiveCondition(c)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
-                activeCondition === c
-                  ? 'ring-2 ring-primary ring-offset-1 ring-offset-background ' +
-                    CONDITIONS[c].chip
-                  : 'bg-background hover:bg-muted text-muted-foreground'
-              }`}
+      <CardContent className="pt-6 space-y-5">
+        <ChartToolbar
+          tool={tool}
+          onTool={setTool}
+          planned={planned}
+          onPlanned={setPlanned}
+          dentition={dentition}
+          onDentition={setDentition}
+          otherDentitionCount={countOn(
+            data,
+            dentition === 'permanent' ? 'primary' : 'permanent',
+          )}
+          canUndo={past.length > 0}
+          onUndo={undo}
+        />
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0">
+            <ArchOdontogram
+              dentition={dentition}
+              data={data}
+              selected={selected}
+              onSelect={selectTooth}
+              onSurfaceClick={onSurfaceClick}
+              onHover={setHover}
+            />
+            <p
+              className="mt-1 min-h-5 text-center text-xs text-muted-foreground"
+              aria-live="polite"
             >
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${CONDITIONS[c].dot}`}
-              />
-              {CONDITIONS[c].label}
-            </button>
-          ))}
-        </div>
-
-        {/* Teeth grid */}
-        <div className="flex flex-col items-center gap-3 py-2">
-          <div className="flex w-full items-center justify-between px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>Upper Right</span>
-            <span>Upper Left</span>
-          </div>
-          <div className="flex flex-nowrap justify-center gap-0.5 overflow-x-auto">
-            {TEETH_UPPER.map((t) => (
-              <Tooth
-                key={t}
-                id={t}
-                entry={chartData[t.toString()]}
-                onClick={() => handleToothClick(t)}
-                isUpper
-              />
-            ))}
-          </div>
-          <div className="h-px w-3/4 bg-border my-1" />
-          <div className="flex flex-nowrap justify-center gap-0.5 overflow-x-auto">
-            {TEETH_LOWER.map((t) => (
-              <Tooth
-                key={t}
-                id={t}
-                entry={chartData[t.toString()]}
-                onClick={() => handleToothClick(t)}
-                isUpper={false}
-              />
-            ))}
-          </div>
-          <div className="flex w-full items-center justify-between px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-            <span>Lower Right</span>
-            <span>Lower Left</span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">
-            {markedCount} {markedCount === 1 ? 'tooth' : 'teeth'} marked
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setChartData({})}
-            disabled={markedCount === 0}
-          >
-            <RotateCcw size={14} className="mr-1.5" /> Clear all
-          </Button>
-        </div>
-
-        {/* Per-tooth notes */}
-        {markedCount > 0 && (
-          <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-              Per-tooth notes
+              {hint}
             </p>
-            <div className="space-y-2">
-              {markedKeys
-                .sort((a, b) => Number(a) - Number(b))
-                .map((key) => {
-                  const entry = chartData[key]
-                  const cfg = CONDITIONS[entry.condition]
-                  return (
-                    <div key={key} className="flex items-center gap-2">
-                      <span
-                        className={`flex h-7 w-9 shrink-0 items-center justify-center rounded-sm border text-[11px] font-bold ${
-                          cfg?.chip ?? ''
-                        }`}
-                        title={cfg?.label}
-                      >
-                        {key}
-                      </span>
-                      <Input
-                        value={entry.note ?? ''}
-                        onChange={(e) => setToothNote(key, e.target.value)}
-                        placeholder={`Note for tooth ${key} (${cfg?.label ?? ''})`}
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  )
-                })}
-            </div>
           </div>
-        )}
+          <ToothDetailPanel
+            tooth={selected}
+            entry={entry}
+            onCycleSurface={(s) =>
+              selected !== null &&
+              edit((d) => cycleSurface(d, selected, s, planned))
+            }
+            onApply={(c) =>
+              selected !== null &&
+              edit((d) => applyCondition(d, selected, c, planned))
+            }
+            onRemove={(f) =>
+              selected !== null && edit((d) => removeFinding(d, selected, f))
+            }
+            onTogglePlanned={(f) =>
+              selected !== null &&
+              edit((d) => toggleFindingPlanned(d, selected, f))
+            }
+            onNote={(note) =>
+              selected !== null &&
+              dispatch({
+                type: 'edit',
+                fn: (d) => setToothNote(d, selected, note),
+                undoable: false,
+              })
+            }
+            onClear={() =>
+              selected !== null && edit((d) => clearTooth(d, selected))
+            }
+          />
+        </div>
+
+        <Legend />
+
+        <div className="rounded-lg border p-3">
+          <FindingsSummary
+            data={data}
+            selected={selected}
+            onSelect={selectTooth}
+          />
+        </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
@@ -493,7 +434,11 @@ function NewChartForm({
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button variant="ghost" onClick={onCancel} disabled={isPending}>
+          <Button
+            variant="ghost"
+            onClick={() => (dirty ? setConfirmDiscard(true) : onCancel())}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isPending}>
@@ -506,26 +451,62 @@ function NewChartForm({
           </Button>
         </div>
       </CardContent>
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        onOpenChange={setConfirmDiscard}
+        title="Discard this chart?"
+        description="The teeth you marked and your notes haven't been saved and will be lost."
+        confirmLabel="Discard"
+        destructive
+        onConfirm={() => {
+          setConfirmDiscard(false)
+          onCancel()
+        }}
+      />
     </Card>
   )
 }
 
 function ChartViewer({
   chart,
+  patientId,
   onClose,
 }: {
   chart: PatientTeethChart
+  patientId: string
   onClose: () => void
 }) {
-  const data = asEntries(chart.chartData)
-  const noted = Object.entries(data)
-    .filter(([, v]) => v.note)
-    .sort(([a], [b]) => Number(a) - Number(b))
+  const data = useMemo(() => normalizeChart(chart.chartData), [chart])
+  const [dentition, setDentition] = useState<Dentition>(() =>
+    initialDentition(data),
+  )
+  const [selected, setSelected] = useState<number | null>(null)
+  const [hover, setHover] = useState<ChartHover>(null)
+  const [planSheet, setPlanSheet] = useState(false)
+  const canPlan = useAccess().can('plans.manage')
+  const work = useMemo(() => plannedWork(data), [data])
 
-  // Legend of conditions actually present in this snapshot.
-  const present = Array.from(
-    new Set(Object.values(data).map((v) => v.condition)),
-  ).filter((c) => CONDITIONS[c])
+  const prefill = useMemo<TreatmentPlanPrefill>(
+    () => ({
+      teeth: work.map((w) => String(w.tooth)),
+      notes: [
+        `From the dental chart of ${formatDate(chart.recordedAt)}:`,
+        ...work.map(
+          (w) => `${w.tooth}: ${w.findings.map(findingLabel).join(', ')}`,
+        ),
+      ].join('\n'),
+    }),
+    [work, chart.recordedAt],
+  )
+
+  const selectTooth = (t: number) => {
+    setSelected(t)
+    if (dentitionOf(t) !== dentition) setDentition(dentitionOf(t))
+  }
+
+  const other = dentition === 'permanent' ? 'primary' : 'permanent'
+  const otherCount = countOn(data, other)
 
   return (
     <Card className="shadow-sm">
@@ -541,63 +522,72 @@ function ChartViewer({
         </Button>
       </CardHeader>
       <CardContent className="pt-6 space-y-5">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex flex-nowrap justify-center gap-0.5 overflow-x-auto">
-            {TEETH_UPPER.map((t) => (
-              <Tooth
-                key={t}
-                id={t}
-                entry={data[t.toString()]}
-                readOnly
-                isUpper
-              />
+        {(otherCount > 0 || dentition === 'primary') && (
+          <div className="flex flex-wrap gap-1.5">
+            {(['permanent', 'primary'] as const).map((d) => (
+              <Button
+                key={d}
+                type="button"
+                size="sm"
+                variant={d === dentition ? 'secondary' : 'ghost'}
+                className="h-7 text-xs"
+                onClick={() => setDentition(d)}
+              >
+                {d === 'permanent' ? 'Permanent' : 'Primary (child)'}
+                {d !== dentition && otherCount > 0 && (
+                  <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+                    {otherCount}
+                  </span>
+                )}
+              </Button>
             ))}
           </div>
-          <div className="h-px w-3/4 bg-border my-1" />
-          <div className="flex flex-nowrap justify-center gap-0.5 overflow-x-auto">
-            {TEETH_LOWER.map((t) => (
-              <Tooth
-                key={t}
-                id={t}
-                entry={data[t.toString()]}
-                readOnly
-                isUpper={false}
-              />
-            ))}
+        )}
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="min-w-0">
+            <ArchOdontogram
+              dentition={dentition}
+              data={data}
+              selected={selected}
+              onSelect={selectTooth}
+              onHover={setHover}
+            />
+            <p className="mt-1 min-h-5 text-center text-xs text-muted-foreground">
+              {describeHover(hover, data) ??
+                'Hover or click a tooth for details'}
+            </p>
           </div>
+          <ToothDetailPanel
+            tooth={selected}
+            entry={selected !== null ? entryOf(data, selected) : undefined}
+            readOnly
+          />
         </div>
 
-        {present.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-2">
-            {present.map((c) => (
-              <span
-                key={c}
-                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium ${CONDITIONS[c].chip}`}
-              >
-                <span className={`h-2 w-2 rounded-full ${CONDITIONS[c].dot}`} />
-                {CONDITIONS[c].label}
-              </span>
-            ))}
-          </div>
-        )}
+        <Legend />
 
-        {noted.length > 0 && (
-          <div className="rounded-lg border bg-muted/20 p-3">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-2">
-              Per-tooth notes
-            </p>
-            <ul className="space-y-1 text-sm">
-              {noted.map(([key, v]) => (
-                <li key={key} className="flex gap-2">
-                  <Badge variant="outline" className="h-5 shrink-0">
-                    {key}
-                  </Badge>
-                  <span className="text-muted-foreground">{v.note}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div className="rounded-lg border p-3">
+          <FindingsSummary
+            data={data}
+            selected={selected}
+            onSelect={selectTooth}
+            action={
+              canPlan &&
+              work.length > 0 && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPlanSheet(true)}
+                >
+                  <ClipboardList className="size-4" />
+                  Create treatment plan
+                </Button>
+              )
+            }
+          />
+        </div>
 
         {chart.notes && (
           <div className="rounded-lg border bg-muted/20 p-3">
@@ -608,74 +598,17 @@ function ChartViewer({
           </div>
         )}
       </CardContent>
-    </Card>
-  )
-}
 
-function Tooth({
-  id,
-  entry,
-  onClick,
-  readOnly,
-  isUpper,
-}: {
-  id: number
-  entry?: ToothEntry
-  onClick?: () => void
-  readOnly?: boolean
-  isUpper?: boolean
-}) {
-  const condition = entry?.condition
-  const cfg = condition ? CONDITIONS[condition] : null
-  const colors = TOOTH_COLORS[condition ?? '_'] ?? TOOTH_COLORS._
-  const kind = toothKind(id)
-  const missing = condition === 'MISSING'
-  const hasNote = !!entry?.note
-
-  const numberLabel = (
-    <span className="text-[9px] font-semibold leading-none text-muted-foreground tabular-nums">
-      {id}
-    </span>
-  )
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={readOnly}
-      title={
-        cfg
-          ? `${id} (${kind}) — ${cfg.label}${entry?.note ? `: ${entry.note}` : ''}`
-          : `${id} — ${kind}`
-      }
-      className={`group relative flex flex-col items-center gap-0.5 rounded-md px-0.5 py-1 transition-colors ${
-        readOnly ? 'cursor-default' : 'hover:bg-muted/60'
-      } ${cfg && !readOnly ? 'ring-1 ring-inset ring-border' : ''}`}
-    >
-      {isUpper && numberLabel}
-      <svg
-        viewBox="0 0 40 62"
-        width="26"
-        height="40"
-        className={missing ? 'opacity-40' : ''}
-        style={{ transform: isUpper ? undefined : 'scaleY(-1)' }}
-      >
-        <ToothShape kind={kind} fill={colors.fill} stroke={colors.stroke} />
-        {missing && (
-          <line
-            x1="9"
-            y1="52"
-            x2="31"
-            y2="12"
-            stroke="#94a3b8"
-            strokeWidth="2.5"
-          />
-        )}
-      </svg>
-      {!isUpper && numberLabel}
-      {hasNote && (
-        <span className="absolute right-0 top-0 h-2 w-2 rounded-full bg-brand-600 ring-1 ring-background" />
+      {planSheet && (
+        <TreatmentPlanSheet
+          open
+          onOpenChange={(o) => !o && setPlanSheet(false)}
+          patientId={patientId}
+          dentistId={chart.dentistId}
+          plan={null}
+          prefill={prefill}
+        />
       )}
-    </button>
+    </Card>
   )
 }

@@ -312,7 +312,7 @@ export async function fetchPatientInsurance(
 
 export async function upsertPatientDentalInfo(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientDentalInfo> {
   const { data } = await api.post(`/patients/${patientId}/dental-info`, payload)
   return data.data
@@ -320,7 +320,7 @@ export async function upsertPatientDentalInfo(
 
 export async function createPatientTeethChart(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientTeethChart> {
   const { data } = await api.post(
     `/patients/${patientId}/teeth-charts`,
@@ -331,7 +331,7 @@ export async function createPatientTeethChart(
 
 export async function createPatientVitals(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientVitals> {
   const { data } = await api.post(`/patients/${patientId}/vitals`, payload)
   return data.data
@@ -339,7 +339,7 @@ export async function createPatientVitals(
 
 export async function createPatientPrescription(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientPrescription> {
   const { data } = await api.post(
     `/patients/${patientId}/prescriptions`,
@@ -350,7 +350,7 @@ export async function createPatientPrescription(
 
 export async function createPatientDocument(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientDocument> {
   const { data } = await api.post(`/patients/${patientId}/documents`, payload)
   return data.data
@@ -358,7 +358,7 @@ export async function createPatientDocument(
 
 export async function createPatientConsent(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientConsent> {
   const { data } = await api.post(`/patients/${patientId}/consents`, payload)
   return data.data
@@ -366,7 +366,7 @@ export async function createPatientConsent(
 
 export async function createPatientRecall(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientRecall> {
   const { data } = await api.post(`/patients/${patientId}/recalls`, payload)
   return data.data
@@ -375,7 +375,7 @@ export async function createPatientRecall(
 export async function updatePatientRecall(
   patientId: string,
   recallId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientRecall> {
   const { data } = await api.patch(
     `/patients/${patientId}/recalls/${recallId}`,
@@ -386,7 +386,7 @@ export async function updatePatientRecall(
 
 export async function createPatientInsurance(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientInsurance> {
   const { data } = await api.post(`/patients/${patientId}/insurance`, payload)
   return data.data
@@ -394,7 +394,7 @@ export async function createPatientInsurance(
 
 export async function createPatientCommunication(
   patientId: string,
-  payload: any,
+  payload: object,
 ): Promise<PatientCommunication> {
   const { data } = await api.post(
     `/patients/${patientId}/communications`,

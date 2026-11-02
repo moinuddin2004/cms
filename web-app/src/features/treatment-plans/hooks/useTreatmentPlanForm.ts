@@ -14,7 +14,30 @@ export const emptyPlanLine = (): PlanLineValues => ({
   estimatedSessions: '1',
 })
 
-function defaultsFor(plan: TreatmentPlan | null): TreatmentPlanFormValues {
+/** Starting values for a new plan made from elsewhere (e.g. the dental chart). */
+export type TreatmentPlanPrefill = {
+  notes?: string
+  /** One service line per tooth; the service is still picked by hand. */
+  teeth?: string[]
+}
+
+function defaultsFor(
+  plan: TreatmentPlan | null,
+  prefill?: TreatmentPlanPrefill,
+): TreatmentPlanFormValues {
+  if (!plan && prefill) {
+    const teeth = (prefill.teeth ?? []).slice(0, 50)
+    return {
+      planTemplateId: '',
+      planName: '',
+      notes: (prefill.notes ?? '').slice(0, 2000),
+      items: teeth.length
+        ? teeth.map((t) => ({ ...emptyPlanLine(), toothNumber: t }))
+        : [emptyPlanLine()],
+      discountKind: '',
+      discountValue: '',
+    }
+  }
   return {
     planTemplateId: plan?.planTemplateId ?? '',
     planName: plan?.planName ?? '',
@@ -38,15 +61,17 @@ function defaultsFor(plan: TreatmentPlan | null): TreatmentPlanFormValues {
  */
 export function useTreatmentPlanForm({
   plan,
+  prefill,
   canDiscount,
   onSubmit,
 }: {
   plan: TreatmentPlan | null
+  prefill?: TreatmentPlanPrefill
   canDiscount: boolean
   onSubmit: (input: TreatmentPlanInput) => void
 }) {
   return useForm({
-    defaultValues: defaultsFor(plan),
+    defaultValues: defaultsFor(plan, prefill),
     validators: {
       onChange: treatmentPlanSchema,
       onSubmit: treatmentPlanSchema,
