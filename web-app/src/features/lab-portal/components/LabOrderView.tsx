@@ -70,12 +70,15 @@ export function LabOrderView({
   onAcknowledge,
   acknowledging,
   messageBox,
+  filesAction,
 }: {
   order: PortalOrderDetail
   onDownload: (attachmentId: string) => void
   onAcknowledge?: (revisionNo: number) => void
   acknowledging?: boolean
   messageBox?: ReactNode
+  /** e.g. the portal's upload button (absent on the magic-link page). */
+  filesAction?: ReactNode
 }) {
   return (
     <div className="space-y-6">
@@ -200,7 +203,7 @@ export function LabOrderView({
         {messageBox}
       </OrderSection>
 
-      <OrderSection title="Files">
+      <OrderSection title="Files" action={filesAction}>
         <ul className="space-y-2 text-sm">
           {order.attachments.map((a) => (
             <li key={a.id} className="flex items-center justify-between gap-2">

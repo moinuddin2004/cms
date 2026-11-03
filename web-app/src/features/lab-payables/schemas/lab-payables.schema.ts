@@ -164,3 +164,84 @@ export const statementSchema = z
     }
   })
 export type StatementValues = z.input<typeof statementSchema>
+
+/** Edit a draft bill's header. */
+export const editBillSchema = z.object({
+  vendorInvoiceNo: text(60),
+  billDate: z.string().min(1, 'Choose the bill date'),
+  dueOn: z.string(),
+  taxPercent: z
+    .string()
+    .trim()
+    .refine((v) => percentToBp(v) !== null, 'Tax: 0–100 %'),
+  notes: text(2000),
+})
+export type EditBillValues = z.input<typeof editBillSchema>
+
+/** A hand-entered cost on a draft (e.g. the lab's partial charge on a cancel). */
+export const billLineSchema = z.object({
+  kind: z.enum(['service', 'rush', 'shipping', 'material', 'remake', 'other']),
+  description: z
+    .string()
+    .trim()
+    .min(1, 'Describe the cost')
+    .max(300, 'At most 300 characters'),
+  quantity: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, 'Quantity: a whole number')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 10_000, 'Quantity: 1–10000'),
+  unitCost: rupees('Unit cost'),
+})
+export type BillLineValues = z.input<typeof billLineSchema>
+
+/** Use a payment's unallocated rest (an advance) on the lab's open bills. */
+export const allocateSchema = z
+  .object({
+    freeMinor: z.number(),
+    allocations: z.array(
+      z.object({
+        billId: z.string(),
+        billNo: z.string(),
+        balanceMinor: z.number(),
+        amount: z.string().trim(),
+      }),
+    ),
+  })
+  .superRefine((v, ctx) => {
+    let sum = 0
+    v.allocations.forEach((a, i) => {
+      if (!a.amount) return
+      const p = rupeesToMinor(a.amount)
+      if (p === null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['allocations', i, 'amount'],
+          message: 'Enter an amount',
+        })
+        return
+      }
+      if (p > a.balanceMinor) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['allocations', i, 'amount'],
+          message: `More than the balance of ${a.billNo}`,
+        })
+      }
+      sum += p
+    })
+    if (sum === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['allocations'],
+        message: 'Enter an amount on at least one bill',
+      })
+    } else if (sum > v.freeMinor) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['allocations'],
+        message: 'More than what is left on the payment',
+      })
+    }
+  })
+export type AllocateValues = z.input<typeof allocateSchema>

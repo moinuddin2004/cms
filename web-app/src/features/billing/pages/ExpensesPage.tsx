@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PieChart, Receipt, Tag, Trash2, Wallet } from 'lucide-react'
+import { Pencil, PieChart, Receipt, Tag, Trash2, Wallet } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -68,6 +68,7 @@ export function ExpensesPage() {
   const summary = summaryQuery.data
   const del = useDeleteExpense()
   const [deleting, setDeleting] = useState<Expense | null>(null)
+  const [editing, setEditing] = useState<Expense | null>(null)
 
   const rows = expenses.data?.data ?? []
   const topCategories = [...(summary?.byCategory ?? [])]
@@ -192,7 +193,7 @@ export function ExpensesPage() {
                     <TableHead>Description</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="w-12" />
+                    <TableHead className="w-20" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,6 +220,15 @@ export function ExpensesPage() {
                       <TableCell className="pr-4 text-right">
                         <Can perm="expenses.manage">
                           <TooltipButton
+                            tooltip="Edit expense"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground"
+                            onClick={() => setEditing(e)}
+                          >
+                            <Pencil className="size-4" />
+                          </TooltipButton>
+                          <TooltipButton
                             tooltip="Delete expense"
                             variant="ghost"
                             size="icon"
@@ -238,6 +248,7 @@ export function ExpensesPage() {
         </Card>
       </div>
 
+      <ExpenseFormDialog expense={editing} onClose={() => setEditing(null)} />
       <ConfirmDialog
         open={!!deleting}
         onOpenChange={(open) => !open && setDeleting(null)}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { Plus, Undo2, Wallet } from 'lucide-react'
+import { HandCoins, Plus, Undo2, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DataTable,
@@ -17,6 +17,7 @@ import { ListToolbar } from '@/components/shared/ListToolbar'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatMinor, rupeesToMinor } from '@/features/lab-catalog'
 import { ReasonDialog } from '@/features/lab-orders'
+import { AllocatePaymentSheet } from '../components/BillEditSheets'
 import { PayLabSheet } from '../components/PayablesSheets'
 import {
   ALL,
@@ -29,7 +30,10 @@ import {
   usePayablesMutation,
   useVendorBills,
 } from '../hooks/useLabPayables'
-import type { PayLabValues } from '../schemas/lab-payables.schema'
+import type {
+  AllocateValues,
+  PayLabValues,
+} from '../schemas/lab-payables.schema'
 import { labPayablesApi, newPaymentKey } from '../services/lab-payables.api'
 import { METHOD_LABEL } from '../types'
 import type { VendorPayment } from '../types'
@@ -43,6 +47,7 @@ export function LabPaymentsPage() {
   const [limit, setLimit] = useState(20)
   const [paying, setPaying] = useState(false)
   const [reversing, setReversing] = useState<VendorPayment | null>(null)
+  const [allocating, setAllocating] = useState<VendorPayment | null>(null)
   const labs = useClinicLabs()
   const lab = labId === ALL ? undefined : labId
   const { data, isLoading, isError, refetch, isFetching } = useLabPayments({
@@ -56,6 +61,26 @@ export function LabPaymentsPage() {
     page: 1,
     limit: 100,
   })
+
+  const allocBills = useVendorBills({
+    labId: allocating?.labId ?? lab,
+    open: 'true',
+    page: 1,
+    limit: 100,
+  })
+  const allocate = usePayablesMutation(
+    (v: { p: VendorPayment; values: AllocateValues }) =>
+      labPayablesApi.allocate(v.p.id, {
+        version: v.p.version,
+        allocations: v.values.allocations
+          .map((a) => ({
+            billId: a.billId,
+            amountMinor: rupeesToMinor(a.amount) ?? 0,
+          }))
+          .filter((a) => a.amountMinor > 0),
+      }),
+    'Advance applied to bills',
+  )
 
   const pay = usePayablesMutation(
     (v: { labId: string; values: PayLabValues; key: string }) =>
@@ -156,14 +181,26 @@ export function LabPaymentsPage() {
         enableSorting: false,
         cell: ({ row }) =>
           row.original.status === 'posted' ? (
-            <TooltipButton
-              tooltip="Reverse payment"
-              variant="ghost"
-              size="icon"
-              onClick={() => setReversing(row.original)}
-            >
-              <Undo2 className="size-4" />
-            </TooltipButton>
+            <div className="flex justify-end gap-1">
+              {row.original.unallocatedMinor > 0 && (
+                <TooltipButton
+                  tooltip="Apply advance to bills"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAllocating(row.original)}
+                >
+                  <HandCoins className="size-4" />
+                </TooltipButton>
+              )}
+              <TooltipButton
+                tooltip="Reverse payment"
+                variant="ghost"
+                size="icon"
+                onClick={() => setReversing(row.original)}
+              >
+                <Undo2 className="size-4" />
+              </TooltipButton>
+            </div>
           ) : null,
       },
     ],
@@ -271,14 +308,26 @@ export function LabPaymentsPage() {
                       {formatMinor(p.amountMinor)}
                     </span>
                     {p.status === 'posted' && (
-                      <TooltipButton
-                        tooltip="Reverse payment"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setReversing(p)}
-                      >
-                        <Undo2 className="size-4" />
-                      </TooltipButton>
+                      <span className="flex gap-1">
+                        {p.unallocatedMinor > 0 && (
+                          <TooltipButton
+                            tooltip="Apply advance to bills"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setAllocating(p)}
+                          >
+                            <HandCoins className="size-4" />
+                          </TooltipButton>
+                        )}
+                        <TooltipButton
+                          tooltip="Reverse payment"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setReversing(p)}
+                        >
+                          <Undo2 className="size-4" />
+                        </TooltipButton>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -310,6 +359,16 @@ export function LabPaymentsPage() {
           }
         />
       )}
+      <AllocatePaymentSheet
+        payment={allocating}
+        bills={(allocBills.data?.data ?? []).filter(
+          (b) =>
+            b.labId === allocating?.labId &&
+            (b.status === 'approved' || b.status === 'partially_paid'),
+        )}
+        onOpenChange={(o) => !o && setAllocating(null)}
+        onSubmit={(values) => allocate.mutateAsync({ p: allocating!, values })}
+      />
       <ReasonDialog
         open={!!reversing}
         onOpenChange={(o) => !o && setReversing(null)}

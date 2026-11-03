@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Printer,
   ReceiptText,
+  RotateCcw,
   Undo2,
   UserRound,
   Wallet,
@@ -42,12 +43,17 @@ import {
   useDailyCollection,
   usePaymentAccounts,
   usePaymentList,
+  useRefundList,
 } from '../hooks/use-billing-queries'
+import { useBillingMutation } from '../hooks/use-billing-mutation'
+import { paymentsApi } from '../services/billing-v2.api'
+import { ReasonDialog } from '../components/shared/ReasonDialog'
 import { toastBillingError } from '../lib/billing-errors'
 import type {
   CashClose,
   DailyCollection,
   Payment,
+  Refund,
 } from '../types/billing.types'
 import { CashCloseSheet } from '../components/cash-close/CashCloseSheet'
 import { printDocument } from '../components/print/print-document'
@@ -77,6 +83,9 @@ export function PaymentsPage() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [closeOpen, setCloseOpen] = useState(false)
+  const [releasing, setReleasing] = useState<Payment | null>(null)
+  const [refundPage, setRefundPage] = useState(1)
+  const [refundPageSize, setRefundPageSize] = useState(10)
 
   const accounts = usePaymentAccounts()
   const daily = useDailyCollection(day)
@@ -87,9 +96,21 @@ export function PaymentsPage() {
     limit: pageSize,
     ...(accountId !== ALL ? { paymentAccountId: accountId } : {}),
   })
+  const refunds = useRefundList({
+    from: day,
+    to: day,
+    page: refundPage,
+    limit: refundPageSize,
+  })
+  const release = useBillingMutation(
+    (v: { id: string; reason: string }) =>
+      paymentsApi.unapply(v.id, { reason: v.reason }),
+    { success: 'Payment released to the patient’s advance' },
+  )
   const goTo = (d: string) => {
     setDay(d)
     setPage(1)
+    setRefundPage(1)
   }
   const print = useCallback((id: string) => {
     printDocument('receipt', id).catch(toastBillingError)
@@ -255,6 +276,16 @@ export function PaymentsPage() {
                   <UserRound className="mr-2 h-3.5 w-3.5" />
                   Open patient
                 </DropdownMenuItem>
+                {row.original.allocatedAmount > 0 && (
+                  <Can perm="billing.invoice.edit">
+                    <DropdownMenuItem
+                      onClick={() => setReleasing(row.original)}
+                    >
+                      <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                      Release to advance
+                    </DropdownMenuItem>
+                  </Can>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -262,6 +293,88 @@ export function PaymentsPage() {
       },
     ],
     [navigate, print],
+  )
+
+  const refundColumns = useMemo<ColumnDef<Refund, unknown>[]>(
+    () => [
+      {
+        id: 'time',
+        accessorKey: 'refundedAt',
+        header: 'Time',
+        cell: ({ row }) => (
+          <div className="font-medium">
+            {formatInClinic(row.original.refundedAt, 'hh:mm a')}
+            <div className="font-mono text-xs text-muted-foreground">
+              {row.original.refundNumber}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'patient',
+        header: 'Patient',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div dir="auto" className="max-w-[200px] truncate font-medium">
+            {row.original.patient.name}
+          </div>
+        ),
+      },
+      {
+        id: 'from',
+        header: 'From',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <span className="text-sm">
+            {row.original.invoiceNumber ?? 'Advance'}
+          </span>
+        ),
+      },
+      {
+        id: 'reason',
+        header: 'Reason',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div>
+            <div className="max-w-[240px] truncate text-sm">
+              {row.original.reason}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {row.original.paymentAccountName}
+              {row.original.refundedByName &&
+                ` · ${row.original.refundedByName}`}
+            </div>
+          </div>
+        ),
+      },
+      {
+        id: 'amount',
+        accessorKey: 'amount',
+        header: 'Amount',
+        cell: ({ row }) => (
+          <Money value={row.original.amount} className="font-semibold" />
+        ),
+      },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <TooltipButton
+            tooltip="Print refund"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() =>
+              printDocument('refund', row.original.id).catch(toastBillingError)
+            }
+          >
+            <Printer className="h-4 w-4" />
+          </TooltipButton>
+        ),
+      },
+    ],
+    [],
   )
 
   return (
@@ -440,10 +553,53 @@ export function PaymentsPage() {
           )}
         </section>
 
+        <section className="space-y-2">
+          <SectionHeading icon={Undo2} title="Refunds" />
+          {refunds.isError ? (
+            <ErrorState onRetry={() => void refunds.refetch()} />
+          ) : (
+            <DataTable
+              columns={refundColumns}
+              data={refunds.data?.data ?? []}
+              isLoading={refunds.isLoading}
+              skeletonRows={3}
+              emptyMessage="No refunds on this day."
+              serverPagination={{
+                page: refundPage,
+                pageSize: refundPageSize,
+                total: refunds.data?.total ?? 0,
+                onPageChange: setRefundPage,
+                onPageSizeChange: (s) => {
+                  setRefundPageSize(s)
+                  setRefundPage(1)
+                },
+                pageSizeOptions: [10, 25, 50],
+              }}
+            />
+          )}
+        </section>
+
         <CashCloseHistory />
       </div>
 
       <CashCloseSheet open={closeOpen} onOpenChange={setCloseOpen} />
+      <ReasonDialog
+        open={!!releasing}
+        onOpenChange={(o) => !o && setReleasing(null)}
+        title={`Release ${releasing?.receiptNumber ?? ''}?`}
+        description={
+          releasing
+            ? `${formatCurrency(releasing.allocatedAmount)} applied to charges goes back to ${releasing.patient.name}'s advance. The charges become unpaid again.`
+            : ''
+        }
+        confirmLabel="Release to advance"
+        onConfirm={(reason) =>
+          release.mutateAsync(
+            { id: releasing!.id, reason },
+            { onSuccess: () => setReleasing(null) },
+          )
+        }
+      />
     </>
   )
 }
@@ -463,8 +619,7 @@ export function CashCloseHistory() {
           <div className="font-medium">
             {formatDate(row.original.periodEnd)}
             <div className="text-xs text-muted-foreground">
-              {formatInClinic(row.original.periodStart, 'hh:mm a')}{' '}
-              –{' '}
+              {formatInClinic(row.original.periodStart, 'hh:mm a')} –{' '}
               {formatInClinic(row.original.periodEnd, 'hh:mm a')}
             </div>
           </div>

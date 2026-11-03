@@ -245,7 +245,12 @@ describe('lab portal pages', () => {
     signIn([{ ...LAB_A, role: 'lab_technician' }])
     renderWithClient(<LabTeamPage />)
     expect(screen.getByText('Lab admins only')).toBeTruthy()
-    expect(api.get).not.toHaveBeenCalled()
+    // Only the layout's notification bell may load; never the members list.
+    expect(
+      api.get.mock.calls.filter(
+        (call) => !String(call[0]).startsWith('/me/notifications'),
+      ),
+    ).toEqual([])
   })
 
   it('locks your own row on the team page', async () => {

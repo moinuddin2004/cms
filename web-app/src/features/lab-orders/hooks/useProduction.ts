@@ -9,14 +9,17 @@ import {
   receiveShipmentSchema,
   remakeDecisionSchema,
   remakeRequestSchema,
+  sendToLabSchema,
 } from '../schemas/production.schema'
 import type {
   ReceiveShipmentValues,
   RemakeDecisionValues,
   RemakeRequestValues,
+  SendToLabValues,
 } from '../schemas/production.schema'
 import { productionApi } from '../services/production.api'
 import type {
+  ProductionItem,
   ReceiveLineInput,
   RemakeRequest,
   Shipment,
@@ -176,5 +179,59 @@ export function useReceiveShipmentForm({
   useEffect(() => {
     form.reset(receiveDefaults(shipment))
   }, [shipment?.id, shipment?.version, form])
+  return form
+}
+
+/** Items that can still go to the lab (not rejected / cancelled / done). */
+const SENDABLE = (i: ProductionItem) =>
+  !['rejected', 'cancelled', 'delivered'].includes(i.status ?? '')
+
+export function sendToLabDefaults(items: ProductionItem[]): SendToLabValues {
+  return {
+    lines: items.filter(SENDABLE).map((i) => ({
+      itemId: i.id,
+      label: `${i.lineNo}. ${i.serviceName ?? ''}`,
+      include: true,
+      contents: 'impression',
+      quantity: '1',
+    })),
+    courierName: '',
+    trackingNo: '',
+    notes: '',
+  }
+}
+
+export function useSendToLabForm({
+  open,
+  items,
+  onSubmit,
+}: {
+  open: boolean
+  items: ProductionItem[]
+  onSubmit: (
+    body: Parameters<typeof productionApi.sendToLab>[0],
+  ) => Promise<unknown>
+}) {
+  const form = useForm({
+    defaultValues: sendToLabDefaults(items),
+    validators: { onChange: sendToLabSchema, onSubmit: sendToLabSchema },
+    onSubmit: async ({ value }) => {
+      await onSubmit({
+        lines: value.lines
+          .filter((l) => l.include)
+          .map((l) => ({
+            itemId: l.itemId,
+            contents: l.contents,
+            quantity: toNumber(l.quantity),
+          })),
+        courierName: value.courierName.trim() || undefined,
+        trackingNo: value.trackingNo.trim() || undefined,
+        notes: value.notes.trim() || undefined,
+      })
+    },
+  })
+  useEffect(() => {
+    if (open) form.reset(sendToLabDefaults(items))
+  }, [open, form])
   return form
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { moneyField } from '@/lib/zod-numbers'
 
 const text = (label: string, max: number) =>
   z
@@ -43,3 +44,12 @@ export const expectedDateSchema = z.object({
 })
 
 export type LabOrderActionValues = z.input<typeof acceptOrderSchema>
+
+/** A lab admin asks the clinic to approve an extra charge on an order. */
+export const chargeRequestSchema = z.object({
+  kind: z.enum(['rush', 'material', 'shipping', 'other']),
+  amount: moneyField('Amount', { min: 0.01 }),
+  reason: text('Reason', 1000),
+  itemId: z.string(),
+})
+export type ChargeRequestValues = z.input<typeof chargeRequestSchema>

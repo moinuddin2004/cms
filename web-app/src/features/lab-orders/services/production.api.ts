@@ -52,6 +52,10 @@ export const productionApi = {
     post<OrderProduction>(`/lab-orders/${orderId}/items/${itemId}/approve`),
   deliver: (orderId: string, itemId: string) =>
     post<OrderProduction>(`/lab-orders/${orderId}/items/${itemId}/deliver`),
+  cancelItem: (orderId: string, itemId: string, reason: string) =>
+    post<OrderProduction>(`/lab-orders/${orderId}/items/${itemId}/cancel`, {
+      reason,
+    }),
   requestRemake: (
     orderId: string,
     itemId: string,

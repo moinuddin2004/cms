@@ -2,12 +2,14 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { catalogKeys } from '../query-keys'
 import { platformCatalogApi } from '../services/lab-catalog.api'
 import type {
+  CategoryInput,
   LabServiceInput,
   LabServiceItem,
   OptionInput,
   PlatformServiceParams,
   PriceInput,
   PriceWindow,
+  ServiceCategory,
   ServiceOption,
 } from '../types'
 import { useCatalogMutation } from './useCatalogMutation'
@@ -139,5 +141,51 @@ export function useVoidPrice(labId: string, serviceId: string) {
         version: v.price.version,
       }),
     { success: 'Price voided' },
+  )
+}
+
+/** Every category incl. archived ones (the categories manager). */
+export function useAllServiceCategories(enabled = true) {
+  return useQuery({
+    queryKey: [...catalogKeys.platform.categories('all'), 'with-inactive'],
+    queryFn: () => platformCatalogApi.categories(undefined, true),
+    enabled,
+  })
+}
+
+export function useCatalogSpecialties(enabled = true) {
+  return useQuery({
+    queryKey: ['lab-catalog', 'platform', 'specialties'],
+    queryFn: platformCatalogApi.specialties,
+    enabled,
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useSaveCategory() {
+  return useCatalogMutation(
+    (v: { category: ServiceCategory | null; input: CategoryInput }) =>
+      v.category
+        ? platformCatalogApi.updateCategory(v.category.id, {
+            name: v.input.name,
+            sortOrder: v.input.sortOrder,
+            version: v.category.version,
+          })
+        : platformCatalogApi.createCategory(v.input),
+    { success: (c) => `Category ${c.name} saved` },
+  )
+}
+
+export function useSetCategoryActive() {
+  return useCatalogMutation(
+    (v: { category: ServiceCategory; isActive: boolean }) =>
+      platformCatalogApi.updateCategory(v.category.id, {
+        isActive: v.isActive,
+        version: v.category.version,
+      }),
+    {
+      success: (c) =>
+        c.isActive ? `${c.name} is offered again` : `${c.name} archived`,
+    },
   )
 }

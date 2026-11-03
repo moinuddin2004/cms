@@ -22,10 +22,7 @@ export async function setSchedule(
     }[]
   },
 ): Promise<ScheduleDay[]> {
-  const { data } = await api.post(
-    `/employees/${employeeId}/schedule`,
-    payload,
-  )
+  const { data } = await api.post(`/employees/${employeeId}/schedule`, payload)
   return data.data
 }
 

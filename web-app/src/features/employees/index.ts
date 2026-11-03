@@ -40,6 +40,7 @@ export * from './hooks/useLocationPayroll'
 export * from './hooks/useCreatePayroll'
 export * from './hooks/useUpdatePayroll'
 export * from './hooks/useDeletePayroll'
+export * from './hooks/usePayrollActions'
 
 // Hooks (Schedule)
 export * from './hooks/useEmployeeSchedule'

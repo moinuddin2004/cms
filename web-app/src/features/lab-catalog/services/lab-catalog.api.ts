@@ -1,5 +1,7 @@
 import api from '@/lib/api'
 import type {
+  CategoryInput,
+  CategoryUpdate,
   ClinicServiceParams,
   ClinicServiceRow,
   ClinicTreatment,
@@ -58,11 +60,17 @@ const platformOnly = (rows: DefinitionRow[]) =>
 
 /** Lab services, options and prices — super admins (later the lab portal). */
 export const platformCatalogApi = {
-  categories: (specialtyId?: string) =>
-    get<ServiceCategory[]>(
-      '/platform/service-categories',
-      specialtyId ? { specialtyId } : {},
-    ),
+  categories: (specialtyId?: string, includeInactive = false) =>
+    get<ServiceCategory[]>('/platform/service-categories', {
+      ...(specialtyId ? { specialtyId } : {}),
+      ...(includeInactive ? { includeInactive: true } : {}),
+    }),
+  specialties: () =>
+    get<{ id: string; code: string; name: string }[]>('/platform/specialties'),
+  createCategory: (body: CategoryInput) =>
+    post<ServiceCategory>('/platform/service-categories', body),
+  updateCategory: (id: string, body: CategoryUpdate) =>
+    patch<ServiceCategory>(`/platform/service-categories/${id}`, body),
   /** Active platform definitions of one specialty. */
   definitions: async (specialtyId: string): Promise<ServiceDefinitions> => {
     const [forms, workflows, stageTemplates] = await Promise.all([

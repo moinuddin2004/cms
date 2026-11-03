@@ -45,6 +45,20 @@ export interface ServiceCategory {
   version: number
 }
 
+export interface CategoryInput {
+  specialtyId: string
+  code: string
+  name: string
+  sortOrder?: number
+}
+
+export interface CategoryUpdate {
+  name?: string
+  sortOrder?: number
+  isActive?: boolean
+  version: number
+}
+
 export interface ServiceOption {
   id: string
   optionType: OptionType

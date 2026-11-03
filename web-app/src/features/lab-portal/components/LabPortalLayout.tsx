@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ThemeToggle } from '@/components/layout/Topbar'
+import { NotificationBell } from '@/features/notifications'
 import { BackButton } from '@/components/shared/BackButton'
 import { SIDEBAR_NAV_STATE, usePageTitle } from '@/hooks/useBackNavigation'
 import { TooltipButton } from '@/components/shared/TooltipButton'
@@ -189,6 +190,7 @@ export function LabPortalLayout({
 
       <div className="ml-[var(--spacing-sidebar)]">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-end gap-2.5 border-b border-border bg-surface/80 px-6 backdrop-blur-md">
+          <NotificationBell />
           <ThemeToggle />
           <LabSwitcher />
         </header>

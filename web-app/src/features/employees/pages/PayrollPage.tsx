@@ -15,6 +15,8 @@ import {
   CheckCircle,
   Clock,
   Coins,
+  Download,
+  Loader2,
   PauseCircle,
   Play,
   Plus,
@@ -28,6 +30,7 @@ import {
   GeneratePayrollModal,
   PayrollTable,
   CreateEditPayrollModal,
+  useExportPayrollCsv,
 } from '@/features/employees'
 import type { PayrollRecord } from '@/features/employees'
 
@@ -60,6 +63,7 @@ export function PayrollPage() {
     isError,
     refetch,
   } = useLocationPayroll(month, year)
+  const exportCsv = useExportPayrollCsv()
   const summary = payrollData?.summary
   const records = payrollData?.records ?? []
   const stats = [
@@ -109,6 +113,19 @@ export function PayrollPage() {
         subtitle="Monthly pay records for this location"
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportCsv.isPending || records.length === 0}
+              onClick={() => exportCsv.mutate({ month, year })}
+            >
+              {exportCsv.isPending ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Download className="size-3.5" />
+              )}
+              Export CSV
+            </Button>
             <Button variant="outline" size="sm" onClick={openCreate}>
               <Plus className="size-3.5" />
               Add record

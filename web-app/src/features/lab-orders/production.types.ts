@@ -169,3 +169,12 @@ export const STAGE_STATUS_LABEL: Record<string, string> = {
   approved: 'Approved',
   correction: 'Correction',
 }
+
+export const SHIPMENT_CONTENTS_LABEL: Record<ShipmentContents, string> = {
+  impression: 'Impression',
+  model: 'Model',
+  framework: 'Framework',
+  tryin: 'Try-in',
+  final: 'Final work',
+  other: 'Other',
+}

@@ -4,6 +4,7 @@ import type {
   LabMemberRole,
   LabSummary,
 } from '@/features/labs'
+import type { ChargeRequest } from '@/features/lab-orders'
 import type { LabMembership } from '@/store/useAuthStore'
 
 export type { LabMembership }
@@ -160,6 +161,8 @@ export interface PortalOrderDetail {
     uploadedSide: 'clinic' | 'lab'
     createdAt: string
   }[]
+  /** Extra charges the lab asked for (absent on older payloads). */
+  charges?: ChargeRequest[]
 }
 
 /** The no-login page's payload (`GET /lab-link/:token`). */
@@ -223,3 +226,12 @@ export const PORTAL_ORDER_STATUSES = [
   'rejected_by_lab',
   'cancelled',
 ] as const
+
+export type ChargeKind = 'rush' | 'material' | 'shipping' | 'other'
+
+export interface ChargeRequestInput {
+  kind: ChargeKind
+  amountMinor: number
+  reason: string
+  itemId?: string | null
+}

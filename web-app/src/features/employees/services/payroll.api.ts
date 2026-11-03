@@ -63,3 +63,50 @@ export async function updatePayroll(
 export async function deletePayroll(recordId: string): Promise<void> {
   await api.delete(`/payroll/${recordId}`)
 }
+
+/** Saves a Blob response as a file. */
+function saveBlob(blob: Blob, name: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** The month's payroll summary (base salary, commission, total) as CSV. */
+export async function downloadPayrollCsv(
+  month: number,
+  year: number,
+): Promise<void> {
+  const res = await api.get('/payroll/export', {
+    params: { month, year },
+    responseType: 'blob',
+    timeout: 60_000,
+  })
+  saveBlob(
+    res.data as Blob,
+    `payroll-${year}-${String(month).padStart(2, '0')}.csv`,
+  )
+}
+
+/** Opens one record's payslip PDF in a new tab. */
+export async function openPayslipPdf(recordId: string): Promise<void> {
+  // Open the tab first (inside the click) so popup blockers allow it.
+  const tab = window.open('', '_blank')
+  try {
+    const res = await api.get(`/payroll/${recordId}/payslip-pdf`, {
+      responseType: 'blob',
+      timeout: 60_000,
+    })
+    const url = URL.createObjectURL(res.data as Blob)
+    if (tab) tab.location.href = url
+    else saveBlob(res.data as Blob, `payslip-${recordId}.pdf`)
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (err) {
+    tab?.close()
+    throw err
+  }
+}

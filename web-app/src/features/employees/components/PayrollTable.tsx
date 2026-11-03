@@ -10,7 +10,8 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { MarkPaidModal } from './MarkPaidModal'
 import { useDeletePayroll } from '../hooks/useDeletePayroll'
-import { Pencil, Trash2 } from 'lucide-react'
+import { useMarkPayrollOnHold, usePayslipPdf } from '../hooks/usePayrollActions'
+import { FileText, Pencil, PauseCircle, Trash2 } from 'lucide-react'
 
 interface PayrollTableProps {
   records: PayrollRecord[]
@@ -29,6 +30,8 @@ export function PayrollTable({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [deleting, setDeleting] = useState<PayrollRecord | null>(null)
   const deleteMutation = useDeletePayroll()
+  const onHold = useMarkPayrollOnHold()
+  const payslip = usePayslipPdf()
 
   const handleMarkPaidClick = (record: PayrollRecord) => {
     setSelectedRecord(record)
@@ -137,6 +140,28 @@ export function PayrollTable({
                   Mark as Paid
                 </Button>
               )}
+              {record.status === 'pending' && (
+                <TooltipButton
+                  tooltip="Put on hold"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={onHold.isPending && onHold.variables === record.id}
+                  onClick={() => onHold.mutate(record.id)}
+                >
+                  <PauseCircle className="h-4 w-4 text-muted-foreground" />
+                </TooltipButton>
+              )}
+              <TooltipButton
+                tooltip="Payslip PDF"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={payslip.isPending && payslip.variables === record.id}
+                onClick={() => payslip.mutate(record.id)}
+              >
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </TooltipButton>
               {onEdit && (
                 <TooltipButton
                   tooltip="Edit payroll"
@@ -162,7 +187,7 @@ export function PayrollTable({
         },
       },
     ],
-    [showEmployeeName, onEdit],
+    [showEmployeeName, onEdit, onHold, payslip],
   )
 
   return (

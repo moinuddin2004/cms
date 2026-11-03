@@ -143,6 +143,20 @@ export const useInvoiceDetail = (id: string) =>
     enabled: useEnabled(),
   })
 
+/** Refunds in a date range (patient + advance refunds). */
+export const useRefundList = (filters: {
+  from?: string
+  to?: string
+  page?: number
+  limit?: number
+}) =>
+  useQuery({
+    queryKey: billingKeys.payments.refunds(filters),
+    queryFn: () => paymentsApi.refunds(filters),
+    enabled: useEnabled(),
+    placeholderData: keepPreviousData,
+  })
+
 export const usePaymentList = (filters: {
   from?: string
   to?: string

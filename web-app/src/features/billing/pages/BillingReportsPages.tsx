@@ -35,7 +35,9 @@ import {
 import type { DateRange, RangePreset } from '../components/shared/list-toolbar'
 
 /** Preset + custom range state that always resolves to a full from/to. */
-export function useReportRange(initial: Exclude<RangePreset, 'custom' | 'all'>) {
+export function useReportRange(
+  initial: Exclude<RangePreset, 'custom' | 'all'>,
+) {
   const [preset, setPreset] = useState<RangePreset>(initial)
   const [custom, setCustom] = useState<DateRange>({})
   const range = useMemo(() => {

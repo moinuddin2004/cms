@@ -77,3 +77,34 @@ export const receiveShipmentSchema = z.object({
   ),
 })
 export type ReceiveShipmentValues = z.input<typeof receiveShipmentSchema>
+
+export const SHIPMENT_CONTENTS = [
+  'impression',
+  'model',
+  'framework',
+  'tryin',
+  'final',
+  'other',
+] as const
+
+/** Impressions / models / work going from the clinic to the lab. */
+export const sendToLabSchema = z
+  .object({
+    lines: z.array(
+      z.object({
+        itemId: z.string(),
+        label: z.string(),
+        include: z.boolean(),
+        contents: z.enum(SHIPMENT_CONTENTS),
+        quantity: intField('Quantity', { min: 1, max: 64 }),
+      }),
+    ),
+    courierName: text(100),
+    trackingNo: text(100),
+    notes: text(2000),
+  })
+  .refine((v) => v.lines.some((l) => l.include), {
+    path: ['lines'],
+    message: 'Choose at least one item to send',
+  })
+export type SendToLabValues = z.input<typeof sendToLabSchema>

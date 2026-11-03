@@ -44,10 +44,7 @@ function WorkOrderDoc({ w }: { w: WorkOrder }) {
       <div className="grid">
         <span>Patient: {w.patient.ref}</span>
         <span>Doctor: {w.doctor?.fullName ?? '—'}</span>
-        <span>
-          Submitted:{' '}
-          {formatInClinic(w.submittedAt, 'dd/MM/yyyy')}
-        </span>
+        <span>Submitted: {formatInClinic(w.submittedAt, 'dd/MM/yyyy')}</span>
         <span>Due back: {w.labExpectedOn ?? w.requestedOn ?? '—'}</span>
         <span>Revision: {w.revisionNo}</span>
       </div>

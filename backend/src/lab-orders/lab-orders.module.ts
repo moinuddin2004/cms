@@ -40,6 +40,7 @@ import { OrderWorkflowService } from './workflow/order-workflow.service';
  * messages, charge requests, attachments, work-order print and the lab
  * portal's order reads. Registers the `order` / `item` workflow adapters.
  */
+import { OrderOverdueJob } from './jobs/order-overdue.job';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -69,6 +70,7 @@ import { OrderWorkflowService } from './workflow/order-workflow.service';
     LabOrdersPortalService,
     AttachmentsService,
     SnapshotFreezeSubscriber,
+    OrderOverdueJob,
     { provide: ATTACHMENT_STORAGE, useClass: CloudinaryAttachmentStorage },
   ],
   exports: [

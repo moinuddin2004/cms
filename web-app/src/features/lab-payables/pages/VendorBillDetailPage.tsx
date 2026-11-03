@@ -1,7 +1,15 @@
 import { useState } from 'react'
 import { toClinicYmd } from '@/lib/datetime'
 import { Link } from '@tanstack/react-router'
-import { Ban, CheckCircle2, Loader2, RefreshCw, Wallet } from 'lucide-react'
+import {
+  Ban,
+  CheckCircle2,
+  Loader2,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Wallet,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorState, LoadingSkeleton, StatCard } from '@/components/shared'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
@@ -9,6 +17,7 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { formatMinor, rupeesToMinor } from '@/features/lab-catalog'
 import { ReasonDialog } from '@/features/lab-orders'
 import { BillStatusBadge } from '../components/payables-badges'
+import { AddBillLineSheet, EditBillSheet } from '../components/BillEditSheets'
 import { ApproveBillSheet, PayLabSheet } from '../components/PayablesSheets'
 import {
   usePayablesMutation,
@@ -18,6 +27,8 @@ import {
 import { percentToBp } from '../schemas/lab-payables.schema'
 import type {
   ApproveBillValues,
+  BillLineValues,
+  EditBillValues,
   PayLabValues,
 } from '../schemas/lab-payables.schema'
 import { labPayablesApi, newPaymentKey } from '../services/lab-payables.api'
@@ -30,6 +41,8 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
   const [approving, setApproving] = useState(false)
   const [paying, setPaying] = useState(false)
   const [voiding, setVoiding] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [addingLine, setAddingLine] = useState(false)
   const openBills = useVendorBills({
     labId: bill?.labId,
     open: 'true',
@@ -74,6 +87,29 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
         reason: v.reason,
       }),
     'Bill voided',
+  )
+  const edit = usePayablesMutation(
+    (v: { bill: VendorBillDetail; values: EditBillValues }) =>
+      labPayablesApi.updateBill(v.bill.id, {
+        version: v.bill.version,
+        vendorInvoiceNo: v.values.vendorInvoiceNo || null,
+        billDate: v.values.billDate,
+        dueOn: v.values.dueOn || null,
+        taxBp: percentToBp(v.values.taxPercent) ?? 0,
+        notes: v.values.notes || null,
+      }),
+    'Bill updated',
+  )
+  const addLine = usePayablesMutation(
+    (v: { bill: VendorBillDetail; values: BillLineValues }) =>
+      labPayablesApi.addLine(v.bill.id, {
+        version: v.bill.version,
+        kind: v.values.kind,
+        description: v.values.description.trim(),
+        quantity: Number(v.values.quantity),
+        unitCostMinor: rupeesToMinor(v.values.unitCost) ?? 0,
+      }),
+    'Line added',
   )
   const sync = usePayablesMutation(
     (orderId: string) => labPayablesApi.syncOrder(orderId),
@@ -120,6 +156,16 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
           ) : (
             <RefreshCw className="size-4" />
           )}
+        </TooltipButton>
+      )}
+      {bill.status === 'draft' && (
+        <TooltipButton
+          tooltip="Edit bill details"
+          variant="outline"
+          size="icon"
+          onClick={() => setEditing(true)}
+        >
+          <Pencil className="size-4" />
         </TooltipButton>
       )}
       {canVoid && (
@@ -182,9 +228,18 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
         </div>
 
         <section className="rounded-lg border border-border bg-card shadow-sm">
-          <h2 className="border-b border-border px-4 py-3 text-lg font-medium">
-            Lines
-          </h2>
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <h2 className="text-lg font-medium">Lines</h2>
+            {bill.status === 'draft' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setAddingLine(true)}
+              >
+                <Plus className="size-4" /> Add line
+              </Button>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs text-text-3">
@@ -275,6 +330,17 @@ export function VendorBillDetailPage({ billId }: { billId: string }) {
         </section>
       </div>
 
+      <EditBillSheet
+        bill={editing ? bill : null}
+        onOpenChange={setEditing}
+        onSubmit={(values) => edit.mutateAsync({ bill, values })}
+      />
+      <AddBillLineSheet
+        open={addingLine}
+        billNo={bill.billNo}
+        onOpenChange={setAddingLine}
+        onSubmit={(values) => addLine.mutateAsync({ bill, values })}
+      />
       <ApproveBillSheet
         bill={approving ? bill : null}
         onOpenChange={setApproving}

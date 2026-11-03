@@ -2,6 +2,7 @@ import api from '@/lib/api'
 import type { Paginated } from '@/features/lab-orders'
 import type {
   AcceptInput,
+  ChargeRequestInput,
   ClarifyInput,
   ExpectedDateInput,
   LabOrderAction,
@@ -50,6 +51,19 @@ export const portalOrdersApi = {
     get<{ url: string }>(
       `/lab-portal/orders/${id}/attachments/${attachmentId}/url`,
     ),
+  /** Lab admins only: an extra charge the clinic approves or rejects. */
+  requestCharge: (id: string, body: ChargeRequestInput) =>
+    post<PortalOrderDetail>(`/lab-portal/orders/${id}/charge-requests`, body),
+  /** Lab uploads are always shared with the clinic. */
+  upload: async (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const { data } = await api.post(
+      `/lab-portal/orders/${id}/attachments`,
+      form,
+    )
+    return data.data as { id: string; fileName: string; sha256: string }
+  },
 }
 
 /** The no-login magic-link page: the token in the path is the credential. */

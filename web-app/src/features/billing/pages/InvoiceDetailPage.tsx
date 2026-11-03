@@ -432,8 +432,7 @@ function InvoiceBody({ invoice: inv }: { invoice: Invoice }) {
                 <div className="flex min-w-0 items-center gap-2">
                   <Badge variant="info">Rev {r.revision}</Badge>
                   <span className="text-xs text-muted-foreground">
-                    {formatDateTime(r.editedAt)} ·{' '}
-                    {r.editedByName ?? '—'}
+                    {formatDateTime(r.editedAt)} · {r.editedByName ?? '—'}
                   </span>
                   <span dir="auto" className="truncate">
                     {r.reason}

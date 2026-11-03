@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -21,34 +21,63 @@ import { FieldWrapper } from '@/components/forms/FieldWrapper'
 import { fieldError } from '@/components/forms/fieldError'
 import { NumberInput } from '@/components/forms/NumberInput'
 import { Loader2, Plus } from 'lucide-react'
-import { expenseDefaults, useExpenseForm } from '../hooks/useExpenseForm'
+import {
+  expenseDefaults,
+  expenseValues,
+  useExpenseForm,
+} from '../hooks/useExpenseForm'
 import { ExpenseCategory, PaymentMethod } from '../types'
+import type { Expense } from '../types'
 
-export function ExpenseFormDialog() {
-  const [open, setOpen] = useState(false)
+/**
+ * Without `expense`: an "Add Expense" button that opens an empty form.
+ * With `expense` (controlled by the caller, no trigger): edits it.
+ */
+export function ExpenseFormDialog({
+  expense,
+  onClose,
+}: {
+  expense?: Expense | null
+  onClose?: () => void
+} = {}) {
+  const editing = expense !== undefined
+  const [ownOpen, setOwnOpen] = useState(false)
+  const open = editing ? !!expense : ownOpen
+  const close = () => (editing ? onClose?.() : setOwnOpen(false))
   const form = useExpenseForm({
+    expense,
     onDone: () => {
       form.reset(expenseDefaults())
-      setOpen(false)
+      close()
     },
   })
+  useEffect(() => {
+    if (expense) form.reset(expenseValues(expense))
+  }, [expense?.id])
 
   return (
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        setOpen(o)
-        if (!o) form.reset(expenseDefaults())
+        if (o) setOwnOpen(true)
+        else {
+          close()
+          form.reset(expenseDefaults())
+        }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add Expense
-        </Button>
-      </DialogTrigger>
+      {!editing && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" /> Add Expense
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Record Expense</DialogTitle>
+          <DialogTitle>
+            {editing ? 'Edit Expense' : 'Record Expense'}
+          </DialogTitle>
         </DialogHeader>
         <form
           className="space-y-4 pt-2"
@@ -193,7 +222,10 @@ export function ExpenseFormDialog() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                close()
+                form.reset(expenseDefaults())
+              }}
             >
               Cancel
             </Button>

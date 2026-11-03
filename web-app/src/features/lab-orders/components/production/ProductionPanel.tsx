@@ -5,10 +5,12 @@ import {
   PackageCheck,
   PackageX,
   RotateCcw,
+  Send,
   ShieldCheck,
   Stethoscope,
   Truck,
   Wrench,
+  XCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -24,6 +26,7 @@ import {
 import { productionApi } from '../../services/production.api'
 import {
   REMAKE_REASON_LABEL,
+  SHIPMENT_CONTENTS_LABEL,
   SHIPMENT_STATUS_LABEL,
   STAGE_STATUS_LABEL,
 } from '../../production.types'
@@ -36,6 +39,10 @@ import type {
 import type { LabOrderDetail } from '../../types'
 import { ReceiveShipmentSheet } from './ReceiveShipmentForm'
 import { RemakeDecisionSheet, RemakeRequestSheet } from './RemakeSheets'
+import { SendToLabSheet } from './SendToLabSheet'
+
+/** Item states the workflow lets the clinic cancel from. */
+const CANCELLABLE = ['accepted', 'in_production']
 
 type Tone = 'success' | 'warning' | 'danger' | 'info' | 'violet' | 'muted'
 const STAGE_TONE: Record<string, Tone> = {
@@ -108,6 +115,19 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
   const [rejecting, setRejecting] = useState<ProductionItem | null>(null)
   const [aftercare, setAftercare] = useState<ProductionItem | null>(null)
   const [deciding, setDeciding] = useState<RemakeRequest | null>(null)
+  const [sending, setSending] = useState(false)
+  const [cancelling, setCancelling] = useState<ProductionItem | null>(null)
+
+  const sendToLab = useProductionMutation(
+    (body: Parameters<typeof productionApi.sendToLab>[0]) =>
+      productionApi.sendToLab(body),
+    'Shipment dispatched to the lab',
+  )
+  const cancelItem = useProductionMutation(
+    (v: { item: ProductionItem; reason: string }) =>
+      productionApi.cancelItem(orderId, v.item.id, v.reason),
+    'Item cancelled',
+  )
 
   const tryin = useProductionMutation(
     (s: ItemStage) => productionApi.tryin(orderId, s.id, {}),
@@ -192,6 +212,7 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
       s.direction === 'to_clinic' &&
       (s.status === 'dispatched' || s.status === 'partially_received'),
   )
+  const outgoing = data.shipments.filter((s) => s.direction === 'to_lab')
   const pricesOf = (itemId: string) => {
     const p = order.items.find((i) => i.id === itemId)?.prices
     return p
@@ -201,7 +222,14 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
 
   return (
     <section className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm">
-      <h2 className="text-lg font-medium">Production</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-medium">Production</h2>
+        {canAct && (
+          <Button size="sm" variant="outline" onClick={() => setSending(true)}>
+            <Send className="size-4" /> Send to lab
+          </Button>
+        )}
+      </div>
 
       {incoming.length > 0 && (
         <div className="space-y-2">
@@ -231,6 +259,37 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
                   <PackageX className="size-4" />
                 </TooltipButton>
               </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {outgoing.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold">Sent to the lab</h3>
+          {outgoing.map((s) => (
+            <div
+              key={s.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm"
+            >
+              <span className="flex items-center gap-2">
+                <Send className="size-4 text-text-3" />
+                {s.shipmentNo} ·{' '}
+                {s.lines
+                  .map(
+                    (l) =>
+                      `${l.lineNo}. ${SHIPMENT_CONTENTS_LABEL[l.contents]}${
+                        l.quantity > 1 ? ` ×${l.quantity}` : ''
+                      }`,
+                  )
+                  .join(', ')}
+                {s.courierName && ` · ${s.courierName}`}
+                {s.trackingNo && ` #${s.trackingNo}`}
+              </span>
+              <StatusBadge
+                status={s.status}
+                label={SHIPMENT_STATUS_LABEL[s.status]}
+              />
             </div>
           ))}
         </div>
@@ -379,6 +438,16 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
                       <RotateCcw className="size-4" /> Request remake
                     </Button>
                   )}
+                {CANCELLABLE.includes(item.status ?? '') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600"
+                    onClick={() => setCancelling(item)}
+                  >
+                    <XCircle className="size-4" /> Cancel item
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -452,6 +521,27 @@ export function ProductionPanel({ order }: { order: LabOrderDetail }) {
           decide.mutate(
             { stage: correcting!, decision: 'correction', notes },
             { onSuccess: () => setCorrecting(null) },
+          )
+        }
+      />
+      <SendToLabSheet
+        open={sending}
+        items={data.items}
+        onOpenChange={setSending}
+        onSubmit={(body) => sendToLab.mutateAsync(body)}
+      />
+      <ReasonDialog
+        open={!!cancelling}
+        onOpenChange={(o) => !o && setCancelling(null)}
+        title={`Cancel line ${cancelling?.lineNo ?? ''} — ${cancelling?.serviceName ?? ''}`}
+        description="The lab stops work on this item. This cannot be undone."
+        confirmLabel="Cancel item"
+        destructive
+        isLoading={cancelItem.isPending}
+        onConfirm={(reason) =>
+          cancelItem.mutate(
+            { item: cancelling!, reason },
+            { onSuccess: () => setCancelling(null) },
           )
         }
       />

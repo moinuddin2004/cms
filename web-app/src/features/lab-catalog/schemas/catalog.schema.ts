@@ -117,3 +117,18 @@ export const orderTemplateSchema = z.object({
 })
 
 export type OrderTemplateFormValues = z.input<typeof orderTemplateSchema>
+
+/** A platform service category (super admins): code is fixed once created. */
+export const categorySchema = z.object({
+  specialtyId: z.string().min(1, 'Choose the specialty'),
+  code,
+  name: max(100).min(1, 'Name is required'),
+  sortOrder: z
+    .string()
+    .trim()
+    .refine(
+      (v) => !v || (/^\d+$/.test(v) && Number(v) <= 10_000),
+      'Order: a whole number up to 10000',
+    ),
+})
+export type CategoryFormValues = z.input<typeof categorySchema>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ColumnDef } from '@/components/shared/table-features'
-import { MoreHorizontal, Package, Pencil, Plus, Tag } from 'lucide-react'
+import { MoreHorizontal, Package, Pencil, Plus, Tag, Tags } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -34,6 +34,7 @@ import {
 } from '../hooks/usePlatformCatalog'
 import type { PlatformServiceRow } from '../types'
 import { ActiveSwitch } from './ActiveSwitch'
+import { CategoriesSheet } from './CategoriesSheet'
 import { LabServiceSheet } from './LabServiceSheet'
 import { PriceTag, UnitTypeBadge } from './catalog-badges'
 import { ServicePricingSheet } from './ServicePricingSheet'
@@ -73,6 +74,7 @@ export function LabServicesPanel({ labId }: { labId: string }) {
     service: PlatformServiceRow | null
   } | null>(null)
   const [pricingId, setPricingId] = useState<string | null>(null)
+  const [managingCategories, setManagingCategories] = useState(false)
   const rows = data?.data ?? []
   // Derived from the live list so the sheet shows fresh options after edits.
   const pricing = rows.find((r) => r.id === pricingId) ?? null
@@ -193,9 +195,18 @@ export function LabServicesPanel({ labId }: { labId: string }) {
   )
 
   const addButton = (
-    <Button size="sm" onClick={() => setEditing({ service: null })}>
-      <Plus className="size-3.5" /> Add service
-    </Button>
+    <div className="flex gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => setManagingCategories(true)}
+      >
+        <Tags className="size-3.5" /> Categories
+      </Button>
+      <Button size="sm" onClick={() => setEditing({ service: null })}>
+        <Plus className="size-3.5" /> Add service
+      </Button>
+    </div>
   )
   const total = data?.total ?? 0
   const onPageSize = (size: number) => {
@@ -361,6 +372,10 @@ export function LabServicesPanel({ labId }: { labId: string }) {
         labId={labId}
         service={pricing}
         onOpenChange={(o) => !o && setPricingId(null)}
+      />
+      <CategoriesSheet
+        open={managingCategories}
+        onOpenChange={setManagingCategories}
       />
     </div>
   )

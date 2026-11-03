@@ -11,7 +11,11 @@ import {
   magicLinkApi,
   portalOrdersApi,
 } from '../services/lab-portal-orders.api'
-import type { LabActionsApi, PortalOrderParams } from '../types'
+import type {
+  ChargeRequestInput,
+  LabActionsApi,
+  PortalOrderParams,
+} from '../types'
 import { useActiveLab } from './useLabPortal'
 
 export function usePortalOrders(params: PortalOrderParams) {
@@ -146,4 +150,18 @@ export function useMagicLinkAnswers(token: string): LabActionsApi {
       'Question sent to the clinic',
     ),
   }
+}
+
+export function usePortalChargeRequest(id: string) {
+  return usePortalOrderMutation(
+    (body: ChargeRequestInput) => portalOrdersApi.requestCharge(id, body),
+    'Charge sent to the clinic for approval',
+  )
+}
+
+export function usePortalUpload(id: string) {
+  return usePortalOrderMutation(
+    (file: File) => portalOrdersApi.upload(id, file),
+    'File shared with the clinic',
+  )
 }
