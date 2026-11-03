@@ -43,7 +43,6 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.0",
-    "@nestjs/mongoose": "^11.0.3",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.8",
@@ -61,8 +60,7 @@
     "exceljs": "^4.4.0",
     "fontkit": "^2.0.4",
     "ioredis": "^5.8.0",
-    "mongoose": "^8.15.2",
-    "multer": "^2.0.2",
+    "multer": "^2.5.0",
     "nodemailer": "^7.0.3",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
@@ -134,5 +132,9 @@
     },
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "dayjs": "^1.11.23",
+    "multer": "^2.5.0"
   }
 }
