@@ -13,5 +13,6 @@ export const notificationKeys = {
     all: ['my-notifications'] as const,
     list: ['my-notifications', 'list'] as const,
     unread: ['my-notifications', 'unread'] as const,
+    prefs: ['my-notifications', 'prefs'] as const,
   },
 }

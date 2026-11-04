@@ -133,6 +133,23 @@ export interface MyNotification {
   createdAt: string
 }
 
+/** The user's own notification switches (`/me/notifications/prefs`). */
+export interface MyNotificationPrefs {
+  sound: boolean
+}
+
+/** Socket `notification.new` payload — a just-created bell item. */
+export interface NotificationNewEvent {
+  type: 'notification.new'
+  id: string
+  organizationId: string
+  eventCode: string
+  title: string
+  body: string
+  link: string | null
+  createdAt: string
+}
+
 export const AUDIENCE_LABEL: Record<NotificationAudience, string> = {
   patient: 'Patients',
   doctor: 'Doctors',

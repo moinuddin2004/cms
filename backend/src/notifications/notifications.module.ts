@@ -16,6 +16,7 @@ import { NotificationOutbox } from './entities/notification-outbox.entity';
 import { NotificationRule } from './entities/notification-rule.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { PatientCommPref } from './entities/patient-comm-pref.entity';
+import { UserNotificationPref } from './entities/user-notification-pref.entity';
 import { UserNotification } from './entities/user-notification.entity';
 import { NotificationSeedService } from './seeds/notification-seed.service';
 import { NotificationService } from './services/notification.service';
@@ -41,6 +42,7 @@ import { UserNotificationsService } from './services/user-notifications.service'
       PatientCommPref,
       NotificationOutbox,
       UserNotification,
+      UserNotificationPref,
     ]),
     EngineModule,
   ],

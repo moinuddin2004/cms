@@ -3,6 +3,7 @@ import type {
   AudienceSetting,
   AudienceSettingInput,
   MyNotification,
+  MyNotificationPrefs,
   NotificationAudience,
   NotificationOverview,
   NotificationTemplate,
@@ -76,4 +77,7 @@ export const myNotificationsApi = {
     send<MyNotification>('post', `/me/notifications/${id}/read`),
   markAllRead: () =>
     send<{ updated: number }>('post', '/me/notifications/read-all'),
+  prefs: () => get<MyNotificationPrefs>('/me/notifications/prefs'),
+  updatePrefs: (body: Partial<MyNotificationPrefs>) =>
+    send<MyNotificationPrefs>('put', '/me/notifications/prefs', body),
 }

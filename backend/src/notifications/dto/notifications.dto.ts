@@ -204,3 +204,10 @@ export class MyNotificationsQueryDto {
   @IsBoolean()
   unreadOnly?: boolean;
 }
+
+/** The signed-in user's own notification switches. Omitted = unchanged. */
+export class UpdateMyNotificationPrefsDto {
+  @IsOptional()
+  @IsBoolean()
+  sound?: boolean;
+}

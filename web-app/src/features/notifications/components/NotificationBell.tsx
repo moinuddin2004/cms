@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
-import { Bell, CheckCheck, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, Loader2, Volume2, VolumeX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -15,18 +15,26 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TooltipButton } from '@/components/shared/TooltipButton'
 import { cn } from '@/lib/utils'
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
+  useMyNotificationPrefs,
   useMyNotifications,
   useUnreadNotificationCount,
+  useUpdateMyNotificationPrefs,
 } from '../hooks/useMyNotifications'
+import { useNotificationSocket } from '../hooks/useNotificationSocket'
 import type { MyNotification } from '../types'
 
-/** Header bell: unread badge + the latest in-app notifications. */
+/**
+ * Header bell: unread badge + the latest in-app notifications. Also owns the
+ * realtime socket (instant badge, toast, chime) — one bell per shell.
+ */
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
+  useNotificationSocket()
   const unread = useUnreadNotificationCount()
   const count = unread.data?.count ?? 0
   const label = count ? `Notifications (${count} unread)` : 'Notifications'
@@ -60,7 +68,10 @@ export function NotificationBell() {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      <PopoverContent align="end" className="w-[min(360px,calc(100vw-2rem))] p-0">
+      <PopoverContent
+        align="end"
+        className="w-[min(360px,calc(100vw-2rem))] p-0"
+      >
         <NotificationList
           open={open}
           hasUnread={count > 0}
@@ -97,20 +108,23 @@ function NotificationList({
     <div className="flex max-h-[460px] flex-col">
       <div className="flex items-center justify-between border-b border-border-soft px-4 py-3">
         <h3 className="text-sm font-bold text-foreground">Notifications</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          disabled={!hasUnread || markAll.isPending}
-          onClick={() => markAll.mutate()}
-        >
-          {markAll.isPending ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <CheckCheck className="size-3.5" />
-          )}
-          Mark all read
-        </Button>
+        <div className="flex items-center gap-1">
+          <SoundToggle />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            disabled={!hasUnread || markAll.isPending}
+            onClick={() => markAll.mutate()}
+          >
+            {markAll.isPending ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <CheckCheck className="size-3.5" />
+            )}
+            Mark all read
+          </Button>
+        </div>
       </div>
 
       <div className="overflow-y-auto">
@@ -184,5 +198,32 @@ function NotificationList({
         )}
       </div>
     </div>
+  )
+}
+
+/** Speaker switch for the chime; saved on the user, mirrored in this browser. */
+function SoundToggle() {
+  const prefs = useMyNotificationPrefs()
+  const update = useUpdateMyNotificationPrefs()
+  const on = prefs.data?.sound ?? true
+  return (
+    <TooltipButton
+      tooltip={on ? 'Sound on — click to mute' : 'Sound off — click to unmute'}
+      tooltipSide="bottom"
+      variant="ghost"
+      size="icon"
+      className="size-7"
+      aria-pressed={on}
+      disabled={update.isPending}
+      onClick={() => update.mutate({ sound: !on })}
+    >
+      {update.isPending ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : on ? (
+        <Volume2 className="size-3.5" />
+      ) : (
+        <VolumeX className="size-3.5" />
+      )}
+    </TooltipButton>
   )
 }

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -6,13 +7,17 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
 import { CurrentUserId } from 'src/common/decorators/current-user.decorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
-import { MyNotificationsQueryDto } from '../dto/notifications.dto';
+import {
+  MyNotificationsQueryDto,
+  UpdateMyNotificationPrefsDto,
+} from '../dto/notifications.dto';
 import { UserNotificationsService } from '../services/user-notifications.service';
 
 /**
@@ -30,6 +35,23 @@ export class MyNotificationsController {
     @Query() q: MyNotificationsQueryDto,
   ) {
     return ResponseWrapper.success(await this.inbox.list(must(userId), q));
+  }
+
+  /** Personal switches (notification sound). */
+  @Get('prefs')
+  async prefs(@CurrentUserId() userId: string | undefined) {
+    return ResponseWrapper.success(await this.inbox.getPrefs(must(userId)));
+  }
+
+  @Put('prefs')
+  async updatePrefs(
+    @CurrentUserId() userId: string | undefined,
+    @Body() dto: UpdateMyNotificationPrefsDto,
+  ) {
+    return ResponseWrapper.success(
+      await this.inbox.updatePrefs(must(userId), dto),
+      'Notification settings saved',
+    );
   }
 
   @Get('unread-count')

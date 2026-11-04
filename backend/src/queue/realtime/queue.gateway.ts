@@ -24,6 +24,7 @@ import {
   AccessChange,
   AccessChangeBus,
 } from 'src/access/version/access-change-bus';
+import { userRoom } from 'src/notifications/notification-realtime';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const SESSION_ROOM = new RegExp(`^session:(${UUID})$`, 'i');
@@ -48,6 +49,8 @@ const availability = { open: true };
  * - `location:<id>:board` — every queue at a location (reception board)
  * - `location:<id>:display` — TV display; no login needed, payloads never
  *   carry patient names
+ * - `user:<id>` — joined automatically on an authenticated connect (never
+ *   via `subscribe`); carries `notification.new` for the bell.
  * - `org:<id>` — org-wide; any user with access to the org (super admin,
  *   owner, active portal assignment). Carries `access.changed`
  *   `{ organizationId, version }` whenever the org's access_version moves:
@@ -102,10 +105,13 @@ export class QueueGateway
     socket.data.userId = null;
     if (!token) return; // display screens connect anonymously
     try {
-      const payload = await this.jwt.verifyAsync(token, {
+      const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
         secret: this.config.get<string>('JWT_ACCESS_SECRET'),
       });
       socket.data.userId = payload.sub;
+      // Personal room for in-app notifications (`notification.new`). Joined
+      // here only — `subscribe` refuses `user:*`, so nobody joins another's.
+      await socket.join(userRoom(payload.sub));
     } catch {
       socket.emit('auth_error', { message: 'Invalid or expired token' });
     }

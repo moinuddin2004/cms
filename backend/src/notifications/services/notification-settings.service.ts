@@ -436,6 +436,13 @@ export class NotificationSettingsService {
     if (q.channel) qb.andWhere('o.channel = :channel', { channel: q.channel });
     if (q.audience)
       qb.andWhere('o.audience = :audience', { audience: q.audience });
+    else if (!CHANNELS_BY_AUDIENCE[NotificationAudience.PATIENT].length) {
+      // Clinic-only for now: patient rows are all "skipped" and just noise.
+      // They show again by themselves once patients get a channel.
+      qb.andWhere('o.audience <> :patient', {
+        patient: NotificationAudience.PATIENT,
+      });
+    }
     if (q.search) {
       qb.andWhere(
         `(o.payload->>'recipientName' ILIKE :term OR o.payload->>'to' ILIKE :term
