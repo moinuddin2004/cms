@@ -17,6 +17,10 @@ import { Reflector } from '@nestjs/core';
 import { SessionModule } from 'src/session/session.module';
 import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 import { AuthorizationService } from './services/authorization.service';
+import { ClinicAccessModule } from 'src/clinic-access/clinic-access.module';
+import { GoogleIdentityService } from './google/google-identity.service';
+import { GoogleAuthService } from './google/google-auth.service';
+import { GoogleAuthController } from './google/google-auth.controller';
 
 // Entities needed by AuthorizationService
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
@@ -40,6 +44,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     CommonModule,
     SessionModule,
     SubscriptionsModule,
+    ClinicAccessModule,
   ],
   providers: [
     AuthService,
@@ -48,13 +53,15 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     UserService,
     NestJwtService,
     ConfigService,
-    // Google/GitHub sign-in is disabled — see oauth.controller.ts.
+    // Google sign-in: ID token from Google Identity Services, no passport.
+    GoogleIdentityService,
+    GoogleAuthService,
     JwtStrategy,
     SecurityLogService,
     RateLimiterGuard,
     Reflector,
   ],
   exports: [JwtStrategy, SecurityLogService, AuthorizationService],
-  controllers: [AuthController],
+  controllers: [AuthController, GoogleAuthController],
 })
 export class AuthModule {}

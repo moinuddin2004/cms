@@ -19,6 +19,7 @@ import {
   useDeleteEmployee,
   type Employee,
 } from '@/features/employees'
+import { JoinRequestsButton } from '@/features/clinic-access'
 
 export function EmployeesPage() {
   const { activeLocationId } = useAuthStore()
@@ -101,6 +102,7 @@ export function EmployeesPage() {
       actions={
         <>
           <ViewToggle value={viewMode} onChange={setViewMode} size="sm" />
+          <JoinRequestsButton />
           <Button size="sm" onClick={handleOpenCreate}>
             <Plus className="size-3.5" />
             Add Employee

@@ -8,6 +8,7 @@ import {
   FlaskConical,
   HandCoins,
   KeyRound,
+  LogIn,
   MapPin,
   Monitor,
   Palette,
@@ -23,12 +24,7 @@ import type { ElementType } from 'react'
 import type { PermissionRequirement } from '@/features/access'
 
 export type SettingsGroupId =
-  | 'account'
-  | 'clinic'
-  | 'team'
-  | 'billing'
-  | 'clinical'
-  | 'lab'
+  'account' | 'clinic' | 'team' | 'billing' | 'clinical' | 'lab'
 
 export const SETTINGS_GROUPS: { id: SettingsGroupId; label: string }[] = [
   { id: 'account', label: 'Your account' },
@@ -85,12 +81,12 @@ export const SETTINGS_ITEMS: SettingsItemDef[] = [
   },
   {
     key: 'security',
-    label: 'Password',
-    description: 'Change the password you sign in with.',
+    label: 'Sign-in methods',
+    description: 'Your password and linked Google account.',
     icon: Shield,
     href: '/settings/security',
     group: 'account',
-    keywords: ['security', 'login'],
+    keywords: ['security', 'login', 'password', 'google', 'sso'],
   },
   {
     key: 'sessions',
@@ -150,6 +146,16 @@ export const SETTINGS_ITEMS: SettingsItemDef[] = [
     group: 'clinic',
     ownerOnly: true,
     keywords: ['subscription', 'plan', 'trial', 'payment'],
+  },
+  {
+    key: 'sign-in-policy',
+    label: 'Sign-in policy',
+    description: 'Google sign-in, Google only, work domains and join requests.',
+    icon: LogIn,
+    href: '/settings/sign-in',
+    group: 'team',
+    ownerOnly: true,
+    keywords: ['google', 'sso', 'workspace', 'domain', 'join', 'login'],
   },
   {
     key: 'users',

@@ -1,0 +1,22 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Pricing from '../components/sections/Pricing.astro';
+import Faq from '../components/sections/Faq.astro';
+import FinalCta from '../components/sections/FinalCta.astro';
+import { SITE } from '../data/site';
+---
+
+<Layout
+  title={`Pricing · ${SITE.name}`}
+  description="Clinic management plans in Pakistani rupees: Free, Starter Rs 4,999, Professional Rs 9,999 a month, and Enterprise. Pay by bank transfer or JazzCash."
+>
+  <Nav current="pricing" />
+  <main id="main">
+    <Pricing />
+    <Faq />
+    <FinalCta />
+  </main>
+  <Footer />
+</Layout>

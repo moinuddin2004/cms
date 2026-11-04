@@ -12,8 +12,6 @@ import {
   MapPin,
   Phone,
   Receipt,
-  Shield,
-  ShieldOff,
   UserRound,
   Users,
   Wallet,
@@ -48,6 +46,7 @@ import { ScheduleTab } from '../components/ScheduleTab'
 import { LeaveTable } from '../components/LeaveTable'
 import { AvailabilityOverrideTab } from '../components/AvailabilityOverrideTab'
 import { EditEmployeeSheet } from '../components/EditEmployeeSheet'
+import { EmployeeLoginCard } from '../components/EmployeeLoginCard'
 import type { Employee } from '../types'
 
 export function EmployeeDetailPage({ employeeId }: { employeeId: string }) {
@@ -361,35 +360,7 @@ function DetailsTab({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg font-medium">
-              <Shield className="size-5 text-muted-foreground" />
-              Portal access
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {employee.hasPortalAccess ? (
-              <div className="flex items-start gap-3">
-                <Badge variant="success">
-                  <Shield />
-                  Can sign in
-                </Badge>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Badge variant="muted">
-                  <ShieldOff />
-                  No login
-                </Badge>
-                <p className="text-sm text-muted-foreground">
-                  This person cannot sign in to the portal.
-                  {canManage && ' Turn on access from Edit.'}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <EmployeeLoginCard employee={employee} canManage={canManage} />
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, FileUp, Loader2, Plus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,18 @@ export function PatientsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [params, setParams] = useState<PatientListParams>(DEFAULT_PARAMS)
+  const linkParams = useSearch({ from: '/patients/' })
+  const navigate = useNavigate()
+  // Quick-search links (`?search=`, `?create=1`) apply once, also when the
+  // page is already open, then leave the URL clean.
+  useEffect(() => {
+    const { search, create } = linkParams
+    if (search === undefined && create === undefined) return
+    if (search !== undefined)
+      setParams((p) => ({ ...p, search, page: 1 }))
+    if (create === '1' && can('patients.create')) setShowCreate(true)
+    void navigate({ to: '/patients', search: {}, replace: true })
+  }, [linkParams.search, linkParams.create])
   const [exporting, setExporting] = useState(false)
 
   const handleExport = async () => {

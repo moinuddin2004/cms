@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { ClinicAccessModule } from './clinic-access/clinic-access.module';
 import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -63,6 +64,7 @@ import {
 import { AccessModule } from './access/access.module';
 import { AccessGuard } from './access/access.guard';
 import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
+import { SearchModule } from './search/search.module';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -91,6 +93,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     IdempotencyModule,
     // Core modules
     AuthModule,
+    ClinicAccessModule,
     UserModule,
     CloudinaryModule,
     StorageModule,
@@ -125,6 +128,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
     SettingsRegistryModule,
+    SearchModule, // global quick search (Ctrl+K)
     SubscriptionsModule, // plans, trial, manual payments, clinic signup + setup
   ],
   controllers: [AppController],

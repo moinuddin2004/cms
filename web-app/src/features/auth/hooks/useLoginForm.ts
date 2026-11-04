@@ -3,7 +3,8 @@ import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import apiClient from '@/lib/api'
-import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
+import { homeAfterLogin, storeSession } from '../lib/applyLogin'
+import type { LoginPayload } from '../lib/applyLogin'
 import { loginSchema } from '../schemas/auth.schema'
 import type { LoginFormValues } from '../schemas/auth.schema'
 
@@ -16,7 +17,6 @@ const defaultValues: LoginFormValues = {
 /** Sign in, store the session, then route to the right home screen. */
 export function useLoginForm() {
   const [globalError, setGlobalError] = useState('')
-  const setAuth = useAuthStore((state) => state.setAuth)
   const navigate = useNavigate()
 
   const form = useForm({
@@ -28,50 +28,12 @@ export function useLoginForm() {
         const response = await apiClient.post('/auth/login', value)
 
         if (response.data?.isSuccess) {
-          const {
-            user,
-            accessToken,
-            isSuperAdmin,
-            accessSource,
-            requiresOrgSelection,
-            requiresLocationSelection,
-            accessibleOrganizations,
-            activeOrganizationId,
-            activeLocationId,
-            labMemberships = [],
-          } = response.data.data
-
-          setAuth({
-            user,
-            accessToken,
-            isSuperAdmin,
-            accessSource,
-            requiresOrgSelection,
-            requiresLocationSelection,
-            accessibleOrganizations,
-            activeOrganizationId,
-            activeLocationId,
-            labMemberships,
-          })
-
+          const session = response.data.data as LoginPayload
+          storeSession(session)
           toast.success('Welcome back!', {
-            description: `Logged in as ${user.name || user.email}`,
+            description: `Logged in as ${session.user.name || session.user.email}`,
           })
-
-          // Redirect based on what selection is needed
-          if (
-            isLabOnlyUser({
-              isSuperAdmin,
-              accessibleOrganizations: accessibleOrganizations ?? [],
-              labMemberships,
-            })
-          ) {
-            navigate({ to: '/lab-portal' })
-          } else if (requiresOrgSelection || requiresLocationSelection) {
-            navigate({ to: '/select-location' })
-          } else {
-            navigate({ to: '/' }) // → the user's home page
-          }
+          navigate({ to: homeAfterLogin(session) })
         }
       } catch (err: any) {
         const msg = err.response?.data?.message

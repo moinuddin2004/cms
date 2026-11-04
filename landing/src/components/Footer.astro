@@ -1,0 +1,105 @@
+---
+import Icon from './Icon.astro';
+import Logo from './Logo.astro';
+import { NAV_LINKS, SITE } from '../data/site';
+
+const clinics = [
+  ['stethoscope', 'General practice'],
+  ['tooth', 'Dental'],
+  ['sparkle', 'Skin and aesthetics'],
+  ['person-simple-walk', 'Physiotherapy'],
+  ['eye', 'Eye care'],
+  ['buildings', 'Clinic groups'],
+];
+
+const columns = [
+  { title: 'Product', links: NAV_LINKS.map((l) => ({ href: l.href, label: l.label })) },
+  {
+    title: 'Company',
+    links: [
+      { href: SITE.loginUrl, label: 'Log in' },
+      { href: `mailto:${SITE.email}`, label: 'Contact us' },
+      { href: '/privacy', label: 'Privacy policy' },
+      { href: '/terms', label: 'Terms of service' },
+    ],
+  },
+];
+const year = new Date().getFullYear();
+---
+
+<footer class="overflow-hidden px-4 pt-16 pb-10">
+  <div class="mx-auto max-w-6xl">
+    <div class="grid gap-12 lg:grid-cols-12">
+      <div class="lg:col-span-5">
+        <Logo />
+        <p class="body-6 mt-4 max-w-xs text-steel">Clinic management for the front desk, the doctor’s room and the owner.</p>
+        <a href={SITE.signupUrl} class="btn btn-primary button-sm mt-6 rounded-full px-4">
+          Sign up your clinic
+          <Icon name="arrow-right" class="size-4" />
+        </a>
+        <p class="caption-5 mt-4 text-steel">Made in Pakistan · Prices in PKR</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-7">
+        <nav aria-label="Product">
+          <p class="body-4">Product</p>
+          <ul class="mt-4 space-y-3">
+            {columns[0].links.map((l) => (
+              <li><a href={l.href} class="body-6 rounded text-steel transition-colors duration-300 ease-soft hover:text-ink">{l.label}</a></li>
+            ))}
+          </ul>
+        </nav>
+
+        <div>
+          <p class="body-4">Made for</p>
+          <ul class="mt-4 space-y-3">
+            {clinics.map(([icon, label]) => (
+              <li class="body-6 flex items-center gap-2 text-steel">
+                <Icon name={icon} class="size-4" />
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <nav aria-label="Company">
+          <p class="body-4">Company</p>
+          <ul class="mt-4 space-y-3">
+            {columns[1].links.map((l) => (
+              <li><a href={l.href} class="body-6 rounded text-steel transition-colors duration-300 ease-soft hover:text-ink">{l.label}</a></li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+    </div>
+
+    <div class="mt-16 flex items-center justify-between gap-4 border-t border-line pt-6">
+      <p class="caption-2 text-steel">© {year} {SITE.name}. All rights reserved.</p>
+      <a
+        href="#main"
+        class="grid size-10 place-items-center rounded-full bg-panel text-steel transition-colors duration-300 ease-soft hover:text-ink"
+        aria-label="Back to top"
+        title="Back to top"
+      >
+        <Icon name="arrow-up" class="size-4" />
+      </a>
+    </div>
+
+    <!-- The name, very large, fading into the page (measured from the reference) -->
+    <p class="footer-mark mt-10 text-center select-none" aria-hidden="true">{SITE.name.toLowerCase()}</p>
+  </div>
+</footer>
+
+<style>
+  .footer-mark {
+    font-size: clamp(90px, 21vw, 300px);
+    line-height: 0.8;
+    font-weight: 700;
+    letter-spacing: -0.06em;
+    white-space: nowrap;
+    background-image: linear-gradient(180deg, var(--mark-from), var(--paper));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+</style>

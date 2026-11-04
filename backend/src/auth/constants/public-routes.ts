@@ -11,6 +11,11 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'PATCH', path: '/auth/reset-password' },
   { method: 'POST', path: '/auth/verify-email' },
   { method: 'POST', path: '/auth/logout' },
+  // Google sign-in: the verified Google ID token is the credential.
+  { method: 'GET', path: '/auth/google/config' },
+  { method: 'POST', path: '/auth/google' },
+  { method: 'POST', path: '/auth/google/register' },
+  { method: 'POST', path: '/auth/google/join-request' },
   // Login-page theme: theme tokens only (settings-registry ThemeController).
   { method: 'GET', path: '/public/theme/**' },
   // Waiting-room TV: tokens and doctor names only, never patient data.

@@ -1,0 +1,164 @@
+---
+import Logo from './Logo.astro';
+import ThemeToggle from './ThemeToggle.astro';
+import { NAV_LINKS, SITE } from '../data/site';
+
+interface Props {
+  /** Nav item id of the page being shown, marked as current. */
+  current?: string;
+}
+const { current } = Astro.props;
+---
+
+<header class="nav-bar fixed inset-x-0 top-0 z-50 border-b border-line">
+  <nav aria-label="Main" class="mx-auto flex h-[60px] max-w-[1240px] items-center justify-between gap-6 px-4 sm:px-6">
+    <div class="flex items-center gap-8">
+      <Logo />
+      <ul class="hidden items-center gap-1 md:flex">
+        {
+          NAV_LINKS.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                data-nav-link={link.id}
+                aria-current={current === link.id ? 'page' : undefined}
+                class="nav-link rounded-full px-3 py-2 text-[15px] text-steel transition-colors duration-300 ease-soft hover:text-ink aria-[current]:text-ink"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="hidden items-center gap-2 md:flex">
+      <ThemeToggle />
+      <a href={SITE.loginUrl} class="rounded-full px-3 py-2 text-[15px] text-steel transition-colors duration-300 ease-soft hover:text-ink">Log in</a>
+      <a href={SITE.signupUrl} class="btn rounded-full bg-panel px-4 py-2 text-[15px] font-medium text-ink hover:bg-line">Sign up</a>
+    </div>
+
+    <div class="flex items-center gap-1 md:hidden">
+    <ThemeToggle />
+    <button
+      type="button"
+      id="menu-toggle"
+      class="menu-toggle relative grid size-10 place-items-center rounded-full text-ink transition-colors duration-300 ease-soft hover:bg-ink/5"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+      aria-label="Open menu"
+      title="Open menu"
+    >
+      <span class="menu-line menu-line-top"></span>
+      <span class="menu-line menu-line-bottom"></span>
+    </button>
+    </div>
+  </nav>
+</header>
+
+<div
+  id="mobile-menu"
+  class="mobile-menu fixed inset-0 z-40 flex flex-col bg-paper/95 px-6 pt-24 pb-8 backdrop-blur-2xl md:hidden"
+  hidden
+>
+  <ul class="flex flex-col gap-2">
+    {
+      NAV_LINKS.map((link) => (
+        <li class="menu-item">
+          <a href={link.href} class="heading-4 block rounded-xl py-2 text-ink" data-menu-link>
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+  <div class="menu-item mt-auto flex flex-col gap-3">
+    <a href={SITE.signupUrl} class="btn btn-primary button-md w-full">Sign up your clinic</a>
+    <a href={SITE.loginUrl} class="btn btn-outline button-md w-full">Log in</a>
+  </div>
+</div>
+
+<style>
+  .nav-bar {
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    backdrop-filter: blur(14px) saturate(1.4);
+  }
+  .menu-line {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 500ms var(--ease-soft);
+  }
+  .menu-line-top { transform: translateY(-4px); }
+  .menu-line-bottom { transform: translateY(4px); }
+  .menu-toggle[aria-expanded='true'] .menu-line-top { transform: rotate(45deg); }
+  .menu-toggle[aria-expanded='true'] .menu-line-bottom { transform: rotate(-45deg); }
+
+  .mobile-menu { opacity: 0; transition: opacity 300ms var(--ease-soft); }
+  .mobile-menu.is-open { opacity: 1; }
+  .menu-item { opacity: 0; transform: translateY(24px); transition: opacity 500ms var(--ease-soft), transform 500ms var(--ease-soft); }
+  .mobile-menu.is-open .menu-item { opacity: 1; transform: none; }
+  /* 60ms per item, total capped at 400ms (skill B7). */
+  .mobile-menu.is-open .menu-item:nth-child(2) { transition-delay: 60ms; }
+  .mobile-menu.is-open .menu-item:nth-child(3) { transition-delay: 120ms; }
+  .mobile-menu.is-open .menu-item:nth-child(4) { transition-delay: 180ms; }
+  .mobile-menu.is-open ul + .menu-item { transition-delay: 240ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .menu-item, .mobile-menu.is-open .menu-item { transform: none; transition-delay: 0ms; }
+    .menu-line { transition: none; }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('menu-toggle')!;
+  const menu = document.getElementById('mobile-menu')!;
+
+  function setOpen(open: boolean) {
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    toggle.setAttribute('title', open ? 'Close menu' : 'Open menu');
+    document.body.classList.toggle('overflow-hidden', open);
+    if (open) {
+      menu.hidden = false;
+      requestAnimationFrame(() => requestAnimationFrame(() => menu.classList.add('is-open')));
+    } else {
+      menu.classList.remove('is-open');
+      window.setTimeout(() => {
+        if (!menu.classList.contains('is-open')) menu.hidden = true;
+      }, 300);
+    }
+  }
+
+  toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+  menu.querySelectorAll('[data-menu-link]').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') setOpen(false);
+  });
+  window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => e.matches && setOpen(false));
+
+  // Mark the section in view as the current nav item.
+  const links = document.querySelectorAll<HTMLAnchorElement>('[data-nav-link]');
+  const sections = [...links]
+    .map((l) => document.getElementById(l.dataset.navLink!))
+    .filter((s): s is HTMLElement => !!s);
+  const staticCurrent = document.querySelector('[data-nav-link][aria-current="page"]');
+  if (!staticCurrent && sections.length && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          links.forEach((l) =>
+            l.dataset.navLink === entry.target.id ? l.setAttribute('aria-current', 'true') : l.removeAttribute('aria-current'),
+          );
+        }
+      },
+      { rootMargin: '-45% 0px -50% 0px' },
+    );
+    sections.forEach((s) => io.observe(s));
+  }
+</script>

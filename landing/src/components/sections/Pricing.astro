@@ -1,0 +1,239 @@
+---
+import Icon from '../Icon.astro';
+import IconChip from '../IconChip.astro';
+import SectionHead from '../SectionHead.astro';
+import { PLANS, TERMS, formatPkr, recommendPlan } from '../../data/plans';
+import { SITE } from '../../data/site';
+
+const DEFAULT_BRANCHES = 1;
+const DEFAULT_LOGINS = 4;
+const initial = recommendPlan(DEFAULT_BRANCHES, DEFAULT_LOGINS);
+const plural = (word: string) => (word === 'branch' ? 'branches' : `${word}s`);
+const limit = (n: number | null, word: string) => (n === null ? `Unlimited ${plural(word)}` : `${n} ${n === 1 ? word : plural(word)}`);
+
+const fields = [
+  { id: 'branches', label: 'Branches', hint: 'Each location with its own front desk', value: DEFAULT_BRANCHES, max: 50 },
+  { id: 'logins', label: 'Staff logins', hint: 'Doctors, reception and anyone else who signs in', value: DEFAULT_LOGINS, max: 500 },
+];
+---
+
+<section id="pricing" class="px-4 pt-32 pb-16 sm:pt-40 sm:pb-24" data-signup={SITE.signupUrl} data-email={SITE.email}>
+  <div class="mx-auto max-w-6xl">
+    <SectionHead as="h1" size="hero" eyebrow="Pricing">
+      <Fragment slot="lead">Simple <IconChip name="tag" tone="green" /> plans.</Fragment>
+      <Fragment slot="rest">Sized to your clinic.</Fragment>
+      Plans grow with your branches and logins. Start on the free plan and move up when you need more. Pay by bank
+      transfer or JazzCash.
+    </SectionHead>
+
+    <div class="reveal mt-16 grid gap-8 rounded-[28px] bg-panel p-6 sm:p-10 lg:grid-cols-12 lg:items-center">
+      <!-- Inputs -->
+      <div class="space-y-8 lg:col-span-7">
+        <h2 class="heading-5">Find the plan that fits</h2>
+        {
+          fields.map((f) => (
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <label for={f.id} class="min-w-0">
+                <span class="title-3 block">{f.label}</span>
+                <span class="caption-2 block text-steel">{f.hint}</span>
+              </label>
+              <div class="flex items-center rounded-full bg-surface p-1 shadow-sm shadow-ink/5">
+                <button
+                  type="button"
+                  class="stepper btn btn-ghost size-10 rounded-full p-0"
+                  data-target={f.id}
+                  data-step="-1"
+                  aria-label={`Fewer ${f.label.toLowerCase()}`}
+                  title={`Fewer ${f.label.toLowerCase()}`}
+                >
+                  <Icon name="minus" class="size-4" />
+                </button>
+                <input
+                  id={f.id}
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max={f.max}
+                  value={f.value}
+                  class="body-1 printed h-10 w-14 [appearance:textfield] rounded-full bg-transparent text-center outline-none focus-visible:bg-panel [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <button
+                  type="button"
+                  class="stepper btn btn-ghost size-10 rounded-full p-0"
+                  data-target={f.id}
+                  data-step="1"
+                  aria-label={`More ${f.label.toLowerCase()}`}
+                  title={`More ${f.label.toLowerCase()}`}
+                >
+                  <Icon name="plus" class="size-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        }
+
+        <fieldset>
+          <legend class="title-3">Pay for</legend>
+          <div class="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-surface p-1 shadow-sm shadow-ink/5 sm:grid-cols-4">
+            {
+              TERMS.map((t, i) => (
+                <label class="cursor-pointer rounded-xl px-3 py-3 text-center transition-colors duration-300 ease-soft hover:bg-panel has-checked:bg-ink has-checked:text-on-ink has-focus-visible:ring-2 has-focus-visible:ring-ink">
+                  <input type="radio" name="term" value={t.months} class="sr-only" checked={i === 0} />
+                  <span class="button-sm block">{t.label}</span>
+                  <span class="caption-5 printed block opacity-60">{t.discount ? `${Math.round(t.discount * 100)}% off` : 'Flexible'}</span>
+                </label>
+              ))
+            }
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- Receipt -->
+      <div class="lg:col-span-5">
+        <div class="printed rounded-2xl bg-surface p-6 shadow-xl shadow-ink/5 sm:p-8" aria-live="polite">
+          <div class="caption-4 flex justify-between text-steel">
+            <span>Plan estimate</span>
+            <span id="r-date">{new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+          </div>
+
+          <div class="caption-2 mt-6 space-y-2 border-y border-line py-4">
+            <p class="flex justify-between gap-4"><span class="text-steel">Plan</span><span id="r-plan">{initial.name}</span></p>
+            <p class="flex justify-between gap-4"><span class="text-steel">Branches</span><span id="r-branches">{limit(initial.maxLocations, 'branch')}</span></p>
+            <p class="flex justify-between gap-4"><span class="text-steel">Logins</span><span id="r-logins">{limit(initial.maxUsers, 'login')}</span></p>
+            <p class="flex justify-between gap-4"><span class="text-steel">Billing</span><span id="r-term">Monthly</span></p>
+          </div>
+
+          <div class="space-y-2 py-4">
+            <p class="flex items-baseline justify-between gap-4">
+              <span class="caption-2 text-steel">Per month</span>
+              <span id="r-price" class="heading-4">{initial.monthlyPrice === null ? 'Custom' : formatPkr(initial.monthlyPrice)}</span>
+            </p>
+            <p class="caption-2 flex justify-between gap-4"><span class="text-steel">Total</span><span id="r-total">{formatPkr(initial.monthlyPrice ?? 0)}</span></p>
+            <p id="r-save-row" class="caption-2 hidden justify-between gap-4 text-mint-strong"><span>You save</span><span id="r-save"></span></p>
+          </div>
+
+          <a id="r-cta" href={`${SITE.signupUrl}?plan=${initial.key}`} class="btn btn-primary button-md mt-2 w-full rounded-full py-3">
+            Sign up your clinic
+          </a>
+          <p class="caption-5 mt-3 text-center text-steel">No card needed · Pay after approval</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plans side by side -->
+    <ul class="reveal mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        PLANS.map((p) => (
+          <li data-plan={p.key} data-fit={p.key === initial.key ? 'true' : 'false'} class="plan-card group/plan flex flex-col rounded-[28px] bg-panel p-8 transition-colors duration-300 ease-soft data-[fit=true]:bg-ink data-[fit=true]:text-on-ink">
+            <p class="flex items-center justify-between gap-2">
+              <span class="title-2">{p.name}</span>
+              <span class="fit-badge caption-3 hidden rounded-full bg-[#f4a62a] px-2 py-0.5 text-[#131209]">Fits you</span>
+            </p>
+            <p class="mt-4">
+              <span class="card-price heading-4 printed">{p.monthlyPrice === null ? 'Custom' : formatPkr(p.monthlyPrice)}</span>
+              {p.monthlyPrice !== null && <span class="caption-2 text-steel group-data-[fit=true]/plan:text-on-ink/60"> / month</span>}
+            </p>
+            <p class="card-billed caption-5 printed mt-1 text-steel group-data-[fit=true]/plan:text-on-ink/60">
+              {p.monthlyPrice === null ? 'Quoted per clinic' : p.monthlyPrice === 0 ? 'No payment needed' : 'Billed monthly'}
+            </p>
+            <ul class="body-6 mt-6 space-y-2 border-t border-line pt-6 text-steel group-data-[fit=true]/plan:border-on-ink/15 group-data-[fit=true]/plan:text-on-ink/70">
+              <li class="text-ink group-data-[fit=true]/plan:text-on-ink">{limit(p.maxLocations, 'branch')}, {limit(p.maxUsers, 'login').toLowerCase()}</li>
+              {p.highlights.map((h) => <li>{h}</li>)}
+            </ul>
+            <a
+              href={p.monthlyPrice === null ? `mailto:${SITE.email}?subject=Enterprise%20plan` : `${SITE.signupUrl}?plan=${p.key}`}
+              class="body-4 group mt-auto inline-flex items-center gap-2 pt-8"
+            >
+              {p.monthlyPrice === null ? 'Talk to us' : `Choose ${p.name}`}
+              <Icon name="arrow-right" class="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .plan-card[data-fit='true'] .fit-badge { display: inline; }
+</style>
+
+<script>
+  import { PLANS, TERMS, formatPkr, recommendPlan } from '../../data/plans';
+
+  const root = document.getElementById('pricing')!;
+  const signup = root.dataset.signup!;
+  const email = root.dataset.email!;
+  const branches = document.getElementById('branches') as HTMLInputElement;
+  const logins = document.getElementById('logins') as HTMLInputElement;
+  const $ = (id: string) => document.getElementById(id)!;
+
+  const read = (input: HTMLInputElement) => {
+    const n = Math.floor(Number(input.value));
+    return Number.isFinite(n) ? Math.min(Math.max(n, 1), Number(input.max)) : 1;
+  };
+  const plural = (word: string) => (word === 'branch' ? 'branches' : `${word}s`);
+  const limit = (n: number | null, word: string) => (n === null ? `Unlimited ${plural(word)}` : `${n} ${n === 1 ? word : plural(word)}`);
+
+  $('r-date').textContent = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  function render() {
+    const checked = root.querySelector<HTMLInputElement>('input[name="term"]:checked')?.value ?? '1';
+    const term = TERMS.find((t) => String(t.months) === checked)!;
+    const plan = recommendPlan(read(branches), read(logins));
+    const cta = $('r-cta') as HTMLAnchorElement;
+    const saveRow = $('r-save-row');
+
+    $('r-plan').textContent = plan.name;
+    $('r-branches').textContent = limit(plan.maxLocations, 'branch');
+    $('r-logins').textContent = limit(plan.maxUsers, 'login');
+    $('r-term').textContent = term.months === 1 ? 'Monthly' : `${term.months} months`;
+
+    if (plan.monthlyPrice === null) {
+      $('r-price').textContent = 'Custom';
+      $('r-total').textContent = 'Quoted for you';
+      saveRow.classList.add('hidden');
+      saveRow.classList.remove('flex');
+      cta.href = `mailto:${email}?subject=Enterprise%20plan`;
+      cta.textContent = 'Talk to us';
+    } else {
+      const monthly = plan.monthlyPrice * (1 - term.discount);
+      const total = monthly * term.months;
+      const saved = plan.monthlyPrice * term.months - total;
+      $('r-price').textContent = formatPkr(monthly);
+      $('r-total').textContent = formatPkr(total);
+      $('r-save').textContent = formatPkr(saved);
+      saveRow.classList.toggle('hidden', saved <= 0);
+      saveRow.classList.toggle('flex', saved > 0);
+      cta.href = `${signup}?plan=${plan.key}`;
+      cta.textContent = `Choose ${plan.name}`;
+    }
+
+    root.querySelectorAll<HTMLElement>('.plan-card').forEach((card) => {
+      const p = PLANS.find((x) => x.key === card.dataset.plan)!;
+      card.dataset.fit = String(p.key === plan.key);
+      if (p.monthlyPrice === null || p.monthlyPrice === 0) return;
+      const monthly = p.monthlyPrice * (1 - term.discount);
+      card.querySelector('.card-price')!.textContent = formatPkr(monthly);
+      card.querySelector('.card-billed')!.textContent =
+        term.months === 1 ? 'Billed monthly' : `${formatPkr(monthly * term.months)} every ${term.months} months`;
+    });
+  }
+
+  root.querySelectorAll<HTMLButtonElement>('.stepper').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target!) as HTMLInputElement;
+      input.value = String(Math.min(Math.max(read(input) + Number(btn.dataset.step), 1), Number(input.max)));
+      render();
+    }),
+  );
+  [branches, logins].forEach((input) => {
+    input.addEventListener('input', render);
+    input.addEventListener('blur', () => {
+      input.value = String(read(input));
+      render();
+    });
+  });
+  root.querySelectorAll('input[name="term"]').forEach((r) => r.addEventListener('change', render));
+  render();
+</script>

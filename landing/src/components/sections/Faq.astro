@@ -1,0 +1,44 @@
+---
+import Icon from '../Icon.astro';
+import SectionHead from '../SectionHead.astro';
+import { FAQ } from '../../data/faq';
+import { SITE } from '../../data/site';
+---
+
+<section id="faq" class="px-4 py-16">
+  <div class="mx-auto max-w-3xl">
+    <SectionHead>
+      <Fragment slot="lead">Questions.</Fragment>
+      <Fragment slot="rest">Straight answers.</Fragment>
+    </SectionHead>
+
+    <div class="reveal mt-12 overflow-hidden rounded-[28px] bg-panel">
+      {
+        FAQ.map((item, i) => (
+          <details class={`faq group ${i > 0 ? 'border-t border-line' : ''}`} name="faq">
+            <summary class="title-3 flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-4 transition-colors duration-300 ease-soft hover:bg-ink/5 [&::-webkit-details-marker]:hidden">
+              {item.q}
+              <Icon name="plus" class="size-4 shrink-0 text-steel transition-transform duration-500 ease-soft group-open:rotate-45" />
+            </summary>
+            <p class="faq-body body-6 max-w-[680px] px-6 pb-6 text-steel">{item.a}</p>
+          </details>
+        ))
+      }
+    </div>
+
+    <p class="reveal caption-2 mt-8 text-center text-steel">
+      Something else on your mind? <a href={`mailto:${SITE.email}`} class="text-ink underline underline-offset-4">Write to us</a> and a person on our team will reply.
+    </p>
+  </div>
+</section>
+
+<style>
+  .faq[open] .faq-body { animation: faq-in 500ms var(--ease-soft); }
+  @keyframes faq-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .faq[open] .faq-body { animation: none; }
+  }
+</style>

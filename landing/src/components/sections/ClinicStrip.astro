@@ -1,0 +1,25 @@
+---
+import Icon from '../Icon.astro';
+
+const kinds = [
+  ['stethoscope', 'General practice'],
+  ['tooth', 'Dental'],
+  ['sparkle', 'Skin and aesthetics'],
+  ['person-simple-walk', 'Physiotherapy'],
+  ['eye', 'Eye care'],
+  ['buildings', 'Clinic groups'],
+];
+---
+
+<section class="px-4 pb-16" aria-label="Clinic types">
+  <ul class="reveal mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-4">
+    {
+      kinds.map(([icon, label]) => (
+        <li class="title-3 flex items-center gap-2 text-steel">
+          <Icon name={icon} class="size-5" />
+          {label}
+        </li>
+      ))
+    }
+  </ul>
+</section>

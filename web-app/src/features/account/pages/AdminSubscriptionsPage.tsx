@@ -3,10 +3,12 @@ import { useForm, useStore } from '@tanstack/react-form'
 import type { ColumnDef } from '@/components/shared/table-features'
 import {
   Building2,
+  Clock,
   FileText,
   Loader2,
   Search,
   Settings2,
+  ShieldCheck,
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -44,10 +46,40 @@ import {
 } from '../hooks/useAccount'
 import { ManageSubscriptionSheet } from '../components/ManageSubscriptionSheet'
 import { formatDay } from './SubscriptionPage'
-import { STATUS_LABEL, STATUS_TONE } from '../types'
-import type { AdminSubscriptionRow, SubscriptionStatus } from '../types'
+import { Badge } from '@/components/ui/badge'
+import { ClinicApprovalSheet } from '@/features/clinic-access'
+import type { ApprovalTarget } from '@/features/clinic-access'
+import { APPROVAL_LABEL, STATUS_LABEL, STATUS_TONE } from '../types'
+import type {
+  AdminSubscriptionRow,
+  ClinicApproval,
+  SubscriptionStatus,
+} from '../types'
 
 type StatusFilter = SubscriptionStatus | 'all'
+type ApprovalFilter = ClinicApproval | 'all'
+
+const APPROVAL_VARIANT = {
+  pending: 'warning',
+  approved: 'success',
+  rejected: 'danger',
+} as const
+
+function ApprovalBadge({ status }: { status: ClinicApproval }) {
+  return (
+    <Badge variant={APPROVAL_VARIANT[status]}>{APPROVAL_LABEL[status]}</Badge>
+  )
+}
+
+const toTarget = (r: AdminSubscriptionRow): ApprovalTarget => ({
+  id: r.organization.id,
+  name: r.organization.name,
+  email: r.organization.email,
+  phone: r.organization.phone,
+  createdAt: r.createdAt,
+  status: r.approval?.status ?? 'approved',
+  note: r.approval?.note ?? null,
+})
 
 function PaymentInstructionsSheet({
   open,
@@ -128,10 +160,13 @@ function PaymentInstructionsSheet({
 function ClinicCard({
   row,
   onManage,
+  onReview,
 }: {
   row: AdminSubscriptionRow
   onManage: () => void
+  onReview: () => void
 }) {
+  const approval = row.approval?.status ?? 'approved'
   return (
     <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -139,21 +174,32 @@ function ClinicCard({
           <p className="truncate font-semibold">{row.organization.name}</p>
           <p className="text-sm text-muted-foreground">{row.plan.name} plan</p>
         </div>
-        <StatusBadge
-          status={row.state.status}
-          tone={STATUS_TONE[row.state.status]}
-          label={STATUS_LABEL[row.state.status]}
-        />
+        {approval === 'approved' ? (
+          <StatusBadge
+            status={row.state.status}
+            tone={STATUS_TONE[row.state.status]}
+            label={STATUS_LABEL[row.state.status]}
+          />
+        ) : (
+          <ApprovalBadge status={approval} />
+        )}
       </div>
-      <div className="mt-3 flex items-center justify-between text-sm">
+      <div className="mt-3 flex items-center justify-between gap-2 text-sm">
         <span className="text-muted-foreground">
           {row.state.periodEndsAt
             ? `Ends ${formatDay(row.state.periodEndsAt)}`
             : 'No end date'}
         </span>
-        <Button size="sm" variant="outline" onClick={onManage}>
-          Manage
-        </Button>
+        <div className="flex gap-2">
+          {approval !== 'approved' && (
+            <Button size="sm" onClick={onReview}>
+              Review
+            </Button>
+          )}
+          <Button size="sm" variant="outline" onClick={onManage}>
+            Manage
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -166,23 +212,39 @@ export function AdminSubscriptionsPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [managing, setManaging] = useState<string | null>(null)
+  const [approval, setApproval] = useState<ApprovalFilter>('all')
+  const [reviewing, setReviewing] = useState<ApprovalTarget | null>(null)
   const [instructionsOpen, setInstructionsOpen] = useState(false)
   const q = useDebounce(search, 300).trim().toLowerCase()
 
   const rows = list.data?.clinics ?? []
+  const pendingCount = rows.filter(
+    (r) => r.approval?.status === 'pending',
+  ).length
   const filtered = useMemo(
     () =>
-      rows.filter(
-        (r) =>
-          (!q || r.organization.name.toLowerCase().includes(q)) &&
-          (status === 'all' || r.state.status === status),
-      ),
-    [rows, q, status],
+      rows
+        .filter(
+          (r) =>
+            (!q || r.organization.name.toLowerCase().includes(q)) &&
+            (status === 'all' || r.state.status === status) &&
+            (approval === 'all' ||
+              (r.approval?.status ?? 'approved') === approval),
+        )
+        // Clinics waiting for approval first.
+        .sort(
+          (a, b) =>
+            Number(b.approval?.status === 'pending') -
+            Number(a.approval?.status === 'pending'),
+        ),
+    [rows, q, status, approval],
   )
-  const activeFilters = (q ? 1 : 0) + (status !== 'all' ? 1 : 0)
+  const activeFilters =
+    (q ? 1 : 0) + (status !== 'all' ? 1 : 0) + (approval !== 'all' ? 1 : 0)
   const clearFilters = () => {
     setSearch('')
     setStatus('all')
+    setApproval('all')
   }
 
   const columns = useMemo<ColumnDef<AdminSubscriptionRow, unknown>[]>(
@@ -200,6 +262,14 @@ export function AdminSubscriptionsPage() {
               </span>
             )}
           </span>
+        ),
+      },
+      {
+        id: 'approval',
+        header: 'Approval',
+        accessorFn: (r) => r.approval?.status ?? 'approved',
+        cell: ({ row }) => (
+          <ApprovalBadge status={row.original.approval?.status ?? 'approved'} />
         ),
       },
       {
@@ -236,17 +306,34 @@ export function AdminSubscriptionsPage() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <TooltipButton
-            tooltip="Manage subscription"
-            variant="ghost"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation()
-              setManaging(row.original.organization.id)
-            }}
-          >
-            <Settings2 className="size-4" />
-          </TooltipButton>
+          <div className="flex justify-end gap-1">
+            <TooltipButton
+              tooltip={
+                row.original.approval?.status === 'approved'
+                  ? 'Approval: revoke or review'
+                  : 'Review sign-up'
+              }
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setReviewing(toTarget(row.original))
+              }}
+            >
+              <ShieldCheck className="size-4" />
+            </TooltipButton>
+            <TooltipButton
+              tooltip="Manage subscription"
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation()
+                setManaging(row.original.organization.id)
+              }}
+            >
+              <Settings2 className="size-4" />
+            </TooltipButton>
+          </div>
         ),
       },
     ],
@@ -256,7 +343,7 @@ export function AdminSubscriptionsPage() {
   return (
     <DashboardLayout
       title="Subscriptions"
-      subtitle="Every clinic's plan and status. Record payments clinics send you."
+      subtitle="Approve new clinics, see every clinic's plan and status, and record payments."
       actions={
         <Button variant="outline" onClick={() => setInstructionsOpen(true)}>
           <FileText className="mr-2 size-4" />
@@ -264,6 +351,23 @@ export function AdminSubscriptionsPage() {
         </Button>
       }
     >
+      {pendingCount > 0 && approval !== 'pending' && (
+        <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber bg-amber-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Clock className="size-4 text-amber" />
+            {pendingCount} new clinic{pendingCount === 1 ? '' : 's'} waiting for
+            approval
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setApproval('pending')}
+          >
+            Show them
+          </Button>
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -286,6 +390,22 @@ export function AdminSubscriptionsPage() {
             {(Object.keys(STATUS_LABEL) as SubscriptionStatus[]).map((s) => (
               <SelectItem key={s} value={s}>
                 {STATUS_LABEL[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={approval}
+          onValueChange={(v) => setApproval(v as ApprovalFilter)}
+        >
+          <SelectTrigger className="w-full sm:w-48" aria-label="Approval">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any approval</SelectItem>
+            {(Object.keys(APPROVAL_LABEL) as ClinicApproval[]).map((a) => (
+              <SelectItem key={a} value={a}>
+                {APPROVAL_LABEL[a]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -328,6 +448,7 @@ export function AdminSubscriptionsPage() {
               key={r.organization.id}
               row={r}
               onManage={() => setManaging(r.organization.id)}
+              onReview={() => setReviewing(toTarget(r))}
             />
           ))}
         </div>
@@ -340,6 +461,10 @@ export function AdminSubscriptionsPage() {
       <PaymentInstructionsSheet
         open={instructionsOpen}
         onOpenChange={setInstructionsOpen}
+      />
+      <ClinicApprovalSheet
+        clinic={reviewing}
+        onClose={() => setReviewing(null)}
       />
       {list.isFetching && !list.isLoading && (
         <Loader2 className="fixed bottom-4 right-4 size-4 animate-spin text-muted-foreground" />

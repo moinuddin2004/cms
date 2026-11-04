@@ -1,0 +1,14 @@
+---
+import SimplePage from '../layouts/SimplePage.astro';
+import { SITE } from '../data/site';
+---
+
+<SimplePage title={`Page not found · ${SITE.name}`} noindex>
+  <p class="caption-4 printed mt-12 text-steel">Error 404</p>
+  <h1 class="heading-3 hero-gradient mt-3 pb-1">This page is not on our list</h1>
+  <p class="body-3 mt-4 text-steel">The link may be old or mistyped. Head back to the home page, or sign up your clinic if that is what you came for.</p>
+  <div class="mt-8 flex flex-wrap gap-3">
+    <a href="/" class="btn btn-primary button-md">Go to home page</a>
+    <a href={SITE.signupUrl} class="btn btn-outline button-md">Sign up your clinic</a>
+  </div>
+</SimplePage>

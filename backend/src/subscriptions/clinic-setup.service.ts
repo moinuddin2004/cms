@@ -10,7 +10,7 @@ import { LocationSettings } from 'src/locations/entities/location-settings.entit
 import { Organization } from 'src/organizations/entities/organization.entity';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
 import { User } from 'src/user/entities/user.entity';
-import { TRIAL_DAYS, TRIAL_PLAN } from './plans';
+import { ClinicApprovalStatus } from 'src/common/enums/clinic-approval-status.enum';
 import { SetupClinicDto, SetupLocationDto } from './dto/subscription.dto';
 
 const DEFAULT_TIMEZONE = 'Asia/Karachi';
@@ -51,8 +51,10 @@ function slugify(name: string): string {
 
 /**
  * Self-serve clinic signup and the one-time setup wizard. A signup creates
- * the clinic, its main location and the owner link in one transaction, on a
- * TRIAL_DAYS trial of TRIAL_PLAN.
+ * the clinic, its main location and the owner link in one transaction. The
+ * clinic starts awaiting super admin approval (no free trial): until it is
+ * approved nobody can use it, and after approval it has no plan limits
+ * until the super admin sets a plan / records a payment.
  */
 @Injectable()
 export class ClinicSetupService {
@@ -67,7 +69,6 @@ export class ClinicSetupService {
     user: User,
     input: { clinicName: string; phone?: string | null },
   ): Promise<{ organizationId: string; locationId: string }> {
-    const now = new Date();
     const result = await this.dataSource.transaction(async (manager) => {
       const orgRepo = manager.getRepository(Organization);
       const base = slugify(input.clinicName);
@@ -82,9 +83,9 @@ export class ClinicSetupService {
           slug,
           email: user.email,
           phone: input.phone?.trim() || null,
-          subscriptionPlan: TRIAL_PLAN,
-          trialEndsAt: new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000),
+          trialEndsAt: null,
           paidUntil: null,
+          approvalStatus: ClinicApprovalStatus.PENDING,
           onboardingPending: true,
           timezone: DEFAULT_TIMEZONE,
           currency: DEFAULT_CURRENCY,

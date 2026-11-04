@@ -157,6 +157,8 @@ export interface Employee {
   hasPortalAccess: boolean
   isPrimary: boolean
   userId: string | null
+  /** How their login signs in (detail endpoint only; null = no login). */
+  login?: EmployeeLogin | null
   organizationId?: string
   primaryLocationId?: string
   primaryLocation?: { id: string; name: string } | null
@@ -166,6 +168,15 @@ export interface Employee {
   createdAt?: string
   updatedAt?: string
   currentSalary: CurrentSalary | null
+}
+
+export interface EmployeeLogin {
+  email: string
+  hasPassword: boolean
+  googleLinked: boolean
+  googleEmail: string | null
+  /** A Google login that hasn't signed in yet. */
+  awaitingFirstGoogleSignIn: boolean
 }
 
 export interface ScheduleDay {
@@ -284,6 +295,7 @@ export interface EmployeeFormData {
   dob?: string
   hasPortalAccess: boolean
   portalEmail?: string
+  portalLoginMethod?: 'password' | 'google'
   portalPassword?: string
   profilePictureUrl?: string
   userId?: string

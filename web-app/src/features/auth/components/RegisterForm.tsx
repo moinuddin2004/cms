@@ -17,20 +17,55 @@ import {
   authTextLinkClass,
 } from './authStyles'
 import { useRegisterForm } from '../hooks/useRegisterForm'
+import {
+  AuthDivider,
+  GoogleButton,
+  useGoogleConfig,
+} from '../google/GoogleButton'
+import { useGoogleSignIn } from '../google/useGoogleSignIn'
+import { useGoogleSignupStore } from '../store/useGoogleSignupStore'
+import { GoogleRegisterPanel } from './GoogleRegisterPanel'
 
 const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
 export function RegisterForm() {
+  const googlePending = useGoogleSignupStore((s) => !!s.credential)
+  return (
+    <AuthLayout>
+      {googlePending ? <GoogleRegisterPanel /> : <EmailRegisterForm />}
+    </AuthLayout>
+  )
+}
+
+function EmailRegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const { form, globalError } = useRegisterForm()
+  const google = useGoogleSignIn()
+  const { data: googleConfig } = useGoogleConfig()
 
   return (
-    <AuthLayout>
+    <>
       <AuthHeading
         title="Create your clinic"
-        subtitle="Start your 14-day free trial. No card needed."
+        subtitle="Set up your clinic in a minute. We review new clinics before they go live."
       />
+
+      {googleConfig?.enabled && (
+        <>
+          <GoogleButton
+            text="signup_with"
+            onCredential={google.onCredential}
+            busy={google.busy}
+          />
+          {google.error ? (
+            <div className="mt-4">
+              <AuthError message={google.error} />
+            </div>
+          ) : null}
+          <AuthDivider label="or sign up with email" />
+        </>
+      )}
 
       <form
         noValidate
@@ -243,6 +278,6 @@ export function RegisterForm() {
           </button>
         </p>
       </form>
-    </AuthLayout>
+    </>
   )
 }

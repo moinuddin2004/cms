@@ -74,6 +74,23 @@ export class UserSession {
   @Column({ name: 'is_current', type: 'boolean', default: false })
   isCurrent: boolean;
 
+  /**
+   * How this session signed in ('password' | 'google'). Carried into every
+   * access token so a clinic's sign-in policy (e.g. "Google only") can be
+   * enforced per request.
+   */
+  @Column({
+    name: 'auth_method',
+    type: 'varchar',
+    length: 16,
+    default: 'password',
+  })
+  authMethod: string;
+
+  /** Google Workspace domain (`hd` claim) of a Google sign-in, else null. */
+  @Column({ name: 'auth_domain', type: 'varchar', length: 255, nullable: true })
+  authDomain?: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

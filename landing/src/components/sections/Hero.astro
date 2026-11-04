@@ -1,0 +1,331 @@
+---
+/**
+ * Centred two tone headline with a rotating clinic type, one action, then a
+ * large frame of the product: the reception queue with the waiting room TV
+ * beside it. The TV runs on its own; visitors can call the next patient.
+ */
+import Icon from '../Icon.astro';
+import { SITE } from '../../data/site';
+
+const kinds = [
+  { word: 'dental clinic', icon: 'tooth', tone: 'bg-[#2f6fed]' },
+  { word: 'general practice', icon: 'stethoscope', tone: 'bg-[#22a06b]' },
+  { word: 'skin clinic', icon: 'sparkle', tone: 'bg-[#e0457b]' },
+  { word: 'physio clinic', icon: 'person-simple-walk', tone: 'bg-[#7c5cf0]' },
+  { word: 'eye clinic', icon: 'eye', tone: 'bg-[#f4a62a]' },
+];
+
+const lanes = [
+  { doctor: 'Dr. Ayesha Khan', room: 'Room 2', now: ['A15', 'Mehwish Ali'], wait: [['A16', 'Usman Farooq', '7 min'], ['A17', 'Zainab Qureshi', '3 min']], live: true },
+  { doctor: 'Dr. Bilal Ahmed', room: 'Room 3', now: ['B08', 'Fahad Iqbal'], wait: [['B09', 'Hira Saleem', '22 min'], ['B10', 'Imran Sheikh', '9 min']] },
+  { doctor: 'Dr. Sana Mirza', room: 'Room 4', now: ['C05', 'Nida Rauf'], wait: [['C06', 'Kashif Javed', '15 min']] },
+];
+
+const next = [
+  { token: 'A16', name: 'Usman Farooq' },
+  { token: 'A17', name: 'Zainab Qureshi' },
+  { token: 'A18', name: 'Kashif Javed' },
+];
+---
+
+<section id="hero-board" class="px-4 pt-28 pb-16 sm:pt-[110px] sm:pb-24" aria-label="Introduction">
+  <div class="mx-auto max-w-[1000px] text-center">
+    <h1 class="display-hero hero-in">
+      <span class="block text-ink">Run your</span>
+      <span class="rotator grid justify-center justify-items-center overflow-hidden pt-[.04em] pb-[.1em]">
+        <span class="sr-only">dental clinic, general practice, skin clinic, physio clinic, eye clinic</span>
+        {
+          kinds.map((k, i) => (
+            <span aria-hidden="true" class={`rot-item flex items-center gap-[.18em] whitespace-nowrap text-ink [grid-area:1/1] ${i === 0 ? 'is-on' : ''}`}>
+              <span class={`flex size-[.8em] flex-none items-center justify-center rounded-[.22em] text-white ${k.tone} rotate-[-6deg]`}>
+                <Icon name={k.icon} class="size-[.5em]" />
+              </span>
+              {k.word}
+            </span>
+          ))
+        }
+      </span>
+      <span class="fade-text block">from one screen.</span>
+    </h1>
+    <p class="lead-text hero-in hero-in-2 mx-auto mt-6 max-w-[560px] text-steel">
+      Appointments, the patient queue, prescriptions and billing on one system your front desk and doctors share.
+    </p>
+    <div class="hero-in hero-in-3 mt-8 flex flex-col items-center gap-4">
+      <a href={SITE.signupUrl} class="btn btn-primary btn-lg group">
+        Sign up your clinic
+        <Icon name="arrow-right" class="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
+      </a>
+      <p class="caption-2 text-steel">Free plan for small clinics. Nothing to install.</p>
+    </div>
+  </div>
+
+  <!-- Product frame -->
+  <div class="hero-in hero-in-4 mx-auto mt-16 max-w-[1240px] rounded-[28px] bg-panel p-[clamp(8px,1.6vw,20px)]">
+    <div class="overflow-hidden rounded-[18px] border border-line bg-surface shadow-2xl shadow-ink/10">
+      <div class="flex items-center justify-between gap-4 border-b border-line px-4 py-3">
+        <div class="flex items-center gap-2">
+          <span class="size-3 rounded-full bg-[#ff5f57]"></span>
+          <span class="size-3 rounded-full bg-[#febc2e]"></span>
+          <span class="size-3 rounded-full bg-[#28c840]"></span>
+          <span class="caption-1 ml-3 hidden text-steel sm:inline">Reception · Main branch, Gulberg</span>
+        </div>
+        <p class="caption-1 flex items-center gap-2 text-steel">
+          <span class="live-dot size-2 rounded-full bg-[#22a06b]"></span>
+          Live · <span id="hb-clock" class="printed text-ink">09:26</span>
+        </p>
+      </div>
+
+      <div class="grid lg:grid-cols-[1fr_340px]">
+        <!-- Doctor lanes -->
+        <div class="grid gap-3 p-4 sm:grid-cols-3 sm:p-6">
+          {
+            lanes.map((l, i) => (
+              <div class={`rounded-2xl bg-panel p-3 ${i > 0 ? 'hidden sm:block' : ''}`}>
+                <div class="flex items-center justify-between gap-2 px-1">
+                  <p class="body-5 truncate text-ink">{l.doctor}</p>
+                  <p class="caption-5 shrink-0 text-steel">{l.room}</p>
+                </div>
+                <div class="mt-3 rounded-xl bg-surface p-3 shadow-sm shadow-ink/5">
+                  <p class="caption-5 text-steel">Now seeing</p>
+                  <p class="body-4 mt-1 flex items-center gap-2 text-ink">
+                    <span class="printed" id={l.live ? 'hb-lane-token' : undefined}>{l.now[0]}</span>
+                    <span class="truncate" id={l.live ? 'hb-lane-name' : undefined}>{l.now[1]}</span>
+                  </p>
+                </div>
+                <ul class="mt-2 space-y-1">
+                  {l.wait.map(([t, n, w]) => (
+                    <li class="flex items-center gap-2 rounded-lg px-2 py-2">
+                      <span class="caption-3 printed w-8 text-steel">{t}</span>
+                      <span class="caption-2 min-w-0 flex-1 truncate text-ink">{n}</span>
+                      <span class="caption-5 printed text-steel">{w}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </div>
+
+        <!-- Waiting room TV -->
+        <div class="border-t border-line p-4 sm:p-6 lg:border-t-0 lg:border-l" role="group" aria-label="Live demo of the waiting room display">
+          <div class="rounded-2xl bg-display p-6 text-white">
+            <div class="flex items-center justify-between">
+              <p class="caption-1 text-white/50">Now serving</p>
+              <p class="caption-1 text-white/50">Room 2</p>
+            </div>
+            <div class="token-window mt-3">
+              <p id="hb-token" class="token led-dots" aria-live="polite">A15</p>
+            </div>
+            <p class="title-3 mt-3" id="hb-name">Mehwish Ali</p>
+            <ul id="hb-next" class="mt-4 grid grid-cols-3 gap-2">
+              {
+                next.map((p) => (
+                  <li class="next-chip rounded-lg bg-white/5 px-2 py-2">
+                    <span class="caption-3 printed text-[#f4a62a]">{p.token}</span>
+                    <span class="caption-5 block truncate text-white/60">{p.name}</span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <div class="mt-4 flex items-center justify-between gap-3">
+            <p class="caption-2 text-steel">Waiting room TV</p>
+            <button id="hb-call" type="button" class="btn btn-outline button-sm rounded-full">
+              <Icon name="megaphone-simple" class="size-4" />
+              Call next
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 border-t border-line px-4 py-3">
+        <span class="caption-3 shrink-0 rounded-full bg-mint px-2 py-0.5 text-mint-strong">Latest</span>
+        <div class="ticker-window min-w-0 flex-1">
+          <p id="hb-ticker" class="ticker caption-2 truncate text-steel">A14 Hamza Tariq paid Rs 2,500 by JazzCash</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Rotating clinic type: springy rise with a blur, as in the reference. */
+  .rot-item {
+    opacity: 0;
+    transform: translateY(0.6em) scale(0.92);
+    filter: blur(6px);
+    transition: opacity 0.5s, transform 0.6s cubic-bezier(0.34, 1.3, 0.64, 1), filter 0.5s;
+  }
+  .rot-item.is-on { opacity: 1; transform: none; filter: none; }
+  .rot-item.is-off { opacity: 0; transform: translateY(-0.6em) scale(0.92); filter: blur(6px); }
+
+  /* First paint: lines rise in one after another. */
+  .hero-in { animation: hero-in 0.9s var(--ease-soft) both; }
+  .hero-in-2 { animation-delay: 0.08s; }
+  .hero-in-3 { animation-delay: 0.16s; }
+  .hero-in-4 { animation-delay: 0.26s; }
+  @keyframes hero-in {
+    from { opacity: 0; transform: translateY(24px); filter: blur(8px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+
+  .token-window { height: 96px; overflow: hidden; }
+  .token {
+    font-family: var(--font-mono);
+    font-size: var(--text-8xl);
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #f4a62a;
+    transition: transform 500ms var(--ease-soft), opacity 500ms var(--ease-soft);
+  }
+  .token.is-leaving { transform: translateY(-70%); opacity: 0; }
+  .token.is-entering { transform: translateY(70%); opacity: 0; transition: none; }
+
+  .ticker-window { height: 20px; overflow: hidden; }
+  .ticker { transition: transform 500ms var(--ease-soft), opacity 500ms var(--ease-soft); }
+  .ticker.is-leaving { transform: translateY(-100%); opacity: 0; }
+  .ticker.is-entering { transform: translateY(100%); opacity: 0; transition: none; }
+
+  .next-chip { transition: transform 500ms var(--ease-soft), opacity 500ms var(--ease-soft); }
+  #hb-next.is-shifting .next-chip { transform: translateX(-8px); opacity: 0.3; }
+
+  .live-dot { animation: pulse 2s var(--ease-soft) infinite; }
+  @keyframes pulse { 50% { opacity: 0.3; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .token, .ticker, .next-chip { transition: opacity 300ms var(--ease-soft); }
+    .rot-item, .rot-item.is-off { transform: none; filter: none; transition: opacity 300ms; }
+    .hero-in { animation: none; }
+    .token.is-leaving, .token.is-entering,
+    .ticker.is-leaving, .ticker.is-entering, #hb-next.is-shifting .next-chip { transform: none; }
+    .live-dot { animation: none; }
+  }
+</style>
+
+<script>
+  const ARRIVALS: [string, string][] = [
+    ['Hira Saleem', 'a new patient'],
+    ['Imran Sheikh', 'a follow up'],
+    ['Areeba Noor', 'a walk in'],
+    ['Fahad Iqbal', 'a report review'],
+    ['Nida Rauf', 'a follow up'],
+    ['Bilal Chaudhry', 'a new patient'],
+  ];
+  const PAYMENTS: [string, string][] = [
+    ['2,500', 'JazzCash'],
+    ['4,300', 'cash'],
+    ['1,800', 'bank transfer'],
+    ['3,250', 'JazzCash'],
+  ];
+
+  const $ = (id: string) => document.getElementById(id)!;
+  const board = $('hero-board');
+  const tokenEl = $('hb-token');
+  const nameEl = $('hb-name');
+  const nextEl = $('hb-next');
+  const tickerEl = $('hb-ticker');
+  const callBtn = $('hb-call') as HTMLButtonElement;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const swap = (el: HTMLElement, apply: () => void, delay = reduce ? 150 : 350) => {
+    el.classList.add('is-leaving');
+    window.setTimeout(() => {
+      apply();
+      el.classList.remove('is-leaving');
+      el.classList.add('is-entering');
+      void el.offsetHeight;
+      el.classList.remove('is-entering');
+    }, delay);
+  };
+
+  // Rotating clinic type in the headline.
+  const items = [...document.querySelectorAll<HTMLElement>('.rot-item')];
+  let kind = 0;
+  function rotateWord() {
+    const prev = items[kind];
+    kind = (kind + 1) % items.length;
+    prev.classList.remove('is-on');
+    prev.classList.add('is-off');
+    const next = items[kind];
+    next.classList.remove('is-off');
+    void next.offsetHeight;
+    next.classList.add('is-on');
+    window.setTimeout(() => prev.classList.remove('is-off'), 600);
+  }
+
+  // The queue.
+  const queue = [...nextEl.querySelectorAll('li')].map((li) => {
+    const [t, n] = li.querySelectorAll('span');
+    return { token: t.textContent!, name: n.textContent! };
+  });
+  let lastNumber = 18;
+  let arrival = 0;
+  let payment = 0;
+  let minutes = 9 * 60 + 26;
+  let busy = false;
+  const news: string[] = ['Prescription for Hamza Tariq printed in Urdu', 'Lab order for Hamza Tariq sent to City Diagnostics'];
+
+  function callNext() {
+    if (busy) return;
+    busy = true;
+    callBtn.disabled = true;
+    const leaving = { token: tokenEl.textContent!, name: nameEl.textContent! };
+    const next = queue.shift()!;
+    const [name, kindText] = ARRIVALS[arrival++ % ARRIVALS.length];
+    const arrived = { token: `A${++lastNumber}`, name };
+    queue.push(arrived);
+    minutes += 3 + (arrival % 4);
+    const [amount, method] = PAYMENTS[payment++ % PAYMENTS.length];
+    news.length = 0;
+    news.push(`${leaving.token} ${leaving.name} paid Rs ${amount} by ${method}`);
+    void kindText;
+
+    nextEl.classList.add('is-shifting');
+    swap(tokenEl, () => {
+      tokenEl.textContent = next.token;
+      nameEl.textContent = next.name;
+      $('hb-lane-token').textContent = next.token;
+      $('hb-lane-name').textContent = next.name;
+      $('hb-clock').textContent = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+      nextEl.querySelectorAll('li').forEach((li, i) => {
+        const [t, n] = li.querySelectorAll('span');
+        t.textContent = queue[i].token;
+        n.textContent = queue[i].name;
+      });
+      nextEl.classList.remove('is-shifting');
+    });
+    window.setTimeout(() => {
+      busy = false;
+      callBtn.disabled = false;
+    }, 900);
+    window.setTimeout(showNews, 400);
+  }
+
+  function showNews() {
+    const line = news.shift();
+    if (line) swap(tickerEl, () => (tickerEl.textContent = line));
+  }
+
+  callBtn.addEventListener('click', () => {
+    callNext();
+    restart();
+  });
+
+  let timers: number[] = [];
+  let inView = true;
+  // Only the headline word moves by itself. The queue moves when the
+  // visitor presses "Call next", so there is one moving thing at a time.
+  const paused = () => document.documentElement.dataset.motion === 'paused';
+  function restart() {
+    timers.forEach((t) => window.clearInterval(t));
+    timers = [];
+    if (!inView || reduce) return;
+    timers.push(window.setInterval(() => { if (!paused()) rotateWord(); }, 2600));
+  }
+  new IntersectionObserver(([e]) => {
+    inView = e.isIntersecting;
+    restart();
+  }).observe(board);
+  restart();
+</script>

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppointmentsRouteImport } from './routes/appointments'
+import { Route as ClinicAccessRouteImport } from './routes/clinic-access'
 import { Route as ClinicOverviewRouteImport } from './routes/clinic-overview'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExpensesRouteImport } from './routes/expenses'
@@ -97,6 +98,7 @@ import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as SettingsSessionsRouteImport } from './routes/settings.sessions'
 import { Route as SettingsSidebarRouteImport } from './routes/settings.sidebar'
+import { Route as SettingsSignInRouteImport } from './routes/settings.sign-in'
 import { Route as SettingsSubscriptionRouteImport } from './routes/settings.subscription'
 import { Route as SettingsThemeRouteImport } from './routes/settings.theme'
 import { Route as SettingsUsersRouteImport } from './routes/settings.users'
@@ -130,6 +132,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppointmentsRoute = AppointmentsRouteImport.update({
   id: '/appointments',
   path: '/appointments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClinicAccessRoute = ClinicAccessRouteImport.update({
+  id: '/clinic-access',
+  path: '/clinic-access',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClinicOverviewRoute = ClinicOverviewRouteImport.update({
@@ -567,6 +574,11 @@ const SettingsSidebarRoute = SettingsSidebarRouteImport.update({
   path: '/sidebar',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSignInRoute = SettingsSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsSubscriptionRoute = SettingsSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
@@ -694,6 +706,7 @@ const StudioWorkflowsWorkflowIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
@@ -772,6 +785,7 @@ export interface FileRoutesByFullPath {
   '/settings/security': typeof SettingsSecurityRoute
   '/settings/sessions': typeof SettingsSessionsRoute
   '/settings/sidebar': typeof SettingsSidebarRoute
+  '/settings/sign-in': typeof SettingsSignInRoute
   '/settings/subscription': typeof SettingsSubscriptionRoute
   '/settings/theme': typeof SettingsThemeRoute
   '/settings/users': typeof SettingsUsersRoute
@@ -808,6 +822,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
@@ -885,6 +900,7 @@ export interface FileRoutesByTo {
   '/settings/security': typeof SettingsSecurityRoute
   '/settings/sessions': typeof SettingsSessionsRoute
   '/settings/sidebar': typeof SettingsSidebarRoute
+  '/settings/sign-in': typeof SettingsSignInRoute
   '/settings/subscription': typeof SettingsSubscriptionRoute
   '/settings/theme': typeof SettingsThemeRoute
   '/settings/users': typeof SettingsUsersRoute
@@ -922,6 +938,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/appointments': typeof AppointmentsRoute
+  '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
@@ -1000,6 +1017,7 @@ export interface FileRoutesById {
   '/settings/security': typeof SettingsSecurityRoute
   '/settings/sessions': typeof SettingsSessionsRoute
   '/settings/sidebar': typeof SettingsSidebarRoute
+  '/settings/sign-in': typeof SettingsSignInRoute
   '/settings/subscription': typeof SettingsSubscriptionRoute
   '/settings/theme': typeof SettingsThemeRoute
   '/settings/users': typeof SettingsUsersRoute
@@ -1038,6 +1056,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/appointments'
+    | '/clinic-access'
     | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
@@ -1116,6 +1135,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/settings/sessions'
     | '/settings/sidebar'
+    | '/settings/sign-in'
     | '/settings/subscription'
     | '/settings/theme'
     | '/settings/users'
@@ -1152,6 +1172,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/appointments'
+    | '/clinic-access'
     | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
@@ -1229,6 +1250,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/settings/sessions'
     | '/settings/sidebar'
+    | '/settings/sign-in'
     | '/settings/subscription'
     | '/settings/theme'
     | '/settings/users'
@@ -1265,6 +1287,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/appointments'
+    | '/clinic-access'
     | '/clinic-overview'
     | '/dashboard'
     | '/expenses'
@@ -1343,6 +1366,7 @@ export interface FileRouteTypes {
     | '/settings/security'
     | '/settings/sessions'
     | '/settings/sidebar'
+    | '/settings/sign-in'
     | '/settings/subscription'
     | '/settings/theme'
     | '/settings/users'
@@ -1380,6 +1404,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppointmentsRoute: typeof AppointmentsRoute
+  ClinicAccessRoute: typeof ClinicAccessRoute
   ClinicOverviewRoute: typeof ClinicOverviewRoute
   DashboardRoute: typeof DashboardRoute
   ExpensesRoute: typeof ExpensesRoute
@@ -1482,6 +1507,13 @@ declare module '@tanstack/react-router' {
       path: '/appointments'
       fullPath: '/appointments'
       preLoaderRoute: typeof AppointmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clinic-access': {
+      id: '/clinic-access'
+      path: '/clinic-access'
+      fullPath: '/clinic-access'
+      preLoaderRoute: typeof ClinicAccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clinic-overview': {
@@ -2086,6 +2118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsSidebarRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/sign-in': {
+      id: '/settings/sign-in'
+      path: '/sign-in'
+      fullPath: '/settings/sign-in'
+      preLoaderRoute: typeof SettingsSignInRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/subscription': {
       id: '/settings/subscription'
       path: '/subscription'
@@ -2274,6 +2313,7 @@ interface SettingsRouteChildren {
   SettingsSecurityRoute: typeof SettingsSecurityRoute
   SettingsSessionsRoute: typeof SettingsSessionsRoute
   SettingsSidebarRoute: typeof SettingsSidebarRoute
+  SettingsSignInRoute: typeof SettingsSignInRoute
   SettingsSubscriptionRoute: typeof SettingsSubscriptionRoute
   SettingsThemeRoute: typeof SettingsThemeRoute
   SettingsUsersRoute: typeof SettingsUsersRoute
@@ -2301,6 +2341,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsSecurityRoute: SettingsSecurityRoute,
   SettingsSessionsRoute: SettingsSessionsRoute,
   SettingsSidebarRoute: SettingsSidebarRoute,
+  SettingsSignInRoute: SettingsSignInRoute,
   SettingsSubscriptionRoute: SettingsSubscriptionRoute,
   SettingsThemeRoute: SettingsThemeRoute,
   SettingsUsersRoute: SettingsUsersRoute,
@@ -2318,6 +2359,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppointmentsRoute: AppointmentsRoute,
+  ClinicAccessRoute: ClinicAccessRoute,
   ClinicOverviewRoute: ClinicOverviewRoute,
   DashboardRoute: DashboardRoute,
   ExpensesRoute: ExpensesRoute,

@@ -8,7 +8,11 @@ import {
   useLocation,
 } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
+import {
+  activeClinicBlock,
+  isLabOnlyUser,
+  useAuthStore,
+} from '@/store/useAuthStore'
 import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
 import { AccessProvider, RouteAccessGate } from '@/features/access'
 import { AppToaster } from '@/components/shared/AppToaster'
@@ -38,6 +42,10 @@ const QR_PATH = '/o/'
 
 // Lab staff work here — no clinic org/location context (lab ERD §13)
 const LAB_PORTAL_PATH = '/lab-portal'
+
+// Signed in but no usable clinic: awaiting approval, rejected, blocked by
+// the clinic's sign-in policy, or no clinic at all (join request pending).
+const CLINIC_ACCESS_PATH = '/clinic-access'
 
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
@@ -83,7 +91,8 @@ export const Route = createRootRoute({
       { title: 'Clinic Management' },
       {
         name: 'description',
-        content: 'Clinic management — appointments, patients, billing and staff',
+        content:
+          'Clinic management — appointments, patients, billing and staff',
       },
     ],
     links: [
@@ -133,9 +142,13 @@ function RootComponent() {
   } = useAuthStore()
 
   // Active org's specialty tags drive <SpecialtyGuard> across the app
-  const activeSpecialtyTags =
-    accessibleOrganizations.find((o) => o.id === activeOrganizationId)
-      ?.specialtyTags ?? ['general']
+  const clinicBlock = activeClinicBlock({
+    accessibleOrganizations,
+    activeOrganizationId,
+  })
+  const activeSpecialtyTags = accessibleOrganizations.find(
+    (o) => o.id === activeOrganizationId,
+  )?.specialtyTags ?? ['general']
   const navigate = useNavigate()
   const location = useLocation()
   const [isInitializing, setIsInitializing] = useState(true)
@@ -211,6 +224,13 @@ function RootComponent() {
       accessibleOrganizations,
       labMemberships,
     })
+    const isClinicAccessPage = location.pathname === CLINIC_ACCESS_PATH
+    // No clinic to work in, or the active one can't be opened right now
+    const needsClinicAccess =
+      !isSuperAdmin &&
+      !labOnly &&
+      (accessibleOrganizations.length === 0 ||
+        (!!clinicBlock && !needsSelection))
 
     if (!isAuthenticated && !isPublicRoute && location.pathname !== '/') {
       navigate({ to: '/login', replace: true })
@@ -224,6 +244,10 @@ function RootComponent() {
       if (!labMemberships.length) navigate({ to: '/', replace: true })
     } else if (isAuthenticated && isPublicRoute && !isSelectLocationPage) {
       // `/` forwards to the user's home page (HomeRedirect)
+      navigate({ to: '/', replace: true })
+    } else if (isAuthenticated && needsClinicAccess && !isClinicAccessPage) {
+      navigate({ to: CLINIC_ACCESS_PATH as any, replace: true })
+    } else if (isAuthenticated && isClinicAccessPage && !needsClinicAccess) {
       navigate({ to: '/', replace: true })
     } else if (
       isAuthenticated &&
@@ -260,6 +284,7 @@ function RootComponent() {
     isSuperAdmin,
     accessibleOrganizations,
     labMemberships,
+    clinicBlock,
   ])
 
   // Show the loader while initializing (attempting silent refresh)
@@ -269,9 +294,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <FeatureFlagsProvider
         specialtyTags={activeSpecialtyTags}
-        enabled={isAuthenticated && !!activeLocationId}
+        enabled={isAuthenticated && !!activeLocationId && !clinicBlock}
       >
-        <AccessProvider enabled={isAuthenticated && !!activeLocationId}>
+        <AccessProvider
+          enabled={isAuthenticated && !!activeLocationId && !clinicBlock}
+        >
           <RouteAccessGate>
             <Outlet />
           </RouteAccessGate>

@@ -10,6 +10,7 @@ import {
   IsEmail,
   ValidateNested,
 } from 'class-validator';
+import { IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CompensationPlanDto } from 'src/billing/commissions/dto/compensation.dto';
 import { Gender } from '../enums/employee.enums';
@@ -68,6 +69,15 @@ export class CreateEmployeeDto {
   @IsOptional()
   @IsEmail()
   portalEmail?: string;
+
+  /**
+   * How the new login signs in: 'password' (default, needs portalPassword)
+   * or 'google' (no password — linked on their first Google sign-in with
+   * portalEmail). An existing account with portalEmail is reused as is.
+   */
+  @IsOptional()
+  @IsIn(['password', 'google'])
+  portalLoginMethod?: 'password' | 'google';
 
   @IsOptional()
   @IsString()

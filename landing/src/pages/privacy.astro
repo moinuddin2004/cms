@@ -1,0 +1,14 @@
+---
+import SimplePage from '../layouts/SimplePage.astro';
+import { SITE } from '../data/site';
+---
+
+<!-- PLACEHOLDER: replace with the reviewed privacy policy before launch. -->
+<SimplePage title={`Privacy policy · ${SITE.name}`}>
+  <h1 class="heading-3 mt-12 text-ink">Privacy policy</h1>
+  <p class="body-3 mt-4 text-steel">
+    Our full privacy policy is being prepared. Until it is published, write to
+    <a class="text-ink underline underline-offset-4" href={`mailto:${SITE.email}`}>{SITE.email}</a> with any question about how
+    clinic and patient data is handled.
+  </p>
+</SimplePage>

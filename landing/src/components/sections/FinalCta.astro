@@ -1,0 +1,40 @@
+---
+import Icon from '../Icon.astro';
+import IconChip from '../IconChip.astro';
+import SectionHead from '../SectionHead.astro';
+import { SITE } from '../../data/site';
+---
+
+<section class="px-4 py-16">
+  <div class="mx-auto max-w-6xl rounded-[28px] bg-panel px-6 py-16 text-center">
+    <SectionHead>
+      <Fragment slot="lead">Your first <IconChip name="ticket" /> token</Fragment>
+      <Fragment slot="rest">is ready to call.</Fragment>
+      Sign up today. Once your clinic is approved, add your branch and staff and check in the first patient.
+    </SectionHead>
+    <div class="reveal mt-8 flex flex-col items-center gap-3">
+      <a href={SITE.signupUrl} class="btn btn-primary btn-lg group">
+        Sign up your clinic
+        <Icon name="arrow-right" class="size-4 transition-transform duration-300 ease-soft group-hover:translate-x-0.5" />
+      </a>
+      <p class="caption-2 text-steel">Free plan for small clinics. No card needed.</p>
+    </div>
+    <ol id="how" class="reveal mx-auto mt-12 grid max-w-3xl gap-3 text-left sm:grid-cols-3">
+      {
+        [
+          ['Sign up', 'Email or Google. Our team approves the clinic.'],
+          ['Set up', 'Add your branch and staff, import patients from Excel.'],
+          ['Call A01', 'Check in the first patient. The rest is recorded as you go.'],
+        ].map(([t, d], i) => (
+          <li class="flex items-start gap-3 rounded-2xl bg-surface p-4">
+            <span class="caption-3 grid size-6 shrink-0 place-items-center rounded-full bg-brand text-on-brand">{i + 1}</span>
+            <span>
+              <span class="body-4 block">{t}</span>
+              <span class="caption-2 text-steel">{d}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

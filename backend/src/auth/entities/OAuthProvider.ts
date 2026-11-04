@@ -14,12 +14,13 @@ import { ProviderEnum } from '../enum/ProviderEnum';
 /**
  * OAuthProvider Entity
  *
- * Tracks linked OAuth providers per user.
- * Allows users to link multiple providers (Google, GitHub, etc.) to a single account.
+ * A Google account linked to a user. Sign-in matches on the provider's
+ * stable id (Google `sub`), never on email. One Google account per user,
+ * and a Google account belongs to one user.
  */
 @Entity('oauth_providers')
 @Unique(['userId', 'provider'])
-@Index(['provider', 'providerId'])
+@Index(['provider', 'providerId'], { unique: true })
 export class OAuthProvider {
   @PrimaryGeneratedColumn('uuid', { name: 'uuid' })
   uuid: string;
@@ -32,7 +33,7 @@ export class OAuthProvider {
   userId: string;
 
   /**
-   * OAuth provider (Google, GitHub, etc.)
+   * OAuth provider (Google only).
    */
   @Column({ name: 'provider', type: 'enum', enum: ProviderEnum })
   provider: ProviderEnum;

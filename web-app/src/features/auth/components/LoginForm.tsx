@@ -16,6 +16,12 @@ import {
   authTextLinkClass,
 } from './authStyles'
 import { useLoginForm } from '../hooks/useLoginForm'
+import {
+  AuthDivider,
+  GoogleButton,
+  useGoogleConfig,
+} from '../google/GoogleButton'
+import { useGoogleSignIn } from '../google/useGoogleSignIn'
 
 const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
@@ -23,6 +29,8 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const { form, globalError } = useLoginForm()
+  const google = useGoogleSignIn()
+  const { data: googleConfig } = useGoogleConfig()
 
   return (
     <AuthLayout>
@@ -30,6 +38,22 @@ export function LoginForm() {
         title="Welcome back"
         subtitle="Sign in to continue to your clinic workspace."
       />
+
+      {googleConfig?.enabled && (
+        <>
+          <GoogleButton
+            text="signin_with"
+            onCredential={google.onCredential}
+            busy={google.busy}
+          />
+          {google.error ? (
+            <div className="mt-4">
+              <AuthError message={google.error} />
+            </div>
+          ) : null}
+          <AuthDivider label="or sign in with email" />
+        </>
+      )}
 
       <form
         noValidate
@@ -147,7 +171,7 @@ export function LoginForm() {
                     />
                   )}
                 </span>
-                Keep me signed in 
+                Keep me signed in
               </label>
               {/* <p className="mt-1.5 pl-[28px] text-[11.5px] text-muted-foreground/80">
                 Otherwise you&rsquo;ll be signed out after 1 day.

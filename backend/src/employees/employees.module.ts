@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Employee } from './entities/employee.entity';
 import { User } from 'src/user/entities/user.entity';
+import { OAuthProvider } from 'src/auth/entities/OAuthProvider';
 import { EmployeeOrgLocationAssignment } from './entities/employee-org-location-assignment.entity';
 import { EmployeeSchedule } from './entities/employee-schedule.entity';
 import { EmploymentRole } from './entities/employment-role.entity';
@@ -25,6 +26,7 @@ import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
     TypeOrmModule.forFeature([
       Employee,
       User,
+      OAuthProvider,
       EmployeeOrgLocationAssignment,
       EmployeeSchedule,
       EmploymentRole,

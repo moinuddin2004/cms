@@ -43,7 +43,8 @@ const CONTEXT_FREE_PATHS = [
   '/auth/add-password',
   '/auth/logout-all',
   '/auth/google',
-  '/auth/github',
+  '/auth/login-methods',
+  '/auth/create-clinic',
   '/locations',
 ];
 

@@ -7,6 +7,10 @@ export interface AuthUser {
   email?: string;
   globalRole?: string | null;
   sessionId?: string;
+  /** 'password' | 'google' — how this session signed in. */
+  authMethod?: string;
+  /** Google Workspace domain of a Google sign-in. */
+  authDomain?: string | null;
 }
 
 /**

@@ -27,9 +27,23 @@ import { SessionService } from '../session/session.service';
 import { ChangePasswordRequestDto } from './dto/request/change-password-request.dto';
 import { AddPasswordRequestDto } from './dto/request/add-password-request.dto';
 import { SelectLocationRequestDto } from './dto/request/select-location-request.dto';
+import { CreateClinicRequestDto } from './dto/request/create-clinic-request.dto';
 
 /** Request after JwtAuthGuard: `user` is the validated JWT principal. */
-type AuthedRequest = Request & { user: { uuid: string; sessionId?: string } };
+type AuthedRequest = Request & {
+  user: {
+    uuid: string;
+    sessionId?: string;
+    authMethod?: string;
+    authDomain?: string | null;
+  };
+};
+
+/** How the caller's session signed in (from the access token). */
+const sessionAuth = (req: AuthedRequest) => ({
+  method: req.user.authMethod ?? 'password',
+  domain: req.user.authDomain ?? null,
+});
 
 @Controller('auth')
 export class AuthController {
@@ -101,11 +115,15 @@ export class AuthController {
   @ContextFree()
   @Post('select-location')
   @UseGuards(JwtAuthGuard)
-  async selectLocation(@Body() body: SelectLocationRequestDto, @Req() req: AuthedRequest) {
+  async selectLocation(
+    @Body() body: SelectLocationRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.authService.selectLocation(
       req.user.uuid,
       body.organizationId,
       body.locationId,
+      sessionAuth(req),
     );
     return ResponseWrapper.success(result, 'Location selected');
   }
@@ -116,11 +134,15 @@ export class AuthController {
   @ContextFree()
   @Post('switch-location')
   @UseGuards(JwtAuthGuard)
-  async switchLocation(@Body() body: SelectLocationRequestDto, @Req() req: AuthedRequest) {
+  async switchLocation(
+    @Body() body: SelectLocationRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.authService.switchLocation(
       req.user.uuid,
       body.organizationId,
       body.locationId,
+      sessionAuth(req),
     );
     return ResponseWrapper.success(result, 'Location switched');
   }
@@ -145,8 +167,34 @@ export class AuthController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async me(@Req() req: AuthedRequest) {
-    const result = await this.authService.getCurrentUser(req.user.uuid);
+    const result = await this.authService.getCurrentUser(
+      req.user.uuid,
+      sessionAuth(req),
+      req.user.sessionId,
+    );
     return ResponseWrapper.success(result, 'User retrieved');
+  }
+
+  /**
+   * A signed-in user without any clinic (e.g. a Google sign-up whose join
+   * request was declined) creates their own — it awaits approval like a
+   * self-signup. Returns the refreshed `/auth/me` payload.
+   */
+  @ContextFree()
+  @Post('create-clinic')
+  @UseGuards(JwtAuthGuard, RateLimiterGuard)
+  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
+  async createClinic(
+    @Body() body: CreateClinicRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
+    const result = await this.authService.createClinicForUser(
+      req.user.uuid,
+      body,
+      sessionAuth(req),
+      req.user.sessionId,
+    );
+    return ResponseWrapper.success(result, 'Clinic created');
   }
 
   /**
@@ -165,7 +213,10 @@ export class AuthController {
   @ContextFree()
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
-  async logoutAll(@Req() req: AuthedRequest, @Res({ passthrough: true }) res: Response) {
+  async logoutAll(
+    @Req() req: AuthedRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const result = await this.authService.logoutAll(req.user.uuid, req, res);
     return ResponseWrapper.success(result, 'Logged out from all devices');
   }
@@ -204,7 +255,10 @@ export class AuthController {
   @ContextFree()
   @Delete('sessions/:id')
   @UseGuards(JwtAuthGuard)
-  async revokeSession(@Param('id') sessionId: string, @Req() req: AuthedRequest) {
+  async revokeSession(
+    @Param('id') sessionId: string,
+    @Req() req: AuthedRequest,
+  ) {
     const session = await this.sessionService.getSessionById(sessionId);
 
     if (!session || session.userId !== req.user.uuid) {
@@ -241,7 +295,10 @@ export class AuthController {
   @ContextFree()
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
-  async changePassword(@Body() body: ChangePasswordRequestDto, @Req() req: AuthedRequest) {
+  async changePassword(
+    @Body() body: ChangePasswordRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.authService.changePassword(
       req.user.uuid,
       body.currentPassword,
@@ -258,7 +315,10 @@ export class AuthController {
   @ContextFree()
   @Post('add-password')
   @UseGuards(JwtAuthGuard)
-  async addPassword(@Body() body: AddPasswordRequestDto, @Req() req: AuthedRequest) {
+  async addPassword(
+    @Body() body: AddPasswordRequestDto,
+    @Req() req: AuthedRequest,
+  ) {
     const result = await this.authService.addPassword(
       req.user.uuid,
       body.newPassword,

@@ -1,0 +1,30 @@
+---
+/**
+ * Two tone section heading: the first line in ink, the second in grey.
+ * Use the `lead` and `rest` slots; either may hold an IconChip.
+ */
+interface Props {
+  eyebrow?: string;
+  align?: 'center' | 'left';
+  as?: 'h1' | 'h2';
+  size?: 'hero' | 'section';
+}
+const { eyebrow, align = 'center', as: Tag = 'h2', size = 'section' } = Astro.props;
+const centered = align === 'center';
+const sizeClass = size === 'hero' ? 'display-hero' : 'display-section';
+---
+
+<div class={`reveal ${centered ? 'mx-auto text-center' : ''} max-w-[900px]`}>
+  {eyebrow && <p class="eyebrow-text text-steel">{eyebrow}</p>}
+  <Tag class={`${sizeClass} text-balance ${eyebrow ? 'mt-3' : ''}`}>
+    <span class="text-ink"><slot name="lead" /></span>{' '}
+    <span class={size === 'hero' ? 'fade-text block' : 'block text-muted'}><slot name="rest" /></span>
+  </Tag>
+  {
+    Astro.slots.has('default') && (
+      <p class={`section-text mt-6 max-w-[600px] text-steel ${centered ? 'mx-auto' : ''}`}>
+        <slot />
+      </p>
+    )
+  }
+</div>

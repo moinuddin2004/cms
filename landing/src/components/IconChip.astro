@@ -1,0 +1,18 @@
+---
+/** A small brand coloured icon tile that sits inside a heading line, tilted like the reference. */
+import Icon from './Icon.astro';
+
+interface Props {
+  name: string;
+  tone?: 'ink' | 'amber' | 'green' | 'blue' | 'pink' | 'violet';
+  class?: string;
+}
+const { name, class: className = '' } = Astro.props;
+---
+
+<span
+  class={`relative top-[-0.06em] mx-[0.1em] inline-flex size-[0.78em] items-center justify-center rounded-[0.22em] align-middle rotate-[-5deg] bg-brand text-on-brand ${className}`}
+  aria-hidden="true"
+>
+  <Icon name={name} class="size-[0.48em]" />
+</span>

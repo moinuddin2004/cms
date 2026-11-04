@@ -1,4 +1,5 @@
 import type { User, UserRoleType } from '../types'
+import { cn } from '@/lib/utils'
 import { useStaffCandidates } from '../api'
 import { useUserForm } from '../hooks/useUserForm'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -232,28 +233,91 @@ export function UserFormDialog({
             </form.Field>
           )}
 
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label>
-                  Password {isEditing && '(Leave blank to keep current)'}
-                </Label>
-                <Input
-                  type="password"
-                  placeholder={isEditing ? '******' : 'Enter a strong password'}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  aria-invalid={!!fieldError(field)}
-                />
-                {fieldError(field) && (
-                  <p className="text-xs text-destructive">
-                    {fieldError(field)}
-                  </p>
-                )}
-              </div>
-            )}
-          </form.Field>
+          {!isEditing && (
+            <form.Subscribe selector={(s) => s.values.type}>
+              {(type) =>
+                type === 'super_admin' ? null : (
+                  <form.Field name="loginMethod">
+                    {(field) => (
+                      <div className="space-y-2">
+                        <Label id="login-method-label">Signs in with</Label>
+                        <div
+                          role="radiogroup"
+                          aria-labelledby="login-method-label"
+                          className="grid grid-cols-2 gap-2"
+                        >
+                          {(
+                            [
+                              ['password', 'Email & password'],
+                              ['google', 'Google account'],
+                            ] as const
+                          ).map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              role="radio"
+                              aria-checked={field.state.value === value}
+                              onClick={() => field.handleChange(value)}
+                              className={cn(
+                                'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                                field.state.value === value
+                                  ? 'border-primary bg-primary/10 text-primary'
+                                  : 'border-border text-text-2 hover:bg-accent',
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {field.state.value === 'google'
+                            ? 'They use "Continue with Google" with this email — no password.'
+                            : 'An email that already has an account (another clinic) is reused with its own password.'}
+                        </p>
+                      </div>
+                    )}
+                  </form.Field>
+                )
+              }
+            </form.Subscribe>
+          )}
+
+          <form.Subscribe
+            selector={(s) =>
+              !isEditing &&
+              s.values.loginMethod === 'google' &&
+              s.values.type !== 'super_admin'
+            }
+          >
+            {(googleOnly) =>
+              googleOnly ? null : (
+                <form.Field name="password">
+                  {(field) => (
+                    <div className="space-y-2">
+                      <Label>
+                        Password {isEditing && '(Leave blank to keep current)'}
+                      </Label>
+                      <Input
+                        type="password"
+                        placeholder={
+                          isEditing ? '******' : 'Enter a strong password'
+                        }
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                        aria-invalid={!!fieldError(field)}
+                      />
+                      {fieldError(field) && (
+                        <p className="text-xs text-destructive">
+                          {fieldError(field)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </form.Field>
+              )
+            }
+          </form.Subscribe>
 
           {isEditing && (
             <form.Field name="status">

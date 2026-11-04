@@ -20,18 +20,26 @@ export function makeUserSchema(ctx: {
         .string()
         .min(1, 'Email is required')
         .pipe(z.email('Enter a valid email')),
-      password: z
-        .string()
-        .refine(
-          (v) => (ctx.isEditing && !v) || v.length >= 8,
-          'Password must be at least 8 characters',
-        ),
+      password: z.string(),
+      /** New logins: password, or Google (no password; linked on first sign-in). */
+      loginMethod: z.enum(['password', 'google']),
       type: z.string(),
       status: z.string(),
       organizationId: z.string(),
       employeeId: z.string(),
     })
     .superRefine((v, issue) => {
+      const passwordNeeded =
+        !ctx.isEditing &&
+        !(v.loginMethod === 'google' && v.type !== 'super_admin')
+      const passwordChecked = passwordNeeded || (ctx.isEditing && !!v.password)
+      if (passwordChecked && v.password.length < 8) {
+        issue.addIssue({
+          code: 'custom',
+          path: ['password'],
+          message: 'Password must be at least 8 characters',
+        })
+      }
       if (ctx.isEditing) return
       if (v.type === 'employee' && !v.employeeId) {
         issue.addIssue({

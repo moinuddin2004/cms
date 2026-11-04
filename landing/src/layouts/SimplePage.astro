@@ -1,0 +1,26 @@
+---
+import Layout from './Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Icon from '../components/Icon.astro';
+
+interface Props {
+  title: string;
+  noindex?: boolean;
+}
+const { title, noindex } = Astro.props;
+---
+
+<Layout title={title} noindex={noindex}>
+  <Nav />
+  <main id="main" class="px-4 pt-32 pb-24 sm:pt-40">
+    <div class="mx-auto max-w-[680px]">
+      <a href="/" class="body-5 inline-flex items-center gap-2 rounded-full text-steel transition-colors duration-300 ease-soft hover:text-ink">
+        <Icon name="arrow-left" class="size-4" />
+        Back to home
+      </a>
+      <slot />
+    </div>
+  </main>
+  <Footer />
+</Layout>

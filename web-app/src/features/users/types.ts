@@ -22,6 +22,8 @@ export interface CreateUserPayload {
   email: string
   name: string
   password?: string
+  /** 'google': no password, linked on the first Google sign-in. */
+  loginMethod?: 'password' | 'google'
   type: UserRoleType
   /** `type: 'employee'`: the existing employee this login is for. */
   employeeId?: string
@@ -34,6 +36,8 @@ export interface StaffCandidate {
   phone: string
   locations: string[]
 }
+
+export type LoginMethod = 'password' | 'google'
 
 export interface UpdateUserPayload {
   email?: string

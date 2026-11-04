@@ -463,6 +463,46 @@ export function EmployeeForm({
             {/* Portal credentials — only shown when enabled and no user linked yet */}
             {field.state.value && !form.getFieldValue('userId') && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t">
+                <form.Field name="portalLoginMethod">
+                  {(methodField) => (
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label id="portal-method-label">Signs in with</Label>
+                      <div
+                        role="radiogroup"
+                        aria-labelledby="portal-method-label"
+                        className="grid max-w-md grid-cols-2 gap-2"
+                      >
+                        {(
+                          [
+                            ['password', 'Email & password'],
+                            ['google', 'Google account'],
+                          ] as const
+                        ).map(([value, label]) => (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={methodField.state.value === value}
+                            onClick={() => methodField.handleChange(value)}
+                            className={cn(
+                              'rounded-lg border px-3 py-2 text-sm font-medium transition-colors',
+                              methodField.state.value === value
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border text-text-2 hover:bg-accent',
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {methodField.state.value === 'google'
+                          ? 'They sign in with "Continue with Google" using this email. No password needed.'
+                          : 'If this email already has an account (e.g. at another clinic), it is reused and keeps its own password.'}
+                      </p>
+                    </div>
+                  )}
+                </form.Field>
                 <form.Field name="portalEmail">
                   {(emailField) => (
                     <div className="space-y-1.5">
@@ -488,28 +528,37 @@ export function EmployeeForm({
                   )}
                 </form.Field>
 
-                <form.Field name="portalPassword">
-                  {(pwField) => (
-                    <div className="space-y-1.5">
-                      <Label>
-                        Password <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        type="password"
-                        placeholder="Min. 6 characters"
-                        value={pwField.state.value}
-                        onChange={(e) => pwField.handleChange(e.target.value)}
-                        onBlur={pwField.handleBlur}
-                        className={fieldError(pwField) ? ERROR_RING : ''}
-                      />
-                      {fieldError(pwField) && (
-                        <p className="text-xs text-destructive">
-                          {fieldError(pwField)}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </form.Field>
+                <form.Subscribe selector={(s) => s.values.portalLoginMethod}>
+                  {(method) =>
+                    method === 'google' ? null : (
+                      <form.Field name="portalPassword">
+                        {(pwField) => (
+                          <div className="space-y-1.5">
+                            <Label>
+                              Password{' '}
+                              <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                              type="password"
+                              placeholder="Min. 6 characters"
+                              value={pwField.state.value}
+                              onChange={(e) =>
+                                pwField.handleChange(e.target.value)
+                              }
+                              onBlur={pwField.handleBlur}
+                              className={fieldError(pwField) ? ERROR_RING : ''}
+                            />
+                            {fieldError(pwField) && (
+                              <p className="text-xs text-destructive">
+                                {fieldError(pwField)}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </form.Field>
+                    )
+                  }
+                </form.Subscribe>
               </div>
             )}
 

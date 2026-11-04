@@ -1,0 +1,32 @@
+---
+/** Phosphor icon (skill B6), inlined at build time from @iconify-json/ph. */
+import data from '@iconify-json/ph/icons.json';
+
+interface Props {
+  name: string;
+  class?: string;
+}
+
+const { name, class: className = 'size-5' } = Astro.props;
+type IconData = { body: string; width?: number; height?: number };
+const set = data as unknown as {
+  icons: Record<string, IconData>;
+  aliases?: Record<string, { parent: string }>;
+  width?: number;
+  height?: number;
+};
+const icon = set.icons[name] ?? set.icons[set.aliases?.[name]?.parent ?? ''];
+if (!icon) throw new Error(`Unknown Phosphor icon: ${name}`);
+const w = icon.width ?? set.width ?? 256;
+const h = icon.height ?? set.height ?? 256;
+---
+
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox={`0 0 ${w} ${h}`}
+  class={className}
+  fill="currentColor"
+  aria-hidden="true"
+  focusable="false"
+  set:html={icon.body}
+/>

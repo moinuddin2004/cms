@@ -16,7 +16,6 @@ import * as crypto from 'crypto';
 import { ValidationFailedException } from 'src/common/exceptions/ValidationFailedException';
 import { Transactional } from 'src/common/decorators/TransactionalDecorator';
 import { AppLogger } from 'src/common/services/logger.service';
-import { ProviderEnum } from './enum/ProviderEnum';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
@@ -37,6 +36,12 @@ import {
   findLabMemberships,
   LabMembership,
 } from 'src/labs/portal/lab-memberships';
+import {
+  ClinicGateService,
+  GateBlock,
+  SessionAuthInfo,
+} from 'src/clinic-access/clinic-gate.service';
+import type { SessionAuth } from '../session/session.service';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
@@ -64,7 +69,11 @@ export interface LoginResponse {
   accessSource: 'super_admin' | 'owner' | 'employee' | null;
   requiresOrgSelection: boolean;
   requiresLocationSelection: boolean;
-  accessibleOrganizations: AccessibleOrganization[];
+  /**
+   * Each clinic with `signInBlock`: why this session can't open it (clinic
+   * awaiting approval, or its sign-in policy), null when it can.
+   */
+  accessibleOrganizations: GatedOrganization[];
   activeOrganizationId: string | null;
   activeLocationId: string | null;
   /**
@@ -73,6 +82,10 @@ export interface LoginResponse {
    */
   labMemberships: LabMembership[];
 }
+
+export type GatedOrganization = AccessibleOrganization & {
+  signInBlock: GateBlock | null;
+};
 
 /**
  * Production-grade AuthService with session management, security logging,
@@ -93,12 +106,13 @@ export class AuthService {
     private readonly authorizationService: AuthorizationService,
     private readonly accessResolver: AccessResolver,
     private readonly clinicSetup: ClinicSetupService,
+    private readonly gate: ClinicGateService,
   ) {}
 
   /**
    * Self-serve signup: creates the owner's login and their clinic (main
-   * location, 14-day trial — see ClinicSetupService), emails a verification
-   * link, then signs them in like `login()`.
+   * location, awaiting super admin approval — see ClinicSetupService),
+   * emails a verification link, then signs them in like `login()`.
    */
   async register(
     dto: RegisterRequestDto,
@@ -206,6 +220,29 @@ export class AuthService {
     // Validate user credentials
     const user = await this.userService.validateUser(dto.email, dto.password);
 
+    const result = await this.issueLogin(
+      user,
+      req,
+      res,
+      dto.rememberMe === true,
+      { method: 'password' },
+    );
+    this.logger.info(`Login successful for: ${dto.email}`, AuthService.name);
+    return result;
+  }
+
+  /**
+   * Start a session for an authenticated user (password or Google): checks
+   * the account status, creates the session + refresh cookie, resolves the
+   * clinics/locations and picks one when there is only one choice.
+   */
+  async issueLogin(
+    user: User,
+    req: Request,
+    res: Response,
+    rememberMe: boolean,
+    auth: SessionAuth,
+  ): Promise<LoginResponse> {
     // Check account status
     this.validateAccountStatus(user, req);
 
@@ -213,7 +250,8 @@ export class AuthService {
     const { session, refreshToken } = await this.sessionService.createSession(
       user.uuid,
       req,
-      dto.rememberMe === true,
+      rememberMe,
+      auth,
     );
 
     // Resolve user's accessible organizations and locations
@@ -223,10 +261,6 @@ export class AuthService {
 
     // Smart selector logic
     const orgCount = accessInfo.accessibleOrganizations.length;
-    const totalLocations = accessInfo.accessibleOrganizations.reduce(
-      (count, org) => count + org.locations.length,
-      0,
-    );
 
     // Determine what selection the user needs
     let requiresOrgSelection = false;
@@ -268,8 +302,12 @@ export class AuthService {
       activeLocId = accessInfo.defaultLocationId;
     }
 
-    // Generate access token with globalRole
-    const accessToken = await this.generateAccessToken(user, session.uuid);
+    // Generate access token with globalRole and the sign-in method
+    const accessToken = await this.generateAccessToken(
+      user,
+      session.uuid,
+      auth,
+    );
 
     // Store session ID and refresh token in httpOnly cookie for the session's
     // full lifetime (1 day, or 30 days when "keep me signed in" was checked)
@@ -281,9 +319,21 @@ export class AuthService {
     );
 
     // Log successful login
-    await this.securityLogService.logLoginSuccess(user.uuid, session.uuid, req);
-
-    this.logger.info(`Login successful for: ${dto.email}`, AuthService.name);
+    if (auth.method === 'google') {
+      await this.securityLogService.logOAuthLogin(
+        user.uuid,
+        session.uuid,
+        'google',
+        req,
+        false,
+      );
+    } else {
+      await this.securityLogService.logLoginSuccess(
+        user.uuid,
+        session.uuid,
+        req,
+      );
+    }
 
     return {
       user: AuthTokenDto.toDto(accessToken, user).user,
@@ -292,7 +342,11 @@ export class AuthService {
       accessSource: accessInfo.accessSource,
       requiresOrgSelection,
       requiresLocationSelection,
-      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      accessibleOrganizations: await this.gated(
+        accessInfo.accessibleOrganizations,
+        auth,
+        accessInfo.isSuperAdmin,
+      ),
       activeOrganizationId: activeOrgId,
       activeLocationId: activeLocId,
       labMemberships: await findLabMemberships(
@@ -300,6 +354,22 @@ export class AuthService {
         user.uuid,
       ),
     };
+  }
+
+  /** Attach each clinic's `signInBlock` for this session's sign-in method. */
+  private async gated(
+    orgs: AccessibleOrganization[],
+    auth: SessionAuthInfo,
+    isSuperAdmin: boolean,
+  ): Promise<GatedOrganization[]> {
+    return Promise.all(
+      orgs.map(async (org) => ({
+        ...org,
+        signInBlock: isSuperAdmin
+          ? null
+          : await this.gate.blockFor(org.id, auth),
+      })),
+    );
   }
 
   /**
@@ -310,6 +380,7 @@ export class AuthService {
     userId: string,
     organizationId: string,
     locationId: string,
+    auth: SessionAuthInfo,
   ): Promise<{ activeOrganizationId: string; activeLocationId: string }> {
     // Validate access
     const hasAccess = await this.authorizationService.validateAccess(
@@ -321,6 +392,7 @@ export class AuthService {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this location');
     }
+    await this.assertClinicUsable(userId, organizationId, auth);
 
     // Save last accessed context
     await this.userService.updateLastAccessed(
@@ -343,6 +415,7 @@ export class AuthService {
     userId: string,
     organizationId: string,
     locationId: string,
+    auth: SessionAuthInfo,
   ): Promise<{
     activeOrganizationId: string;
     activeLocationId: string;
@@ -359,6 +432,7 @@ export class AuthService {
     if (!hasAccess) {
       throw new ForbiddenException('You do not have access to this location');
     }
+    await this.assertClinicUsable(userId, organizationId, auth);
 
     // Deprecated legacy flags (the web app reads /me/access), derived
     // from the new permissions at the new location.
@@ -478,8 +552,12 @@ export class AuthService {
       throw new ForbiddenException('Failed to refresh session');
     }
 
-    // Generate new access token
-    const accessToken = await this.generateAccessToken(user, sessionId);
+    // Generate new access token, keeping how the session signed in
+    const auth: SessionAuthInfo = {
+      method: rotated.session.authMethod || 'password',
+      domain: rotated.session.authDomain ?? null,
+    };
+    const accessToken = await this.generateAccessToken(user, sessionId, auth);
 
     // Update the cookie with the new token, keeping the same absolute expiry
     this.setSessionCookie(
@@ -516,7 +594,11 @@ export class AuthService {
         !accessInfo.isSuperAdmin &&
         orgCount === 1 &&
         totalLocations > 1,
-      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      accessibleOrganizations: await this.gated(
+        accessInfo.accessibleOrganizations,
+        auth,
+        accessInfo.isSuperAdmin,
+      ),
       activeOrganizationId:
         user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
       activeLocationId:
@@ -526,63 +608,6 @@ export class AuthService {
         user.uuid,
       ),
     };
-  }
-
-  /**
-   * Handle OAuth login/signup.
-   */
-  async handleOAuthLogin(
-    profile: {
-      email: string;
-      name: string;
-      provider: ProviderEnum;
-      providerId?: string;
-    },
-    req: Request,
-  ): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    sessionId: string;
-    isNewUser: boolean;
-  }> {
-    this.logger.info(
-      `OAuth login from ${profile.provider} for ${profile.email}`,
-      AuthService.name,
-    );
-
-    let isNewUser = false;
-    let user = await this.userRepository.findOneBy({ email: profile.email });
-
-    if (!user) {
-      user = await this.userService.createOAuthUser(profile);
-      isNewUser = true;
-      this.logger.info(`OAuth user created: ${user.email}`, AuthService.name);
-    }
-
-    // Check account status
-    this.validateAccountStatus(user, req);
-
-    // Create session. OAuth has no "keep me signed in" checkbox, so treat it
-    // as a remembered sign-in (30 days).
-    const { session, refreshToken } = await this.sessionService.createSession(
-      user.uuid,
-      req,
-      true,
-    );
-
-    // Generate access token
-    const accessToken = await this.generateAccessToken(user, session.uuid);
-
-    // Log OAuth login
-    await this.securityLogService.logOAuthLogin(
-      user.uuid,
-      session.uuid,
-      profile.provider,
-      req,
-      isNewUser,
-    );
-
-    return { accessToken, refreshToken, sessionId: session.uuid, isNewUser };
   }
 
   /**
@@ -752,11 +777,15 @@ export class AuthService {
   /**
    * Get current user info with accessible locations.
    */
-  async getCurrentUser(userId: string) {
+  async getCurrentUser(
+    userId: string,
+    auth: SessionAuthInfo = { method: 'password' },
+    sessionId?: string,
+  ) {
     const user = await this.userRepository.findOneBy({ uuid: userId });
     if (!user) throw new NotFoundException('User not found');
 
-    const accessToken = await this.generateAccessToken(user);
+    const accessToken = await this.generateAccessToken(user, sessionId, auth);
     const accessInfo = await this.authorizationService.resolveUserAccess(
       user.uuid,
     );
@@ -783,7 +812,11 @@ export class AuthService {
         !accessInfo.isSuperAdmin &&
         orgCount === 1 &&
         totalLocations > 1,
-      accessibleOrganizations: accessInfo.accessibleOrganizations,
+      accessibleOrganizations: await this.gated(
+        accessInfo.accessibleOrganizations,
+        auth,
+        accessInfo.isSuperAdmin,
+      ),
       activeOrganizationId:
         user.lastAccessedOrganizationId || accessInfo.defaultOrganizationId,
       activeLocationId:
@@ -793,6 +826,31 @@ export class AuthService {
         user.uuid,
       ),
     };
+  }
+
+  /**
+   * Create a clinic for a signed-in user who has none (awaits approval).
+   * Super admins create clinics from the organizations screen instead.
+   */
+  async createClinicForUser(
+    userId: string,
+    input: { clinicName: string; phone?: string },
+    auth: SessionAuthInfo,
+    sessionId?: string,
+  ) {
+    const user = await this.userRepository.findOneBy({ uuid: userId });
+    if (!user) throw new NotFoundException('User not found');
+    const access = await this.authorizationService.resolveUserAccess(userId);
+    if (access.isSuperAdmin) {
+      throw new ForbiddenException(
+        'Super admins create clinics from the Organizations screen.',
+      );
+    }
+    if (access.accessibleOrganizations.length) {
+      throw new BadRequestException('You already belong to a clinic.');
+    }
+    await this.clinicSetup.createClinicForOwner(user, input);
+    return this.getCurrentUser(userId, auth, sessionId);
   }
 
   /**
@@ -826,13 +884,25 @@ export class AuthService {
   private async generateAccessToken(
     user: User,
     sessionId?: string,
+    auth?: SessionAuthInfo,
   ): Promise<string> {
     return this.jwtTokenService.generateAccessToken(
       user.uuid,
       user.email,
       user.globalRole,
       sessionId,
+      auth,
     );
+  }
+
+  /** Super admins pass; anyone else needs an approved clinic their sign-in fits. */
+  private async assertClinicUsable(
+    userId: string,
+    organizationId: string,
+    auth: SessionAuthInfo,
+  ): Promise<void> {
+    if (await this.authorizationService.isSuperAdmin(userId)) return;
+    await this.gate.assertUsable(organizationId, auth);
   }
 
   /**

@@ -4,7 +4,7 @@ import { Plus, CalendarDays, List, Loader2, ListChecks } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-import { useSearch } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useAppointments } from '@/features/appointments/hooks/useAppointments'
 import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { useAppointmentStats } from '@/features/appointments/hooks/useAppointmentStats'
@@ -53,9 +53,14 @@ export function AppointmentsPage() {
     canSeeBoard ? 'queue' : 'list',
   )
 
+  const navigate = useNavigate()
+  // `?create=1` (quick search action) opens the booking form — also when the
+  // page is already open — then is cleared so it can fire again.
   useEffect(() => {
-    if (create === '1' && can('appointments.book')) openCreateModal()
-  }, []) // eslint-disable-line
+    if (create !== '1') return
+    if (can('appointments.book')) openCreateModal()
+    void navigate({ to: '/appointments', search: { create: undefined }, replace: true })
+  }, [create])
   const [calendarView, setCalendarView] = useState<CalendarView>(
     'resourceTimeGridDay',
   )

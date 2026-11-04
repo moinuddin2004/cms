@@ -11,6 +11,13 @@ import { sessionExpiryFrom } from './session-lifetime';
 const BCRYPT_SALT_ROUNDS = 12;
 const MAX_SESSIONS_PER_USER = 5;
 
+/** How a session signed in — see `UserSession.authMethod`. */
+export interface SessionAuth {
+  method: 'password' | 'google';
+  /** Google Workspace domain (`hd`), when the method is google. */
+  domain?: string | null;
+}
+
 @Injectable()
 export class SessionService {
   private readonly logger = new Logger(SessionService.name);
@@ -28,6 +35,7 @@ export class SessionService {
     userId: string,
     req: Request,
     rememberMe = false,
+    auth: SessionAuth = { method: 'password' },
   ): Promise<{ session: UserSession; refreshToken: string }> {
     // Enforce max sessions — delete oldest if at limit
     await this.enforceSessionLimit(userId);
@@ -63,6 +71,8 @@ export class SessionService {
       device: agent.device.family,
       ipAddress,
       isRevoked: false,
+      authMethod: auth.method,
+      authDomain: auth.domain ?? null,
     });
 
     await this.sessionRepository.save(session);

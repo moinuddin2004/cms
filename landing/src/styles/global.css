@@ -1,0 +1,234 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+
+/*
+ * Design direction: "the clinic counter".
+ * The page borrows from the objects a Pakistani clinic already lives with:
+ * the LED token display above the doctor's door, the printed token slip,
+ * the thermal receipt. Geist for reading, Geist Mono for anything that is
+ * printed or counted (tokens, times, money).
+ *
+ * Palette
+ *   paper    #F3F5F4  page, a cool clinic white
+ *   ink      #0E1B2B  text and primary buttons, prescription pen blue black
+ *   steel    #5A6876  secondary text
+ *   line     #D9E0DD  hairlines
+ *   mint     #E1EFE8  quiet highlight surface
+ *   display  #131209  the token display panel
+ *   signal   #F4A62A  LED amber, used only on the display
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Theme colours switch through these variables (light by default). */
+:root {
+  --paper: #ffffff;
+  --surface: #ffffff;
+  --panel: #f4f4f4;
+  --ink: #111111;
+  --on-ink: #ffffff;
+  --steel: #666666;
+  --muted: #8d8d8d;
+  --line: #efefef;
+  --mark-from: #e9e9e9;
+  --fade-from: #111111;
+  --fade-to: #c9c9c9;
+  --mint: #e8f5ee;
+  --mint-strong: #1f7a5c;
+  --hero: #ffffff;
+  --led: #b86e00;
+}
+/* Dark backgrounds come only from the landing skill's dark list. */
+[data-theme='dark'] {
+  --paper: #000000;
+  --surface: #1f1f1f;
+  --panel: #181818;
+  --ink: #f2f2f2;
+  --on-ink: #111111;
+  --steel: #a0a0a0;
+  --muted: #6f6f6f;
+  --line: #272727;
+  --mark-from: #1f1f1f;
+  --fade-from: #f2f2f2;
+  --fade-to: #4a4a4a;
+  --mint: #1f1f1f;
+  --mint-strong: #5fcf9a;
+  --hero: #000000;
+  --led: #f4a62a;
+}
+
+@theme {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-muted: var(--muted);
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-steel: var(--steel);
+  --color-line: var(--line);
+  --color-mint: var(--mint);
+  --color-mint-strong: var(--mint-strong);
+  --color-hero: var(--hero);
+  --color-led: var(--led);
+  --color-brand: #f4a62a;
+  --color-on-brand: #131209;
+  --color-display: #131209;
+  --color-signal: #f4a62a;
+
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Text styles (landing skill B1) ---------- */
+@utility heading-1 { font-size: var(--text-6xl); line-height: var(--text-6xl--line-height); font-weight: 600; letter-spacing: -0.035em; }
+@utility heading-2 { font-size: var(--text-5xl); line-height: var(--text-5xl--line-height); font-weight: 600; letter-spacing: -0.03em; }
+@utility heading-3 { font-size: var(--text-4xl); line-height: var(--text-4xl--line-height); font-weight: 600; letter-spacing: -0.025em; }
+@utility heading-4 { font-size: var(--text-3xl); line-height: var(--text-3xl--line-height); font-weight: 600; letter-spacing: -0.02em; }
+@utility heading-5 { font-size: var(--text-2xl); line-height: var(--text-2xl--line-height); font-weight: 600; letter-spacing: -0.015em; }
+@utility heading-6 { font-size: var(--text-xl); line-height: var(--text-xl--line-height); font-weight: 600; letter-spacing: -0.01em; }
+
+@utility title-1 { font-size: var(--text-xl); line-height: var(--text-xl--line-height); font-weight: 500; letter-spacing: -0.01em; }
+@utility title-2 { font-size: var(--text-lg); line-height: var(--text-lg--line-height); font-weight: 500; }
+@utility title-3 { font-size: var(--text-base); line-height: var(--text-base--line-height); font-weight: 500; }
+@utility title-4 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 500; }
+@utility title-5 { font-size: var(--text-xs); line-height: var(--text-xs--line-height); font-weight: 500; }
+
+@utility body-1 { font-size: var(--text-base); line-height: var(--text-base--line-height); font-weight: 600; }
+@utility body-2 { font-size: var(--text-base); line-height: var(--text-base--line-height); font-weight: 500; }
+@utility body-3 { font-size: var(--text-base); line-height: var(--text-base--line-height); font-weight: 400; }
+@utility body-4 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 600; }
+@utility body-5 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 500; }
+@utility body-6 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 400; }
+
+@utility button-lg { font-size: var(--text-lg); line-height: var(--text-lg--line-height); font-weight: 600; }
+@utility button-md { font-size: var(--text-base); line-height: var(--text-base--line-height); font-weight: 600; }
+@utility button-sm { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 600; }
+
+@utility caption-1 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 500; }
+@utility caption-2 { font-size: var(--text-sm); line-height: var(--text-sm--line-height); font-weight: 400; }
+@utility caption-3 { font-size: var(--text-xs); line-height: var(--text-xs--line-height); font-weight: 600; }
+@utility caption-4 { font-size: var(--text-xs); line-height: var(--text-xs--line-height); font-weight: 500; }
+@utility caption-5 { font-size: var(--text-xs); line-height: var(--text-xs--line-height); font-weight: 400; }
+
+/* Printed things: tokens, times, receipts. Geist Mono, tabular figures. */
+@utility printed {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero heading text gradient, the one gradient allowed (landing skill B5). */
+@utility hero-gradient {
+  background-image: linear-gradient(to right, #000000, #666666);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme='dark'] .hero-gradient { background-image: linear-gradient(to right, #ffffff, #9b9b9b); }
+
+/* Same rule for a heading on the dark board: white to grey (landing skill B5). */
+@utility hero-gradient-dark {
+  background-image: linear-gradient(to right, #ffffff, #9b9b9b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Dot matrix: text drawn as round LEDs, like a clinic token board. */
+@utility led-dots {
+  -webkit-mask-image: radial-gradient(circle, #000 55%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 55%, transparent 62%);
+  -webkit-mask-size: 5px 5px;
+  mask-size: 5px 5px;
+}
+
+/* ---------- Display type, measured from the reference design ---------- */
+@utility display-hero {
+  font-size: clamp(44px, 6.8vw, 96px);
+  line-height: 1.06;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+}
+@utility display-section {
+  font-size: clamp(36px, 4.4vw, 60px);
+  line-height: 1.16;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+@utility lead-text { font-size: 20px; line-height: 30px; font-weight: 400; }
+@utility section-text { font-size: 18px; line-height: 1.55; font-weight: 400; }
+@utility eyebrow-text { font-size: 15px; line-height: 1.4; font-weight: 500; }
+/* Last hero line fades from ink to grey, top to bottom. */
+@utility fade-text {
+  background-image: linear-gradient(180deg, var(--fade-from) 0%, var(--fade-from) 25%, var(--fade-to) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  padding-bottom: 0.08em;
+}
+@utility btn-lg { height: 52px; padding: 0 26px; font-size: 16px; font-weight: 500; border-radius: 9999px; }
+
+/* The LED digits on the token display. */
+@utility led {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-signal);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    scroll-padding-top: 96px;
+  }
+  [data-theme='dark'] {
+    color-scheme: dark;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    transition: background-color 300ms var(--ease-soft), color 300ms var(--ease-soft);
+  }
+  h1, h2, h3, h4 { text-wrap: balance; }
+  p, li, dd, dt { text-wrap: pretty; }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+/* ---------- Buttons (landing skill B2 padding, B9 states) ---------- */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 whitespace-nowrap select-none;
+    transition: transform 300ms var(--ease-soft), background-color 300ms var(--ease-soft), color 300ms var(--ease-soft);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { @apply bg-ink text-on-ink hover:bg-ink/85; }
+  .btn-ghost { @apply text-steel hover:bg-ink/5 hover:text-ink; }
+  .btn-outline { @apply border border-line bg-surface text-ink hover:border-ink/30; }
+  .btn-light { @apply bg-white text-display hover:bg-white/85; }
+}
+
+/* ---------- Scroll reveal (landing skill B7) ---------- */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 700ms var(--ease-soft), transform 700ms var(--ease-soft);
+}
+.js .reveal.is-visible { opacity: 1; transform: none; }
+
+/* ---------- Tagline word reveal (landing skill B11) ---------- */
+.tagline-word {
+  color: color-mix(in srgb, var(--ink) 25%, transparent);
+  transition: color 400ms var(--ease-soft);
+}
+.tagline-word.is-lit { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal { transform: none; transition: opacity 400ms var(--ease-soft); }
+  .tagline-word { color: var(--ink); transition: none; }
+  .btn:active { transform: none; }
+}

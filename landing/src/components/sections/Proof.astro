@@ -1,0 +1,72 @@
+---
+import Icon from '../Icon.astro';
+import SectionHead from '../SectionHead.astro';
+import { TESTIMONIALS } from '../../data/testimonials';
+import { SITE } from '../../data/site';
+
+/** Facts about the product itself, true today. */
+const facts = [
+  { value: '1', unit: 'queue', text: 'shared by reception, every doctor and the waiting room TV' },
+  { value: '6', unit: 'areas', text: 'front desk, doctor’s room, billing, labs, staff and the owner’s view' },
+  { value: '2', unit: 'languages', text: 'on every prescription, English and Urdu' },
+  { value: '0', unit: 'installs', text: 'it runs in the browser on the devices you already have' },
+];
+---
+
+<section class="px-4 py-16">
+  <div class="mx-auto max-w-6xl">
+    <SectionHead eyebrow="On day one">
+      <Fragment slot="lead">What your clinic gets.</Fragment>
+      <Fragment slot="rest">Before the first patient.</Fragment>
+    </SectionHead>
+
+    <ul class="reveal mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        facts.map((f) => (
+          <li class="rounded-[28px] bg-panel p-8">
+            <p class="flex items-baseline gap-2">
+              <span class="display-section printed">{f.value}</span>
+              <span class="title-2 text-steel">{f.unit}</span>
+            </p>
+            <p class="caption-2 mt-4 text-steel">{f.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    {
+      TESTIMONIALS.length > 0 ? (
+        <ul class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {TESTIMONIALS.map((t) => (
+            <li class="reveal flex flex-col rounded-[28px] bg-panel p-8">
+              <p class="body-3 text-ink">“{t.quote}”</p>
+              <p class="mt-auto pt-8">
+                <span class="body-4 block">{t.name}</span>
+                <span class="caption-2 text-steel">
+                  {t.role}, {t.clinic}, {t.city}
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="reveal mt-4 flex flex-col items-start justify-between gap-6 rounded-[28px] bg-ink p-8 text-on-ink sm:flex-row sm:items-center sm:p-10">
+          <div class="flex items-start gap-4">
+            <span class="grid size-12 shrink-0 place-items-center rounded-2xl bg-brand text-on-brand">
+              <Icon name="hand-heart" class="size-6" />
+            </span>
+            <div>
+              <p class="heading-6">Be one of our first clinics.</p>
+              <p class="body-6 mt-1 max-w-xl opacity-70">
+                Tell us how your clinic runs today. We will set it up with you and listen to what you need next.
+              </p>
+            </div>
+          </div>
+          <a href={`mailto:${SITE.email}?subject=Setting%20up%20my%20clinic`} class="btn btn-lg shrink-0 bg-on-ink text-ink hover:opacity-90">
+            Talk to us
+          </a>
+        </div>
+      )
+    }
+  </div>
+</section>

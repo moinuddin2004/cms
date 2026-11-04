@@ -316,7 +316,8 @@ Login resolves accessible orgs/locations, returns `requiresOrgSelection` / `requ
 
 ### Backend Module Structure
 Each domain is a self-contained NestJS module under `src/`:
-- `auth/` — JWT (access + refresh tokens), OAuth2 (Google, GitHub), rate limiting, security logs
+- `auth/` — JWT (access + refresh tokens), Google sign-in (`auth/google/`: Identity Services ID token → `POST /auth/google`, matched on Google `sub` via `oauth_providers`; no GitHub), rate limiting, security logs. The session's sign-in method rides in the access token (`amr`, `hd`)
+- `clinic-access/` — `ClinicGateService` (checked in TenantContextGuard): self-signup clinics start `approval_status = pending` (no free trial) and every tenant request is refused until a super admin approves (`/admin/clinics/:id/approval`); the owner's sign-in policy (`auth.*` registry keys: Google on/off, Google only, Workspace domains, join requests). Join requests (`clinic_join_requests`) are approved under Employees with a role
 - `organizations/` — org settings, employee role definitions, ownership
 - `locations/` — per-org locations, schedules, settings
 - `patients/` — full patient records: dental charts, vitals, clinical notes, treatments, prescriptions, documents, consents, feedback
@@ -355,7 +356,7 @@ PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-s
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing |
 | `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |
-| `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET` | OAuth2 |
+| `GOOGLE_CLIENT_ID` | Google sign-in (ID token verify). Unset = Google button hidden |
 | `SMTP_USER` / `SMTP_PASS` | Email |
 
 Backend default port: `5000`. Frontend default port: `3000`. CORS configured for `http://localhost:3000`.

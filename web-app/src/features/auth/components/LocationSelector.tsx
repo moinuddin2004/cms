@@ -16,6 +16,8 @@ import {
 import { cn } from '@/lib/utils'
 import { AuthLayout } from './AuthLayout'
 import { AuthHeading } from './AuthPrimitives'
+import { Badge } from '@/components/ui/badge'
+import { clinicBlockLabel } from '../lib/clinicBlock'
 
 type Step = 'org' | 'location'
 
@@ -129,6 +131,11 @@ export function LocationSelector() {
                       {org.locations.length} location
                       {org.locations.length !== 1 ? 's' : ''}
                     </span>
+                    {org.signInBlock && (
+                      <Badge variant="warning" className="mt-1 block w-fit">
+                        {clinicBlockLabel(org.signInBlock.code)}
+                      </Badge>
+                    )}
                   </div>
                   <ChevronRight className="w-5 h-5 shrink-0 text-muted-foreground/40" />
                 </button>

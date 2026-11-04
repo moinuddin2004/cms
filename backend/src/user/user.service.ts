@@ -89,7 +89,12 @@ export class UserService {
     this.logger.debug(`Validating user: ${email}`, UserService.name);
 
     const user = await this.userRepository.findOneBy({ email });
-    if (!user || !(await bcrypt.compare(password, <string>user.password))) {
+    // Google-only accounts have no password: same answer as a wrong one.
+    if (
+      !user ||
+      !user.password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       this.logger.warn(`Invalid credentials for: ${email}`, UserService.name);
       throw new UnauthorizedException();
     }
@@ -117,46 +122,12 @@ export class UserService {
     });
   }
 
-  async upsertOAuthUser(oauthPayload: {
-    email: string;
-    name: string;
-    provider: ProviderEnum;
-  }): Promise<User> {
-    this.logger.info(
-      `Upserting OAuth user: ${oauthPayload.email}`,
-      UserService.name,
-    );
-
-    let user = await this.userRepository.findOneBy({
-      email: oauthPayload.email,
-    });
-    if (!user) {
-      user = this.userRepository.create({
-        ...oauthPayload,
-        status: AccountStatus.ACTIVE,
-      });
-      user = await this.userRepository.save(user);
-      this.logger.info(`OAuth user created: ${user.email}`, UserService.name);
-    }
-
-    return user;
-  }
-
-  async createOAuthUser(profile: {
-    email: string;
-    name: string;
-    provider: ProviderEnum;
-  }) {
-    this.logger.info(
-      `Creating new OAuth user: ${profile.email}`,
-      UserService.name,
-    );
-    const user = this.userRepository.create({
-      ...profile,
-      status: AccountStatus.ACTIVE,
-      globalRole: null,
-    });
-    return this.userRepository.save(user);
+  /** Case-insensitive email lookup (Google emails are lower-cased). */
+  findByEmail(email: string): Promise<User | null> {
+    return this.userRepository
+      .createQueryBuilder('u')
+      .where('LOWER(u.email) = LOWER(:email)', { email })
+      .getOne();
   }
 
   getLoggedInUser() {
@@ -243,23 +214,45 @@ export class UserService {
 
     if (body.type === 'employee') return this.createStaffLogin(manager, body);
 
-    let user = await this.userRepository.findOne({
-      where: { email: body.email },
-    });
+    let user = await this.findByEmail(body.email);
     if (user) {
+      // An existing account (e.g. owner of another clinic) can become an
+      // owner here too — it keeps its own password / Google sign-in.
+      if (
+        body.type === 'owner' &&
+        orgId &&
+        user.globalRole !== GlobalRole.SUPER_ADMIN
+      ) {
+        const already = await this.userRepository.manager.exists(
+          OrganizationOwnership,
+          { where: { userId: user.uuid, organizationId: orgId } },
+        );
+        if (already) {
+          throw new ConflictException('This person is already an owner');
+        }
+        await this.userRepository.manager.save(
+          this.userRepository.manager.create(OrganizationOwnership, {
+            userId: user.uuid,
+            organizationId: orgId,
+            isPrimaryOwner: false,
+          }),
+        );
+        return user;
+      }
       throw new BadRequestException('User with email already exists');
     }
 
-    if (!body.password) {
+    // Super admins always sign in with a password.
+    const google = body.loginMethod === 'google' && body.type !== 'super_admin';
+    if (!google && !body.password) {
       throw new BadRequestException('Password is required');
     }
-    const hashedPassword = await bcrypt.hash(body.password, 12);
     user = this.userRepository.create({
-      email: body.email,
+      email: google ? body.email.toLowerCase() : body.email,
       name: body.name,
       phone: body.phone,
-      password: hashedPassword,
-      provider: ProviderEnum.LOCAL,
+      password: google ? undefined : await bcrypt.hash(body.password!, 12),
+      provider: google ? ProviderEnum.GOOGLE : ProviderEnum.LOCAL,
       globalRole: body.type === 'super_admin' ? GlobalRole.SUPER_ADMIN : null,
       status: body.status || AccountStatus.ACTIVE,
     });
@@ -331,9 +324,7 @@ export class UserService {
     if (!body.employeeId) {
       throw new BadRequestException('employeeId is required for staff users');
     }
-    if (!body.password) {
-      throw new BadRequestException('Password is required');
-    }
+    const google = body.loginMethod === 'google';
 
     return this.userRepository.manager.transaction(async (em) => {
       const assignments = await em
@@ -352,30 +343,52 @@ export class UserService {
       if (assignments.some((a) => a.userId)) {
         throw new ConflictException('This employee already has a login');
       }
-      if (
-        await em.getRepository(User).exists({ where: { email: body.email } })
-      ) {
-        throw new BadRequestException('User with email already exists');
+      // An existing account (works at another clinic) is reused as is.
+      let user = await em
+        .getRepository(User)
+        .createQueryBuilder('u')
+        .where('LOWER(u.email) = LOWER(:email)', { email: body.email })
+        .getOne();
+      if (user) {
+        if (user.globalRole === GlobalRole.SUPER_ADMIN) {
+          throw new ConflictException(
+            'This email belongs to a platform administrator',
+          );
+        }
+        const taken = await em
+          .getRepository(EmployeeOrgLocationAssignment)
+          .exists({ where: { userId: user.uuid, organizationId: orgId } });
+        if (taken) {
+          throw new ConflictException(
+            'This login already belongs to someone in this clinic',
+          );
+        }
+      } else {
+        if (!google && !body.password) {
+          throw new BadRequestException('Password is required');
+        }
+        user = await em.getRepository(User).save(
+          em.getRepository(User).create({
+            email: google ? body.email.toLowerCase() : body.email,
+            name: body.name,
+            phone: body.phone,
+            password: google
+              ? undefined
+              : await bcrypt.hash(body.password!, 12),
+            provider: google ? ProviderEnum.GOOGLE : ProviderEnum.LOCAL,
+            globalRole: null,
+            status: body.status || AccountStatus.ACTIVE,
+          }),
+        );
       }
-
-      const user = await em.getRepository(User).save(
-        em.getRepository(User).create({
-          email: body.email,
-          name: body.name,
-          phone: body.phone,
-          password: await bcrypt.hash(body.password, 12),
-          provider: ProviderEnum.LOCAL,
-          globalRole: null,
-          status: body.status || AccountStatus.ACTIVE,
-        }),
-      );
+      const login = user;
       for (const a of assignments) {
-        a.userId = user.uuid;
+        a.userId = login.uuid;
         a.hasPortalAccess = true;
       }
       // Saved through the repository so the access-version subscriber bumps.
       await em.getRepository(EmployeeOrgLocationAssignment).save(assignments);
-      return user;
+      return login;
     });
   }
 

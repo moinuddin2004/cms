@@ -1,0 +1,16 @@
+---
+import { SITE } from '../data/site';
+
+interface Props {
+  class?: string;
+}
+const { class: className = '' } = Astro.props;
+---
+
+<a href="/" class={`inline-flex items-center gap-2 rounded-lg ${className}`} aria-label={`${SITE.name} home`}>
+  <svg viewBox="0 0 32 32" class="size-8" aria-hidden="true">
+    <rect width="32" height="32" rx="8" class="fill-display" />
+    <path d="M14 9h4v5h5v4h-5v5h-4v-5H9v-4h5z" class="fill-signal" />
+  </svg>
+  <span class="title-2 tracking-tight text-ink">{SITE.name}</span>
+</a>

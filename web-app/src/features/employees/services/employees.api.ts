@@ -115,3 +115,11 @@ export async function fetchSalaryHistory(employeeId: string): Promise<any[]> {
   const { data } = await api.get(`/employees/${employeeId}/salary-history`)
   return data.data
 }
+
+/** Unlink the employee's Google account (they changed or lost it). */
+export async function resetEmployeeGoogleLink(
+  employeeId: string,
+): Promise<{ employeeId: string; reset: boolean }> {
+  const { data } = await api.delete(`/employees/${employeeId}/google-link`)
+  return data.data
+}

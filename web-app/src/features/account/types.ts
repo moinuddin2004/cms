@@ -78,13 +78,33 @@ export interface AdminSubscription extends SubscriptionSummary {
   payments: SubscriptionPayment[]
 }
 
+export type ClinicApproval = 'pending' | 'approved' | 'rejected'
+
 export interface AdminSubscriptionRow {
-  organization: { id: string; name: string; isActive: boolean }
+  organization: {
+    id: string
+    name: string
+    isActive: boolean
+    email?: string | null
+    phone?: string | null
+  }
   plan: Plan
   trialEndsAt: string | null
   paidUntil: string | null
   state: SubscriptionState
+  /** Super admin approval of a self-signup clinic. */
+  approval: {
+    status: ClinicApproval
+    note: string | null
+    decidedAt: string | null
+  }
   createdAt: string
+}
+
+export const APPROVAL_LABEL: Record<ClinicApproval, string> = {
+  pending: 'Awaiting approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
 }
 
 export interface ClinicSetup {

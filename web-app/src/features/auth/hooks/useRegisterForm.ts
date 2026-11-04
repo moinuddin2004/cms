@@ -3,7 +3,8 @@ import { useForm } from '@tanstack/react-form'
 import { useNavigate } from '@tanstack/react-router'
 import { toast } from 'sonner'
 import apiClient from '@/lib/api'
-import { useAuthStore } from '@/store/useAuthStore'
+import { storeSession } from '../lib/applyLogin'
+import type { LoginPayload } from '../lib/applyLogin'
 import { registerSchema } from '../schemas/auth.schema'
 import type { RegisterFormValues } from '../schemas/auth.schema'
 
@@ -15,11 +16,10 @@ const defaultValues: RegisterFormValues = {
   password: '',
 }
 
-/** Self-signup: creates the clinic, signs in, then opens the setup wizard. */
+/** Self-signup: creates the clinic (awaiting approval) and signs in. */
 export function useRegisterForm() {
   const [globalError, setGlobalError] = useState('')
   const navigate = useNavigate()
-  const setAuth = useAuthStore((state) => state.setAuth)
 
   const form = useForm({
     defaultValues,
@@ -36,23 +36,12 @@ export function useRegisterForm() {
 
         if (response.data?.isSuccess) {
           // Signup also signs in (same payload as /auth/login).
-          const d = response.data.data
-          setAuth({
-            user: d.user,
-            accessToken: d.accessToken,
-            isSuperAdmin: d.isSuperAdmin,
-            accessSource: d.accessSource,
-            requiresOrgSelection: d.requiresOrgSelection,
-            requiresLocationSelection: d.requiresLocationSelection,
-            accessibleOrganizations: d.accessibleOrganizations,
-            activeOrganizationId: d.activeOrganizationId,
-            activeLocationId: d.activeLocationId,
-            labMemberships: d.labMemberships ?? [],
+          storeSession(response.data.data as LoginPayload)
+          toast.success('Your clinic has been created', {
+            description: 'You can use it as soon as it is approved.',
           })
-          toast.success('Your clinic is ready', {
-            description: 'Your 14-day free trial has started.',
-          })
-          navigate({ to: '/setup' })
+          // `/` → the root guard shows the "awaiting approval" screen.
+          navigate({ to: '/' })
         }
       } catch (err: any) {
         const msg = err.response?.data?.message

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-interface Organization {
+export interface Organization {
   id: string
   name: string
   slug: string
@@ -9,6 +9,23 @@ interface Organization {
   /** ISO 4217 code money is shown in; older sessions may lack it. */
   currency?: string
   locations: Location[]
+  /**
+   * Why this session can't open the clinic (awaiting approval, rejected,
+   * or its sign-in policy); null/absent when it can.
+   */
+  signInBlock?: SignInBlock | null
+}
+
+export type SignInBlockCode =
+  | 'CLINIC_PENDING_APPROVAL'
+  | 'CLINIC_REJECTED'
+  | 'GOOGLE_SIGN_IN_REQUIRED'
+  | 'GOOGLE_SIGN_IN_DISABLED'
+  | 'GOOGLE_DOMAIN_NOT_ALLOWED'
+
+export interface SignInBlock {
+  code: SignInBlockCode
+  message: string
 }
 
 interface Location {
@@ -81,6 +98,12 @@ interface AuthState {
 
   /** After a location's timezone is changed in settings. */
   setLocationTimezone: (locationId: string, timezone: string) => void
+
+  /** A tenant request was refused by the clinic gate (see lib/api). */
+  setClinicBlock: (orgId: string, block: SignInBlock) => void
+
+  /** Send the user back to the clinic picker (from /clinic-access). */
+  requestClinicSelection: () => void
 
   clearAuth: () => void
 }
@@ -155,6 +178,20 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       })),
     })),
 
+  setClinicBlock: (orgId, block) =>
+    set((s) => ({
+      accessibleOrganizations: s.accessibleOrganizations.map((o) =>
+        o.id === orgId ? { ...o, signInBlock: block } : o,
+      ),
+    })),
+
+  requestClinicSelection: () =>
+    set({
+      requiresOrgSelection: true,
+      activeOrganizationId: null,
+      activeLocationId: null,
+    }),
+
   clearAuth: () =>
     set({
       user: null,
@@ -171,6 +208,16 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       activeLabId: null,
     }),
 }))
+
+/** The active clinic's block for this session, if it can't be opened. */
+export function activeClinicBlock(
+  s: Pick<AuthState, 'accessibleOrganizations' | 'activeOrganizationId'>,
+): SignInBlock | null {
+  return (
+    s.accessibleOrganizations.find((o) => o.id === s.activeOrganizationId)
+      ?.signInBlock ?? null
+  )
+}
 
 /**
  * Lab-only users (lab staff with no clinic organization) live in the lab

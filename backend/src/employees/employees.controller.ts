@@ -23,7 +23,8 @@ import { TogglePortalAccessDto } from './dto/toggle-portal-access.dto';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
-import { Can } from 'src/access/decorators/access.decorators';
+import { Access, Can } from 'src/access/decorators/access.decorators';
+import type { AccessContext } from 'src/access/access-context';
 
 @Controller('employees')
 export class EmployeesController {
@@ -122,6 +123,21 @@ export class EmployeesController {
       data,
       data.hasPortalAccess ? 'Portal access enabled' : 'Portal access disabled',
     );
+  }
+
+  /** Unlink the employee's Google account so they can sign in with a new one. */
+  @Delete(':id/google-link')
+  @Can('employees.manage')
+  async resetGoogleLink(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
+  ) {
+    const data = await this.employeesService.resetGoogleLink(id, ctx, {
+      isOwner: access.isOwner,
+      isSuperAdmin: access.isSuperAdmin,
+    });
+    return ResponseWrapper.success(data, 'Google sign-in reset');
   }
 
   // ═══════════════════════════════════════════════════════════

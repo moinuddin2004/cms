@@ -1,0 +1,14 @@
+---
+import SimplePage from '../layouts/SimplePage.astro';
+import { SITE } from '../data/site';
+---
+
+<!-- PLACEHOLDER: replace with the reviewed terms of service before launch. -->
+<SimplePage title={`Terms of service · ${SITE.name}`}>
+  <h1 class="heading-3 mt-12 text-ink">Terms of service</h1>
+  <p class="body-3 mt-4 text-steel">
+    Our terms of service are being prepared. Until they are published, write to
+    <a class="text-ink underline underline-offset-4" href={`mailto:${SITE.email}`}>{SITE.email}</a> with any question about plans,
+    payments or your account.
+  </p>
+</SimplePage>

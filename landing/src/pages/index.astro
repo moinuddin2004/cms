@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import Hero from '../components/sections/Hero.astro';
+import ClinicStrip from '../components/sections/ClinicStrip.astro';
+import Views from '../components/sections/Views.astro';
+import Journey from '../components/sections/Journey.astro';
+import Features from '../components/sections/Features.astro';
+import Proof from '../components/sections/Proof.astro';
+import Faq from '../components/sections/Faq.astro';
+import FinalCta from '../components/sections/FinalCta.astro';
+import { FAQ } from '../data/faq';
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
+---
+
+<Layout>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  <Nav />
+  <main id="main">
+    <Hero />
+    <ClinicStrip />
+    <Views />
+    <Journey />
+    <Features />
+    <Proof />
+    <Faq />
+    <FinalCta />
+  </main>
+  <Footer />
+</Layout>

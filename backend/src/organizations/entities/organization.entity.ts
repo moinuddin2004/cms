@@ -8,6 +8,7 @@ import {
   Index,
 } from 'typeorm';
 import { SubscriptionPlan } from 'src/common/enums/subscription-plan.enum';
+import { ClinicApprovalStatus } from 'src/common/enums/clinic-approval-status.enum';
 
 @Entity({ name: 'organizations' })
 @Index(['slug'], { unique: true })
@@ -81,6 +82,29 @@ export class Organization {
   /** Self-signup clinics go through the setup wizard once (`/setup`). */
   @Column({ name: 'onboarding_pending', type: 'boolean', default: false })
   onboardingPending: boolean;
+
+  /**
+   * Super admin approval. Self-signups start `pending` and every tenant
+   * request is refused until approved (TenantContextGuard → ClinicGate).
+   * The default keeps existing and super-admin-created clinics usable.
+   */
+  @Column({
+    name: 'approval_status',
+    type: 'enum',
+    enum: ClinicApprovalStatus,
+    default: ClinicApprovalStatus.APPROVED,
+  })
+  approvalStatus: ClinicApprovalStatus;
+
+  @Column({ name: 'approval_decided_at', type: 'timestamptz', nullable: true })
+  approvalDecidedAt: Date | null;
+
+  @Column({ name: 'approval_decided_by', type: 'uuid', nullable: true })
+  approvalDecidedBy: string | null;
+
+  /** Why a clinic was rejected — shown to its owner. */
+  @Column({ name: 'approval_note', type: 'text', nullable: true })
+  approvalNote: string | null;
 
   /**
    * +1 on every access change in the org (roles, assignments, feature

@@ -19,6 +19,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: payload.email,
       globalRole: payload.globalRole || null,
       sessionId: payload.sessionId,
+      authMethod: payload.amr || 'password',
+      authDomain: payload.hd || null,
     };
   }
 }

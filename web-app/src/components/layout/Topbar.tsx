@@ -3,6 +3,7 @@ import { TooltipButton } from '@/components/shared/TooltipButton'
 import { useUIStore } from '@/store/ui-store'
 import { LocationSwitcher } from '@/components/layout/LocationSwitcher'
 import { NotificationBell } from '@/features/notifications'
+import { SearchTrigger } from '@/features/search'
 import { useTheme } from '@/hooks/useTheme'
 import { cn } from '@/lib/utils'
 
@@ -58,8 +59,9 @@ export function Topbar() {
         </div> */}
       </div>
 
-      {/* Right: notifications + theme + location */}
+      {/* Right: search + notifications + theme + location */}
       <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+        <SearchTrigger />
         <NotificationBell />
         <ThemeToggle />
         <LocationSwitcher />

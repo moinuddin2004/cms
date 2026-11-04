@@ -1,5 +1,15 @@
 import axios, { type InternalAxiosRequestConfig, AxiosError } from 'axios'
 import { useAuthStore } from '@/store/useAuthStore'
+import type { SignInBlockCode } from '@/store/useAuthStore'
+
+/** 403 codes from the backend ClinicGate (approval + sign-in policy). */
+const CLINIC_GATE_CODES = new Set<string>([
+  'CLINIC_PENDING_APPROVAL',
+  'CLINIC_REJECTED',
+  'GOOGLE_SIGN_IN_REQUIRED',
+  'GOOGLE_SIGN_IN_DISABLED',
+  'GOOGLE_DOMAIN_NOT_ALLOWED',
+])
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
@@ -83,6 +93,22 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean
+    }
+
+    // The clinic stopped being usable mid-session (rejected, or its sign-in
+    // policy changed): mark it so the root guard shows /clinic-access.
+    if (error.response?.status === 403) {
+      const body = error.response.data as
+        { code?: unknown; message?: unknown } | undefined
+      if (typeof body?.code === 'string' && CLINIC_GATE_CODES.has(body.code)) {
+        const s = useAuthStore.getState()
+        if (s.activeOrganizationId && !s.isSuperAdmin) {
+          s.setClinicBlock(s.activeOrganizationId, {
+            code: body.code as SignInBlockCode,
+            message: typeof body.message === 'string' ? body.message : '',
+          })
+        }
+      }
     }
 
     // Only handle 401 (Unauthorized) responses

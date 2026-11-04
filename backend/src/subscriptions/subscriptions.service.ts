@@ -31,6 +31,7 @@ export interface SubscriptionUsage {
 
 export interface SubscriptionSummary {
   organization: { id: string; name: string; isActive: boolean };
+  approval: { status: string; note: string | null; decidedAt: Date | null };
   plan: (typeof PLANS)[keyof typeof PLANS];
   trialEndsAt: Date | null;
   paidUntil: Date | null;
@@ -93,6 +94,11 @@ export class SubscriptionsService {
     const org = await this.org(orgId);
     return {
       organization: { id: org.id, name: org.name, isActive: org.isActive },
+      approval: {
+        status: org.approvalStatus,
+        note: org.approvalNote,
+        decidedAt: org.approvalDecidedAt,
+      },
       plan: PLANS[org.subscriptionPlan],
       trialEndsAt: org.trialEndsAt,
       paidUntil: org.paidUntil,
@@ -109,11 +115,22 @@ export class SubscriptionsService {
       .getRepository(Organization)
       .find({ order: { name: 'ASC' } });
     return orgs.map((org) => ({
-      organization: { id: org.id, name: org.name, isActive: org.isActive },
+      organization: {
+        id: org.id,
+        name: org.name,
+        isActive: org.isActive,
+        email: org.email,
+        phone: org.phone,
+      },
       plan: PLANS[org.subscriptionPlan],
       trialEndsAt: org.trialEndsAt,
       paidUntil: org.paidUntil,
       state: subscriptionState(org, now),
+      approval: {
+        status: org.approvalStatus,
+        note: org.approvalNote,
+        decidedAt: org.approvalDecidedAt,
+      },
       createdAt: org.createdAt,
     }));
   }

@@ -30,6 +30,7 @@ function defaultsFor(
     dob: employee?.dob ? employee.dob.split('T')[0] : '',
     hasPortalAccess: employee?.hasPortalAccess ?? false,
     portalEmail: '',
+    portalLoginMethod: 'password',
     portalPassword: '',
     profilePictureUrl: employee?.profilePictureUrl ?? '',
     userId: employee?.userId ?? '',
@@ -59,7 +60,10 @@ export function useEmployeeForm({
         gender: value.gender || undefined,
         dob: blank(value.dob),
         portalEmail: blank(value.portalEmail),
-        portalPassword: blank(value.portalPassword),
+        portalPassword:
+          value.portalLoginMethod === 'google'
+            ? undefined
+            : blank(value.portalPassword),
         profilePictureUrl: blank(value.profilePictureUrl),
         userId: blank(value.userId),
         primaryLocationId: blank(value.primaryLocationId),

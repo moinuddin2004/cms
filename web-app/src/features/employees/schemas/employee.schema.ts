@@ -31,6 +31,8 @@ export const employeeFormSchema = z
     dob: z.string(),
     hasPortalAccess: z.boolean(),
     portalEmail: z.string(),
+    /** New login: password, or Google (no password, linked on first sign-in). */
+    portalLoginMethod: z.enum(['password', 'google']),
     portalPassword: z.string(),
     profilePictureUrl: z.string(),
     userId: z.string(),
@@ -82,7 +84,9 @@ export const employeeFormSchema = z
           path: ['portalEmail'],
         })
       }
-      if (data.portalPassword.trim() === '') {
+      if (data.portalLoginMethod === 'google') {
+        // No password: they sign in with the Google account of this email.
+      } else if (data.portalPassword.trim() === '') {
         ctx.addIssue({
           code: 'custom',
           message: 'Password is required for portal access',

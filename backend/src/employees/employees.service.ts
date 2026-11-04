@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,6 +19,9 @@ import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { EmploymentType } from './enums/employee.enums';
 import { User } from 'src/user/entities/user.entity';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
+import { OAuthProvider } from 'src/auth/entities/OAuthProvider';
+import { GlobalRole } from 'src/common/enums/global-role.enum';
+import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
 import { ClockService } from 'src/common/clock/clock.service';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { EmploymentRole } from './entities/employment-role.entity';
@@ -46,6 +50,8 @@ export class EmployeesService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(EmploymentRole)
     private readonly roleRepo: Repository<EmploymentRole>,
+    @InjectRepository(OAuthProvider)
+    private readonly oauthRepo: Repository<OAuthProvider>,
     private readonly clock: ClockService,
     private readonly flags: FeatureFlagsService,
     @Optional() private readonly accessVersions?: AccessVersionService,
@@ -195,14 +201,54 @@ export class EmployeesService {
     return `EMP-${String(count + 1).padStart(3, '0')}`;
   }
 
+  /**
+   * The login for an employee's portal access. An account that already
+   * exists with this email (e.g. a doctor who also works at another clinic)
+   * is reused — it just gains this clinic — unless it already belongs to
+   * someone in this clinic. A new account signs in with a password, or with
+   * Google ('google': no password, linked on the first Google sign-in).
+   */
   private async createPortalUser(
     email: string,
-    password: string,
+    password: string | undefined,
     name: string,
+    method: 'password' | 'google' | undefined,
+    organizationId: string,
   ): Promise<User> {
-    const existing = await this.userRepo.findOneBy({ email });
+    const existing = await this.userRepo
+      .createQueryBuilder('u')
+      .where('LOWER(u.email) = LOWER(:email)', { email })
+      .getOne();
     if (existing) {
-      throw new ConflictException(`A user with email ${email} already exists`);
+      if (existing.globalRole === GlobalRole.SUPER_ADMIN) {
+        throw new ConflictException(
+          'This email belongs to a platform administrator.',
+        );
+      }
+      const taken = await this.assignmentRepo.exists({
+        where: { userId: existing.uuid, organizationId },
+      });
+      if (taken) {
+        throw new ConflictException(
+          'This login already belongs to someone in this clinic.',
+        );
+      }
+      return existing;
+    }
+    if (method === 'google') {
+      return this.userRepo.save(
+        this.userRepo.create({
+          email: email.toLowerCase(),
+          name,
+          provider: ProviderEnum.GOOGLE,
+          globalRole: null,
+        }),
+      );
+    }
+    if (!password || password.length < 6) {
+      throw new BadRequestException(
+        'A password of at least 6 characters is required for a password login',
+      );
     }
     const hashed = await bcrypt.hash(password, 12);
     const user = this.userRepo.create({
@@ -213,6 +259,62 @@ export class EmployeesService {
       globalRole: null,
     });
     return this.userRepo.save(user);
+  }
+
+  /** How the employee's login signs in (null = no login). */
+  private async loginInfo(user: User | null | undefined) {
+    if (!user) return null;
+    const google = await this.oauthRepo.findOneBy({
+      userId: user.uuid,
+      provider: ProviderEnum.GOOGLE,
+    });
+    return {
+      email: user.email,
+      hasPassword: !!user.password,
+      googleLinked: !!google,
+      googleEmail: google?.email ?? null,
+      /** Google login that hasn't signed in yet (no password, not linked). */
+      awaitingFirstGoogleSignIn: !user.password && !google,
+    };
+  }
+
+  /**
+   * Unlink an employee's Google account (they changed or lost it). With no
+   * password, their next Google sign-in with the same email links again.
+   * Owner logins can only be reset by an owner.
+   */
+  async resetGoogleLink(
+    employeeId: string,
+    ctx: TenantContext,
+    caller: { isOwner: boolean; isSuperAdmin: boolean },
+  ): Promise<{ employeeId: string; reset: boolean }> {
+    const assignment = await this.getAssignmentOrFail(
+      employeeId,
+      ctx.organizationId,
+      ctx.locationId,
+    );
+    if (!assignment.userId) {
+      throw new BadRequestException('This employee has no login');
+    }
+    const user = await this.userRepo.findOneBy({ uuid: assignment.userId });
+    if (!user || user.globalRole === GlobalRole.SUPER_ADMIN) {
+      throw new ForbiddenException('This login cannot be changed here');
+    }
+    if (!caller.isOwner && !caller.isSuperAdmin) {
+      const isOwner = await this.assignmentRepo.manager
+        .getRepository(OrganizationOwnership)
+        .exists({
+          where: { userId: user.uuid, organizationId: ctx.organizationId },
+        });
+      if (isOwner) {
+        throw new ForbiddenException('Only an owner can reset an owner login');
+      }
+    }
+    const result = await this.oauthRepo.delete({
+      userId: user.uuid,
+      provider: ProviderEnum.GOOGLE,
+    });
+    return { employeeId, reset: !!result.affected };
   }
 
   private async getAssignmentOrFail(
@@ -278,15 +380,17 @@ export class EmployeesService {
     // 4. If portal access enabled and no existing userId, create a portal user
     let resolvedUserId = dto.userId || null;
     if (dto.hasPortalAccess && !resolvedUserId) {
-      if (!dto.portalEmail || !dto.portalPassword) {
+      if (!dto.portalEmail) {
         throw new BadRequestException(
-          'portalEmail and portalPassword are required when hasPortalAccess is true',
+          'portalEmail is required when hasPortalAccess is true',
         );
       }
       const portalUser = await this.createPortalUser(
         dto.portalEmail,
         dto.portalPassword,
         dto.fullName,
+        dto.portalLoginMethod,
+        organizationId,
       );
       resolvedUserId = portalUser.uuid;
     }
@@ -456,6 +560,7 @@ export class EmployeesService {
       hasPortalAccess: assignment.hasPortalAccess,
       isPrimary: assignment.isPrimary,
       userId: assignment.userId,
+      login: await this.loginInfo(assignment.user),
       organizationId: assignment.organizationId,
       primaryLocationId: assignment.locationId,
       primaryLocation: assignment.location,
@@ -516,15 +621,17 @@ export class EmployeesService {
     // Handle portal access: create user if enabling and no user linked yet
     if (dto.hasPortalAccess !== undefined) {
       if (dto.hasPortalAccess && !assignment.userId) {
-        if (!dto.portalEmail || !dto.portalPassword) {
+        if (!dto.portalEmail) {
           throw new BadRequestException(
-            'portalEmail and portalPassword are required when enabling portal access',
+            'portalEmail is required when enabling portal access',
           );
         }
         const portalUser = await this.createPortalUser(
           dto.portalEmail,
           dto.portalPassword,
           employee.fullName,
+          dto.portalLoginMethod,
+          ctx.organizationId,
         );
         assignment.userId = portalUser.uuid;
       }

@@ -1,0 +1,210 @@
+---
+/**
+ * One patient's visit as a stepper: the steps on the left, the screen for
+ * the selected step on the right. It moves on by itself while in view.
+ */
+import Icon from '../Icon.astro';
+import SectionHead from '../SectionHead.astro';
+import { SITE } from '../../data/site';
+
+const steps = [
+  { key: 'slip', time: '09:12', icon: 'user-plus', title: 'Checked in at reception', text: 'Booked as a follow up. She gets token A15 and takes a seat.' },
+  { key: 'display', time: '09:26', icon: 'television-simple', title: 'Called to Room 2', text: 'The waiting room TV shows A15. Nobody shouts her name.' },
+  { key: 'vitals', time: '09:31', icon: 'stethoscope', title: 'With the doctor', text: 'Vitals, last visit and old reports on the same screen as the notes.' },
+  { key: 'rx', time: '09:44', icon: 'pill', title: 'Prescription printed', text: 'In Urdu, because that is what Mehwish reads at home.' },
+  { key: 'bill', time: '09:47', icon: 'receipt', title: 'Bill paid', text: 'Consultation and lab test on one invoice, paid by JazzCash.' },
+  { key: 'lab', time: '09:48', icon: 'flask', title: 'Lab order sent', text: 'Her lipid profile goes to City Diagnostics. You see when it is back.' },
+];
+---
+
+<section id="visit" class="px-4 py-16">
+  <div class="mx-auto max-w-6xl">
+    <SectionHead eyebrow="A real visit">
+      <Fragment slot="lead">One patient, one morning.</Fragment>
+      <Fragment slot="rest">Every step on record.</Fragment>
+      Follow Mehwish Ali through a follow up visit. Each step is saved in {SITE.name} as it happens.
+    </SectionHead>
+
+    <div id="journey" class="reveal mt-12 grid gap-4 rounded-[28px] bg-panel p-4 sm:p-6 lg:grid-cols-12">
+      <ol class="space-y-1 lg:col-span-5" role="tablist" aria-label="Steps of the visit">
+        {
+          steps.map((s, i) => (
+            <li>
+              <button
+                type="button"
+                role="tab"
+                id={`step-${s.key}`}
+                aria-controls={`shot-${s.key}`}
+                aria-selected={i === 0 ? 'true' : 'false'}
+                tabindex={i === 0 ? 0 : -1}
+                class="step group flex w-full items-start gap-4 rounded-2xl px-4 py-3 text-left transition-colors duration-300 ease-soft hover:bg-ink/5 aria-selected:bg-surface aria-selected:shadow-sm aria-selected:shadow-ink/5"
+              >
+                <span class="grid size-10 shrink-0 place-items-center rounded-xl bg-surface text-steel group-aria-selected:bg-ink group-aria-selected:text-on-ink">
+                  <Icon name={s.icon} class="size-5" />
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="body-2">{s.title}</span>
+                    <span class="caption-4 printed text-steel">{s.time}</span>
+                  </span>
+                  <span class="step-text caption-2 mt-1 hidden text-steel group-aria-selected:block">{s.text}</span>
+                </span>
+              </button>
+            </li>
+          ))
+        }
+      </ol>
+
+      <div class="grid min-h-96 place-items-center rounded-2xl bg-surface p-6 sm:p-10 lg:col-span-7" aria-live="polite">
+        <div id="shot-slip" role="tabpanel" aria-labelledby="step-slip" class="shot w-full max-w-xs">
+          <div class="printed rounded-2xl border border-dashed border-ink/30 p-6">
+            <p class="caption-5 flex justify-between text-steel"><span>Main branch</span><span>4 Nov · 09:12</span></p>
+            <p class="caption-2 mt-6 text-steel">Token number</p>
+            <p class="heading-1">A15</p>
+            <p class="body-5 mt-2">Dr. Ayesha Khan · Room 2</p>
+            <p class="caption-5 mt-6 text-steel">Please wait for your number on the screen</p>
+          </div>
+        </div>
+
+        <div id="shot-display" role="tabpanel" aria-labelledby="step-display" class="shot w-full max-w-sm" hidden>
+          <div class="rounded-2xl bg-display p-8 text-center text-white">
+            <p class="caption-1 text-white/50">Now serving</p>
+            <p class="shot-led led-dots mt-2">A15</p>
+            <p class="title-3 mt-4">Room 2 · Dr. Ayesha Khan</p>
+          </div>
+        </div>
+
+        <div id="shot-vitals" role="tabpanel" aria-labelledby="step-vitals" class="shot w-full max-w-md" hidden>
+          <div class="flex items-center gap-3">
+            <span class="caption-3 grid size-10 place-items-center rounded-full bg-mint text-mint-strong">MA</span>
+            <div>
+              <p class="body-4">Mehwish Ali</p>
+              <p class="caption-5 text-steel">34 years · Follow up · Last visit 12 Sep</p>
+            </div>
+          </div>
+          <div class="mt-6 grid grid-cols-3 gap-2">
+            {[['BP', '128/84'], ['Pulse', '76'], ['Temp', '98.9°F']].map(([k, v]) => (
+              <div class="rounded-xl bg-panel px-3 py-3">
+                <p class="caption-5 text-steel">{k}</p>
+                <p class="body-1 printed">{v}</p>
+              </div>
+            ))}
+          </div>
+          <div class="mt-3 rounded-xl bg-panel p-4">
+            <p class="caption-5 text-steel">Notes</p>
+            <p class="body-6 mt-1">BP better than last visit. Continue the same dose and review in 4 weeks.</p>
+          </div>
+        </div>
+
+        <div id="shot-rx" role="tabpanel" aria-labelledby="step-rx" class="shot w-full max-w-md" hidden>
+          <p class="caption-5 text-steel">Prescription</p>
+          <ul class="mt-3 space-y-2">
+            {[
+              ['Tab. Amlodipine 5 mg', '1 + 0 + 0 · 30 days', 'صبح ایک گولی، تیس دن تک'],
+              ['Tab. Panadol 500 mg', 'When needed', 'درد ہو تو ایک گولی'],
+            ].map(([d, dose, ur]) => (
+              <li class="rounded-xl bg-panel p-4">
+                <p class="body-4">{d}</p>
+                <p class="caption-5 text-steel">{dose}</p>
+                <p class="body-6 mt-2" dir="rtl" lang="ur">{ur}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div id="shot-bill" role="tabpanel" aria-labelledby="step-bill" class="shot w-full max-w-sm" hidden>
+          <div class="flex items-center justify-between">
+            <p class="body-4">Invoice INV 2611</p>
+            <span class="caption-3 rounded-full bg-mint px-2 py-0.5 text-mint-strong">Paid</span>
+          </div>
+          <ul class="mt-4 divide-y divide-line">
+            {[['Consultation', 'Rs 2,500'], ['Lipid profile', 'Rs 1,800']].map(([k, v]) => (
+              <li class="flex justify-between py-2"><span class="body-6 text-steel">{k}</span><span class="body-6 printed">{v}</span></li>
+            ))}
+          </ul>
+          <div class="mt-2 flex items-center justify-between border-t border-line pt-3">
+            <span class="body-4">Total</span>
+            <span class="heading-5 printed">Rs 4,300</span>
+          </div>
+          <p class="caption-5 mt-2 text-steel">Paid by JazzCash · 09:47</p>
+        </div>
+
+        <div id="shot-lab" role="tabpanel" aria-labelledby="step-lab" class="shot w-full max-w-sm" hidden>
+          <ul class="space-y-2">
+            {[
+              ['Lipid profile', 'City Diagnostics', 'Sent'],
+              ['CBC', 'City Diagnostics', 'Delivered'],
+            ].map(([n, lab, st]) => (
+              <li class="flex items-center gap-3 rounded-xl bg-panel px-4 py-3">
+                <Icon name="flask" class="size-5 text-steel" />
+                <span class="min-w-0 flex-1"><span class="body-5 block">{n}</span><span class="caption-5 text-steel">{lab}</span></span>
+                <span class="caption-3 rounded-full bg-surface px-2 py-0.5">{st}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .shot-led {
+    font-family: var(--font-mono);
+    font-size: var(--text-8xl);
+    line-height: 1;
+    font-weight: 700;
+    color: #f4a62a;
+  }
+  .shot:not([hidden]) { animation: shot-in 500ms var(--ease-soft); }
+  @keyframes shot-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shot:not([hidden]) { animation: none; }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('journey')!;
+  const tabs = [...root.querySelectorAll<HTMLButtonElement>('.step')];
+  let current = 0;
+
+  function select(i: number, focus = false) {
+    current = (i + tabs.length) % tabs.length;
+    tabs.forEach((t, j) => {
+      const on = j === current;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')!)!.hidden = !on;
+    });
+    if (focus) tabs[current].focus();
+  }
+
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => { select(i); restart(); });
+    t.addEventListener('keydown', (e) => {
+      const step = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      select(current + step, true);
+    });
+  });
+
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let timer = 0;
+  let inView = true;
+  let paused = false;
+  function restart() {
+    window.clearInterval(timer);
+    if (reduce || !inView || paused) return;
+    timer = window.setInterval(() => {
+      if (document.documentElement.dataset.motion !== 'paused') select(current + 1);
+    }, 5000);
+  }
+  root.addEventListener('pointerenter', () => { paused = true; restart(); });
+  root.addEventListener('pointerleave', () => { paused = false; restart(); });
+  new IntersectionObserver(([e]) => { inView = e.isIntersecting; restart(); }, { threshold: 0.4 }).observe(root);
+  restart();
+</script>

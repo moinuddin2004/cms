@@ -18,12 +18,16 @@ export class JwtTokenService {
     email: string,
     globalRole: string | null,
     sessionId?: string,
+    auth?: { method: string; domain?: string | null },
   ): Promise<string> {
     const payload = {
       sub: userUuid,
       email,
       globalRole: globalRole || null,
       sessionId,
+      // How the session signed in — clinic sign-in policies check it.
+      amr: auth?.method ?? 'password',
+      hd: auth?.domain ?? null,
     };
 
     return this.jwt.signAsync(payload, {

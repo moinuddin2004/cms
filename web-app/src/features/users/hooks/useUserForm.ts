@@ -14,6 +14,7 @@ function defaultsFor(
     name: user?.name || '',
     email: user?.email || '',
     password: '',
+    loginMethod: 'password',
     type: user?.globalRole === 'super_admin' ? 'super_admin' : activeTab,
     status: user?.status || 'active',
     organizationId: '',
@@ -74,7 +75,9 @@ export function useUserForm({
           {
             name: value.name,
             email: value.email,
-            password: value.password,
+            ...(value.loginMethod === 'google' && value.type !== 'super_admin'
+              ? { loginMethod: 'google' as const }
+              : { password: value.password }),
             type: value.type as UserRoleType,
             ...(value.type === 'employee'
               ? { employeeId: value.employeeId }

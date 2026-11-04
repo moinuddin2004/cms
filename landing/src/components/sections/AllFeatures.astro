@@ -1,0 +1,112 @@
+---
+/** Every feature that is built today, grouped by where in the clinic it is used. */
+import Icon from '../Icon.astro';
+
+const groups = [
+  {
+    icon: 'calendar-check',
+    title: 'Front desk',
+    items: [
+      'Appointments by doctor and time',
+      'No double booking of a doctor',
+      'Check in booked patients and walk ins',
+      'A token line for every doctor',
+      'Printed token slips',
+      'Waiting room TV display',
+      'Move a patient to another doctor',
+    ],
+  },
+  {
+    icon: 'stethoscope',
+    title: 'Doctor’s room',
+    items: [
+      'The whole visit on one screen',
+      'Vitals and visit notes',
+      'Prescriptions printed in English or Urdu',
+      'Treatment plans with prices and discounts',
+      'Teeth chart for dental visits',
+      'Visit history, documents and consents',
+    ],
+  },
+  {
+    icon: 'receipt',
+    title: 'Billing',
+    items: [
+      'Invoices built from the visit',
+      'Cash, JazzCash, bank or any account you add',
+      'Discounts, packages and patient credit',
+      'Refunds with a full record',
+      'Tax added at each branch’s rate',
+      'Printed receipts',
+      'Day end cash close and expenses',
+    ],
+  },
+  {
+    icon: 'flask',
+    title: 'Labs',
+    items: [
+      'Send lab orders to outside labs',
+      'Track each order from sent to delivered',
+      'A portal where labs update the status',
+      'Lab bills and payments, lab by lab',
+    ],
+  },
+  {
+    icon: 'users-three',
+    title: 'Staff and payroll',
+    items: [
+      'Staff records and work schedules',
+      'Assign staff to branches',
+      'Leave',
+      'Payroll and salary payments',
+      'Doctor commissions from their visits',
+      'Join requests from new staff',
+    ],
+  },
+  {
+    icon: 'shield-check',
+    title: 'Owner and control',
+    items: [
+      'Finance dashboard with profit and loss',
+      '37 reports, export to Excel or PDF',
+      'Many branches in one account',
+      'Roles and permissions, branch by branch',
+      'Turn features on or off per branch',
+      'Your logo, colours and sidebar order',
+      'Google sign in, limited to your domain',
+      'Audit log of changes to records',
+      'Patient import from Excel or CSV',
+    ],
+  },
+];
+---
+
+<div id="all-features" class="mt-12">
+  <div class="reveal flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+    <h3 class="heading-5">And everything else</h3>
+    <p class="caption-2 text-steel">Every part shares the same patient record, so nothing is typed twice.</p>
+  </div>
+  <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {
+      groups.map((g) => (
+        <article class="reveal rounded-[28px] bg-panel p-6">
+          <div class="flex items-center gap-3">
+            <span class="grid size-10 place-items-center rounded-xl bg-surface text-ink">
+              <Icon name={g.icon} class="size-5" />
+            </span>
+            <h4 class="title-1">{g.title}</h4>
+          </div>
+          <ul class="mt-4 space-y-2">
+            {g.items.map((item) => (
+              <li class="caption-2 flex items-start gap-2 text-ink">
+                <Icon name="check" class="mt-0.5 size-4 shrink-0 text-brand" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))
+    }
+  </div>
+  <p class="reveal caption-2 mt-8 text-center text-steel">Notifications are in the app. Runs in the browser, so there is nothing to install.</p>
+</div>

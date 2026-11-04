@@ -52,6 +52,30 @@ export const s = {
       return v.toLowerCase();
     },
   }),
+  boolean: (): SettingSchema<boolean> => ({
+    parse(v) {
+      if (typeof v !== 'boolean') return fail('must be true or false');
+      return v;
+    },
+  }),
+  /** Lower-cased, de-duplicated domain names (`clinic.com`), max 20. */
+  domainList: (): SettingSchema<string[]> => ({
+    parse(v) {
+      if (!Array.isArray(v)) return fail('must be a list of domains');
+      const out = [
+        ...new Set(
+          v.map((d) => (isString(d) ? d.trim().toLowerCase() : '')),
+        ),
+      ].filter(Boolean);
+      if (out.length > 20) return fail('at most 20 domains');
+      for (const d of out) {
+        if (!/^(?=.{3,253}$)([a-z0-9-]+\.)+[a-z]{2,}$/.test(d)) {
+          return fail(`"${d}" is not a domain name`);
+        }
+      }
+      return out;
+    },
+  }),
   oneOf: <const T extends string>(values: readonly T[]): SettingSchema<T> => ({
     parse(v) {
       if (!isIn(v, values as unknown as unknown[])) {

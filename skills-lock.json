@@ -1,26 +1,11 @@
 {
   "version": 1,
   "skills": {
-    "shadcn": {
-      "source": "shadcn/ui",
+    "landing-page-design": {
+      "source": "elayadesign/ai-design-skills",
       "sourceType": "github",
-      "skillPath": "skills/shadcn/SKILL.md",
-      "computedHash": "0dc0edeeaec2ae491ae506806517866a3f9bd48d04e0458feb37e0252862891f"
-    },
-    "fullstack-guardian": {
-      "source": "local",
-      "sourceType": "local",
-      "skillPath": "skills/fullstack-guardian/SKILL.md"
-    },
-    "frontend-design": {
-      "source": "local",
-      "sourceType": "local",
-      "skillPath": "skills/frontend-design/SKILL.md"
-    },
-    "dashboard": {
-      "source": "local",
-      "sourceType": "local",
-      "skillPath": "skills/dashboard/SKILL.md"
-    },
+      "skillPath": "skills/landing-page-design/SKILL.md",
+      "computedHash": "c4f760690439298d9ef3238534919ee3fd558a3345c414ff6c7e7acacd973a08"
+    }
   }
 }

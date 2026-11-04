@@ -1,0 +1,52 @@
+---
+import Icon from './Icon.astro';
+---
+
+<button
+  type="button"
+  data-theme-toggle
+  class="theme-toggle relative grid size-10 place-items-center rounded-full text-ink transition-colors duration-300 ease-soft hover:bg-ink/5"
+  aria-label="Switch to dark mode"
+  title="Switch to dark mode"
+>
+  <Icon name="moon" class="icon-moon absolute size-5" />
+  <Icon name="sun" class="icon-sun absolute size-5" />
+</button>
+
+<style>
+  .theme-toggle :global(svg) { transition: transform 500ms var(--ease-soft), opacity 300ms var(--ease-soft); }
+  .theme-toggle :global(.icon-sun) { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+  :global([data-theme='dark']) .theme-toggle :global(.icon-sun) { opacity: 1; transform: none; }
+  :global([data-theme='dark']) .theme-toggle :global(.icon-moon) { opacity: 0; transform: rotate(90deg) scale(0.6); }
+  @media (prefers-reduced-motion: reduce) {
+    .theme-toggle :global(svg) { transform: none !important; }
+  }
+</style>
+
+<script>
+  const root = document.documentElement;
+  const buttons = document.querySelectorAll<HTMLButtonElement>('[data-theme-toggle]');
+
+  function label() {
+    const dark = root.dataset.theme === 'dark';
+    const text = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    buttons.forEach((b) => {
+      b.setAttribute('aria-label', text);
+      b.title = text;
+    });
+  }
+
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      try {
+        localStorage.setItem('theme', next);
+      } catch {
+        /* storage blocked: the choice lasts for this visit only */
+      }
+      label();
+    }),
+  );
+  label();
+</script>
