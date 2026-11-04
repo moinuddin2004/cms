@@ -61,10 +61,27 @@ export const googleRegister = (body: {
 
 export const googleJoinRequest = (body: {
   credential: string
-  organizationId: string
+  /** A clinic that takes requests from the account's Workspace domain… */
+  organizationId?: string
+  /** …or the token of the clinic's invite link. */
+  inviteToken?: string
   phone: string
   message?: string
 }) => post<LoginPayload>('/auth/google/join-request', body)
+
+export type InviteInfo =
+  | { valid: false }
+  | {
+      valid: true
+      organizationId: string
+      clinicName: string
+      googleEnabled: boolean
+      expiresAt: string
+    }
+
+export const fetchInviteInfo = async (token: string) =>
+  (await api.get(`/public/join-invites/${encodeURIComponent(token)}`)).data
+    .data as InviteInfo
 
 export const fetchLoginMethods = async () =>
   (await api.get('/auth/login-methods')).data.data as LoginMethods

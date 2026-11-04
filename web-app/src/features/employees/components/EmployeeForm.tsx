@@ -572,7 +572,12 @@ export function EmployeeForm({
         )}
       </form.Field>
 
-      <div className="flex justify-end gap-3 border-t pt-6">
+      <div
+        className={cn(
+          'flex justify-end gap-3 border-t pt-6',
+          variant === 'sheet' && 'sticky bottom-0 z-10 bg-background pb-5 pt-4',
+        )}
+      >
         <Button
           type="button"
           variant="outline"

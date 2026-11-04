@@ -58,6 +58,7 @@ import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
 import { Route as EmployeesCreateRouteImport } from './routes/employees/create'
 import { Route as InvoicesIndexRouteImport } from './routes/invoices/index'
 import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoiceId'
+import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as LabBillingInvoiceIdRouteImport } from './routes/lab-billing_.$invoiceId'
 import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
 import { Route as LabLinkTokenRouteImport } from './routes/lab-link.$token'
@@ -367,6 +368,11 @@ const InvoicesIndexRoute = InvoicesIndexRouteImport.update({
 const InvoicesInvoiceIdRoute = InvoicesInvoiceIdRouteImport.update({
   id: '/invoices/$invoiceId',
   path: '/invoices/$invoiceId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LabBillingInvoiceIdRoute = LabBillingInvoiceIdRouteImport.update({
@@ -750,6 +756,7 @@ export interface FileRoutesByFullPath {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/join/$token': typeof JoinTokenRoute
   '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
@@ -865,6 +872,7 @@ export interface FileRoutesByTo {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/join/$token': typeof JoinTokenRoute
   '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
@@ -982,6 +990,7 @@ export interface FileRoutesById {
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
   '/invoices/$invoiceId': typeof InvoicesInvoiceIdRoute
+  '/join/$token': typeof JoinTokenRoute
   '/lab-billing_/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
@@ -1100,6 +1109,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/join/$token'
     | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
     | '/lab-link/$token'
@@ -1215,6 +1225,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/join/$token'
     | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
     | '/lab-link/$token'
@@ -1331,6 +1342,7 @@ export interface FileRouteTypes {
     | '/display/$locationId'
     | '/employees/create'
     | '/invoices/$invoiceId'
+    | '/join/$token'
     | '/lab-billing_/$invoiceId'
     | '/lab-directory_/$labId'
     | '/lab-link/$token'
@@ -1448,6 +1460,7 @@ export interface RootRouteChildren {
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
   InvoicesInvoiceIdRoute: typeof InvoicesInvoiceIdRoute
+  JoinTokenRoute: typeof JoinTokenRoute
   LabBillingInvoiceIdRoute: typeof LabBillingInvoiceIdRoute
   LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
   LabLinkTokenRoute: typeof LabLinkTokenRoute
@@ -1836,6 +1849,13 @@ declare module '@tanstack/react-router' {
       path: '/invoices/$invoiceId'
       fullPath: '/invoices/$invoiceId'
       preLoaderRoute: typeof InvoicesInvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lab-billing_/$invoiceId': {
@@ -2403,6 +2423,7 @@ const rootRouteChildren: RootRouteChildren = {
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
   InvoicesInvoiceIdRoute: InvoicesInvoiceIdRoute,
+  JoinTokenRoute: JoinTokenRoute,
   LabBillingInvoiceIdRoute: LabBillingInvoiceIdRoute,
   LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
   LabLinkTokenRoute: LabLinkTokenRoute,

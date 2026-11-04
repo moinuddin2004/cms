@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, In } from 'typeorm';
+import { randomBytes } from 'crypto';
+import { DataSource, In, IsNull, MoreThan } from 'typeorm';
 import { ActorRef, AuditAction } from 'src/common/audit/audit.enums';
 import { AuditService } from 'src/common/audit/audit.service';
 import { ClinicApprovalStatus } from 'src/common/enums/clinic-approval-status.enum';
@@ -28,6 +29,10 @@ import {
   ClinicJoinRequest,
   JoinRequestStatus,
 } from './entities/clinic-join-request.entity';
+import { ClinicInvite } from './entities/clinic-invite.entity';
+
+const INVITE_DAYS = 7;
+const MAX_ACTIVE_INVITES = 10;
 import {
   ApproveJoinRequestDto,
   ClinicApprovalDecisionDto,
@@ -167,7 +172,11 @@ export class ClinicAccessService {
 
   // ── Join requests ─────────────────────────────────────────────────
 
-  /** Called from the Google sign-in flow; the caller verified the Google token. */
+  /**
+   * Called from the Google sign-in flow (the caller verified the Google
+   * token). Allowed through a valid invite link of the clinic, or when the
+   * clinic takes join requests from the account's Workspace domain.
+   */
   async createJoinRequest(input: {
     organizationId: string;
     userId: string;
@@ -176,12 +185,23 @@ export class ClinicAccessService {
     phone: string;
     message?: string | null;
     hd: string | null;
+    inviteToken?: string | null;
   }): Promise<ClinicJoinRequest> {
-    const joinable = await this.gate.joinableClinics(input.hd);
-    if (!joinable.some((c) => c.id === input.organizationId)) {
-      throw new BadRequestException(
-        'This clinic does not take join requests from your Google account.',
-      );
+    let invite: ClinicInvite | null = null;
+    if (input.inviteToken) {
+      invite = await this.activeInvite(input.inviteToken);
+      if (!invite || invite.organizationId !== input.organizationId) {
+        throw new BadRequestException(
+          'This invite link has expired. Ask the clinic for a new one.',
+        );
+      }
+    } else {
+      const joinable = await this.gate.joinableClinics(input.hd);
+      if (!joinable.some((c) => c.id === input.organizationId)) {
+        throw new BadRequestException(
+          'This clinic does not take join requests from your Google account.',
+        );
+      }
     }
     const repo = this.dataSource.getRepository(ClinicJoinRequest);
     const pending = await repo.findOneBy({
@@ -192,6 +212,11 @@ export class ClinicAccessService {
     if (pending) return pending;
     if (await this.isMember(input.userId, input.organizationId)) {
       throw new ConflictException('You already work in this clinic.');
+    }
+    if (invite) {
+      await this.dataSource
+        .getRepository(ClinicInvite)
+        .increment({ id: invite.id }, 'uses', 1);
     }
     return repo.save(
       repo.create({
@@ -303,6 +328,88 @@ export class ClinicAccessService {
     request.decidedAt = new Date();
     request.decisionNote = reason?.trim() || null;
     return repo.save(request);
+  }
+
+  // ── Invite links ──────────────────────────────────────────────────
+
+  private invites() {
+    return this.dataSource.getRepository(ClinicInvite);
+  }
+
+  /** An unexpired, unrevoked invite of an approved, active clinic. */
+  async activeInvite(token: string): Promise<ClinicInvite | null> {
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+    const invite = await this.invites().findOneBy({
+      token,
+      revokedAt: IsNull(),
+      expiresAt: MoreThan(new Date()),
+    });
+    if (!invite) return null;
+    const org = await this.dataSource.getRepository(Organization).findOne({
+      where: {
+        id: invite.organizationId,
+        isActive: true,
+        approvalStatus: ClinicApprovalStatus.APPROVED,
+      },
+      select: { id: true },
+    });
+    return org ? invite : null;
+  }
+
+  /** Public: what an invite link page shows before sign-in. */
+  async inviteInfo(token: string) {
+    const invite = await this.activeInvite(token);
+    if (!invite) return { valid: false as const };
+    const [org, policy] = await Promise.all([
+      this.dataSource.getRepository(Organization).findOne({
+        where: { id: invite.organizationId },
+        select: { id: true, name: true },
+      }),
+      this.gate.policy(invite.organizationId),
+    ]);
+    return {
+      valid: true as const,
+      organizationId: invite.organizationId,
+      clinicName: org?.name ?? 'Clinic',
+      googleEnabled: policy.googleEnabled,
+      expiresAt: invite.expiresAt,
+    };
+  }
+
+  listInvites(orgId: string) {
+    return this.invites().find({
+      where: {
+        organizationId: orgId,
+        revokedAt: IsNull(),
+        expiresAt: MoreThan(new Date()),
+      },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async createInvite(orgId: string, userId: string): Promise<ClinicInvite> {
+    const active = await this.listInvites(orgId);
+    if (active.length >= MAX_ACTIVE_INVITES) {
+      throw new BadRequestException(
+        'Too many open invite links. Revoke one you no longer need.',
+      );
+    }
+    return this.invites().save(
+      this.invites().create({
+        organizationId: orgId,
+        token: randomBytes(24).toString('base64url'),
+        createdBy: userId,
+        expiresAt: new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000),
+      }),
+    );
+  }
+
+  async revokeInvite(id: string, orgId: string): Promise<void> {
+    const result = await this.invites().update(
+      { id, organizationId: orgId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
+    if (!result.affected) throw new NotFoundException('Invite link not found');
   }
 
   private async isMember(userId: string, orgId: string): Promise<boolean> {

@@ -34,7 +34,8 @@ const PUBLIC_PATHS = [
 
 // Open to everyone, signed in or not, with no redirects (waiting-room TV,
 // lab magic links — the token in the URL is the credential).
-const OPEN_PATHS = ['/display/', '/lab-link/', '/verify-email']
+// `/join/` = a clinic's invite link (sign in with Google there).
+const OPEN_PATHS = ['/display/', '/lab-link/', '/verify-email', '/join/']
 
 // Work-order QR: signed-in users of either side; the page itself decides
 // between the lab portal and the clinic order, so no workspace redirects.

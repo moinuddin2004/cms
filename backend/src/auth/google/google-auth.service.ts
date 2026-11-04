@@ -156,11 +156,32 @@ export class GoogleAuthService {
     res: Response,
   ): Promise<LoginResponse> {
     const g = await this.identity.verify(dto.credential);
-    const joinable = await this.gate.joinableClinics(g.hd);
-    if (!joinable.some((c) => c.id === dto.organizationId)) {
-      throw new BadRequestException(
-        'This clinic does not take join requests from your Google account.',
-      );
+    let organizationId: string;
+    if (dto.inviteToken) {
+      const invite = await this.clinicAccess.activeInvite(dto.inviteToken);
+      if (!invite) {
+        throw new BadRequestException(
+          'This invite link has expired. Ask the clinic for a new one.',
+        );
+      }
+      const policy = await this.gate.policy(invite.organizationId);
+      if (!policy.googleEnabled) {
+        throw new BadRequestException(
+          'This clinic does not use Google sign-in. Ask the owner to add you.',
+        );
+      }
+      organizationId = invite.organizationId;
+    } else {
+      const joinable = await this.gate.joinableClinics(g.hd);
+      if (
+        !dto.organizationId ||
+        !joinable.some((c) => c.id === dto.organizationId)
+      ) {
+        throw new BadRequestException(
+          'This clinic does not take join requests from your Google account.',
+        );
+      }
+      organizationId = dto.organizationId;
     }
 
     const resolved = await this.resolveUser(g, req);
@@ -174,7 +195,8 @@ export class GoogleAuthService {
     }
 
     await this.clinicAccess.createJoinRequest({
-      organizationId: dto.organizationId,
+      organizationId,
+      inviteToken: dto.inviteToken ?? null,
       userId: user.uuid,
       email: g.email,
       name: user.name || g.name,

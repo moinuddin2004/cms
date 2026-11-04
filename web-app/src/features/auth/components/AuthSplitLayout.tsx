@@ -18,18 +18,18 @@ export function AuthSplitLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh bg-background text-foreground lg:grid lg:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)]">
       <div className="flex min-h-dvh flex-col px-6 sm:px-10 lg:px-12 xl:px-16">
-        <header className="flex h-20 shrink-0 items-center justify-between">
+        <header className="flex h-16 shrink-0 items-center justify-between">
           <BrandMark />
           <AuthThemeToggle />
         </header>
 
-        <main className="flex flex-1 items-center py-6 sm:py-10">
+        <main className="flex flex-1 items-center py-4">
           <div className="mx-auto w-full max-w-[400px] animate-in fade-in slide-in-from-bottom-2 duration-300">
             {children}
           </div>
         </main>
 
-        <footer className="flex shrink-0 items-center justify-between gap-6 pb-7 text-[11px] text-muted-foreground/70">
+        <footer className="flex shrink-0 items-center justify-between gap-6 pb-5 text-[11px] text-muted-foreground/70">
           <span>
             &copy; {year} {theme.app_name}
           </span>

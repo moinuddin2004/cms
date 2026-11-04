@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
@@ -19,6 +20,7 @@ import {
 import type { AccessContext } from 'src/access/access-context';
 import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
+import { Public } from 'src/common/decorators/publicDecorator';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { ActiveTenant } from 'src/common/decorators/active-tenant.decorator';
@@ -159,6 +161,55 @@ export class JoinRequestsController {
         req.user!.uuid,
       ),
       'Join request rejected',
+    );
+  }
+}
+
+/** Invite links staff use to ask to join (owner / staff manager). */
+@Controller('join-invites')
+export class JoinInvitesController {
+  constructor(private readonly service: ClinicAccessService) {}
+
+  @Get()
+  @Can('employees.manage')
+  async list(@ActiveTenant() ctx: TenantContext) {
+    return ResponseWrapper.success(
+      await this.service.listInvites(ctx.organizationId),
+      'Invite links retrieved',
+    );
+  }
+
+  @Post()
+  @Can('employees.manage')
+  async create(@ActiveTenant() ctx: TenantContext, @Req() req: AppRequest) {
+    return ResponseWrapper.success(
+      await this.service.createInvite(ctx.organizationId, req.user!.uuid),
+      'Invite link created',
+    );
+  }
+
+  @Delete(':id')
+  @Can('employees.manage')
+  async revoke(
+    @Param('id', ParseUUIDPipe) id: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    await this.service.revokeInvite(id, ctx.organizationId);
+    return ResponseWrapper.success(null, 'Invite link revoked');
+  }
+}
+
+/** Public: the clinic name behind an invite link (also in PUBLIC_ROUTES). */
+@Controller('public/join-invites')
+export class PublicInviteController {
+  constructor(private readonly service: ClinicAccessService) {}
+
+  @Public()
+  @Get(':token')
+  async info(@Param('token') token: string) {
+    return ResponseWrapper.success(
+      await this.service.inviteInfo(token),
+      'Invite link',
     );
   }
 }

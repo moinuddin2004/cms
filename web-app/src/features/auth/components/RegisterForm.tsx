@@ -48,7 +48,7 @@ function EmailRegisterForm() {
     <>
       <AuthHeading
         title="Create your clinic"
-        subtitle="Set up your clinic in a minute. We review new clinics before they go live."
+        subtitle="We review new clinics before they go live."
       />
 
       {googleConfig?.enabled && (
@@ -75,7 +75,7 @@ function EmailRegisterForm() {
           form.handleSubmit()
         }}
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Clinic name */}
           <div>
             <Label htmlFor="register-clinic" className={authLabelClass}>
@@ -103,145 +103,150 @@ function EmailRegisterForm() {
             </form.Field>
           </div>
 
-          {/* Name */}
-          <div>
-            <Label htmlFor="register-name" className={authLabelClass}>
-              Your name
-            </Label>
-            <form.Field name="name">
-              {(field) => (
-                <>
-                  <Input
-                    id="register-name"
-                    placeholder="Dr. John Doe"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                    autoComplete="name"
-                    aria-invalid={!!fieldError(field)}
-                    className={authInputClass}
-                  />
-                  {fieldError(field) && (
-                    <p className={fieldErrorClass}>{fieldError(field)}</p>
-                  )}
-                </>
-              )}
-            </form.Field>
-          </div>
-
-          {/* Email */}
-          <div>
-            <Label htmlFor="register-email" className={authLabelClass}>
-              Email
-            </Label>
-            <form.Field name="email">
-              {(field) => (
-                <>
-                  <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="doctor@clinic.com"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    required
-                    autoComplete="email"
-                    aria-invalid={!!fieldError(field)}
-                    className={authInputClass}
-                  />
-                  {fieldError(field) && (
-                    <p className={fieldErrorClass}>{fieldError(field)}</p>
-                  )}
-                </>
-              )}
-            </form.Field>
-          </div>
-
-          {/* Phone */}
-          <div>
-            <Label htmlFor="register-phone" className={authLabelClass}>
-              Phone <span className="font-normal text-text-3">(optional)</span>
-            </Label>
-            <form.Field name="phone">
-              {(field) => (
-                <>
-                  <Input
-                    id="register-phone"
-                    type="tel"
-                    placeholder="0300 1234567"
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                    autoComplete="tel"
-                    aria-invalid={!!fieldError(field)}
-                    className={authInputClass}
-                  />
-                  {fieldError(field) && (
-                    <p className={fieldErrorClass}>{fieldError(field)}</p>
-                  )}
-                </>
-              )}
-            </form.Field>
-          </div>
-
-          {/* Password */}
-          <div>
-            <Label htmlFor="register-password" className={authLabelClass}>
-              Password
-            </Label>
-            <form.Field name="password">
-              {(field) => (
-                <>
-                  <div className="relative">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Name */}
+            <div>
+              <Label htmlFor="register-name" className={authLabelClass}>
+                Your name
+              </Label>
+              <form.Field name="name">
+                {(field) => (
+                  <>
                     <Input
-                      id="register-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="At least 6 characters"
+                      id="register-name"
+                      placeholder="Dr. John Doe"
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                       required
-                      autoComplete="new-password"
+                      autoComplete="name"
                       aria-invalid={!!fieldError(field)}
-                      className={authInputWithActionClass}
+                      className={authInputClass}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={
-                        showPassword ? 'Hide password' : 'Show password'
-                      }
-                      className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="size-[17px]" />
-                      ) : (
-                        <Eye className="size-[17px]" />
-                      )}
-                    </button>
-                  </div>
-                  {fieldError(field) && (
-                    <p className={fieldErrorClass}>{fieldError(field)}</p>
-                  )}
-                </>
-              )}
-            </form.Field>
-            <form.Field name="password">
-              {(field) =>
-                field.state.value ? (
-                  <div className="mt-2.5">
-                    <PasswordStrength password={field.state.value} />
-                  </div>
-                ) : null
-              }
-            </form.Field>
+                    {fieldError(field) && (
+                      <p className={fieldErrorClass}>{fieldError(field)}</p>
+                    )}
+                  </>
+                )}
+              </form.Field>
+            </div>
+            {/* Phone */}
+            <div>
+              <Label htmlFor="register-phone" className={authLabelClass}>
+                Phone{' '}
+                <span className="font-normal text-text-3">(optional)</span>
+              </Label>
+              <form.Field name="phone">
+                {(field) => (
+                  <>
+                    <Input
+                      id="register-phone"
+                      type="tel"
+                      placeholder="0300 1234567"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      autoComplete="tel"
+                      aria-invalid={!!fieldError(field)}
+                      className={authInputClass}
+                    />
+                    {fieldError(field) && (
+                      <p className={fieldErrorClass}>{fieldError(field)}</p>
+                    )}
+                  </>
+                )}
+              </form.Field>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* Email */}
+            <div>
+              <Label htmlFor="register-email" className={authLabelClass}>
+                Email
+              </Label>
+              <form.Field name="email">
+                {(field) => (
+                  <>
+                    <Input
+                      id="register-email"
+                      type="email"
+                      placeholder="doctor@clinic.com"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                      required
+                      autoComplete="email"
+                      aria-invalid={!!fieldError(field)}
+                      className={authInputClass}
+                    />
+                    {fieldError(field) && (
+                      <p className={fieldErrorClass}>{fieldError(field)}</p>
+                    )}
+                  </>
+                )}
+              </form.Field>
+            </div>
+            {/* Password */}
+            <div>
+              <Label htmlFor="register-password" className={authLabelClass}>
+                Password
+              </Label>
+              <form.Field name="password">
+                {(field) => (
+                  <>
+                    <div className="relative">
+                      <Input
+                        id="register-password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="At least 6 characters"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        onBlur={field.handleBlur}
+                        required
+                        autoComplete="new-password"
+                        aria-invalid={!!fieldError(field)}
+                        className={authInputWithActionClass}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={
+                          showPassword ? 'Hide password' : 'Show password'
+                        }
+                        className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/25"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="size-[17px]" />
+                        ) : (
+                          <Eye className="size-[17px]" />
+                        )}
+                      </button>
+                    </div>
+                    {fieldError(field) && (
+                      <p className={fieldErrorClass}>{fieldError(field)}</p>
+                    )}
+                  </>
+                )}
+              </form.Field>
+              <form.Field name="password">
+                {(field) =>
+                  field.state.value ? (
+                    <div className="mt-2.5">
+                      <PasswordStrength password={field.state.value} />
+                    </div>
+                  ) : null
+                }
+              </form.Field>
+            </div>
           </div>
         </div>
 
-        <div className="mt-4">
-          <AuthError message={globalError} />
-        </div>
+        {globalError ? (
+          <div className="mt-4">
+            <AuthError message={globalError} />
+          </div>
+        ) : null}
 
         <form.Subscribe
           selector={(state) => [state.canSubmit, state.isSubmitting] as const}
@@ -249,7 +254,7 @@ function EmailRegisterForm() {
           {([canSubmit, isSubmitting]) => (
             <Button
               type="submit"
-              className={`group ${authSubmitClass}`}
+              className={`group mt-5 ${authSubmitClass}`}
               disabled={!canSubmit || isSubmitting}
             >
               {isSubmitting ? (

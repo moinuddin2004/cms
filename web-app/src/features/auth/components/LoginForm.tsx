@@ -22,10 +22,23 @@ import {
   useGoogleConfig,
 } from '../google/GoogleButton'
 import { useGoogleSignIn } from '../google/useGoogleSignIn'
+import { useGoogleSignupStore } from '../store/useGoogleSignupStore'
+import { NoAccountPanel } from './NoAccountPanel'
 
 const fieldErrorClass = 'mt-1.5 text-xs font-medium text-destructive'
 
 export function LoginForm() {
+  const noAccount = useGoogleSignupStore((s) => !!s.profile)
+  return noAccount ? (
+    <AuthLayout>
+      <NoAccountPanel />
+    </AuthLayout>
+  ) : (
+    <PasswordLogin />
+  )
+}
+
+function PasswordLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const navigate = useNavigate()
   const { form, globalError } = useLoginForm()
@@ -63,7 +76,7 @@ export function LoginForm() {
           form.handleSubmit()
         }}
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Email */}
           <div>
             <Label htmlFor="login-email" className={authLabelClass}>
@@ -152,7 +165,7 @@ export function LoginForm() {
         {/* Keep me signed in */}
         <form.Field name="rememberMe">
           {(field) => (
-            <div className="mt-4 mb-5">
+            <div className="mt-3 mb-4">
               <label className="flex w-fit cursor-pointer items-center gap-2.5 text-[13px] text-muted-foreground select-none">
                 <input
                   type="checkbox"

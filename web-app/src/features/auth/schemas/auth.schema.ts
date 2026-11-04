@@ -63,3 +63,8 @@ export type JoinRequestFormValues = z.input<typeof joinRequestSchema>
 export const createClinicSchema = googleRegisterSchema
 
 export type CreateClinicFormValues = GoogleRegisterFormValues
+
+/** Join through a clinic's invite link (after choosing a Google account). */
+export const inviteJoinSchema = joinRequestSchema.omit({ organizationId: true })
+
+export type InviteJoinFormValues = z.input<typeof inviteJoinSchema>

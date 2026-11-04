@@ -31,3 +31,12 @@ export interface JoinRequest {
 }
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+
+/** A shareable `/join/<token>` link (see JoinInvitesController). */
+export interface ClinicInvite {
+  id: string
+  token: string
+  expiresAt: string
+  uses: number
+  createdAt: string
+}

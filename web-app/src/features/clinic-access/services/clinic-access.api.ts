@@ -5,6 +5,7 @@ import type {
   JoinRequestStatus,
   SignInPolicy,
   SignInPolicyResponse,
+  ClinicInvite,
 } from '../types'
 
 // ── Sign-in policy (owner) ────────────────────────────────────────────
@@ -39,3 +40,14 @@ export const decideClinicApproval = async (
     approvalStatus: ApprovalStatus
     approvalNote: string | null
   }
+
+// ── Invite links (owner / staff manager) ──────────────────────────────
+export const fetchInvites = async () =>
+  (await api.get('/join-invites')).data.data as ClinicInvite[]
+
+export const createInvite = async () =>
+  (await api.post('/join-invites')).data.data as ClinicInvite
+
+export const revokeInvite = async (id: string) => {
+  await api.delete(`/join-invites/${id}`)
+}

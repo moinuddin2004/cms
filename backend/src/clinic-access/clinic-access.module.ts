@@ -5,11 +5,14 @@ import { EmployeesModule } from 'src/employees/employees.module';
 import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 import './sign-in-policy.settings'; // registers the auth.* keys
 import { ClinicJoinRequest } from './entities/clinic-join-request.entity';
+import { ClinicInvite } from './entities/clinic-invite.entity';
 import { ClinicGateService } from './clinic-gate.service';
 import { ClinicAccessService } from './clinic-access.service';
 import {
   ClinicApprovalController,
+  JoinInvitesController,
   JoinRequestsController,
+  PublicInviteController,
   SignInPolicyController,
 } from './clinic-access.controller';
 
@@ -20,7 +23,7 @@ import {
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ClinicJoinRequest]),
+    TypeOrmModule.forFeature([ClinicJoinRequest, ClinicInvite]),
     CommonModule,
     EmployeesModule,
     SubscriptionsModule,
@@ -29,6 +32,8 @@ import {
     ClinicApprovalController,
     SignInPolicyController,
     JoinRequestsController,
+    JoinInvitesController,
+    PublicInviteController,
   ],
   providers: [ClinicGateService, ClinicAccessService],
   exports: [ClinicGateService, ClinicAccessService],

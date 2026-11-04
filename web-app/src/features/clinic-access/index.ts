@@ -1,5 +1,6 @@
 export { SignInPolicyPage } from './pages/SignInPolicyPage'
 export { JoinRequestsButton } from './components/JoinRequestsButton'
+export { InviteLinkButton } from './components/InviteLinkButton'
 export { ClinicApprovalSheet } from './components/ClinicApprovalSheet'
 export type { ApprovalTarget } from './components/ClinicApprovalSheet'
 export type { ApprovalStatus } from './types'

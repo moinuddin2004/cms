@@ -4,8 +4,10 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 
 /** The ID token from Google Identity Services ("Sign in with Google"). */
@@ -36,10 +38,19 @@ export class GoogleRegisterDto extends GoogleCredentialDto {
   phone?: string;
 }
 
-/** Ask to join a clinic that takes requests from the Google account's domain. */
+/**
+ * Ask to join a clinic: through its invite link (`inviteToken`), or one
+ * that takes requests from the Google account's Workspace domain.
+ */
 export class GoogleJoinRequestDto extends GoogleCredentialDto {
+  @ValidateIf((o: GoogleJoinRequestDto) => !o.inviteToken)
   @IsUUID()
-  organizationId: string;
+  organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{16,64}$/)
+  inviteToken?: string;
 
   @IsString()
   @IsNotEmpty()

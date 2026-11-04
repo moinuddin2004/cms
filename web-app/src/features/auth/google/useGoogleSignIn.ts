@@ -11,10 +11,13 @@ import {
 
 /**
  * "Continue with Google" from the login or register page: signs in an
- * existing account, or sends a new Google account to /register to create
- * a clinic or ask to join one.
+ * existing account. A Google account with no login is kept in the signup
+ * store: the login page explains the options (register a clinic, or ask
+ * the clinic for an invite link), the register page goes straight on.
  */
-export function useGoogleSignIn(rememberMe = true) {
+export function useGoogleSignIn({
+  rememberMe = true,
+}: { rememberMe?: boolean } = {}) {
   const navigate = useNavigate()
   const startSignup = useGoogleSignupStore((s) => s.start)
   const [busy, setBusy] = useState(false)
@@ -33,7 +36,6 @@ export function useGoogleSignIn(rememberMe = true) {
         navigate({ to: homeAfterLogin(result.session) })
       } else if (result.outcome === 'no_account') {
         startSignup(credential, result.profile, result.joinableClinics)
-        navigate({ to: '/register' })
       } else {
         setError(result.message)
       }

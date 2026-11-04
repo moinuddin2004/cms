@@ -9,11 +9,11 @@ export function AuthHeading({
   subtitle: ReactNode
 }) {
   return (
-    <div className="mb-7">
-      <h1 className="text-[26px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground">
+    <div className="mb-5">
+      <h1 className="text-[24px] font-semibold leading-[1.15] tracking-[-0.025em] text-foreground">
         {title}
       </h1>
-      <p className="mt-2 text-[13.5px] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
         {subtitle}
       </p>
     </div>

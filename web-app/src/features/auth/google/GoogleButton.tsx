@@ -139,7 +139,7 @@ export function GoogleButton({
   return (
     <div
       className={cn(
-        'group relative h-11 w-full overflow-hidden rounded-xl border border-border bg-surface transition-colors',
+        'group relative h-10 w-full overflow-hidden rounded-xl border border-border bg-surface transition-colors',
         'hover:border-primary/40 hover:bg-accent focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25',
         (busy || !ready) && 'pointer-events-none',
       )}
@@ -193,7 +193,7 @@ function GoogleMark({ className }: { className?: string }) {
 /** "or" divider between the Google button and the email form. */
 export function AuthDivider({ label = 'or' }: { label?: string }) {
   return (
-    <div className="my-5 flex items-center gap-3 text-[12px] text-muted-foreground">
+    <div className="my-4 flex items-center gap-3 text-[12px] text-muted-foreground">
       <span className="h-px flex-1 bg-border" />
       {label}
       <span className="h-px flex-1 bg-border" />

@@ -37,15 +37,15 @@ export function CreateEmployeeModal({ open, onOpenChange }: CreateEmployeeModalP
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <DialogContent className="w-full sm:max-w-6xl max-h-[92vh] overflow-y-auto gap-0 p-0">
+      <DialogContent className="flex w-full sm:max-w-6xl max-h-[92vh] flex-col overflow-hidden gap-0 p-0">
         <DialogTitle className="sr-only">Add Employee</DialogTitle>
-        <div className="px-6 py-5 pr-12">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold">Add Employee</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Fill in the details to add a new employee to this location.
-            </p>
-          </div>
+        <div className="shrink-0 border-b px-6 py-4 pr-12">
+          <h2 className="text-lg font-semibold">Add Employee</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Fill in the details to add a new employee to this location.
+          </p>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-5">
           <EmployeeForm
             mode="create"
             onSubmit={handleSubmit}
