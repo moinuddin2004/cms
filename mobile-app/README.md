@@ -1,56 +1,119 @@
-# Welcome to your Expo app 👋
+<div align="center">
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+<img src="../docs/images/logo.svg" alt="" width="64" />
 
-## Get started
+<h1>Mobile app</h1>
 
-1. Install dependencies
+<p><b>A mobile-first companion for clinic staff, built with Expo.</b></p>
 
-   ```bash
-   npm install
-   ```
+<p>
+<img src="https://img.shields.io/badge/Expo_58-161b22?style=for-the-badge&logo=expo&logoColor=white" alt="Expo 58" />
+<img src="https://img.shields.io/badge/React_Native-161b22?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native" />
+<img src="https://img.shields.io/badge/Expo_Router-161b22?style=for-the-badge&logo=expo&logoColor=white" alt="Expo Router" />
+<img src="https://img.shields.io/badge/TypeScript-161b22?style=for-the-badge&logo=typescript&logoColor=3178C6" alt="TypeScript" />
+<img src="https://img.shields.io/badge/TanStack_Query-161b22?style=for-the-badge&logo=reactquery&logoColor=FF4154" alt="TanStack Query" />
+</p>
 
-2. Start the app
+<p>
+<a href="#quick-start"><b>Quick start</b></a> &nbsp;·&nbsp;
+<a href="#current-scope"><b>Current scope</b></a> &nbsp;·&nbsp;
+<a href="#structure"><b>Structure</b></a> &nbsp;·&nbsp;
+<a href="#testing"><b>Testing</b></a> &nbsp;·&nbsp;
+<a href="#rules"><b>Rules</b></a>
+</p>
 
-   ```bash
-   npx expo start
-   ```
+<sub><a href="../README.md">← Back to the main README</a></sub>
 
-In the output, you'll find options to open the app in a
+</div>
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+<br />
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Quick start
 
-## Get a fresh project
+**You need:** Node.js 22, the API running on port `5000`, and Expo Go or a development build.
 
-When you're ready, run:
+| Step | Command |
+| --- | --- |
+| 1 · Install | `npm install` |
+| 2 · Configure (optional in development) | Set `EXPO_PUBLIC_API_URL` in `.env` to the API's reachable address |
+| 3 · Start Expo | `npx expo start` |
+| 4 · Open the app | Scan the QR code in Expo Go, or launch an emulator |
 
-```bash
-npm run reset-project
+During development, the app discovers the Expo host's address and uses port `5000`; Android emulators fall back to `10.0.2.2`. For a physical device, the API must be reachable over the same network. Set `EXPO_PUBLIC_API_URL` explicitly for release builds; the app fails clearly if it is missing.
+
+<br />
+
+## Current scope
+
+The mobile app is an early foundation, not yet a mobile version of every web feature. Its current end-to-end path covers:
+
+- Email and password sign-in
+- Selecting an organization and location
+- Restoring a session securely and signing out
+- Loading the access context and showing the current account and clinic
+- Handling offline-at-start and access-loading errors
+
+Patient, appointment, queue, billing, lab and inventory workflows are not implemented in the mobile app yet. Realtime sockets, push notifications, biometric unlock, Google sign-in and registration are also not built.
+
+<br />
+
+## Structure
+
+```text
+src/
+├── app/          Expo Router routes and layouts
+├── features/     Feature pages, components, hooks, API, schemas and types
+├── components/   Shared UI, forms and feedback
+├── lib/          API, environment, secure storage, dates and utilities
+├── providers/    App-wide providers
+├── store/        Zustand state
+└── types/        Shared API types
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Keep route files focused on rendering a feature page. Feature APIs live in their own `api/` folders and are consumed through TanStack Query hooks.
 
-### Other setup steps
+<br />
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Scripts
 
-## Learn more
+| Command | What it does |
+| --- | --- |
+| `npm start` | Start Expo |
+| `npm run android` | Start Expo and open Android |
+| `npm run ios` | Start Expo and open iOS |
+| `npm run web` | Start the web target |
+| `npm run lint` | Run Expo's ESLint configuration |
+| `npm run typecheck` | Run TypeScript without emitting files |
 
-To learn more about developing your project with Expo, look at the following resources:
+<br />
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Testing
 
-## Join the community
+```bash
+npm run lint
+npm run typecheck
+```
 
-Join our community of developers creating universal apps.
+There is no mobile unit-test script configured yet. Run lint and typecheck before submitting changes.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+<br />
+
+## Rules
+
+| Rule | Use |
+| --- | --- |
+| Use Expo Router for navigation | Routes live in `src/app/`; keep feature logic elsewhere |
+| Use TanStack Form + Zod | Do not use React Hook Form |
+| Store refresh credentials only in SecureStore | Access tokens stay in memory; never persist them |
+| Use `useAccess().can(...)` for permissions | Do not check role names |
+| Use `@/lib/datetime` and `@/lib/currency` | Use clinic timezone and shared money formatting |
+| Prefer FlashList for long lists | Keep scrolling performant on phones |
+| Use theme tokens and safe-area utilities | Avoid hardcoded colors and device-edge content |
+
+For detailed conventions and Expo SDK guidance, read [`AGENTS.md`](AGENTS.md) and [`CLAUDE.md`](CLAUDE.md).
+
+<br />
+
+<div align="center">
+<sub>Part of the <a href="../README.md">Clinic Management Platform</a> · API: <a href="../backend/">backend/</a> · Web: <a href="../web-app/">web-app/</a></sub>
+</div>

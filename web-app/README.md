@@ -1,201 +1,120 @@
-Welcome to your new TanStack Start app!
+<div align="center">
 
-# Getting Started
+<img src="../docs/images/logo.svg" alt="" width="64" />
 
-To run this application:
+<h1>Web app</h1>
 
-```bash
-npm install
-npm run dev
+<p><b>The clinic workspace for appointments, care, billing and operations.</b></p>
+
+<p>
+<img src="https://img.shields.io/badge/React_19-161b22?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React 19" />
+<img src="https://img.shields.io/badge/TanStack-161b22?style=for-the-badge&logo=reactquery&logoColor=FF4154" alt="TanStack" />
+<img src="https://img.shields.io/badge/Tailwind_4-161b22?style=for-the-badge&logo=tailwindcss&logoColor=06B6D4" alt="Tailwind 4" />
+<img src="https://img.shields.io/badge/TypeScript-161b22?style=for-the-badge&logo=typescript&logoColor=3178C6" alt="TypeScript" />
+<img src="https://img.shields.io/badge/Vitest-161b22?style=for-the-badge&logo=vitest&logoColor=6E9F18" alt="Vitest" />
+</p>
+
+<p>
+<a href="#quick-start"><b>Quick start</b></a> &nbsp;·&nbsp;
+<a href="#features"><b>Features</b></a> &nbsp;·&nbsp;
+<a href="#structure"><b>Structure</b></a> &nbsp;·&nbsp;
+<a href="#testing"><b>Testing</b></a> &nbsp;·&nbsp;
+<a href="#rules"><b>Rules</b></a>
+</p>
+
+<sub><a href="../README.md">← Back to the main README</a></sub>
+
+</div>
+
+<br />
+
+## Quick start
+
+**You need:** Node.js 22 and the API running locally on port `5000`.
+
+| Step | Command |
+| --- | --- |
+| 1 · Install | `npm install` |
+| 2 · Configure (optional) | Set `VITE_API_BASE_URL` if the API is not at `http://localhost:5000` |
+| 3 · Start | `npm run dev` |
+
+Open [http://localhost:3000](http://localhost:3000). The default API URL is `http://localhost:5000`; no web-specific `.env` file is required for local development.
+
+<br />
+
+## Features
+
+The web app is the full clinic workspace. Screens are organized by feature, with access-aware routes, clinic/location context, and live updates where supported.
+
+| Area | Includes |
+| --- | --- |
+| Front desk | Appointment calendar and booking, check-in, doctor-wise queue, reception and TV displays |
+| Patient care | Patient records, consultations, treatment plans, prescriptions and medicine directory |
+| Billing | Charges, invoices, payments, refunds, expenses, commissions, cash close and reports |
+| Labs | Lab directory and portal, orders, production, billing, payables and workflow templates |
+| Clinic operations | Employees, locations, payroll, inventory and notifications |
+| Administration | Clinic access, roles, permissions, feature switches, sidebar, theme, subscriptions and workflow studio |
+
+<br />
+
+## Structure
+
+```text
+src/
+├── routes/       TanStack file-based routes and root shell
+├── features/     Feature pages, components, hooks, API, schemas and types
+├── components/   Shared layout, feedback, forms and UI components
+├── context/      App-wide providers
+├── hooks/        Shared React hooks
+├── lib/          API client, query client, dates, currency and utilities
+├── store/        Zustand state
+└── test/         Test setup and helpers
 ```
 
-# Building For Production
+Routes should stay thin; feature behavior belongs under `features/`. Cross-feature imports use each feature's `index.ts` barrel.
 
-To build this application for production:
+<br />
 
-```bash
-npm run build
-```
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start Vite on port `3000` |
+| `npm run build` | Create the production build |
+| `npm run preview` | Serve the production build locally |
+| `npm run test` | Run Vitest |
+| `npm run lint` | Run ESLint |
+| `npm run format` | Check formatting with Prettier |
+| `npm run check` | Format files and run ESLint with fixes |
+
+<br />
 
 ## Testing
 
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
-
 ```bash
 npm run test
+npm run build
 ```
 
-## Styling
+Vitest uses Testing Library for component and hook tests. The production build creates the TanStack Start server output.
 
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
+<br />
 
-### Removing Tailwind CSS
+## Rules
 
-If you prefer not to use Tailwind CSS:
+| Rule | Use |
+| --- | --- |
+| Keep route files free of business logic | Route files import and render feature pages |
+| Use TanStack Form + Zod | Define schemas in the feature and wire them as form validators; do not use React Hook Form |
+| Put HTTP calls in feature API files | Components call typed TanStack Query hooks, not Axios directly |
+| Check permissions with `useAccess().can(...)` | Do not branch on role names |
+| Use `@/lib/datetime` for dates and times | Display and enter instants in the active location's timezone |
+| Keep forms in sheets and use shared UI | Follow the shared form and component patterns |
 
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `npm install @tailwindcss/vite tailwindcss -D`
+For folder conventions, date handling, forms, access and design rules, read the root [`CLAUDE.md`](../CLAUDE.md).
 
-## Linting & Formatting
+<br />
 
-This project uses [eslint](https://eslint.org/) and [prettier](https://prettier.io/) for linting and formatting. Eslint is configured using [tanstack/eslint-config](https://tanstack.com/config/latest/docs/eslint). The following scripts are available:
-
-```bash
-npm run lint
-npm run format
-npm run check
-```
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from '@tanstack/react-router'
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+<div align="center">
+<sub>Part of the <a href="../README.md">Clinic Management Platform</a> · API: <a href="../backend/">backend/</a> · Mobile: <a href="../mobile-app/">mobile-app/</a></sub>
+</div>
