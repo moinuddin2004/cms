@@ -1,17 +1,17 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
 import { refreshSession } from '@/lib/api';
 import { useAuthStore } from '@/store/useAuthStore';
 
 /**
- * On app start, silently sign in again with the refresh token in SecureStore.
+ * Silently sign in again with the refresh token in SecureStore.
  * No token or a rejected one → signed out. No connection → `unreachable`,
  * so the user keeps their session and can retry instead of being logged out.
  */
 export function useRestoreSession() {
   const setStatus = useAuthStore((s) => s.setStatus);
 
-  const restore = useCallback(async () => {
+  return useCallback(async () => {
     setStatus('restoring');
     try {
       const session = await refreshSession();
@@ -21,10 +21,4 @@ export function useRestoreSession() {
       setStatus('unreachable');
     }
   }, [setStatus]);
-
-  useEffect(() => {
-    void restore();
-  }, [restore]);
-
-  return restore;
 }

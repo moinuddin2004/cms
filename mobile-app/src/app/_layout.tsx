@@ -4,7 +4,6 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
-import { ErrorState } from '@/components/feedback/ErrorState';
 import { useRestoreSession } from '@/features/auth';
 import { AppProviders } from '@/providers/AppProviders';
 import { activeClinicBlock, needsLocationSelection, useAuthStore } from '@/store/useAuthStore';
@@ -13,8 +12,12 @@ SplashScreen.preventAutoHideAsync();
 
 /**
  * Route guards live here (the mobile twin of the web app's `__root.tsx`):
- * signed out → login · signed in without a clinic/location (or a blocked clinic)
- * → select-location · otherwise the app.
+ * signed out → login · saved session but offline → offline · signed in without
+ * a clinic/location (or a blocked clinic) → select-location · otherwise the app.
+ *
+ * The <Stack> must ALWAYS render (never return null while loading), or Expo
+ * Router has no navigator to attach to and the screen stays blank. While the
+ * session is restoring the native splash simply covers it.
  */
 function RootNavigator() {
   const restore = useRestoreSession();
@@ -24,25 +27,22 @@ function RootNavigator() {
   );
 
   useEffect(() => {
+    void restore();
+  }, [restore]);
+
+  useEffect(() => {
     if (status !== 'restoring') void SplashScreen.hideAsync();
   }, [status]);
-
-  if (status === 'restoring') return null; // the native splash is still showing
-
-  if (status === 'unreachable') {
-    return (
-      <ErrorState
-        title="Can't reach the server"
-        message="Your session is saved. Check your connection and try again."
-        onRetry={() => void restore()}
-      />
-    );
-  }
 
   const signedIn = status === 'signedIn';
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Protected guard={!signedIn}>
+      {/* "/" decides where to go; always available. */}
+      <Stack.Screen name="index" />
+      <Stack.Protected guard={status === 'unreachable'}>
+        <Stack.Screen name="offline" />
+      </Stack.Protected>
+      <Stack.Protected guard={status === 'signedOut' || status === 'restoring'}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && mustSelect}>
