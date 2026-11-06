@@ -20,6 +20,10 @@ import { noPermission } from 'src/access/decorators/access.decorators';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
+import { toUserAdminView } from './dto/user-admin.view';
+import { EmailVerificationService } from './email-verification.service';
+import { RequireSuperAdmin } from 'src/common/decorators/require-super-admin.decorator';
+import { HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
@@ -38,6 +42,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly resolver: AccessResolver,
+    private readonly verification: EmailVerificationService,
   ) {}
 
   /**
@@ -100,12 +105,13 @@ export class UserController {
     const pageNumber = page ? parseInt(page, 10) : 1;
     const limitNumber = limit ? parseInt(limit, 10) : 10;
 
-    return this.userService.findUsers(
+    const result = await this.userService.findUsers(
       manager,
       (type || 'employee') as 'super_admin' | 'owner' | 'employee',
       pageNumber,
       limitNumber,
     );
+    return { ...result, data: result.data.map(toUserAdminView) };
   }
 
   /** Staff of the active org who have no login yet (for a staff user). */
@@ -125,7 +131,9 @@ export class UserController {
     @Body() body: CreateUserDto,
     @Headers('x-organization-id') orgId: string,
   ) {
-    return this.userService.createUser(await this.manager(req, orgId), body);
+    return toUserAdminView(
+      await this.userService.createUser(await this.manager(req, orgId), body),
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -136,10 +144,41 @@ export class UserController {
     @Body() body: UpdateUserDto,
     @Headers('x-organization-id') orgId: string,
   ) {
-    return this.userService.updateUser(
+    return toUserAdminView(
+      await this.userService.updateUser(
+        await this.manager(req, orgId),
+        targetUserId,
+        body,
+      ),
+    );
+  }
+
+  /** Email a fresh verification link (super admin, or a manager of that user). */
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(
+    @Req() req: UserRequest,
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+    @Headers('x-organization-id') orgId: string,
+  ) {
+    return this.userService.resendVerification(
       await this.manager(req, orgId),
       targetUserId,
-      body,
+    );
+  }
+
+  /** Super admin only: mark the address verified without the link. */
+  @UseGuards(AuthGuard('jwt'))
+  @RequireSuperAdmin()
+  @Post(':id/verify-email')
+  @HttpCode(HttpStatus.OK)
+  async markEmailVerified(
+    @Req() req: UserRequest,
+    @Param('id', ParseUUIDPipe) targetUserId: string,
+  ) {
+    return toUserAdminView(
+      await this.verification.markVerifiedByAdmin(targetUserId, req.user.uuid),
     );
   }
 

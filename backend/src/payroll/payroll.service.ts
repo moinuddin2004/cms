@@ -1,3 +1,7 @@
+import { EntityManager } from 'typeorm';
+import { sqlRows } from 'src/common/database/sql';
+import { staffRecipient, employeeUserId } from 'src/notifications/recipients/staff-recipients';
+import { NotificationService } from 'src/notifications/services/notification.service';
 import {
   Injectable,
   Logger,
@@ -52,7 +56,47 @@ export class PayrollService {
     private readonly employeesService: EmployeesService,
     private readonly dataSource: DataSource,
     private readonly clock: ClockService,
+    private readonly notifications: NotificationService,
   ) {}
+
+  /** "Payslip ready" / "Salary paid" to the employee, inside the payroll transaction. */
+  private async notifyEmployee(
+    m: EntityManager,
+    eventCode: 'payroll.generated' | 'payroll.paid',
+    record: PayrollRecord,
+    userId: string | null,
+  ): Promise<void> {
+    const employeeLogin =
+      userId ??
+      (await employeeUserId(
+        m,
+        record.organizationId,
+        record.employeeId,
+        record.locationId,
+      ));
+    if (!employeeLogin) return;
+    const [org] = await sqlRows<{ currency: string }>(
+      m,
+      `SELECT currency FROM organizations WHERE id = $1`,
+      [record.organizationId],
+    );
+    const amount = Number(minorToDecimal(record.totalMinor)).toLocaleString(
+      'en-US',
+      { maximumFractionDigits: 2 },
+    );
+    await this.notifications.enqueueSafely(m, {
+      organizationId: record.organizationId,
+      locationId: record.locationId,
+      eventCode,
+      recipients: [staffRecipient(employeeLogin)],
+      variables: {
+        period: record.periodLabel,
+        net_amount: `${org?.currency ?? ''} ${amount}`.trim(),
+      },
+      link: '/my-earnings',
+      entity: { type: 'payroll_record', id: record.id },
+    });
+  }
 
   /** First and last clinic date of a payroll month. */
   private period(month: number, year: number): { start: string; end: string } {
@@ -233,6 +277,12 @@ export class PayrollService {
             entries,
           });
         }
+        await this.notifyEmployee(
+          m,
+          'payroll.generated',
+          saved,
+          assignment.userId ?? null,
+        );
         records.push(saved);
         generated++;
       }
@@ -535,6 +585,12 @@ export class PayrollService {
         record.id,
         record.paidAt,
         userId,
+      );
+      await this.notifyEmployee(
+        queryRunner.manager,
+        'payroll.paid',
+        saved,
+        null,
       );
       await queryRunner.commitTransaction();
 

@@ -3,7 +3,7 @@ import { toastNotificationError } from '../lib/notification-errors'
 import { notificationKeys } from '../query-keys'
 import { readSoundPref, writeSoundPref } from '../lib/notification-sound'
 import { myNotificationsApi } from '../services/notifications.api'
-import type { MyNotificationPrefs } from '../types'
+import type { MyNotificationPrefs, MyNotificationPrefsInput } from '../types'
 
 /**
  * Fallback only: `notification.new` on the socket refreshes the badge
@@ -58,7 +58,10 @@ export function useMyNotificationPrefs() {
       writeSoundPref(prefs.sound)
       return prefs
     },
-    placeholderData: (): MyNotificationPrefs => ({ sound: readSoundPref() }),
+    placeholderData: (): MyNotificationPrefs => ({
+      sound: readSoundPref(),
+      email: [],
+    }),
     staleTime: 5 * 60_000,
   })
 }
@@ -66,7 +69,7 @@ export function useMyNotificationPrefs() {
 export function useUpdateMyNotificationPrefs() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (body: Partial<MyNotificationPrefs>) =>
+    mutationFn: (body: MyNotificationPrefsInput) =>
       myNotificationsApi.updatePrefs(body),
     onMutate: (body) => {
       if (typeof body.sound === 'boolean') writeSoundPref(body.sound)
@@ -75,7 +78,17 @@ export function useUpdateMyNotificationPrefs() {
       )
       queryClient.setQueryData<MyNotificationPrefs>(
         notificationKeys.mine.prefs,
-        (old) => ({ sound: readSoundPref(), ...old, ...body }),
+        (old) => {
+          const base = old ?? { sound: readSoundPref(), email: [] }
+          return {
+            sound: body.sound ?? base.sound,
+            email: (Array.isArray(base.email) ? base.email : []).map((e) =>
+              body.email && e.code in body.email
+                ? { ...e, enabled: body.email[e.code] }
+                : e,
+            ),
+          }
+        },
       )
       return { previous }
     },

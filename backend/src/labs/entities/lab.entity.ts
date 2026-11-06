@@ -56,6 +56,32 @@ export class Lab {
   @Column({ name: 'email', type: 'varchar', length: 255, nullable: true })
   email: string | null;
 
+  /**
+   * The contact address was confirmed (link clicked, or a super admin marked
+   * it). Email — order links included — goes only to a verified address.
+   * Cleared whenever `email` changes.
+   */
+  @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
+  emailVerifiedAt: Date | null;
+
+  /** sha256 of the pending confirmation token (never the raw token). */
+  @Column({
+    name: 'email_verify_token',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+    select: false,
+  })
+  emailVerifyToken: string | null;
+
+  @Column({
+    name: 'email_verify_expires',
+    type: 'timestamptz',
+    nullable: true,
+    select: false,
+  })
+  emailVerifyExpires: Date | null;
+
   @Column({ name: 'city', type: 'varchar', length: 100, nullable: true })
   city: string | null;
 

@@ -20,6 +20,7 @@ export const PUBLIC_ROUTES: PublicRoute[] = [
   { method: 'GET', path: '/public/theme/**' },
   // Invite link page: clinic name only; the token just lets people ask to join.
   { method: 'GET', path: '/public/join-invites/**' },
+  { method: 'POST', path: '/public/lab-email/confirm' },
   // Waiting-room TV: tokens and doctor names only, never patient data.
   { method: 'GET', path: '/queue/displays/**/state' },
   // Lab magic links (lab ERD §7): the token in the path is the credential.

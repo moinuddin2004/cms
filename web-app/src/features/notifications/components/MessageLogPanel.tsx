@@ -45,6 +45,7 @@ const STATUS_TONE: Record<
   failed: 'danger',
   skipped_disabled: 'muted',
   skipped_opt_out: 'muted',
+  skipped_unverified: 'warning',
 }
 
 function LogStatus({ entry }: { entry: OutboxLogEntry }) {

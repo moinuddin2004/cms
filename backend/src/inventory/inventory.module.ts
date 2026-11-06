@@ -1,3 +1,4 @@
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FeatureFlagsModule } from '../feature-flags/feature-flags.module';
@@ -45,6 +46,7 @@ import { PatientConsumptionController } from './controllers/patient-consumption.
       PatientConsumptionItem,
     ]),
     FeatureFlagsModule,
+    NotificationsModule,
   ],
   controllers: [
     InventoryController,

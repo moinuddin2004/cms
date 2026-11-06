@@ -1,3 +1,5 @@
+import { staffRecipient } from 'src/notifications/recipients/staff-recipients';
+import { NotificationService } from 'src/notifications/services/notification.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { RegisterRequestDto } from 'src/auth/dto/request/register-request.dto';
 import * as bcrypt from 'bcrypt';
@@ -6,6 +8,7 @@ import { RequestContextService } from 'src/common/services/request-context.servi
 import { AppLogger } from 'src/common/services/logger.service';
 import { ProviderEnum } from 'src/auth/enum/ProviderEnum';
 import { User } from './entities/user.entity';
+import { EmailVerificationService } from './email-verification.service';
 import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 import { SessionService } from 'src/session/session.service';
 import { Repository } from 'typeorm';
@@ -44,6 +47,8 @@ export class UserService {
     private readonly context: RequestContextService,
     private readonly logger: AppLogger,
     private readonly subscriptions: SubscriptionsService,
+    private readonly verification: EmailVerificationService,
+    private readonly notifications: NotificationService,
   ) {}
 
   async createLocalUser(command: RegisterRequestDto): Promise<User> {
@@ -258,6 +263,8 @@ export class UserService {
     });
 
     const savedUser = await this.userRepository.save(user);
+    // A new password login works only once its email is verified.
+    if (savedUser.password) await this.verification.start(savedUser, new Date());
 
     if (body.type === 'owner' && orgId) {
       const ownership = this.userRepository.manager.create(
@@ -325,8 +332,9 @@ export class UserService {
       throw new BadRequestException('employeeId is required for staff users');
     }
     const google = body.loginMethod === 'google';
+    let created = false;
 
-    return this.userRepository.manager.transaction(async (em) => {
+    const login = await this.userRepository.manager.transaction(async (em) => {
       const assignments = await em
         .getRepository(EmployeeOrgLocationAssignment)
         .find({
@@ -380,6 +388,7 @@ export class UserService {
             status: body.status || AccountStatus.ACTIVE,
           }),
         );
+        created = true;
       }
       const login = user;
       for (const a of assignments) {
@@ -390,6 +399,19 @@ export class UserService {
       await em.getRepository(EmployeeOrgLocationAssignment).save(assignments);
       return login;
     });
+    // After commit: a new password login works only once its email is verified.
+    if (created && login.password) {
+      await this.verification.start(login, new Date());
+    }
+    void this.notifications.notify({
+      organizationId: orgId,
+      eventCode: 'employee.login_created',
+      recipients: [staffRecipient(login.uuid)],
+      variables: { login_email: login.email },
+      link: '/',
+      entity: { type: 'user', id: login.uuid },
+    });
+    return login;
   }
 
   async updateUser(
@@ -413,6 +435,10 @@ export class UserService {
       }
     }
 
+    const previousEmail = targetUser.email;
+    const emailChanged =
+      !!body.email &&
+      body.email.trim().toLowerCase() !== targetUser.email.trim().toLowerCase();
     if (body.email) targetUser.email = body.email;
     if (body.name) targetUser.name = body.name;
     if (body.phone) targetUser.phone = body.phone;
@@ -422,7 +448,28 @@ export class UserService {
       targetUser.password = await bcrypt.hash(body.password, 12);
     }
 
-    return this.userRepository.save(targetUser);
+    const saved = await this.userRepository.save(targetUser);
+    // A new address must be proven again before it is used.
+    if (emailChanged) {
+      await this.verification.emailChanged(saved, previousEmail);
+    }
+    return saved;
+  }
+
+  /** Send a fresh verification link to a user this manager may modify. */
+  async resendVerification(
+    manager: UserManager,
+    targetUserId: string,
+  ): Promise<{ sent: boolean; result: string }> {
+    const target = await this.userRepository.findOne({
+      where: { uuid: targetUserId },
+    });
+    if (!target) throw new NotFoundException('User not found');
+    if (!manager.isSuperAdmin) {
+      await this.assertManageable(manager, target, 'modify');
+    }
+    const result = await this.verification.resend(target.uuid);
+    return { sent: result === 'sent', result };
   }
 
   async deleteUser(

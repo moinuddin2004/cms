@@ -1,4 +1,5 @@
-export type NotificationAudience = 'patient' | 'doctor' | 'coordinator' | 'lab'
+export type NotificationAudience =
+  'patient' | 'doctor' | 'coordinator' | 'lab' | 'staff'
 export type NotificationChannel = 'in_app' | 'whatsapp' | 'sms' | 'email'
 export type NotificationLanguage = 'en' | 'ur' | 'roman_ur'
 export type OutboxStatus =
@@ -9,6 +10,7 @@ export type OutboxStatus =
   | 'failed'
   | 'skipped_disabled'
   | 'skipped_opt_out'
+  | 'skipped_unverified'
 
 export interface Paginated<T> {
   data: T[]
@@ -35,6 +37,18 @@ export interface NotificationRule {
   isDefault: boolean
   /** Mandatory internal in-app — always on. */
   locked: boolean
+  /** Set by the platform (super admin) for this clinic; the clinic can't change it. */
+  platformMode?: 'on' | 'off' | null
+}
+
+/** Super admin: one mandatory event's email and the platform's decision for a clinic. */
+export interface PlatformOverride {
+  eventCode: string
+  name: string
+  description: string
+  /** `clinic` = no override, the clinic's own switch decides. */
+  mode: 'on' | 'off' | 'clinic'
+  updatedAt: string | null
 }
 
 export interface NotificationEventSettings {
@@ -43,6 +57,8 @@ export interface NotificationEventSettings {
   description: string
   audiences: NotificationAudience[]
   isMandatoryInternal: boolean
+  /** Email on by default — the important events. */
+  emailDefault?: boolean
   variables: string[]
   rules: NotificationRule[]
 }
@@ -133,9 +149,27 @@ export interface MyNotification {
   createdAt: string
 }
 
+/** One event the user may get by email, and their own switch for it. */
+export interface MyEmailPref {
+  code: string
+  name: string
+  description: string
+  /** Required by the clinic: the switch is fixed on. */
+  mandatory: boolean
+  /** The clinic emails it by default. */
+  clinicDefault: boolean
+  enabled: boolean
+}
+
 /** The user's own notification switches (`/me/notifications/prefs`). */
 export interface MyNotificationPrefs {
   sound: boolean
+  email: MyEmailPref[]
+}
+
+export interface MyNotificationPrefsInput {
+  sound?: boolean
+  email?: Record<string, boolean>
 }
 
 /** Socket `notification.new` payload — a just-created bell item. */
@@ -155,6 +189,7 @@ export const AUDIENCE_LABEL: Record<NotificationAudience, string> = {
   doctor: 'Doctors',
   coordinator: 'Lab coordinators',
   lab: 'Labs',
+  staff: 'Clinic team',
 }
 
 export const CHANNEL_LABEL: Record<NotificationChannel, string> = {
@@ -178,6 +213,7 @@ export const STATUS_LABEL: Record<OutboxStatus, string> = {
   failed: 'Failed',
   skipped_disabled: 'Skipped — off',
   skipped_opt_out: 'Skipped — opted out',
+  skipped_unverified: 'Skipped — email not verified',
 }
 
 /** Why a message was skipped / held, in the clinic's words. */
@@ -185,7 +221,7 @@ export const REASON_LABEL: Partial<Record<string, string>> = {
   mandatory_internal: 'Mandatory notification',
   audience_disabled: 'Switched off for this audience',
   rule_disabled: 'Switched off for this event',
-  opted_out: 'Patient opted out',
+  opted_out: 'Opted out',
   quiet_hours: 'Waiting for quiet hours to end',
   enabled: 'Enabled',
   no_address: 'No phone number or email',

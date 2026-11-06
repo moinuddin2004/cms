@@ -1,3 +1,5 @@
+import { NotificationsModule } from 'src/notifications/notifications.module';
+import { SubscriptionRemindersJob } from './subscription-reminders.job';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from 'src/common/common.module';
@@ -19,9 +21,15 @@ import { AdminSubscriptionsController } from './admin-subscriptions.controller';
     TypeOrmModule.forFeature([SubscriptionPayment]),
     CommonModule,
     FeatureFlagsModule,
+    NotificationsModule,
   ],
   controllers: [AccountController, AdminSubscriptionsController],
-  providers: [SubscriptionsService, ClinicSetupService, SubscriptionGuard],
+  providers: [
+    SubscriptionsService,
+    ClinicSetupService,
+    SubscriptionGuard,
+    SubscriptionRemindersJob,
+  ],
   exports: [SubscriptionsService, ClinicSetupService, SubscriptionGuard],
 })
 export class SubscriptionsModule {}

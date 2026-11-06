@@ -1,3 +1,9 @@
+import {
+  NotificationAudience,
+  RecipientType,
+} from 'src/notifications/notifications.enums';
+import { employeeUserId } from 'src/notifications/recipients/staff-recipients';
+import { NotificationService } from 'src/notifications/services/notification.service';
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
@@ -84,6 +90,7 @@ export class QueueOrchestrator {
     private readonly encounters: EncountersService,
     private readonly chargeSources: ChargeSourcesService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // ═══════════════════════════════════════════════════════════
@@ -1282,7 +1289,46 @@ export class QueueOrchestrator {
         reasonText: urgent,
       });
     }
+    await this.notifyCheckIn(tx, session, entry);
     return entry;
+  }
+
+  /** "Patient waiting" to the session's doctor (in-app only; savepoint-safe). */
+  private async notifyCheckIn(
+    tx: QueueTx,
+    session: QueueSession,
+    entry: QueueEntry,
+  ): Promise<void> {
+    const doctorUserId = await employeeUserId(
+      tx.manager,
+      session.organizationId,
+      session.doctorId,
+      session.locationId,
+    );
+    if (!doctorUserId || doctorUserId === tx.actor.userId) return;
+    const [patient] = await sqlRows<{ full_name: string }>(
+      tx.manager,
+      `SELECT full_name FROM patients WHERE id = $1`,
+      [entry.patientId],
+    );
+    await this.notifications.enqueueSafely(tx.manager, {
+      organizationId: session.organizationId,
+      locationId: session.locationId,
+      eventCode: 'queue.patient_checked_in',
+      recipients: [
+        {
+          audience: NotificationAudience.DOCTOR,
+          type: RecipientType.USER,
+          id: doctorUserId,
+        },
+      ],
+      variables: {
+        patient_name: patient?.full_name ?? 'A patient',
+        token: this.tokens.format(session.tokenPrefix, entry.tokenNumber),
+      },
+      link: '/queue/doctor',
+      entity: { type: 'queue_entry', id: entry.id },
+    });
   }
 
   private async cancelEntry(

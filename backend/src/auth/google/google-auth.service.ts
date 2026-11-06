@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 import { AppLogger } from 'src/common/services/logger.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { User } from 'src/user/entities/user.entity';
+import { MailService } from 'src/common/services/mail.service';
 import { AccountStatus } from 'src/user/enum/AccountStatus';
 import { ClinicSetupService } from 'src/subscriptions/clinic-setup.service';
 import { ClinicGateService } from 'src/clinic-access/clinic-gate.service';
@@ -78,6 +79,7 @@ export class GoogleAuthService {
     private readonly clinicAccess: ClinicAccessService,
     private readonly securityLog: SecurityLogService,
     private readonly logger: AppLogger,
+    private readonly mail: MailService,
   ) {}
 
   // ── Sign in ───────────────────────────────────────────────────────
@@ -268,6 +270,18 @@ export class GoogleAuthService {
       }
       await this.saveLink(this.dataSource.manager, userId, g);
       await this.securityLog.logOAuthLink(userId, 'google', req);
+      const user = await this.dataSource
+        .getRepository(User)
+        .findOneBy({ uuid: userId });
+      if (user) {
+        void this.mail.sendSecurityNotice(
+          'google_linked',
+          user.email,
+          'Google sign-in was added to your account',
+          `You can now sign in with the Google account ${g.email}.`,
+          user.uuid,
+        );
+      }
     }
     return this.loginMethods(userId);
   }
@@ -288,6 +302,13 @@ export class GoogleAuthService {
     });
     if (result.affected) {
       await this.securityLog.logOAuthUnlink(userId, 'google', req);
+      void this.mail.sendSecurityNotice(
+        'google_unlinked',
+        user.email,
+        'Google sign-in was removed from your account',
+        'You can no longer sign in with Google; sign in with your email and password.',
+        user.uuid,
+      );
     }
     return this.loginMethods(userId);
   }

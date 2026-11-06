@@ -166,7 +166,13 @@ export function toClinicOrder(
       patientNumber: o.patient.patientNumber,
     },
     doctor: o.doctor ? { id: o.doctor.id, fullName: o.doctor.fullName } : null,
-    lab: { id: o.lab.id, name: o.lab.name, city: o.lab.city },
+    lab: {
+      id: o.lab.id,
+      name: o.lab.name,
+      city: o.lab.city,
+      // Order links are emailed only to a confirmed address.
+      emailVerified: !!o.lab.email && !!o.lab.emailVerifiedAt,
+    },
     totals: isDraft(o)
       ? null
       : {

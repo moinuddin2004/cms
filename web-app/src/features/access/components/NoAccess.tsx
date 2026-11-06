@@ -12,7 +12,7 @@ export function NoAccess() {
     <DashboardLayout title="No access">
       <EmptyState
         icon={ShieldOff}
-        title="Aapke paas is page ki permission nahi"
+        title="You have no access to this page"
         description="You don't have permission to open this page. Ask your clinic owner to add it to your role."
         action={
           <Button asChild>

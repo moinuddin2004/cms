@@ -39,6 +39,8 @@ export const invoiceSchema = (subtotalMinor: number) =>
     .object({
       itemIds: z.array(z.string()),
       chargeIds: z.array(z.string()),
+      /** Price typed per picked line (item/charge id → rupees); blank = list price. */
+      prices: z.record(z.string(), z.string()),
       discount: z.string(),
       taxPercent: z.string(),
       notes: text(1000),
@@ -51,6 +53,13 @@ export const invoiceSchema = (subtotalMinor: number) =>
           path: ['itemIds'],
           message: 'Pick at least one item to bill',
         })
+      for (const [id, p] of Object.entries(v.prices))
+        if (p.trim() && rupeesToMinor(p) === null)
+          ctx.addIssue({
+            code: 'custom',
+            path: ['prices', id],
+            message: 'Enter an amount, e.g. 4500',
+          })
       const d = v.discount.trim() ? rupeesToMinor(v.discount) : 0
       if (d === null)
         ctx.addIssue({

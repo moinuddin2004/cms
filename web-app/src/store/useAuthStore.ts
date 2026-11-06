@@ -55,8 +55,10 @@ export interface User {
   name: string
   globalRole: string | null
   avatarUrl?: string
-  /** Self-signup that hasn't clicked the verification link yet. */
+  /** Password account whose email is not verified yet. */
   emailVerificationPending?: boolean
+  /** Pending only: until when it may still be used unverified (ISO). */
+  emailVerificationDueAt?: string | null
 }
 
 interface AuthState {
@@ -72,6 +74,11 @@ interface AuthState {
   accessibleOrganizations: Organization[]
   activeOrganizationId: string | null
   activeLocationId: string | null
+  /**
+   * The API refused this account with EMAIL_NOT_VERIFIED (past its grace
+   * date): the root guard shows /confirm-email until it is verified.
+   */
+  emailVerificationRequired: boolean
 
   // Lab portal context — sent as x-lab-id on /lab-portal requests only
   labMemberships: LabMembership[]
@@ -101,6 +108,7 @@ interface AuthState {
 
   /** A tenant request was refused by the clinic gate (see lib/api). */
   setClinicBlock: (orgId: string, block: SignInBlock) => void
+  setEmailVerificationRequired: (required: boolean) => void
 
   /** Send the user back to the clinic picker (from /clinic-access). */
   requestClinicSelection: () => void
@@ -125,6 +133,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   accessibleOrganizations: [],
   activeOrganizationId: null,
   activeLocationId: null,
+  emailVerificationRequired: false,
   labMemberships: [],
   activeLabId: null,
 
@@ -138,6 +147,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         name: data.user.name,
         globalRole: data.user.globalRole || null,
         avatarUrl: data.user.avatarUrl,
+        emailVerificationPending: data.user.emailVerificationPending ?? false,
+        emailVerificationDueAt: data.user.emailVerificationDueAt ?? null,
       },
       accessToken: data.accessToken,
       isAuthenticated: true,
@@ -185,6 +196,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       ),
     })),
 
+  setEmailVerificationRequired: (required) =>
+    set({ emailVerificationRequired: required }),
+
   requestClinicSelection: () =>
     set({
       requiresOrgSelection: true,
@@ -206,6 +220,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       activeLocationId: null,
       labMemberships: [],
       activeLabId: null,
+      emailVerificationRequired: false,
     }),
 }))
 

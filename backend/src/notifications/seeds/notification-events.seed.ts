@@ -11,6 +11,10 @@ export interface EventSeed {
   description: string;
   audiences: A[];
   isMandatoryInternal: boolean;
+  /** Email on by default (important events). Default false = in-app only until switched on. */
+  emailDefault?: boolean;
+  /** Channels this event may use at all; omitted = every channel of its audiences. */
+  channels?: NotificationChannel[];
   variables: string[];
   /** Platform default wording (English). Title doubles as email subject. */
   title: string;
@@ -30,6 +34,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'A clinic sent a new order to the lab.',
     audiences: [A.LAB],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'patient_ref', 'due_on'],
     title: 'New order {order_no}',
     body: '{clinic_name} sent order {order_no} ({patient_ref}), due {due_on}.',
@@ -50,6 +55,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'The lab rejected an order.',
     audiences: [A.DOCTOR, A.COORDINATOR],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'lab_name', 'reason'],
     title: 'Order {order_no} rejected',
     body: '{lab_name} rejected order {order_no}: {reason}',
@@ -60,6 +66,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'The lab needs clarification before it can accept an order.',
     audiences: [A.DOCTOR, A.COORDINATOR],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'lab_name', 'question'],
     title: 'Order {order_no}: the lab has a question',
     body: '{lab_name} asked about order {order_no}: {question}',
@@ -71,6 +78,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
       'A one-order link the lab opens without logging in, to view and accept, reject or query the order.',
     audiences: [A.LAB],
     isMandatoryInternal: false,
+    emailDefault: true,
     variables: [
       'order_no',
       'patient_ref',
@@ -87,6 +95,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: "The lab moved an order's expected date.",
     audiences: [A.DOCTOR, A.COORDINATOR],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'lab_name', 'expected_on', 'previous_expected_on'],
     title: 'Order {order_no}: new date {expected_on}',
     body: '{lab_name} moved order {order_no} from {previous_expected_on} to {expected_on}.',
@@ -137,6 +146,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'The clinic asked the lab to remake an item.',
     audiences: [A.LAB],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'item_name', 'reason'],
     title: 'Remake requested ({order_no})',
     body: '{clinic_name} requested a remake of {item_name} on order {order_no}: {reason}',
@@ -148,6 +158,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'The clinic agreed a remake; a new item was added.',
     audiences: [A.LAB],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'item_name', 'responsible_party'],
     title: 'Remake agreed ({order_no})',
     body: '{clinic_name} agreed a remake of {item_name} on order {order_no} (responsible: {responsible_party}).',
@@ -178,6 +189,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'The doctor asked for a correction after a try-in.',
     audiences: [A.LAB],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['order_no', 'item_name', 'stage_name', 'round_no', 'notes'],
     title: 'Correction: {stage_name} ({order_no})',
     body: '{clinic_name} needs a correction of {stage_name} of {item_name} on order {order_no} (round {round_no}): {notes}',
@@ -188,6 +200,7 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'A shipment between the clinic and the lab was marked lost.',
     audiences: [A.LAB, A.DOCTOR],
     isMandatoryInternal: true,
+    emailDefault: true,
     variables: ['shipment_no', 'reason'],
     title: 'Shipment {shipment_no} lost',
     body: 'Shipment {shipment_no} was marked lost: {reason}',
@@ -242,7 +255,179 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     title: 'Payment reminder',
     body: 'Dear {recipient_name}, you have an outstanding balance of {amount} at {clinic_name}.',
   },
+  // ── Clinic events (notifications + email plan, P4) ──────────────────
+  {
+    code: 'appointment.booked',
+    name: 'Appointment booked',
+    description: 'A new appointment was booked with you.',
+    audiences: [A.DOCTOR],
+    isMandatoryInternal: false,
+    variables: ['patient_name', 'appointment_date'],
+    title: 'New appointment: {patient_name}',
+    body: '{patient_name} is booked with you on {appointment_date}.',
+  },
+  {
+    code: 'appointment.rescheduled',
+    name: 'Appointment moved',
+    description: 'One of your appointments moved to another time (or to you).',
+    audiences: [A.DOCTOR],
+    isMandatoryInternal: false,
+    variables: ['patient_name', 'appointment_date', 'previous_date'],
+    title: 'Appointment moved: {patient_name}',
+    body: '{patient_name} is now on {appointment_date} (was {previous_date}).',
+  },
+  {
+    code: 'appointment.cancelled',
+    name: 'Appointment cancelled',
+    description: 'One of your appointments was cancelled.',
+    audiences: [A.DOCTOR],
+    isMandatoryInternal: false,
+    variables: ['patient_name', 'appointment_date', 'reason'],
+    title: 'Appointment cancelled: {patient_name}',
+    body: 'The appointment of {patient_name} on {appointment_date} was cancelled. {reason}',
+  },
+  {
+    code: 'queue.patient_checked_in',
+    name: 'Patient waiting',
+    description: 'A patient checked in to your queue.',
+    audiences: [A.DOCTOR],
+    isMandatoryInternal: false,
+    channels: [NotificationChannel.IN_APP],
+    variables: ['patient_name', 'token'],
+    title: '{patient_name} is waiting ({token})',
+    body: '{patient_name} checked in to your queue with token {token}.',
+  },
+  {
+    code: 'inventory.low_stock',
+    name: 'Low stock (daily)',
+    description: 'Once a day: items at or below their reorder level, or out of stock.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['item_count', 'items', 'location_name'],
+    title: '{item_count} item(s) low on stock at {location_name}',
+    body: 'These items need reordering at {location_name}: {items}',
+  },
+  {
+    code: 'inventory.expiring',
+    name: 'Stock expiring (daily)',
+    description: 'Once a day: batches that expire within 30 days.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['item_count', 'items', 'location_name'],
+    title: '{item_count} item(s) expiring soon at {location_name}',
+    body: 'These items expire soon at {location_name}: {items}',
+  },
+  {
+    code: 'join_request.created',
+    name: 'Someone asked to join',
+    description: 'A person asked to join the clinic (invite link or Google Workspace).',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['requester_name', 'requester_email'],
+    title: '{requester_name} asked to join {clinic_name}',
+    body: '{requester_name} ({requester_email}) asked to join {clinic_name}. Approve or reject it under Employees.',
+  },
+  {
+    code: 'join_request.approved',
+    name: 'Join request approved',
+    description: 'Your request to join a clinic was approved.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: [],
+    title: 'Welcome to {clinic_name}',
+    body: 'Dear {recipient_name}, your request to join {clinic_name} was approved. You can sign in now.',
+  },
+  {
+    code: 'employee.login_created',
+    name: 'Login created for you',
+    description: 'A clinic gave you a login.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['login_email'],
+    title: 'Your login for {clinic_name}',
+    body: 'Dear {recipient_name}, {clinic_name} created a login for you ({login_email}). You can sign in now.',
+  },
+  {
+    code: 'clinic.approved',
+    name: 'Clinic approved',
+    description: 'The platform approved your clinic registration.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: true,
+    emailDefault: true,
+    variables: [],
+    title: '{clinic_name} is approved',
+    body: 'Dear {recipient_name}, {clinic_name} was approved. You and your team can start using it now.',
+  },
+  {
+    code: 'clinic.rejected',
+    name: 'Clinic not approved',
+    description: 'The platform did not approve your clinic registration.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: true,
+    emailDefault: true,
+    variables: ['reason'],
+    title: '{clinic_name} was not approved',
+    body: 'Dear {recipient_name}, the registration of {clinic_name} was not approved. {reason}',
+  },
+  {
+    code: 'subscription.ending_soon',
+    name: 'Subscription ending soon',
+    description: 'The trial or paid period ends in a few days.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: true,
+    emailDefault: true,
+    variables: ['days_left', 'ends_on'],
+    title: '{clinic_name}: {days_left} day(s) left',
+    body: 'The subscription of {clinic_name} ends on {ends_on} ({days_left} day(s) left). Renew under Settings → Subscription to keep working without interruption.',
+  },
+  {
+    code: 'subscription.expired',
+    name: 'Subscription ended',
+    description: 'The trial or paid period ended; the clinic is read-only.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: true,
+    emailDefault: true,
+    variables: ['ends_on'],
+    title: '{clinic_name}: subscription ended',
+    body: 'The subscription of {clinic_name} ended on {ends_on}. The clinic is read-only until it is renewed under Settings → Subscription.',
+  },
+  {
+    code: 'payroll.generated',
+    name: 'Payslip ready',
+    description: 'Your payroll for a month was generated.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['period', 'net_amount'],
+    title: 'Your payslip for {period}',
+    body: 'Dear {recipient_name}, your payroll for {period} is ready: {net_amount}.',
+  },
+  {
+    code: 'payroll.paid',
+    name: 'Salary paid',
+    description: 'Your salary for a month was marked paid.',
+    audiences: [A.STAFF],
+    isMandatoryInternal: false,
+    emailDefault: true,
+    variables: ['period', 'net_amount'],
+    title: 'Salary paid for {period}',
+    body: 'Dear {recipient_name}, your salary for {period} ({net_amount}) was paid.',
+  },
 ];
+
+/** Channels an event can use: its own list ∩ its audiences' channels. */
+export function eventChannels(e: {
+  audiences: A[];
+  channels?: NotificationChannel[] | null;
+}): NotificationChannel[] {
+  const byAudience = new Set(e.audiences.flatMap((a) => CHANNELS_BY_AUDIENCE[a]));
+  return [...byAudience].filter((c) => !e.channels || e.channels.includes(c));
+}
 
 /** Platform default templates: English, every channel any audience of the event uses. */
 export function defaultTemplateSeeds(): {
@@ -253,10 +438,7 @@ export function defaultTemplateSeeds(): {
   body: string;
 }[] {
   return NOTIFICATION_EVENT_SEEDS.flatMap((e) => {
-    const channels = new Set(
-      e.audiences.flatMap((a) => CHANNELS_BY_AUDIENCE[a]),
-    );
-    return [...channels].map((channel) => ({
+    return eventChannels(e).map((channel) => ({
       eventCode: e.code,
       channel,
       language: NotificationLanguage.EN,

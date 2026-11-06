@@ -1,7 +1,13 @@
 import { useState, forwardRef, useImperativeHandle } from 'react'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAccess } from '@/features/access'
-import { useUsers, useDeleteUser } from './api'
+import { toast } from 'sonner'
+import {
+  useUsers,
+  useDeleteUser,
+  useMarkEmailVerified,
+  useResendUserVerification,
+} from './api'
 import type { UserRoleType, User } from './types'
 import { UserTable } from './components/UserTable'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -33,6 +39,11 @@ export const UserManagementView = forwardRef<{ create: () => void }>(
       activeOrganizationId || undefined,
     )
     const deleteMutation = useDeleteUser(activeOrganizationId || undefined)
+    const resendMutation = useResendUserVerification(
+      activeOrganizationId || undefined,
+    )
+    const markVerifiedMutation = useMarkEmailVerified()
+    const [userToVerify, setUserToVerify] = useState<User | null>(null)
 
     if (!canViewModule) {
       return (
@@ -66,6 +77,23 @@ export const UserManagementView = forwardRef<{ create: () => void }>(
       isLoading,
       onEdit: handleEdit,
       onDelete: handleDelete,
+      onResendVerification: (user: User) => {
+        const id = toast.loading(
+          `Sending a verification link to ${user.email}…`,
+        )
+        resendMutation.mutate(user.uuid, {
+          onSuccess: (r) =>
+            toast.success(
+              r.sent
+                ? `Verification link sent to ${user.email}`
+                : 'This email is already verified',
+              { id },
+            ),
+          onError: () =>
+            toast.error('Could not send the email. Try again.', { id }),
+        })
+      },
+      onMarkVerified: isSuperAdmin ? setUserToVerify : undefined,
       readOnly: activeTab === 'owner' && !canManageOwners,
       serverPagination: usersData
         ? {
@@ -124,6 +152,30 @@ export const UserManagementView = forwardRef<{ create: () => void }>(
             if (!userToDelete) return
             deleteMutation.mutate(userToDelete.uuid, {
               onSettled: () => setUserToDelete(null),
+            })
+          }}
+        />
+
+        <ConfirmDialog
+          open={!!userToVerify}
+          onOpenChange={(open) => !open && setUserToVerify(null)}
+          title="Mark email as verified?"
+          description={
+            <>
+              <strong>{userToVerify?.email}</strong> will count as verified
+              without the link being clicked, and system emails will go to it.
+              Do this only if you are sure the address belongs to this person.
+            </>
+          }
+          confirmLabel="Mark verified"
+          isLoading={markVerifiedMutation.isPending}
+          onConfirm={() => {
+            if (!userToVerify) return
+            markVerifiedMutation.mutate(userToVerify.uuid, {
+              onSuccess: () =>
+                toast.success(`${userToVerify.email} is now verified`),
+              onError: () => toast.error('Could not mark it verified.'),
+              onSettled: () => setUserToVerify(null),
             })
           }}
         />

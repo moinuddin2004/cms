@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterRequestDto } from './dto/request/register-request.dto';
@@ -42,10 +43,10 @@ import {
   SessionAuthInfo,
 } from 'src/clinic-access/clinic-gate.service';
 import type { SessionAuth } from '../session/session.service';
+import { EmailVerificationService } from 'src/user/email-verification.service';
 
 const BCRYPT_SALT_ROUNDS = 12;
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
-const EMAIL_VERIFICATION_EXPIRY_HOURS = 48;
 
 /**
  * Cookie options shared by every refresh cookie. `maxAge` is added per
@@ -107,6 +108,7 @@ export class AuthService {
     private readonly accessResolver: AccessResolver,
     private readonly clinicSetup: ClinicSetupService,
     private readonly gate: ClinicGateService,
+    private readonly verification: EmailVerificationService,
   ) {}
 
   /**
@@ -135,7 +137,8 @@ export class AuthService {
       await this.userRepository.delete(user.uuid);
       throw err;
     }
-    await this.sendVerificationEmail(user);
+    // Verify first: the new owner's requests are refused until the link is clicked.
+    await this.verification.start(user, new Date());
 
     this.logger.info(
       `Registration complete for: ${user.email}`,
@@ -150,59 +153,25 @@ export class AuthService {
     );
   }
 
-  /** New verification token for a self-signup; failures to send are logged only. */
-  private async sendVerificationEmail(user: User): Promise<void> {
-    const rawToken = crypto.randomBytes(32).toString('hex');
-    await this.userRepository.update(user.uuid, {
-      emailVerificationToken: crypto
-        .createHash('sha256')
-        .update(rawToken)
-        .digest('hex'),
-      emailVerificationExpires: new Date(
-        Date.now() + EMAIL_VERIFICATION_EXPIRY_HOURS * 60 * 60 * 1000,
-      ),
-    });
-    try {
-      await this.mailService.sendEmailVerification(user.email, rawToken);
-    } catch (err) {
-      this.logger.error(
-        `Verification email to ${user.email} failed: ${(err as Error).message}`,
-        AuthService.name,
-      );
-    }
-  }
-
   /** Confirm an email address from the link in the verification email. */
   async verifyEmail(token: string): Promise<{ message: string }> {
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.emailVerificationToken = :tokenHash', { tokenHash })
-      .andWhere('user.emailVerificationExpires > :now', { now: new Date() })
-      .getOne();
-    if (!user) {
-      throw new ValidationFailedException(
-        'This verification link is invalid or has expired',
-      );
-    }
-    await this.userRepository.update(user.uuid, {
-      emailVerificationToken: null,
-      emailVerificationExpires: null,
-      emailVerifiedAt: new Date(),
-    });
+    const user = await this.verification.confirm(token);
     this.logger.info(`Email verified for: ${user.email}`, AuthService.name);
     return { message: 'Email verified' };
   }
 
   /** Send a fresh link to a signed-in user whose email is still unverified. */
   async resendVerification(userId: string): Promise<{ message: string }> {
-    const user = await this.userRepository.findOneBy({ uuid: userId });
-    if (!user) throw new NotFoundException('User not found');
-    if (!user.emailVerificationToken) {
-      return { message: 'Email already verified' };
+    const result = await this.verification.resend(userId);
+    if (result === 'failed') {
+      throw new ServiceUnavailableException(
+        'The email could not be sent right now. Try again in a few minutes.',
+      );
     }
-    await this.sendVerificationEmail(user);
-    return { message: 'Verification email sent' };
+    return {
+      message:
+        result === 'sent' ? 'Verification email sent' : 'Email already verified',
+    };
   }
 
   /**
@@ -245,6 +214,11 @@ export class AuthService {
   ): Promise<LoginResponse> {
     // Check account status
     this.validateAccountStatus(user, req);
+    // Accounts from before verification was enforced get their grace period
+    // (and the link) now, so the login payload already shows the due date.
+    if (auth.method === 'password') {
+      await this.verification.ensureScheduled(user);
+    }
 
     // Create a new session (enforces max 5 sessions)
     const { session, refreshToken } = await this.sessionService.createSession(
@@ -620,7 +594,10 @@ export class AuthService {
       AuthService.name,
     );
 
-    const user = await this.userRepository.findOneBy({ email });
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('LOWER(user.email) = LOWER(:email)', { email: email.trim() })
+      .getOne();
     if (!user) {
       await this.securityLogService.logPasswordResetRequest(email, req);
       return { message: 'If the email exists, a reset link will be sent' };
@@ -640,7 +617,9 @@ export class AuthService {
       passwordResetExpires,
     });
 
-    await this.mailService.sendPasswordReset(user.email, rawToken);
+    // Never throws; the answer is the same either way, so a failed send
+    // never reveals that the account exists (it is in email_log).
+    await this.mailService.sendPasswordReset(user.email, rawToken, user.uuid);
     await this.securityLogService.logPasswordResetRequest(email, req);
 
     this.logger.info(
@@ -688,6 +667,15 @@ export class AuthService {
     );
 
     await this.securityLogService.logPasswordResetSuccess(user.uuid, req);
+    void this.mailService.sendSecurityNotice(
+      'password_reset_done',
+      user.email,
+      'Your password was reset',
+      'The password of your account was just reset with an emailed link, and every device was signed out.',
+      user.uuid,
+    );
+    // The reset link reached this mailbox, so the address is proven.
+    await this.verification.verifiedByPasswordReset(user.uuid);
 
     this.logger.info(
       `Password reset successful for: ${user.email}`,
@@ -735,6 +723,13 @@ export class AuthService {
     }
 
     await this.securityLogService.logPasswordChange(userId, req);
+    void this.mailService.sendSecurityNotice(
+      'password_changed',
+      user.email,
+      'Your password was changed',
+      'The password of your account was just changed.',
+      user.uuid,
+    );
 
     return {
       message: 'Password changed successfully',
@@ -769,6 +764,13 @@ export class AuthService {
     this.logger.info(
       `Password added to OAuth account: ${user.uuid}`,
       AuthService.name,
+    );
+    void this.mailService.sendSecurityNotice(
+      'password_added',
+      user.email,
+      'A password was added to your account',
+      'You can now sign in with your email and password as well as with Google.',
+      user.uuid,
     );
 
     return { message: 'Password added successfully' };

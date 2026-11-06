@@ -79,6 +79,12 @@ export function InvoiceSheet({
       (o.kind === 'lab_item' ? v.itemIds : v.chargeIds).includes(o.id),
     )
 
+  /** What the line costs the patient: the typed price, else the list price. */
+  const priceOf = (o: Option, v: InvoiceValues) => {
+    const typed = v.prices[o.id]?.trim()
+    return (typed ? rupeesToMinor(typed) : null) ?? o.priceMinor
+  }
+
   const initial: InvoiceValues = draft
     ? {
         itemIds: draft.lines.flatMap((l) =>
@@ -86,6 +92,15 @@ export function InvoiceSheet({
         ),
         chargeIds: draft.lines.flatMap((l) =>
           l.chargeRequestId ? [l.chargeRequestId] : [],
+        ),
+        // Keep what the estimate already charges (it may differ from the list).
+        prices: Object.fromEntries(
+          draft.lines.flatMap((l) => {
+            const id = l.labOrderItemId ?? l.chargeRequestId
+            return id
+              ? [[id, minorToRupeesText(l.quantity * l.unitPriceMinor)]]
+              : []
+          }),
         ),
         discount: draft.discountMinor
           ? minorToRupeesText(draft.discountMinor)
@@ -97,6 +112,7 @@ export function InvoiceSheet({
     : {
         itemIds: options.filter((o) => o.kind === 'lab_item').map((o) => o.id),
         chargeIds: [],
+        prices: {},
         discount: '',
         taxPercent: String((settings.data?.taxRateBp ?? 0) / 100),
         notes: '',
@@ -106,14 +122,16 @@ export function InvoiceSheet({
   const form = useInvoiceForm({
     open,
     initial,
-    subtotalOf: (v) => pick(v).reduce((a, o) => a + o.priceMinor, 0),
+    subtotalOf: (v) => pick(v).reduce((a, o) => a + priceOf(o, v), 0),
     onSubmit: async (v) => {
       await onSave({
-        lines: pick(v).map((o) =>
-          o.kind === 'lab_item'
-            ? { kind: 'lab_item', itemId: o.id }
-            : { kind: 'lab_charge', chargeRequestId: o.id },
-        ),
+        lines: pick(v).map((o) => {
+          const typed = v.prices[o.id]?.trim()
+          const unitPriceMinor = typed ? (rupeesToMinor(typed) ?? undefined) : undefined
+          return o.kind === 'lab_item'
+            ? { kind: 'lab_item', itemId: o.id, unitPriceMinor }
+            : { kind: 'lab_charge', chargeRequestId: o.id, unitPriceMinor }
+        }),
         discountMinor: v.discount.trim() ? (rupeesToMinor(v.discount) ?? 0) : 0,
         taxRateBp: percentToBp(v.taxPercent || '0') ?? 0,
         notes: v.notes.trim() || undefined,
@@ -128,7 +146,7 @@ export function InvoiceSheet({
       open={open}
       onOpenChange={(o) => !form.state.isSubmitting && onOpenChange(o)}
       title={draft ? 'Edit estimate' : 'Bill lab work'}
-      description="Prices are the patient prices fixed when the order was submitted."
+      description="Prices start at the patient prices fixed when the order was submitted; change a line's price to charge this patient differently."
       widthClassName="sm:max-w-lg"
       footer={
         <>
@@ -170,39 +188,71 @@ export function InvoiceSheet({
               {(itemsField) => (
                 <form.Field name="chargeIds">
                   {(chargesField) => (
-                    <FieldWrapper label="Lines" error={fieldError(itemsField)}>
-                      <div className="divide-y divide-border rounded-lg border border-border">
-                        {options.map((o) => {
-                          const f =
-                            o.kind === 'lab_item' ? itemsField : chargesField
-                          const checked = f.state.value.includes(o.id)
-                          return (
-                            <label
-                              key={o.id}
-                              className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-muted/40"
-                            >
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(c) =>
-                                  f.handleChange(
-                                    c
-                                      ? [...f.state.value, o.id]
-                                      : f.state.value.filter((x) => x !== o.id),
-                                  )
-                                }
-                                aria-label={o.description}
-                              />
-                              <span className="min-w-0 flex-1 truncate">
-                                {o.description}
-                              </span>
-                              <span className="tabular-nums">
-                                {formatMinor(o.priceMinor)}
-                              </span>
-                            </label>
-                          )
-                        })}
-                      </div>
-                    </FieldWrapper>
+                    <form.Field name="prices">
+                      {(pricesField) => (
+                        <FieldWrapper
+                          label="Lines"
+                          error={fieldError(itemsField)}
+                        >
+                          <div className="divide-y divide-border rounded-lg border border-border">
+                            {options.map((o) => {
+                              const f =
+                                o.kind === 'lab_item'
+                                  ? itemsField
+                                  : chargesField
+                              const checked = f.state.value.includes(o.id)
+                              return (
+                                <div
+                                  key={o.id}
+                                  className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-muted/40"
+                                >
+                                  <Checkbox
+                                    checked={checked}
+                                    onCheckedChange={(c) =>
+                                      f.handleChange(
+                                        c
+                                          ? [...f.state.value, o.id]
+                                          : f.state.value.filter(
+                                              (x) => x !== o.id,
+                                            ),
+                                      )
+                                    }
+                                    aria-label={o.description}
+                                  />
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {o.description}
+                                  </span>
+                                  {checked ? (
+                                    <NumberInput
+                                      className="h-8 w-28 text-right"
+                                      aria-label={`Price for ${o.description}`}
+                                      placeholder={minorToRupeesText(
+                                        o.priceMinor,
+                                      )}
+                                      value={pricesField.state.value[o.id] ?? ''}
+                                      onChange={(e) =>
+                                        pricesField.handleChange({
+                                          ...pricesField.state.value,
+                                          [o.id]: e.target.value,
+                                        })
+                                      }
+                                    />
+                                  ) : (
+                                    <span className="tabular-nums">
+                                      {formatMinor(o.priceMinor)}
+                                    </span>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <p className="mt-1 text-xs text-text-3">
+                            Leave a price blank to charge the list price, or
+                            type another amount for this patient.
+                          </p>
+                        </FieldWrapper>
+                      )}
+                    </form.Field>
                   )}
                 </form.Field>
               )}
@@ -249,7 +299,7 @@ export function InvoiceSheet({
           <form.Subscribe selector={(s) => s.values}>
             {(v) => {
               const p = previewInvoice(
-                pick(v).map((o) => o.priceMinor),
+                pick(v).map((o) => priceOf(o, v)),
                 rupeesToMinor(v.discount || '0') ?? 0,
                 percentToBp(v.taxPercent || '0') ?? 0,
               )

@@ -6,6 +6,8 @@ export const notificationKeys = {
     overview: ['notification-settings', 'overview'] as const,
     templates: (eventCode: string) =>
       ['notification-settings', 'templates', eventCode] as const,
+    platform: (orgId: string) =>
+      ['notification-settings', 'platform', orgId] as const,
     log: (params: OutboxLogParams) =>
       ['notification-settings', 'log', params] as const,
   },

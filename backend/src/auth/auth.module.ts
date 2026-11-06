@@ -1,3 +1,4 @@
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
@@ -42,6 +43,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     ]),
     UserModule,
     CommonModule,
+    NotificationsModule,
     SessionModule,
     SubscriptionsModule,
     ClinicAccessModule,

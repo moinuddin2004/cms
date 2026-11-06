@@ -503,9 +503,14 @@ export class LabInvoicesService {
             `${item.service_name_snap} is already on another invoice`,
           );
         // Frozen at submit (inv. 3): the line repeats the snapshot exactly.
+        // A billing manager may charge this line differently (a richer patient,
+        // premium material): `unitPriceMinor` then IS the whole line price.
+        const overridden = l.unitPriceMinor !== undefined;
         const unit = Number(item.patient_unit_price_minor);
-        const total = Number(item.patient_line_price_minor);
-        const exact = item.quantity * unit === total;
+        const total = overridden
+          ? (l.unitPriceMinor as number)
+          : Number(item.patient_line_price_minor);
+        const exact = !overridden && item.quantity * unit === total;
         return {
           lineKind: LabInvoiceLineKind.LAB_ITEM,
           labOrderItemId: item.id,

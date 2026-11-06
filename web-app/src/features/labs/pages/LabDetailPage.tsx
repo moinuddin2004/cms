@@ -18,6 +18,7 @@ import { LabClinicsPanel } from '../components/LabClinicsPanel'
 import { LabMembersPanel } from '../components/LabMembersPanel'
 import { LabSheet } from '../components/LabSheet'
 import { LabStatusSwitch } from '../components/LabStatusSwitch'
+import { LabEmailStatus } from '../components/LabEmailStatus'
 import { useLab, useLabHistory } from '../hooks/useLabDirectory'
 import type { Lab } from '../types'
 
@@ -57,7 +58,10 @@ export function LabDetailPage({ labId }: { labId: string }) {
               label="WhatsApp"
               value={lab.whatsappPhone}
             />
-            <Detail icon={Mail} label="Email" value={lab.email} />
+            <div className="space-y-1.5">
+              <Detail icon={Mail} label="Email" value={lab.email} />
+              <LabEmailStatus lab={lab} />
+            </div>
             <Detail icon={MapPin} label="City" value={lab.city} />
             <Detail icon={MapPin} label="Address" value={lab.address} />
             <Detail

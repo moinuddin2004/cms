@@ -6,6 +6,11 @@ export interface User {
   status: 'active' | 'suspended' | 'deleted'
   globalRole: 'super_admin' | null
   createdAt: string
+  /** false = signs in with Google only (verified by Google on sign-in). */
+  hasPassword?: boolean
+  emailVerifiedAt?: string | null
+  /** Unverified: until when the account may still be used. */
+  emailVerificationDueAt?: string | null
 }
 
 export interface PaginatedUsersResponse {

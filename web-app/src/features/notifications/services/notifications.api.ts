@@ -4,6 +4,8 @@ import type {
   AudienceSettingInput,
   MyNotification,
   MyNotificationPrefs,
+  MyNotificationPrefsInput,
+  PlatformOverride,
   NotificationAudience,
   NotificationOverview,
   NotificationTemplate,
@@ -64,6 +66,21 @@ export const notificationSettingsApi = {
     send<NotificationTemplate>('put', '/notification-settings/templates', body),
   resetTemplate: (id: string) =>
     send<null>('delete', `/notification-settings/templates/${id}`),
+  platformOverrides: (orgId: string) =>
+    get<PlatformOverride[]>(`/admin/clinics/${orgId}/notification-overrides`),
+  setPlatformOverride: (
+    orgId: string,
+    body: { eventCode: string; mode: PlatformOverride['mode'] },
+  ) =>
+    send<PlatformOverride[]>(
+      'put',
+      `/admin/clinics/${orgId}/notification-overrides`,
+      body,
+    ),
+  resetRules: () =>
+    send<{ removed: number }>('post', '/notification-settings/rules/reset'),
+  sendTestEmail: () =>
+    send<{ to: string }>('post', '/notification-settings/test-email'),
   log: (params: OutboxLogParams) =>
     get<Paginated<OutboxLogEntry>>('/notification-settings/log', params),
 }
@@ -78,6 +95,6 @@ export const myNotificationsApi = {
   markAllRead: () =>
     send<{ updated: number }>('post', '/me/notifications/read-all'),
   prefs: () => get<MyNotificationPrefs>('/me/notifications/prefs'),
-  updatePrefs: (body: Partial<MyNotificationPrefs>) =>
+  updatePrefs: (body: MyNotificationPrefsInput) =>
     send<MyNotificationPrefs>('put', '/me/notifications/prefs', body),
 }

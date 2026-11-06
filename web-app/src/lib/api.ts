@@ -99,13 +99,25 @@ apiClient.interceptors.response.use(
     // policy changed): mark it so the root guard shows /clinic-access.
     if (error.response?.status === 403) {
       const body = error.response.data as
-        { code?: unknown; message?: unknown } | undefined
-      if (typeof body?.code === 'string' && CLINIC_GATE_CODES.has(body.code)) {
+        | {
+            code?: unknown
+            message?: unknown
+            error?: { code?: unknown } | null
+          }
+        | undefined
+      // The API's exception filter nests the thrown object under `error`.
+      const code = body?.code ?? body?.error?.code
+      // Past its grace date with an unverified email: the root guard shows
+      // /confirm-email.
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        useAuthStore.getState().setEmailVerificationRequired(true)
+      }
+      if (typeof code === 'string' && CLINIC_GATE_CODES.has(code)) {
         const s = useAuthStore.getState()
         if (s.activeOrganizationId && !s.isSuperAdmin) {
           s.setClinicBlock(s.activeOrganizationId, {
-            code: body.code as SignInBlockCode,
-            message: typeof body.message === 'string' ? body.message : '',
+            code: code as SignInBlockCode,
+            message: typeof body?.message === 'string' ? body.message : '',
           })
         }
       }

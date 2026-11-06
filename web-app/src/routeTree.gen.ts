@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppointmentsRouteImport } from './routes/appointments'
 import { Route as ClinicAccessRouteImport } from './routes/clinic-access'
 import { Route as ClinicOverviewRouteImport } from './routes/clinic-overview'
+import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -61,6 +62,7 @@ import { Route as InvoicesInvoiceIdRouteImport } from './routes/invoices/$invoic
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as LabBillingInvoiceIdRouteImport } from './routes/lab-billing_.$invoiceId'
 import { Route as LabDirectoryLabIdRouteImport } from './routes/lab-directory_.$labId'
+import { Route as LabEmailConfirmRouteImport } from './routes/lab-email.confirm'
 import { Route as LabLinkTokenRouteImport } from './routes/lab-link.$token'
 import { Route as LabOrdersOrderIdRouteImport } from './routes/lab-orders_.$orderId'
 import { Route as LabPayablesPaymentsRouteImport } from './routes/lab-payables_.payments'
@@ -91,6 +93,7 @@ import { Route as SettingsLabCatalogRouteImport } from './routes/settings.lab-ca
 import { Route as SettingsLabOrderTemplatesRouteImport } from './routes/settings.lab-order-templates'
 import { Route as SettingsLabsRouteImport } from './routes/settings.labs'
 import { Route as SettingsMedicineDirectoryRouteImport } from './routes/settings.medicine-directory'
+import { Route as SettingsMyNotificationsRouteImport } from './routes/settings.my-notifications'
 import { Route as SettingsNotificationsRouteImport } from './routes/settings.notifications'
 import { Route as SettingsPlanTemplatesRouteImport } from './routes/settings.plan-templates'
 import { Route as SettingsPrescriptionPresetsRouteImport } from './routes/settings.prescription-presets'
@@ -143,6 +146,11 @@ const ClinicAccessRoute = ClinicAccessRouteImport.update({
 const ClinicOverviewRoute = ClinicOverviewRouteImport.update({
   id: '/clinic-overview',
   path: '/clinic-overview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
+  id: '/confirm-email',
+  path: '/confirm-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -385,6 +393,11 @@ const LabDirectoryLabIdRoute = LabDirectoryLabIdRouteImport.update({
   path: '/lab-directory/$labId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LabEmailConfirmRoute = LabEmailConfirmRouteImport.update({
+  id: '/lab-email/confirm',
+  path: '/lab-email/confirm',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LabLinkTokenRoute = LabLinkTokenRouteImport.update({
   id: '/lab-link/$token',
   path: '/lab-link/$token',
@@ -538,6 +551,11 @@ const SettingsMedicineDirectoryRoute =
     path: '/medicine-directory',
     getParentRoute: () => SettingsRoute,
   } as any)
+const SettingsMyNotificationsRoute = SettingsMyNotificationsRouteImport.update({
+  id: '/my-notifications',
+  path: '/my-notifications',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsNotificationsRoute = SettingsNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -714,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/appointments': typeof AppointmentsRoute
   '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -759,6 +778,7 @@ export interface FileRoutesByFullPath {
   '/join/$token': typeof JoinTokenRoute
   '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-email/confirm': typeof LabEmailConfirmRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
   '/lab-payables/payments': typeof LabPayablesPaymentsRoute
@@ -784,6 +804,7 @@ export interface FileRoutesByFullPath {
   '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
   '/settings/labs': typeof SettingsLabsRoute
   '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
+  '/settings/my-notifications': typeof SettingsMyNotificationsRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
   '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
@@ -831,6 +852,7 @@ export interface FileRoutesByTo {
   '/appointments': typeof AppointmentsRoute
   '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -875,6 +897,7 @@ export interface FileRoutesByTo {
   '/join/$token': typeof JoinTokenRoute
   '/lab-billing/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-email/confirm': typeof LabEmailConfirmRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders/$orderId': typeof LabOrdersOrderIdRoute
   '/lab-payables/payments': typeof LabPayablesPaymentsRoute
@@ -900,6 +923,7 @@ export interface FileRoutesByTo {
   '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
   '/settings/labs': typeof SettingsLabsRoute
   '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
+  '/settings/my-notifications': typeof SettingsMyNotificationsRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
   '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
@@ -948,6 +972,7 @@ export interface FileRoutesById {
   '/appointments': typeof AppointmentsRoute
   '/clinic-access': typeof ClinicAccessRoute
   '/clinic-overview': typeof ClinicOverviewRoute
+  '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -993,6 +1018,7 @@ export interface FileRoutesById {
   '/join/$token': typeof JoinTokenRoute
   '/lab-billing_/$invoiceId': typeof LabBillingInvoiceIdRoute
   '/lab-directory_/$labId': typeof LabDirectoryLabIdRoute
+  '/lab-email/confirm': typeof LabEmailConfirmRoute
   '/lab-link/$token': typeof LabLinkTokenRoute
   '/lab-orders_/$orderId': typeof LabOrdersOrderIdRoute
   '/lab-payables_/payments': typeof LabPayablesPaymentsRoute
@@ -1018,6 +1044,7 @@ export interface FileRoutesById {
   '/settings/lab-order-templates': typeof SettingsLabOrderTemplatesRoute
   '/settings/labs': typeof SettingsLabsRoute
   '/settings/medicine-directory': typeof SettingsMedicineDirectoryRoute
+  '/settings/my-notifications': typeof SettingsMyNotificationsRoute
   '/settings/notifications': typeof SettingsNotificationsRoute
   '/settings/plan-templates': typeof SettingsPlanTemplatesRoute
   '/settings/prescription-presets': typeof SettingsPrescriptionPresetsRoute
@@ -1067,6 +1094,7 @@ export interface FileRouteTypes {
     | '/appointments'
     | '/clinic-access'
     | '/clinic-overview'
+    | '/confirm-email'
     | '/dashboard'
     | '/expenses'
     | '/finance'
@@ -1112,6 +1140,7 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
+    | '/lab-email/confirm'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
     | '/lab-payables/payments'
@@ -1137,6 +1166,7 @@ export interface FileRouteTypes {
     | '/settings/lab-order-templates'
     | '/settings/labs'
     | '/settings/medicine-directory'
+    | '/settings/my-notifications'
     | '/settings/notifications'
     | '/settings/plan-templates'
     | '/settings/prescription-presets'
@@ -1184,6 +1214,7 @@ export interface FileRouteTypes {
     | '/appointments'
     | '/clinic-access'
     | '/clinic-overview'
+    | '/confirm-email'
     | '/dashboard'
     | '/expenses'
     | '/finance'
@@ -1228,6 +1259,7 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/lab-billing/$invoiceId'
     | '/lab-directory/$labId'
+    | '/lab-email/confirm'
     | '/lab-link/$token'
     | '/lab-orders/$orderId'
     | '/lab-payables/payments'
@@ -1253,6 +1285,7 @@ export interface FileRouteTypes {
     | '/settings/lab-order-templates'
     | '/settings/labs'
     | '/settings/medicine-directory'
+    | '/settings/my-notifications'
     | '/settings/notifications'
     | '/settings/plan-templates'
     | '/settings/prescription-presets'
@@ -1300,6 +1333,7 @@ export interface FileRouteTypes {
     | '/appointments'
     | '/clinic-access'
     | '/clinic-overview'
+    | '/confirm-email'
     | '/dashboard'
     | '/expenses'
     | '/finance'
@@ -1345,6 +1379,7 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/lab-billing_/$invoiceId'
     | '/lab-directory_/$labId'
+    | '/lab-email/confirm'
     | '/lab-link/$token'
     | '/lab-orders_/$orderId'
     | '/lab-payables_/payments'
@@ -1370,6 +1405,7 @@ export interface FileRouteTypes {
     | '/settings/lab-order-templates'
     | '/settings/labs'
     | '/settings/medicine-directory'
+    | '/settings/my-notifications'
     | '/settings/notifications'
     | '/settings/plan-templates'
     | '/settings/prescription-presets'
@@ -1418,6 +1454,7 @@ export interface RootRouteChildren {
   AppointmentsRoute: typeof AppointmentsRoute
   ClinicAccessRoute: typeof ClinicAccessRoute
   ClinicOverviewRoute: typeof ClinicOverviewRoute
+  ConfirmEmailRoute: typeof ConfirmEmailRoute
   DashboardRoute: typeof DashboardRoute
   ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRoute
@@ -1463,6 +1500,7 @@ export interface RootRouteChildren {
   JoinTokenRoute: typeof JoinTokenRoute
   LabBillingInvoiceIdRoute: typeof LabBillingInvoiceIdRoute
   LabDirectoryLabIdRoute: typeof LabDirectoryLabIdRoute
+  LabEmailConfirmRoute: typeof LabEmailConfirmRoute
   LabLinkTokenRoute: typeof LabLinkTokenRoute
   LabOrdersOrderIdRoute: typeof LabOrdersOrderIdRoute
   LabPayablesPaymentsRoute: typeof LabPayablesPaymentsRoute
@@ -1534,6 +1572,13 @@ declare module '@tanstack/react-router' {
       path: '/clinic-overview'
       fullPath: '/clinic-overview'
       preLoaderRoute: typeof ClinicOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirm-email': {
+      id: '/confirm-email'
+      path: '/confirm-email'
+      fullPath: '/confirm-email'
+      preLoaderRoute: typeof ConfirmEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -1872,6 +1917,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabDirectoryLabIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lab-email/confirm': {
+      id: '/lab-email/confirm'
+      path: '/lab-email/confirm'
+      fullPath: '/lab-email/confirm'
+      preLoaderRoute: typeof LabEmailConfirmRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lab-link/$token': {
       id: '/lab-link/$token'
       path: '/lab-link/$token'
@@ -2080,6 +2132,13 @@ declare module '@tanstack/react-router' {
       path: '/medicine-directory'
       fullPath: '/settings/medicine-directory'
       preLoaderRoute: typeof SettingsMedicineDirectoryRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/my-notifications': {
+      id: '/settings/my-notifications'
+      path: '/my-notifications'
+      fullPath: '/settings/my-notifications'
+      preLoaderRoute: typeof SettingsMyNotificationsRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/notifications': {
@@ -2325,6 +2384,7 @@ interface SettingsRouteChildren {
   SettingsLabOrderTemplatesRoute: typeof SettingsLabOrderTemplatesRoute
   SettingsLabsRoute: typeof SettingsLabsRoute
   SettingsMedicineDirectoryRoute: typeof SettingsMedicineDirectoryRoute
+  SettingsMyNotificationsRoute: typeof SettingsMyNotificationsRoute
   SettingsNotificationsRoute: typeof SettingsNotificationsRoute
   SettingsPlanTemplatesRoute: typeof SettingsPlanTemplatesRoute
   SettingsPrescriptionPresetsRoute: typeof SettingsPrescriptionPresetsRoute
@@ -2353,6 +2413,7 @@ const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsLabOrderTemplatesRoute: SettingsLabOrderTemplatesRoute,
   SettingsLabsRoute: SettingsLabsRoute,
   SettingsMedicineDirectoryRoute: SettingsMedicineDirectoryRoute,
+  SettingsMyNotificationsRoute: SettingsMyNotificationsRoute,
   SettingsNotificationsRoute: SettingsNotificationsRoute,
   SettingsPlanTemplatesRoute: SettingsPlanTemplatesRoute,
   SettingsPrescriptionPresetsRoute: SettingsPrescriptionPresetsRoute,
@@ -2381,6 +2442,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppointmentsRoute: AppointmentsRoute,
   ClinicAccessRoute: ClinicAccessRoute,
   ClinicOverviewRoute: ClinicOverviewRoute,
+  ConfirmEmailRoute: ConfirmEmailRoute,
   DashboardRoute: DashboardRoute,
   ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRoute,
@@ -2426,6 +2488,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinTokenRoute: JoinTokenRoute,
   LabBillingInvoiceIdRoute: LabBillingInvoiceIdRoute,
   LabDirectoryLabIdRoute: LabDirectoryLabIdRoute,
+  LabEmailConfirmRoute: LabEmailConfirmRoute,
   LabLinkTokenRoute: LabLinkTokenRoute,
   LabOrdersOrderIdRoute: LabOrdersOrderIdRoute,
   LabPayablesPaymentsRoute: LabPayablesPaymentsRoute,

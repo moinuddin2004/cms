@@ -1,3 +1,5 @@
+import { appUrl, renderEmail } from 'src/common/mail/email-layout';
+import { MailTransport } from 'src/common/mail/mail-transport.service';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
@@ -19,6 +21,8 @@ import { NotificationAudienceSetting } from '../entities/notification-audience-s
 import { NotificationEvent } from '../entities/notification-event.entity';
 import { NotificationOutbox } from '../entities/notification-outbox.entity';
 import { NotificationRule } from '../entities/notification-rule.entity';
+import { NotificationPlatformOverride } from '../entities/notification-platform-override.entity';
+import type { PlatformOverrideMode } from '../entities/notification-platform-override.entity';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { PatientCommPref } from '../entities/patient-comm-pref.entity';
 import { notificationError } from '../notification-errors';
@@ -31,8 +35,11 @@ import {
   defaultRuleEnabled,
   NotificationAudience,
   NotificationChannel,
+  RecipientType,
 } from '../notifications.enums';
 import { placeholdersOf } from '../templates/template-render';
+import { channelsFor } from './notification.service';
+import { eventChannels } from '../seeds/notification-events.seed';
 
 export interface AudienceSettingView {
   audience: NotificationAudience;
@@ -51,6 +58,21 @@ export interface RuleView {
   isDefault: boolean;
   /** Mandatory internal in-app: always on, cannot be changed. */
   locked: boolean;
+  /**
+   * The platform (super admin) decided this one for the clinic: `on` / `off`.
+   * The clinic can't change it while set. Null = the clinic decides.
+   */
+  platformMode: PlatformOverrideMode | null;
+}
+
+/** A mandatory event's email, as the super admin's override screen shows it. */
+export interface PlatformOverrideView {
+  eventCode: string;
+  name: string;
+  description: string;
+  /** `clinic` = no override: the clinic's own switch decides. */
+  mode: PlatformOverrideMode | 'clinic';
+  updatedAt: Date | null;
 }
 
 export interface EventView {
@@ -59,6 +81,8 @@ export interface EventView {
   description: string;
   audiences: NotificationAudience[];
   isMandatoryInternal: boolean;
+  /** Email on by default ("important"). */
+  emailDefault: boolean;
   variables: string[];
   rules: RuleView[];
 }
@@ -96,17 +120,180 @@ export class NotificationSettingsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly audit: AuditService,
+    private readonly mailTransport: MailTransport,
   ) {}
+
+  /** Super admin: every mandatory event's email and the platform's decision for this clinic. */
+  async platformOverrides(
+    organizationId: string,
+  ): Promise<PlatformOverrideView[]> {
+    const m = this.dataSource.manager;
+    const [events, overrides] = await Promise.all([
+      m.getRepository(NotificationEvent).find({
+        where: { isMandatoryInternal: true },
+        order: { sortOrder: 'ASC', code: 'ASC' },
+      }),
+      m.getRepository(NotificationPlatformOverride).findBy({
+        organizationId,
+        channel: NotificationChannel.EMAIL,
+      }),
+    ]);
+    const byCode = new Map(overrides.map((o) => [o.eventCode, o]));
+    return events
+      .filter((e) => eventChannels(e).includes(NotificationChannel.EMAIL))
+      .map((e) => {
+        const o = byCode.get(e.code);
+        return {
+          eventCode: e.code,
+          name: e.name,
+          description: e.description,
+          mode: o?.mode ?? 'clinic',
+          updatedAt: o?.updatedAt ?? null,
+        };
+      });
+  }
+
+  /** Super admin: force a mandatory event's email on / off for this clinic, or hand it back (`clinic`). */
+  async setPlatformOverride(
+    organizationId: string,
+    actor: ActorRef,
+    eventCode: string,
+    mode: PlatformOverrideMode | 'clinic',
+  ): Promise<PlatformOverrideView[]> {
+    await this.dataSource.transaction(async (m) => {
+      const event = await m
+        .getRepository(NotificationEvent)
+        .findOneBy({ code: eventCode });
+      if (!event || !event.isMandatoryInternal) {
+        throw notificationError(
+          'NOTIFICATION_EVENT_UNKNOWN',
+          `${eventCode} is not a mandatory event`,
+        );
+      }
+      const repo = m.getRepository(NotificationPlatformOverride);
+      const where = {
+        organizationId,
+        eventCode,
+        channel: NotificationChannel.EMAIL,
+      };
+      const before = await repo.findOneBy(where);
+      if (mode === 'clinic') {
+        if (!before) return;
+        await repo.delete(where);
+      } else {
+        if (before?.mode === mode) return;
+        await repo.save(
+          repo.create({ ...where, mode, updatedBy: actor.userId }),
+        );
+      }
+      await this.audit.record(m, actor, {
+        organizationId,
+        entityType: 'notification_platform_override',
+        entityId: organizationId,
+        action: AuditAction.UPDATE,
+        before: { eventCode, mode: before?.mode ?? 'clinic' },
+        after: { eventCode, mode },
+      });
+    });
+    return this.platformOverrides(organizationId);
+  }
+
+  /** Back to the platform defaults: every saved event × channel rule removed. */
+  async resetRules(
+    organizationId: string,
+    actor: ActorRef,
+  ): Promise<{ removed: number }> {
+    return this.dataSource.transaction(async (m) => {
+      const rows = await m
+        .getRepository(NotificationRule)
+        .findBy({ organizationId });
+      if (!rows.length) return { removed: 0 };
+      await m.getRepository(NotificationRule).delete({ organizationId });
+      await this.audit.record(m, actor, {
+        organizationId,
+        entityType: 'notification_rules',
+        entityId: organizationId,
+        action: AuditAction.DELETE,
+        before: { rules: rows.length },
+        after: null,
+      });
+      return { removed: rows.length };
+    });
+  }
+
+  /** "Send test email to me": proves SMTP works, in this clinic's layout. */
+  async sendTestEmail(
+    organizationId: string,
+    userId: string,
+  ): Promise<{ to: string }> {
+    const [row] = await sqlRows<{
+      email: string;
+      verified: boolean;
+      clinic: string;
+      color: unknown;
+    }>(
+      this.dataSource,
+      `SELECT u.email, u.email_verified_at IS NOT NULL AS verified, o.name AS clinic,
+              (SELECT value FROM config_values c
+                WHERE c.scope_type = 'org' AND c.scope_id = o.id
+                  AND c.key = 'theme.brand_color' LIMIT 1) AS color
+         FROM users u, organizations o
+        WHERE u.uuid = $1 AND o.id = $2`,
+      [userId, organizationId],
+    );
+    if (!row)
+      throw notificationError('NOTIFICATION_NOT_FOUND', 'User not found');
+    if (!row.verified) {
+      throw notificationError(
+        'NOTIFICATION_EMAIL_UNVERIFIED',
+        'Verify your own email address first — test emails only go to verified addresses.',
+      );
+    }
+    if (!this.mailTransport.isConfigured) {
+      throw notificationError(
+        'NOTIFICATION_EMAIL_NOT_CONFIGURED',
+        'Email is not set up on the server (SMTP settings missing).',
+      );
+    }
+    const { html, text } = renderEmail({
+      senderName: row.clinic,
+      brandColor: typeof row.color === 'string' ? row.color : null,
+      eyebrow: 'Test',
+      title: 'Your notification emails work',
+      body: `This is a test email from ${row.clinic}'s notification settings. If you can read it, notification emails reach you.`,
+      details: [{ label: 'Sent to', value: row.email }],
+      cta: { label: 'Open the app', url: appUrl('/') },
+      footer: `You asked for this test in ${row.clinic}'s notification settings.`,
+    });
+    try {
+      await this.mailTransport.send({
+        to: row.email,
+        subject: `Test email from ${row.clinic}`,
+        html,
+        text,
+      });
+    } catch (err) {
+      throw notificationError(
+        'NOTIFICATION_EMAIL_SEND_FAILED',
+        `The email could not be sent: ${(err as Error).message}`,
+      );
+    }
+    return { to: row.email };
+  }
 
   async overview(organizationId: string) {
     const m = this.dataSource.manager;
-    const [events, settings, rules] = await Promise.all([
+    const [events, settings, rules, overrides] = await Promise.all([
       m
         .getRepository(NotificationEvent)
         .find({ order: { sortOrder: 'ASC', code: 'ASC' } }),
       m.getRepository(NotificationAudienceSetting).findBy({ organizationId }),
       m.getRepository(NotificationRule).findBy({ organizationId }),
+      m.getRepository(NotificationPlatformOverride).findBy({ organizationId }),
     ]);
+    const overrideOf = new Map(
+      overrides.map((o) => [`${o.eventCode}:${o.channel}`, o.mode]),
+    );
     const settingOf = new Map(settings.map((s) => [s.audience, s]));
     const ruleOf = new Map(
       rules.map((r) => [`${r.eventCode}:${r.audience}:${r.channel}`, r]),
@@ -132,20 +319,34 @@ export class NotificationSettingsService {
       description: e.description,
       audiences: e.audiences,
       isMandatoryInternal: e.isMandatoryInternal,
+      emailDefault: e.emailDefault,
       variables: [...COMMON_VARIABLES, ...e.variables],
       rules: e.audiences.flatMap((audience) =>
-        CHANNELS_BY_AUDIENCE[audience].map((channel) => {
-          const locked = isLockedRule(e.isMandatoryInternal, audience, channel);
-          const r = ruleOf.get(`${e.code}:${audience}:${channel}`);
-          return {
-            audience,
-            channel,
-            isEnabled:
-              locked || (r?.isEnabled ?? defaultRuleEnabled(audience, channel)),
-            isDefault: !r,
-            locked,
-          };
-        }),
+        channelsFor({ audience, type: RecipientType.USER }, e).map(
+          (channel) => {
+            const locked = isLockedRule(
+              e.isMandatoryInternal,
+              audience,
+              channel,
+            );
+            const r = ruleOf.get(`${e.code}:${audience}:${channel}`);
+            const platformMode = e.isMandatoryInternal
+              ? (overrideOf.get(`${e.code}:${channel}`) ?? null)
+              : null;
+            return {
+              audience,
+              channel,
+              isEnabled: platformMode
+                ? platformMode === 'on'
+                : locked ||
+                  (r?.isEnabled ??
+                    defaultRuleEnabled(audience, channel, e.emailDefault)),
+              isDefault: !r,
+              locked,
+              platformMode,
+            };
+          },
+        ),
       ),
     }));
 
@@ -247,10 +448,26 @@ export class NotificationSettingsService {
             `${c.eventCode} is not sent to ${c.audience}`,
           );
         }
-        if (!CHANNELS_BY_AUDIENCE[c.audience].includes(c.channel)) {
+        if (
+          !CHANNELS_BY_AUDIENCE[c.audience].includes(c.channel) ||
+          (event.channels && !event.channels.includes(c.channel))
+        ) {
           throw notificationError(
             'NOTIFICATION_CHANNEL_INVALID',
             `${c.audience} is not reached on ${c.channel}`,
+          );
+        }
+        const forced =
+          event.isMandatoryInternal &&
+          (await m.getRepository(NotificationPlatformOverride).existsBy({
+            organizationId,
+            eventCode: event.code,
+            channel: c.channel,
+          }));
+        if (forced) {
+          throw notificationError(
+            'NOTIFICATION_RULE_LOCKED',
+            `${event.name}: the platform decides this ${c.channel} setting for your clinic`,
           );
         }
         if (isLockedRule(event.isMandatoryInternal, c.audience, c.channel)) {
@@ -273,7 +490,8 @@ export class NotificationSettingsService {
           lock: { mode: 'pessimistic_write' },
         });
         const before =
-          row?.isEnabled ?? defaultRuleEnabled(c.audience, c.channel);
+          row?.isEnabled ??
+          defaultRuleEnabled(c.audience, c.channel, event.emailDefault);
         if (row && row.isEnabled === c.isEnabled) continue;
         row ??= repo.create({
           ...where,

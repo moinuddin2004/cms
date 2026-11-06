@@ -27,11 +27,18 @@ export function VerifyEmailPage() {
       .then(() => {
         setStatus('done')
         // Hide the "verify your email" banner for the signed-in user.
-        useAuthStore.setState((s) =>
-          s.user
-            ? { user: { ...s.user, emailVerificationPending: false } }
-            : {},
-        )
+        useAuthStore.setState((s) => ({
+          emailVerificationRequired: false,
+          ...(s.user
+            ? {
+                user: {
+                  ...s.user,
+                  emailVerificationPending: false,
+                  emailVerificationDueAt: null,
+                },
+              }
+            : {}),
+        }))
       })
       .catch((err) => {
         const msg = err?.response?.data?.message
@@ -75,12 +82,17 @@ export function VerifyEmailPage() {
               Link not valid
             </h1>
             <p className="mb-8 text-sm text-muted-foreground">
-              {message} {isAuthenticated && 'Use "Resend link" in the app to get a new one.'}
+              {message}{' '}
+              {isAuthenticated &&
+                'Use "Resend link" in the app to get a new one.'}
             </p>
           </>
         )}
         {status !== 'verifying' && (
-          <Button onClick={goOn} className="h-11 w-full rounded-xl font-semibold">
+          <Button
+            onClick={goOn}
+            className="h-11 w-full rounded-xl font-semibold"
+          >
             {isAuthenticated ? 'Continue to the app' : 'Go to sign in'}
           </Button>
         )}

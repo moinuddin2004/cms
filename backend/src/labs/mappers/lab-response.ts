@@ -45,6 +45,8 @@ export interface LabSummary {
   phone: string | null;
   whatsappPhone: string | null;
   email: string | null;
+  /** The contact address was confirmed; only then does email go to it. */
+  emailVerified: boolean;
   city: string | null;
   address: string | null;
   status: LabStatus;
@@ -105,6 +107,7 @@ export function toLabSummary(lab: Lab): LabSummary {
     phone: lab.phone,
     whatsappPhone: lab.whatsappPhone,
     email: lab.email,
+    emailVerified: !!lab.email && !!lab.emailVerifiedAt,
     city: lab.city,
     address: lab.address,
     status: lab.status,

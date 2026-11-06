@@ -211,7 +211,7 @@ describe('<RouteAccessGate>', () => {
     render(<RouteAccessGate>{page}</RouteAccessGate>, { wrapper: Wrapper })
     expect(screen.queryByText('finance page')).toBeNull()
     expect(
-      screen.getByText('Aapke paas is page ki permission nahi'),
+      screen.getByText('You have no access to this page'),
     ).toBeTruthy()
   })
 
@@ -222,7 +222,7 @@ describe('<RouteAccessGate>', () => {
       wrapper: Wrapper,
     })
     expect(screen.queryByText('finance page')).toBeNull()
-    expect(screen.queryByText(/permission nahi/)).toBeNull()
+    expect(screen.queryByText(/have access to this page/)).toBeNull()
     expect(container.querySelector('[data-slot="skeleton"]')).toBeTruthy()
   })
 

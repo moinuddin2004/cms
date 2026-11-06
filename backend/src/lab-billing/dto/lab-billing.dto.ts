@@ -52,7 +52,11 @@ export class InvoiceLineDto {
   @Max(1000)
   quantity?: number;
 
-  /** manual (required), lab_charge (default: the lab's charge). Lab items use the frozen price. */
+  /**
+   * manual (required), lab_charge (default: the lab's charge). lab_item:
+   * optional override of the frozen patient price — then the WHOLE line price
+   * (not per unit); omit it to bill the frozen price.
+   */
   @IsOptional()
   @IsInt()
   @Min(0)

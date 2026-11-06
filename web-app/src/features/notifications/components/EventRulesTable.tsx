@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Lock, PencilLine } from 'lucide-react'
+import { Lock, Mail, PencilLine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -107,6 +107,15 @@ export function EventRulesTable({
                               <Lock className="size-3" /> Mandatory
                             </Badge>
                           )}
+                        {event.emailDefault && (
+                          <Badge
+                            variant="outline"
+                            className="gap-1 border-primary/30 text-[10px] text-primary"
+                            title="Emailed by default — you can still switch it off"
+                          >
+                            <Mail className="size-3" /> Important
+                          </Badge>
+                        )}
                       </p>
                       <p className="text-xs text-text-3">{event.description}</p>
                     </div>

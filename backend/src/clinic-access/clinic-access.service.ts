@@ -1,4 +1,10 @@
 import {
+  ownerUserIds,
+  staffRecipient,
+  usersWithPermission,
+} from 'src/notifications/recipients/staff-recipients';
+import { NotificationService } from 'src/notifications/services/notification.service';
+import {
   BadRequestException,
   ConflictException,
   Injectable,
@@ -53,6 +59,7 @@ export class ClinicAccessService {
     private readonly audit: AuditService,
     private readonly employees: EmployeesService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly notifications: NotificationService,
   ) {}
 
   // ── Approval (super admin) ────────────────────────────────────────
@@ -89,6 +96,17 @@ export class ClinicAccessService {
           approvalStatus: org.approvalStatus,
           approvalNote: org.approvalNote,
         },
+      });
+      const owners = await ownerUserIds(manager, orgId);
+      await this.notifications.enqueueSafely(manager, {
+        organizationId: orgId,
+        eventCode: approve ? 'clinic.approved' : 'clinic.rejected',
+        recipients: owners.map(staffRecipient),
+        variables: {
+          reason: org.approvalNote ? `Reason: ${org.approvalNote}` : '',
+        },
+        link: '/',
+        entity: { type: 'organization', id: orgId },
       });
       return {
         organizationId: org.id,
@@ -218,7 +236,7 @@ export class ClinicAccessService {
         .getRepository(ClinicInvite)
         .increment({ id: invite.id }, 'uses', 1);
     }
-    return repo.save(
+    const saved = await repo.save(
       repo.create({
         organizationId: input.organizationId,
         userId: input.userId,
@@ -229,6 +247,23 @@ export class ClinicAccessService {
         status: JoinRequestStatus.PENDING,
       }),
     );
+    // Whoever approves join requests (`employees.manage`) is told.
+    void this.notifications.notify(async () => ({
+      organizationId: input.organizationId,
+      eventCode: 'join_request.created',
+      recipients: (
+        await usersWithPermission(
+          this.dataSource.manager,
+          input.organizationId,
+          null,
+          'employees.manage',
+        )
+      ).map(staffRecipient),
+      variables: { requester_name: input.name, requester_email: input.email },
+      link: '/employees',
+      entity: { type: 'clinic_join_request', id: saved.id },
+    }));
+    return saved;
   }
 
   async listJoinRequests(orgId: string, status?: JoinRequestStatus) {
@@ -308,6 +343,14 @@ export class ClinicAccessService {
     request.decidedAt = new Date();
     request.employeeId = employee.id;
     await repo.save(request);
+    void this.notifications.notify({
+      organizationId: ctx.organizationId,
+      locationId: ctx.locationId,
+      eventCode: 'join_request.approved',
+      recipients: [staffRecipient(request.userId)],
+      link: '/',
+      entity: { type: 'clinic_join_request', id: request.id },
+    });
     return { request, employeeId: employee.id };
   }
 

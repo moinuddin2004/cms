@@ -181,7 +181,7 @@ describe('ROLE — role detail screen', () => {
       expect(isDisabled(r)).toBe(true)
   })
 
-  it('ROLE-16 permissions of a feature that is off are greyed with "Feature band hai"', async () => {
+  it('ROLE-16 permissions of a feature that is off are greyed with "Feature is off"', async () => {
     features.has = (k) => !k.startsWith('billing.')
     api.get.mockResolvedValue({
       data: { data: role({ permissions: BUNDLES.Billing.full }) },
@@ -189,14 +189,14 @@ describe('ROLE — role detail screen', () => {
     render(wrap(<RoleDetailPage roleId="role-1" />))
     await screen.findByRole('heading', { name: 'Front desk' })
     const section = levelControl('Billing').closest('section')!
-    expect(within(section).getByText('Feature band hai')).toBeTruthy()
+    expect(within(section).getByText('Feature is off')).toBeTruthy()
     fireEvent.click(within(section).getByRole('button', { name: /Advanced/ }))
     const rows = section.querySelectorAll('li.opacity-60')
     expect(rows.length).toBeGreaterThan(0)
-    expect(within(section).getAllByText('Feature band hai').length).toBeGreaterThan(1)
+    expect(within(section).getAllByText('Feature is off').length).toBeGreaterThan(1)
     // An unrelated module (feature on) is not greyed.
     const patients = levelControl('Patients').closest('section')!
-    expect(within(patients).queryByText('Feature band hai')).toBeNull()
+    expect(within(patients).queryByText('Feature is off')).toBeNull()
   })
 
   it('ROLE-17 a 403 ESCALATION on save lists the keys and keeps the unsaved changes', async () => {
@@ -284,7 +284,7 @@ describe('FEAT — feature screens', () => {
 
     const row = await screen.findByTestId('feature-row-dental.lab_orders')
     expect(row.textContent).toContain(LOCKED_MESSAGE)
-    expect(LOCKED_MESSAGE).toBe('Plan mein nahi — super admin se rabta karein')
+    expect(LOCKED_MESSAGE).toBe('Not in your plan — contact your super admin')
     const locked = screen.getByRole('switch', { name: LOCKED_MESSAGE })
     expect(isDisabled(locked)).toBe(true)
 

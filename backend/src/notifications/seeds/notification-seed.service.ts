@@ -11,7 +11,8 @@ import {
 
 /**
  * On boot: the event catalog and platform default templates,
- * insert-if-missing only (existing rows are never touched). One advisory
+ * insert-if-missing — except each event's code-owned channel defaults
+ * (`email_default`, `channels`), which are kept in step with the seed. One advisory
  * lock so an API and a worker booting together don't both insert.
  */
 @Injectable()
@@ -49,11 +50,24 @@ export class NotificationSeedService implements OnApplicationBootstrap {
             description: e.description,
             audiences: e.audiences,
             isMandatoryInternal: e.isMandatoryInternal,
+            emailDefault: e.emailDefault ?? false,
+            channels: e.channels ?? null,
             variables: e.variables,
             sortOrder: e.sortOrder,
           })),
         );
         created += newEvents.length;
+      }
+      // Channel defaults are code-owned: keep existing rows in step with the seed.
+      for (const e of NOTIFICATION_EVENT_SEEDS) {
+        if (!existing.has(e.code)) continue;
+        await m.query(
+          `UPDATE notification_events
+              SET email_default = $2, channels = $3
+            WHERE code = $1
+              AND (email_default IS DISTINCT FROM $2 OR channels IS DISTINCT FROM $3)`,
+          [e.code, e.emailDefault ?? false, e.channels ?? null],
+        );
       }
 
       const templates = m.getRepository(NotificationTemplate);

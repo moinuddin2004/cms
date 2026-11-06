@@ -1,13 +1,15 @@
 /**
  * Who a notification is for (lab ERD §7). `patient` is the only external
  * audience; the rest are "internal" — the decision order's step 1
- * (`is_mandatory_internal`) applies to them only.
+ * (`is_mandatory_internal`) applies to them only. `staff` = the clinic team
+ * picked by permission (owners, managers, reception …), not by role name.
  */
 export enum NotificationAudience {
   PATIENT = 'patient',
   DOCTOR = 'doctor',
   COORDINATOR = 'coordinator',
   LAB = 'lab',
+  STAFF = 'staff',
 }
 
 export enum NotificationChannel {
@@ -32,6 +34,8 @@ export enum OutboxStatus {
   FAILED = 'failed',
   SKIPPED_DISABLED = 'skipped_disabled',
   SKIPPED_OPT_OUT = 'skipped_opt_out',
+  /** Email to an address nobody has verified (decided when sending). */
+  SKIPPED_UNVERIFIED = 'skipped_unverified',
 }
 
 export enum NotificationLanguage {
@@ -58,33 +62,32 @@ export const isInternalAudience = (a: NotificationAudience) =>
  * Channels an audience can be reached on — the toggles the settings screen
  * shows, and the only channels `channelsFor()` ever queues.
  *
- * In-app only for now: WhatsApp, SMS and email have no real provider yet
- * (only the dev-log stand-in), so they are commented out. Patients have no
- * in-app inbox, so they get nothing until a provider is wired — uncomment
- * the channels here when it is.
+ * Clinic-side people get in-app + email (email only to verified addresses,
+ * see `AddressVerifier`). WhatsApp / SMS have no provider yet. Patients get
+ * nothing for now (2026-11-05: the system is for clinic users only) — add
+ * EMAIL here when the patient follow-up project builds patient email
+ * confirmation; `notifications.enums.spec.ts` guards it.
  */
 export const CHANNELS_BY_AUDIENCE: Record<
   NotificationAudience,
   NotificationChannel[]
 > = {
-  [NotificationAudience.PATIENT]: [
-    // NotificationChannel.WHATSAPP,
-    // NotificationChannel.SMS,
-  ],
+  [NotificationAudience.PATIENT]: [],
   [NotificationAudience.DOCTOR]: [
     NotificationChannel.IN_APP,
-    // NotificationChannel.WHATSAPP,
-    // NotificationChannel.EMAIL,
+    NotificationChannel.EMAIL,
   ],
   [NotificationAudience.COORDINATOR]: [
     NotificationChannel.IN_APP,
-    // NotificationChannel.WHATSAPP,
-    // NotificationChannel.EMAIL,
+    NotificationChannel.EMAIL,
   ],
   [NotificationAudience.LAB]: [
     NotificationChannel.IN_APP,
-    // NotificationChannel.WHATSAPP,
-    // NotificationChannel.EMAIL,
+    NotificationChannel.EMAIL,
+  ],
+  [NotificationAudience.STAFF]: [
+    NotificationChannel.IN_APP,
+    NotificationChannel.EMAIL,
   ],
 };
 
@@ -109,7 +112,8 @@ export const CHANNELS_BY_RECIPIENT: Record<
 /**
  * Lazy defaults when a clinic has no row yet (§7 "Patient defaults OFF"):
  * the patient master switch and every patient rule are off; internal
- * audiences are on, with in-app on and the paid/external channels off.
+ * audiences are on, with in-app on, email on only for events marked
+ * `email_default` (the important ones), and WhatsApp / SMS off.
  */
 export const defaultAudienceEnabled = (a: NotificationAudience) =>
   isInternalAudience(a);
@@ -117,7 +121,14 @@ export const defaultAudienceEnabled = (a: NotificationAudience) =>
 export const defaultRuleEnabled = (
   a: NotificationAudience,
   c: NotificationChannel,
-) => isInternalAudience(a) && c === NotificationChannel.IN_APP;
+  emailDefault = false,
+) =>
+  isInternalAudience(a) &&
+  (c === NotificationChannel.IN_APP ||
+    (c === NotificationChannel.EMAIL && emailDefault));
+
+/** Personal switch key in `user_notification_prefs` for one event's email. */
+export const emailPrefKey = (eventCode: string) => `email:${eventCode}`;
 
 /** Placeholders every template may use, on top of the event's own. */
 export const COMMON_VARIABLES = ['clinic_name', 'recipient_name'] as const;

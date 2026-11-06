@@ -19,6 +19,7 @@ import { Lab } from '../entities/lab.entity';
 import { LabClinicLink } from '../entities/lab-clinic-link.entity';
 import { LAB_ENTITY, LabLinkStatus, LabType } from '../enums/lab.enums';
 import { LabLinksService } from '../links/lab-links.service';
+import { LabEmailVerificationService } from './lab-email-verification.service';
 import {
   LAB_AUDIT_FIELDS,
   LabLinkAdminResponse,
@@ -47,6 +48,7 @@ export class LabsDirectoryService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly audit: AuditService,
     private readonly linksService: LabLinksService,
+    private readonly emailVerification: LabEmailVerificationService,
   ) {}
 
   async list(q: ListLabsQueryDto): Promise<PaginatedResponseDto<LabResponse>> {
@@ -99,7 +101,7 @@ export class LabsDirectoryService {
       );
     }
 
-    return this.dataSource.transaction(async (m) => {
+    const created = await this.dataSource.transaction(async (m) => {
       const ownerOrganizationId = internal ? dto.ownerOrganizationId! : null;
       if (ownerOrganizationId) {
         const owner = await m
@@ -143,6 +145,9 @@ export class LabsDirectoryService {
       }
       return this.load(m, lab.id);
     });
+    // After commit: the new address gets its confirmation link.
+    if (created.email) await this.emailVerification.start(created.id);
+    return created;
   }
 
   async update(
@@ -150,18 +155,27 @@ export class LabsDirectoryService {
     dto: UpdateLabDto,
     actor: ActorRef,
   ): Promise<LabResponse> {
-    return this.dataSource.transaction(async (m) => {
+    let emailChanged = false;
+    const updated = await this.dataSource.transaction(async (m) => {
       const lab = await this.lock(m, id);
       assertVersion(lab.version, dto.version);
       const before = snapshotOf(lab, LAB_AUDIT_FIELDS);
+      const previousEmail = (lab.email ?? '').trim().toLowerCase();
       for (const f of EDITABLE_FIELDS) {
         const value = dto[f];
         if (value !== undefined)
           (lab as unknown as Record<string, unknown>)[f] = value;
       }
+      emailChanged = (lab.email ?? '').trim().toLowerCase() !== previousEmail;
+      // A new (or removed) address is unconfirmed until its link is clicked.
+      if (emailChanged) lab.emailVerifiedAt = null;
       await this.saveAudited(m, lab, before, actor);
       return this.load(m, id);
     });
+    if (emailChanged && updated.email) {
+      await this.emailVerification.start(updated.id);
+    }
+    return updated;
   }
 
   /** Suspending a lab blocks new links and activations; existing links stay. */

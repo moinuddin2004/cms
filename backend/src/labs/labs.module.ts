@@ -20,15 +20,24 @@ import { LabPortalService } from './portal/lab-portal.service';
  * Lab portal (Sprint 7 foundation): `/lab-portal/*` routes for lab staff,
  * scoped by lab via `@LabPortalController` + `LabPortalGuard` (see portal/).
  */
+import { CommonModule } from 'src/common/common.module';
+import { LabEmailVerificationService } from './directory/lab-email-verification.service';
+import { PublicLabEmailController } from './directory/public-lab-email.controller';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([Lab, LabMember, LabClinicLink])],
+  imports: [
+    TypeOrmModule.forFeature([Lab, LabMember, LabClinicLink]),
+    CommonModule,
+  ],
   controllers: [
     PlatformLabsController,
+    PublicLabEmailController,
     LabLinksController,
     PortalLabController,
   ],
   providers: [
     LabsDirectoryService,
+    LabEmailVerificationService,
     LabMembersService,
     LabLinksService,
     LabPortalService,

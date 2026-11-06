@@ -216,7 +216,13 @@ export interface LabOrderDetail {
   version: number
   patient: { id: string; fullName: string; patientNumber: string }
   doctor: { id: string; fullName: string } | null
-  lab: { id: string; name: string; city: string | null }
+  /** `emailVerified`: the lab's address is confirmed, so "Send link" can email it. */
+  lab: {
+    id: string
+    name: string
+    city: string | null
+    emailVerified?: boolean
+  }
   totals: { labCostMinor: number; patientPriceMinor: number } | null
   items: LabOrderItem[]
   revisions: OrderRevision[]

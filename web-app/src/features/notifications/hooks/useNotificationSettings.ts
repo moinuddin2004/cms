@@ -12,6 +12,7 @@ import type {
   AudienceSettingInput,
   NotificationAudience,
   OutboxLogParams,
+  PlatformOverride,
   RuleChange,
   TemplateInput,
 } from '../types'
@@ -84,4 +85,37 @@ export function useResetTemplate() {
     (id: string) => notificationSettingsApi.resetTemplate(id),
     'Wording reset to the default',
   )
+}
+
+/** Super admin: this clinic's mandatory-email overrides. */
+export function usePlatformOverrides(orgId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: notificationKeys.settings.platform(orgId ?? ''),
+    queryFn: () => notificationSettingsApi.platformOverrides(orgId!),
+    enabled: enabled && !!orgId,
+  })
+}
+
+export function useSetPlatformOverride(orgId: string | null) {
+  return useSettingsMutation(
+    (body: { eventCode: string; mode: PlatformOverride['mode'] }) =>
+      notificationSettingsApi.setPlatformOverride(orgId!, body),
+    'Mandatory email setting saved',
+  )
+}
+
+export function useResetRules() {
+  return useSettingsMutation(
+    (_: void) => notificationSettingsApi.resetRules(),
+    'Notification rules reset to defaults',
+  )
+}
+
+/** Toasts the address it went to (verified addresses only). */
+export function useSendTestEmail() {
+  return useMutation({
+    mutationFn: (_: void) => notificationSettingsApi.sendTestEmail(),
+    onSuccess: (r) => toast.success(`Test email sent to ${r.to}`),
+    onError: toastNotificationError,
+  })
 }

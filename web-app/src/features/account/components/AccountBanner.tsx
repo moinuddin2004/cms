@@ -4,6 +4,7 @@ import { AlertTriangle, Clock, Loader2, Lock, MailCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { formatDate } from '@/lib/datetime'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useAccountSummary, useResendVerification } from '../hooks/useAccount'
 import type { AccountSummary } from '../types'
@@ -104,8 +105,20 @@ function SubscriptionBar({ account }: { account: AccountSummary }) {
   return null
 }
 
-function VerifyEmailBar({ email }: { email: string }) {
+function VerifyEmailBar({
+  email,
+  dueAt,
+}: {
+  email: string
+  dueAt?: string | null
+}) {
   const resend = useResendVerification()
+  const daysLeft = dueAt
+    ? Math.max(
+        0,
+        Math.ceil((new Date(dueAt).getTime() - Date.now()) / 86_400_000),
+      )
+    : null
   return (
     <Bar
       tone="info"
@@ -119,17 +132,29 @@ function VerifyEmailBar({ email }: { email: string }) {
           onClick={() =>
             resend.mutate(undefined, {
               onSuccess: (r) => toast.success(r.message),
-              onError: () => toast.error('Could not send the email. Try again.'),
+              onError: () =>
+                toast.error('Could not send the email. Try again.'),
             })
           }
         >
-          {resend.isPending && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+          {resend.isPending && (
+            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+          )}
           Resend link
         </Button>
       }
     >
       Please verify your email — we sent a link to{' '}
       <strong className="font-semibold">{email}</strong>.
+      {daysLeft !== null && (
+        <>
+          {' '}
+          Verify by{' '}
+          <strong className="font-semibold">{formatDate(dueAt)}</strong> (
+          {daysLeft === 0 ? 'today' : plural(daysLeft, 'day') + ' left'}) —
+          after that you can’t use the system until you do.
+        </>
+      )}
     </Bar>
   )
 }
@@ -156,7 +181,13 @@ export function AccountBanner() {
 
   return (
     <>
-      {user?.emailVerificationPending && <VerifyEmailBar email={user.email} />}
+      {user?.emailVerificationPending && (
+        <VerifyEmailBar
+          email={user.email}
+          // Super admins are never blocked, so no deadline for them.
+          dueAt={isSuperAdmin ? null : user.emailVerificationDueAt}
+        />
+      )}
       {account.data && <SubscriptionBar account={account.data} />}
     </>
   )

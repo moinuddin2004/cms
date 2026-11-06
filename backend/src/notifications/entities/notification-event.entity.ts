@@ -1,5 +1,8 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
-import type { NotificationAudience } from '../notifications.enums';
+import type {
+  NotificationAudience,
+  NotificationChannel,
+} from '../notifications.enums';
 
 /**
  * Platform catalog of everything that can notify someone (lab ERD §7).
@@ -24,6 +27,20 @@ export class NotificationEvent {
   /** Internal audiences always get it in-app; clinics cannot switch it off. */
   @Column({ name: 'is_mandatory_internal', type: 'boolean', default: false })
   isMandatoryInternal: boolean;
+
+  /**
+   * Email is on by default for this event (the important ones). Clinics and
+   * each user can still switch it off; frequent events default to in-app only.
+   */
+  @Column({ name: 'email_default', type: 'boolean', default: false })
+  emailDefault: boolean;
+
+  /**
+   * Channels this event may use at all (∩ the audience's channels); null =
+   * every channel of its audiences. E.g. queue check-in is in-app only.
+   */
+  @Column({ name: 'channels', type: 'text', array: true, nullable: true })
+  channels: NotificationChannel[] | null;
 
   /** Placeholders the event supplies (besides the common ones). */
   @Column({ name: 'variables', type: 'text', array: true, default: '{}' })

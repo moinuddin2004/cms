@@ -6,14 +6,36 @@ import {
   MyNotificationsQueryDto,
   UpdateMyNotificationPrefsDto,
 } from '../dto/notifications.dto';
+import { NotificationEvent } from '../entities/notification-event.entity';
 import { UserNotificationPref } from '../entities/user-notification-pref.entity';
+import {
+  emailPrefKey,
+  isInternalAudience,
+  NotificationChannel,
+} from '../notifications.enums';
+import { eventChannels } from '../seeds/notification-events.seed';
 import { UserNotification } from '../entities/user-notification.entity';
 import { notificationError } from '../notification-errors';
 
 /** Personal switches and their defaults (a missing row = the default). */
 const PREF_DEFAULTS = { sound: true } as const;
 type PrefKey = keyof typeof PREF_DEFAULTS;
-export type MyNotificationPrefs = Record<PrefKey, boolean>;
+
+/** One event the user may get by email, and their own switch for it. */
+export interface MyEmailPref {
+  code: string;
+  name: string;
+  description: string;
+  /** Mandatory events always email (when the clinic sends it); the switch is fixed on. */
+  mandatory: boolean;
+  /** The clinic emails it by default. */
+  clinicDefault: boolean;
+  enabled: boolean;
+}
+
+export type MyNotificationPrefs = Record<PrefKey, boolean> & {
+  email: MyEmailPref[];
+};
 
 const view = (n: UserNotification) => ({
   id: n.id,
@@ -34,15 +56,48 @@ export class UserNotificationsService {
     private readonly repo: Repository<UserNotification>,
     @InjectRepository(UserNotificationPref)
     private readonly prefs: Repository<UserNotificationPref>,
+    @InjectRepository(NotificationEvent)
+    private readonly events: Repository<NotificationEvent>,
   ) {}
 
+  /** Events a clinic-side user can get by email (internal audience, email allowed). */
+  private async emailEvents(): Promise<NotificationEvent[]> {
+    const all = await this.events.find({
+      order: { sortOrder: 'ASC', code: 'ASC' },
+    });
+    return all.filter(
+      (e) =>
+        e.audiences.some(isInternalAudience) &&
+        eventChannels({
+          audiences: e.audiences.filter(isInternalAudience),
+          channels: e.channels,
+        }).includes(NotificationChannel.EMAIL),
+    );
+  }
+
   async getPrefs(userId: string): Promise<MyNotificationPrefs> {
-    const rows = await this.prefs.findBy({ userId });
-    const out: MyNotificationPrefs = { ...PREF_DEFAULTS };
-    for (const r of rows) {
-      if (r.key in PREF_DEFAULTS) out[r.key as PrefKey] = r.enabled;
+    const [rows, events] = await Promise.all([
+      this.prefs.findBy({ userId }),
+      this.emailEvents(),
+    ]);
+    const byKey = new Map(rows.map((r) => [r.key, r.enabled]));
+    const out = { ...PREF_DEFAULTS } as Record<PrefKey, boolean>;
+    for (const key of Object.keys(PREF_DEFAULTS) as PrefKey[]) {
+      const v = byKey.get(key);
+      if (typeof v === 'boolean') out[key] = v;
     }
-    return out;
+    return {
+      ...out,
+      email: events.map((e) => ({
+        code: e.code,
+        name: e.name,
+        description: e.description,
+        mandatory: e.isMandatoryInternal,
+        clinicDefault: e.emailDefault,
+        enabled:
+          e.isMandatoryInternal || byKey.get(emailPrefKey(e.code)) !== false,
+      })),
+    };
   }
 
   async updatePrefs(
@@ -51,7 +106,30 @@ export class UserNotificationsService {
   ): Promise<MyNotificationPrefs> {
     const changes = (Object.keys(PREF_DEFAULTS) as PrefKey[])
       .filter((key) => typeof dto[key] === 'boolean')
-      .map((key) => ({ userId, key, enabled: dto[key] as boolean }));
+      .map((key): { userId: string; key: string; enabled: boolean } => ({
+        userId,
+        key,
+        enabled: dto[key] as boolean,
+      }));
+    if (dto.email) {
+      const events = new Map((await this.emailEvents()).map((e) => [e.code, e]));
+      for (const [code, enabled] of Object.entries(dto.email)) {
+        const event = events.get(code);
+        if (!event || typeof enabled !== 'boolean') {
+          throw notificationError(
+            'NOTIFICATION_EVENT_UNKNOWN',
+            `No email to switch for "${code}"`,
+          );
+        }
+        if (event.isMandatoryInternal && !enabled) {
+          throw notificationError(
+            'NOTIFICATION_RULE_LOCKED',
+            `${event.name} is required by your clinic and cannot be switched off`,
+          );
+        }
+        changes.push({ userId, key: emailPrefKey(code), enabled });
+      }
+    }
     if (changes.length) await this.prefs.upsert(changes, ['userId', 'key']);
     return this.getPrefs(userId);
   }

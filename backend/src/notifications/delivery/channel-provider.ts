@@ -1,4 +1,5 @@
 import type { NotificationPayload } from '../entities/notification-outbox.entity';
+import { OutboxStatus } from '../notifications.enums';
 import type {
   NotificationAudience,
   NotificationChannel,
@@ -42,5 +43,30 @@ export class PermanentSendError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'PermanentSendError';
+  }
+}
+
+/**
+ * Thrown by a provider when this message must not go out, and that is not a
+ * failure: the row gets `status` (e.g. `skipped_unverified`) and is not retried.
+ */
+export class SkipSendError extends Error {
+  constructor(
+    readonly status: OutboxStatus,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'SkipSendError';
+  }
+}
+
+/** Thrown to send later (daily email cap reached): requeued for `until`, the attempt not counted. */
+export class DeferSendError extends Error {
+  constructor(
+    readonly until: Date,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DeferSendError';
   }
 }

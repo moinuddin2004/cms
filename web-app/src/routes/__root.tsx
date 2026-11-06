@@ -35,7 +35,13 @@ const PUBLIC_PATHS = [
 // Open to everyone, signed in or not, with no redirects (waiting-room TV,
 // lab magic links — the token in the URL is the credential).
 // `/join/` = a clinic's invite link (sign in with Google there).
-const OPEN_PATHS = ['/display/', '/lab-link/', '/verify-email', '/join/']
+const OPEN_PATHS = [
+  '/display/',
+  '/lab-link/',
+  '/verify-email',
+  '/join/',
+  '/lab-email/', // a lab confirms its contact address (often no login)
+]
 
 // Work-order QR: signed-in users of either side; the page itself decides
 // between the lab portal and the clinic order, so no workspace redirects.
@@ -47,6 +53,10 @@ const LAB_PORTAL_PATH = '/lab-portal'
 // Signed in but no usable clinic: awaiting approval, rejected, blocked by
 // the clinic's sign-in policy, or no clinic at all (join request pending).
 const CLINIC_ACCESS_PATH = '/clinic-access'
+
+// Signed in, but the API refuses the account until its email is verified
+// (EMAIL_NOT_VERIFIED: an unverified password account past its grace date).
+const VERIFY_REQUIRED_PATH = '/confirm-email'
 
 // Super admins can visit these pages even without an active location context
 // so they can bootstrap the system (create first org/location)
@@ -140,6 +150,7 @@ function RootComponent() {
     accessibleOrganizations,
     isSuperAdmin,
     labMemberships,
+    emailVerificationRequired,
   } = useAuthStore()
 
   // Active org's specialty tags drive <SpecialtyGuard> across the app
@@ -233,8 +244,18 @@ function RootComponent() {
       (accessibleOrganizations.length === 0 ||
         (!!clinicBlock && !needsSelection))
 
+    const isVerifyRequiredPage = location.pathname === VERIFY_REQUIRED_PATH
+    const needsEmailVerification = isAuthenticated && emailVerificationRequired
+
     if (!isAuthenticated && !isPublicRoute && location.pathname !== '/') {
       navigate({ to: '/login', replace: true })
+    } else if (needsEmailVerification && !isVerifyRequiredPage) {
+      // Nothing else works until the email is verified
+      navigate({ to: VERIFY_REQUIRED_PATH as any, replace: true })
+    } else if (isVerifyRequiredPage && !needsEmailVerification) {
+      navigate({ to: isAuthenticated ? '/' : '/login', replace: true })
+    } else if (isVerifyRequiredPage) {
+      // Stay: the page offers resend / continue / sign out
     } else if (isAuthenticated && location.pathname.startsWith(QR_PATH)) {
       // OrderQrPage switches lab / location itself
     } else if (isAuthenticated && labOnly && !isLabPortal) {
@@ -286,6 +307,7 @@ function RootComponent() {
     accessibleOrganizations,
     labMemberships,
     clinicBlock,
+    emailVerificationRequired,
   ])
 
   // Show the loader while initializing (attempting silent refresh)
@@ -295,10 +317,20 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <FeatureFlagsProvider
         specialtyTags={activeSpecialtyTags}
-        enabled={isAuthenticated && !!activeLocationId && !clinicBlock}
+        enabled={
+          isAuthenticated &&
+          !!activeLocationId &&
+          !clinicBlock &&
+          !emailVerificationRequired
+        }
       >
         <AccessProvider
-          enabled={isAuthenticated && !!activeLocationId && !clinicBlock}
+          enabled={
+            isAuthenticated &&
+            !!activeLocationId &&
+            !clinicBlock &&
+            !emailVerificationRequired
+          }
         >
           <RouteAccessGate>
             <Outlet />

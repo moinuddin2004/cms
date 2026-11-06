@@ -80,6 +80,15 @@ export const SETTINGS_ITEMS: SettingsItemDef[] = [
     keywords: ['dark', 'light', 'mode', 'theme'],
   },
   {
+    key: 'my-notifications',
+    label: 'My notifications',
+    description: 'Which emails you get, and the notification sound.',
+    icon: BellRing,
+    href: '/settings/my-notifications',
+    group: 'account',
+    keywords: ['email', 'sound', 'alerts', 'unsubscribe', 'mute'],
+  },
+  {
     key: 'security',
     label: 'Sign-in methods',
     description: 'Your password and linked Google account.',

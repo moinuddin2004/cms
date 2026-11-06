@@ -302,6 +302,7 @@ Axios client (`web-app/src/shared/lib/axios.ts`) injects `x-organization-id` and
 ### Global Guard Chain (order matters)
 Registered as `APP_GUARD` in `app.module.ts`:
 1. **`JwtAuthGuard`** — validates Bearer token (skips `@Public()` / `PUBLIC_ROUTES`)
+1b. **`EmailVerifiedGuard`** — a password account with `users.email_verified_at` null may work only until `email_verification_due_at` (new accounts: now; accounts from before enforcement: +7 days, set on first request/login); after that everything except `/auth/*` is 403 `EMAIL_NOT_VERIFIED` → web app shows `/confirm-email`. Exempt: super admins, Google sessions, Google-only (no password) accounts. All verification state goes through `user/email-verification.service.ts`; super admin can mark verified (`POST /user/:id/verify-email`), managers resend (`POST /user/:id/resend-verification`). Never return the raw `User` entity from an API — use `toUserAdminView` / `UserDto`.
 2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
 3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
 
@@ -334,9 +335,10 @@ Each domain is a self-contained NestJS module under `src/`:
 - `reports/`, `lab-*`, `labs/`, `encounters/`, `treatment-plans/`, `prescriptions/`, `subscriptions/`, `engine/` — implemented (see their docs under `docs/`)
 - `common/` — shared guards, decorators, utilities
 - `session/` — user session tracking
+- `notifications/` — the only way to notify anyone: `NotificationService.enqueue(tx, …)` (inside the caller's transaction), `enqueueSafely(tx, …)` (savepoint — never aborts the caller), or `notify(…)` (after commit, own transaction, never throws) → `notification_outbox` → `NotificationDispatcher` → providers: in-app (bell + realtime `notification.new` to socket room `user:<id>` via the queue `outbox`), email (`EmailChannelProvider`: verified address only → else `skipped_unverified`; daily cap → requeued). Audiences: doctor, coordinator, lab, `staff` (picked by owner/permission — `recipients/staff-recipients.ts`, never role names), patient (no channel yet). Events are code-owned seeds (`seeds/notification-events.seed.ts`; `emailDefault` = important, `channels` limits). Clinic rules: `/settings/notifications` (super admins also see "Mandatory emails (platform)": per clinic, force a mandatory event's email on/off over the owner's switch — `notification_platform_overrides`, `PUT /admin/clinics/:orgId/notification-overrides`); personal switches (sound, per-event email): `/settings/my-notifications` (`user_notification_prefs`). Account emails (verify, reset, security notices, lab address confirm) go direct through `MailService` and are logged in `email_log`. Plan + status: `docs/notifications-email-plan.md`
 
 Implemented end-to-end: auth, sessions, organizations, locations, employees, appointments (booking), queue (check-in → consultation → completion, reception board, doctor screen, TV display), patients (15+ sub-entities), payroll, feature-flags.
-Missing: chair/room scheduling (the `chairs` entity was removed; locations only keep a `total_chairs` count), SMS/WhatsApp/email patient notifications (in-app only by decision). The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
+Missing: chair/room scheduling (the `chairs` entity was removed; locations only keep a `total_chairs` count), patient notifications of any kind (clinic users only for now; patient email follow-ups are a later project — see `docs/notifications-email-plan.md` "Patients later"). SMS/WhatsApp have no provider. The dashboard page reads real data; some unused dashboard widgets (`AppointmentsTable`, `KpiCard`, …) still use mock data from `dashboard.api.ts`.
 
 ### Backend Key Patterns
 - **Repository pattern** via TypeORM + injectable repositories
@@ -357,6 +359,8 @@ PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-s
 | `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |
 | `GOOGLE_CLIENT_ID` | Google sign-in (ID token verify). Unset = Google button hidden |
-| `SMTP_USER` / `SMTP_PASS` | Email |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Email via any SMTP (`common/mail/mail-transport.service.ts`). Only `SMTP_USER`+`SMTP_PASS` = Gmail app password. Nothing set = emails only logged |
+| `EMAIL_DAILY_CAP` | Notification emails per day (default 450, 0 = none); over it they wait for tomorrow, account emails never held |
+| `FRONTEND_URL` | Base for links in emails |
 
 Backend default port: `5000`. Frontend default port: `3000`. CORS configured for `http://localhost:3000`.

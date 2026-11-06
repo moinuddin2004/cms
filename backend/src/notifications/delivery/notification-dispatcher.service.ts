@@ -9,7 +9,12 @@ import {
   OutboxStatus,
   RecipientType,
 } from '../notifications.enums';
-import { OutgoingNotification, PermanentSendError } from './channel-provider';
+import {
+  DeferSendError,
+  OutgoingNotification,
+  PermanentSendError,
+  SkipSendError,
+} from './channel-provider';
 import { ChannelProviderRegistry } from './channel-provider.registry';
 import { PayloadFinalizers } from './payload-finalizers';
 
@@ -133,6 +138,27 @@ export class NotificationDispatcher {
       );
       return 'sent';
     } catch (err) {
+      if (err instanceof SkipSendError) {
+        // Not a failure: decided at send time (e.g. unverified address).
+        await this.dataSource.query(
+          `UPDATE notification_outbox
+              SET status = $3, last_error = $4, updated_at = now()
+            WHERE id = $1 AND attempts = $2`,
+          [n.id, n.attempts, err.status, err.message.slice(0, 1000)],
+        );
+        return 'failed';
+      }
+      if (err instanceof DeferSendError) {
+        // Later, and this attempt does not count toward MAX_SEND_ATTEMPTS.
+        await this.dataSource.query(
+          `UPDATE notification_outbox
+              SET status = '${OutboxStatus.QUEUED}', attempts = attempts - 1,
+                  scheduled_for = $3, last_error = $4, updated_at = now()
+            WHERE id = $1 AND attempts = $2`,
+          [n.id, n.attempts, err.until, err.message.slice(0, 1000)],
+        );
+        return 'retrying';
+      }
       const message = (err as Error).message?.slice(0, 1000) || 'Send failed';
       const permanent =
         err instanceof PermanentSendError || n.attempts >= MAX_SEND_ATTEMPTS;

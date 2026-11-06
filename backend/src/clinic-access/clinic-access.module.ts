@@ -1,3 +1,4 @@
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from 'src/common/common.module';
@@ -23,6 +24,7 @@ import {
  */
 @Module({
   imports: [
+    NotificationsModule,
     TypeOrmModule.forFeature([ClinicJoinRequest, ClinicInvite]),
     CommonModule,
     EmployeesModule,

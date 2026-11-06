@@ -8,9 +8,11 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
+import { CurrentUserId } from 'src/common/decorators/current-user.decorator';
 import { Can } from 'src/access/decorators/access.decorators';
 import { ActorRef, ActorSide } from 'src/common/audit/audit.enums';
 import { RequestActor } from 'src/common/audit/request-actor.decorator';
@@ -64,6 +66,32 @@ export class NotificationSettingsController {
       ),
       'Notification settings saved',
     );
+  }
+
+  /** Every event × channel back to the platform default. */
+  @Post('rules/reset')
+  @HttpCode(HttpStatus.OK)
+  @Can('notifications.settings.manage')
+  async resetRules(
+    @ActiveTenant() t: TenantContext,
+    @RequestActor(ActorSide.CLINIC) actor: ActorRef,
+  ) {
+    return ResponseWrapper.success(
+      await this.settings.resetRules(t.organizationId, actor),
+      'Notification rules reset to defaults',
+    );
+  }
+
+  /** Sends a test email to the signed-in user (verified address only). */
+  @Post('test-email')
+  @HttpCode(HttpStatus.OK)
+  @Can('notifications.settings.manage')
+  async testEmail(
+    @ActiveTenant() t: TenantContext,
+    @CurrentUserId() userId: string,
+  ) {
+    const r = await this.settings.sendTestEmail(t.organizationId, userId);
+    return ResponseWrapper.success(r, `Test email sent to ${r.to}`);
   }
 
   @Put('rules')

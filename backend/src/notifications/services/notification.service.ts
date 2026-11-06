@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { EntityManager } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { ClockService } from 'src/common/clock/clock.service';
 import { safeTimezone } from 'src/common/clock/tz.util';
 import { sqlRows } from 'src/common/database/sql';
@@ -10,6 +11,7 @@ import {
   NotificationOutbox,
   NotificationPayload,
 } from '../entities/notification-outbox.entity';
+import { NotificationPlatformOverride } from '../entities/notification-platform-override.entity';
 import { NotificationRule } from '../entities/notification-rule.entity';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { PatientCommPref } from '../entities/patient-comm-pref.entity';
@@ -19,6 +21,7 @@ import {
   CHANNELS_BY_RECIPIENT,
   defaultAudienceEnabled,
   defaultRuleEnabled,
+  emailPrefKey,
   NotificationAudience,
   NotificationChannel,
   NotificationLanguage,
@@ -86,7 +89,61 @@ interface Contact {
 export class NotificationService {
   private readonly events = new Map<string, NotificationEvent>();
 
-  constructor(private readonly clock: ClockService) {}
+  private readonly logger = new Logger(NotificationService.name);
+
+  constructor(
+    private readonly clock: ClockService,
+    @InjectDataSource() private readonly dataSource: DataSource,
+  ) {}
+
+  /**
+   * Fire-and-forget for flows that already committed (no transaction to
+   * join): enqueues in its own transaction and never throws, so a
+   * notification problem can never undo or fail the business change.
+   * Prefer `enqueue(tx, …)` inside the caller's transaction when there is one.
+   */
+  async notify(
+    input: EnqueueInput | (() => Promise<EnqueueInput | null>),
+  ): Promise<void> {
+    try {
+      const resolved = typeof input === 'function' ? await input() : input;
+      if (!resolved || !resolved.recipients.length) return;
+      await this.dataSource.transaction((m) => this.enqueue(m, resolved));
+    } catch (err) {
+      const code = typeof input === 'function' ? 'event' : input.eventCode;
+      this.logger.error(
+        `Notification ${code} not queued: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * `enqueue` inside the caller's transaction, behind a savepoint: a failure
+   * is logged and rolled back to the savepoint, so it never aborts the
+   * caller's transaction (e.g. a patient check-in) — and a rolled-back change
+   * still sends nothing.
+   */
+  async enqueueSafely(m: EntityManager, input: EnqueueInput): Promise<void> {
+    if (!input.recipients.length) return;
+    await m.query('SAVEPOINT notification_enqueue');
+    try {
+      await this.enqueue(m, input);
+      await m.query('RELEASE SAVEPOINT notification_enqueue');
+    } catch (err) {
+      await m.query('ROLLBACK TO SAVEPOINT notification_enqueue');
+      this.logger.error(
+        `Notification ${input.eventCode} not queued: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** Clinic-clock date + time for message text, e.g. "5 Nov, 14:30". */
+  async clinicTime(at: Date, locationId: string | null): Promise<string> {
+    const timeZone = locationId
+      ? await this.clock.timezoneFor(locationId)
+      : 'UTC';
+    return formatClinicTime(at, timeZone);
+  }
 
   async event(m: EntityManager, code: string): Promise<NotificationEvent> {
     let event = this.events.get(code);
@@ -122,27 +179,42 @@ export class NotificationService {
     if (!recipients.length) return [];
 
     const org = input.organizationId;
-    const [settings, rules, templates, contacts, prefs, clinicName] =
-      await Promise.all([
-        m
-          .getRepository(NotificationAudienceSetting)
-          .findBy({ organizationId: org }),
-        m.getRepository(NotificationRule).findBy({
-          organizationId: org,
-          eventCode: event.code,
-        }),
-        m
-          .getRepository(NotificationTemplate)
-          .createQueryBuilder('t')
-          .where('t.event_code = :code', { code: event.code })
-          .andWhere('(t.organization_id = :org OR t.organization_id IS NULL)', {
-            org,
-          })
-          .getMany(),
-        this.contacts(m, org, recipients),
-        this.patientPrefs(m, org, recipients),
-        this.clinicName(m, org),
-      ]);
+    const [
+      settings,
+      rules,
+      templates,
+      contacts,
+      prefs,
+      clinicName,
+      mutedEmail,
+      overrides,
+    ] = await Promise.all([
+      m
+        .getRepository(NotificationAudienceSetting)
+        .findBy({ organizationId: org }),
+      m.getRepository(NotificationRule).findBy({
+        organizationId: org,
+        eventCode: event.code,
+      }),
+      m
+        .getRepository(NotificationTemplate)
+        .createQueryBuilder('t')
+        .where('t.event_code = :code', { code: event.code })
+        .andWhere('(t.organization_id = :org OR t.organization_id IS NULL)', {
+          org,
+        })
+        .getMany(),
+      this.contacts(m, org, recipients),
+      this.patientPrefs(m, org, recipients),
+      this.clinicName(m, org),
+      this.usersWithEmailMuted(m, event.code, recipients),
+      m
+        .getRepository(NotificationPlatformOverride)
+        .findBy({ organizationId: org, eventCode: event.code }),
+    ]);
+    // Super admin decision for this clinic (mandatory events only): wins over
+    // the clinic's own rule and audience switch for that channel.
+    const platformMode = new Map(overrides.map((o) => [o.channel, o.mode]));
 
     const settingOf = new Map(settings.map((s) => [s.audience, s]));
     const ruleOf = new Map(rules.map((r) => [`${r.audience}:${r.channel}`, r]));
@@ -189,17 +261,29 @@ export class NotificationService {
             }
           : null;
 
-      for (const channel of channelsFor(r)) {
+      for (const channel of channelsFor(r, event)) {
         const rule = ruleOf.get(`${r.audience}:${channel}`);
+        const forced = event.isMandatoryInternal
+          ? platformMode.get(channel)
+          : undefined;
         const decision = decide({
           audience: r.audience,
           channel,
           isMandatoryInternal: event.isMandatoryInternal,
           audienceEnabled:
-            setting?.isEnabled ?? defaultAudienceEnabled(r.audience),
-          ruleEnabled:
-            rule?.isEnabled ?? defaultRuleEnabled(r.audience, channel),
-          optedOut: isOptedOut(pref, channel),
+            forced === 'on' ||
+            (setting?.isEnabled ?? defaultAudienceEnabled(r.audience)),
+          ruleEnabled: forced
+            ? forced === 'on'
+            : (rule?.isEnabled ??
+              defaultRuleEnabled(r.audience, channel, event.emailDefault)),
+          // A user's own "no email for this event" (never for mandatory events).
+          optedOut:
+            isOptedOut(pref, channel) ||
+            (channel === NotificationChannel.EMAIL &&
+              !event.isMandatoryInternal &&
+              r.type === RecipientType.USER &&
+              mutedEmail.has(r.id)),
           quietHours,
           now,
         });
@@ -363,6 +447,25 @@ export class NotificationService {
     return new Map(prefs.map((p) => [p.patientId, p]));
   }
 
+  /** User recipients who switched this event's email off for themselves. */
+  private async usersWithEmailMuted(
+    m: EntityManager,
+    eventCode: string,
+    recipients: NotificationRecipient[],
+  ): Promise<Set<string>> {
+    const ids = recipients
+      .filter((r) => r.type === RecipientType.USER)
+      .map((r) => r.id);
+    if (!ids.length) return new Set();
+    const rows = await sqlRows<{ user_id: string }>(
+      m,
+      `SELECT user_id FROM user_notification_prefs
+        WHERE user_id = ANY($1::uuid[]) AND key = $2 AND enabled = false`,
+      [ids, emailPrefKey(eventCode)],
+    );
+    return new Set(rows.map((r) => r.user_id));
+  }
+
   private async clinicName(m: EntityManager, organizationId: string) {
     const [row] = await sqlRows<{ name: string }>(
       m,
@@ -373,12 +476,19 @@ export class NotificationService {
   }
 }
 
-/** Channels considered for a recipient: what its audience uses ∩ what it can receive. */
+/**
+ * Channels considered for a recipient: what its audience uses ∩ what it can
+ * receive ∩ what the event allows (e.g. queue check-in is in-app only).
+ */
 export function channelsFor(
   r: Pick<NotificationRecipient, 'audience' | 'type'>,
+  event?: Pick<NotificationEvent, 'channels'>,
 ) {
   const reachable = CHANNELS_BY_RECIPIENT[r.type];
-  return CHANNELS_BY_AUDIENCE[r.audience].filter((c) => reachable.includes(c));
+  return CHANNELS_BY_AUDIENCE[r.audience].filter(
+    (c) =>
+      reachable.includes(c) && (!event?.channels || event.channels.includes(c)),
+  );
 }
 
 function isOptedOut(
@@ -436,3 +546,14 @@ const emptyContact = (): Contact => ({
   whatsapp: null,
   email: null,
 });
+
+/** "5 Nov 2026, 14:30" on the given clock. */
+export const formatClinicTime = (at: Date, timeZone: string): string =>
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(at);

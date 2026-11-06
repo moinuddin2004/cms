@@ -68,6 +68,16 @@
       "port": 5100,
       "cwd": "backend",
       "autoPort": false
+    },
+    {
+      "name": "acceptance-api-nomail",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/levo/AppData/Local/Temp/claude/f2eb3718968a519b/158cf024-4077-4fb1-b431-5d359ff2ecad/scratchpad/acceptance-api-nomail.cjs"
+      ],
+      "port": 5100,
+      "cwd": "backend",
+      "autoPort": false
     }
   ]
 }

@@ -39,6 +39,15 @@ export const labDirectoryApi = {
     patch<Lab>(`/platform/labs/${id}`, body),
   setStatus: (id: string, status: LabStatus, version: number) =>
     post<Lab>(`/platform/labs/${id}/status`, { status, version }),
+  resendEmailConfirmation: (id: string) =>
+    post<{ sent: boolean }>(`/platform/labs/${id}/email/resend-confirmation`),
+  markEmailVerified: (id: string) =>
+    post<Lab>(`/platform/labs/${id}/email/verify`),
+  /** Public: the lab confirms its address from the emailed link. */
+  confirmEmail: (token: string) =>
+    post<{ labName: string; email: string }>('/public/lab-email/confirm', {
+      token,
+    }),
   links: (id: string) => get<LabLinkAdmin[]>(`/platform/labs/${id}/links`),
   history: (id: string) => get<TimelineEntry[]>(`/platform/labs/${id}/history`),
   members: (id: string) => get<LabMember[]>(`/platform/labs/${id}/members`),

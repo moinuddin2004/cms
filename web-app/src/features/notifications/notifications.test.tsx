@@ -139,6 +139,7 @@ const overview: NotificationOverview = {
     doctor: ['in_app', 'whatsapp', 'email'],
     coordinator: ['in_app', 'whatsapp', 'email'],
     lab: ['in_app', 'whatsapp', 'email'],
+    staff: ['in_app', 'email'],
   },
   languages: ['en', 'ur', 'roman_ur'],
 }

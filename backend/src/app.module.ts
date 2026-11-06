@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SubscriptionGuard } from './subscriptions/subscription.guard';
 import { JwtAuthGuard } from './auth/guards/jwt.guard';
+import { EmailVerifiedGuard } from './auth/guards/email-verified.guard';
 import { TenantContextGuard } from './auth/guards/tenant-context.guard';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SessionModule } from './session/session.module';
@@ -138,6 +139,10 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard, // First: always check JWT
+    },
+    {
+      provide: APP_GUARD,
+      useClass: EmailVerifiedGuard, // Then: unverified email past its due date = only /auth/*
     },
     {
       provide: APP_GUARD,

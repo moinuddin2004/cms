@@ -147,7 +147,7 @@ export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              disabled={send.isPending}
+              disabled={send.isPending || order.lab.emailVerified === false}
               onClick={() => send.mutate(undefined)}
             >
               {send.isPending ? (
@@ -172,6 +172,16 @@ export function LabAccessPanel({ order }: { order: LabOrderDetail }) {
           </div>
         )}
       </div>
+      {open && canSend && order.lab.emailVerified === false && (
+        <p
+          role="status"
+          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          {order.lab.name}’s email address isn’t confirmed yet, so the link
+          can’t be emailed. Use <strong>Copy link</strong> and send it on
+          WhatsApp — or ask the platform team to confirm the lab’s email.
+        </p>
+      )}
       <p className="text-sm text-text-3">
         A link lets the lab open this order and accept, reject or ask a question
         without logging in. It expires after a day and stops working when the

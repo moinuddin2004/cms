@@ -1,9 +1,15 @@
 import { DataSource } from 'typeorm';
-import { NotificationAudience, NotificationChannel, RecipientType } from '../notifications.enums';
+import {
+  NotificationAudience,
+  NotificationChannel,
+  RecipientType,
+} from '../notifications.enums';
 import { OutgoingNotification, PermanentSendError } from './channel-provider';
 import { InAppChannelProvider } from './in-app.provider';
 
-const message = (over: Partial<OutgoingNotification> = {}): OutgoingNotification => ({
+const message = (
+  over: Partial<OutgoingNotification> = {},
+): OutgoingNotification => ({
   id: 'outbox-1',
   organizationId: 'org-1',
   eventCode: 'order.accepted',
@@ -74,7 +80,9 @@ describe('InAppChannelProvider', () => {
   it('refuses a non-user recipient', async () => {
     const { ds } = fakeDataSource([]);
     await expect(
-      new InAppChannelProvider(ds).send(message({ recipientType: RecipientType.LAB })),
+      new InAppChannelProvider(ds).send(
+        message({ recipientType: RecipientType.LAB }),
+      ),
     ).rejects.toBeInstanceOf(PermanentSendError);
   });
 });

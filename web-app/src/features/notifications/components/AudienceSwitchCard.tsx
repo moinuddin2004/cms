@@ -14,7 +14,9 @@ import type { AudienceSetting } from '../types'
 const HINT: Record<AudienceSetting['audience'], string> = {
   patient:
     'WhatsApp / SMS to patients. Off by default — nothing is sent to patients until you switch this on.',
-  doctor: 'Updates about the doctor’s own lab orders.',
+  staff:
+    'Owners and the team picked by permission: join requests, stock alerts, payslips, subscription reminders.',
+  doctor: 'The doctor’s own appointments, queue and lab orders.',
   coordinator: 'Lab order follow-up for the staff who coordinate with labs.',
   lab: 'Messages to the labs you work with (new orders, remakes …).',
 }

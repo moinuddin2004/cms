@@ -8,6 +8,8 @@ import { MessageLogPanel } from '../components/MessageLogPanel'
 import { QuietHoursSheet } from '../components/QuietHoursSheet'
 import { TemplateSheet } from '../components/TemplateSheet'
 import { useNotificationOverview } from '../hooks/useNotificationSettings'
+import { NotificationSettingsActions } from '../components/NotificationSettingsActions'
+import { PlatformOverridesCard } from '../components/PlatformOverridesCard'
 import type {
   AudienceSetting,
   NotificationAudience,
@@ -27,7 +29,7 @@ const GROUPS: {
   {
     value: 'team',
     label: 'Team & labs',
-    audiences: ['doctor', 'coordinator', 'lab'],
+    audiences: ['staff', 'doctor', 'coordinator', 'lab'],
   },
 ]
 
@@ -52,9 +54,10 @@ export function NotificationSettingsPage() {
   return (
     <DashboardLayout
       title="Notifications"
-      subtitle="In-app notifications for your team — and the log of every message."
+      subtitle="In-app and email notifications for your team — and the log of every message."
       backTo="/settings"
       backLabel="Back to settings"
+      actions={<NotificationSettingsActions />}
     >
       {overview.isLoading ? (
         <LoadingSkeleton variant="detail" />
@@ -97,6 +100,7 @@ export function NotificationSettingsPage() {
                       />
                     ))}
                 </section>
+                <PlatformOverridesCard />
                 <section className="space-y-3">
                   <h2 className="text-lg font-medium">Events</h2>
                   <EventRulesTable

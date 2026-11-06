@@ -538,6 +538,8 @@ describe('Billing integration — doctor commissions', () => {
         } as never,
         fx.dataSource,
         fx.clock,
+        // Notifications are not under test here.
+        { enqueueSafely: () => Promise.resolve() } as never,
       );
       salaryDr = await newDoctor('Payroll Salary Doc');
       await plans.create(A.tenant, admin, salaryDr.assignmentId, {

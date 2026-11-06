@@ -21,6 +21,8 @@ export interface LabSummary {
   phone: string | null
   whatsappPhone: string | null
   email: string | null
+  /** The contact address is confirmed; order links are emailed only then. */
+  emailVerified?: boolean
   city: string | null
   address: string | null
   status: LabStatus

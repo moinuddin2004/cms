@@ -185,7 +185,7 @@ describe('NAV — sidebar', () => {
       </RouteAccessGate>,
     )
     expect(screen.queryByText('payroll page')).toBeNull()
-    expect(screen.getByText('Aapke paas is page ki permission nahi')).toBeTruthy()
+    expect(screen.getByText('You have no access to this page')).toBeTruthy()
   })
 
   it('NAV-09 unknown keys in the server layout are ignored without a crash', () => {
@@ -258,7 +258,7 @@ describe('NAV — builder access', () => {
       </RouteAccessGate>,
     )
     expect(screen.queryByText('sidebar builder')).toBeNull()
-    expect(screen.getByText('Aapke paas is page ki permission nahi')).toBeTruthy()
+    expect(screen.getByText('You have no access to this page')).toBeTruthy()
     rec.unmount()
     renderAs(
       'OwnerA',

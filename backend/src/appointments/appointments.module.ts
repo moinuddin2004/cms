@@ -11,6 +11,8 @@ import { AppointmentsController } from './appointments.controller';
 import { AppointmentsService } from './appointments.service';
 import { QueueModule } from 'src/queue/queue.module';
 
+import { NotificationsModule } from 'src/notifications/notifications.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -23,6 +25,7 @@ import { QueueModule } from 'src/queue/queue.module';
       LocationSettings,
     ]),
     QueueModule,
+    NotificationsModule,
   ],
   controllers: [AppointmentsController],
   providers: [AppointmentsService],

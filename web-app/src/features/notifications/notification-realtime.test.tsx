@@ -91,12 +91,12 @@ describe('NotificationBell realtime', () => {
       if (url === '/me/notifications/unread-count')
         return Promise.resolve(ok({ count: unread }))
       if (url === '/me/notifications/prefs')
-        return Promise.resolve(ok({ sound: true }))
+        return Promise.resolve(ok({ sound: true, email: [] }))
       return Promise.resolve(
         ok({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 }),
       )
     })
-    api.put.mockResolvedValue(ok({ sound: false }))
+    api.put.mockResolvedValue(ok({ sound: false, email: [] }))
   })
 
   it('connects with the token and, on notification.new, refreshes the badge, toasts and chimes', async () => {
@@ -115,7 +115,9 @@ describe('NotificationBell realtime', () => {
     const before = api.get.mock.calls.length
     unread = 1
     act(() => socket.fire('notification.new', event()))
-    await waitFor(() => expect(api.get.mock.calls.length).toBeGreaterThan(before))
+    await waitFor(() =>
+      expect(api.get.mock.calls.length).toBeGreaterThan(before),
+    )
 
     expect((await screen.findByTestId('unread-badge')).textContent).toBe('1')
     expect(toast).toHaveBeenCalledWith(

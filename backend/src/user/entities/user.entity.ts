@@ -41,10 +41,7 @@ export class User {
   })
   passwordResetExpires?: Date | null;
 
-  /**
-   * Pending email verification: sha256 of the emailed token. Set only for
-   * self-signups, so existing and admin-created accounts are never asked.
-   */
+  /** Pending email verification: sha256 of the emailed token. */
   @Column({
     name: 'email_verification_token',
     type: 'varchar',
@@ -62,6 +59,19 @@ export class User {
 
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt?: Date | null;
+
+  /**
+   * Until when an unverified password account may still use the system
+   * (`EmailVerifiedGuard`). New accounts: now (verify first). Accounts that
+   * existed before verification was enforced: set to +7 days on their first
+   * request. Null = not scheduled yet; cleared once verified.
+   */
+  @Column({
+    name: 'email_verification_due_at',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  emailVerificationDueAt?: Date | null;
 
   @Column({
     name: 'provider',

@@ -67,7 +67,7 @@ export function ModuleBundleRow({
       <div className="flex flex-wrap items-center gap-3 px-4 py-3">
         <div className="min-w-[140px] flex-1">
           <h3 className="text-sm font-medium">{group}</h3>
-          {allOff && <p className="text-xs text-text-3">Feature band hai</p>}
+          {allOff && <p className="text-xs text-text-3">Feature is off</p>}
         </div>
 
         <div
@@ -180,7 +180,7 @@ function PermissionRow({
         {def.label}
         {def.risk === 'high' && <HighRiskBadge />}
         {featureOff && (
-          <span className="text-xs text-text-3">Feature band hai</span>
+          <span className="text-xs text-text-3">Feature is off</span>
         )}
       </label>
       {scopes.length > 0 && grant !== undefined && grant !== true && (

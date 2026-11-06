@@ -82,6 +82,7 @@ describe('settings registry', () => {
     expect(keysFor(accessOf({ features: ['billing.invoices'] }))).toEqual([
       'profile',
       'appearance',
+      'my-notifications',
       'security',
       'sessions',
     ])

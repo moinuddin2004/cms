@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CommonModule } from 'src/common/common.module';
 import { EngineModule } from 'src/engine/engine.module';
+import { AddressVerifier } from './delivery/address-verifier';
+import { EmailChannelProvider } from './delivery/email.provider';
 import { MyNotificationsController } from './controllers/my-notifications.controller';
 import { NotificationSettingsController } from './controllers/notification-settings.controller';
 import { ChannelProviderRegistry } from './delivery/channel-provider.registry';
@@ -17,6 +20,8 @@ import { NotificationRule } from './entities/notification-rule.entity';
 import { NotificationTemplate } from './entities/notification-template.entity';
 import { PatientCommPref } from './entities/patient-comm-pref.entity';
 import { UserNotificationPref } from './entities/user-notification-pref.entity';
+import { NotificationPlatformOverride } from './entities/notification-platform-override.entity';
+import { NotificationPlatformController } from './controllers/notification-platform.controller';
 import { UserNotification } from './entities/user-notification.entity';
 import { NotificationSeedService } from './seeds/notification-seed.service';
 import { NotificationService } from './services/notification.service';
@@ -43,10 +48,16 @@ import { UserNotificationsService } from './services/user-notifications.service'
       NotificationOutbox,
       UserNotification,
       UserNotificationPref,
+      NotificationPlatformOverride,
     ]),
     EngineModule,
+    CommonModule,
   ],
-  controllers: [NotificationSettingsController, MyNotificationsController],
+  controllers: [
+    NotificationSettingsController,
+    MyNotificationsController,
+    NotificationPlatformController,
+  ],
   providers: [
     NotificationService,
     NotificationSettingsService,
@@ -56,6 +67,8 @@ import { UserNotificationsService } from './services/user-notifications.service'
     NotifyEffect,
     InAppChannelProvider,
     DevLogChannelProvider,
+    EmailChannelProvider,
+    AddressVerifier,
     ChannelProviderRegistry,
     NotificationDispatcher,
     PayloadFinalizers,

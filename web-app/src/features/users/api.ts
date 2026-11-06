@@ -87,6 +87,34 @@ export const useUpdateUser = (orgId?: string) => {
   })
 }
 
+/** Email the user a fresh verification link (manager of that user). */
+export const useResendUserVerification = (orgId?: string) =>
+  useMutation({
+    mutationFn: async (id: string) => {
+      const headers = orgId ? { 'x-organization-id': orgId } : undefined
+      const res = await apiClient.post<{ sent: boolean }>(
+        `/user/${id}/resend-verification`,
+        undefined,
+        { headers },
+      )
+      return res.data
+    },
+  })
+
+/** Super admin: mark a user's email verified without the link. */
+export const useMarkEmailVerified = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.post(`/user/${id}/verify-email`)
+      return res.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    },
+  })
+}
+
 export const useDeleteUser = (orgId?: string) => {
   const queryClient = useQueryClient()
   return useMutation({

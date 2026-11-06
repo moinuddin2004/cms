@@ -185,7 +185,7 @@ beforeEach(() => {
   } as never)
 })
 
-const NO_ACCESS = 'Aapke paas is page ki permission nahi'
+const NO_ACCESS = 'You have no access to this page'
 
 describe('UI — route gate', () => {
   it('UI-01 RecU opens /payroll, /finance, /settings/roles → NoAccess page (not blank, not a crash)', () => {

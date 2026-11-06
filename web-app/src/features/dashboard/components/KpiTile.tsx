@@ -6,30 +6,25 @@ import { cn } from '@/lib/utils'
 
 export type KpiTone = 'primary' | 'emerald' | 'amber' | 'violet' | 'danger'
 
-const TONE: Record<KpiTone, { icon: string; glow: string; stroke: string }> = {
+const TONE: Record<KpiTone, { icon: string; stroke: string }> = {
   primary: {
-    icon: 'bg-primary-soft text-primary-text',
-    glow: 'bg-primary/15',
+    icon: 'bg-primary-soft text-primary-text border border-primary/15',
     stroke: 'var(--primary)',
   },
   emerald: {
-    icon: 'bg-emerald-soft text-emerald',
-    glow: 'bg-emerald/15',
+    icon: 'bg-emerald-soft text-emerald border border-emerald/15',
     stroke: 'var(--emerald)',
   },
   amber: {
-    icon: 'bg-amber-soft text-amber',
-    glow: 'bg-amber/15',
+    icon: 'bg-amber-soft text-amber border border-amber/15',
     stroke: 'var(--amber)',
   },
   violet: {
-    icon: 'bg-violet-soft text-violet',
-    glow: 'bg-violet/15',
+    icon: 'bg-violet-soft text-violet border border-violet/15',
     stroke: 'var(--violet)',
   },
   danger: {
-    icon: 'bg-danger-soft text-danger',
-    glow: 'bg-danger/15',
+    icon: 'bg-danger-soft text-danger border border-danger/15',
     stroke: 'var(--danger)',
   },
 }
@@ -64,15 +59,7 @@ export function KpiTile({
 
   const body = (
     <>
-      <span
-        aria-hidden
-        className={cn(
-          'pointer-events-none absolute -top-10 -right-10 size-32 rounded-full blur-2xl transition-opacity group-hover:opacity-100',
-          t.glow,
-          'opacity-60',
-        )}
-      />
-      <div className="relative flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span
             className={cn(
@@ -85,46 +72,37 @@ export function KpiTile({
           <span className="text-sm font-medium text-text-2">{label}</span>
         </div>
         {to && (
-          <ArrowUpRight className="size-4 text-text-3 opacity-0 transition-opacity group-hover:opacity-100" />
+          <ArrowUpRight className="size-4 text-text-3 opacity-0 transition-all duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-text-2 group-hover:opacity-100" />
         )}
       </div>
 
-      <div className="relative mt-4 flex items-end justify-between gap-3">
-        <div className="min-w-0">
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <div className="min-w-0 flex-1">
           {isLoading ? (
             <div className="h-8 w-28 animate-pulse rounded-md bg-panel-2" />
           ) : (
-            <div className="truncate text-[28px] font-bold leading-none tracking-tight tabular-nums text-foreground">
+            <div
+              title={typeof value === 'string' ? value : undefined}
+              className="truncate text-2xl font-bold tracking-tight tabular-nums text-foreground sm:text-[27px]"
+            >
               {value}
             </div>
           )}
-          {footer && <div className="mt-3 text-xs text-text-3">{footer}</div>}
+          {footer && <div className="mt-2.5 text-xs text-text-3">{footer}</div>}
         </div>
         {hasSpark && (
-          <div className="h-10 w-24 shrink-0" aria-hidden>
+          <div className="h-9 w-20 shrink-0 sm:w-24" aria-hidden>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={sparkline.map((v, i) => ({ i, v }))}
                 margin={{ top: 2, right: 0, bottom: 0, left: 0 }}
               >
-                <defs>
-                  <linearGradient
-                    id={`spark-${tone}`}
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop offset="0%" stopColor={t.stroke} stopOpacity={0.35} />
-                    <stop offset="100%" stopColor={t.stroke} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
                 <Area
                   type="monotone"
                   dataKey="v"
                   stroke={t.stroke}
                   strokeWidth={2}
-                  fill={`url(#spark-${tone})`}
+                  fill="none"
                   dot={false}
                   isAnimationActive={false}
                 />
@@ -137,14 +115,14 @@ export function KpiTile({
   )
 
   const className =
-    'group relative block overflow-hidden rounded-xl border border-border bg-surface p-5 shadow-sm transition-all'
+    'group relative block rounded-xl border border-border bg-surface p-5 shadow-xs transition-all duration-150'
 
   return to ? (
     <Link
       to={to}
       className={cn(
         className,
-        'hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
+        'hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
       )}
     >
       {body}

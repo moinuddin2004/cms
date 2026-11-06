@@ -1,6 +1,81 @@
 # Notifications + Email — Plan
 
-Status (2026-11-05): **P0 + P1 built** (uncommitted). P2–P5 not started.
+Status (2026-11-05): **all phases built.** P0 + P1 committed; P2–P5 uncommitted.
+Browser-checked on the acceptance harness (schema `acceptit`, SMTP forced to
+bad credentials so nothing real is sent).
+
+P3–P5 as built — deviations / decisions:
+- Transport: `common/mail/mail-transport.service.ts` (generic SMTP env, Gmail
+  fallback), layout `email-layout.ts` (escaped; a button only for http(s)
+  links), `email_log` for account emails, `EmailQuota` (`EMAIL_DAILY_CAP`,
+  default 450, held mail goes out next day 03:00 UTC). Only 550–554 are
+  permanent; any other SMTP error (incl. 535 bad login) is retried.
+- `EmailChannelProvider` replaces dev-log for email when SMTP is configured;
+  `AddressVerifier` (user / lab verified flag, patients never) checked at
+  send time → `skipped_unverified`; dispatcher handles `SkipSendError` /
+  `DeferSendError`.
+- Events carry `email_default` + `channels` (seed keeps them in step on boot).
+  New audience `staff`; recipients by owner / permission
+  (`notifications/recipients/staff-recipients.ts`).
+- Migration `1793900000000-notification-staff-email-checks` replaces the
+  audience / status CHECK constraints (synchronize keeps a same-named CHECK
+  whose expression changed) — run `schema:sync:prod` + migrations on deploy.
+- Wired events: appointment booked / moved / cancelled (doctor; not when
+  the doctor did it), queue check-in (in-app only), inventory low stock +
+  expiring (daily digest to owners + `inventory.po.manage`), join request
+  created (owners + `employees.manage`) / approved (requester), staff login
+  created, clinic approved / rejected (owners), subscription ending soon
+  (7/3/1 days) / ended (new daily `subscription-reminders` job), payroll
+  generated / paid (employee). Business flows use `enqueueSafely` (savepoint)
+  or `notify` (after commit) so a notification problem never fails them.
+- Account emails: verify, reset, password reset done, password changed,
+  password added, Google linked / unlinked, email changed (to the old
+  address), lab address confirmation.
+- Lab email: `labs.email_verified_at` + token; confirm link sent when a super
+  admin sets / changes it; Lab directory → detail shows status + Resend +
+  Mark verified; public page `/lab-email/confirm`; the clinic order page
+  disables "Send link" and points to Copy link while unverified.
+- Settings: Email column + "Important" badge, "Send test email", "Reset to
+  defaults"; `/settings/my-notifications` (sound + per-event email; mandatory
+  fixed on).
+- Platform override (added after P5): super admin, per clinic, sets each
+  mandatory event's email to Clinic decides / Always on / Always off
+  (`notification_platform_overrides`; card on Settings → Notifications for
+  super admins; `GET/PUT /admin/clinics/:orgId/notification-overrides`).
+  An override wins over the owner's rule and audience switch for email and
+  locks the switch for the owner (422 `NOTIFICATION_RULE_LOCKED`); audited.
+  Without an override the owner can still switch a mandatory email off.
+- Not done: portal logins made through `EmployeesService.createPortalUser`
+  (employee form with portal access) get no "login created" notice; the
+  personal page lists all email events, not only the user's own audience;
+  subscription dates use the clinic's main location clock.
+
+P2 as built:
+- D3 decided by default: **7-day grace** for accounts that existed before
+  enforcement (set lazily on first login / request, link sent then); new
+  password accounts (self-signup, staff/owner/super admin created with a
+  password, email changed) must verify first (`due = now`).
+- `users.email_verification_due_at` + `EmailVerificationService`
+  (`user/email-verification.service.ts`) + global `EmailVerifiedGuard`
+  (after `JwtAuthGuard`; `/auth/*` open; super admins, Google sessions and
+  Google-only accounts exempt; 30 s per-instance cache).
+- Super admin: Users → row ⋯ → "Mark email verified" (confirm dialog) →
+  `POST /user/:id/verify-email`, security log `EMAIL_VERIFIED_BY_ADMIN`
+  (no audit row: `audit_log` needs an organization; users are platform-level).
+  Managers: "Resend verification email" → `POST /user/:id/resend-verification`.
+- Web: `/confirm-email` screen (continue / resend / sign out); banner shows
+  the due date and days left; Users table has an Email column.
+- Reset-password fixes done here: case-insensitive lookup, send failure no
+  longer leaks account existence, completed reset marks the email verified.
+- Found and fixed on the way: `GET/POST/PATCH /user` returned raw `User`
+  entities (password hash, token hashes) → `toUserAdminView`; the web app's
+  403 code check read `body.code` but the API nests it in `body.error.code`
+  (clinic-gate blocks were never picked up either); `setAuth` dropped the
+  verification fields, so the banner never showed.
+- Moved to P3: lab contact email verification (`labs.email_verified_at`,
+  copy-link fallback) and the dispatch-time `AddressVerifier` — both only
+  matter once email is actually sent. Resend reports "sent" even when SMTP
+  fails (logged only) until P3's `email_log`.
 
 P0/P1 as built — deviations from the text below:
 - Realtime does not use a new `LISTEN`: `InAppChannelProvider` writes a row

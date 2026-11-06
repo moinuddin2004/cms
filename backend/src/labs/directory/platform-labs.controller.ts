@@ -25,6 +25,7 @@ import {
 import { LabStatus } from '../enums/lab.enums';
 import { LabMembersService } from '../members/lab-members.service';
 import { LabsDirectoryService } from './labs-directory.service';
+import { LabEmailVerificationService } from './lab-email-verification.service';
 
 /**
  * Platform lab directory — super admins only. Labs are platform-level, so
@@ -38,6 +39,7 @@ export class PlatformLabsController {
   constructor(
     private readonly labs: LabsDirectoryService,
     private readonly members: LabMembersService,
+    private readonly emailVerification: LabEmailVerificationService,
   ) {}
 
   @Get()
@@ -84,6 +86,31 @@ export class PlatformLabsController {
     return ResponseWrapper.success(
       data,
       data.status === LabStatus.ACTIVE ? 'Lab activated' : 'Lab suspended',
+    );
+  }
+
+  /** Email a fresh confirmation link to the lab's contact address. */
+  @Post(':id/email/resend-confirmation')
+  @HttpCode(HttpStatus.OK)
+  async resendEmailConfirmation(@Param('id', ParseUUIDPipe) id: string) {
+    const sent = await this.emailVerification.start(id);
+    return ResponseWrapper.success(
+      { sent },
+      sent ? 'Confirmation link sent' : 'The email could not be sent',
+    );
+  }
+
+  /** The super admin knows the address is right: mark it verified. */
+  @Post(':id/email/verify')
+  @HttpCode(HttpStatus.OK)
+  async markEmailVerified(
+    @Param('id', ParseUUIDPipe) id: string,
+    @RequestActor(ActorSide.PLATFORM) actor: ActorRef,
+  ) {
+    await this.emailVerification.markVerified(id, actor.userId);
+    return ResponseWrapper.success(
+      await this.labs.get(id),
+      'Lab email marked verified',
     );
   }
 

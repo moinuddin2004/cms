@@ -1,4 +1,10 @@
 import {
+  NotificationAudience,
+  RecipientType,
+} from 'src/notifications/notifications.enums';
+import { employeeUserId } from 'src/notifications/recipients/staff-recipients';
+import { NotificationService } from 'src/notifications/services/notification.service';
+import {
   Injectable,
   BadRequestException,
   NotFoundException,
@@ -93,6 +99,16 @@ const BLOCKING_EXCLUDED = [
 const APPOINTMENT_SCOPE = { own: 'a.doctor_id', location: 'a.location_id' };
 const SESSION_SCOPE = { own: 's.doctor_id', location: 's.location_id' };
 
+/** What a doctor is told about one of their appointments. */
+interface AppointmentNotice {
+  id: string;
+  organizationId: string;
+  locationId: string;
+  doctorId: string;
+  patientId: string;
+  startTime: Date;
+}
+
 @Injectable()
 export class AppointmentsService {
   constructor(
@@ -110,7 +126,56 @@ export class AppointmentsService {
     private readonly settingsRepo: Repository<LocationSettings>,
     private readonly dataSource: DataSource,
     private readonly clock: ClockService,
+    private readonly notifications: NotificationService,
   ) {}
+
+  /**
+   * Tell the appointment's doctor (not when they made the change
+   * themselves). After commit, fire-and-forget: never fails the booking.
+   */
+  private notifyDoctor(
+    eventCode: string,
+    a: AppointmentNotice,
+    actorUserId: string,
+    extra: Record<string, string> = {},
+  ): void {
+    void this.notifications.notify(async () => {
+      const m = this.dataSource.manager;
+      const doctorUserId = await employeeUserId(
+        m,
+        a.organizationId,
+        a.doctorId,
+        a.locationId,
+      );
+      if (!doctorUserId || doctorUserId === actorUserId) return null;
+      const patient = await this.patientRepo.findOne({
+        where: { id: a.patientId, organizationId: a.organizationId },
+        select: { id: true, fullName: true },
+      });
+      return {
+        organizationId: a.organizationId,
+        locationId: a.locationId,
+        eventCode,
+        recipients: [
+          {
+            audience: NotificationAudience.DOCTOR,
+            type: RecipientType.USER,
+            id: doctorUserId,
+          },
+        ],
+        variables: {
+          patient_name: patient?.fullName ?? 'A patient',
+          appointment_date: await this.notifications.clinicTime(
+            a.startTime,
+            a.locationId,
+          ),
+          ...extra,
+        },
+        link: '/appointments',
+        entity: { type: 'appointment', id: a.id },
+      };
+    });
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 1. CREATE APPOINTMENT
@@ -179,6 +244,7 @@ export class AppointmentsService {
     });
 
     const saved = await this.saveBooking(appointment);
+    this.notifyDoctor('appointment.booked', saved, userId);
 
     return this.findOne(saved.id, ctx);
   }
@@ -323,6 +389,15 @@ export class AppointmentsService {
       if (!override) await this.assertDailyLimit(ctx, startTime, tz, id);
     }
 
+    const previous: AppointmentNotice = {
+      id: existing.id,
+      organizationId: existing.organizationId,
+      locationId: existing.locationId,
+      doctorId: existing.doctorId,
+      patientId: existing.patientId,
+      startTime: existing.startTime,
+    };
+
     // Update fields — status is deliberately left as it is.
     if (dto.patientId) existing.patientId = dto.patientId;
     if (dto.doctorId) existing.doctorId = dto.doctorId;
@@ -336,6 +411,20 @@ export class AppointmentsService {
     existing.updatedBy = userId;
 
     await this.saveBooking(existing);
+    if (doctorChanged) {
+      // The old doctor loses it; the new one gets it as a moved appointment.
+      this.notifyDoctor('appointment.cancelled', previous, userId, {
+        reason: 'It moved to another doctor.',
+      });
+    }
+    if (timeChanged || doctorChanged) {
+      this.notifyDoctor('appointment.rescheduled', existing, userId, {
+        previous_date: await this.notifications.clinicTime(
+          previous.startTime,
+          previous.locationId,
+        ),
+      });
+    }
     return this.findOne(id, ctx);
   }
 
@@ -368,6 +457,9 @@ export class AppointmentsService {
     appt.updatedBy = userId;
 
     await this.appointmentRepo.save(appt);
+    this.notifyDoctor('appointment.cancelled', appt, userId, {
+      reason: dto.reason ? `Reason: ${dto.reason}` : '',
+    });
     return this.findOne(id, ctx);
   }
 

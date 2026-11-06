@@ -7,6 +7,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -210,4 +211,9 @@ export class UpdateMyNotificationPrefsDto {
   @IsOptional()
   @IsBoolean()
   sound?: boolean;
+
+  /** Per-event email switches: `{ "appointment.booked": false }` (checked in the service). */
+  @IsOptional()
+  @IsObject()
+  email?: Record<string, boolean>;
 }

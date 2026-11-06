@@ -1,3 +1,4 @@
+import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QueuePolicy } from './entities/queue-policy.entity';
@@ -34,6 +35,7 @@ import { BillingModule } from 'src/billing/billing.module';
       OutboxMessage,
       IdempotencyKey,
     ]),
+    NotificationsModule,
     EncountersModule,
     BillingModule,
   ],
