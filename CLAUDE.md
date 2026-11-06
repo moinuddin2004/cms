@@ -301,7 +301,7 @@ Axios client (`web-app/src/shared/lib/axios.ts`) injects `x-organization-id` and
 
 ### Global Guard Chain (order matters)
 Registered as `APP_GUARD` in `app.module.ts`:
-1. **`JwtAuthGuard`** — validates Bearer token (skips `@Public()` / `PUBLIC_ROUTES`)
+1. **`JwtAuthGuard`** — validates Bearer token (skips `@Public()`)
 1b. **`EmailVerifiedGuard`** — a password account with `users.email_verified_at` null may work only until `email_verification_due_at` (new accounts: now; accounts from before enforcement: +7 days, set on first request/login); after that everything except `/auth/*` is 403 `EMAIL_NOT_VERIFIED` → web app shows `/confirm-email`. Exempt: super admins, Google sessions, Google-only (no password) accounts. All verification state goes through `user/email-verification.service.ts`; super admin can mark verified (`POST /user/:id/verify-email`), managers resend (`POST /user/:id/resend-verification`). Never return the raw `User` entity from an API — use `toUserAdminView` / `UserDto`.
 2. **`TenantContextGuard`** — validates org+location access. Skips for `@Public()`, `@ContextFree()`, path-prefixes (`/auth/`, `/organizations`, `/locations`), `@RequireSuperAdmin()`, and super admins (always exempt).
 3. **`FeatureFlagGuard`** — enforces `@RequireFeature('key')`. No metadata = allow; super admin = allow; else feature must be enabled for active org.
@@ -310,7 +310,7 @@ Registered as `APP_GUARD` in `app.module.ts`:
 
 **Access control rules:** never check role names in code — ask `ctx.can('...')` / `useAccess().can('...')`. Permission keys live in `src/access/catalog/permissions.ts` (each tied to a feature); after editing run `npm run access:export` to regenerate `web-app/src/features/access/generated/catalog.ts`. Every handler needs `@Can`, `@AnyMember`, `@Public`, `@RequireSuperAdmin` or `@ContextFree` (handler checks itself) — `src/access/access-coverage.spec.ts` fails otherwise. Role/flag/nav changes bump `access_version` and emit realtime `access.changed` to room `org:<id>`. Frontend: routes declare `staticData: { can }` (checked once in `__root.tsx`), sidebar items come from `features/access/nav/nav.registry.ts` filtered by `can` and arranged by the clinic's `nav_layouts`. Clinic setup screens: `/admin/roles`, `/admin/features`, `/admin/navigation`, `/admin/theme`.
 
-Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)` (only needed on `@AnyMember` routes — a permission already implies its feature), `@ActiveTenant()` → `{ organizationId, locationId }`. `@Roles`/`RolesGuard` and the old `RoleAuthGuard` are removed. Note: `JwtAuthGuard` ignores `@Public()` — unauthenticated routes must also be listed in `auth/constants/public-routes.ts`.
+Auth decorators (`common/decorators/`): `@Public()`, `@ContextFree()`, `@RequireSuperAdmin()`, `@RequireFeature(key)` (only needed on `@AnyMember` routes — a permission already implies its feature), `@ActiveTenant()` → `{ organizationId, locationId }`. `@Roles`/`RolesGuard` and the old `RoleAuthGuard` are removed. Unauthenticated routes carry the `@Public()` decorator.
 
 ### Auth / Login Flow
 Login resolves accessible orgs/locations, returns `requiresOrgSelection` / `requiresLocationSelection`. `__root.tsx` handles redirects: unauthenticated → `/login`; needs selection → `/select-location`. Super admins on `SUPER_ADMIN_SETUP_PATHS` bypass location-selection to bootstrap empty system. Session restore via silent `/auth/refresh` on mount.
@@ -349,12 +349,13 @@ Missing: chair/room scheduling (the `chairs` entity was removed; locations only 
 - **Soft deletes** via `isActive` flag in most modules
 
 ### Database
-PostgreSQL (Neon-compatible with SSL). TypeORM config in `cms/backend/src/data-sourse.ts` and `app.module.ts`. **`synchronize: true` is ON in dev** — schema auto-syncs from entities, THEN pending migrations in `backend/src/migrations/` run on API startup (triggers/backfills; hand-written, idempotent). Production: synchronize off → reviewed `schema:sync:prod`, migrations still run on startup. Legacy baseline `1776356529788` is recorded as applied, never executed. Details + deploy procedure: `docs/database-migrations.md`.
+Plain PostgreSQL 13+ (Neon in dev only; `DATABASE_SSL` = `true`/`verify`/`false`). **The schema is hand-maintained SQL in `backend/database/`** — `schema/` builds an empty DB (run 01→05 in order), `changes/YYYY-MM-DD_*.sql` alters existing DBs. The app NEVER changes the schema: `synchronize` is off everywhere, no TypeORM migrations, no startup DDL. Any entity change = edit the entity + its block in `schema/02_tables.sql` (or 04/05) + a `changes/` script, same commit. Never rename constraints the code catches by name (`no_doctor_overlap`, `uq_*_idempotency`, `one_active_entry_*`). Only the integration-test harnesses still `synchronize` throw-away test DBs. Details: `backend/database/README.md`.
 
 ### Key Environment Variables
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_SSL` | `true` (default, SSL unverified — Neon/managed) · `verify` · `false` (local Postgres) |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing |
 | `REDIS_URL` | Pub/sub between split `api`/`worker` processes. Unset = single `all` process, no Redis (`start:dev`, `start:prod`) |
 | `CLOUDINARY_*` | File uploads |

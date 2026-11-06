@@ -1,46 +1,52 @@
 import {
-  Injectable,
   CanActivate,
   ExecutionContext,
   HttpException,
   HttpStatus,
+  Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AppLogger } from '../../common/services/logger.service';
 
 /**
- * Rate limit configuration.
+ * Rate limiting for the whole API — registered as the FIRST global guard
+ * (`app.module.ts`), so it also runs before authentication.
+ *
+ * 1. Every HTTP request counts against a per-IP ceiling
+ *    (`RATE_LIMIT_GLOBAL_PER_MINUTE`, default 3000 — generous: a whole clinic
+ *    shares one IP behind its router). Stops floods and scraping.
+ * 2. Routes with `@RateLimit({...})` get their own, stricter limit per IP
+ *    (and optionally per account, e.g. per email on login).
+ *
+ * The IP is `request.ip`: Express's view, which honours `TRUST_PROXY`
+ * (set in `bootstrap/http.ts`). The raw `X-Forwarded-For` header is never
+ * read directly — a client can put anything in it.
+ *
+ * Counters live in memory, which fits the single `all` process this app
+ * runs as. They reset on restart.
  */
 export interface RateLimitConfig {
-  /** Maximum number of requests allowed in the window */
+  /** Maximum number of requests allowed in the window. */
   maxAttempts: number;
-  /** Window duration in seconds */
+  /** Window duration in seconds. */
   windowSeconds: number;
-  /** Custom key generator (default: IP-based) */
-  keyGenerator?: (request: Request) => string;
+  /**
+   * Also limit per account: the body field holding it (e.g. 'email').
+   * Counted on its own key, so rotating IPs doesn't help either.
+   */
+  perAccountField?: string;
+  /** Limit for the per-account key (default: maxAttempts). */
+  perAccountMax?: number;
 }
 
-/**
- * Decorator to apply rate limiting to a route.
- */
 export const RATE_LIMIT_KEY = 'rateLimit';
-export const RateLimit = (config: RateLimitConfig) => {
-  return (
-    target: any,
-    propertyKey?: string,
-    descriptor?: PropertyDescriptor,
-  ) => {
-    if (descriptor) {
-      Reflect.defineMetadata(RATE_LIMIT_KEY, config, descriptor.value);
-    }
+export const RateLimit =
+  (config: RateLimitConfig): MethodDecorator =>
+  (_target, _key, descriptor) => {
+    Reflect.defineMetadata(RATE_LIMIT_KEY, config, descriptor.value as object);
   };
-};
 
-/**
- * In-memory store for rate limiting.
- * In production, consider using Redis for distributed rate limiting.
- */
 interface RateLimitEntry {
   count: number;
   resetAt: number;
@@ -48,31 +54,23 @@ interface RateLimitEntry {
 
 const rateLimitStore = new Map<string, RateLimitEntry>();
 
-// Cleanup old entries periodically (unref: never keeps the process alive)
+// Cleanup old entries periodically (unref: never keeps the process alive).
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
-    if (entry.resetAt < now) {
-      rateLimitStore.delete(key);
-    }
+    if (entry.resetAt < now) rateLimitStore.delete(key);
   }
-}, 60000).unref(); // Cleanup every minute
+}, 60000).unref();
 
-/**
- * Rate Limiter Guard
- *
- * Implements rate limiting to protect against brute-force attacks.
- * Uses in-memory storage (use Redis for production/distributed systems).
- */
+/** Test hook: forget every counter. */
+export function resetRateLimits(): void {
+  rateLimitStore.clear();
+}
+
 @Injectable()
 export class RateLimiterGuard implements CanActivate {
-  // Default limits from environment or fallbacks
-  private readonly defaultMaxAttempts = parseInt(
-    process.env.RATE_LIMIT_LOGIN_MAX || '5',
-    10,
-  );
-  private readonly defaultWindowSeconds = parseInt(
-    process.env.RATE_LIMIT_LOGIN_WINDOW_SECONDS || '900',
+  private readonly globalPerMinute = parseInt(
+    process.env.RATE_LIMIT_GLOBAL_PER_MINUTE || '3000',
     10,
   );
 
@@ -81,94 +79,63 @@ export class RateLimiterGuard implements CanActivate {
     private readonly logger: AppLogger,
   ) {}
 
-  async canActivate(context: ExecutionContext): Promise<boolean> {
+  canActivate(context: ExecutionContext): boolean {
+    if (context.getType() !== 'http') return true;
     const request = context.switchToHttp().getRequest<Request>();
+    const ip = request.ip || request.socket?.remoteAddress || 'unknown';
 
-    // Get rate limit config from decorator or use defaults
-    const config = this.reflector.get<RateLimitConfig>(
-      RATE_LIMIT_KEY,
-      context.getHandler(),
-    ) || {
-      maxAttempts: this.defaultMaxAttempts,
-      windowSeconds: this.defaultWindowSeconds,
-    };
-
-    // Generate rate limit key
-    const key = config.keyGenerator
-      ? config.keyGenerator(request)
-      : this.getDefaultKey(request);
-
-    const now = Date.now();
-    const windowMs = config.windowSeconds * 1000;
-
-    // Get or create entry
-    let entry = rateLimitStore.get(key);
-
-    if (!entry || entry.resetAt < now) {
-      // Create new entry
-      entry = {
-        count: 1,
-        resetAt: now + windowMs,
-      };
-      rateLimitStore.set(key, entry);
-      return true;
+    if (this.globalPerMinute > 0) {
+      this.hit(`global:${ip}`, this.globalPerMinute, 60);
     }
 
-    // Increment count
+    const config = this.reflector.get<RateLimitConfig | undefined>(
+      RATE_LIMIT_KEY,
+      context.getHandler(),
+    );
+    if (!config) return true;
+
+    const route = `${request.method}:${request.route?.path || request.path}`;
+    this.hit(`route:${ip}:${route}`, config.maxAttempts, config.windowSeconds);
+
+    if (config.perAccountField) {
+      const body = (request.body ?? {}) as Record<string, unknown>;
+      const raw = body[config.perAccountField];
+      if (typeof raw === 'string' && raw.trim()) {
+        this.hit(
+          `account:${route}:${raw.trim().toLowerCase()}`,
+          config.perAccountMax ?? config.maxAttempts,
+          config.windowSeconds,
+        );
+      }
+    }
+    return true;
+  }
+
+  private hit(key: string, max: number, windowSeconds: number): void {
+    const now = Date.now();
+    const entry = rateLimitStore.get(key);
+    if (!entry || entry.resetAt < now) {
+      rateLimitStore.set(key, { count: 1, resetAt: now + windowSeconds * 1000 });
+      return;
+    }
     entry.count++;
-
-    if (entry.count > config.maxAttempts) {
-      const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
-
-      this.logger.warn(
-        `Rate limit exceeded for key: ${key}, attempts: ${entry.count}`,
-        RateLimiterGuard.name,
-      );
-
+    if (entry.count > max) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      // Log the kind of limit only — keys can contain emails.
+      if (entry.count === max + 1) {
+        this.logger.warn(
+          `Rate limit exceeded (${key.split(':')[0]})`,
+          RateLimiterGuard.name,
+        );
+      }
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
           message: 'Too many requests. Please try again later.',
-          retryAfter: retryAfterSeconds,
+          retryAfter,
         },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-
-    return true;
-  }
-
-  /**
-   * Get default rate limit key based on IP and route.
-   */
-  private getDefaultKey(request: Request): string {
-    const ip = this.getClientIp(request);
-    const route = request.route?.path || request.path;
-    return `rate_limit:${ip}:${route}`;
-  }
-
-  /**
-   * Get client IP address from request.
-   */
-  private getClientIp(request: Request): string {
-    const forwardedFor = request.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      const ips = Array.isArray(forwardedFor)
-        ? forwardedFor[0]
-        : forwardedFor.split(',')[0];
-      return ips.trim();
-    }
-    return request.ip || request.socket?.remoteAddress || 'unknown';
   }
 }
-
-/**
- * Helper to create rate limit key that includes both IP and user identifier.
- */
-export const createUserRateLimitKey = (identifier: string) => {
-  return (request: Request): string => {
-    const ip =
-      request.headers['x-forwarded-for']?.[0] || request.ip || 'unknown';
-    return `rate_limit:${ip}:${identifier}`;
-  };
-};

@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { ClockService } from 'src/common/clock/clock.service';
 import {
   Controller,
@@ -114,6 +115,7 @@ export class PatientsController {
    * export is written to `audit_logs`. Declared before `:id`.
    */
   @Get('export')
+  @RateLimit({ maxAttempts: 30, windowSeconds: 600 })
   @Can('patients.export')
   async export(
     @Query() query: PatientQueryDto,
@@ -187,6 +189,7 @@ export class PatientsController {
    * created through the normal patient create, independently of the others.
    */
   @Post('import')
+  @RateLimit({ maxAttempts: 10, windowSeconds: 3600 })
   @HttpCode(HttpStatus.OK)
   @Can('patients.create')
   async importPatients(

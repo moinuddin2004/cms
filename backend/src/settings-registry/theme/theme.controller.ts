@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import {
   Body,
   Controller,
@@ -26,11 +27,12 @@ export class ThemeController {
 
   /**
    * Login-page theme, before auth: theme tokens only, nothing else about the
-   * org. Also listed in `auth/constants/public-routes.ts` (JwtAuthGuard
-   * ignores `@Public()`).
+   * org. Accessible publicly via @Public().
+
    */
   @Public()
   @Get('public/theme/:organizationId')
+  @RateLimit({ maxAttempts: 120, windowSeconds: 60 })
   async publicTheme(
     @Param('organizationId', ParseUUIDPipe) organizationId: string,
     @Query('locationId') locationId?: string,

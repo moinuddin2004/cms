@@ -2,20 +2,15 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useAccess, useMyAccess } from '@/features/access'
 import { useAuthStore } from '@/store/useAuthStore'
 import { SettingsCard, SettingsRow } from '../components/SettingsCard'
-
-function getInitials(name?: string) {
-  if (!name) return 'U'
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
+import { ProfileAvatarField } from '../components/ProfileAvatarField'
 
 export function ProfileSettingsPage() {
-  const { user, accessibleOrganizations, activeOrganizationId, activeLocationId } =
-    useAuthStore()
+  const {
+    user,
+    accessibleOrganizations,
+    activeOrganizationId,
+    activeLocationId,
+  } = useAuthStore()
   const { isSuperAdmin, isOwner } = useAccess()
   // Same cached /me/access payload the AccessProvider loaded.
   const roles = useMyAccess().data?.roles ?? []
@@ -29,18 +24,13 @@ export function ProfileSettingsPage() {
   const location = org?.locations.find((l) => l.id === activeLocationId)
 
   return (
-    <DashboardLayout
-      title="Profile"
-      subtitle="How you appear to your team."
-    >
+    <DashboardLayout title="Profile" subtitle="How you appear to your team.">
       <SettingsCard
         title="Your details"
-        description="Ask your clinic admin if your name or email needs to change."
+        description="Your photo is shown to your team. Ask your clinic admin if your name or email needs to change."
       >
-        <div className="mb-5 flex items-center gap-4">
-          <div className="flex size-14 items-center justify-center rounded-full bg-primary-soft text-lg font-bold text-primary-text">
-            {getInitials(user?.name)}
-          </div>
+        <div className="mb-5 flex flex-wrap items-center gap-4">
+          <ProfileAvatarField name={user?.name} avatarUrl={user?.avatarUrl} />
           <div className="min-w-0">
             <p className="truncate font-semibold text-foreground">
               {user?.name || '—'}

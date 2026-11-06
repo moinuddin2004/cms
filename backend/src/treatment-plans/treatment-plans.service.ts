@@ -1,3 +1,5 @@
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
 import {
   BadRequestException,
   ConflictException,
@@ -83,6 +85,15 @@ export class TreatmentPlansService {
       if (!dentistId) {
         throw new BadRequestException('Choose the doctor for this plan');
       }
+      await assertInOrg(m, [
+        {
+          entity: EmployeeOrgLocationAssignment,
+          id: dentistId,
+          idColumn: 'employeeId',
+          where: { organizationId: tenant.organizationId },
+          label: 'Doctor',
+        },
+      ]);
       const template = dto.planTemplateId
         ? await m.getRepository(PlanTemplate).findOne({
             where: {

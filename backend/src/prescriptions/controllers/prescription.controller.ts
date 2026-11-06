@@ -91,8 +91,14 @@ export class PrescriptionController {
   async create(
     @Body() dto: CreatePrescriptionDto,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
-    const data = await this.service.create(ctx, dto, dto.doctorId ?? null);
+    const data = await this.service.create(
+      ctx,
+      dto,
+      dto.doctorId ?? null,
+      access,
+    );
     return ResponseWrapper.success(data, 'Prescription created');
   }
 

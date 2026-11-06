@@ -12,6 +12,8 @@ import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { PayrollRecord } from './entities/payroll-record.entity';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import { EmployeesService } from 'src/employees/employees.service';
 import { GeneratePayrollDto } from './dto/generate-payroll.dto';
@@ -362,6 +364,16 @@ export class PayrollService {
     ctx: TenantContext,
     userId: string | null,
   ): Promise<PayrollRecord> {
+    // The employee must work at this clinic location (an id from the body).
+    await assertInOrg(this.dataSource.manager, [
+      {
+        entity: EmployeeOrgLocationAssignment,
+        id: dto.employeeId,
+        idColumn: 'employeeId',
+        where: { organizationId: ctx.organizationId, locationId: ctx.locationId },
+        label: 'Employee',
+      },
+    ]);
     const existing = await this.payrollRepo.findOne({
       where: {
         employeeId: dto.employeeId,

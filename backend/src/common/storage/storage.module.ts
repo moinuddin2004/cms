@@ -1,28 +1,16 @@
-import { Module } from '@nestjs/common';
-import { AppLogger } from '../services/logger.service';
-import { CloudinaryStorageProvider } from './cloudinary-storage.provider';
+import { Global, Module } from '@nestjs/common';
+import { storageProviderBinding } from './storage.config';
+import { StorageService } from './storage.service';
 import { UploadsController } from './uploads.controller';
-import { STORAGE_PROVIDER } from './storage-provider.interface';
 
 /**
- * Storage module — binds the active {@link StorageProvider} implementation.
- *
- * To swap providers later (e.g. S3), implement `StorageProvider` in a new class
- * and change ONLY the `useClass` below. No other code references Cloudinary.
- *
- * Relies on the globally-imported `CloudinaryModule` to have initialised the
- * Cloudinary SDK config.
+ * File storage for the whole app (global): inject `StorageService`.
+ * The provider is chosen in `storage.config.ts` — see the box there.
  */
+@Global()
 @Module({
   controllers: [UploadsController],
-  providers: [
-    AppLogger,
-    CloudinaryStorageProvider,
-    {
-      provide: STORAGE_PROVIDER,
-      useClass: CloudinaryStorageProvider,
-    },
-  ],
-  exports: [STORAGE_PROVIDER],
+  providers: [storageProviderBinding, StorageService],
+  exports: [StorageService],
 })
 export class StorageModule {}

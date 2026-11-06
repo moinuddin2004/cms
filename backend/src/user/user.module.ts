@@ -1,3 +1,5 @@
+import { ClinicAccessModule } from 'src/clinic-access/clinic-access.module';
+import { StorageModule } from 'src/common/storage/storage.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import { Module } from '@nestjs/common';
 import { UserService } from './user.service';
@@ -12,14 +14,16 @@ import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 
 @Module({
   imports: [
+    StorageModule,
     CommonModule,
     TypeOrmModule.forFeature([User, SecurityLog]),
     SessionModule,
     SubscriptionsModule,
     NotificationsModule,
+    ClinicAccessModule,
   ],
   providers: [UserService, EmailVerificationService],
   controllers: [UserController],
   exports: [UserService, EmailVerificationService, TypeOrmModule],
 })
-export class UserModule { }
+export class UserModule {}

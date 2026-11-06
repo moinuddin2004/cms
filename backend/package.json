@@ -25,16 +25,7 @@
     "test:int:tenancy": "jest --config ./test/jest-int-tenancy.json --runInBand",
     "test:int:access": "jest --config ./test/jest-int-access.json --runInBand --forceExit",
     "test:int:acceptance": "jest --config ./test/jest-int-acceptance.json --runInBand --forceExit",
-    "access:export": "ts-node scripts/export-access-catalog.ts",
-    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:generate": "npm run typeorm -- migration:generate -d src/data-sourse.ts",
-    "migration:run": "npm run typeorm -- migration:run -d src/data-sourse.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/data-sourse.ts",
-    "migration:show": "npm run typeorm -- migration:show -d src/data-sourse.ts",
-    "schema:log": "npm run typeorm -- schema:log -d src/data-sourse.ts",
-    "schema:log:prod": "typeorm schema:log -d dist/src/data-sourse.js",
-    "schema:sync:prod": "typeorm schema:sync -d dist/src/data-sourse.js",
-    "migration:run:prod": "typeorm migration:run -d dist/src/data-sourse.js"
+    "access:export": "ts-node scripts/export-access-catalog.ts"
   },
   "dependencies": {
     "@fontsource/noto-naskh-arabic": "^5.3.0",
@@ -43,11 +34,11 @@
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.0",
+    "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.8",
     "@nestjs/schedule": "^6.1.3",
-    "@nestjs/swagger": "^11.2.0",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.1.6",
     "@types/multer": "^2.0.0",
@@ -60,9 +51,10 @@
     "exceljs": "^4.4.0",
     "fontkit": "^2.0.4",
     "google-auth-library": "^9.15.1",
+    "helmet": "^8.3.0",
     "ioredis": "^5.8.0",
     "multer": "^2.5.0",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^10.3.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -89,6 +81,7 @@
     "@types/fontkit": "^2.0.9",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "^8.0.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/pdfmake": "^0.3.3",
@@ -132,6 +125,12 @@
   },
   "overrides": {
     "dayjs": "^1.11.23",
-    "multer": "^2.5.0"
+    "multer": "^2.5.0",
+    "useragent": {
+      "tmp": "^0.2.7"
+    },
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   }
 }

@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ConsumptionTemplate } from '../entities/consumption-template.entity';
 import { ConsumptionTemplateItem } from '../entities/consumption-template-item.entity';
+import { InventoryItem } from '../entities/inventory-item.entity';
+import { assertAllInOrg } from 'src/common/tenancy/assert-in-org';
 import {
   CreateConsumptionTemplateDto,
   UpdateConsumptionTemplateDto,
@@ -22,6 +24,13 @@ export class ConsumptionTemplateService {
     organizationId: string,
     dto: CreateConsumptionTemplateDto,
   ): Promise<ConsumptionTemplate> {
+    await assertAllInOrg(
+      this.dataSource.manager,
+      InventoryItem,
+      dto.items.map((l) => l.inventoryItemId),
+      { organizationId },
+      'Inventory item',
+    );
     const items = dto.items.map((line, index) =>
       this.templateItemRepo.create({
         inventoryItemId: line.inventoryItemId,
@@ -67,6 +76,13 @@ export class ConsumptionTemplateService {
     dto: UpdateConsumptionTemplateDto,
   ): Promise<ConsumptionTemplate> {
     const template = await this.findOne(id, organizationId);
+    await assertAllInOrg(
+      this.dataSource.manager,
+      InventoryItem,
+      (dto.items ?? []).map((l) => l.inventoryItemId),
+      { organizationId },
+      'Inventory item',
+    );
 
     if (dto.name !== undefined) template.name = dto.name;
     if (dto.procedureName !== undefined)

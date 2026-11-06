@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import {
   Controller,
   Get,
@@ -11,7 +12,13 @@ import {
   BadRequestException,
   Body,
   Param,
+  Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
+import { FILE_KINDS } from 'src/common/storage/file-rules';
 import { UserService, UserManager } from './user.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { AccessResolver, isUuid } from 'src/access/access.resolver';
@@ -27,6 +34,7 @@ import { HttpCode, HttpStatus, ParseUUIDPipe } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
+import { ClinicGateService } from 'src/clinic-access/clinic-gate.service';
 
 type UserRequest = {
   user: User;
@@ -43,6 +51,7 @@ export class UserController {
     private readonly userService: UserService,
     private readonly resolver: AccessResolver,
     private readonly verification: EmailVerificationService,
+    private readonly gate: ClinicGateService,
   ) {}
 
   /**
@@ -75,6 +84,17 @@ export class UserController {
       isUuid(locationId) ? locationId : null,
     );
     if (!access.can(USERS_PERMISSION)) throw noPermission([USERS_PERMISSION]);
+    // These routes are @ContextFree, so TenantContextGuard's clinic gate
+    // didn't run: a clinic still pending approval (or a session that breaks
+    // the clinic's sign-in policy) may not manage users.
+    const auth = req.user as User & {
+      authMethod?: 'password' | 'google';
+      authDomain?: string | null;
+    };
+    await this.gate.assertUsable(orgId, {
+      method: auth.authMethod ?? 'password',
+      domain: auth.authDomain ?? null,
+    });
     return {
       isSuperAdmin: false,
       isOwner: access.isOwner,
@@ -87,6 +107,37 @@ export class UserController {
   @Get('me')
   async getMe(@Req() req): Promise<UserDto> {
     return UserDto.toDto(req.user);
+  }
+
+  /** The signed-in user's own profile photo (multipart `file`, image ≤ 2 MB). */
+  @UseGuards(AuthGuard('jwt'))
+  @Put('me/avatar')
+  @RateLimit({ maxAttempts: 20, windowSeconds: 600 })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: FILE_KINDS.avatar.maxBytes, files: 1 },
+    }),
+  )
+  async setMyAvatar(
+    @Req() req: UserRequest,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const user = await this.userService.setAvatar(req.user.uuid, file);
+    return ResponseWrapper.success(
+      UserDto.toDto(user),
+      'Profile photo updated',
+    );
+  }
+
+  /** Removes the signed-in user's own profile photo. */
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('me/avatar')
+  async removeMyAvatar(@Req() req: UserRequest) {
+    const user = await this.userService.removeAvatar(req.user.uuid);
+    return ResponseWrapper.success(
+      UserDto.toDto(user),
+      'Profile photo removed',
+    );
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -156,6 +207,7 @@ export class UserController {
   /** Email a fresh verification link (super admin, or a manager of that user). */
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/resend-verification')
+  @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   @HttpCode(HttpStatus.OK)
   async resendVerification(
     @Req() req: UserRequest,

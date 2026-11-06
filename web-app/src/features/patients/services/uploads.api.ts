@@ -2,24 +2,25 @@ import api from '@/lib/api'
 
 /**
  * Result returned by the backend `POST /uploads` endpoint.
- * Mirrors the backend `UploadedFileResult` (storage-provider.interface.ts).
+ * Mirrors the backend `UploadedFileResult` (common/storage/storage.service.ts).
  */
 export interface UploadedFileResult {
   url: string
-  publicId: string
+  /** Storage key (provider-owned) — needed to delete the file later. */
+  key: string
   fileName: string
   sizeBytes: number
+  /** Real MIME type detected by the server from the file's bytes. */
   mimeType: string
-  resourceType: string
 }
 
 /**
  * Upload a single file via the backend storage abstraction.
- * The backend decides the concrete provider (currently Cloudinary), so the
- * frontend never talks to a storage vendor directly.
+ * The backend decides the storage provider, so the frontend never talks to
+ * a storage vendor directly.
  *
  * @param file   The File/Blob to upload.
- * @param folder Logical folder within storage (e.g. 'patient-documents').
+ * @param folder Upload purpose the server allows: 'patient-documents' | 'branding'.
  */
 export async function uploadFile(
   file: File,

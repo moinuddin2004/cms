@@ -33,7 +33,7 @@ Ports: backend `5000` (env `PORT`), frontend `3000`. CORS origin from env `CORS_
 
 1. `main.ts`: body limit 5 MB (signatures stored as base64 data URLs); global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, `transform`; global exception filter; cookie-parser.
 2. Global guards (`app.module.ts:100-112`, order matters):
-   1. `JwtAuthGuard` — Bearer token. **Uses only the hardcoded `PUBLIC_ROUTES` list** (`auth/constants/public-routes.ts`), ignores `@Public()`.
+   1. `JwtAuthGuard` — Bearer token. Skips `@Public()` decorated routes.
    2. `TenantContextGuard` — reads `x-organization-id` / `x-location-id` headers, validates access, sets `request.tenantContext`. Skips for `@Public()`, `@ContextFree()`, and path prefixes `/auth/`, `/organizations`, `/locations`.
    3. `FeatureFlagGuard` — enforces `@RequireFeature(key)`; super admin bypass. Enabled keys cached in `Map<orgId, Set>`.
 3. Controllers return `ResponseWrapper.success(data, message)` → frontend unwraps `res.data.data`.

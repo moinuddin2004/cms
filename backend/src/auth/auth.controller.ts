@@ -21,7 +21,7 @@ import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Request, Response } from 'express';
 import { Public } from 'src/common/decorators/publicDecorator';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
-import { RateLimiterGuard, RateLimit } from './guards/rate-limiter.guard';
+import { RateLimit } from './guards/rate-limiter.guard';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { SessionService } from '../session/session.service';
 import { ChangePasswordRequestDto } from './dto/request/change-password-request.dto';
@@ -57,7 +57,6 @@ export class AuthController {
    */
   @Public()
   @Post('register')
-  @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   async register(
     @Body() body: RegisterRequestDto,
@@ -73,7 +72,6 @@ export class AuthController {
    */
   @Public()
   @Post('verify-email')
-  @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async verifyEmail(@Body() body: VerifyEmailRequestDto) {
     const result = await this.authService.verifyEmail(body.token);
@@ -85,7 +83,7 @@ export class AuthController {
    */
   @ContextFree()
   @Post('resend-verification')
-  @UseGuards(JwtAuthGuard, RateLimiterGuard)
+  @UseGuards(JwtAuthGuard)
   @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
   async resendVerification(@Req() req: AuthedRequest) {
     const result = await this.authService.resendVerification(req.user.uuid);
@@ -98,8 +96,12 @@ export class AuthController {
    */
   @Public()
   @Post('login')
-  @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 5, windowSeconds: 900 })
+  @RateLimit({
+    maxAttempts: 30,
+    windowSeconds: 900,
+    perAccountField: 'email',
+    perAccountMax: 10,
+  })
   async login(
     @Body() body: LoginRequestDto,
     @Req() req: Request,
@@ -152,6 +154,7 @@ export class AuthController {
    */
   @Public()
   @Post('refresh')
+  @RateLimit({ maxAttempts: 300, windowSeconds: 300 })
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -182,7 +185,7 @@ export class AuthController {
    */
   @ContextFree()
   @Post('create-clinic')
-  @UseGuards(JwtAuthGuard, RateLimiterGuard)
+  @UseGuards(JwtAuthGuard)
   @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
   async createClinic(
     @Body() body: CreateClinicRequestDto,
@@ -202,6 +205,7 @@ export class AuthController {
    */
   @Public()
   @Post('logout')
+  @RateLimit({ maxAttempts: 60, windowSeconds: 300 })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.logout(req, res);
     return ResponseWrapper.success(result, 'Logged out successfully');
@@ -295,6 +299,7 @@ export class AuthController {
   @ContextFree()
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
+  @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async changePassword(
     @Body() body: ChangePasswordRequestDto,
     @Req() req: AuthedRequest,
@@ -315,6 +320,7 @@ export class AuthController {
   @ContextFree()
   @Post('add-password')
   @UseGuards(JwtAuthGuard)
+  @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async addPassword(
     @Body() body: AddPasswordRequestDto,
     @Req() req: AuthedRequest,
@@ -332,8 +338,12 @@ export class AuthController {
    */
   @Public()
   @Post('forgot-password')
-  @UseGuards(RateLimiterGuard)
-  @RateLimit({ maxAttempts: 3, windowSeconds: 3600 })
+  @RateLimit({
+    maxAttempts: 10,
+    windowSeconds: 3600,
+    perAccountField: 'email',
+    perAccountMax: 3,
+  })
   async forgotPassword(
     @Body() dto: ForgotPasswordRequestDto,
     @Req() req: Request,
@@ -347,6 +357,7 @@ export class AuthController {
    */
   @Public()
   @Patch('reset-password')
+  @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async resetPassword(
     @Body() dto: ResetPasswordRequestDto,
     @Req() req: Request,

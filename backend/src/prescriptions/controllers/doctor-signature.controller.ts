@@ -43,15 +43,24 @@ export class DoctorSignatureController {
 
   @Get('my')
   @Can('prescriptions.create')
-  async getMine(@Req() req: any) {
-    const data = await this.service.getByEmployee(req.user.uuid);
+  async getMine(@Req() req: any, @ActiveTenant() ctx: TenantContext) {
+    const data = await this.service.getByEmployee(
+      req.user.uuid,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 
   @Get('doctor/:employeeId')
-  @AnyMember()
-  async getByEmployee(@Param('employeeId', ParseUUIDPipe) employeeId: string) {
-    const data = await this.service.getByEmployee(employeeId);
+  @Can('prescriptions.create')
+  async getByEmployee(
+    @Param('employeeId', ParseUUIDPipe) employeeId: string,
+    @ActiveTenant() ctx: TenantContext,
+  ) {
+    const data = await this.service.getByEmployee(
+      employeeId,
+      ctx.organizationId,
+    );
     return ResponseWrapper.success(data);
   }
 

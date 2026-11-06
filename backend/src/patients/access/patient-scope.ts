@@ -3,6 +3,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  BadRequestException,
   NotFoundException,
   SetMetadata,
   UseGuards,
@@ -89,8 +90,11 @@ export class PatientScopeGuard implements CanActivate {
     const patientId = typeof raw === 'string' ? raw : undefined;
     if (!patientId) return true;
 
-    // A malformed id is left to the handler's ParseUUIDPipe (400).
-    if (!UUID.test(patientId)) return true;
+    // Fail closed: Postgres also accepts other spellings of a UUID (no
+    // hyphens, braces), which would skip this check and still match the row.
+    if (!UUID.test(patientId)) {
+      throw new BadRequestException('Invalid patient id');
+    }
     const access = req.access;
     if (!access)
       throw noPermission(['patients.view'], 'No organization selected');

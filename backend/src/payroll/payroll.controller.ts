@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import {
   Controller,
   Get,
@@ -152,6 +153,7 @@ export class PayrollController {
   }
 
   @Get('export')
+  @RateLimit({ maxAttempts: 30, windowSeconds: 600 })
   async exportCsv(
     @Query('month') month: string,
     @Query('year') year: string,

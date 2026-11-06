@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import {
   Body,
   Controller,
@@ -199,13 +200,14 @@ export class JoinInvitesController {
   }
 }
 
-/** Public: the clinic name behind an invite link (also in PUBLIC_ROUTES). */
+/** Public: the clinic name behind an invite link. */
 @Controller('public/join-invites')
 export class PublicInviteController {
   constructor(private readonly service: ClinicAccessService) {}
 
   @Public()
   @Get(':token')
+  @RateLimit({ maxAttempts: 30, windowSeconds: 900 })
   async info(@Param('token') token: string) {
     return ResponseWrapper.success(
       await this.service.inviteInfo(token),

@@ -50,10 +50,6 @@ export class CreateAssignmentDto {
   hasPortalAccess?: boolean;
 
   @IsOptional()
-  @IsUUID()
-  userId?: string;
-
-  @IsOptional()
   @IsBoolean()
   isPrimary?: boolean;
 }

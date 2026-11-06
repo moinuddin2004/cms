@@ -7,8 +7,8 @@ import { PrimaryColumn } from 'typeorm';
  * unix-ms timestamp and the version nibble flips from 4 (0100) to 7 (0111)
  * by setting bits 52 and 53; the RFC variant bits of the v4 are kept.
  *
- * Created by `ensurePostgresExtensions` before `synchronize` (dev) and by
- * the lab-management migration (prod), so column defaults can rely on it.
+ * Created by `database/schema/01_extensions_functions.sql` (same SQL), so
+ * column defaults can rely on it. The test harnesses run this constant.
  */
 export const UUID_V7_FUNCTION_SQL = `
 CREATE OR REPLACE FUNCTION uuid_generate_v7() RETURNS uuid

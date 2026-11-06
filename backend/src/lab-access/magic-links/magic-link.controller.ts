@@ -47,7 +47,7 @@ const LINK_ACTIONS = new Set(['accept', 'reject', 'request_clarification']);
  * (the lab mapper: no patient price, clinic treatment or internal files).
  * Each action is a status change with `via = magic_link`, actor side lab,
  * no user — and a dead link (expired, revoked, closed order) does nothing.
- * Paths are listed in `PUBLIC_ROUTES`.
+ * Marked with @Public().
  */
 @Public()
 @UseGuards(MagicLinkThrottleGuard)

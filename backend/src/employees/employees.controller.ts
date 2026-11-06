@@ -41,8 +41,11 @@ export class EmployeesController {
     @Body() dto: CreateEmployeeDto,
     @ActiveTenant() ctx: TenantContext,
     @Req() req: any,
+    @Access() access: AccessContext,
   ) {
-    const data = await this.employeesService.create(ctx, dto, req.user?.uuid);
+    const data = await this.employeesService.create(ctx, dto, req.user?.uuid, {
+      access,
+    });
     return ResponseWrapper.success(data, 'Employee created successfully');
   }
 
@@ -72,8 +75,9 @@ export class EmployeesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
     @ActiveTenant() ctx: TenantContext,
+    @Access() access: AccessContext,
   ) {
-    const data = await this.employeesService.update(id, ctx, dto);
+    const data = await this.employeesService.update(id, ctx, dto, access);
     return ResponseWrapper.success(data, 'Employee updated successfully');
   }
 

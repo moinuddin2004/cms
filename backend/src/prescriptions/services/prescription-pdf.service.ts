@@ -1,3 +1,5 @@
+import { lookup } from 'dns/promises';
+import { isIP } from 'net';
 import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,10 +11,7 @@ import { MealRelation } from '../enums/meal-relation.enum';
 import { PrescriptionTemplateService } from './prescription-template.service';
 import { PdfTextWriter } from '../pdf/pdf-text';
 import { ClockService } from 'src/common/clock/clock.service';
-import {
-  STORAGE_PROVIDER,
-  StorageProvider,
-} from 'src/common/storage/storage-provider.interface';
+import { StorageService } from 'src/common/storage/storage.service';
 
 const MM_TO_PT = 2.83465;
 
@@ -42,9 +41,8 @@ const MEAL_LABEL: Record<MealRelation, string> = {
  * Nastaliq Urdu, laid out right-to-left with numbers and Latin words kept
  * left-to-right, and drawn as vector outlines (see ../pdf/pdf-text.ts).
  *
- * The provider is wired through the existing StorageProvider (Cloudinary), so
- * generated PDFs upload via the same swappable abstraction the rest of the
- * app uses. If storage isn't configured, `generatePdfBuffer` still returns
+ * Generated PDFs are stored through StorageService (provider chosen in
+ * common/storage/storage.config.ts). If storage isn't configured, `generatePdfBuffer` still returns
  * the bytes and the controller streams them inline.
  */
 @Injectable()
@@ -54,7 +52,7 @@ export class PrescriptionPdfService {
     private readonly repo: Repository<Prescription>,
     @Inject(forwardRef(() => PrescriptionTemplateService))
     private readonly templateService: PrescriptionTemplateService,
-    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
+    private readonly storage: StorageService,
     private readonly clock: ClockService,
   ) {}
 
@@ -481,16 +479,13 @@ export class PrescriptionPdfService {
   ): Promise<string | null> {
     try {
       const buffer = await this.generatePdfBuffer(prescriptionId, organizationId);
-      const file = {
+      const stored = await this.storage.put(
+        `org/${organizationId}/prescriptions/${prescriptionId}-${Date.now()}.pdf`,
         buffer,
-        originalname: `prescription-${prescriptionId}.pdf`,
-        mimetype: 'application/pdf',
-        size: buffer.length,
-      } as Express.Multer.File;
-      const result = await this.storage.upload(file, {
-        folder: 'prescriptions',
-      });
-      return result.url;
+        'application/pdf',
+        'public',
+      );
+      return stored.url;
     } catch {
       return null;
     }
@@ -581,12 +576,68 @@ async function fetchImageBytes(url: string): Promise<Uint8Array | null> {
     const base64 = url.slice(idx + 1);
     return Uint8Array.from(Buffer.from(base64, 'base64'));
   }
+  // The URL comes from user input: never let the server fetch internal
+  // addresses (SSRF). Only public https hosts, small images, short timeout.
+  if (!(await isPublicHttpsUrl(url))) return null;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(5000),
+    });
     if (!res.ok) return null;
+    const length = Number(res.headers.get('content-length') ?? 0);
+    if (length > MAX_REMOTE_IMAGE_BYTES) return null;
     const arr = await res.arrayBuffer();
+    if (arr.byteLength > MAX_REMOTE_IMAGE_BYTES) return null;
     return new Uint8Array(arr);
   } catch {
     return null;
   }
+}
+
+const MAX_REMOTE_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/** https only, and the host must not resolve to a private/loopback/link-local address. */
+async function isPublicHttpsUrl(raw: string): Promise<boolean> {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:' || url.username || url.password) return false;
+  try {
+    const addrs = await lookup(url.hostname, { all: true });
+    return addrs.length > 0 && addrs.every((a) => !isPrivateAddress(a.address));
+  } catch {
+    return false;
+  }
+}
+
+function isPrivateAddress(ip: string): boolean {
+  if (isIP(ip) === 6) {
+    const v = ip.toLowerCase();
+    if (v.startsWith('::ffff:')) return isPrivateAddress(v.slice(7));
+    return (
+      v === '::1' ||
+      v === '::' ||
+      v.startsWith('fc') ||
+      v.startsWith('fd') ||
+      v.startsWith('fe8') ||
+      v.startsWith('fe9') ||
+      v.startsWith('fea') ||
+      v.startsWith('feb')
+    );
+  }
+  const [a, b] = ip.split('.').map(Number);
+  return (
+    a === 10 ||
+    a === 127 ||
+    a === 0 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    a >= 224
+  );
 }

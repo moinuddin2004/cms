@@ -8,6 +8,8 @@ import { Repository, In, LessThan } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import { AppLogger } from 'src/common/services/logger.service';
 import { PatientCredit } from './entities/patient-credit.entity';
+import { Patient } from 'src/patients/entities/patient.entity';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
 import { CreditStatus } from './enums/billing.enums';
 import { CreditPackagesService } from './credit-packages.service';
 import { BillingClock } from './common/billing-clock.service';
@@ -37,6 +39,10 @@ export class PatientCreditsService {
     locationId: string,
     soldBy: string,
   ): Promise<PatientCredit> {
+    // The patient in the URL must be this clinic's.
+    await assertInOrg(this.creditRepo.manager, [
+      { entity: Patient, id: patientId, where: { organizationId }, label: 'Patient' },
+    ]);
     const pkg = await this.packagesService.getOrFail(packageId, organizationId);
 
     // `purchase_date` / `expiry_date` are `date` columns: the clinic's day.
@@ -81,9 +87,15 @@ export class PatientCreditsService {
     patientCreditId: string,
     organizationId: string,
     amount: number,
+    patientId?: string,
   ): Promise<PatientCredit> {
+    // The credit must belong to the patient named in the URL.
     const credit = await this.creditRepo.findOne({
-      where: { id: patientCreditId, organizationId },
+      where: {
+        id: patientCreditId,
+        organizationId,
+        ...(patientId ? { patientId } : {}),
+      },
     });
     if (!credit) throw new NotFoundException('Patient credit not found');
 

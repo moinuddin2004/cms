@@ -4,8 +4,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { PUBLIC_ROUTES } from '../constants/public-routes';
 import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from 'src/common/decorators/publicDecorator';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -14,24 +14,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 
   canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest<Request>();
-    const method = request.method.toUpperCase();
-    const path = request.url.split('?')[0].toLowerCase();
-
-    const isPublic = PUBLIC_ROUTES.some((route) => {
-      const routeMethod = route.method.toUpperCase();
-      const routePath = route.path.toLowerCase();
-
-      if (routeMethod !== method) return false;
-
-      const regexPattern =
-        '^' +
-        routePath.replace(/\*\*/g, '[^\\s/]+').replace(/\//g, '\\/') +
-        '$';
-
-      const regex = new RegExp(regexPattern);
-      return regex.test(path);
-    });
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
     if (isPublic) {
       return true;

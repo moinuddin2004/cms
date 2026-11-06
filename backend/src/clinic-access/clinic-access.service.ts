@@ -333,9 +333,9 @@ export class ClinicAccessService {
         designation: dto.designation,
         employmentRoleId: dto.employmentRoleId,
         hasPortalAccess: true,
-        userId: request.userId,
       },
       actorUserId,
+      { linkUserId: request.userId },
     );
 
     request.status = JoinRequestStatus.APPROVED;

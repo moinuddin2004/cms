@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { Controller, Get, Query } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Access, AnyMember } from 'src/access/decorators/access.decorators';
@@ -14,6 +15,7 @@ export class SearchController {
    * filtered by its own view permission + scope inside the service.
    */
   @Get()
+  @RateLimit({ maxAttempts: 300, windowSeconds: 60 })
   @AnyMember()
   async search(@Query() query: SearchQueryDto, @Access() access: AccessContext) {
     const data = await this.searchService.search(

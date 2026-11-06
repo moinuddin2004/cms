@@ -6,9 +6,6 @@ import { MailTransport } from './mail/mail-transport.service';
 import { MailService } from './services/mail.service';
 import { RequestContextService } from './services/request-context.service';
 import { AppLogger } from './services/logger.service';
-import { SubmissionGateway } from './utils/socket-gateway';
-import { JwtStrategy } from 'src/auth/strategies/jwt.strategy';
-import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [TypeOrmModule.forFeature([EmailLog])],
@@ -18,9 +15,6 @@ import { JwtService } from '@nestjs/jwt';
     EmailQuota,
     RequestContextService,
     AppLogger,
-    SubmissionGateway,
-    JwtStrategy,
-    JwtService,
   ],
   exports: [
     MailService,
@@ -28,7 +22,6 @@ import { JwtService } from '@nestjs/jwt';
     EmailQuota,
     RequestContextService,
     AppLogger,
-    SubmissionGateway,
   ],
   controllers: [],
 })

@@ -8,6 +8,11 @@ import { InventoryItem } from '../entities/inventory-item.entity';
 import { StockMovementType } from '../entities/stock-movement.entity';
 import { RecordConsumptionDto } from '../dto/patient-consumption.dto';
 import { InventoryService } from './inventory.service';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
+import { Patient } from 'src/patients/entities/patient.entity';
+import { PatientTreatmentPlan } from 'src/patients/entities/patient-treatment-plan.entity';
+import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { ConsumptionTemplate } from '../entities/consumption-template.entity';
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -35,6 +40,15 @@ export class PatientConsumptionService {
     dto: RecordConsumptionDto,
     performedBy: string,
   ): Promise<PatientConsumption> {
+    // Every id in the body must belong to this clinic (the reply loads the
+    // patient and template back).
+    await assertInOrg(this.dataSource.manager, [
+      { entity: Patient, id: dto.patientId, where: { organizationId }, label: 'Patient' },
+      { entity: Appointment, id: dto.appointmentId, where: { organizationId, patientId: dto.patientId }, label: 'Appointment' },
+      { entity: PatientTreatmentPlan, id: dto.treatmentPlanId, where: { organizationId, patientId: dto.patientId }, label: 'Treatment plan' },
+      { entity: ConsumptionTemplate, id: dto.templateId, where: { organizationId }, label: 'Template' },
+    ]);
+
     const referenceType = dto.appointmentId
       ? 'appointment'
       : dto.treatmentPlanId
@@ -113,7 +127,7 @@ export class PatientConsumptionService {
     );
 
     const result = await this.consumptionRepo.findOne({
-      where: { id: consumptionId },
+      where: { id: consumptionId, organizationId },
       relations: ['template', 'patient', 'doctor'],
     });
     if (!result) throw new NotFoundException('Consumption not found');

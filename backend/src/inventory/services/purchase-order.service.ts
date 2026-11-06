@@ -14,6 +14,8 @@ import {
 import { PurchaseOrderItem } from '../entities/purchase-order-item.entity';
 import { StockMovementType } from '../entities/stock-movement.entity';
 import { InventoryItem } from '../entities/inventory-item.entity';
+import { Supplier } from '../entities/supplier.entity';
+import { assertAllInOrg, assertInOrg } from 'src/common/tenancy/assert-in-org';
 import {
   CreatePurchaseOrderDto,
   PurchaseOrderFilterDto,
@@ -96,6 +98,19 @@ export class PurchaseOrderService {
     dto: CreatePurchaseOrderDto,
     createdBy: string,
   ): Promise<PurchaseOrder> {
+    // Supplier and items from the body must be this clinic's (this location's
+    // stock) — the PO detail loads them back.
+    await assertInOrg(this.dataSource.manager, [
+      { entity: Supplier, id: dto.supplierId, where: { organizationId }, label: 'Supplier' },
+    ]);
+    await assertAllInOrg(
+      this.dataSource.manager,
+      InventoryItem,
+      dto.items.map((l) => l.inventoryItemId),
+      { organizationId, locationId },
+      'Inventory item',
+    );
+
     const poNumber = await this.generatePoNumber(
       organizationId,
       locationId,

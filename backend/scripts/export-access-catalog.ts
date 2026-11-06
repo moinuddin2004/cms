@@ -13,10 +13,12 @@ import {
 } from '../src/access/catalog/permissions';
 import { BUNDLES } from '../src/access/catalog/bundles';
 
-const OUT = resolve(
-  __dirname,
-  '../../web-app/src/features/access/generated/catalog.ts',
-);
+/** The web app and the mobile app share one generated catalog. */
+const OUTS = [
+  resolve(__dirname, '../../web-app/src/features/access/generated/catalog.ts'),
+  resolve(__dirname, '../../mobile-app/src/features/access/generated/catalog.ts'),
+];
+const OUT = OUTS[0];
 
 /** JSON with single quotes and unquoted identifier keys (web-app prettier style). */
 function literal(value: unknown, indent = 0): string {
@@ -103,7 +105,10 @@ async function format(code: string): Promise<string> {
 }
 
 void (async () => {
-  mkdirSync(dirname(OUT), { recursive: true });
-  writeFileSync(OUT, await format(source));
-  console.log(`Wrote ${PERMISSION_KEYS.length} permissions to ${OUT}`);
+  const formatted = await format(source);
+  for (const out of OUTS) {
+    mkdirSync(dirname(out), { recursive: true });
+    writeFileSync(out, formatted);
+    console.log(`Wrote ${PERMISSION_KEYS.length} permissions to ${out}`);
+  }
 })();

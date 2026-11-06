@@ -8,6 +8,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { InventoryItem } from '../entities/inventory-item.entity';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
+import { InventoryCategory } from '../entities/inventory-category.entity';
 import {
   StockMovement,
   StockMovementType,
@@ -88,6 +90,9 @@ export class InventoryService {
     createdBy: string,
   ): Promise<InventoryItem> {
     if (dto.sku) await this.assertSkuUnique(organizationId, dto.sku);
+    await assertInOrg(this.dataSource.manager, [
+      { entity: InventoryCategory, id: dto.categoryId, where: { organizationId }, label: 'Category' },
+    ]);
 
     const { initialStock, expiryDate, ...rest } = dto;
 
@@ -211,6 +216,9 @@ export class InventoryService {
 
     if (dto.sku && dto.sku !== item.sku)
       await this.assertSkuUnique(organizationId, dto.sku, id);
+    await assertInOrg(this.dataSource.manager, [
+      { entity: InventoryCategory, id: dto.categoryId, where: { organizationId }, label: 'Category' },
+    ]);
 
     const { expiryDate, ...rest } = dto;
     Object.assign(item, rest);

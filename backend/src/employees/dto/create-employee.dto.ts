@@ -85,10 +85,6 @@ export class CreateEmployeeDto {
   portalPassword?: string;
 
   @IsOptional()
-  @IsString()
-  userId?: string;
-
-  @IsOptional()
   isPrimary?: boolean;
 
   /** Optional compensation step; default: salaried from `grossSalary`. */

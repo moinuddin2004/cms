@@ -6,8 +6,6 @@ import { ClinicAccessModule } from './clinic-access/clinic-access.module';
 import { UserModule } from './user/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
-import { CloudinaryModule } from './common/cloudinary';
 import { StorageModule } from './common/storage/storage.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
@@ -34,11 +32,9 @@ import { PlanTemplatesModule } from './plan-templates/plan-templates.module';
 import { TreatmentPlansModule } from './treatment-plans/treatment-plans.module';
 import { AuthorizationService } from './auth/services/authorization.service';
 import { ClockModule } from './common/clock/clock.module';
-import { ensurePostgresExtensions } from './common/database/ensure-extensions';
-import {
-  MIGRATIONS_GLOB,
-  runPendingMigrations,
-} from './common/database/migrations';
+import { pgSsl } from './common/database/pg-ssl';
+import { RateLimiterGuard } from './auth/guards/rate-limiter.guard';
+import { AppLogger } from './common/services/logger.service';
 import { QueueModule } from './queue/queue.module';
 import { AuditModule } from './common/audit/audit.module';
 import { SequencesModule } from './common/sequences/sequences.module';
@@ -59,7 +55,6 @@ import { NotificationsRuntimeModule } from './notifications/notifications-runtim
 import {
   assertRedisForRole,
   ProcessRole,
-  runsHttp,
   runsJobs,
 } from './common/runtime/process-role';
 import { AccessModule } from './access/access.module';
@@ -96,7 +91,6 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     AuthModule,
     ClinicAccessModule,
     UserModule,
-    CloudinaryModule,
     StorageModule,
     SessionModule,
     // Multi-tenant modules
@@ -136,9 +130,14 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
   providers: [
     AppService,
     AuthorizationService,
+    AppLogger,
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard, // First: always check JWT
+      useClass: RateLimiterGuard, // First: per-IP ceiling + @RateLimit routes (before auth)
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard, // Then: always check JWT
     },
     {
       provide: APP_GUARD,
@@ -172,40 +171,22 @@ export class AppModule {
    */
   static forRole(role: ProcessRole): DynamicModule {
     assertRedisForRole(role);
-    const ownsSchema = runsHttp(role);
     return {
       module: AppModule,
       imports: [
         TypeOrmModule.forRootAsync({
           imports: [ConfigModule],
-          useFactory: async (configService: ConfigService) => {
-            // Extensions synchronize can't create but our constraints need.
-            if (ownsSchema) await ensurePostgresExtensions(configService.get<string>('DATABASE_URL'));
-            return {
-              type: 'postgres' as const,
-              url: configService.get<string>('DATABASE_URL'),
-              ssl: {
-                rejectUnauthorized: false, // Required for Neon's SSL connection
-              },
-              autoLoadEntities: true,
-              synchronize: ownsSchema && configService.get('NODE_ENV') !== 'production',
-              // Run below, after synchronize (TypeORM's migrationsRun runs first).
-              migrationsRun: false,
-              migrations: [MIGRATIONS_GLOB],
-            };
-          },
+          // The app NEVER changes the schema: no synchronize, no migrations.
+          // Tables come from the hand-run SQL in backend/database/ (README there).
+          useFactory: (configService: ConfigService) => ({
+            type: 'postgres' as const,
+            url: configService.get<string>('DATABASE_URL'),
+            ssl: pgSsl(),
+            autoLoadEntities: true,
+            synchronize: false,
+            migrationsRun: false,
+          }),
           inject: [ConfigService],
-          dataSourceFactory: async (options) => {
-            const ds = await new DataSource(options!).initialize();
-            if (!ownsSchema) return ds;
-            try {
-              await runPendingMigrations(ds);
-            } catch (err) {
-              await ds.destroy();
-              throw err;
-            }
-            return ds;
-          },
         }),
         ...(runsJobs(role) ? [ScheduleModule.forRoot()] : []),
         QueueRuntimeModule.forRole(role),

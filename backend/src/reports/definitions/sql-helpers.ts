@@ -3,8 +3,7 @@
  *
  * Patients belong to the organization; a patient counts for a location by
  * `primary_location_id` (patients without one only show in the
- * all-locations view). Every instant column is `timestamptz` (old naive
- * `timestamp` columns were converted by `upgradeNaiveTimestamps`).
+ * all-locations view). Every instant column is `timestamptz`.
  */
 
 /**

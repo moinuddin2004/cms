@@ -75,8 +75,10 @@ export class TreatmentsController {
   @Can('patients.clinical.view')
   @PatientInScope('patientId', 'query')
   async findAll(
-    @Query('patientId') patientId: string | undefined,
-    @Query('encounterId') encounterId: string | undefined,
+    @Query('patientId', new ParseUUIDPipe({ optional: true }))
+    patientId: string | undefined,
+    @Query('encounterId', new ParseUUIDPipe({ optional: true }))
+    encounterId: string | undefined,
     @ActiveTenant() ctx: TenantContext,
     @Access() access: AccessContext,
   ) {

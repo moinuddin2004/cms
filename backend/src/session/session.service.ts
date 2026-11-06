@@ -52,10 +52,8 @@ export class SessionService {
     const agent = useragent.parse(userAgentString);
 
     // Extract IP address
-    const ipAddress =
-      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-      req.socket.remoteAddress ||
-      '';
+    // `req.ip` honours TRUST_PROXY; the raw X-Forwarded-For can be forged.
+    const ipAddress = (req.ip || req.socket?.remoteAddress || '').slice(0, 45);
 
     // Set expiration: 1 day normally, 30 days with "keep me signed in"
     const expiresAt = sessionExpiryFrom(new Date(), rememberMe);

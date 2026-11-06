@@ -111,6 +111,7 @@ export class PatientCreditsController {
   @Post(':creditId/use')
   @Can('billing.payment.collect')
   async use(
+    @Param('patientId', ParseUUIDPipe) patientId: string,
     @Param('creditId', ParseUUIDPipe) creditId: string,
     @Body() dto: UseCreditDto,
     @ActiveTenant() ctx: TenantContext,
@@ -119,6 +120,7 @@ export class PatientCreditsController {
       creditId,
       ctx.organizationId,
       dto.amount,
+      patientId,
     );
     return ResponseWrapper.success(data, 'Credit applied successfully');
   }

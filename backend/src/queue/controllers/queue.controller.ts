@@ -1,3 +1,4 @@
+import { PatientInScope } from 'src/patients/access/patient-scope';
 import {
   Body,
   Controller,
@@ -167,6 +168,7 @@ export class QueueController {
 
   /** A patient's visits — booked and walk-in — for the patient record. */
   @Can('patients.view')
+  @PatientInScope('patientId')
   @Get('patients/:patientId/visits')
   async visits(
     @Param('patientId', ParseUUIDPipe) patientId: string,

@@ -25,7 +25,7 @@ import { CancelReason } from '../enums/cancel-reason.enum';
 @Index(['status'])
 @Index(['doctorId', 'startTime', 'endTime']) // Critical for global conflict check
 // The database itself refuses two live bookings for one doctor at once
-// (needs the btree_gist extension, created before synchronize in app.module).
+// (needs the btree_gist extension, created in database/schema/01_extensions_functions.sql).
 // Violations surface as Postgres 23P01 and are mapped to 409.
 @Exclusion(
   'no_doctor_overlap',

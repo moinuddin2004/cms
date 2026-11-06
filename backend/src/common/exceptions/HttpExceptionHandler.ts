@@ -23,10 +23,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    // Internal error text (SQL, constraint/column names, vendor errors) is
+    // only sent outside production; it is always logged below.
     const devMessage =
-      exception instanceof HttpException
-        ? exception.message
-        : exception?.message || 'Internal server error';
+      process.env.NODE_ENV === 'production'
+        ? exception instanceof HttpException
+          ? exception.message
+          : 'Internal server error'
+        : exception instanceof HttpException
+          ? exception.message
+          : exception?.message || 'Internal server error';
 
     const message =
       exception instanceof HttpException
@@ -43,7 +49,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         : exception instanceof Error
           ? exception.stack
           : '',
-      request.url,
+      maskTokens(request.url),
     );
 
     response.status(status).json(
@@ -56,4 +62,12 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         .build(),
     );
   }
+}
+
+/** Token-in-path routes: never write the token into logs. */
+function maskTokens(url: string | undefined): string | undefined {
+  return url?.replace(
+    /(\/(?:lab-link|join-invites|join)\/)[^/?#]+/g,
+    '$1***',
+  );
 }

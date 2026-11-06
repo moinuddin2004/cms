@@ -28,6 +28,10 @@ export class User {
   @Column({ name: 'avatar_url', type: 'varchar', length: 500, nullable: true })
   avatarUrl?: string;
 
+  /** Storage key of an uploaded profile photo (null for Google photos / none). */
+  @Column({ name: 'avatar_key', type: 'varchar', length: 500, nullable: true })
+  avatarKey?: string | null;
+
   @Column({ name: 'password', type: 'varchar', length: 255, nullable: true })
   password?: string;
 

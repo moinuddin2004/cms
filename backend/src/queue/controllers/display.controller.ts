@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { Public } from 'src/common/decorators/publicDecorator';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
@@ -15,6 +16,7 @@ export class DisplayController {
   constructor(private readonly query: QueueQueryService) {}
 
   @Get(':locationId/state')
+  @RateLimit({ maxAttempts: 240, windowSeconds: 60 })
   async state(@Param('locationId', ParseUUIDPipe) locationId: string) {
     return ResponseWrapper.success(
       await this.query.displayState(locationId),

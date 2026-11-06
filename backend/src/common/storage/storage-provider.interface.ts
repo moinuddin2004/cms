@@ -1,46 +1,57 @@
 /**
- * Storage abstraction.
+ * File storage abstraction — the ONLY contract a storage vendor implements.
  *
- * Any concrete provider (Cloudinary, S3, GCS, local disk, ...) implements this
- * interface and is bound to the `STORAGE_PROVIDER` token in `StorageModule`.
- * Application code depends only on the interface, so swapping providers is a
- * one-line change in the module — no controller/service edits required.
+ * Application code never talks to a provider (or imports a vendor SDK): it
+ * uses `StorageService`, which validates files, builds keys and calls the
+ * active provider. Which provider is active is decided in ONE place:
+ * `storage.config.ts` (`STORAGE_DRIVER` env). To move to S3 / R2 / GCS /
+ * local disk: implement this interface in `providers/<name>.provider.ts`,
+ * add it to the registry in `storage.config.ts`, set `STORAGE_DRIVER`.
  */
 
-export interface UploadedFileResult {
-  /** Public, servable URL (HTTPS). Stored on entities as `fileUrl` / `signatureUrl`. */
-  url: string;
-  /** Provider-specific identifier used for deletion. */
-  publicId: string;
-  /** Original file name as uploaded by the client. */
-  fileName: string;
-  /** File size in bytes. */
-  sizeBytes: number;
-  /** MIME type detected from the upload. */
-  mimeType: string;
-  /** Logical resource type: 'image' | 'raw' (pdf/docs) | 'video' | etc. */
-  resourceType: string;
+export type StorageVisibility = 'public' | 'private';
+
+export interface PutOptions {
+  /** Detected MIME type of the bytes. */
+  contentType: string;
+  /**
+   * public  = anyone with the returned URL can read it (logos, avatars).
+   * private = no public URL; read only through `signedUrl` (short-lived).
+   */
+  visibility: StorageVisibility;
 }
 
-export interface UploadOptions {
-  /** Logical folder/prefix within the storage bucket. */
-  folder?: string;
+export interface StoredObject {
+  /**
+   * Provider-owned identifier. Store it on the entity and pass it back to
+   * `signedUrl` / `delete`. Opaque to the app (never parse it).
+   */
+  key: string;
+  /** Permanent HTTPS URL for public objects; null for private ones. */
+  url: string | null;
 }
 
 export interface StorageProvider {
-  /**
-   * Persist a single uploaded file and return its public URL + metadata.
-   * Implementations must validate type/size and throw `BadRequestException`
-   * on invalid input.
-   */
-  upload(
-    file: Express.Multer.File,
-    options?: UploadOptions,
-  ): Promise<UploadedFileResult>;
+  /** Short name for logs, e.g. 'cloudinary', 's3'. */
+  readonly name: string;
 
-  /** Remove a previously-uploaded file. Must never throw for a missing id. */
-  delete(publicId: string): Promise<void>;
+  /**
+   * Store `body` under `path` (a logical path such as
+   * `org/<id>/patient-documents/<uuid>.pdf`, '/'-separated, may include an
+   * extension). Overwrites nothing: callers pass unique paths.
+   */
+  put(path: string, body: Buffer, options: PutOptions): Promise<StoredObject>;
+
+  /** A download URL for `key` valid for `ttlSeconds` (works for public and private objects). */
+  signedUrl(
+    key: string,
+    ttlSeconds: number,
+    options?: { downloadName?: string },
+  ): Promise<string>;
+
+  /** Remove an object. Must not throw when it is already gone. */
+  delete(key: string): Promise<void>;
 }
 
-/** DI token for the active storage provider. */
+/** DI token for the active provider (bound in `storage.config.ts`). */
 export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';

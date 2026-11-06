@@ -1,3 +1,4 @@
+import { StorageService } from 'src/common/storage/storage.service';
 import { staffRecipient } from 'src/notifications/recipients/staff-recipients';
 import { NotificationService } from 'src/notifications/services/notification.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -20,6 +21,10 @@ import { PaginatedResponseDto } from 'src/common/dtos/PaginatedResponse.dto';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { OrganizationOwnership } from 'src/organizations/entities/organization-ownership.entity';
 import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
+
+/** bcrypt hash of a random string (cost 12, like real ones) for constant-time login failures. */
+const DUMMY_HASH =
+  '$2b$12$xR13jeQq.uhSNBa5jVf1AOGYLGN8aINHoHbF0BbuhBTpgku/UDoCG';
 import {
   ForbiddenException,
   BadRequestException,
@@ -49,7 +54,42 @@ export class UserService {
     private readonly subscriptions: SubscriptionsService,
     private readonly verification: EmailVerificationService,
     private readonly notifications: NotificationService,
+    private readonly storage: StorageService,
   ) {}
+
+  /**
+   * The signed-in user's own profile photo: validated image (real type from
+   * its bytes, max 2 MB), stored publicly under users/<uuid>/. The previous
+   * uploaded photo is deleted after the new one is saved.
+   */
+  async setAvatar(
+    userUuid: string,
+    file: Express.Multer.File | undefined,
+  ): Promise<User> {
+    const user = await this.userRepository.findOneByOrFail({ uuid: userUuid });
+    const uploaded = await this.storage.uploadPublic(
+      file,
+      'avatar',
+      `users/${userUuid}/avatar`,
+    );
+    const previousKey = user.avatarKey;
+    user.avatarUrl = uploaded.url;
+    user.avatarKey = uploaded.key;
+    const saved = await this.userRepository.save(user);
+    await this.storage.delete(previousKey);
+    return saved;
+  }
+
+  /** Removes the user's own profile photo (back to initials). */
+  async removeAvatar(userUuid: string): Promise<User> {
+    const user = await this.userRepository.findOneByOrFail({ uuid: userUuid });
+    await this.userRepository.update(
+      { uuid: userUuid },
+      { avatarUrl: () => 'NULL', avatarKey: null },
+    );
+    await this.storage.delete(user.avatarKey);
+    return this.userRepository.findOneByOrFail({ uuid: userUuid });
+  }
 
   async createLocalUser(command: RegisterRequestDto): Promise<User> {
     const { email, password, name } = command;
@@ -91,20 +131,15 @@ export class UserService {
   }
 
   async validateUser(email: string, password: string): Promise<User> {
-    this.logger.debug(`Validating user: ${email}`, UserService.name);
-
     const user = await this.userRepository.findOneBy({ email });
-    // Google-only accounts have no password: same answer as a wrong one.
-    if (
-      !user ||
-      !user.password ||
-      !(await bcrypt.compare(password, user.password))
-    ) {
-      this.logger.warn(`Invalid credentials for: ${email}`, UserService.name);
+    // Always run one bcrypt compare (against a dummy hash when there is no
+    // account / no password), so response time doesn't reveal which emails
+    // have accounts. Google-only accounts: same answer as a wrong password.
+    const ok = await bcrypt.compare(password, user?.password || DUMMY_HASH);
+    if (!user || !user.password || !ok) {
+      this.logger.warn('Invalid credentials', UserService.name);
       throw new UnauthorizedException();
     }
-
-    this.logger.info(`User validated successfully: ${email}`, UserService.name);
     return user;
   }
 
@@ -264,7 +299,8 @@ export class UserService {
 
     const savedUser = await this.userRepository.save(user);
     // A new password login works only once its email is verified.
-    if (savedUser.password) await this.verification.start(savedUser, new Date());
+    if (savedUser.password)
+      await this.verification.start(savedUser, new Date());
 
     if (body.type === 'owner' && orgId) {
       const ownership = this.userRepository.manager.create(
@@ -525,5 +561,38 @@ export class UserService {
     if (targetIsOwner && !manager.isOwner) {
       throw new ForbiddenException(`Only an owner can ${verb} an owner`);
     }
+    // An account that also belongs to another clinic is that person's own:
+    // one clinic must not change its password / email / status or delete it
+    // (that would take over their access everywhere). Clinics remove such a
+    // person from their own clinic under Employees instead.
+    if (await this.belongsElsewhere(target.uuid, orgId!)) {
+      throw new ForbiddenException(
+        `This person also belongs to another clinic, so only they (or platform support) can ${verb} their account. You can remove them from your clinic under Employees.`,
+      );
+    }
+  }
+
+  /** Owner of, or staff at, any organization other than `orgId`. */
+  async belongsElsewhere(userUuid: string, orgId: string): Promise<boolean> {
+    const em = this.userRepository.manager;
+    const [owner, staff] = await Promise.all([
+      em
+        .getRepository(OrganizationOwnership)
+        .createQueryBuilder('o')
+        .where('o.userId = :userUuid AND o.organizationId <> :orgId', {
+          userUuid,
+          orgId,
+        })
+        .getExists(),
+      em
+        .getRepository(EmployeeOrgLocationAssignment)
+        .createQueryBuilder('a')
+        .where('a.userId = :userUuid AND a.organizationId <> :orgId', {
+          userUuid,
+          orgId,
+        })
+        .getExists(),
+    ]);
+    return owner || staff;
   }
 }

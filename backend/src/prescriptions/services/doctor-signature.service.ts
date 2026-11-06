@@ -7,7 +7,7 @@ import { Repository } from 'typeorm';
 import { DoctorSignature } from '../entities/doctor-signature.entity';
 
 export interface SaveSignatureInput {
-  /** Either a Cloudinary/HTTPS URL or a `data:image/...;base64,…` payload. */
+  /** Either an HTTPS (storage) URL or a `data:image/...;base64,…` payload. */
   signatureImageUrl: string;
   /** Raw canvas data, kept for re-editing in the signature pad. */
   signatureData?: string;
@@ -17,7 +17,7 @@ export interface SaveSignatureInput {
  * One signature per doctor. Repeat saves upsert in place — unique index on
  * `employeeId` enforces that at the DB level.
  *
- * `signatureImageUrl` accepts either a Cloudinary/HTTPS URL (preferred for
+ * `signatureImageUrl` accepts either an HTTPS (storage) URL (preferred for
  * embedding in printed PDFs) or a base64 `data:` URL (used as a fallback
  * when external storage isn't configured — same approach used by consent
  * signatures in the patients module).
@@ -52,11 +52,13 @@ export class DoctorSignatureService {
     return this.repo.save(row);
   }
 
+  /** A doctor's saved signature in THIS clinic only. */
   async getByEmployee(
     employeeId: string,
+    organizationId: string,
   ): Promise<DoctorSignature | null> {
     return this.repo.findOne({
-      where: { employeeId, isActive: true },
+      where: { employeeId, organizationId, isActive: true },
     });
   }
 

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from 'pg';
+import { pgSsl } from 'src/common/database/pg-ssl';
 import { OUTBOX_NOTIFY_CHANNEL } from '../services/notification.service';
 import { NotificationDispatcher } from './notification-dispatcher.service';
 
@@ -47,7 +48,7 @@ export class NotificationRelayService
     try {
       this.listener = new Client({
         connectionString: url,
-        ssl: { rejectUnauthorized: false },
+        ssl: pgSsl(),
       });
       this.listener.on('notification', () => void this.tick());
       this.listener.on('error', (err) => {

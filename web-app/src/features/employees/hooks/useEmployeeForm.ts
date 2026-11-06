@@ -65,7 +65,9 @@ export function useEmployeeForm({
             ? undefined
             : blank(value.portalPassword),
         profilePictureUrl: blank(value.profilePictureUrl),
-        userId: blank(value.userId),
+        // Form-only (shows whether a login exists); the server links logins
+        // itself and refuses a userId in the body.
+        userId: undefined,
         primaryLocationId: blank(value.primaryLocationId),
         grossSalary: value.grossSalary.trim()
           ? Number(value.grossSalary)

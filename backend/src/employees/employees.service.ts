@@ -13,6 +13,8 @@ import { Employee } from './entities/employee.entity';
 import { EmployeeOrgLocationAssignment } from './entities/employee-org-location-assignment.entity';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import type { AccessContext } from 'src/access/access-context';
+import { findEscalations } from './employment-roles.rules';
 import { UpdateSalaryDto } from './dto/update-salary.dto';
 import { EmployeeFilterDto } from './dto/employee-filter.dto';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
@@ -300,6 +302,12 @@ export class EmployeesService {
     if (!user || user.globalRole === GlobalRole.SUPER_ADMIN) {
       throw new ForbiddenException('This login cannot be changed here');
     }
+    // A login that also belongs to another clinic is that person's own.
+    if (!caller.isSuperAdmin && (await this.belongsElsewhere(user.uuid, ctx.organizationId))) {
+      throw new ForbiddenException(
+        'This person also belongs to another clinic, so only they can change how they sign in.',
+      );
+    }
     if (!caller.isOwner && !caller.isSuperAdmin) {
       const isOwner = await this.assignmentRepo.manager
         .getRepository(OrganizationOwnership)
@@ -315,6 +323,55 @@ export class EmployeesService {
       provider: ProviderEnum.GOOGLE,
     });
     return { employeeId, reset: !!result.affected };
+  }
+
+  private async belongsElsewhere(userUuid: string, orgId: string): Promise<boolean> {
+    const em = this.assignmentRepo.manager;
+    const [owner, staff] = await Promise.all([
+      em
+        .getRepository(OrganizationOwnership)
+        .createQueryBuilder('o')
+        .where('o.userId = :userUuid AND o.organizationId <> :orgId', { userUuid, orgId })
+        .getExists(),
+      em
+        .getRepository(EmployeeOrgLocationAssignment)
+        .createQueryBuilder('a')
+        .where('a.userId = :userUuid AND a.organizationId <> :orgId', { userUuid, orgId })
+        .getExists(),
+    ]);
+    return owner || staff;
+  }
+
+  /**
+   * A role id from the body: must be this clinic's role, and a non-owner may
+   * only hand out a role whose permissions they hold themselves (same
+   * no-escalation rule as /admin/roles).
+   */
+  private async assignableRole(
+    roleId: string | null | undefined,
+    organizationId: string,
+    access?: AccessContext,
+  ) {
+    if (!roleId) return null;
+    const role = await this.roleRepo.findOne({
+      where: { id: roleId, organizationId },
+    });
+    if (!role) throw new NotFoundException('Role not found');
+    if (access && !access.isOwner && !access.isSuperAdmin) {
+      const escalations = findEscalations(
+        access.permissions,
+        {},
+        role.permissions ?? {},
+      );
+      if (escalations.length) {
+        throw new ForbiddenException({
+          code: 'ESCALATION',
+          permissions: escalations,
+          message: `You cannot give a role with access you do not have: ${escalations.join(', ')}`,
+        });
+      }
+    }
+    return role;
   }
 
   private async getAssignmentOrFail(
@@ -336,10 +393,15 @@ export class EmployeesService {
   // CREATE
   // ═══════════════════════════════════════════════════════════
 
+  /**
+   * `opts.linkUserId` links an existing account (approved join request /
+   * invite only — never taken from a request body).
+   */
   async create(
     ctx: TenantContext,
     dto: CreateEmployeeDto,
     userId: string,
+    opts: { linkUserId?: string; access?: AccessContext } = {},
   ): Promise<any> {
     const { organizationId, locationId } = ctx;
 
@@ -354,11 +416,11 @@ export class EmployeesService {
     }
 
     // 2. Compensation is validated before anything is saved.
-    const role = dto.employmentRoleId
-      ? await this.roleRepo.findOne({
-          where: { id: dto.employmentRoleId, organizationId },
-        })
-      : null;
+    const role = await this.assignableRole(
+      dto.employmentRoleId,
+      organizationId,
+      opts.access,
+    );
     const joining =
       dto.joiningDate?.slice(0, 10) ?? (await this.clinicToday(locationId));
     const planInput = await this.initialPlan(ctx, dto, role, joining);
@@ -378,7 +440,7 @@ export class EmployeesService {
     const employeeCode = await this.generateEmployeeCode(organizationId);
 
     // 4. If portal access enabled and no existing userId, create a portal user
-    let resolvedUserId = dto.userId || null;
+    let resolvedUserId = opts.linkUserId || null;
     if (dto.hasPortalAccess && !resolvedUserId) {
       if (!dto.portalEmail) {
         throw new BadRequestException(
@@ -587,6 +649,7 @@ export class EmployeesService {
     employeeId: string,
     ctx: TenantContext,
     dto: UpdateEmployeeDto,
+    access?: AccessContext,
   ): Promise<any> {
     const { organizationId, locationId } = ctx;
     const assignment = await this.getAssignmentOrFail(
@@ -610,8 +673,10 @@ export class EmployeesService {
 
     // Update assignment fields
     if (dto.designation !== undefined) assignment.designation = dto.designation;
-    if (dto.employmentRoleId !== undefined)
+    if (dto.employmentRoleId !== undefined) {
+      await this.assignableRole(dto.employmentRoleId, organizationId, access);
       assignment.employmentRoleId = dto.employmentRoleId || null;
+    }
     if (dto.employmentType !== undefined)
       assignment.employmentType = dto.employmentType as EmploymentType;
     if (dto.joiningDate !== undefined)
@@ -637,7 +702,6 @@ export class EmployeesService {
       }
       assignment.hasPortalAccess = dto.hasPortalAccess;
     }
-    if (dto.userId !== undefined) assignment.userId = dto.userId || null;
 
     await this.assignmentRepo.save(assignment);
     if (dto.grossSalary != null) {

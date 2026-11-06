@@ -1,3 +1,4 @@
+import { StorageModule } from 'src/common/storage/storage.module';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EngineModule } from 'src/engine/engine.module';
@@ -6,7 +7,7 @@ import { LabsModule } from 'src/labs/labs.module';
 import { NotificationsModule } from 'src/notifications/notifications.module';
 import {
   ATTACHMENT_STORAGE,
-  CloudinaryAttachmentStorage,
+  PrivateAttachmentStorage,
 } from './attachments/attachment-storage';
 import { AttachmentsService } from './attachments/attachments.service';
 import { LabOrdersPortalController } from './controllers/lab-orders-portal.controller';
@@ -43,6 +44,7 @@ import { OrderWorkflowService } from './workflow/order-workflow.service';
 import { OrderOverdueJob } from './jobs/order-overdue.job';
 @Module({
   imports: [
+    StorageModule,
     TypeOrmModule.forFeature([
       LabOrder,
       LabOrderItem,
@@ -71,7 +73,7 @@ import { OrderOverdueJob } from './jobs/order-overdue.job';
     AttachmentsService,
     SnapshotFreezeSubscriber,
     OrderOverdueJob,
-    { provide: ATTACHMENT_STORAGE, useClass: CloudinaryAttachmentStorage },
+    { provide: ATTACHMENT_STORAGE, useClass: PrivateAttachmentStorage },
   ],
   exports: [
     OrderWorkflowService,

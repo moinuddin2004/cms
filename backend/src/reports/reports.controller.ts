@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { Controller, Get, Param, Query, Res } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import type { Response } from 'express';
@@ -109,6 +110,7 @@ export class ReportsController {
 
   /** Excel / PDF download: the report's own permission plus `reports.export`. */
   @Get(':key/export')
+  @RateLimit({ maxAttempts: 60, windowSeconds: 600 })
   @Can('reports.export')
   async export(
     @Param('key') key: string,

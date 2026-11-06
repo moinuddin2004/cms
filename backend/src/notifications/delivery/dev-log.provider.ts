@@ -31,7 +31,8 @@ export class DevLogChannelProvider implements ChannelProvider {
       ? ` template=${n.payload.providerTemplateRef}`
       : '';
     this.logger.log(
-      `[${n.channel}] ${n.eventCode} → ${n.payload.to}${template}: ${n.payload.body}`,
+      // Never the body: it can hold magic-link URLs (credentials) and patient names.
+      `[${n.channel}] ${n.eventCode} → ${n.payload.to}${template} (not sent: no provider configured)`,
     );
     return Promise.resolve({ providerMessageId: `devlog-${randomUUID()}` });
   }

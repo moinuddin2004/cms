@@ -1009,6 +1009,8 @@ export class QueueOrchestrator {
               `Entry ${entry.id} is ${entry.status}; only waiting patients can be transferred`,
             );
           }
+          // Same rule as transfer / walk-in: the target doctor must work here.
+          await this.assertDoctorAtLocation(tx, d.toDoctorId!);
           const targetId = await this.tokens.ensureSession(tx.manager, {
             organizationId: ctx.organizationId,
             locationId: ctx.locationId,

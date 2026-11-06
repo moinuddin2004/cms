@@ -17,7 +17,7 @@ import { Organization } from 'src/organizations/entities/organization.entity';
  * Constraint: one active signature per doctor — repeat saves upsert in place
  * (uniqueness is enforced at the DB level via the [employeeId] unique index).
  *
- * `signatureImageUrl` is the durable Cloudinary URL embedded in PDFs.
+ * `signatureImageUrl` is the durable storage URL embedded in PDFs.
  * `signatureData` keeps the raw base64 canvas data so the signature pad can
  * reload it for in-place editing without re-rendering from the image.
  */

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { ChevronDown, ChevronLeft, Loader2, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -284,9 +284,7 @@ export function Sidebar() {
       <aside
         className={cn(
           'fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 lg:z-40 lg:translate-x-0',
-          mobileSidebarOpen
-            ? 'translate-x-0 shadow-xl'
-            : '-translate-x-full',
+          mobileSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full',
           collapsed
             ? 'w-[var(--spacing-sidebar-collapsed)]'
             : 'w-[var(--spacing-sidebar)]',
@@ -370,6 +368,13 @@ export function Sidebar() {
                 className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
               >
                 <Avatar className="size-8 shrink-0">
+                  {user?.avatarUrl && (
+                    <AvatarImage
+                      src={user.avatarUrl}
+                      alt={user.name || 'Profile photo'}
+                      className="object-cover"
+                    />
+                  )}
                   <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                     {getInitials(user?.name)}
                   </AvatarFallback>

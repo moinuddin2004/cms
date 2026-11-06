@@ -845,6 +845,9 @@ export class PatientsService {
     actor: ActorRef,
   ) {
     await this.getPatientOrFail(patientId, organizationId);
+    if (dto.referredPatientId) {
+      await this.getPatientOrFail(dto.referredPatientId, organizationId);
+    }
     const referral = this.referralRepo.create({
       ...dto,
       referringPatientId: patientId,

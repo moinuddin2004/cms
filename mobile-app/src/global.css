@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+@import 'uniwind';
+@import 'tw-animate-css';
+
+/* Scan only our own code for class names. */
+@source '../src';
+
+:root {
+  --font-display:
+    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol, Noto Color Emoji;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+}
+
+/*
+ * shadcn / React Native Reusables colour tokens (neutral base).
+ * Uniwind reads light/dark from these @variant blocks, so `bg-primary`,
+ * `text-muted-foreground`, `border-border` etc. work like on the web app.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --color-background: hsl(0 0% 100%);
+      --color-foreground: hsl(0 0% 3.9%);
+      --color-card: hsl(0 0% 100%);
+      --color-card-foreground: hsl(0 0% 3.9%);
+      --color-popover: hsl(0 0% 100%);
+      --color-popover-foreground: hsl(0 0% 3.9%);
+      --color-primary: hsl(0 0% 9%);
+      --color-primary-foreground: hsl(0 0% 98%);
+      --color-secondary: hsl(0 0% 96.1%);
+      --color-secondary-foreground: hsl(0 0% 9%);
+      --color-muted: hsl(0 0% 96.1%);
+      --color-muted-foreground: hsl(0 0% 45.1%);
+      --color-accent: hsl(0 0% 96.1%);
+      --color-accent-foreground: hsl(0 0% 9%);
+      --color-destructive: hsl(0 84.2% 60.2%);
+      --color-destructive-foreground: hsl(0 0% 98%);
+      --color-border: hsl(0 0% 89.8%);
+      --color-input: hsl(0 0% 89.8%);
+      --color-ring: hsl(0 0% 63%);
+    }
+
+    @variant dark {
+      --color-background: hsl(0 0% 3.9%);
+      --color-foreground: hsl(0 0% 98%);
+      --color-card: hsl(0 0% 3.9%);
+      --color-card-foreground: hsl(0 0% 98%);
+      --color-popover: hsl(0 0% 3.9%);
+      --color-popover-foreground: hsl(0 0% 98%);
+      --color-primary: hsl(0 0% 98%);
+      --color-primary-foreground: hsl(0 0% 9%);
+      --color-secondary: hsl(0 0% 14.9%);
+      --color-secondary-foreground: hsl(0 0% 98%);
+      --color-muted: hsl(0 0% 14.9%);
+      --color-muted-foreground: hsl(0 0% 63.9%);
+      --color-accent: hsl(0 0% 14.9%);
+      --color-accent-foreground: hsl(0 0% 98%);
+      --color-destructive: hsl(0 70.9% 59.4%);
+      --color-destructive-foreground: hsl(0 0% 98%);
+      --color-border: hsl(0 0% 14.9%);
+      --color-input: hsl(0 0% 14.9%);
+      --color-ring: hsl(300 0% 45%);
+    }
+  }
+}
+
+@theme {
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+}

@@ -26,7 +26,13 @@ import { DoctorSignatureService } from './doctor-signature.service';
 import { PrescriptionHistoryService } from './prescription-history.service';
 import { PrescriptionPdfService } from './prescription-pdf.service';
 import type { AccessContext } from 'src/access/access-context';
-import { patientScope } from 'src/patients/access/patient-scope';
+import { isPatientInScope, patientScope } from 'src/patients/access/patient-scope';
+import { assertInOrg } from 'src/common/tenancy/assert-in-org';
+import { Patient } from 'src/patients/entities/patient.entity';
+import { Appointment } from 'src/appointments/entities/appointment.entity';
+import { PatientEncounter } from 'src/encounters/entities/patient-encounter.entity';
+import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-org-location-assignment.entity';
+import { PrescriptionTemplate } from '../entities/prescription-template.entity';
 import { TenantContext } from 'src/common/middleware/tenant-context.middleware';
 import { ClockService } from 'src/common/clock/clock.service';
 import { isYmd } from 'src/common/clock/tz.util';
@@ -57,7 +63,20 @@ export class PrescriptionService {
     ctx: TenantContext,
     dto: CreatePrescriptionDto,
     doctorId: string | null,
+    access?: AccessContext,
   ): Promise<Prescription> {
+    // 0. Every id in the body must belong to this clinic (and the patient to
+    //    the caller's patients.view scope) — the response loads them back.
+    await assertInOrg(this.dataSource.manager, [
+      { entity: Patient, id: dto.patientId, where: { organizationId: ctx.organizationId }, label: 'Patient' },
+      { entity: Appointment, id: dto.appointmentId, where: { organizationId: ctx.organizationId, patientId: dto.patientId }, label: 'Appointment' },
+      { entity: PatientEncounter, id: dto.encounterId, where: { organizationId: ctx.organizationId, patientId: dto.patientId }, label: 'Encounter' },
+      { entity: EmployeeOrgLocationAssignment, id: doctorId, idColumn: 'employeeId', where: { organizationId: ctx.organizationId, isActive: true }, label: 'Doctor' },
+      { entity: PrescriptionTemplate, id: dto.prescriptionTemplateId, where: { organizationId: ctx.organizationId }, label: 'Prescription template' },
+    ]);
+    if (access && !(await isPatientInScope(this.dataSource, access, dto.patientId))) {
+      throw new NotFoundException('Patient not found');
+    }
     // 1. If a prescription preset is selected, seed fields + medicines from it
     let seedMedicines: PrescriptionMedicineDto[] = dto.medicines ?? [];
     let seededFurtherPlan = dto.furtherPlan ?? null;
@@ -331,6 +350,9 @@ export class PrescriptionService {
     changedBy: string,
   ): Promise<Prescription> {
     const row = await this.findOne(id, organizationId);
+    await assertInOrg(this.dataSource.manager, [
+      { entity: PrescriptionTemplate, id: dto.prescriptionTemplateId, where: { organizationId }, label: 'Prescription template' },
+    ]);
     const wasFinalized = row.status === PrescriptionStatus.FINALIZED;
 
     // Snapshot BEFORE mutating — for the audit trail.
@@ -504,7 +526,10 @@ export class PrescriptionService {
     // Resolve signature: explicit > doctor's saved.
     let signatureImageUrl = dto.signatureImageUrl ?? null;
     if (!signatureImageUrl) {
-      const saved = await this.signatureService.getByEmployee(doctorId);
+      const saved = await this.signatureService.getByEmployee(
+        doctorId,
+        p.organizationId,
+      );
       signatureImageUrl = saved?.signatureImageUrl ?? null;
     }
 

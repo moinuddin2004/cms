@@ -1,3 +1,4 @@
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import {
   Body,
   Controller,
@@ -84,6 +85,7 @@ export class NotificationSettingsController {
 
   /** Sends a test email to the signed-in user (verified address only). */
   @Post('test-email')
+  @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   @HttpCode(HttpStatus.OK)
   @Can('notifications.settings.manage')
   async testEmail(

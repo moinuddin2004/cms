@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { Client } from 'pg';
+import { pgSsl } from 'src/common/database/pg-ssl';
 import { DataSource } from 'typeorm';
 import { REALTIME_PUBLISHER, RealtimePublisher } from './realtime-bus';
 
@@ -54,7 +55,7 @@ export class OutboxRelayService implements OnApplicationBootstrap, OnApplication
     const url = this.config.get<string>('DATABASE_URL');
     if (!url) return;
     try {
-      this.listener = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+      this.listener = new Client({ connectionString: url, ssl: pgSsl() });
       this.listener.on('notification', () => void this.drain());
       this.listener.on('error', (err) => {
         this.logger.warn(`Outbox LISTEN connection lost (${err.message}); polling only`);

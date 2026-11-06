@@ -49,10 +49,13 @@ const CHECKED_IN_HANDLER: Record<string, string[]> = {
     'getSettings',
     'updateSettings',
   ],
-  // admin.users.manage (super admins work without an org); `getMe` = any signed-in user;
+  // admin.users.manage (super admins work without an org); `getMe`,
+  // `setMyAvatar`, `removeMyAvatar` = any signed-in user, own account only;
   // `markEmailVerified` = @RequireSuperAdmin (enforced by TenantContextGuard)
   UserController: [
     'getMe',
+    'setMyAvatar',
+    'removeMyAvatar',
     'getUsers',
     'staffCandidates',
     'createUser',

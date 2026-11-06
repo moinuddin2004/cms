@@ -12,7 +12,7 @@ import { Request, Response } from 'express';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { Public } from 'src/common/decorators/publicDecorator';
 import { ContextFree } from 'src/common/decorators/context-free.decorator';
-import { RateLimit, RateLimiterGuard } from '../guards/rate-limiter.guard';
+import { RateLimit } from '../guards/rate-limiter.guard';
 import { JwtAuthGuard } from '../guards/jwt.guard';
 import { GoogleAuthService } from './google-auth.service';
 import { GoogleIdentityService } from './google-identity.service';
@@ -27,8 +27,7 @@ type AuthedRequest = Request & { user: { uuid: string } };
 
 /**
  * "Continue with Google" (Google Identity Services ID token → our session)
- * and the signed-in user's sign-in methods. The public routes are also in
- * PUBLIC_ROUTES.
+ * and the signed-in user's sign-in methods. Public routes carry @Public().
  */
 @Controller('auth')
 export class GoogleAuthController {
@@ -50,7 +49,6 @@ export class GoogleAuthController {
 
   @Public()
   @Post('google')
-  @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async signIn(
     @Body() dto: GoogleSignInDto,
@@ -66,7 +64,6 @@ export class GoogleAuthController {
 
   @Public()
   @Post('google/register')
-  @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   async register(
     @Body() dto: GoogleRegisterDto,
@@ -79,7 +76,6 @@ export class GoogleAuthController {
 
   @Public()
   @Post('google/join-request')
-  @UseGuards(RateLimiterGuard)
   @RateLimit({ maxAttempts: 5, windowSeconds: 3600 })
   async joinRequest(
     @Body() dto: GoogleJoinRequestDto,
@@ -102,7 +98,7 @@ export class GoogleAuthController {
 
   @ContextFree()
   @Post('google/link')
-  @UseGuards(JwtAuthGuard, RateLimiterGuard)
+  @UseGuards(JwtAuthGuard)
   @RateLimit({ maxAttempts: 10, windowSeconds: 900 })
   async link(@Body() dto: GoogleCredentialDto, @Req() req: AuthedRequest) {
     return ResponseWrapper.success(

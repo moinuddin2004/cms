@@ -118,7 +118,7 @@ export class AttachmentsService {
       throw orderError('ATTACHMENT_NOT_FOUND', 'File not found');
     }
     return {
-      url: this.storage.signedUrl(a.storageKey, SIGNED_URL_TTL_SECONDS),
+      url: await this.storage.signedUrl(a.storageKey, SIGNED_URL_TTL_SECONDS),
       expiresAt: new Date(
         Date.now() + SIGNED_URL_TTL_SECONDS * 1000,
       ).toISOString(),

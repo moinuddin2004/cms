@@ -43,6 +43,15 @@ import {
   SessionAuthInfo,
 } from 'src/clinic-access/clinic-gate.service';
 import type { SessionAuth } from '../session/session.service';
+import { isNativeClient, nativeRefreshToken } from './native-client';
+
+/**
+ * Refresh-token cookie only over HTTPS in production — also when NODE_ENV
+ * was forgotten but the app is served over https.
+ */
+const SECURE_COOKIES =
+  process.env.NODE_ENV === 'production' ||
+  (process.env.FRONTEND_URL ?? '').startsWith('https://');
 import { EmailVerificationService } from 'src/user/email-verification.service';
 
 const BCRYPT_SALT_ROUNDS = 12;
@@ -55,7 +64,7 @@ const PASSWORD_RESET_EXPIRY_MINUTES = 15;
  */
 const REFRESH_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: SECURE_COOKIES,
   sameSite: 'lax' as const,
   path: '/',
 };
@@ -66,6 +75,8 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
 export interface LoginResponse {
   user: any;
   accessToken: string;
+  /** Native (mobile) clients only — see `native-client.ts`. */
+  refreshToken?: string;
   isSuperAdmin: boolean;
   accessSource: 'super_admin' | 'owner' | 'employee' | null;
   requiresOrgSelection: boolean;
@@ -312,6 +323,7 @@ export class AuthService {
     return {
       user: AuthTokenDto.toDto(accessToken, user).user,
       accessToken,
+      ...this.nativeRefreshField(req, session.uuid, refreshToken),
       isSuperAdmin: accessInfo.isSuperAdmin,
       accessSource: accessInfo.accessSource,
       requiresOrgSelection,
@@ -558,6 +570,7 @@ export class AuthService {
     return {
       user: AuthTokenDto.toDto(accessToken, user).user,
       accessToken,
+      ...this.nativeRefreshField(req, sessionId, rotated.refreshToken),
       isSuperAdmin: accessInfo.isSuperAdmin,
       accessSource: accessInfo.accessSource,
       requiresOrgSelection:
@@ -930,17 +943,38 @@ export class AuthService {
   private clearSessionCookie(res: Response): void {
     res.clearCookie('refresh_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: SECURE_COOKIES,
       sameSite: 'lax',
       path: '/',
     });
   }
 
   /**
+   * The `sessionId:refreshToken` value: the httpOnly cookie (web), else the
+   * `x-refresh-token` header from the mobile app.
+   */
+  private readSessionValue(req: Request): string | null {
+    const cookie = req.cookies?.['refresh_token'];
+    if (typeof cookie === 'string' && cookie) return cookie;
+    return nativeRefreshToken(req);
+  }
+
+  /** Native clients also get the refresh value in the body. */
+  private nativeRefreshField(
+    req: Request,
+    sessionId: string,
+    refreshToken: string,
+  ): { refreshToken?: string } {
+    return isNativeClient(req)
+      ? { refreshToken: `${sessionId}:${refreshToken}` }
+      : {};
+  }
+
+  /**
    * Get session ID from cookie.
    */
   private getSessionIdFromCookie(req: Request): string | null {
-    const cookie = req.cookies['refresh_token'];
+    const cookie = this.readSessionValue(req);
     if (!cookie) return null;
     const [sessionId] = cookie.split(':');
     return sessionId || null;
@@ -953,7 +987,7 @@ export class AuthService {
     sessionId: string | null;
     refreshToken: string | null;
   } {
-    const cookie = req.cookies['refresh_token'];
+    const cookie = this.readSessionValue(req);
     if (!cookie) return { sessionId: null, refreshToken: null };
 
     const parts = cookie.split(':');

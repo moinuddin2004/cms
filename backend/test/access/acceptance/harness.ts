@@ -37,7 +37,7 @@ import { SequencesModule } from 'src/common/sequences/sequences.module';
 import { IdempotencyModule } from 'src/common/idempotency/idempotency.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
-import { CloudinaryModule } from 'src/common/cloudinary';
+import { ClinicAccessModule } from 'src/clinic-access/clinic-access.module';
 import { StorageModule } from 'src/common/storage/storage.module';
 import { SessionModule } from 'src/session/session.module';
 import { BillingModule } from 'src/billing/billing.module';
@@ -245,8 +245,8 @@ export async function bootApp(opts: BootOptions = {}): Promise<Env> {
       SequencesModule,
       IdempotencyModule,
       AuthModule,
+      ClinicAccessModule,
       UserModule,
-      CloudinaryModule,
       StorageModule,
       SessionModule,
       OrganizationsModule,
