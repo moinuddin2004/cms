@@ -13,6 +13,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { SecurityLogService } from './security-log.service';
 import { SecurityLog } from './entities/SecurityLog';
 import { OAuthProvider } from './entities/OAuthProvider';
+import { DesktopAuthHandoff } from './entities/DesktopAuthHandoff';
 import { RateLimiterGuard } from './guards/rate-limiter.guard';
 import { Reflector } from '@nestjs/core';
 import { SessionModule } from 'src/session/session.module';
@@ -35,6 +36,7 @@ import { EmployeeOrgLocationAssignment } from 'src/employees/entities/employee-o
     TypeOrmModule.forFeature([
       SecurityLog,
       OAuthProvider,
+      DesktopAuthHandoff,
       OrganizationOwnership,
       Organization,
       Location,

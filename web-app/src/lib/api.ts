@@ -1,6 +1,12 @@
 import axios, { type InternalAxiosRequestConfig, AxiosError } from 'axios'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { SignInBlockCode } from '@/store/useAuthStore'
+import {
+  clearRefreshToken,
+  getRefreshToken,
+  isDesktop,
+  saveRefreshToken,
+} from './desktop-session'
 
 /** 403 codes from the backend ClinicGate (approval + sign-in policy). */
 const CLINIC_GATE_CODES = new Set<string>([
@@ -11,7 +17,7 @@ const CLINIC_GATE_CODES = new Set<string>([
   'GOOGLE_DOMAIN_NOT_ALLOWED',
 ])
 
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'
 
 export const apiClient = axios.create({
@@ -19,9 +25,43 @@ export const apiClient = axios.create({
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    // Tells the API this is the native/desktop client: refresh tokens come
+    // back in the body and go out in `x-refresh-token` (no cookies).
+    ...(isDesktop() ? { 'x-client-type': 'desktop' } : {}),
   },
-  withCredentials: true, // Always send cookies
+  // Browsers send the httpOnly refresh cookie; the desktop shell ignores it.
+  withCredentials: true,
 })
+
+/**
+ * POST /auth/refresh with the credential this platform actually has:
+ * - browser: the httpOnly cookie (`withCredentials`)
+ * - desktop: the stored `sessionId:refreshToken` in `x-refresh-token`
+ *
+ * Used by the 401 retry below and by the root session restore, so both
+ * platforms share one code path.
+ */
+export async function requestRefresh() {
+  if (isDesktop()) {
+    const token = await getRefreshToken()
+    return axios.post(
+      `${API_BASE_URL}/auth/refresh`,
+      {},
+      {
+        headers: {
+          'x-client-type': 'desktop',
+          ...(token ? { 'x-refresh-token': token } : {}),
+        },
+        timeout: 15000,
+      },
+    )
+  }
+  return axios.post(
+    `${API_BASE_URL}/auth/refresh`,
+    {},
+    { withCredentials: true, timeout: 15000 },
+  )
+}
 
 /** `/lab-portal/...` API paths (relative or absolute). */
 export function isLabPortalUrl(url: string | undefined): boolean {
@@ -89,7 +129,13 @@ function processQueue(error: AxiosError | null): void {
 }
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Signing out must also drop the desktop's stored refresh token.
+    if (isDesktop() && response.config.url?.includes('/auth/logout')) {
+      void clearRefreshToken()
+    }
+    return response
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean
@@ -138,6 +184,7 @@ apiClient.interceptors.response.use(
 
     // Don't retry if already retried
     if (originalRequest._retry) {
+      void clearRefreshToken()
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
       return Promise.reject(error)
@@ -154,15 +201,12 @@ apiClient.interceptors.response.use(
     isRefreshing = true
 
     try {
-      // Attempt to refresh the token
-      const refreshResponse = await axios.post(
-        `${API_BASE_URL}/auth/refresh`,
-        {},
-        { withCredentials: true },
-      )
+      // Attempt to refresh the token (cookie on web, stored token on desktop)
+      const refreshResponse = await requestRefresh()
 
       const {
         accessToken,
+        refreshToken,
         user,
         isSuperAdmin,
         accessSource,
@@ -173,6 +217,10 @@ apiClient.interceptors.response.use(
         activeLocationId,
         labMemberships,
       } = refreshResponse.data.data
+
+      // The API rotates the refresh token on every call: desktop must keep
+      // the new one, or the next refresh fails. No-op in the browser.
+      void saveRefreshToken(refreshToken)
 
       // Update store with new token and location context
       useAuthStore.getState().setAuth({
@@ -197,6 +245,7 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       // Refresh failed — clear auth and redirect
       processQueue(refreshError as AxiosError)
+      void clearRefreshToken()
       useAuthStore.getState().clearAuth()
       window.location.href = '/login'
       return Promise.reject(refreshError)

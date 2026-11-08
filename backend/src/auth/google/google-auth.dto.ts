@@ -24,6 +24,24 @@ export class GoogleSignInDto extends GoogleCredentialDto {
   rememberMe?: boolean;
 }
 
+/**
+ * Browser half of the desktop Google hand-off: the verified Google ID token
+ * plus the app's `state`, which is echoed back in the `clinic://` link so the
+ * app can match it to the sign-in it started.
+ */
+export class DesktopHandoffDto extends GoogleCredentialDto {
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{8,128}$/)
+  state: string;
+}
+
+/** The desktop app redeems the one-time code it received over `clinic://`. */
+export class DesktopExchangeDto {
+  @IsString()
+  @Matches(/^[A-Za-z0-9_-]{32,128}$/)
+  code: string;
+}
+
 /** New clinic with a Google login as its owner. */
 export class GoogleRegisterDto extends GoogleCredentialDto {
   @IsString()

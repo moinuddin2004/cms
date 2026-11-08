@@ -1,4 +1,8 @@
-export { GoogleButton, useGoogleConfig } from './google/GoogleButton'
+export {
+  GoogleButton,
+  googleSignInAvailable,
+  useGoogleConfig,
+} from './google/GoogleButton'
 export {
   fetchLoginMethods,
   linkGoogle,

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isDesktop } from '@/lib/desktop-session'
 import { fetchGoogleConfig } from '../services/google.api'
+import { useDesktopGoogleSignIn } from './useDesktopGoogleSignIn'
 
 const GSI_SRC = 'https://accounts.google.com/gsi/client'
 
@@ -38,7 +40,7 @@ let scriptPromise: Promise<void> | null = null
 
 /** Load Google Identity Services once per page. */
 function loadGsi(): Promise<void> {
-  if (window.google?.accounts?.id) return Promise.resolve()
+  if (window.google?.accounts.id) return Promise.resolve()
   scriptPromise ??= new Promise<void>((resolve, reject) => {
     const script = document.createElement('script')
     script.src = GSI_SRC
@@ -52,6 +54,18 @@ function loadGsi(): Promise<void> {
     document.head.appendChild(script)
   })
   return scriptPromise
+}
+
+/**
+ * Whether Google sign-in is offered at all. The login screen handles both
+ * worlds (page popup on the web, system browser + `clinic://` on desktop);
+ * screens that only support the web popup — sign-up, account linking, clinic
+ * invites — add `&& !isDesktop()` themselves.
+ */
+export function googleSignInAvailable(
+  configured: boolean | undefined,
+): boolean {
+  return Boolean(configured)
 }
 
 /** Whether Google sign-in is set up on the server (public config). */
@@ -92,16 +106,20 @@ export function GoogleButton({
   callback.current = onCredential
   const [failed, setFailed] = useState(false)
   const [ready, setReady] = useState(false)
+  const desktop = isDesktop()
+  // Desktop can't run Google's popup inside its webview: the click opens the
+  // system browser, and the session comes back over `clinic://`.
+  const desktopGoogle = useDesktopGoogleSignIn()
 
   const clientId = config?.enabled ? config.clientId : null
 
   useEffect(() => {
-    if (!clientId || !ref.current) return
+    if (desktop || !clientId || !ref.current) return
     let cancelled = false
     loadGsi()
       .then(() => {
         const el = ref.current
-        const id = window.google?.accounts?.id
+        const id = window.google?.accounts.id
         if (cancelled || !el || !id) return
         id.initialize({
           client_id: clientId,
@@ -126,9 +144,40 @@ export function GoogleButton({
     return () => {
       cancelled = true
     }
-  }, [clientId, text])
+  }, [clientId, text, desktop])
 
   if (!clientId) return null
+
+  if (desktop) {
+    return (
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={() => void desktopGoogle.start()}
+          disabled={desktopGoogle.busy}
+          aria-busy={desktopGoogle.busy}
+          className={cn(
+            'group relative flex h-10 w-full cursor-pointer items-center justify-center gap-2.5 overflow-hidden rounded-xl border border-border bg-surface text-[14px] font-semibold text-foreground transition-colors',
+            'hover:border-primary/40 hover:bg-accent focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:outline-none',
+            desktopGoogle.busy && 'pointer-events-none',
+          )}
+        >
+          {desktopGoogle.busy ? (
+            <Loader2 className="size-[18px] animate-spin text-muted-foreground" />
+          ) : (
+            <GoogleMark className="size-[18px]" />
+          )}
+          {desktopGoogle.busy ? 'Finish in your browser…' : LABEL[text]}
+        </button>
+        {desktopGoogle.error ? (
+          <p role="alert" className="text-center text-xs text-destructive">
+            {desktopGoogle.error}
+          </p>
+        ) : null}
+      </div>
+    )
+  }
+
   if (failed) {
     return (
       <p className="text-center text-xs text-muted-foreground">

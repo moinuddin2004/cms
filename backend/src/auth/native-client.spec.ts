@@ -11,11 +11,47 @@ describe('native client refresh token', () => {
     expect(nativeRefreshToken(r)).toBe('s:t');
   });
 
+  it('accepts the desktop shell (Tauri Origin)', () => {
+    const r = req({
+      'x-client-type': 'desktop',
+      'x-refresh-token': 's:t',
+      origin: 'http://tauri.localhost',
+    });
+    expect(isNativeClient(r)).toBe(true);
+    expect(nativeRefreshToken(r)).toBe('s:t');
+  });
+
+  it('accepts the desktop shell without an Origin header', () => {
+    const r = req({ 'x-client-type': 'desktop', 'x-refresh-token': 's:t' });
+    expect(isNativeClient(r)).toBe(true);
+    expect(nativeRefreshToken(r)).toBe('s:t');
+  });
+
   it('refuses any request from a browser page (has Origin)', () => {
     const r = req({
       'x-client-type': 'mobile',
       'x-refresh-token': 's:t',
       origin: 'https://evil.example',
+    });
+    expect(isNativeClient(r)).toBe(false);
+    expect(nativeRefreshToken(r)).toBeNull();
+  });
+
+  it('refuses a desktop request from a non-Tauri Origin', () => {
+    const r = req({
+      'x-client-type': 'desktop',
+      'x-refresh-token': 's:t',
+      origin: 'https://evil.example',
+    });
+    expect(isNativeClient(r)).toBe(false);
+    expect(nativeRefreshToken(r)).toBeNull();
+  });
+
+  it('refuses a mobile request that carries a Tauri Origin', () => {
+    const r = req({
+      'x-client-type': 'mobile',
+      'x-refresh-token': 's:t',
+      origin: 'http://tauri.localhost',
     });
     expect(isNativeClient(r)).toBe(false);
     expect(nativeRefreshToken(r)).toBeNull();

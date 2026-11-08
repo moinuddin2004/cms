@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { fieldError } from '@/components/forms/fieldError'
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton'
 import { ErrorState } from '@/components/feedback/ErrorState'
+import { isDesktop } from '@/lib/desktop-session'
 import { AuthLayout } from '../components/AuthLayout'
 import { AuthError, AuthHeading } from '../components/AuthPrimitives'
 import {
@@ -53,6 +54,11 @@ export function JoinInvitePage({ token }: { token: string }) {
         />
       ) : !info.data?.valid ? (
         <InvalidInvite />
+      ) : isDesktop() ? (
+        <InvalidInvite
+          title="Open this invite in your browser"
+          reason="Joining a clinic uses Google sign-in, which the desktop app doesn't support yet. Open the same link in your browser, then set a password under Settings → Sign-in methods to use the desktop app."
+        />
       ) : !info.data.googleEnabled ? (
         <InvalidInvite reason="This clinic doesn't use Google sign-in. Ask the owner to add you under Employees." />
       ) : (
@@ -62,14 +68,20 @@ export function JoinInvitePage({ token }: { token: string }) {
   )
 }
 
-function InvalidInvite({ reason }: { reason?: string }) {
+function InvalidInvite({
+  title = "This invite link doesn't work",
+  reason,
+}: {
+  title?: string
+  reason?: string
+}) {
   return (
     <>
       <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-panel-2 text-muted-foreground">
         <Link2Off className="size-6" />
       </div>
       <AuthHeading
-        title="This invite link doesn't work"
+        title={title}
         subtitle={
           reason ??
           'It has expired or was turned off. Ask your clinic for a new link.'

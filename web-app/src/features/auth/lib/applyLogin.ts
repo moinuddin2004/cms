@@ -1,10 +1,16 @@
 import { isLabOnlyUser, useAuthStore } from '@/store/useAuthStore'
 import type { Organization, LabMembership, User } from '@/store/useAuthStore'
+import { saveRefreshToken } from '@/lib/desktop-session'
 
 /** The session payload of /auth/login, /auth/register, /auth/google, … */
 export interface LoginPayload {
   user: User
   accessToken: string
+  /**
+   * Desktop/native only: the API returns the `sessionId:refreshToken` value
+   * in the body (a web build gets it in an httpOnly cookie instead).
+   */
+  refreshToken?: string
   isSuperAdmin: boolean
   accessSource: 'super_admin' | 'owner' | 'employee' | null
   requiresOrgSelection: boolean
@@ -17,6 +23,10 @@ export interface LoginPayload {
 
 /** Store a fresh session in the auth store. */
 export function storeSession(d: LoginPayload) {
+  // Every sign-in path goes through here, so this is the one place the
+  // desktop build needs to persist its refresh token. No-op on the web.
+  void saveRefreshToken(d.refreshToken)
+
   useAuthStore.getState().setAuth({
     user: d.user,
     accessToken: d.accessToken,

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { io } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -36,50 +35,59 @@ export function useNotificationSocket(enabled = true) {
     if (!enabled || !token) return
     unlockNotificationSound()
 
-    const socket: Socket = io(`${API_BASE_URL}/realtime`, {
-      auth: { token },
-      transports: ['websocket'],
-      reconnectionDelayMax: 10_000,
-    })
-    let connectedBefore = false
-    socket.on('connect', () => {
-      if (connectedBefore) {
+    // Loaded on first use so socket.io stays out of the initial bundle.
+    let socket: Socket | null = null
+    let cancelled = false
+
+    void import('socket.io-client').then(({ io }) => {
+      if (cancelled) return
+      const s = io(`${API_BASE_URL}/realtime`, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnectionDelayMax: 10_000,
+      })
+      socket = s
+      let connectedBefore = false
+      s.on('connect', () => {
+        if (connectedBefore) {
+          void queryClient.invalidateQueries({
+            queryKey: notificationKeys.mine.all,
+          })
+        }
+        connectedBefore = true
+      })
+      s.on('notification.new', (e: NotificationNewEvent) => {
         void queryClient.invalidateQueries({
           queryKey: notificationKeys.mine.all,
         })
-      }
-      connectedBefore = true
-    })
-    socket.on('notification.new', (e: NotificationNewEvent) => {
-      void queryClient.invalidateQueries({
-        queryKey: notificationKeys.mine.all,
-      })
 
-      const { activeOrganizationId, accessibleOrganizations } =
-        useAuthStore.getState()
-      const sameClinic =
-        !activeOrganizationId || activeOrganizationId === e.organizationId
-      const otherClinic = sameClinic
-        ? null
-        : accessibleOrganizations.find((o) => o.id === e.organizationId)?.name
+        const { activeOrganizationId, accessibleOrganizations } =
+          useAuthStore.getState()
+        const sameClinic =
+          !activeOrganizationId || activeOrganizationId === e.organizationId
+        const otherClinic = sameClinic
+          ? null
+          : accessibleOrganizations.find((o) => o.id === e.organizationId)?.name
 
-      toast(e.title || 'New notification', {
-        id: `notification-${e.id}`,
-        description: otherClinic ? `${otherClinic} · ${e.body}` : e.body,
-        action:
-          sameClinic && e.link
-            ? {
-                label: 'Open',
-                onClick: () => void latest.current.navigate({ to: e.link! }),
-              }
-            : undefined,
+        toast(e.title || 'New notification', {
+          id: `notification-${e.id}`,
+          description: otherClinic ? `${otherClinic} · ${e.body}` : e.body,
+          action:
+            sameClinic && e.link
+              ? {
+                  label: 'Open',
+                  onClick: () => void latest.current.navigate({ to: e.link! }),
+                }
+              : undefined,
+        })
+        void playNotificationChime(e.id)
       })
-      void playNotificationChime(e.id)
     })
 
     return () => {
-      socket.removeAllListeners()
-      socket.disconnect()
+      cancelled = true
+      socket?.removeAllListeners()
+      socket?.disconnect()
     }
   }, [enabled, token, queryClient])
 }

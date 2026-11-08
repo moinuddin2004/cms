@@ -1,19 +1,31 @@
 import type { Request } from 'express';
+import { tauriOrigins } from '../common/cors';
 
 /**
- * Native (mobile) clients can't rely on the httpOnly refresh cookie, so they
- * get the same `sessionId:refreshToken` value in the response body and send
- * it back in a header, keeping it in the device's secure storage.
+ * Native clients can't rely on the httpOnly refresh cookie, so they get the
+ * same `sessionId:refreshToken` value in the response body and send it back in
+ * a header, keeping it in the device's secure storage.
  *
- * Only for requests that announce themselves as the mobile app AND carry no
- * `Origin` header — browsers always send Origin on these POSTs, so a script
- * running in a web page can never use this to read the refresh token.
+ * Only for requests that announce themselves as a native app AND either carry
+ * no `Origin` header (mobile, which talks to the API directly) or carry a
+ * Tauri origin (desktop, whose webview sets that header itself — a script in
+ * a web page can never forge it). This is what stops a browser page from
+ * reading the refresh token out of a response.
  */
 export const CLIENT_TYPE_HEADER = 'x-client-type';
 export const REFRESH_TOKEN_HEADER = 'x-refresh-token';
 
+const NATIVE_CLIENT_TYPES = new Set(['mobile', 'desktop']);
+
 export function isNativeClient(req: Request): boolean {
-  return req.headers[CLIENT_TYPE_HEADER] === 'mobile' && !req.headers.origin;
+  const type = req.headers[CLIENT_TYPE_HEADER];
+  if (typeof type !== 'string' || !NATIVE_CLIENT_TYPES.has(type)) return false;
+
+  const origin = req.headers.origin;
+  // A native app talks to the API itself: no Origin header at all.
+  if (!origin) return true;
+  // The desktop shell is a webview: it sends a Tauri origin.
+  return type === 'desktop' && tauriOrigins().includes(origin);
 }
 
 /** The refresh header value, for native clients only. */

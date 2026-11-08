@@ -1401,7 +1401,7 @@ CREATE TABLE prescriptions (
   version                  integer NOT NULL DEFAULT 1,
   created_at               timestamptz NOT NULL DEFAULT now(),
   updated_at               timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT uq_prescriptions_prescription_number UNIQUE (prescription_number),
+  CONSTRAINT uq_prescriptions_organization_id_prescription_number UNIQUE (organization_id, prescription_number),
   CONSTRAINT fk_prescriptions_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
   CONSTRAINT fk_prescriptions_location_id FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE CASCADE,
   CONSTRAINT fk_prescriptions_patient_id FOREIGN KEY (patient_id) REFERENCES patients (id) ON DELETE CASCADE,
@@ -1411,7 +1411,6 @@ CREATE TABLE prescriptions (
   CONSTRAINT fk_prescriptions_prescription_template_id FOREIGN KEY (prescription_template_id) REFERENCES prescription_templates (id) ON DELETE SET NULL,
   CONSTRAINT fk_prescriptions_prescription_preset_id FOREIGN KEY (prescription_preset_id) REFERENCES prescription_presets (id) ON DELETE SET NULL
 );
-CREATE UNIQUE INDEX idx_prescriptions_prescription_number ON prescriptions (prescription_number);
 CREATE INDEX idx_prescriptions_doctor_id ON prescriptions (doctor_id);
 CREATE INDEX idx_prescriptions_encounter_id ON prescriptions (encounter_id);
 CREATE INDEX idx_prescriptions_appointment_id ON prescriptions (appointment_id);
@@ -3930,6 +3929,24 @@ CREATE TABLE user_sessions (
   CONSTRAINT fk_user_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
 );
 CREATE INDEX idx_user_sessions_user_id_is_revoked ON user_sessions (user_id, is_revoked);
+
+-- ------------------------------------------------------------------------
+-- desktop_auth_handoffs   (src/auth/entities/DesktopAuthHandoff.ts)
+-- ------------------------------------------------------------------------
+CREATE TABLE desktop_auth_handoffs (
+  uuid        uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id     uuid NOT NULL,
+  code_hash   varchar(64) NOT NULL,
+  state       varchar(128) NOT NULL,
+  auth_domain varchar(255),
+  expires_at  timestamptz NOT NULL,
+  used_at     timestamptz,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT fk_desktop_auth_handoffs_user_id
+    FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX uq_desktop_auth_handoffs_code_hash ON desktop_auth_handoffs (code_hash);
+CREATE INDEX idx_desktop_auth_handoffs_expires_at ON desktop_auth_handoffs (expires_at);
 
 -- ------------------------------------------------------------------------
 -- config_values   (src/settings-registry/entities/config-value.entity.ts)

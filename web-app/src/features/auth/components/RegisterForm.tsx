@@ -17,9 +17,11 @@ import {
   authTextLinkClass,
 } from './authStyles'
 import { useRegisterForm } from '../hooks/useRegisterForm'
+import { isDesktop } from '@/lib/desktop-session'
 import {
   AuthDivider,
   GoogleButton,
+  googleSignInAvailable,
   useGoogleConfig,
 } from '../google/GoogleButton'
 import { useGoogleSignIn } from '../google/useGoogleSignIn'
@@ -51,7 +53,7 @@ function EmailRegisterForm() {
         subtitle="We review new clinics before they go live."
       />
 
-      {googleConfig?.enabled && (
+      {!isDesktop() && googleSignInAvailable(googleConfig?.enabled) && (
         <>
           <GoogleButton
             text="signup_with"

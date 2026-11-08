@@ -19,6 +19,7 @@ import { useLoginForm } from '../hooks/useLoginForm'
 import {
   AuthDivider,
   GoogleButton,
+  googleSignInAvailable,
   useGoogleConfig,
 } from '../google/GoogleButton'
 import { useGoogleSignIn } from '../google/useGoogleSignIn'
@@ -52,7 +53,7 @@ function PasswordLogin() {
         subtitle="Sign in to continue to your clinic workspace."
       />
 
-      {googleConfig?.enabled && (
+      {googleSignInAvailable(googleConfig?.enabled) && (
         <>
           <GoogleButton
             text="signin_with"

@@ -15,6 +15,7 @@ import { Route as ClinicAccessRouteImport } from './routes/clinic-access'
 import { Route as ClinicOverviewRouteImport } from './routes/clinic-overview'
 import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DesktopGoogleRouteImport } from './routes/desktop-google'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as FinancialSummaryRouteImport } from './routes/financial-summary'
@@ -156,6 +157,11 @@ const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesktopGoogleRoute = DesktopGoogleRouteImport.update({
+  id: '/desktop-google',
+  path: '/desktop-google',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ExpensesRoute = ExpensesRouteImport.update({
@@ -734,6 +740,7 @@ export interface FileRoutesByFullPath {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
@@ -854,6 +861,7 @@ export interface FileRoutesByTo {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
@@ -974,6 +982,7 @@ export interface FileRoutesById {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
   '/financial-summary': typeof FinancialSummaryRoute
@@ -1096,6 +1105,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/desktop-google'
     | '/expenses'
     | '/finance'
     | '/financial-summary'
@@ -1216,6 +1226,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/desktop-google'
     | '/expenses'
     | '/finance'
     | '/financial-summary'
@@ -1335,6 +1346,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/desktop-google'
     | '/expenses'
     | '/finance'
     | '/financial-summary'
@@ -1456,6 +1468,7 @@ export interface RootRouteChildren {
   ClinicOverviewRoute: typeof ClinicOverviewRoute
   ConfirmEmailRoute: typeof ConfirmEmailRoute
   DashboardRoute: typeof DashboardRoute
+  DesktopGoogleRoute: typeof DesktopGoogleRoute
   ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRoute
   FinancialSummaryRoute: typeof FinancialSummaryRoute
@@ -1586,6 +1599,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desktop-google': {
+      id: '/desktop-google'
+      path: '/desktop-google'
+      fullPath: '/desktop-google'
+      preLoaderRoute: typeof DesktopGoogleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/expenses': {
@@ -2444,6 +2464,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClinicOverviewRoute: ClinicOverviewRoute,
   ConfirmEmailRoute: ConfirmEmailRoute,
   DashboardRoute: DashboardRoute,
+  DesktopGoogleRoute: DesktopGoogleRoute,
   ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRoute,
   FinancialSummaryRoute: FinancialSummaryRoute,

@@ -25,6 +25,7 @@ import {
   AccessChangeBus,
 } from 'src/access/version/access-change-bus';
 import { userRoom } from 'src/notifications/notification-realtime';
+import { allowedOrigins } from 'src/common/cors';
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 const SESSION_ROOM = new RegExp(`^session:(${UUID})$`, 'i');
@@ -61,7 +62,8 @@ const availability = { open: true };
  */
 @WebSocketGateway({
   namespace: '/realtime',
-  cors: { origin: process.env.CORS_ORIGIN || 'http://localhost:3000', credentials: true },
+  // Web app origin(s) from CORS_ORIGIN, plus the Tauri desktop shell.
+  cors: { origin: allowedOrigins(), credentials: true },
   // Behind a load balancer with 2+ API instances, long-polling needs sticky
   // sessions; the web app connects with websocket only.
   transports: ['websocket', 'polling'],

@@ -26,6 +26,19 @@ export type GoogleSignInResult =
     }
   | { outcome: 'link_required'; email: string; message: string }
 
+/**
+ * Browser half of the desktop sign-in. On success the browser is sent to
+ * `clinic://auth/callback?code=…`, and the app redeems the code.
+ */
+export type DesktopHandoffResult =
+  | { outcome: 'signed_in'; code: string }
+  | {
+      outcome: 'no_account'
+      profile: GoogleProfile
+      joinableClinics: JoinableClinic[]
+    }
+  | { outcome: 'link_required'; email: string; message: string }
+
 export interface LoginMethods {
   hasPassword: boolean
   google: { email: string | null; linkedAt: string } | null
@@ -52,6 +65,20 @@ export const fetchGoogleConfig = async () =>
 
 export const googleSignIn = (credential: string, rememberMe = true) =>
   post<GoogleSignInResult>('/auth/google', { credential, rememberMe })
+
+/**
+ * Desktop sign-in, browser half: exchange the Google ID token for a one-time
+ * code, which the page forwards to the app over `clinic://`.
+ */
+export const createDesktopHandoff = (credential: string, state: string) =>
+  post<DesktopHandoffResult>('/auth/google/desktop/handoff', {
+    credential,
+    state,
+  })
+
+/** Desktop sign-in, app half: redeem the one-time code for a session. */
+export const exchangeDesktopHandoff = (code: string) =>
+  post<LoginPayload>('/auth/google/desktop/exchange', { code })
 
 export const googleRegister = (body: {
   credential: string

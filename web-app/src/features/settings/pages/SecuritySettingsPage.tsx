@@ -14,8 +14,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { GoogleButton } from '@/features/auth'
+import { GoogleButton, googleSignInAvailable } from '@/features/auth'
 import { formatDate } from '@/lib/datetime'
+import { isDesktop } from '@/lib/desktop-session'
 import { useAuthStore } from '@/store/useAuthStore'
 import { SettingsCard } from '../components/SettingsCard'
 import { useChangePasswordForm } from '../hooks/useChangePasswordForm'
@@ -45,12 +46,14 @@ export function SecuritySettingsPage() {
         />
       ) : (
         <div className="space-y-6">
-          {methods.data.googleConfigured && !isSuperAdmin && (
-            <GoogleCard
-              linked={methods.data.google}
-              hasPassword={methods.data.hasPassword}
-            />
-          )}
+          {!isSuperAdmin &&
+            !isDesktop() &&
+            googleSignInAvailable(methods.data.googleConfigured) && (
+              <GoogleCard
+                linked={methods.data.google}
+                hasPassword={methods.data.hasPassword}
+              />
+            )}
           {methods.data.hasPassword ? (
             <ChangePasswordCard />
           ) : (

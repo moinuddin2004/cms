@@ -9,6 +9,7 @@ import { RequestContextService } from '../common/services/request-context.servic
 import { GlobalExceptionFilter } from '../common/exceptions/HttpExceptionHandler';
 import { AppLogger } from '../common/services/logger.service';
 import { ProcessRole } from '../common/runtime/process-role';
+import { allowedOrigins } from '../common/cors';
 
 /** HTTP + Socket.IO process (`all` or `api` role). */
 export async function bootstrapHttp(role: Extract<ProcessRole, 'all' | 'api'>) {
@@ -46,7 +47,8 @@ export async function bootstrapHttp(role: Extract<ProcessRole, 'all' | 'api'>) {
   );
   app.useGlobalFilters(new GlobalExceptionFilter(app.get(AppLogger)));
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    // Web app origin(s) from CORS_ORIGIN, plus the Tauri desktop shell.
+    origin: allowedOrigins(),
     credentials: true,
   });
   app.use(cookieParser());

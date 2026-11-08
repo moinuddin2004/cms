@@ -41,13 +41,14 @@ import { PrescriptionStatus } from '../enums/prescription-status.enum';
 @Index(['appointmentId'])
 @Index(['encounterId'])
 @Index(['doctorId'])
-@Index(['prescriptionNumber'], { unique: true })
+// Numbers restart per clinic, so they are unique within one clinic only.
+@Index(['organizationId', 'prescriptionNumber'], { unique: true })
 export class Prescription {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   /** Sequential per org — "RX-2026-00001". */
-  @Column({ name: 'prescription_number', type: 'varchar', length: 30, unique: true })
+  @Column({ name: 'prescription_number', type: 'varchar', length: 30 })
   prescriptionNumber: string;
 
   @ManyToOne(() => Organization, { onDelete: 'CASCADE' })

@@ -17,7 +17,9 @@ import { FeatureFlagsProvider } from '@/context/FeatureFlagsContext'
 import { AccessProvider, RouteAccessGate } from '@/features/access'
 import { AppToaster } from '@/components/shared/AppToaster'
 import { queryClient } from '@/lib/query-client'
-import apiClient from '@/lib/api'
+import { requestRefresh } from '@/lib/api'
+import { clearRefreshToken, saveRefreshToken } from '@/lib/desktop-session'
+import { initDesktopLinks } from '@/lib/desktop-links'
 import { useTheme } from '@/hooks/useTheme'
 import { useTrackNavHistory } from '@/hooks/useBackNavigation'
 import { ThemeProvider, THEME_CSS_CACHE_KEY } from '@/features/theme'
@@ -41,6 +43,7 @@ const OPEN_PATHS = [
   '/verify-email',
   '/join/',
   '/lab-email/', // a lab confirms its contact address (often no login)
+  '/desktop-google', // browser half of desktop Google sign-in (no session here)
 ]
 
 // Work-order QR: signed-in users of either side; the page itself decides
@@ -171,6 +174,12 @@ function RootComponent() {
   // Where each page came from — powers the ← back button
   useTrackNavHistory()
 
+  // Desktop shell: listen for `clinic://` callbacks (Google sign-in), including
+  // a link that launched the app. No-op in a browser.
+  useEffect(() => {
+    void initDesktopLinks()
+  }, [])
+
   // On mount, attempt silent refresh to restore session from cookie
   useEffect(() => {
     const tryRestoreSession = async () => {
@@ -180,11 +189,13 @@ function RootComponent() {
       }
 
       try {
-        const res = await apiClient.post('/auth/refresh')
+        // Cookie on the web, stored token on desktop — same call.
+        const res = await requestRefresh()
         if (res.data?.isSuccess && res.data.data) {
           const {
             user,
             accessToken,
+            refreshToken,
             isSuperAdmin,
             accessSource,
             requiresOrgSelection: reqOrgSel,
@@ -194,6 +205,10 @@ function RootComponent() {
             activeLocationId: actLocId,
             labMemberships: labs,
           } = res.data.data
+
+          // The API rotates the refresh token: keep the new one on desktop,
+          // otherwise the next cold start would present a spent token.
+          void saveRefreshToken(refreshToken)
 
           setAuth({
             user,
@@ -208,7 +223,14 @@ function RootComponent() {
             labMemberships: labs,
           })
         }
-      } catch {
+      } catch (err) {
+        // Only drop the desktop's stored token when the server actually
+        // rejected it — a network blip must not sign the user out for good.
+        const status = (err as { response?: { status?: number } }).response
+          ?.status
+        if (status === 401 || status === 403) {
+          void clearRefreshToken()
+        }
         // No valid session — stay unauthenticated
         clearAuth()
       } finally {

@@ -4,10 +4,12 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import { Request, Response } from 'express';
+import * as crypto from 'crypto';
 import { AppLogger } from 'src/common/services/logger.service';
 import { GlobalRole } from 'src/common/enums/global-role.enum';
 import { User } from 'src/user/entities/user.entity';
@@ -16,6 +18,7 @@ import { AccountStatus } from 'src/user/enum/AccountStatus';
 import { ClinicSetupService } from 'src/subscriptions/clinic-setup.service';
 import { ClinicGateService } from 'src/clinic-access/clinic-gate.service';
 import { ClinicAccessService } from 'src/clinic-access/clinic-access.service';
+import { DesktopAuthHandoff } from '../entities/DesktopAuthHandoff';
 import { OAuthProvider } from '../entities/OAuthProvider';
 import { ProviderEnum } from '../enum/ProviderEnum';
 import { SecurityLogService } from '../security-log.service';
@@ -47,6 +50,23 @@ export type GoogleSignInResult =
       joinableClinics: { id: string; name: string }[];
     }
   | { outcome: 'link_required'; email: string; message: string };
+
+/**
+ * Result of the browser half of the desktop hand-off. On success the browser
+ * page sends the user to `clinic://auth/callback?code=…`; the app redeems the
+ * code with `exchangeDesktopHandoff`.
+ */
+export type DesktopHandoffResult =
+  | { outcome: 'signed_in'; code: string }
+  | {
+      outcome: 'no_account';
+      profile: { email: string; name: string; picture: string | null };
+      joinableClinics: { id: string; name: string }[];
+    }
+  | { outcome: 'link_required'; email: string; message: string };
+
+/** How long the app has to redeem a hand-off code after the browser sign-in. */
+const DESKTOP_HANDOFF_TTL_MS = 2 * 60_000;
 
 export interface LoginMethods {
   hasPassword: boolean;
@@ -115,6 +135,94 @@ export class GoogleAuthService {
       { method: 'google', domain: g.hd },
     );
     return { outcome: 'signed_in', session };
+  }
+
+  // ── Desktop hand-off (system browser → `clinic://`) ────────────────
+
+  /**
+   * Browser half: verify the Google ID token and mint a one-time code the
+   * desktop app can redeem. The desktop webview never sees the Google token —
+   * Google refuses to sign in inside embedded webviews — and the code (not
+   * the token) travels through the deep link.
+   */
+  async createDesktopHandoff(
+    credential: string,
+    state: string,
+    req: Request,
+  ): Promise<DesktopHandoffResult> {
+    const g = await this.identity.verify(credential);
+    const resolved = await this.resolveUser(g, req);
+
+    if (resolved.kind === 'link_required') {
+      return {
+        outcome: 'link_required',
+        email: g.email,
+        message: resolved.message,
+      };
+    }
+    if (resolved.kind === 'none') {
+      return {
+        outcome: 'no_account',
+        profile: { email: g.email, name: g.name, picture: g.picture },
+        joinableClinics: await this.gate.joinableClinics(g.hd),
+      };
+    }
+
+    const code = crypto.randomBytes(32).toString('base64url');
+    const repo = this.dataSource.getRepository(DesktopAuthHandoff);
+    await repo.save(
+      repo.create({
+        userId: resolved.user.uuid,
+        codeHash: hashHandoffCode(code),
+        state,
+        authDomain: g.hd,
+        expiresAt: new Date(Date.now() + DESKTOP_HANDOFF_TTL_MS),
+      }),
+    );
+    return { outcome: 'signed_in', code };
+  }
+
+  /**
+   * App half: redeem the code exactly once and start the session. `req` comes
+   * from the Tauri webview, so the refresh token is returned in the body
+   * (`native-client.ts`) exactly like a password login.
+   */
+  async exchangeDesktopHandoff(
+    code: string,
+    req: Request,
+    res: Response,
+  ): Promise<LoginResponse> {
+    // Claim atomically: a second redemption finds `used_at` set and fails.
+    const result = await this.handoffs()
+      .createQueryBuilder()
+      .update()
+      .set({ usedAt: () => 'now()' })
+      .where('code_hash = :codeHash', { codeHash: hashHandoffCode(code) })
+      .andWhere('used_at IS NULL')
+      .andWhere('expires_at > now()')
+      .returning(['user_id', 'auth_domain'])
+      .execute();
+    const claimed = (
+      result.raw as Array<{ user_id: string; auth_domain: string | null }>
+    )[0];
+    if (!claimed) {
+      throw new UnauthorizedException(
+        'This desktop sign-in link has expired. Start again from the app.',
+      );
+    }
+
+    const user = await this.dataSource
+      .getRepository(User)
+      .findOneBy({ uuid: claimed.user_id });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    this.assertGoogleAllowed(user);
+
+    return this.authService.issueLogin(user, req, res, true, {
+      method: 'google',
+      domain: claimed.auth_domain,
+    });
   }
 
   // ── Sign up (new clinic, Google owner) ────────────────────────────
@@ -319,6 +427,10 @@ export class GoogleAuthService {
     return this.dataSource.getRepository(OAuthProvider);
   }
 
+  private handoffs() {
+    return this.dataSource.getRepository(DesktopAuthHandoff);
+  }
+
   /**
    * The account for this Google identity: by linked `sub`, else the
    * password-less account with this email (linked now). An account with a
@@ -446,4 +558,9 @@ export class GoogleAuthService {
       }),
     );
   }
+}
+
+/** SHA-256 (hex) of a hand-off code — the database never holds the code. */
+function hashHandoffCode(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
 }

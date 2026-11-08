@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { io } from 'socket.io-client'
 import type { Socket } from 'socket.io-client'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { AccessChangedEvent } from '../types/access.types'
@@ -29,25 +28,34 @@ export function useAccessSocket(
   useEffect(() => {
     if (!enabled || !orgId || !token) return
 
-    const socket: Socket = io(`${API_BASE_URL}/realtime`, {
-      auth: { token },
-      transports: ['websocket'],
-      reconnectionDelayMax: 10_000,
-    })
-    let connectedBefore = false
-    socket.on('connect', () => {
-      socket.emit('subscribe', { room: accessRoom(orgId) }, () => {
-        if (connectedBefore) handler.current(null)
-        connectedBefore = true
+    // Loaded on first use so socket.io stays out of the initial bundle.
+    let socket: Socket | null = null
+    let cancelled = false
+
+    void import('socket.io-client').then(({ io }) => {
+      if (cancelled) return
+      const s = io(`${API_BASE_URL}/realtime`, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnectionDelayMax: 10_000,
       })
-    })
-    socket.on('access.changed', (e: AccessChangedEvent) => {
-      if (e.organizationId === orgId) handler.current(e)
+      socket = s
+      let connectedBefore = false
+      s.on('connect', () => {
+        s.emit('subscribe', { room: accessRoom(orgId) }, () => {
+          if (connectedBefore) handler.current(null)
+          connectedBefore = true
+        })
+      })
+      s.on('access.changed', (e: AccessChangedEvent) => {
+        if (e.organizationId === orgId) handler.current(e)
+      })
     })
 
     return () => {
-      socket.removeAllListeners()
-      socket.disconnect()
+      cancelled = true
+      socket?.removeAllListeners()
+      socket?.disconnect()
     }
   }, [orgId, token, enabled])
 }

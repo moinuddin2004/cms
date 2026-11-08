@@ -96,7 +96,7 @@ npm run test
 npm run build
 ```
 
-Vitest uses Testing Library for component and hook tests. The production build creates the TanStack Start server output.
+Vitest uses Testing Library for component and hook tests. The production build is a static SPA bundle in `.output/public` (`index.html` plus hashed assets) that talks to the API directly — no Node server at runtime. nginx serves it via the `Dockerfile`; the Tauri shell in [`desktop-app/`](../desktop-app/) serves the same bundle.
 
 <br />
 
