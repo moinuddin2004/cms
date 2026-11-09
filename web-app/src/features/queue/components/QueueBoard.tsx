@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { MonitorPlay, Plus, RefreshCw, Search, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -140,35 +141,40 @@ export function QueueBoard() {
             aria-label="Search the queue"
           />
         </div>
-        <Select value={doctorFilter} onValueChange={setDoctorFilter}>
-          <SelectTrigger
-            className="h-8 w-full sm:w-[190px]"
-            aria-label="Filter by doctor"
-          >
-            <SelectValue placeholder="All doctors" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All doctors</SelectItem>
-            {lanes.map((l) => (
-              <SelectItem key={l.doctor.id} value={l.doctor.id}>
-                Dr. {l.doctor.fullName}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {activeFilters > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1"
-            onClick={clearFilters}
-          >
-            <X className="size-3.5" /> Clear filters
-            <Badge variant="secondary" className="ml-0.5">
-              {activeFilters}
-            </Badge>
-          </Button>
-        )}
+        <CollapsibleFilters
+          className="w-full sm:contents"
+          activeCount={activeFilters}
+        >
+          <Select value={doctorFilter} onValueChange={setDoctorFilter}>
+            <SelectTrigger
+              className="h-8 w-full sm:w-[190px]"
+              aria-label="Filter by doctor"
+            >
+              <SelectValue placeholder="All doctors" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All doctors</SelectItem>
+              {lanes.map((l) => (
+                <SelectItem key={l.doctor.id} value={l.doctor.id}>
+                  Dr. {l.doctor.fullName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {activeFilters > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1"
+              onClick={clearFilters}
+            >
+              <X className="size-3.5" /> Clear filters
+              <Badge variant="secondary" className="ml-0.5">
+                {activeFilters}
+              </Badge>
+            </Button>
+          )}
+        </CollapsibleFilters>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <span
             className={cn(

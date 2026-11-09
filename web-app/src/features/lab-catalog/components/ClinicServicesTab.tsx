@@ -224,7 +224,7 @@ export function ClinicServicesTab() {
                 setPage(1)
               }}
             >
-              <SelectTrigger className="h-9 w-44" aria-label="Filter by lab">
+              <SelectTrigger className="h-9 w-full sm:w-44" aria-label="Filter by lab">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -244,7 +244,7 @@ export function ClinicServicesTab() {
               }}
             >
               <SelectTrigger
-                className="h-9 w-40"
+                className="h-9 w-full sm:w-40"
                 aria-label="Filter by category"
               >
                 <SelectValue />
@@ -266,7 +266,7 @@ export function ClinicServicesTab() {
               }}
             >
               <SelectTrigger
-                className="h-9 w-36"
+                className="h-9 w-full sm:w-36"
                 aria-label="Filter by mapping"
               >
                 <SelectValue />

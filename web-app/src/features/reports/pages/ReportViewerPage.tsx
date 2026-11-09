@@ -152,7 +152,7 @@ export function ReportViewerPage({ reportKey }: { reportKey: string }) {
           <>
             {filters?.doctor && (
               <Select value={doctorId} onValueChange={setDoctorId}>
-                <SelectTrigger className="h-8 w-[200px] text-xs">
+                <SelectTrigger className="h-8 w-full sm:w-[200px] text-xs">
                   <SelectValue placeholder="All doctors" />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,7 +167,7 @@ export function ReportViewerPage({ reportKey }: { reportKey: string }) {
             )}
             {filters?.expenseCategory && (
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectTrigger className="h-8 w-full sm:w-[180px] text-xs">
                   <SelectValue placeholder="All categories" />
                 </SelectTrigger>
                 <SelectContent>

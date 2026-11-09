@@ -147,7 +147,7 @@ export function LabClinicsPage() {
               value={status}
               onValueChange={(v) => setStatus(v as StatusFilter)}
             >
-              <SelectTrigger className="h-9 w-48" aria-label="Filter by status">
+              <SelectTrigger className="h-9 w-full sm:w-48" aria-label="Filter by status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

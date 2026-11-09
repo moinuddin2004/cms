@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Button } from '@/components/ui/button'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { RotateCcw } from 'lucide-react'
 import { GENDER_OPTIONS } from '../types'
 
@@ -27,7 +28,10 @@ export function FiltersBar({
   const hasActiveFilters = gender || status
 
   return (
-    <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+    <CollapsibleFilters
+      className="w-full sm:w-auto"
+      activeCount={[gender, status].filter(Boolean).length}
+    >
       {/* Gender Filter */}
       <Select value={gender} onValueChange={onGenderChange}>
         <SelectTrigger
@@ -69,7 +73,7 @@ export function FiltersBar({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="h-8 text-xs text-muted-foreground hover:text-foreground"
+          className="col-span-2 h-8 justify-self-start text-xs text-muted-foreground hover:text-foreground"
           aria-label="Reset filters"
           id="reset-filters"
         >
@@ -77,6 +81,6 @@ export function FiltersBar({
           Reset
         </Button>
       )}
-    </div>
+    </CollapsibleFilters>
   )
 }

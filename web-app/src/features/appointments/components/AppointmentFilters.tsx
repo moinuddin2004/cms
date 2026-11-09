@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { Search, X, RotateCcw } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -74,50 +75,55 @@ export function AppointmentFilters({
         )}
       </div>
 
-      {dateControls}
+      <CollapsibleFilters
+        className="w-full sm:contents"
+        activeCount={hasActiveFilters ? 1 : 0}
+      >
+        {dateControls}
 
-      <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs" size="sm">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          {APPOINTMENT_STATUS_OPTIONS.map((s) => (
-            <SelectItem key={s.value} value={s.value}>
-              {s.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select value={status} onValueChange={onStatusChange}>
+          <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs" size="sm">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {APPOINTMENT_STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select value={type} onValueChange={onTypeChange}>
-        <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs" size="sm">
-          <SelectValue placeholder="Type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All types</SelectItem>
-          {(includeWalkInType
-            ? [...APPOINTMENT_TYPE_OPTIONS, WALK_IN_TYPE_OPTION]
-            : APPOINTMENT_TYPE_OPTIONS
-          ).map((t) => (
-            <SelectItem key={t.value} value={t.value}>
-              {t.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select value={type} onValueChange={onTypeChange}>
+          <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs" size="sm">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All types</SelectItem>
+            {(includeWalkInType
+              ? [...APPOINTMENT_TYPE_OPTIONS, WALK_IN_TYPE_OPTION]
+              : APPOINTMENT_TYPE_OPTIONS
+            ).map((t) => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onReset}
-          className="h-8 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw size={13} className="mr-1.5" />
-          Reset
-        </Button>
-      )}
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onReset}
+            className="h-8 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw size={13} className="mr-1.5" />
+            Reset
+          </Button>
+        )}
+      </CollapsibleFilters>
 
       {typeof count === 'number' && count > 0 && (
         <div className="ml-auto text-xs text-muted-foreground">

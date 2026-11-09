@@ -189,7 +189,7 @@ export function VendorBillsPage() {
                 }}
               >
                 <SelectTrigger
-                  className="h-9 w-40"
+                  className="h-9 w-full sm:w-40"
                   aria-label="Filter by status"
                 >
                   <SelectValue />
@@ -219,7 +219,7 @@ export function VendorBillsPage() {
                 }}
                 placeholder="From"
                 clearable
-                className="h-9 w-36"
+                className="h-9 w-full sm:w-36"
               />
               <DatePicker
                 value={to || undefined}
@@ -229,7 +229,7 @@ export function VendorBillsPage() {
                 }}
                 placeholder="To"
                 clearable
-                className="h-9 w-36"
+                className="h-9 w-full sm:w-36"
               />
             </>
           }

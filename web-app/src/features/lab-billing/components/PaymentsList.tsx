@@ -212,7 +212,7 @@ export function PaymentsList() {
         setPage(1)
       }}
     >
-      <SelectTrigger className="h-9 w-40" aria-label={label}>
+      <SelectTrigger className="h-9 w-full sm:w-40" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -271,7 +271,7 @@ export function PaymentsList() {
               }}
               placeholder="From"
               clearable
-              className="h-9 w-36"
+              className="h-9 w-full sm:w-36"
             />
             <DatePicker
               value={to || undefined}
@@ -281,7 +281,7 @@ export function PaymentsList() {
               }}
               placeholder="To"
               clearable
-              className="h-9 w-36"
+              className="h-9 w-full sm:w-36"
             />
           </>
         }

@@ -64,7 +64,7 @@ function MemberControls({
           }
         >
           <SelectTrigger
-            className="h-8 w-36"
+            className="h-8 w-full sm:w-36"
             aria-label={`Role of ${member.user.email}`}
           >
             <SelectValue />
@@ -227,7 +227,7 @@ export function LabTeamPage() {
               value={role}
               onValueChange={(v) => setRole(v as RoleFilter)}
             >
-              <SelectTrigger className="h-9 w-40" aria-label="Filter by role">
+              <SelectTrigger className="h-9 w-full sm:w-40" aria-label="Filter by role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

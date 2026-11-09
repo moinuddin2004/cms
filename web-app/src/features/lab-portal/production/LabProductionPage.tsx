@@ -349,7 +349,7 @@ function WorkQueue() {
               setPage(1)
             }}
           >
-            <SelectTrigger className="h-9 w-52" aria-label="Filter by status">
+            <SelectTrigger className="h-9 w-full sm:w-52" aria-label="Filter by status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -614,7 +614,7 @@ function Shipments() {
               setPage(1)
             }}
           >
-            <SelectTrigger className="h-9 w-48" aria-label="Filter by status">
+            <SelectTrigger className="h-9 w-full sm:w-48" aria-label="Filter by status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -796,7 +796,7 @@ function Remakes() {
         onViewMode={setViewMode}
         filters={
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 w-44" aria-label="Filter by status">
+            <SelectTrigger className="h-9 w-full sm:w-44" aria-label="Filter by status">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

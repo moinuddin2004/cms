@@ -207,7 +207,7 @@ export function LabLinksPage() {
                 setPage(1)
               }}
             >
-              <SelectTrigger className="h-9 w-48" aria-label="Filter by status">
+              <SelectTrigger className="h-9 w-full sm:w-48" aria-label="Filter by status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

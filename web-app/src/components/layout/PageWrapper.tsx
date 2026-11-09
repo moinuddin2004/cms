@@ -70,7 +70,7 @@ export function PageWrapper({
           {subtitle && <p className="text-xs text-text-3">{subtitle}</p>}
         </div>
         {actions && (
-          <div className="flex max-w-full flex-wrap items-center gap-2">
+          <div className="flex w-full max-w-full flex-wrap items-center gap-2 sm:w-auto">
             {actions}
           </div>
         )}

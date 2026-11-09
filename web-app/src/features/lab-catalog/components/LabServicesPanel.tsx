@@ -249,7 +249,7 @@ export function LabServicesPanel({ labId }: { labId: string }) {
               }}
             >
               <SelectTrigger
-                className="h-9 w-44"
+                className="h-9 w-full sm:w-44"
                 aria-label="Filter by category"
               >
                 <SelectValue />
@@ -270,7 +270,7 @@ export function LabServicesPanel({ labId }: { labId: string }) {
                 setPage(1)
               }}
             >
-              <SelectTrigger className="h-9 w-36" aria-label="Filter by status">
+              <SelectTrigger className="h-9 w-full sm:w-36" aria-label="Filter by status">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

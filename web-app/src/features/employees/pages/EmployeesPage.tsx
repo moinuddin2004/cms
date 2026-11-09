@@ -119,7 +119,7 @@ export function EmployeesPage() {
     >
       <Card className="py-0">
         <CardContent className="p-2 px-3">
-          <div className="flex flex-row items-center justify-between gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
             <SearchInput
               value={search}
               onChange={(val) => {

@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from '@/components/shared/SearchableSelect'
 import { Button } from '@/components/ui/button'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { RotateCcw, Loader2 } from 'lucide-react'
 import { EMPLOYMENT_TYPE_OPTIONS, STATUS_OPTIONS } from '../types'
 import { useEmploymentRoles } from '../hooks/useEmploymentRoles'
@@ -33,11 +34,14 @@ export function FiltersBar({
   const hasActiveFilters = role || employmentType || status
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <CollapsibleFilters
+      className="w-full sm:w-auto"
+      activeCount={[role, employmentType, status].filter(Boolean).length}
+    >
       {/* Role Filter */}
       <Select value={role} onValueChange={onRoleChange}>
         <SelectTrigger
-          className="w-[160px] h-8 text-xs"
+          className="w-full sm:w-[160px] h-8 text-xs"
           size="sm"
           aria-label="Filter by role"
           id="filter-role"
@@ -64,7 +68,7 @@ export function FiltersBar({
       {/* Employment Type Filter */}
       <Select value={employmentType} onValueChange={onEmploymentTypeChange}>
         <SelectTrigger
-          className="w-[140px] h-8 text-xs"
+          className="w-full sm:w-[140px] h-8 text-xs"
           size="sm"
           aria-label="Filter by employment type"
           id="filter-employment-type"
@@ -84,7 +88,7 @@ export function FiltersBar({
       {/* Status Filter */}
       <Select value={status} onValueChange={onStatusChange}>
         <SelectTrigger
-          className="w-[140px] h-8 text-xs"
+          className="w-full sm:w-[140px] h-8 text-xs"
           size="sm"
           aria-label="Filter by status"
           id="filter-status"
@@ -107,7 +111,7 @@ export function FiltersBar({
           variant="ghost"
           size="sm"
           onClick={onReset}
-          className="h-8 text-xs text-muted-foreground hover:text-foreground"
+          className="col-span-2 h-8 justify-self-start text-xs text-muted-foreground hover:text-foreground"
           aria-label="Reset filters"
           id="reset-filters"
         >
@@ -115,6 +119,6 @@ export function FiltersBar({
           Reset
         </Button>
       )}
-    </div>
+    </CollapsibleFilters>
   )
 }

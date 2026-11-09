@@ -215,7 +215,7 @@ export function OrderTemplatesPage() {
                 }}
               >
                 <SelectTrigger
-                  className="h-9 w-40"
+                  className="h-9 w-full sm:w-40"
                   aria-label="Filter by owner"
                 >
                   <SelectValue />
@@ -235,7 +235,7 @@ export function OrderTemplatesPage() {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-9 w-44" aria-label="Filter by lab">
+                <SelectTrigger className="h-9 w-full sm:w-44" aria-label="Filter by lab">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,7 +255,7 @@ export function OrderTemplatesPage() {
                 }}
               >
                 <SelectTrigger
-                  className="h-9 w-40"
+                  className="h-9 w-full sm:w-40"
                   aria-label="Show archived templates"
                 >
                   <SelectValue />

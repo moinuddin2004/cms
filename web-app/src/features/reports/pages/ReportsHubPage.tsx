@@ -258,7 +258,7 @@ export function ReportsHubPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search reports"
                 aria-label="Search reports"
-                className="h-8 w-[200px] pl-8 text-xs"
+                className="h-8 w-full pl-8 text-xs sm:w-[200px]"
               />
             </div>
             <div className="flex flex-wrap items-center gap-1">

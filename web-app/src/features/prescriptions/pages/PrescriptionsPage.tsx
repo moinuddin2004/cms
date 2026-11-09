@@ -170,7 +170,7 @@ export function PrescriptionsPage() {
         <div
           role="tablist"
           aria-label="Filter by status"
-          className="inline-flex flex-wrap items-center gap-0.5 rounded-[9px] bg-panel p-[3px]"
+          className="flex w-full items-center gap-0.5 overflow-x-auto rounded-[9px] bg-panel p-[3px] sm:inline-flex sm:w-auto"
         >
           {filterOptions.map((opt) => {
             const active = status === opt.value
@@ -182,7 +182,7 @@ export function PrescriptionsPage() {
                 aria-selected={active}
                 onClick={() => changeStatus(opt.value)}
                 className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-[7px] px-3 text-xs font-medium transition-colors',
+                  'inline-flex h-7 shrink-0 flex-1 items-center justify-center gap-1.5 rounded-[7px] px-3 text-xs font-medium transition-colors sm:flex-none',
                   active
                     ? 'bg-surface text-foreground shadow-sm'
                     : 'text-text-2 hover:text-foreground',

@@ -150,8 +150,8 @@ export function AddAppointmentStep({
               </form.Field>
             </div>
 
-            {/* Row 2: Date+Time + Duration */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Row 2: Date + Time (full width) */}
+            <div className="grid grid-cols-1 gap-4">
               <form.Field name="startTime">
                 {(field) => (
                   <div className="space-y-1.5">
@@ -167,7 +167,10 @@ export function AddAppointmentStep({
                   </div>
                 )}
               </form.Field>
+            </div>
 
+            {/* Row 3: Duration + Type */}
+            <div className="grid grid-cols-2 gap-4">
               <form.Field name="duration">
                 {(field) => (
                   <div className="space-y-1.5">
@@ -186,6 +189,32 @@ export function AddAppointmentStep({
                         {DURATION_OPTIONS.map((d) => (
                           <SelectItem key={d.value} value={String(d.value)}>
                             {d.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FieldErrorText message={fieldError(field)} />
+                  </div>
+                )}
+              </form.Field>
+
+              <form.Field name="type">
+                {(field) => (
+                  <div className="space-y-1.5">
+                    <Label>Type</Label>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(val) =>
+                        field.handleChange(val as AppointmentType)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {APPOINTMENT_TYPE_OPTIONS.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -236,37 +265,10 @@ export function AddAppointmentStep({
               </div>
             )}
 
-            {/* Row 3: Type + Walk-in + Emergency */}
-            <div className="grid grid-cols-1 gap-4 items-end sm:grid-cols-3">
-              <form.Field name="type">
-                {(field) => (
-                  <div className="space-y-1.5">
-                    <Label>Type</Label>
-                    <Select
-                      value={field.state.value}
-                      onValueChange={(val) =>
-                        field.handleChange(val as AppointmentType)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {APPOINTMENT_TYPE_OPTIONS.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldErrorText message={fieldError(field)} />
-                  </div>
-                )}
-              </form.Field>
-
+            <div>
               <form.Field name="isEmergency">
                 {(field) => (
-                  <label className="flex items-center gap-2.5 text-sm cursor-pointer h-9">
+                  <label className="flex h-9 cursor-pointer items-center gap-2.5 text-sm">
                     <Switch
                       checked={field.state.value as boolean}
                       onCheckedChange={(v) => field.handleChange(v)}

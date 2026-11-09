@@ -48,7 +48,7 @@ export function ReportFilters({
         <>
           {dates ? (
             <>
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="col-span-2 grid grid-cols-3 gap-1 sm:col-span-1 sm:flex sm:flex-wrap sm:items-center">
                 {PRESETS.map((p) => (
                   <button
                     key={p}
@@ -68,7 +68,7 @@ export function ReportFilters({
               <DateRangePicker
                 aria-label="Custom date range"
                 className={cn(
-                  'h-8 w-full sm:w-[240px] text-xs',
+                  'col-span-2 h-8 w-full text-xs sm:col-span-1 sm:w-[240px]',
                   store.preset === 'custom' && 'border-primary',
                 )}
                 value={
@@ -91,7 +91,7 @@ export function ReportFilters({
               />
             </>
           ) : (
-            <span className="text-xs font-medium text-text-2">
+            <span className="col-span-2 text-xs font-medium text-text-2 sm:col-span-1">
               Balances as of today
             </span>
           )}

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { format, isValid } from 'date-fns'
-import { CalendarIcon, Clock } from 'lucide-react'
+import { CalendarIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Input } from '@/components/ui/input'
+import { TimePicker } from '@/components/ui/time-picker'
 
 interface DateTimePickerProps {
   value?: string
@@ -51,17 +51,15 @@ export function DateTimePicker({
     setOpen(false)
   }
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const [h, m] = e.target.value.split(':').map(Number)
+  const handleTimeChange = (next: string) => {
+    const [h, m] = next.split(':').map(Number)
     if (isNaN(h) || isNaN(m)) return
     const base = parsed ? new Date(parsed) : new Date()
     base.setHours(h, m, 0, 0)
     onChange?.(format(base, "yyyy-MM-dd'T'HH:mm"))
   }
 
-  const displayLabel = parsed
-    ? format(parsed, 'MMM d, yyyy  hh:mm a')
-    : placeholder
+  const displayLabel = parsed ? format(parsed, 'MMM d, yyyy') : placeholder
 
   return (
     <div className={cn('flex gap-2', className)}>
@@ -91,16 +89,12 @@ export function DateTimePicker({
         </PopoverContent>
       </Popover>
 
-      <div className="relative">
-        <Clock className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
-          type="time"
-          value={timeValue}
-          onChange={handleTimeChange}
-          disabled={disabled}
-          className="w-[110px] pl-8"
-        />
-      </div>
+      <TimePicker
+        value={timeValue}
+        onChange={handleTimeChange}
+        disabled={disabled}
+        className="w-[120px] shrink-0"
+      />
     </div>
   )
 }

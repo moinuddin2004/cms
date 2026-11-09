@@ -112,7 +112,7 @@ export function PayrollPage() {
         title="Payroll"
         subtitle="Monthly pay records for this location"
         actions={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -137,13 +137,13 @@ export function PayrollPage() {
           </div>
         }
       >
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
           <Select
             clearable={false}
             value={String(month)}
             onValueChange={(v) => setMonth(Number(v))}
           >
-            <SelectTrigger className="h-9 w-[120px] text-sm">
+            <SelectTrigger className="h-9 w-full text-sm sm:w-[120px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -159,7 +159,7 @@ export function PayrollPage() {
             value={String(year)}
             onValueChange={(v) => setYear(Number(v))}
           >
-            <SelectTrigger className="h-9 w-[90px] text-sm">
+            <SelectTrigger className="h-9 w-full text-sm sm:w-[90px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

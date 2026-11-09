@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { useForm, useStore } from '@tanstack/react-form'
 import type { ColumnDef } from '@/components/shared/table-features'
 import {
@@ -377,47 +378,52 @@ export function AdminSubscriptionsPage() {
             className="pl-9"
           />
         </div>
-        <Select
-          value={status}
-          onValueChange={(v) => setStatus(v as StatusFilter)}
+        <CollapsibleFilters
+          className="w-full sm:contents"
+          activeCount={activeFilters}
         >
-          <SelectTrigger className="w-full sm:w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {(Object.keys(STATUS_LABEL) as SubscriptionStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={approval}
-          onValueChange={(v) => setApproval(v as ApprovalFilter)}
-        >
-          <SelectTrigger className="w-full sm:w-48" aria-label="Approval">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Any approval</SelectItem>
-            {(Object.keys(APPROVAL_LABEL) as ClinicApproval[]).map((a) => (
-              <SelectItem key={a} value={a}>
-                {APPROVAL_LABEL[a]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {activeFilters > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="mr-1 size-4" />
-            Clear all filters
-            <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 text-xs text-primary">
-              {activeFilters}
-            </span>
-          </Button>
-        )}
+          <Select
+            value={status}
+            onValueChange={(v) => setStatus(v as StatusFilter)}
+          >
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {(Object.keys(STATUS_LABEL) as SubscriptionStatus[]).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={approval}
+            onValueChange={(v) => setApproval(v as ApprovalFilter)}
+          >
+            <SelectTrigger className="w-full sm:w-48" aria-label="Approval">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Any approval</SelectItem>
+              {(Object.keys(APPROVAL_LABEL) as ClinicApproval[]).map((a) => (
+                <SelectItem key={a} value={a}>
+                  {APPROVAL_LABEL[a]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {activeFilters > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-1 size-4" />
+              Clear all filters
+              <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 text-xs text-primary">
+                {activeFilters}
+              </span>
+            </Button>
+          )}
+        </CollapsibleFilters>
         <ViewToggle value={view} onChange={setView} className="sm:ml-auto" />
       </div>
 

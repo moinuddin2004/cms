@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import type { ComponentType, ReactNode } from 'react'
+import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DateRangePicker } from '@/components/shared/DateRangePicker'
 import { cn } from '@/lib/utils'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { dateToYmd, todayYmd, ymdToDate } from '@/lib/datetime'
 
 /**
@@ -75,33 +80,74 @@ export function StatsStrip({
   )
 }
 
-/** Toolbar card: `top` row (left/right) and an optional filter row below. */
+/**
+ * Toolbar card: `left` (period / presets), an optional filter row below and a
+ * `right` slot. On mobile `left` + `filters` fold behind one "Filters"
+ * button; `right` stays visible.
+ */
 export function ListToolbar({
   left,
   right,
   filters,
+  activeCount = 0,
 }: {
   left?: ReactNode
   right?: ReactNode
   filters?: ReactNode
+  activeCount?: number
 }) {
+  const [open, setOpen] = useState(false)
+  const foldable = !!(left || filters)
   return (
     <div className="space-y-2 rounded-xl border bg-card px-3 py-2">
-      {(left || right) && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2">{left}</div>
-          <div className="flex items-center gap-2">{right}</div>
+      {foldable && (
+        <div className="flex items-center gap-2 sm:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex-1 justify-between"
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span className="flex items-center gap-2">
+              <SlidersHorizontal className="size-4" /> Filters
+              {activeCount > 0 && (
+                <Badge variant="secondary" className="tabular-nums">
+                  {activeCount}
+                </Badge>
+              )}
+            </span>
+            <ChevronDown
+              className={cn(
+                'size-4 transition-transform',
+                open && 'rotate-180',
+              )}
+            />
+          </Button>
+          {right}
         </div>
       )}
-      {filters && (
-        <div
-          className={cn(
-            'flex flex-row flex-wrap items-center gap-2',
-            (left || right) && 'border-t pt-2',
-          )}
-        >
-          {filters}
-        </div>
+      <div className={cn('space-y-2', open ? 'block' : 'hidden', 'sm:block')}>
+        {(left || right) && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="grid w-full grid-cols-2 items-center gap-2 sm:flex sm:w-auto sm:flex-wrap">
+              {left}
+            </div>
+            <div className="hidden items-center gap-2 sm:flex">{right}</div>
+          </div>
+        )}
+        {filters && (
+          <CollapsibleFilters
+            bare
+            className={cn((left || right) && 'border-t pt-2')}
+          >
+            {filters}
+          </CollapsibleFilters>
+        )}
+      </div>
+      {!foldable && right && (
+        <div className="flex items-center gap-2 sm:hidden">{right}</div>
       )}
     </div>
   )
@@ -122,14 +168,14 @@ export function Segmented<T extends string>({
   }>
 }) {
   return (
-    <div className="flex flex-wrap items-center rounded-[9px] border border-border bg-surface p-[3px]">
+    <div className="col-span-2 flex w-full flex-wrap items-center rounded-[9px] border border-border bg-surface p-[3px] sm:col-span-1 sm:w-auto">
       {options.map(({ value: v, label, icon: Icon }) => (
         <button
           key={v}
           type="button"
           onClick={() => onChange(v)}
           className={cn(
-            'flex items-center gap-1.5 rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors',
+            'flex flex-1 items-center justify-center gap-1.5 rounded-[7px] px-3 py-[5px] text-[13px] font-medium transition-colors sm:flex-none',
             value === v
               ? 'bg-primary text-white shadow-sm'
               : 'text-text-2 hover:text-foreground',
@@ -217,7 +263,7 @@ export function DatePresetBar({
 }) {
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="col-span-2 grid grid-cols-3 gap-1 sm:col-span-1 sm:flex sm:flex-wrap sm:items-center">
         {presets.map((p) => (
           <button
             key={p}
@@ -237,7 +283,7 @@ export function DatePresetBar({
       <DateRangePicker
         aria-label="Custom date range"
         className={cn(
-          'h-8 w-full sm:w-[240px] text-xs',
+          'col-span-2 h-8 w-full text-xs sm:col-span-1 sm:w-[240px]',
           preset === 'custom' && 'border-primary',
         )}
         value={preset === 'custom' ? custom : {}}

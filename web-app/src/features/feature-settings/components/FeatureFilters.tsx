@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { Search, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,41 +53,43 @@ export function FeatureFilters({
           className="h-9 pl-9"
         />
       </div>
-      <FormSelect
-        value={filters.module}
-        onValueChange={(module) => setFilters({ module })}
-        options={[
-          { value: 'all', label: 'All modules' },
-          ...modules.map((m) => ({ value: m, label: moduleLabel(m) })),
-        ]}
-        containerClassName="w-44"
-      />
-      <FormSelect
-        value={filters.status}
-        onValueChange={(status) =>
-          setFilters({ status: status as FeatureStatusFilter })
-        }
-        options={STATUS_OPTIONS}
-        containerClassName="w-36"
-      />
-      {count > 0 && (
-        <>
-          <Badge variant="secondary" className="tabular-nums">
-            {count} filter{count === 1 ? '' : 's'}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-text-3"
-            onClick={() => {
-              setSearch('')
-              clearFilters()
-            }}
-          >
-            <X className="size-3.5" /> Clear all filters
-          </Button>
-        </>
-      )}
+      <CollapsibleFilters className="w-full sm:contents" activeCount={count}>
+        <FormSelect
+          value={filters.module}
+          onValueChange={(module) => setFilters({ module })}
+          options={[
+            { value: 'all', label: 'All modules' },
+            ...modules.map((m) => ({ value: m, label: moduleLabel(m) })),
+          ]}
+          containerClassName="w-full sm:w-44"
+        />
+        <FormSelect
+          value={filters.status}
+          onValueChange={(status) =>
+            setFilters({ status: status as FeatureStatusFilter })
+          }
+          options={STATUS_OPTIONS}
+          containerClassName="w-full sm:w-36"
+        />
+        {count > 0 && (
+          <>
+            <Badge variant="secondary" className="tabular-nums">
+              {count} filter{count === 1 ? '' : 's'}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-text-3"
+              onClick={() => {
+                setSearch('')
+                clearFilters()
+              }}
+            >
+              <X className="size-3.5" /> Clear all filters
+            </Button>
+          </>
+        )}
+      </CollapsibleFilters>
       <span className="ml-auto pr-1 text-xs text-text-3">{resultLabel}</span>
     </div>
   )

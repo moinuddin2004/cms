@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { ClipboardList, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -117,29 +118,37 @@ export function PlanTemplatesPage() {
             className="pl-9"
           />
         </div>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-64" aria-label="Filter by category">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {PLAN_TEMPLATE_CATEGORY_OPTIONS.map((c) => (
-              <SelectItem key={c.value} value={c.value}>
-                {c.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {activeFilters > 0 && (
-          <>
-            <Badge variant="secondary">
-              {activeFilters} filter{activeFilters > 1 ? 's' : ''}
-            </Badge>
-            <Button variant="ghost" size="sm" onClick={clearFilters}>
-              <X className="size-3.5" /> Clear all filters
-            </Button>
-          </>
-        )}
+        <CollapsibleFilters
+          className="w-full sm:contents"
+          activeCount={activeFilters}
+        >
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger
+              className="w-full sm:w-64"
+              aria-label="Filter by category"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {PLAN_TEMPLATE_CATEGORY_OPTIONS.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {activeFilters > 0 && (
+            <>
+              <Badge variant="secondary">
+                {activeFilters} filter{activeFilters > 1 ? 's' : ''}
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="size-3.5" /> Clear all filters
+              </Button>
+            </>
+          )}
+        </CollapsibleFilters>
       </div>
 
       {isLoading ? (

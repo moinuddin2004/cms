@@ -171,7 +171,7 @@ export function MappingsTab() {
         filters={
           <Select value={labId} onValueChange={setLabId}>
             <SelectTrigger
-              className="h-9 w-44"
+              className="h-9 w-full sm:w-44"
               aria-label="Filter mappings by lab"
             >
               <SelectValue />

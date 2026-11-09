@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { ColumnDef } from '@/components/shared/table-features'
 import {
@@ -508,29 +509,34 @@ export function InvoicesPage() {
               )}
             </div>
 
-            <DatePresetBar
-              presets={['today', 'month', 'past30', 'all']}
-              preset={preset}
-              custom={custom}
-              onChange={(p, c) => {
-                setPreset(p)
-                setCustom(c)
-                setPage(1)
-              }}
-              fallback="all"
-            />
+            <CollapsibleFilters
+              className="w-full sm:contents"
+              activeCount={hasActiveFilters ? 1 : 0}
+            >
+              <DatePresetBar
+                presets={['today', 'month', 'past30', 'all']}
+                preset={preset}
+                custom={custom}
+                onChange={(p, c) => {
+                  setPreset(p)
+                  setCustom(c)
+                  setPage(1)
+                }}
+                fallback="all"
+              />
 
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-8 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <RotateCcw size={13} className="mr-1.5" />
-                Reset
-              </Button>
-            )}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <RotateCcw size={13} className="mr-1.5" />
+                  Reset
+                </Button>
+              )}
+            </CollapsibleFilters>
 
             {total > 0 && (
               <div className="ml-auto text-xs text-muted-foreground">

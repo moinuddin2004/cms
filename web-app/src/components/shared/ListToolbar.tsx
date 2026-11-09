@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ViewToggle } from '@/components/shared'
+import { CollapsibleFilters } from '@/components/shared/CollapsibleFilters'
 import type { ViewMode } from '@/components/shared'
 
 /**
@@ -63,11 +64,11 @@ export function ListToolbar({
 
       {/* Row 2: filters (wraps on mobile) */}
       {(filters || activeFilters > 0) && (
-        <div className="flex flex-wrap items-center gap-2">
+        <CollapsibleFilters activeCount={activeFilters}>
           {filters}
 
           {activeFilters > 0 && (
-            <>
+            <div className="col-span-2 flex items-center gap-2">
               <Badge variant="secondary" className="tabular-nums">
                 {activeFilters} filter{activeFilters === 1 ? '' : 's'}
               </Badge>
@@ -79,9 +80,9 @@ export function ListToolbar({
               >
                 <X className="size-3.5" /> Clear all filters
               </Button>
-            </>
+            </div>
           )}
-        </div>
+        </CollapsibleFilters>
       )}
     </div>
   )

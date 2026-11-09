@@ -175,7 +175,7 @@ export function RolesPage() {
               value={kind}
               onValueChange={(v) => setKind(v as RoleKindFilter)}
             >
-              <SelectTrigger className="h-9 w-36" aria-label="Filter by type">
+              <SelectTrigger className="h-9 w-full sm:w-36" aria-label="Filter by type">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -205,7 +205,7 @@ export function LabDirectoryPage() {
                 }}
               >
                 <SelectTrigger
-                  className="h-9 w-36"
+                  className="h-9 w-full sm:w-36"
                   aria-label="Filter by status"
                 >
                   <SelectValue />
@@ -223,7 +223,7 @@ export function LabDirectoryPage() {
                   setPage(1)
                 }}
               >
-                <SelectTrigger className="h-9 w-36" aria-label="Filter by type">
+                <SelectTrigger className="h-9 w-full sm:w-36" aria-label="Filter by type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

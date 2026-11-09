@@ -251,7 +251,7 @@ export function PaymentsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-8 w-full sm:w-8"
                   aria-label="Receipt actions"
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -364,7 +364,7 @@ export function PaymentsPage() {
             tooltip="Print refund"
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-8 w-full sm:w-8"
             onClick={() =>
               printDocument('refund', row.original.id).catch(toastBillingError)
             }
@@ -452,7 +452,7 @@ export function PaymentsPage() {
                   tooltip="Previous day"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-7"
+                  className="h-8 w-full sm:w-7"
                   onClick={() => goTo(shift(day, -1))}
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -461,7 +461,7 @@ export function PaymentsPage() {
                   tooltip="Next day"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-7"
+                  className="h-8 w-full sm:w-7"
                   disabled={day >= today}
                   onClick={() => goTo(shift(day, 1))}
                 >
@@ -493,7 +493,7 @@ export function PaymentsPage() {
           }
           right={
             <OptionSelect
-              className="h-8 w-[170px] text-xs"
+              className="h-8 w-full sm:w-[170px] text-xs"
               value={accountId}
               onChange={(v) => {
                 setAccountId(v)
@@ -679,7 +679,7 @@ export function CashCloseHistory() {
               tooltip="Print slip"
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-full sm:w-8"
               onClick={() => print(row.original.id)}
             >
               <Printer className="h-4 w-4 text-muted-foreground" />
