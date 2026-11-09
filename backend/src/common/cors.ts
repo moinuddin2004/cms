@@ -29,6 +29,17 @@ export function tauriOrigins(): string[] {
   return configured.length ? configured : DEFAULT_TAURI_ORIGINS;
 }
 
+/**
+ * Origin the desktop shell presents while running `tauri dev`: the webview
+ * loads the Vite dev server, so its Origin is `http://localhost:3000`, not a
+ * Tauri one (`TAURI_DEV_ORIGIN` overrides). Never accepted in production.
+ */
+export function tauriDevOrigins(): string[] {
+  if (process.env.NODE_ENV === 'production') return [];
+  const configured = envList(process.env.TAURI_DEV_ORIGIN);
+  return configured.length ? configured : [DEFAULT_WEB_ORIGIN];
+}
+
 /** Web app origin(s) + the desktop shell. */
 export function allowedOrigins(): string[] {
   const configured = envList(process.env.CORS_ORIGIN);

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.levo.clinic-management",
   "build": {
-    "beforeDevCommand": "npm --prefix ../web-app run dev -- --strictPort",
+    "beforeDevCommand": "npm --prefix ../web-app run dev -- --strictPort --host",
     "devUrl": "http://localhost:3000",
     "beforeBuildCommand": "npm --prefix ../web-app run build",
     "frontendDist": "../../web-app/.output/public"
@@ -18,7 +18,9 @@
         "minWidth": 1024,
         "minHeight": 700,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "decorations": false,
+        "shadow": true
       }
     ],
     "security": {

@@ -634,3 +634,78 @@ select:-webkit-autofill {
 [data-sidebar-preview='brand'] [data-logo='dark'] {
   display: block;
 }
+
+/* Smooth light/dark switch: useTheme adds .theme-transition for a moment
+   when the user changes the mode (never on first paint). */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition:
+    background-color 300ms ease,
+    border-color 300ms ease,
+    color 300ms ease,
+    fill 300ms ease,
+    stroke 300ms ease,
+    box-shadow 300ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition: none !important;
+  }
+}
+
+/* View-transition cross-fade used by the theme switch (see useTheme). */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 400ms;
+  animation-timing-function: ease-in-out;
+}
+
+/* ============================================================
+   Desktop (Tauri) shell — frameless window (components/layout/
+   DesktopFrame.tsx). Coloured circular window controls float over
+   the top-right corner; nothing is reserved for them. Bars under
+   them add `.desktop-controls-inset`; a panel that reaches that
+   corner adds `.desktop-below-controls`.
+   ============================================================ */
+:root {
+  --traffic-close: #ff5f57;
+  --traffic-minimize: #febc2e;
+  --traffic-zoom: #28c840;
+}
+
+html[data-desktop] {
+  --window-controls-w: 5rem;
+}
+
+html[data-desktop] .desktop-controls-inset {
+  padding-right: calc(1rem + var(--window-controls-w));
+}
+
+@media (min-width: 40rem) {
+  html[data-desktop] .desktop-controls-inset {
+    padding-right: calc(1.5rem + var(--window-controls-w));
+  }
+}
+
+@media (min-width: 64rem) {
+  html[data-desktop] .desktop-below-controls {
+    padding-top: 2.75rem;
+  }
+
+  html[data-desktop] .desktop-below-controls > aside {
+    top: 2.75rem;
+    height: calc(100dvh - 2.75rem - 0.75rem);
+  }
+}

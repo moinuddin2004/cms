@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { tauriOrigins } from '../common/cors';
+import { tauriDevOrigins, tauriOrigins } from '../common/cors';
 
 /**
  * Native clients can't rely on the httpOnly refresh cookie, so they get the
@@ -9,7 +9,8 @@ import { tauriOrigins } from '../common/cors';
  * Only for requests that announce themselves as a native app AND either carry
  * no `Origin` header (mobile, which talks to the API directly) or carry a
  * Tauri origin (desktop, whose webview sets that header itself — a script in
- * a web page can never forge it). This is what stops a browser page from
+ * a web page can never forge it; `tauri dev` loads the dev server, so outside
+ * production its origin is accepted too). This is what stops a browser page from
  * reading the refresh token out of a response.
  */
 export const CLIENT_TYPE_HEADER = 'x-client-type';
@@ -24,8 +25,12 @@ export function isNativeClient(req: Request): boolean {
   const origin = req.headers.origin;
   // A native app talks to the API itself: no Origin header at all.
   if (!origin) return true;
-  // The desktop shell is a webview: it sends a Tauri origin.
-  return type === 'desktop' && tauriOrigins().includes(origin);
+  // The desktop shell is a webview: it sends a Tauri origin (or, under
+  // `tauri dev` only, the dev server's origin).
+  return (
+    type === 'desktop' &&
+    (tauriOrigins().includes(origin) || tauriDevOrigins().includes(origin))
+  );
 }
 
 /** The refresh header value, for native clients only. */

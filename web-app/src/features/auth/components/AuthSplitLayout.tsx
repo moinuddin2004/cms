@@ -35,7 +35,7 @@ export function AuthSplitLayout({ children }: { children: ReactNode }) {
         </footer>
       </div>
 
-      <div className="relative hidden p-3 pl-0 lg:block">
+      <div className="desktop-below-controls relative hidden p-3 pl-0 lg:block">
         <aside className="auth-brand-surface sticky top-3 flex h-[calc(100dvh-24px)] flex-col overflow-hidden rounded-[30px] p-9 xl:p-12">
           <div className="auth-grid pointer-events-none absolute inset-0" />
           <div className="pointer-events-none absolute -left-24 -top-32 size-[420px] rounded-full bg-white/10 blur-3xl" />

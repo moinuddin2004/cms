@@ -24,6 +24,7 @@ import { useTheme } from '@/hooks/useTheme'
 import { useTrackNavHistory } from '@/hooks/useBackNavigation'
 import { ThemeProvider, THEME_CSS_CACHE_KEY } from '@/features/theme'
 import { AppLoadingScreen } from '@/components/shared/AppLoadingScreen'
+import { DesktopFrame } from '@/components/layout/DesktopFrame'
 import appCss from '../styles.css?url'
 
 const PUBLIC_PATHS = [
@@ -159,6 +160,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  return (
+    <DesktopFrame>
+      <AppRoot />
+    </DesktopFrame>
+  )
+}
+
+function AppRoot() {
   const {
     isAuthenticated,
     setAuth,

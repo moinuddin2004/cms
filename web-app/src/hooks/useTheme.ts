@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { flushSync } from 'react-dom'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -40,6 +41,42 @@ function getSystemPreference(): 'light' | 'dark' {
     : 'light'
 }
 
+let transitionTimer: number | undefined
+
+/**
+ * Run a theme change so the switch fades instead of flashing.
+ * `change` must apply the new theme to the DOM synchronously (state updates
+ * inside it are flushed), so the browser's "before" snapshot is still the
+ * old theme.
+ */
+function withSmoothTransition(change: () => void) {
+  const html = document.documentElement
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (reduce) {
+    change()
+    return
+  }
+  // Best: the browser cross-fades a snapshot of the whole page.
+  const doc = document as Document & {
+    startViewTransition?: (cb: () => void) => { finished: Promise<void> }
+  }
+  if (typeof doc.startViewTransition === 'function') {
+    // Element colour transitions (hover styles etc.) would keep animating
+    // underneath the cross-fade; freeze them so it is one clean fade.
+    html.classList.add('theme-switching')
+    const vt = doc.startViewTransition(change)
+    vt.finished.finally(() => html.classList.remove('theme-switching'))
+    return
+  }
+  html.classList.add('theme-transition')
+  change()
+  window.clearTimeout(transitionTimer)
+  transitionTimer = window.setTimeout(
+    () => html.classList.remove('theme-transition'),
+    350,
+  )
+}
+
 function applyTheme(theme: Theme) {
   const resolved = theme === 'system' ? getSystemPreference() : theme
   const html = document.documentElement
@@ -58,13 +95,18 @@ export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getStoredTheme)
 
   const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme)
     try {
       localStorage.setItem(STORAGE_KEY, newTheme)
     } catch {
       // storage unavailable — the choice lasts for this page only
     }
-    applyTheme(newTheme)
+    // The DOM change AND the React re-render (icons, labels) both happen
+    // inside the transition — otherwise the mount effect below applies the
+    // new theme before the "old" snapshot is taken and nothing fades.
+    withSmoothTransition(() => {
+      applyTheme(newTheme)
+      flushSync(() => setThemeState(newTheme))
+    })
   }, [])
 
   // Apply theme on mount

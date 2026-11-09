@@ -38,7 +38,10 @@ export function Topbar() {
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen)
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur-md sm:px-6">
+    <header
+      data-tauri-drag-region
+      className="desktop-controls-inset sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur-md sm:px-6"
+    >
       {/* Left: menu (phones/tablets) + workspace identity */}
       <div className="flex items-center gap-2.5">
         <TooltipButton
