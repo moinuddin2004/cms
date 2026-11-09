@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DateTimePicker } from '@/components/ui/date-time-picker'
 import {
@@ -20,6 +22,7 @@ import {
   ChevronLeft,
   CalendarPlus,
   SkipForward,
+  Footprints,
 } from 'lucide-react'
 import type { AppointmentType, Doctor } from '@/features/appointments/types'
 import {
@@ -31,6 +34,7 @@ import { useDoctors } from '@/features/appointments/hooks/useDoctors'
 import { cn } from '@/lib/utils'
 import { FORM_STEPS } from '../types'
 import { useFirstAppointmentForm } from '../hooks/useFirstAppointmentForm'
+import { useFirstWalkIn } from '../hooks/useFirstWalkIn'
 
 // All steps including the appointment booking step
 const ALL_STEPS = [...FORM_STEPS.map((s) => s.title), 'Book Appointment']
@@ -53,6 +57,9 @@ export function AddAppointmentStep({
   const { data: doctors = [] } = useDoctors()
   const { form, validation, applySuggestion, isPending } =
     useFirstAppointmentForm({ patientId, onDone })
+
+  const walkIn = useFirstWalkIn({ patientId, onDone })
+  const [mode, setMode] = useState<'book' | 'walkin'>('book')
 
   const activeStep = ALL_STEPS.length - 1 // last step
 
@@ -100,8 +107,144 @@ export function AddAppointmentStep({
         ))}
       </div>
 
+      {/* ── Book a slot, or put the patient straight in the queue ── */}
+      <div
+        role="tablist"
+        aria-label="How is the patient being seen"
+        className="flex overflow-hidden rounded-lg border border-border text-xs"
+      >
+        {(
+          [
+            { key: 'book', icon: CalendarPlus, label: 'Book appointment' },
+            { key: 'walkin', icon: Footprints, label: 'Walk-in (queue now)' },
+          ] as const
+        ).map(({ key, icon: Icon, label }) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={mode === key}
+            onClick={() => setMode(key)}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-1.5 px-3 py-2 font-medium transition-colors',
+              mode === key
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:bg-accent',
+            )}
+          >
+            <Icon className="size-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'walkin' && (
+        <div className="space-y-4">
+          <div className="space-y-4 rounded-lg border border-border p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+              Walk-in
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Patient</Label>
+                <div className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground">
+                  {patientName}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  Doctor <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={walkIn.doctorId}
+                  onValueChange={walkIn.setDoctorId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select doctor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {doctors.map((d: Doctor) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.fullName} — {d.designation}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="walkin-reason">Reason for visit</Label>
+              <Input
+                id="walkin-reason"
+                value={walkIn.reason}
+                onChange={(e) => walkIn.setReason(e.target.value)}
+                placeholder="Optional"
+              />
+            </div>
+            <label className="flex h-9 cursor-pointer items-center gap-2.5 text-sm">
+              <Switch
+                checked={walkIn.urgent}
+                onCheckedChange={walkIn.setUrgent}
+              />
+              Urgent
+            </label>
+            {walkIn.urgent && (
+              <Input
+                value={walkIn.urgentReason}
+                onChange={(e) => walkIn.setUrgentReason(e.target.value)}
+                placeholder="Why is it urgent? *"
+                aria-label="Urgent reason"
+              />
+            )}
+            {walkIn.message && (
+              <div className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <span>{walkIn.message}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              disabled={walkIn.isPending}
+              className="gap-1.5"
+            >
+              <ChevronLeft size={15} /> Back
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onSkip}
+                disabled={walkIn.isPending}
+                className="gap-1.5 text-muted-foreground"
+              >
+                <SkipForward size={15} />
+                Skip
+              </Button>
+              <Button
+                type="button"
+                disabled={!walkIn.canSubmit || walkIn.isPending}
+                onClick={() => void walkIn.submit(!!walkIn.message)}
+                className="gap-1.5"
+              >
+                {walkIn.isPending ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <Footprints size={15} />
+                )}
+                {walkIn.message ? 'Add anyway' : 'Add to queue'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Form ── */}
       <form
+        className={mode === 'walkin' ? 'hidden' : undefined}
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()

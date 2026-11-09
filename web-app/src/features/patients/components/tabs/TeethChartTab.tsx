@@ -67,7 +67,7 @@ export function TeethChartTab({ patient }: { patient: Patient }) {
       <div
         className={`space-y-4 ${isAdding ? 'xl:col-span-3' : 'xl:col-span-2'}`}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Stethoscope className="text-primary" size={20} />

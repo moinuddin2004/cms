@@ -20,15 +20,16 @@ export function ConsentsTab({ patient }: { patient: Patient }) {
 
   return (
     <div className="space-y-4 mt-4 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-60">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <FileSignature className="text-primary" size={20} />
             Legal Consents
           </h3>
-          <p className="mt-2 inline-flex items-center gap-2 rounded-md border border-amber/30 bg-amber-soft px-2.5 py-1.5 text-xs text-amber">
-            <AlertTriangle size={14} /> Consents are immutable. Once signed and
-            captured, they cannot be deleted or modified.
+          <p className="mt-2 inline-flex items-start gap-2 rounded-md border border-amber/30 bg-amber-soft px-2.5 py-1.5 text-xs text-amber">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" /> Consents are
+            immutable. Once signed and captured, they cannot be deleted or
+            modified.
           </p>
         </div>
         <Can perm="patients.clinical.edit">

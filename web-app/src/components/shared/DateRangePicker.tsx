@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   endOfMonth,
   endOfYear,
@@ -30,6 +30,21 @@ export interface DateRangeValue {
 export interface DateRangePreset {
   label: string
   range: () => DateRangeValue
+}
+
+/** One month on phones (two stacked months are taller than the screen). */
+function useTwoMonths() {
+  const q = '(min-width: 640px)'
+  const [wide, setWide] = useState(
+    () => typeof window === 'undefined' || window.matchMedia(q).matches,
+  )
+  useEffect(() => {
+    const m = window.matchMedia(q)
+    const on = () => setWide(m.matches)
+    m.addEventListener('change', on)
+    return () => m.removeEventListener('change', on)
+  }, [])
+  return wide
 }
 
 // Anchor at noon so timezone math never rolls the day over.
@@ -113,6 +128,7 @@ export function DateRangePicker({
   'aria-label'?: string
 }) {
   const [open, setOpen] = useState(false)
+  const twoMonths = useTwoMonths()
   // First click of a new range; the second click completes it.
   const [anchor, setAnchor] = useState<Date | null>(null)
 
@@ -198,7 +214,7 @@ export function DateRangePicker({
       <PopoverContent
         align={align}
         collisionPadding={8}
-        className="flex w-auto max-w-[calc(100vw-1rem)] flex-col p-0 sm:flex-row"
+        className="flex max-h-[var(--radix-popover-content-available-height)] w-auto max-w-[calc(100vw-1rem)] flex-col overflow-y-auto p-0 sm:flex-row"
       >
         {presets.length > 0 && (
           <div className="flex flex-wrap gap-1 border-b border-border p-2 sm:w-36 sm:flex-col sm:flex-nowrap sm:border-b-0 sm:border-r">
@@ -221,7 +237,7 @@ export function DateRangePicker({
         <div>
           <Calendar
             mode="range"
-            numberOfMonths={2}
+            numberOfMonths={twoMonths ? 2 : 1}
             selected={selected}
             onDayClick={onDayClick}
             today={today()}

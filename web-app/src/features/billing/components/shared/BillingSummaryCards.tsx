@@ -1,9 +1,16 @@
 import { AlertCircle, FileClock, PiggyBank, Wallet } from 'lucide-react'
-import { StatCard } from '@/components/shared'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 import type { PatientBillingSummary } from '../../types/billing.types'
+import { StatsStrip } from './list-toolbar'
+
+const TONES = {
+  primary: { color: 'text-primary-text', bg: 'bg-primary-soft' },
+  amber: { color: 'text-amber', bg: 'bg-amber-soft' },
+  danger: { color: 'text-danger', bg: 'bg-danger-soft' },
+  emerald: { color: 'text-emerald', bg: 'bg-emerald-soft' },
+} as const
 
 const CARDS = [
   {
@@ -24,7 +31,8 @@ const CARDS = [
 
 /**
  * The four numbers reception needs about a patient (plan §8.3). Full size
- * uses the project's StatCard; `compact` is a slim strip for the sheet.
+ * is the same compact stats strip as Appointments; `compact` is a slim
+ * strip for the sheet.
  */
 export function BillingSummaryCards({
   summary,
@@ -64,24 +72,15 @@ export function BillingSummaryCards({
     )
   }
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-      {CARDS.map((c) => (
-        <StatCard
-          key={c.key}
-          label={c.label}
-          icon={c.icon}
-          iconTone={c.tone}
-          value={
-            isLoading || !summary ? (
-              <Skeleton className="h-6 w-20" />
-            ) : (
-              <span className="tabular-nums">
-                {formatCurrency(summary[c.key])}
-              </span>
-            )
-          }
-        />
-      ))}
-    </div>
+    <StatsStrip
+      isLoading={isLoading || !summary}
+      items={CARDS.map((c) => ({
+        key: c.key,
+        label: c.label,
+        icon: c.icon,
+        ...TONES[c.tone],
+        value: formatCurrency(summary?.[c.key] ?? 0),
+      }))}
+    />
   )
 }
