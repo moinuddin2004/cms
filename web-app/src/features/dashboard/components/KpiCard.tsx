@@ -16,7 +16,7 @@ interface KpiCardProps {
   loading?: boolean
 }
 
-export const KpiCard = memo(function KpiCard({
+export const KpiCard = memo(function KpiCardImpl({
   title,
   value,
   icon: Icon,

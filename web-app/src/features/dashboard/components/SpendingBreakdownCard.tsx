@@ -14,7 +14,7 @@ interface SpendingBreakdownCardProps {
   data: SpendingData
 }
 
-export const SpendingBreakdownCard = memo(function SpendingBreakdownCard({
+export const SpendingBreakdownCard = memo(function SpendingBreakdownCardImpl({
   data,
 }: SpendingBreakdownCardProps) {
   const [period, setPeriod] = useState<ChartPeriod>('6 month')

@@ -45,7 +45,7 @@ function TrendTooltip({
 }
 
 /** Visits per bucket, split into returning (solid) and first visits (light). */
-export const ClinicTrendChart = memo(function ClinicTrendChart({
+export const ClinicTrendChart = memo(function ClinicTrendChartImpl({
   data,
 }: {
   data: Point[]

@@ -15,7 +15,7 @@ import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
 import { UserFormDialog } from './components/UserFormDialog'
 
 export const UserManagementView = forwardRef<{ create: () => void }>(
-  function UserManagementView(_props, ref) {
+  function UserManagementViewImpl(_props, ref) {
     const { activeOrganizationId } = useAuthStore()
     const { can, isSuperAdmin, isOwner } = useAccess()
     const [activeTab, setActiveTab] = useState<UserRoleType>(

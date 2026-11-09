@@ -20,7 +20,7 @@ interface Props {
   data: TopProcedure[]
 }
 
-export const TopProceduresCard = memo(function TopProceduresCard({
+export const TopProceduresCard = memo(function TopProceduresCardImpl({
   data,
 }: Props) {
   const max = Math.max(1, ...data.map((p) => p.revenue))

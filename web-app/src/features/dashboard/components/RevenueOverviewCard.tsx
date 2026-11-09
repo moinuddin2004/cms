@@ -99,7 +99,7 @@ function Figure({
 }
 
 /** Month totals on top, six-month revenue vs expenses bars below. */
-export const RevenueOverviewCard = memo(function RevenueOverviewCard({
+export const RevenueOverviewCard = memo(function RevenueOverviewCardImpl({
   trend,
   monthly,
   monthLabel,

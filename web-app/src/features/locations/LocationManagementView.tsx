@@ -44,7 +44,7 @@ export interface Location {
 }
 
 export const LocationManagementView = forwardRef<{ create: () => void }>(
-  function LocationManagementView(_props, ref) {
+  function LocationManagementViewImpl(_props, ref) {
     const { isSuperAdmin, setLocationTimezone } = useAuthStore()
     const queryClient = useQueryClient()
     const [isFormOpen, setIsFormOpen] = useState(false)

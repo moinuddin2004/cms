@@ -53,7 +53,7 @@ function TrendTooltip({
 }
 
 /** 12 months: revenue and cost bars with the net-profit line. */
-export const FinanceTrendChart = memo(function FinanceTrendChart({
+export const FinanceTrendChart = memo(function FinanceTrendChartImpl({
   data,
 }: {
   data: Point[]

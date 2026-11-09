@@ -47,7 +47,7 @@ export interface Organization {
 }
 
 export const OrganizationManagementView = forwardRef<{ create: () => void }>(
-  function OrganizationManagementView(_props, ref) {
+  function OrganizationManagementViewImpl(_props, ref) {
     const queryClient = useQueryClient()
     const [isFormOpen, setIsFormOpen] = useState(false)
     const [orgToEdit, setOrgToEdit] = useState<Organization | null>(null)
