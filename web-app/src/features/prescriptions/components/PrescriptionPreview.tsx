@@ -48,9 +48,9 @@ export function PrescriptionPreview({
   // Lazy-load the Nastaliq font once.
   useUrduFont()
 
-  const styling = (template?.styling ?? {})
-  const header = (template?.header ?? {})
-  const footer = (template?.footer ?? {})
+  const styling = template?.styling ?? {}
+  const header = template?.header ?? {}
+  const footer = template?.footer ?? {}
 
   const primary = styling.primaryColor ?? '#0d9488'
   const showUrdu = styling.showMedicineUrdu !== false

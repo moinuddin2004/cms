@@ -1,10 +1,9 @@
 import { useMemo } from 'react'
 import {
-  
   AppointmentStatus,
-  STATUS_BG_COLORS
+  STATUS_BG_COLORS,
 } from '@/features/appointments/types'
-import type {Appointment} from '@/features/appointments/types';
+import type { Appointment } from '@/features/appointments/types'
 import { useAppointmentStore } from '@/store/appointment-store'
 import {
   dateToYmd,
@@ -30,10 +29,10 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0)
 
-    const startEmptyCells = firstDay.getDay() // 0 for Sunday
+    const startEmpty = firstDay.getDay() // 0 for Sunday
     const daysInMonth = lastDay.getDate()
 
-    const days = Array.from({ length: daysInMonth }, (_, i) => {
+    const monthDays = Array.from({ length: daysInMonth }, (_, i) => {
       const date = new Date(year, month, i + 1)
       const ymd = dateToYmd(date)
       // Bucket by the clinic calendar day the appointment starts on.
@@ -43,7 +42,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
       return { date, appointments: dayAppts }
     })
 
-    return { days, startEmptyCells }
+    return { days: monthDays, startEmptyCells: startEmpty }
   }, [appointments, selectedDate])
 
   const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -69,7 +68,7 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
           <div key={`empty-${i}`} className="border-r border-b bg-muted/30" />
         ))}
 
-        {days.map(({ date, appointments }) => {
+        {days.map(({ date, appointments: dayAppointments }) => {
           const isToday = dateToYmd(date) === today
 
           return (
@@ -87,15 +86,15 @@ export function MonthlyGrid({ appointments, selectedDate }: MonthlyGridProps) {
                 >
                   {date.getDate()}
                 </span>
-                {appointments.length > 0 && (
+                {dayAppointments.length > 0 && (
                   <span className="text-[10px] text-muted-foreground">
-                    {appointments.length} appts
+                    {dayAppointments.length} appts
                   </span>
                 )}
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-1 pr-1 pb-1">
-                {appointments.slice(0, 4).map((appt) => {
+                {dayAppointments.slice(0, 4).map((appt) => {
                   const statusClass =
                     STATUS_BG_COLORS[appt.status] || STATUS_BG_COLORS.scheduled
                   const isCancelled =

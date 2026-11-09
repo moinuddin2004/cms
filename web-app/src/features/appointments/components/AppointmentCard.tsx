@@ -20,12 +20,11 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  
   AppointmentStatus,
   NOT_ARRIVED_STATUSES,
-  STATUS_BG_COLORS
+  STATUS_BG_COLORS,
 } from '@/features/appointments/types'
-import type {Appointment} from '@/features/appointments/types';
+import type { Appointment } from '@/features/appointments/types'
 import {
   useCancelAppointment,
   useNoShow,

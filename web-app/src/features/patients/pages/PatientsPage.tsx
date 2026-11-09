@@ -81,9 +81,9 @@ export function PatientsPage() {
   const { data, isLoading, isError, refetch } = usePatients(params)
 
   const updateParam = useCallback(
-    <K extends keyof PatientListParams>(
-      key: K,
-      value: PatientListParams[K],
+    <TKey extends keyof PatientListParams>(
+      key: TKey,
+      value: PatientListParams[TKey],
     ) => {
       setParams((prev) => ({
         ...prev,

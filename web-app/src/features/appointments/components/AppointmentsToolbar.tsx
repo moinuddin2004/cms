@@ -1,5 +1,5 @@
-import { useMemo  } from 'react'
-import type {ReactNode} from 'react';
+import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import {
   ChevronLeft,
   ChevronRight,
@@ -111,7 +111,7 @@ export function AppointmentsToolbar({
       d.setDate(anchor.getDate() - center + i)
       return d
     })
-  }, [selectedYMD, stripDays]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedYMD, stripDays])
 
   const stepPrev =
     onStepPrev ??

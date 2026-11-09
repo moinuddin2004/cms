@@ -1,6 +1,6 @@
 import { memo } from 'react'
-import { TrendingUp, TrendingDown  } from 'lucide-react'
-import type {LucideIcon} from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 

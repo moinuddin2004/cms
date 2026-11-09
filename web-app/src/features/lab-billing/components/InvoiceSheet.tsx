@@ -81,7 +81,8 @@ export function InvoiceSheet({
 
   /** What the line costs the patient: the typed price, else the list price. */
   const priceOf = (o: Option, v: InvoiceValues) => {
-    const typed = v.prices[o.id]?.trim()
+    const prices: Record<string, string | undefined> = v.prices
+    const typed = prices[o.id]?.trim()
     return (typed ? rupeesToMinor(typed) : null) ?? o.priceMinor
   }
 
@@ -124,9 +125,10 @@ export function InvoiceSheet({
     initial,
     subtotalOf: (v) => pick(v).reduce((a, o) => a + priceOf(o, v), 0),
     onSubmit: async (v) => {
+      const prices: Record<string, string | undefined> = v.prices
       await onSave({
         lines: pick(v).map((o) => {
-          const typed = v.prices[o.id]?.trim()
+          const typed = prices[o.id]?.trim()
           const unitPriceMinor = typed
             ? (rupeesToMinor(typed) ?? undefined)
             : undefined

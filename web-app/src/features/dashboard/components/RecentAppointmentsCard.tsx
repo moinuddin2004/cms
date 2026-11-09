@@ -14,11 +14,10 @@ import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/formatters'
 import { formatInClinic, formatTime } from '@/lib/datetime'
 import {
-  
   AppointmentStatus,
-  STATUS_BG_COLORS
+  STATUS_BG_COLORS,
 } from '@/features/appointments/types'
-import type {Appointment} from '@/features/appointments/types';
+import type { Appointment } from '@/features/appointments/types'
 
 interface Props {
   data: Appointment[]
@@ -41,9 +40,8 @@ function fmtDay(iso: string): string {
   return formatInClinic(iso, 'EEE, MMM d')
 }
 
-export const RecentAppointmentsCard = memo(function RecentAppointmentsCard({
-  data,
-}: Props) {
+export const RecentAppointmentsCard = memo(
+  function RecentAppointmentsCardComponent({ data }: Props) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -99,7 +97,7 @@ export const RecentAppointmentsCard = memo(function RecentAppointmentsCard({
                       {a.doctor?.fullName ?? '—'}
                     </TableCell>
                     <TableCell className="capitalize text-muted-foreground">
-                      {a.type?.replace(/_/g, ' ') ?? '—'}
+                      {a.type.replace(/_/g, ' ')}
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -109,7 +107,7 @@ export const RecentAppointmentsCard = memo(function RecentAppointmentsCard({
                           STATUS_BG_COLORS[a.status],
                         )}
                       >
-                        {STATUS_LABELS[a.status] ?? a.status}
+                        {STATUS_LABELS[a.status]}
                       </Badge>
                     </TableCell>
                   </TableRow>

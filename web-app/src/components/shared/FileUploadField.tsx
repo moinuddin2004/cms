@@ -62,8 +62,8 @@ export function FileUploadField({
     e.preventDefault()
     setDragging(false)
     if (disabled) return
-    const f = e.dataTransfer.files?.[0]
-    if (f) select(f)
+    const files = e.dataTransfer.files
+    if (files.length > 0) select(files[0])
   }
 
   return (

@@ -16,10 +16,9 @@ import {
   EditEmployeeSheet,
   useEmployees,
   useSetEmployeeStatus,
-  useDeleteEmployee
-  
+  useDeleteEmployee,
 } from '@/features/employees'
-import type {Employee} from '@/features/employees';
+import type { Employee } from '@/features/employees'
 import { InviteLinkButton, JoinRequestsButton } from '@/features/clinic-access'
 
 export function EmployeesPage() {

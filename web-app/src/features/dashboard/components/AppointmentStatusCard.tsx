@@ -20,10 +20,8 @@ const SEGMENTS: Array<{
   { key: 'cancelled', label: 'Cancelled', color: '#ef4444' },
 ]
 
-export const AppointmentStatusCard = memo(function AppointmentStatusCard({
-  stats,
-  periodLabel = 'This month',
-}: Props) {
+export const AppointmentStatusCard = memo(
+  function AppointmentStatusCardComponent({ stats, periodLabel = 'This month' }: Props) {
   const total = stats.total || 0
 
   return (

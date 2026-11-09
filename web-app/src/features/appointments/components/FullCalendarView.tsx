@@ -13,12 +13,10 @@ import type {
 } from '@fullcalendar/core'
 import { toast } from 'sonner'
 import {
-  
-  
   AppointmentStatus,
-  NOT_ARRIVED_STATUSES
+  NOT_ARRIVED_STATUSES,
 } from '@/features/appointments/types'
-import type {Appointment, Doctor} from '@/features/appointments/types';
+import type { Appointment, Doctor } from '@/features/appointments/types'
 import type { AvailabilityBlock } from '@/features/appointments/services/appointments.api'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { useUpdateAppointment } from '@/features/appointments/hooks/useUpdateAppointment'
@@ -264,7 +262,9 @@ export function FullCalendarView({
 
   const handleEventClick = useCallback(
     (clickInfo: EventClickArg) => {
-      const appt = clickInfo.event.extendedProps.appointment as Appointment
+      const appt = clickInfo.event.extendedProps.appointment as
+        | Appointment
+        | undefined
       if (appt) {
         // Open the read-only detail modal first; doctors can jump to Edit
         // or the patient record from there.
@@ -276,7 +276,9 @@ export function FullCalendarView({
 
   const handleEventDrop = useCallback(
     async (dropInfo: EventDropArg) => {
-      const appt = dropInfo.event.extendedProps.appointment as Appointment
+      const appt = dropInfo.event.extendedProps.appointment as
+        | Appointment
+        | undefined
       if (!appt) return
 
       const newStart = dropInfo.event.start
@@ -311,7 +313,9 @@ export function FullCalendarView({
 
   const handleEventResize = useCallback(
     async (resizeInfo: any) => {
-      const appt = resizeInfo.event.extendedProps.appointment as Appointment
+      const appt = resizeInfo.event.extendedProps.appointment as
+        | Appointment
+        | undefined
       if (!appt) return
 
       const newStart = resizeInfo.event.start
@@ -384,8 +388,7 @@ export function FullCalendarView({
       const isTimeGrid =
         eventInfo.view.type.includes('timeGrid') ||
         eventInfo.view.type.includes('TimeGrid')
-      const statusLabel =
-        STATUS_LABELS[appt.status] || appt.status
+      const statusLabel = STATUS_LABELS[appt.status] || appt.status
       const colors = getStatusColors(appt.status)
 
       if (isTimeGrid) {

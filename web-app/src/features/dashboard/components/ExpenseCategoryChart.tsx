@@ -27,7 +27,7 @@ interface Props {
   data: ExpenseCategoryPoint[]
 }
 
-export const ExpenseCategoryChart = memo(function ExpenseCategoryChart({
+export const ExpenseCategoryChart = memo(function ExpenseCategoryChartComponent({
   data,
 }: Props) {
   const total = data.reduce((s, d) => s + d.amount, 0)

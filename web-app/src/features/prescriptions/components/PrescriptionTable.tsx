@@ -1,10 +1,10 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import type {ColumnDef} from '@/components/shared/table-features';
+import type { ColumnDef } from '@/components/shared/table-features'
 import { formatDistanceToNow } from 'date-fns'
 import { Eye, Stethoscope } from 'lucide-react'
-import { DataTable  } from '@/components/shared/DataTable'
-import type {ServerPagination} from '@/components/shared/DataTable';
+import { DataTable } from '@/components/shared/DataTable'
+import type { ServerPagination } from '@/components/shared/DataTable'
 import { InitialsAvatar } from '@/components/shared'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import type { Prescription, PrescriptionStatus } from '../types'

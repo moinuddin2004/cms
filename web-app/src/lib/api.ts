@@ -1,4 +1,5 @@
-import axios, type { AxiosError , type InternalAxiosRequestConfig } from 'axios';
+import axios from 'axios'
+import type { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/useAuthStore'
 import type { SignInBlockCode } from '@/store/useAuthStore'
 import {
@@ -137,9 +138,9 @@ apiClient.interceptors.response.use(
     return response
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & {
-      _retry?: boolean
-    }
+    const originalRequest = error.config as
+      | (InternalAxiosRequestConfig & { _retry?: boolean })
+      | undefined
 
     // The clinic stopped being usable mid-session (rejected, or its sign-in
     // policy changed): mark it so the root guard shows /clinic-access.

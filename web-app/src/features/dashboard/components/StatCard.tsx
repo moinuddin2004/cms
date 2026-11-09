@@ -20,21 +20,21 @@ interface StatCardProps {
   icon: string
 }
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, React.ElementType | undefined> = {
   users: Users,
   'calendar-check': CalendarCheck,
   'dollar-sign': DollarSign,
   smile: Smile,
 }
 
-const iconBgMap: Record<string, string> = {
+const iconBgMap: Record<string, string | undefined> = {
   users: 'bg-primary/10 text-primary',
   'calendar-check': 'bg-purple-50 text-purple-600',
   'dollar-sign': 'bg-green-50 text-green-600',
   smile: 'bg-amber-50 text-amber-600',
 }
 
-export const StatCard = memo(function StatCard({
+export const StatCard = memo(function StatCardComponent({
   title,
   value,
   subLabel,

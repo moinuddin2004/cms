@@ -280,11 +280,9 @@ describe('THEME-13 builder', () => {
     expect(await screen.findByText(/very light/i)).toBeTruthy()
     await waitFor(() =>
       expect(
-        (
-          screen.getByRole('button', {
-            name: 'Save theme',
-          })
-        ).disabled,
+        screen.getByRole('button', {
+          name: 'Save theme',
+        }).disabled,
       ).toBe(false),
     )
 
@@ -352,10 +350,7 @@ describe('NAV-12 builder', () => {
 
     // Hide a page and rename another through the controls.
     fireEvent.click(screen.getByRole('switch', { name: 'Hide Patients' }))
-    expect(
-      (screen.getByRole('button', { name: 'Save' }))
-        .disabled,
-    ).toBe(false)
+    expect(screen.getByRole('button', { name: 'Save' }).disabled).toBe(false)
     expect(screen.getByText('You have unsaved changes.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(api.put).toHaveBeenCalled())

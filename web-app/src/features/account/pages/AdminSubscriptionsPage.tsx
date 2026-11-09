@@ -77,8 +77,8 @@ const toTarget = (r: AdminSubscriptionRow): ApprovalTarget => ({
   email: r.organization.email,
   phone: r.organization.phone,
   createdAt: r.createdAt,
-  status: r.approval?.status ?? 'approved',
-  note: r.approval?.note ?? null,
+  status: r.approval.status,
+  note: r.approval.note,
 })
 
 function PaymentInstructionsSheet({
@@ -166,7 +166,7 @@ function ClinicCard({
   onManage: () => void
   onReview: () => void
 }) {
-  const approval = row.approval?.status ?? 'approved'
+  const approval = row.approval.status
   return (
     <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -219,7 +219,7 @@ export function AdminSubscriptionsPage() {
 
   const rows = list.data?.clinics ?? []
   const pendingCount = rows.filter(
-    (r) => r.approval?.status === 'pending',
+    (r) => r.approval.status === 'pending',
   ).length
   const filtered = useMemo(
     () =>
@@ -228,14 +228,13 @@ export function AdminSubscriptionsPage() {
           (r) =>
             (!q || r.organization.name.toLowerCase().includes(q)) &&
             (status === 'all' || r.state.status === status) &&
-            (approval === 'all' ||
-              (r.approval?.status ?? 'approved') === approval),
+            (approval === 'all' || r.approval.status === approval),
         )
         // Clinics waiting for approval first.
         .sort(
           (a, b) =>
-            Number(b.approval?.status === 'pending') -
-            Number(a.approval?.status === 'pending'),
+            Number(b.approval.status === 'pending') -
+            Number(a.approval.status === 'pending'),
         ),
     [rows, q, status, approval],
   )
@@ -267,9 +266,9 @@ export function AdminSubscriptionsPage() {
       {
         id: 'approval',
         header: 'Approval',
-        accessorFn: (r) => r.approval?.status ?? 'approved',
+        accessorFn: (r) => r.approval.status,
         cell: ({ row }) => (
-          <ApprovalBadge status={row.original.approval?.status ?? 'approved'} />
+          <ApprovalBadge status={row.original.approval.status} />
         ),
       },
       {
@@ -309,7 +308,7 @@ export function AdminSubscriptionsPage() {
           <div className="flex justify-end gap-1">
             <TooltipButton
               tooltip={
-                row.original.approval?.status === 'approved'
+                row.original.approval.status === 'approved'
                   ? 'Approval: revoke or review'
                   : 'Review sign-up'
               }

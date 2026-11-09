@@ -35,7 +35,7 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-export const AppointmentsTable = memo(function AppointmentsTable({
+export const AppointmentsTable = memo(function AppointmentsTableComponent({
   data,
 }: AppointmentsTableProps) {
   const columns = useMemo<ColumnDef<Appointment, unknown>[]>(

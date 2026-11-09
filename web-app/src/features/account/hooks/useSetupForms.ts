@@ -37,7 +37,7 @@ export function clinicDefaults(
     phone: c?.phone ?? '',
     email: c?.email ?? '',
     website: c?.website ?? '',
-    specialtyTags: c?.specialtyTags?.length ? c.specialtyTags : ['general'],
+    specialtyTags: c?.specialtyTags.length ? c.specialtyTags : ['general'],
     timezone: c?.timezone ?? 'Asia/Karachi',
     currency: c?.currency ?? 'PKR',
   }

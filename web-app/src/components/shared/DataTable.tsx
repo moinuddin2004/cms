@@ -197,7 +197,7 @@ function DataTableInner<TData extends RowData>({
                   key={i}
                   className="border-b border-border-soft dark:border-border"
                 >
-                  {columns.map((_, j) => (
+                  {columns.map((col, j) => (
                     <TableCell key={j} className="px-4 py-3">
                       <Skeleton className="h-5 w-full rounded" />
                     </TableCell>

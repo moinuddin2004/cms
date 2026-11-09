@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { uploadFile  } from '../services/uploads.api'
-import type {UploadedFileResult} from '../services/uploads.api';
+import { uploadFile } from '../services/uploads.api'
+import type { UploadedFileResult } from '../services/uploads.api'
 
 /**
  * Upload a file through the backend storage abstraction.

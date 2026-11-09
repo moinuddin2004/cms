@@ -149,7 +149,7 @@ export function medicineFromDirectory(
     dosage: m.defaultDosage ?? '1',
     frequency: m.defaultFrequency ?? '',
     frequencyTiming: [],
-    mealRelation: m.defaultMealRelation ?? MealRelation.NONE,
+    mealRelation: m.defaultMealRelation,
     duration: m.defaultDuration ?? '',
     specialInstructions: null,
     specialInstructionsUrdu: m.instructionsUrdu,

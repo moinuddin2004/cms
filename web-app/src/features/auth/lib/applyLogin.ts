@@ -50,7 +50,7 @@ export function homeAfterLogin(d: LoginPayload): string {
   if (
     isLabOnlyUser({
       isSuperAdmin: d.isSuperAdmin,
-      accessibleOrganizations: d.accessibleOrganizations ?? [],
+      accessibleOrganizations: d.accessibleOrganizations,
       labMemberships: d.labMemberships ?? [],
     })
   ) {
@@ -64,7 +64,7 @@ export function homeAfterLogin(d: LoginPayload): string {
 
 /** Axios error → the API's message (first one for validation arrays). */
 export function apiErrorMessage(err: unknown, fallback: string): string {
-  const msg = (err as { response?: { data?: { message?: unknown } } })?.response
+  const msg = (err as { response?: { data?: { message?: unknown } } }).response
     ?.data?.message
   if (Array.isArray(msg)) return String(msg[0])
   return typeof msg === 'string' && msg ? msg : fallback

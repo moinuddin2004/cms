@@ -52,7 +52,7 @@ function CustomTooltip({
   )
 }
 
-export const AnalyticsChartCard = memo(function AnalyticsChartCard({
+export const AnalyticsChartCard = memo(function AnalyticsChartCardComponent({
   title,
   data,
 }: AnalyticsChartCardProps) {

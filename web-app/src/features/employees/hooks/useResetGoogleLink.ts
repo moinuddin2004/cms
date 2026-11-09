@@ -17,7 +17,7 @@ export function useResetGoogleLink() {
     },
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message
+        .response?.data?.message
       toast.error(msg || 'Could not reset Google sign-in')
     },
   })

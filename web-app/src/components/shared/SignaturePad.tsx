@@ -34,7 +34,7 @@ interface SignaturePadProps {
  * `ref.current.toBlob()` → upload → store the returned URL.
  */
 export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
-  function SignaturePad({ height = 180, className, disabled }, ref) {
+  function SignaturePadComponent({ height = 180, className, disabled }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const drawing = useRef(false)
     const hasDrawn = useRef(false)
@@ -72,7 +72,6 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
       resizeCanvas()
       window.addEventListener('resize', resizeCanvas)
       return () => window.removeEventListener('resize', resizeCanvas)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const pos = (e: React.PointerEvent<HTMLCanvasElement>) => {

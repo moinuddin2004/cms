@@ -214,12 +214,12 @@ function RootComponent() {
             user,
             accessToken,
             refreshToken,
-            isSuperAdmin,
+            isSuperAdmin: isSuper,
             accessSource,
             requiresOrgSelection: reqOrgSel,
             requiresLocationSelection: reqLocSel,
-            accessibleOrganizations,
-            activeOrganizationId,
+            accessibleOrganizations: accessOrgs,
+            activeOrganizationId: actOrgId,
             activeLocationId: actLocId,
             labMemberships: labs,
           } = res.data.data
@@ -231,12 +231,12 @@ function RootComponent() {
           setAuth({
             user,
             accessToken,
-            isSuperAdmin,
+            isSuperAdmin: isSuper,
             accessSource,
             requiresOrgSelection: reqOrgSel,
             requiresLocationSelection: reqLocSel,
-            accessibleOrganizations,
-            activeOrganizationId,
+            accessibleOrganizations: accessOrgs,
+            activeOrganizationId: actOrgId,
             activeLocationId: actLocId,
             labMemberships: labs,
           })
@@ -257,7 +257,7 @@ function RootComponent() {
     }
 
     tryRestoreSession()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Route protection + location context validation
   useEffect(() => {

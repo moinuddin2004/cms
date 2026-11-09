@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 import {
-  
-  
   HOURS,
   HOUR_HEIGHT,
-  MINUTE_HEIGHT
+  MINUTE_HEIGHT,
 } from '@/features/appointments/types'
-import type {Appointment, Doctor} from '@/features/appointments/types';
+import type { Appointment, Doctor } from '@/features/appointments/types'
 import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'

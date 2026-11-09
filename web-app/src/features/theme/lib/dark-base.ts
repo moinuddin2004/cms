@@ -87,7 +87,7 @@ export function deriveDarkBase(
   preset: DarkBase,
   brandColor: string,
 ): DarkBaseTokens {
-  const p = PRESETS[preset] ?? PRESETS.tinted
+  const p = PRESETS[preset]
   let h = 0
   let c = p.chroma
   if (p.hue === 'brand') {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Can } from '@/features/access'
-import type {ColumnDef} from '@/components/shared/table-features';
+import type { ColumnDef } from '@/components/shared/table-features'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import {
@@ -45,15 +45,17 @@ import {
   useConfirmAppointment,
   useNoShow,
 } from '../hooks/useAppointmentActions'
-import { CheckInDialog  } from '@/features/queue'
-import type {CheckInTarget} from '@/features/queue';
+import { CheckInDialog } from '@/features/queue'
+import type { CheckInTarget } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
-import type { AppointmentListParams,
+import type {
+  AppointmentListParams,
   type Appointment,
   AppointmentStatus,
   NOT_ARRIVED_STATUSES,
   QUEUE_STATUS_LABELS,
-  STATUS_BG_COLORS } from '../types'
+  STATUS_BG_COLORS,
+} from '../types'
 
 // ─── Date preset helpers ──────────────────────────────────────────────
 

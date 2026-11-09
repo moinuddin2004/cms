@@ -97,7 +97,7 @@ function routeCan(file: string): string | string[] {
   const src = readFileSync(join(__dirname, '../../../routes', file), 'utf8')
   const m = /staticData:\s*\{\s*can:\s*(\[[^\]]*\]|'[^']*')/.exec(src)
   if (!m) throw new Error(`${file} declares no staticData.can`)
-  return (JSON.parse(m[1].replace(/'/g, '"')) as string | string[]) ?? ''
+  return JSON.parse(m[1].replace(/'/g, '"')) as string | string[]
 }
 
 describe('NAV — sidebar', () => {

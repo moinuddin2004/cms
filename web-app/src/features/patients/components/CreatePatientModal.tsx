@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { PatientForm } from './PatientForm'
 import { AddAppointmentStep } from './AddAppointmentStep'
 import { useCreatePatient } from '../hooks/useCreatePatient'
-import { FORM_STEPS  } from '../types'
-import type {PatientFormData} from '../types';
+import { FORM_STEPS } from '../types'
+import type { PatientFormData } from '../types'
 import { usePatientStore } from '@/store/patient-store'
 
 interface CreatePatientModalProps {
@@ -26,7 +26,7 @@ export function CreatePatientModal({
 
   const handlePatientSubmit = async (data: PatientFormData) => {
     const newPatient = await createMutation.mutateAsync(data)
-    if (newPatient?.id) {
+    if (newPatient.id) {
       setCreatedPatient({ id: newPatient.id, fullName: newPatient.fullName })
     }
   }

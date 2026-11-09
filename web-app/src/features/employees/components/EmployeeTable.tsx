@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import type {ColumnDef} from '@/components/shared/table-features';
+import type { ColumnDef } from '@/components/shared/table-features'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -10,8 +10,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { DataTable  } from '@/components/shared/DataTable'
-import type {ServerPagination} from '@/components/shared/DataTable';
+import { DataTable } from '@/components/shared/DataTable'
+import type { ServerPagination } from '@/components/shared/DataTable'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import type { Employee } from '../types'
 import { EmployeeAvatar } from './EmployeeAvatar'

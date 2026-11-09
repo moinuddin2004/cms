@@ -175,7 +175,7 @@ export function useCreateTreatment() {
     onSuccess: (treatment, { patientId }) => {
       queryClient.invalidateQueries({ queryKey: keys.treatments(patientId) })
       queryClient.invalidateQueries({ queryKey: keys.history(patientId) })
-      if (treatment?.encounterId) {
+      if (treatment.encounterId) {
         queryClient.invalidateQueries({
           queryKey: keys.encounter(treatment.encounterId),
         })

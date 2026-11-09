@@ -71,7 +71,7 @@ export function useRecordPaymentForm(
   })
   useEffect(() => {
     form.reset(paymentDefaults(sub))
-  }, [sub?.organization.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sub?.organization.id])
   return { form, record }
 }
 
@@ -113,6 +113,6 @@ export function useUpdateSubscriptionForm(
   })
   useEffect(() => {
     form.reset(planDefaults(sub))
-  }, [sub]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sub])
   return { form, update }
 }

@@ -39,7 +39,7 @@ import { PAYMENT_METHOD_LABEL, STATUS_LABEL, STATUS_TONE } from '../types'
 import type { AdminSubscription, PaymentMethod, PlanKey } from '../types'
 
 function errorMessage(err: unknown) {
-  const msg = (err as { response?: { data?: { message?: unknown } } })?.response
+  const msg = (err as { response?: { data?: { message?: unknown } } }).response
     ?.data?.message
   return Array.isArray(msg)
     ? String(msg[0])

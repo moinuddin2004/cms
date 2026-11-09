@@ -37,10 +37,9 @@ import {
   AppointmentStatus,
   NOT_ARRIVED_STATUSES,
   QUEUE_STATUS_LABELS,
-  STATUS_BG_COLORS
-  
+  STATUS_BG_COLORS,
 } from '../types'
-import type {Appointment} from '../types';
+import type { Appointment } from '../types'
 import {
   useCancelAppointment,
   useConfirmAppointment,
