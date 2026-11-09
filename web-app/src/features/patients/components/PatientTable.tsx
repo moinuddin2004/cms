@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { type ColumnDef } from '@/components/shared/table-features'
+import type {ColumnDef} from '@/components/shared/table-features';
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/tooltip'
 import { Can } from '@/features/access/components/Can'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
+import { DataTable  } from '@/components/shared/DataTable'
+import type {ServerPagination} from '@/components/shared/DataTable';
 import { InitialsAvatar, StatusBadge } from '@/components/shared'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import type { Patient } from '../types'

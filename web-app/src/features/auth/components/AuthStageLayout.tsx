@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { useClinicTheme } from '@/features/theme'
-import {
-  AuthDayPreview,
-  AuthFeatureList,
-  AuthThemeToggle,
-} from './AuthShared'
+import { AuthDayPreview, AuthFeatureList, AuthThemeToggle } from './AuthShared'
 
 /**
  * Immersive brand field with the form as a floating surface. The most
@@ -41,8 +37,8 @@ export function AuthStageLayout({ children }: { children: ReactNode }) {
             <em className="text-white/80">Admin second.</em>
           </h1>
           <p className="mt-6 max-w-[470px] text-[15px] leading-relaxed text-white/75">
-            The schedule, the charts, the invoices and the numbers that tell
-            you how the week went &mdash; all in one clinic workspace.
+            The schedule, the charts, the invoices and the numbers that tell you
+            how the week went &mdash; all in one clinic workspace.
           </p>
 
           <AuthDayPreview className="mt-10 max-w-[470px] -rotate-1" />

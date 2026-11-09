@@ -25,10 +25,7 @@ import { useQueuePermissions } from '../hooks/useQueuePermissions'
 import { fieldError } from '../utils/fieldError'
 
 type MinuteField =
-  | 'earlyWindowMin'
-  | 'lateGraceMin'
-  | 'maxLateMin'
-  | 'walkinStarvationMin'
+  'earlyWindowMin' | 'lateGraceMin' | 'maxLateMin' | 'walkinStarvationMin'
 
 const MINUTE_FIELDS: { name: MinuteField; label: string; hint: string }[] = [
   {

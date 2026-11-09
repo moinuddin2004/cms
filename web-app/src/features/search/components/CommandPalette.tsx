@@ -163,7 +163,10 @@ export function CommandPalette() {
                       <Icon />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm">
-                          <Highlight text={it.title} query={search.debouncedQuery} />
+                          <Highlight
+                            text={it.title}
+                            query={search.debouncedQuery}
+                          />
                         </div>
                         {it.subtitle && (
                           <div className="truncate text-xs text-muted-foreground">
@@ -233,7 +236,11 @@ export function CommandPalette() {
             {matchedPages.length > 0 && (
               <CommandGroup heading="Pages">
                 {matchedPages.map((p) => (
-                  <CommandItem key={p.id} value={p.id} onSelect={() => goStatic(p)}>
+                  <CommandItem
+                    key={p.id}
+                    value={p.id}
+                    onSelect={() => goStatic(p)}
+                  >
                     <p.icon />
                     <Highlight text={p.label} query={typed} />
                   </CommandItem>
@@ -248,7 +255,11 @@ export function CommandPalette() {
                 )}
                 <CommandGroup heading="Actions">
                   {matchedActions.map((a) => (
-                    <CommandItem key={a.id} value={a.id} onSelect={() => goStatic(a)}>
+                    <CommandItem
+                      key={a.id}
+                      value={a.id}
+                      onSelect={() => goStatic(a)}
+                    >
                       <a.icon />
                       <Highlight text={a.label} query={typed} />
                     </CommandItem>

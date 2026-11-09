@@ -25,7 +25,10 @@ export function FieldWrapper({
   return (
     <div className={cn('space-y-1.5', className)}>
       {label && (
-        <Label htmlFor={htmlFor} className="text-[13px] font-semibold text-foreground">
+        <Label
+          htmlFor={htmlFor}
+          className="text-[13px] font-semibold text-foreground"
+        >
           {label}
           {required && <span className="ml-0.5 text-danger">*</span>}
         </Label>

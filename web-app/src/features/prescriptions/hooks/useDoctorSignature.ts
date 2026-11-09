@@ -22,8 +22,10 @@ export function useMySignature() {
 export function useSaveMySignature() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (payload: { signatureImageUrl: string; signatureData?: string }) =>
-      saveMySignature(payload),
+    mutationFn: (payload: {
+      signatureImageUrl: string
+      signatureData?: string
+    }) => saveMySignature(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [MY_SIGNATURE_KEY] })
       toast.success('Signature saved')

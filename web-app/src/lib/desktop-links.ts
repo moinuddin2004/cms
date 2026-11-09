@@ -51,9 +51,8 @@ export async function initDesktopLinks(): Promise<void> {
   if (!isDesktop() || started) return
   started = true
   try {
-    const { getCurrent, onOpenUrl } = await import(
-      '@tauri-apps/plugin-deep-link'
-    )
+    const { getCurrent, onOpenUrl } =
+      await import('@tauri-apps/plugin-deep-link')
     deliver(await getCurrent())
     await onOpenUrl((urls) => deliver(urls))
   } catch {

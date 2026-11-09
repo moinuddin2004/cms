@@ -25,7 +25,11 @@ export function ThemeToggle() {
         'flex size-[38px] items-center justify-center rounded-[9px] border border-border bg-surface text-text-2 transition-colors hover:bg-panel hover:text-foreground',
       )}
     >
-      {isDark ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
+      {isDark ? (
+        <Sun className="size-[18px]" />
+      ) : (
+        <Moon className="size-[18px]" />
+      )}
     </button>
   )
 }

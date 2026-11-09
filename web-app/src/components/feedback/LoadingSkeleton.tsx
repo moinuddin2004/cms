@@ -18,7 +18,10 @@ export function LoadingSkeleton({
     return (
       <div className={cn('grid grid-cols-2 gap-4 lg:grid-cols-4', className)}>
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-surface p-[18px]">
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-surface p-[18px]"
+          >
             <Skeleton className="h-3.5 w-24" />
             <Skeleton className="mt-3 h-8 w-20" />
             <Skeleton className="mt-3 h-3 w-28" />
@@ -37,7 +40,10 @@ export function LoadingSkeleton({
         )}
       >
         {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-border bg-surface p-[18px]">
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-surface p-[18px]"
+          >
             <div className="flex items-center gap-3">
               <Skeleton className="size-[42px] rounded-full" />
               <div className="flex-1 space-y-1.5">

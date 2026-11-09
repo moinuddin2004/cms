@@ -19,7 +19,8 @@ interface AppointmentsTableProps {
 }
 
 const statusStyles: Record<AppointmentStatus, string> = {
-  Completed: 'bg-status-success/10 text-status-success border-status-success/20',
+  Completed:
+    'bg-status-success/10 text-status-success border-status-success/20',
   'No Show': 'bg-status-error/10 text-status-error border-status-error/20',
   Scheduled: 'bg-status-info/10 text-status-info border-status-info/20',
   Cancelled: 'bg-muted text-muted-foreground border-border',

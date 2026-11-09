@@ -17,9 +17,7 @@ function SessionsRouteComponent() {
 
   return (
     <DashboardLayout>
-      <PageWrapper
-        title="Active Sessions"
-      />
+      <PageWrapper title="Active Sessions" />
       <div className="mx-auto mt-5 max-w-4xl">
         <SessionManagement />
       </div>

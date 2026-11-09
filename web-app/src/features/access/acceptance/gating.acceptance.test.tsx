@@ -144,9 +144,12 @@ vi.mock('@/features/billing/components/shared/OptionSelect', () => ({
     </select>
   ),
 }))
-vi.mock('@/features/billing/components/collect-payment/CollectPaymentSheet', () => ({
-  CollectPaymentSheet: () => null,
-}))
+vi.mock(
+  '@/features/billing/components/collect-payment/CollectPaymentSheet',
+  () => ({
+    CollectPaymentSheet: () => null,
+  }),
+)
 vi.mock('@/features/billing/components/invoices/EditInvoiceSheet', () => ({
   EditInvoiceSheet: () => null,
 }))
@@ -189,7 +192,11 @@ const NO_ACCESS = 'You have no access to this page'
 
 describe('UI — route gate', () => {
   it('UI-01 RecU opens /payroll, /finance, /settings/roles → NoAccess page (not blank, not a crash)', () => {
-    for (const file of ['payroll.tsx', 'finance.tsx', 'settings.roles.index.tsx']) {
+    for (const file of [
+      'payroll.tsx',
+      'finance.tsx',
+      'settings.roles.index.tsx',
+    ]) {
       router.matches = [{ staticData: { can: routeCan(file) } }]
       const { unmount } = renderAs(
         'RecU',
@@ -199,7 +206,9 @@ describe('UI — route gate', () => {
       )
       expect(screen.queryByText('secret page')).toBeNull()
       expect(screen.getByText(NO_ACCESS)).toBeTruthy()
-      expect(screen.getByRole('link', { name: 'Go to my home page' })).toBeTruthy()
+      expect(
+        screen.getByRole('link', { name: 'Go to my home page' }),
+      ).toBeTruthy()
       unmount()
     }
     // …and the owner opens them.
@@ -259,7 +268,9 @@ describe('UI — buttons and sections follow the permission', () => {
   })
 
   it('UI-05 discount sheet: RecU limited to the preset range; AdminU may go outside', () => {
-    const sheet = <DiscountSheet chargeIds={['c1']} open onOpenChange={() => {}} />
+    const sheet = (
+      <DiscountSheet chargeIds={['c1']} open onOpenChange={() => {}} />
+    )
     const rec = renderAs('RecU', sheet)
     expect(screen.queryByLabelText('Custom discount')).toBeNull()
     fireEvent.change(screen.getByLabelText('option-select'), {
@@ -380,7 +391,11 @@ describe('UI — buttons and sections follow the permission', () => {
       theme: !!screen.queryByRole('link', { name: 'Branding & theme' }),
     })
     const rec = renderAs('RecU', <SettingsLinks />)
-    expect(links()).toEqual({ billing: false, notifications: false, theme: false })
+    expect(links()).toEqual({
+      billing: false,
+      notifications: false,
+      theme: false,
+    })
     rec.unmount()
     renderAs('AdminU', <SettingsLinks />)
     expect(links()).toEqual({ billing: true, notifications: true, theme: true })

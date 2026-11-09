@@ -49,9 +49,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
 
       // Preserve existing drawing across resizes.
       const prev =
-        hasDrawn.current && canvas.width > 0
-          ? canvas.toDataURL()
-          : null
+        hasDrawn.current && canvas.width > 0 ? canvas.toDataURL() : null
 
       const ratio = window.devicePixelRatio || 1
       const rect = canvas.getBoundingClientRect()
@@ -123,7 +121,9 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
       isEmpty: () => !hasDrawn.current,
       clear,
       toDataURL: () =>
-        hasDrawn.current ? (canvasRef.current?.toDataURL('image/png') ?? null) : null,
+        hasDrawn.current
+          ? (canvasRef.current?.toDataURL('image/png') ?? null)
+          : null,
       toBlob: () =>
         new Promise<Blob | null>((resolve) => {
           if (!hasDrawn.current || !canvasRef.current) return resolve(null)

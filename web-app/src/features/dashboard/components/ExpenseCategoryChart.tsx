@@ -1,11 +1,5 @@
 import { memo } from 'react'
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from 'recharts'
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/formatters'
 
@@ -15,14 +9,18 @@ export interface ExpenseCategoryPoint {
 }
 
 const COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#ef4444',
-  '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16',
+  '#6366f1',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#06b6d4',
+  '#ec4899',
+  '#84cc16',
 ]
 
 function prettify(c: string): string {
-  return c
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (m) => m.toUpperCase())
+  return c.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
 interface Props {
@@ -66,9 +64,7 @@ export const ExpenseCategoryChart = memo(function ExpenseCategoryChart({
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(v: any) => formatCurrency(Number(v))}
-                  />
+                  <Tooltip formatter={(v: any) => formatCurrency(Number(v))} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

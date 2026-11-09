@@ -11,7 +11,12 @@ const THEME_OPTIONS: {
   description: string
   icon: React.ElementType
 }[] = [
-  { value: 'light', label: 'Light', description: 'Clean and bright', icon: Sun },
+  {
+    value: 'light',
+    label: 'Light',
+    description: 'Clean and bright',
+    icon: Sun,
+  },
   { value: 'dark', label: 'Dark', description: 'Easy on the eyes', icon: Moon },
   {
     value: 'system',

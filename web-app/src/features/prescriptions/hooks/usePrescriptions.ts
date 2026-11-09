@@ -96,13 +96,8 @@ export function useCreatePrescription() {
 export function useUpdatePrescription() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string
-      data: UpdatePrescriptionInput
-    }) => updatePrescription(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdatePrescriptionInput }) =>
+      updatePrescription(id, data),
     onSuccess: (_, { id }) => {
       qc.invalidateQueries({ queryKey: [PRESCRIPTION_KEY, id] })
       qc.invalidateQueries({ queryKey: [PRESCRIPTIONS_KEY] })

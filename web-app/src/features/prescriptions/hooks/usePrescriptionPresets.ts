@@ -39,7 +39,8 @@ export function useCreatePrescriptionPreset() {
       qc.invalidateQueries({ queryKey: [PRESCRIPTION_PRESETS_KEY] })
       toast.success('Prescription preset saved')
     },
-    onError: (err) => toast.error(errMsg(err, 'Failed to save prescription preset')),
+    onError: (err) =>
+      toast.error(errMsg(err, 'Failed to save prescription preset')),
   })
 }
 

@@ -13,11 +13,12 @@ import type {
 } from '@fullcalendar/core'
 import { toast } from 'sonner'
 import {
-  type Appointment,
-  type Doctor,
+  
+  
   AppointmentStatus,
-  NOT_ARRIVED_STATUSES,
+  NOT_ARRIVED_STATUSES
 } from '@/features/appointments/types'
+import type {Appointment, Doctor} from '@/features/appointments/types';
 import type { AvailabilityBlock } from '@/features/appointments/services/appointments.api'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { useUpdateAppointment } from '@/features/appointments/hooks/useUpdateAppointment'
@@ -56,11 +57,16 @@ interface FullCalendarViewProps {
 
 function getCssVar(name: string): string {
   if (typeof document === 'undefined') return ''
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim()
 }
 
 function getStatusColors(status: AppointmentStatus) {
-  const map: Record<AppointmentStatus, { bg: string; border: string; text: string }> = {
+  const map: Record<
+    AppointmentStatus,
+    { bg: string; border: string; text: string }
+  > = {
     [AppointmentStatus.SCHEDULED]: {
       bg: getCssVar('--primary-soft') || '#dbeafe',
       border: getCssVar('--primary') || '#3b82f6',
@@ -297,9 +303,7 @@ export function FullCalendarView({
         )
       } catch (err: any) {
         dropInfo.revert()
-        toast.error(
-          err?.response?.data?.message || 'Failed to reschedule',
-        )
+        toast.error(err?.response?.data?.message || 'Failed to reschedule')
       }
     },
     [updateMutation],
@@ -340,7 +344,8 @@ export function FullCalendarView({
 
   const renderResourceLabel = useCallback((info: any) => {
     const resource = info.resource
-    const color = resource.extendedProps?.color || getCssVar('--primary') || '#3b82f6'
+    const color =
+      resource.extendedProps?.color || getCssVar('--primary') || '#3b82f6'
     const initials = resource.extendedProps?.initials || '?'
     const designation = resource.extendedProps?.designation || ''
 
@@ -376,10 +381,12 @@ export function FullCalendarView({
       const appt = props.appointment as Appointment | undefined
       if (!appt) return null
 
-      const isTimeGrid = eventInfo.view.type.includes('timeGrid') || eventInfo.view.type.includes('TimeGrid')
+      const isTimeGrid =
+        eventInfo.view.type.includes('timeGrid') ||
+        eventInfo.view.type.includes('TimeGrid')
       const statusLabel =
-        STATUS_LABELS[appt.status as AppointmentStatus] || appt.status
-      const colors = getStatusColors(appt.status as AppointmentStatus)
+        STATUS_LABELS[appt.status] || appt.status
+      const colors = getStatusColors(appt.status)
 
       if (isTimeGrid) {
         return (
@@ -441,8 +448,8 @@ export function FullCalendarView({
                   <p className="text-muted-foreground">
                     {formatInClinic(appt.startTime, 'hh:mm a')}
                     {' — '}
-                    {formatInClinic(appt.endTime, 'hh:mm a')}
-                    {' '}({appt.durationMinutes} min)
+                    {formatInClinic(appt.endTime, 'hh:mm a')} (
+                    {appt.durationMinutes} min)
                   </p>
                   {appt.notes && (
                     <p className="text-muted-foreground italic border-t pt-1 mt-1">

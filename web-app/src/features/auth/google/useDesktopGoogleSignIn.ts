@@ -4,7 +4,11 @@ import { toast } from 'sonner'
 import { API_BASE_URL } from '@/lib/api'
 import { onDesktopLink } from '@/lib/desktop-links'
 import { exchangeDesktopHandoff } from '../services/google.api'
-import { apiErrorMessage, homeAfterLogin, storeSession } from '../lib/applyLogin'
+import {
+  apiErrorMessage,
+  homeAfterLogin,
+  storeSession,
+} from '../lib/applyLogin'
 
 /** How long the app waits for the browser to come back. */
 const WAIT_TIMEOUT_MS = 3 * 60_000

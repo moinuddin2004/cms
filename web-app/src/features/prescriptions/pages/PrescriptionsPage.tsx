@@ -18,9 +18,10 @@ import {
   ErrorState,
   NoResultsState,
   LoadingSkeleton,
-  Pagination,
-  type ViewMode,
+  Pagination
+  
 } from '@/components/shared'
+import type {ViewMode} from '@/components/shared';
 import { cn } from '@/lib/utils'
 import {
   usePrescriptions,

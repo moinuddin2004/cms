@@ -97,170 +97,172 @@ export function LocationSelector() {
       />
 
       <div className="space-y-3">
-          {/* ── Step 1: Organization Picker ── */}
-          {step === 'org' && (
-            <>
-              {accessibleOrganizations.map((org) => (
+        {/* ── Step 1: Organization Picker ── */}
+        {step === 'org' && (
+          <>
+            {accessibleOrganizations.map((org) => (
+              <button
+                key={org.id}
+                type="button"
+                className={cn(
+                  'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left',
+                  'hover:border-primary/40 hover:bg-primary/5 cursor-pointer',
+                  selectedOrgId === org.id
+                    ? 'border-primary bg-primary/10 shadow-sm'
+                    : 'border-border bg-card',
+                )}
+                onClick={() => handleOrgSelect(org.id)}
+              >
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+                    selectedOrgId === org.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-semibold text-foreground truncate block">
+                    {org.name}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {org.locations.length} location
+                    {org.locations.length !== 1 ? 's' : ''}
+                  </span>
+                  {org.signInBlock && (
+                    <Badge variant="warning" className="mt-1 block w-fit">
+                      {clinicBlockLabel(org.signInBlock.code)}
+                    </Badge>
+                  )}
+                </div>
+                <ChevronRight className="w-5 h-5 shrink-0 text-muted-foreground/40" />
+              </button>
+            ))}
+          </>
+        )}
+
+        {/* ── Step 2: Location Picker ── */}
+        {step === 'location' && selectedOrg && (
+          <>
+            {/* Back button (only if org step existed) */}
+            {needsOrgStep && (
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
+                onClick={() => {
+                  setStep('org')
+                  setSelectedLocId(null)
+                }}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Back to organizations
+              </button>
+            )}
+
+            {/* Org header */}
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
+              <Building2 className="w-4 h-4" />
+              {selectedOrg.name}
+            </div>
+
+            {/* No locations yet — super admin needs to create one first */}
+            {selectedOrg.locations.length === 0 && (
+              <div className="flex flex-col items-center gap-4 py-8 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                  <MapPin className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    No locations yet
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Create a location for{' '}
+                    <span className="font-semibold">{selectedOrg.name}</span> to
+                    continue.
+                  </p>
+                </div>
+                <Button
+                  variant="default"
+                  className="gap-2"
+                  onClick={() => navigate({ to: '/settings/locations' })}
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Create First Location
+                </Button>
+              </div>
+            )}
+
+            {/* Location cards */}
+            {selectedOrg.locations.map((loc) => {
+              const isSelected = selectedLocId === loc.id
+              return (
                 <button
-                  key={org.id}
+                  key={loc.id}
                   type="button"
                   className={cn(
                     'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left',
                     'hover:border-primary/40 hover:bg-primary/5 cursor-pointer',
-                    selectedOrgId === org.id
+                    isSelected
                       ? 'border-primary bg-primary/10 shadow-sm'
                       : 'border-border bg-card',
                   )}
-                  onClick={() => handleOrgSelect(org.id)}
+                  onClick={() => setSelectedLocId(loc.id)}
                 >
                   <div
                     className={cn(
                       'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                      selectedOrgId === org.id
+                      isSelected
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground',
                     )}
                   >
-                    <Building2 className="w-5 h-5" />
+                    <MapPin className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="font-semibold text-foreground truncate block">
-                      {org.name}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {org.locations.length} location
-                      {org.locations.length !== 1 ? 's' : ''}
-                    </span>
-                    {org.signInBlock && (
-                      <Badge variant="warning" className="mt-1 block w-fit">
-                        {clinicBlockLabel(org.signInBlock.code)}
-                      </Badge>
-                    )}
-                  </div>
-                  <ChevronRight className="w-5 h-5 shrink-0 text-muted-foreground/40" />
-                </button>
-              ))}
-            </>
-          )}
-
-          {/* ── Step 2: Location Picker ── */}
-          {step === 'location' && selectedOrg && (
-            <>
-              {/* Back button (only if org step existed) */}
-              {needsOrgStep && (
-                <button
-                  type="button"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
-                  onClick={() => {
-                    setStep('org')
-                    setSelectedLocId(null)
-                  }}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to organizations
-                </button>
-              )}
-
-              {/* Org header */}
-              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground uppercase tracking-wide px-1">
-                <Building2 className="w-4 h-4" />
-                {selectedOrg.name}
-              </div>
-
-              {/* No locations yet — super admin needs to create one first */}
-              {selectedOrg.locations.length === 0 && (
-                <div className="flex flex-col items-center gap-4 py-8 text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <MapPin className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">No locations yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Create a location for <span className="font-semibold">{selectedOrg.name}</span> to continue.
-                    </p>
-                  </div>
-                  <Button
-                    variant="default"
-                    className="gap-2"
-                    onClick={() => navigate({ to: '/settings/locations' })}
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Create First Location
-                  </Button>
-                </div>
-              )}
-
-              {/* Location cards */}
-              {selectedOrg.locations.map((loc) => {
-                const isSelected = selectedLocId === loc.id
-                return (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    className={cn(
-                      'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-200 text-left',
-                      'hover:border-primary/40 hover:bg-primary/5 cursor-pointer',
-                      isSelected
-                        ? 'border-primary bg-primary/10 shadow-sm'
-                        : 'border-border bg-card',
-                    )}
-                    onClick={() => setSelectedLocId(loc.id)}
-                  >
-                    <div
-                      className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                        isSelected
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground',
-                      )}
-                    >
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground truncate">
-                          {loc.name}
-                        </span>
-                        {loc.isMainBranch && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-soft px-2 py-0.5 text-xs font-medium text-amber">
-                            <Star className="w-3 h-3" />
-                            Main
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {loc.code}
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-foreground truncate">
+                        {loc.name}
                       </span>
-                    </div>
-                    <ChevronRight
-                      className={cn(
-                        'w-5 h-5 shrink-0 transition-colors',
-                        isSelected
-                          ? 'text-primary'
-                          : 'text-muted-foreground/40',
+                      {loc.isMainBranch && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-soft px-2 py-0.5 text-xs font-medium text-amber">
+                          <Star className="w-3 h-3" />
+                          Main
+                        </span>
                       )}
-                    />
-                  </button>
-                )
-              })}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {loc.code}
+                    </span>
+                  </div>
+                  <ChevronRight
+                    className={cn(
+                      'w-5 h-5 shrink-0 transition-colors',
+                      isSelected ? 'text-primary' : 'text-muted-foreground/40',
+                    )}
+                  />
+                </button>
+              )
+            })}
 
-              {/* Submit button */}
-              <Button
-                className="w-full h-11 font-semibold mt-4 rounded-xl transition-all active:scale-[0.99]"
-                disabled={!selectedLocId || isSubmitting}
-                onClick={() => handleSubmit()}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Selecting...
-                  </>
-                ) : (
-                  'Continue'
-                )}
-              </Button>
-            </>
-          )}
+            {/* Submit button */}
+            <Button
+              className="w-full h-11 font-semibold mt-4 rounded-xl transition-all active:scale-[0.99]"
+              disabled={!selectedLocId || isSubmitting}
+              onClick={() => handleSubmit()}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Selecting...
+                </>
+              ) : (
+                'Continue'
+              )}
+            </Button>
+          </>
+        )}
       </div>
     </AuthLayout>
   )

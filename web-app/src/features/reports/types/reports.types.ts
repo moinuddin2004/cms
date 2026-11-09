@@ -11,12 +11,7 @@ export type ReportCategory =
   | 'operations'
   | 'clinical'
 export type ReportColumnType =
-  | 'text'
-  | 'money'
-  | 'number'
-  | 'decimal'
-  | 'date'
-  | 'percent'
+  'text' | 'money' | 'number' | 'decimal' | 'date' | 'percent'
 export type RevenueBasis = 'collected' | 'billed'
 export type ReportScopeKind = 'location' | 'organization'
 export type ExportFormat = 'xlsx' | 'pdf'
@@ -39,8 +34,7 @@ export interface ReportCatalogItem {
 }
 
 export type ReportPermission =
-  | 'reports.financial.view'
-  | 'reports.clinical.view'
+  'reports.financial.view' | 'reports.clinical.view'
 
 export interface ReportColumn {
   key: string

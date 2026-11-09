@@ -54,7 +54,7 @@ export function AppointmentFilters({
   return (
     <>
       {/* Search */}
-      <div className="relative min-w-[200px] flex-1 max-w-xs">
+      <div className="relative min-w-[160px] flex-1 max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           value={searchInput}
@@ -77,7 +77,7 @@ export function AppointmentFilters({
       {dateControls}
 
       <Select value={status} onValueChange={onStatusChange}>
-        <SelectTrigger className="h-8 w-[130px] text-xs" size="sm">
+        <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs" size="sm">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
@@ -91,7 +91,7 @@ export function AppointmentFilters({
       </Select>
 
       <Select value={type} onValueChange={onTypeChange}>
-        <SelectTrigger className="h-8 w-[120px] text-xs" size="sm">
+        <SelectTrigger className="h-8 w-full sm:w-[120px] text-xs" size="sm">
           <SelectValue placeholder="Type" />
         </SelectTrigger>
         <SelectContent>

@@ -61,7 +61,6 @@ export function FiltersBar({
         </SelectContent>
       </Select>
 
-
       {/* Employment Type Filter */}
       <Select value={employmentType} onValueChange={onEmploymentTypeChange}>
         <SelectTrigger

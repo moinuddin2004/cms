@@ -42,11 +42,7 @@ export const MANUAL_MOVEMENT_TYPES: StockMovementType[] = [
 ]
 
 export type PurchaseOrderStatus =
-  | 'DRAFT'
-  | 'ORDERED'
-  | 'PARTIALLY_RECEIVED'
-  | 'RECEIVED'
-  | 'CANCELLED'
+  'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED'
 
 // ─── Categories ─────────────────────────────────────────────────────
 export interface InventoryCategory {

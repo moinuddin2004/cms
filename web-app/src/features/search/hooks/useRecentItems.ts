@@ -3,7 +3,8 @@ import { useAuthStore } from '@/store/useAuthStore'
 import type { RecentItem } from '../types'
 
 const MAX_RECENT = 8
-const keyFor = (orgId: string | null) => `quick-search:recent:${orgId ?? 'none'}`
+const keyFor = (orgId: string | null) =>
+  `quick-search:recent:${orgId ?? 'none'}`
 
 function read(key: string): RecentItem[] {
   try {

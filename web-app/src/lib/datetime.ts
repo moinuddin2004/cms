@@ -157,7 +157,10 @@ export function formatInClinic(
 }
 
 /** A calendar date "YYYY-MM-DD" with a date-fns pattern (no tz shift). */
-export function formatYmd(ymd: string | null | undefined, pattern = 'MMM d, yyyy') {
+export function formatYmd(
+  ymd: string | null | undefined,
+  pattern = 'MMM d, yyyy',
+) {
   if (!ymd) return '—'
   const d = ymdToDate(ymd.slice(0, 10))
   return isValid(d) ? format(d, pattern) : '—'

@@ -53,9 +53,7 @@ function toneFor(status: string): Tone {
 }
 
 function humanize(status: string): string {
-  return status
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+  return status.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 interface StatusBadgeProps {
@@ -66,7 +64,12 @@ interface StatusBadgeProps {
   className?: string
 }
 
-export function StatusBadge({ status, tone, label, className }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  tone,
+  label,
+  className,
+}: StatusBadgeProps) {
   return (
     <Badge variant={tone ?? toneFor(status)} className={cn(className)}>
       {label ?? humanize(status)}

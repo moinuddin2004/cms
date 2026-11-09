@@ -71,8 +71,10 @@ describe('NumberInput', () => {
 })
 
 describe('zod number helpers', () => {
-  const msg = (r: { success: boolean; error?: { issues: { message: string }[] } }) =>
-    r.success ? undefined : r.error?.issues[0]?.message
+  const msg = (r: {
+    success: boolean
+    error?: { issues: { message: string }[] }
+  }) => (r.success ? undefined : r.error?.issues[0]?.message)
 
   it('intField checks format, range and required', () => {
     const s = intField('Days', { min: 1, max: 365 })
@@ -80,11 +82,15 @@ describe('zod number helpers', () => {
     expect(msg(s.safeParse(''))).toBe('Days is required')
     expect(msg(s.safeParse('2.5'))).toBe('Days: enter a whole number')
     expect(msg(s.safeParse('0'))).toBe('Days must be between 1 and 365')
-    expect(intField('Days', { required: false }).safeParse('').success).toBe(true)
+    expect(intField('Days', { required: false }).safeParse('').success).toBe(
+      true,
+    )
   })
 
   it('decimalField and moneyField limit decimals', () => {
-    expect(decimalField('Qty', { decimals: 3 }).safeParse('1.125').success).toBe(true)
+    expect(
+      decimalField('Qty', { decimals: 3 }).safeParse('1.125').success,
+    ).toBe(true)
     expect(msg(decimalField('Qty').safeParse('1.125'))).toBe(
       'Qty: enter a number (max 2 decimals)',
     )

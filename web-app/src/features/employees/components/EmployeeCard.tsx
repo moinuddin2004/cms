@@ -13,7 +13,15 @@ import {
 import { EmployeeAvatar } from './EmployeeAvatar'
 import { getEmploymentTypeLabel, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { Phone, Hash, MapPin, Eye, Pencil, Trash2, Banknote } from 'lucide-react'
+import {
+  Phone,
+  Hash,
+  MapPin,
+  Eye,
+  Pencil,
+  Trash2,
+  Banknote,
+} from 'lucide-react'
 import type { Employee } from '../types'
 
 interface EmployeeCardProps {
@@ -47,7 +55,10 @@ export function EmployeeCard({
         <CardContent className="p-5">
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
-            <EmployeeAvatar name={employee.fullName} className="w-10 h-10 shrink-0" />
+            <EmployeeAvatar
+              name={employee.fullName}
+              className="w-10 h-10 shrink-0"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -81,14 +92,22 @@ export function EmployeeCard({
           <div className="space-y-2 text-xs text-muted-foreground mb-4">
             {employee.phone && (
               <div className="flex items-center gap-2.5">
-                <Phone size={12} className="shrink-0 text-muted-foreground/50" />
+                <Phone
+                  size={12}
+                  className="shrink-0 text-muted-foreground/50"
+                />
                 <span>{employee.phone}</span>
               </div>
             )}
             {employee.primaryLocation && (
               <div className="flex items-center gap-2.5">
-                <MapPin size={12} className="shrink-0 text-muted-foreground/50" />
-                <span className="truncate">{employee.primaryLocation.name}</span>
+                <MapPin
+                  size={12}
+                  className="shrink-0 text-muted-foreground/50"
+                />
+                <span className="truncate">
+                  {employee.primaryLocation.name}
+                </span>
               </div>
             )}
             {employee.employeeCode && (
@@ -105,7 +124,8 @@ export function EmployeeCard({
               <Badge
                 className={cn(
                   'font-normal text-[10px] px-1.5 py-0 border',
-                  employmentTypeStyles[employee.employmentType] ?? 'bg-muted text-muted-foreground',
+                  employmentTypeStyles[employee.employmentType] ??
+                    'bg-muted text-muted-foreground',
                 )}
               >
                 {getEmploymentTypeLabel(employee.employmentType)}
@@ -127,7 +147,10 @@ export function EmployeeCard({
                 className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
                 asChild
               >
-                <Link to="/employees/$employeeId" params={{ employeeId: employee.id }}>
+                <Link
+                  to="/employees/$employeeId"
+                  params={{ employeeId: employee.id }}
+                >
                   <Eye className="h-3.5 w-3.5" />
                 </Link>
               </TooltipButton>
@@ -151,13 +174,17 @@ export function EmployeeCard({
                       disabled={isStatusPending}
                       onCheckedChange={(v) => onToggleStatus(employee, v)}
                       aria-label={
-                        employee.isActive ? 'Deactivate employee' : 'Activate employee'
+                        employee.isActive
+                          ? 'Deactivate employee'
+                          : 'Activate employee'
                       }
                     />
                   </span>
                 </TooltipTrigger>
                 <TooltipContent side="top" className="text-xs">
-                  {employee.isActive ? 'Deactivate employee' : 'Activate employee'}
+                  {employee.isActive
+                    ? 'Deactivate employee'
+                    : 'Activate employee'}
                 </TooltipContent>
               </Tooltip>
 

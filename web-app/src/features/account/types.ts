@@ -11,11 +11,7 @@ export interface Plan {
 }
 
 export type SubscriptionStatus =
-  | 'unmanaged'
-  | 'trialing'
-  | 'active'
-  | 'grace'
-  | 'expired'
+  'unmanaged' | 'trialing' | 'active' | 'grace' | 'expired'
 
 export interface SubscriptionState {
   status: SubscriptionStatus
@@ -31,12 +27,7 @@ export interface PlanLimits {
 }
 
 export type PaymentMethod =
-  | 'bank_transfer'
-  | 'jazzcash'
-  | 'easypaisa'
-  | 'cash'
-  | 'cheque'
-  | 'other'
+  'bank_transfer' | 'jazzcash' | 'easypaisa' | 'cash' | 'cheque' | 'other'
 
 export interface SubscriptionPayment {
   id: string

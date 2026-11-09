@@ -28,7 +28,9 @@ function followClinicTimezone(previous: string | undefined, next: string) {
   }
 }
 
-export function clinicDefaults(setup: ClinicSetup | undefined): SetupClinicInput {
+export function clinicDefaults(
+  setup: ClinicSetup | undefined,
+): SetupClinicInput {
   const c = setup?.clinic
   return {
     name: c?.name ?? '',

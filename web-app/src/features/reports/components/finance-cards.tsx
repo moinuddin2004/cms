@@ -11,12 +11,7 @@ import { formatCurrency } from '@/lib/formatters'
  * danger = bad, amber = needs attention, neutral = everything else.
  */
 export type Tone =
-  | 'primary'
-  | 'emerald'
-  | 'amber'
-  | 'danger'
-  | 'violet'
-  | 'neutral'
+  'primary' | 'emerald' | 'amber' | 'danger' | 'violet' | 'neutral'
 
 const BAR: Record<Tone, string> = {
   primary: 'bg-primary',

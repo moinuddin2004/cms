@@ -36,10 +36,7 @@ export interface SpendingData {
 
 /** Appointment status */
 export type AppointmentStatus =
-  | 'Completed'
-  | 'No Show'
-  | 'Scheduled'
-  | 'Cancelled'
+  'Completed' | 'No Show' | 'Scheduled' | 'Cancelled'
 
 /** Appointment record */
 export interface Appointment {

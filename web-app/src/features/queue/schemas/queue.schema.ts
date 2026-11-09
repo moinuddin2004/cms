@@ -56,8 +56,7 @@ export const walkInSchema = z
 
 export type WalkInFormValues = z.input<typeof walkInSchema>
 
-const minutes = (min: number, max: number) =>
-  intField('Minutes', { min, max })
+const minutes = (min: number, max: number) => intField('Minutes', { min, max })
 
 /** Queue settings (location override or organization default). */
 export const queuePolicySchema = z

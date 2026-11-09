@@ -10,11 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { formatInClinic } from '@/lib/datetime'
 import { useAccountSummary } from '../hooks/useAccount'
-import {
-  PAYMENT_METHOD_LABEL,
-  STATUS_LABEL,
-  STATUS_TONE,
-} from '../types'
+import { PAYMENT_METHOD_LABEL, STATUS_LABEL, STATUS_TONE } from '../types'
 import type { AccountSummary, Plan } from '../types'
 
 export const formatDay = (iso: string | null) =>
@@ -154,7 +150,9 @@ function PlansGrid({ account }: { account: AccountSummary }) {
               key={p.key}
               className={cn(
                 'rounded-lg border bg-card p-5 shadow-sm',
-                current ? 'border-primary ring-1 ring-primary' : 'border-border',
+                current
+                  ? 'border-primary ring-1 ring-primary'
+                  : 'border-border',
               )}
             >
               <div className="flex items-center justify-between">
@@ -241,7 +239,10 @@ function PaymentHistory({ account }: { account: AccountSummary }) {
                   <td className="px-4 py-2.5">
                     {PAYMENT_METHOD_LABEL[p.method]}
                     {p.reference && (
-                      <span className="text-muted-foreground"> · {p.reference}</span>
+                      <span className="text-muted-foreground">
+                        {' '}
+                        · {p.reference}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right font-medium">

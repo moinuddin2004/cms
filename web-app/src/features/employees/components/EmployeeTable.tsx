@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from '@tanstack/react-router'
-import { type ColumnDef } from '@/components/shared/table-features'
+import type {ColumnDef} from '@/components/shared/table-features';
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -10,7 +10,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
+import { DataTable  } from '@/components/shared/DataTable'
+import type {ServerPagination} from '@/components/shared/DataTable';
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import type { Employee } from '../types'
 import { EmployeeAvatar } from './EmployeeAvatar'
@@ -146,7 +147,10 @@ export function EmployeeTable({
                   className="h-8 w-8 p-0"
                   asChild
                 >
-                  <Link to="/employees/$employeeId" params={{ employeeId: e.id }}>
+                  <Link
+                    to="/employees/$employeeId"
+                    params={{ employeeId: e.id }}
+                  >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Link>
                 </TooltipButton>
@@ -168,7 +172,9 @@ export function EmployeeTable({
                         disabled={pendingStatusId === e.id}
                         onCheckedChange={(v) => onToggleStatus(e, v)}
                         aria-label={
-                          e.isActive ? 'Deactivate employee' : 'Activate employee'
+                          e.isActive
+                            ? 'Deactivate employee'
+                            : 'Activate employee'
                         }
                       />
                     </span>

@@ -59,7 +59,11 @@ export function AppointmentsPage() {
   useEffect(() => {
     if (create !== '1') return
     if (can('appointments.book')) openCreateModal()
-    void navigate({ to: '/appointments', search: { create: undefined }, replace: true })
+    void navigate({
+      to: '/appointments',
+      search: { create: undefined },
+      replace: true,
+    })
   }, [create])
   const [calendarView, setCalendarView] = useState<CalendarView>(
     'resourceTimeGridDay',
@@ -74,8 +78,11 @@ export function AppointmentsPage() {
     const d = new Date(selectedDate)
     if (calendarView === 'dayGridMonth') {
       return {
-        rangeStart: clinicDayBounds(new Date(d.getFullYear(), d.getMonth(), -7)).start,
-        rangeEnd: clinicDayBounds(new Date(d.getFullYear(), d.getMonth() + 1, 14)).end,
+        rangeStart: clinicDayBounds(new Date(d.getFullYear(), d.getMonth(), -7))
+          .start,
+        rangeEnd: clinicDayBounds(
+          new Date(d.getFullYear(), d.getMonth() + 1, 14),
+        ).end,
       }
     }
     if (

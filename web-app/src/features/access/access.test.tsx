@@ -210,9 +210,7 @@ describe('<RouteAccessGate>', () => {
     const Wrapper = withAccess(ctx(me()))
     render(<RouteAccessGate>{page}</RouteAccessGate>, { wrapper: Wrapper })
     expect(screen.queryByText('finance page')).toBeNull()
-    expect(
-      screen.getByText('You have no access to this page'),
-    ).toBeTruthy()
+    expect(screen.getByText('You have no access to this page')).toBeTruthy()
   })
 
   it('shows a skeleton (not the page, not NoAccess) while loading', () => {

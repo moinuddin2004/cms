@@ -1,5 +1,6 @@
 import { memo } from 'react'
-import { TrendingUp, TrendingDown, type LucideIcon } from 'lucide-react'
+import { TrendingUp, TrendingDown  } from 'lucide-react'
+import type {LucideIcon} from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -24,7 +25,8 @@ export const KpiCard = memo(function KpiCard({
   delta,
   loading,
 }: KpiCardProps) {
-  const hasDelta = delta !== undefined && delta !== null && Number.isFinite(delta)
+  const hasDelta =
+    delta !== undefined && delta !== null && Number.isFinite(delta)
   const up = (delta ?? 0) >= 0
 
   return (
@@ -45,7 +47,9 @@ export const KpiCard = memo(function KpiCard({
             )}
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
               {subLabel && (
-                <span className="text-xs text-muted-foreground">{subLabel}</span>
+                <span className="text-xs text-muted-foreground">
+                  {subLabel}
+                </span>
               )}
               {hasDelta && (
                 <span
@@ -57,7 +61,7 @@ export const KpiCard = memo(function KpiCard({
                   )}
                 >
                   {up ? '+' : ''}
-                  {delta!.toFixed(1)}%
+                  {delta.toFixed(1)}%
                   {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                 </span>
               )}

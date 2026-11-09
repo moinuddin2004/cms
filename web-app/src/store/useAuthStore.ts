@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export interface Organization {
   id: string
@@ -117,100 +118,16 @@ interface AuthState {
 }
 
 /**
- * Auth store — memory only, NO persist/localStorage.
- * Access token lives only in Zustand memory.
- * Refresh token lives only in httpOnly cookie (handled by browser).
+ * Auth store — persists auth context to localStorage so session survives refresh.
+ * Access token and organization context are rehydrated on page load.
  */
-export const useAuthStore = create<AuthState>()((set, get) => ({
-  user: null,
-  accessToken: null,
-  isAuthenticated: false,
-
-  isSuperAdmin: false,
-  accessSource: null,
-  requiresOrgSelection: false,
-  requiresLocationSelection: false,
-  accessibleOrganizations: [],
-  activeOrganizationId: null,
-  activeLocationId: null,
-  emailVerificationRequired: false,
-  labMemberships: [],
-  activeLabId: null,
-
-  setAuth: (data) => {
-    const labs = data.labMemberships ?? []
-    const current = get().activeLabId
-    set({
-      user: {
-        uuid: data.user.uuid || data.user.userUuid || '',
-        email: data.user.email,
-        name: data.user.name,
-        globalRole: data.user.globalRole || null,
-        avatarUrl: data.user.avatarUrl,
-        emailVerificationPending: data.user.emailVerificationPending ?? false,
-        emailVerificationDueAt: data.user.emailVerificationDueAt ?? null,
-      },
-      accessToken: data.accessToken,
-      isAuthenticated: true,
-      isSuperAdmin: data.isSuperAdmin || false,
-      accessSource: data.accessSource || null,
-      requiresOrgSelection: data.requiresOrgSelection || false,
-      requiresLocationSelection: data.requiresLocationSelection || false,
-      accessibleOrganizations: data.accessibleOrganizations || [],
-      activeOrganizationId: data.activeOrganizationId || null,
-      activeLocationId: data.activeLocationId || null,
-      labMemberships: labs,
-      // Keep the chosen lab across token refreshes while it is still valid
-      activeLabId: labs.some((l) => l.labId === current)
-        ? current
-        : (labs[0]?.labId ?? null),
-    })
-  },
-
-  setAccessToken: (token) => set({ accessToken: token }),
-
-  setLocationContext: (orgId, locId) =>
-    set({
-      activeOrganizationId: orgId,
-      activeLocationId: locId,
-      requiresOrgSelection: false,
-      requiresLocationSelection: false,
-    }),
-
-  setActiveLab: (labId) => set({ activeLabId: labId }),
-
-  setLocationTimezone: (locationId, timezone) =>
-    set((s) => ({
-      accessibleOrganizations: s.accessibleOrganizations.map((o) => ({
-        ...o,
-        locations: o.locations.map((l) =>
-          l.id === locationId ? { ...l, timezone } : l,
-        ),
-      })),
-    })),
-
-  setClinicBlock: (orgId, block) =>
-    set((s) => ({
-      accessibleOrganizations: s.accessibleOrganizations.map((o) =>
-        o.id === orgId ? { ...o, signInBlock: block } : o,
-      ),
-    })),
-
-  setEmailVerificationRequired: (required) =>
-    set({ emailVerificationRequired: required }),
-
-  requestClinicSelection: () =>
-    set({
-      requiresOrgSelection: true,
-      activeOrganizationId: null,
-      activeLocationId: null,
-    }),
-
-  clearAuth: () =>
-    set({
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
+
       isSuperAdmin: false,
       accessSource: null,
       requiresOrgSelection: false,
@@ -218,11 +135,117 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       accessibleOrganizations: [],
       activeOrganizationId: null,
       activeLocationId: null,
+      emailVerificationRequired: false,
       labMemberships: [],
       activeLabId: null,
-      emailVerificationRequired: false,
+
+      setAuth: (data) => {
+        const labs = data.labMemberships ?? []
+        const current = get().activeLabId
+        set({
+          user: {
+            uuid: data.user.uuid || data.user.userUuid || '',
+            email: data.user.email,
+            name: data.user.name,
+            globalRole: data.user.globalRole || null,
+            avatarUrl: data.user.avatarUrl,
+            emailVerificationPending:
+              data.user.emailVerificationPending ?? false,
+            emailVerificationDueAt: data.user.emailVerificationDueAt ?? null,
+          },
+          accessToken: data.accessToken,
+          isAuthenticated: true,
+          isSuperAdmin: data.isSuperAdmin || false,
+          accessSource: data.accessSource || null,
+          requiresOrgSelection: data.requiresOrgSelection || false,
+          requiresLocationSelection: data.requiresLocationSelection || false,
+          accessibleOrganizations: data.accessibleOrganizations || [],
+          activeOrganizationId: data.activeOrganizationId || null,
+          activeLocationId: data.activeLocationId || null,
+          labMemberships: labs,
+          // Keep the chosen lab across token refreshes while it is still valid
+          activeLabId: labs.some((l) => l.labId === current)
+            ? current
+            : (labs[0]?.labId ?? null),
+        })
+      },
+
+      setAccessToken: (token) => set({ accessToken: token }),
+
+      setLocationContext: (orgId, locId) =>
+        set({
+          activeOrganizationId: orgId,
+          activeLocationId: locId,
+          requiresOrgSelection: false,
+          requiresLocationSelection: false,
+        }),
+
+      setActiveLab: (labId) => set({ activeLabId: labId }),
+
+      setLocationTimezone: (locationId, timezone) =>
+        set((s) => ({
+          accessibleOrganizations: s.accessibleOrganizations.map((o) => ({
+            ...o,
+            locations: o.locations.map((l) =>
+              l.id === locationId ? { ...l, timezone } : l,
+            ),
+          })),
+        })),
+
+      setClinicBlock: (orgId, block) =>
+        set((s) => ({
+          accessibleOrganizations: s.accessibleOrganizations.map((o) =>
+            o.id === orgId ? { ...o, signInBlock: block } : o,
+          ),
+        })),
+
+      setEmailVerificationRequired: (required) =>
+        set({ emailVerificationRequired: required }),
+
+      requestClinicSelection: () =>
+        set({
+          requiresOrgSelection: true,
+          activeOrganizationId: null,
+          activeLocationId: null,
+        }),
+
+      clearAuth: () =>
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+          isSuperAdmin: false,
+          accessSource: null,
+          requiresOrgSelection: false,
+          requiresLocationSelection: false,
+          accessibleOrganizations: [],
+          activeOrganizationId: null,
+          activeLocationId: null,
+          labMemberships: [],
+          activeLabId: null,
+          emailVerificationRequired: false,
+        }),
     }),
-}))
+    {
+      name: 'cms-auth-session',
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        isAuthenticated: state.isAuthenticated,
+        isSuperAdmin: state.isSuperAdmin,
+        accessSource: state.accessSource,
+        requiresOrgSelection: state.requiresOrgSelection,
+        requiresLocationSelection: state.requiresLocationSelection,
+        accessibleOrganizations: state.accessibleOrganizations,
+        activeOrganizationId: state.activeOrganizationId,
+        activeLocationId: state.activeLocationId,
+        emailVerificationRequired: state.emailVerificationRequired,
+        labMemberships: state.labMemberships,
+        activeLabId: state.activeLabId,
+      }),
+    },
+  ),
+)
 
 /** The active clinic's block for this session, if it can't be opened. */
 export function activeClinicBlock(

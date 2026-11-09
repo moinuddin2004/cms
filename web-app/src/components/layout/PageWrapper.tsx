@@ -39,7 +39,10 @@ export function PageWrapper({
           {breadcrumbs.map((crumb, i) => {
             const isLast = i === breadcrumbs.length - 1
             return (
-              <span key={`${crumb.label}-${i}`} className="flex items-center gap-1.5">
+              <span
+                key={`${crumb.label}-${i}`}
+                className="flex items-center gap-1.5"
+              >
                 {crumb.href && !isLast ? (
                   <Link
                     to={crumb.href}
@@ -64,9 +67,7 @@ export function PageWrapper({
           <h1 className="text-lg font-bold tracking-tight text-foreground">
             {title}
           </h1>
-          {subtitle && (
-            <p className="text-xs text-text-3">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-xs text-text-3">{subtitle}</p>}
         </div>
         {actions && (
           <div className="flex max-w-full flex-wrap items-center gap-2">

@@ -272,11 +272,7 @@ export const reportsApi = {
 }
 
 export type PrintDocumentType =
-  | 'invoice'
-  | 'receipt'
-  | 'refund'
-  | 'statement'
-  | 'cash-close'
+  'invoice' | 'receipt' | 'refund' | 'statement' | 'cash-close'
 
 export const printApi = {
   /** Print payloads (9.1); shapes are consumed by the print templates. */

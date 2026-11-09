@@ -94,6 +94,23 @@ const THEME_INIT_SCRIPT = `
 })();
 `
 
+function isJwtExpired(token: string | null): boolean {
+  if (!token) return true
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return true
+    const payload = JSON.parse(
+      atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
+    )
+    return (
+      typeof payload.exp === 'number' &&
+      payload.exp * 1000 < Date.now() + 30_000
+    )
+  } catch {
+    return true
+  }
+}
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -183,7 +200,8 @@ function RootComponent() {
   // On mount, attempt silent refresh to restore session from cookie
   useEffect(() => {
     const tryRestoreSession = async () => {
-      if (isAuthenticated) {
+      const currentToken = useAuthStore.getState().accessToken
+      if (isAuthenticated && !isJwtExpired(currentToken)) {
         setIsInitializing(false)
         return
       }

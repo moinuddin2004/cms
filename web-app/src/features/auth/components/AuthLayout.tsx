@@ -23,7 +23,7 @@ function isVariant(value: unknown): value is AuthLayoutVariant {
  * (default: split). Screens can also pin a variant with the `variant` prop.
  */
 export function AuthLayout({ children, variant }: AuthLayoutProps) {
-  const search = useSearch({ strict: false }) as { auth?: string }
+  const search = useSearch({ strict: false })
   const requested = variant ?? search.auth
   const active = isVariant(requested) ? requested : 'split'
 

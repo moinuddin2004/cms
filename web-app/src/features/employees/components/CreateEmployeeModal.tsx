@@ -1,10 +1,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { EmployeeForm } from './EmployeeForm'
 import { useCreateEmployee } from '../hooks/useCreateEmployee'
 import type { EmployeeFormData } from '../types'
@@ -14,7 +10,10 @@ interface CreateEmployeeModalProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CreateEmployeeModal({ open, onOpenChange }: CreateEmployeeModalProps) {
+export function CreateEmployeeModal({
+  open,
+  onOpenChange,
+}: CreateEmployeeModalProps) {
   const createMutation = useCreateEmployee()
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -36,7 +35,12 @@ export function CreateEmployeeModal({ open, onOpenChange }: CreateEmployeeModalP
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose()
+      }}
+    >
       <DialogContent className="flex w-full sm:max-w-6xl max-h-[92vh] flex-col overflow-hidden gap-0 p-0">
         <DialogTitle className="sr-only">Add Employee</DialogTitle>
         <div className="shrink-0 border-b px-6 py-4 pr-12">

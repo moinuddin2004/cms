@@ -16,7 +16,11 @@ interface EditEmployeeSheetProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function EditEmployeeSheet({ employee, open, onOpenChange }: EditEmployeeSheetProps) {
+export function EditEmployeeSheet({
+  employee,
+  open,
+  onOpenChange,
+}: EditEmployeeSheetProps) {
   const updateMutation = useUpdateEmployee(employee.id)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -38,8 +42,16 @@ export function EditEmployeeSheet({ employee, open, onOpenChange }: EditEmployee
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) handleCancel() }}>
-      <SheetContent side="right" className="w-full sm:max-w-5xl overflow-y-auto p-0">
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleCancel()
+      }}
+    >
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-5xl overflow-y-auto p-0"
+      >
         <SheetHeader className="sr-only">
           <SheetTitle>Edit Employee</SheetTitle>
         </SheetHeader>

@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { useClinicTheme } from '@/features/theme'
-import {
-  AuthFeatureList,
-  AuthPulse,
-  AuthThemeToggle,
-} from './AuthShared'
+import { AuthFeatureList, AuthPulse, AuthThemeToggle } from './AuthShared'
 
 /**
  * Focused card: a single framed object on an ambient field. The brand half

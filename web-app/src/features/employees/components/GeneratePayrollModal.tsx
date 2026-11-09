@@ -56,8 +56,7 @@ export function GeneratePayrollModal({
       const messages: string[] = []
       if (result.generated > 0)
         messages.push(`${result.generated} payroll records created`)
-      if (result.skipped > 0)
-        messages.push(`${result.skipped} already existed`)
+      if (result.skipped > 0) messages.push(`${result.skipped} already existed`)
       if (result.noSalary.length > 0)
         messages.push(`No salary set: ${result.noSalary.join(', ')}`)
       toast.success(messages.join('\n') || 'Payroll generated')

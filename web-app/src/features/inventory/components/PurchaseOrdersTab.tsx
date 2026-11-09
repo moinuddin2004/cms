@@ -129,12 +129,8 @@ export function PurchaseOrdersTab() {
                   >
                     <TableCell className="font-medium">{po.poNumber}</TableCell>
                     <TableCell>{po.supplier?.name ?? '—'}</TableCell>
-                    <TableCell>
-                      {formatYmd(po.orderDate)}
-                    </TableCell>
-                    <TableCell>
-                      {formatYmd(po.expectedDeliveryDate)}
-                    </TableCell>
+                    <TableCell>{formatYmd(po.orderDate)}</TableCell>
+                    <TableCell>{formatYmd(po.expectedDeliveryDate)}</TableCell>
                     <TableCell className="text-center">
                       {po.itemsCount ?? po.items?.length ?? '—'}
                     </TableCell>

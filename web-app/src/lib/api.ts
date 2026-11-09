@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig, AxiosError } from 'axios'
+import axios, type { AxiosError , type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/useAuthStore'
 import type { SignInBlockCode } from '@/store/useAuthStore'
 import {

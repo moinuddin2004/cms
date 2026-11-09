@@ -1,11 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrandMark } from '@/components/layout/BrandMark'
 import { useClinicTheme } from '@/features/theme'
-import {
-  AuthDayPreview,
-  AuthFeatureList,
-  AuthThemeToggle,
-} from './AuthShared'
+import { AuthDayPreview, AuthFeatureList, AuthThemeToggle } from './AuthShared'
 
 /**
  * Split workspace: the form keeps a calm, plain surface; the brand panel

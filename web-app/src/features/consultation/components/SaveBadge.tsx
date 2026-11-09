@@ -29,11 +29,7 @@ export function SaveBadge({
         ? 'Saving…'
         : state === 'error'
           ? 'Not saved — will retry'
-          : `Saved${
-              savedAt
-                ? ` ${formatInClinic(savedAt, 'hh:mm a')}`
-                : ''
-            }`}
+          : `Saved${savedAt ? ` ${formatInClinic(savedAt, 'hh:mm a')}` : ''}`}
     </span>
   )
 }

@@ -104,7 +104,13 @@ describe('NAV — sidebar', () => {
   it('NAV-01 default sidebar per role: only items whose `can` passes; empty groups/sections hidden; clinic setup only in Settings, for admin/owner', () => {
     const seen: Record<string, (string | null)[]> = {}
     const sections: Record<string, boolean> = {}
-    for (const actor of ['Doc1', 'RecU', 'AcctU', 'OwnerA', 'AdminU'] as ActorName[]) {
+    for (const actor of [
+      'Doc1',
+      'RecU',
+      'AcctU',
+      'OwnerA',
+      'AdminU',
+    ] as ActorName[]) {
       const { unmount } = renderAs(actor, <Sidebar />)
       seen[actor] = hrefs()
       unmount()
@@ -123,7 +129,12 @@ describe('NAV — sidebar', () => {
     expect(seen.RecU).toEqual(
       expect.arrayContaining(['/billing', '/patients', '/appointments']),
     )
-    for (const h of ['/payroll', '/finance', '/settings/roles', '/queue/doctor'])
+    for (const h of [
+      '/payroll',
+      '/finance',
+      '/settings/roles',
+      '/queue/doctor',
+    ])
       expect(seen.RecU).not.toContain(h)
     // Accountant: finance + invoices; no clinical queue.
     expect(seen.AcctU).toEqual(
@@ -234,9 +245,9 @@ describe('NAV — sidebar', () => {
     const { unmount } = renderAs(meFor('RecU', { nav: layout }), <Sidebar />)
     expect(within(nav()).getByText('Cash counter')).toBeTruthy()
     expect(within(nav()).queryByText('Billing desk')).toBeNull()
-    expect(
-      document.querySelector('a[aria-current="page"]')?.textContent,
-    ).toBe('Cash counter')
+    expect(document.querySelector('a[aria-current="page"]')?.textContent).toBe(
+      'Cash counter',
+    )
     unmount()
 
     useUIStore.setState({ sidebarCollapsed: true })
@@ -244,7 +255,9 @@ describe('NAV — sidebar', () => {
     const link = document.querySelector('a[href="/billing"]')!
     expect(link.textContent).toBe('')
     fireEvent.focus(link)
-    expect((await screen.findByRole('tooltip')).textContent).toBe('Cash counter')
+    expect((await screen.findByRole('tooltip')).textContent).toBe(
+      'Cash counter',
+    )
   })
 })
 
@@ -305,7 +318,9 @@ describe('NAV — home redirect', () => {
       join(__dirname, '../../../routes/__root.tsx'),
       'utf8',
     )
-    expect(root).toMatch(/isAuthenticated && isPublicRoute && !isSelectLocationPage/)
+    expect(root).toMatch(
+      /isAuthenticated && isPublicRoute && !isSelectLocationPage/,
+    )
     expect(root).not.toMatch(/pathname === '\/dashboard'/)
     // And a Doc1 whose home is the queue is still shown the dashboard at /dashboard: it has no staticData gate.
     const ctx = accessValue(meFor('Doc1'))

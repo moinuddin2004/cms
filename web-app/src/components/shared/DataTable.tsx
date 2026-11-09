@@ -102,7 +102,10 @@ function DataTableInner<TData extends RowData>({
     },
     manualPagination: isManuallyPaginated,
     pageCount: isServerPaginated
-      ? Math.max(1, Math.ceil(serverPagination.total / serverPagination.pageSize))
+      ? Math.max(
+          1,
+          Math.ceil(serverPagination.total / serverPagination.pageSize),
+        )
       : undefined,
     onSortingChange: setSorting,
   })
@@ -126,7 +129,8 @@ function DataTableInner<TData extends RowData>({
         total: serverPagination.total,
         onPageChange: serverPagination.onPageChange,
         onLimitChange: serverPagination.onPageSizeChange,
-        pageSizeOptions: serverPagination.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS,
+        pageSizeOptions:
+          serverPagination.pageSizeOptions ?? DEFAULT_PAGE_SIZE_OPTIONS,
       }
     : {
         page: clientPageIndex + 1,
@@ -162,12 +166,21 @@ function DataTableInner<TData extends RowData>({
                         canSort &&
                           'group cursor-pointer hover:text-foreground transition-colors',
                       )}
-                      onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
+                      onClick={
+                        canSort
+                          ? header.column.getToggleSortingHandler()
+                          : undefined
+                      }
                     >
                       {header.isPlaceholder ? null : (
                         <div className="flex items-center">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
-                          {canSort && <SortIcon isSorted={header.column.getIsSorted()} />}
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                          {canSort && (
+                            <SortIcon isSorted={header.column.getIsSorted()} />
+                          )}
                         </div>
                       )}
                     </TableHead>
@@ -180,7 +193,10 @@ function DataTableInner<TData extends RowData>({
           <TableBody>
             {isLoading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
-                <TableRow key={i} className="border-b border-border-soft dark:border-border">
+                <TableRow
+                  key={i}
+                  className="border-b border-border-soft dark:border-border"
+                >
                   {columns.map((_, j) => (
                     <TableCell key={j} className="px-4 py-3">
                       <Skeleton className="h-5 w-full rounded" />
@@ -197,18 +213,26 @@ function DataTableInner<TData extends RowData>({
                     onRowClick && 'cursor-pointer',
                     getRowClassName?.(row.original),
                   )}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                  onClick={
+                    onRowClick ? () => onRowClick(row.original) : undefined
+                  }
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="px-4 py-3 text-sm">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-48 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-48 text-center"
+                >
                   <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                     <Inbox className="h-8 w-8 opacity-30" />
                     <p className="text-sm">{emptyMessage}</p>

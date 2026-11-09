@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
-import { type ColumnDef } from '@/components/shared/table-features'
-import { type User } from '../types'
+import type {ColumnDef} from '@/components/shared/table-features';
+import type {User} from '../types';
 import { Badge } from '@/components/ui/badge'
 import { TooltipButton } from '@/components/shared/TooltipButton'
-import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
+import { DataTable  } from '@/components/shared/DataTable'
+import type {ServerPagination} from '@/components/shared/DataTable';
 import {
   BadgeCheck,
   Edit,

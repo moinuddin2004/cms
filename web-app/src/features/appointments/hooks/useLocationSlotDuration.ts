@@ -18,5 +18,7 @@ export function useLocationSlotDuration(): number {
     staleTime: 5 * 60 * 1000,
   })
   const minutes = data?.appointmentSlotDuration
-  return minutes && minutes >= 5 && minutes <= 480 ? minutes : FALLBACK_SLOT_MINUTES
+  return minutes && minutes >= 5 && minutes <= 480
+    ? minutes
+    : FALLBACK_SLOT_MINUTES
 }

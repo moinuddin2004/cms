@@ -16,9 +16,10 @@ import {
   EditEmployeeSheet,
   useEmployees,
   useSetEmployeeStatus,
-  useDeleteEmployee,
-  type Employee,
+  useDeleteEmployee
+  
 } from '@/features/employees'
+import type {Employee} from '@/features/employees';
 import { InviteLinkButton, JoinRequestsButton } from '@/features/clinic-access'
 
 export function EmployeesPage() {
@@ -35,7 +36,11 @@ export function EmployeesPage() {
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
 
-  const { data: response, isLoading, isError } = useEmployees({
+  const {
+    data: response,
+    isLoading,
+    isError,
+  } = useEmployees({
     search,
     role: role || undefined,
     employmentType: employmentType || undefined,
@@ -79,16 +84,18 @@ export function EmployeesPage() {
 
   if (!activeLocationId) {
     return (
-      <PageWrapper
-        title="Employees"
-      >
+      <PageWrapper title="Employees">
         <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-center">
           <div className="rounded-full bg-amber-soft p-6">
             <AlertCircle className="size-12 text-amber" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Select a location first</h2>
-            <p className="text-text-2">You need to select a clinic location to manage employees.</p>
+            <h2 className="text-2xl font-bold tracking-tight">
+              Select a location first
+            </h2>
+            <p className="text-text-2">
+              You need to select a clinic location to manage employees.
+            </p>
           </div>
         </div>
       </PageWrapper>
@@ -116,15 +123,27 @@ export function EmployeesPage() {
           <div className="flex flex-row items-center justify-between gap-3">
             <SearchInput
               value={search}
-              onChange={(val) => { setSearch(val); setPage(1) }}
+              onChange={(val) => {
+                setSearch(val)
+                setPage(1)
+              }}
             />
             <FiltersBar
               role={role}
-              onRoleChange={(val) => { setRole(val === 'all' ? '' : val); setPage(1) }}
+              onRoleChange={(val) => {
+                setRole(val === 'all' ? '' : val)
+                setPage(1)
+              }}
               employmentType={employmentType}
-              onEmploymentTypeChange={(val) => { setEmploymentType(val === 'all' ? '' : val); setPage(1) }}
+              onEmploymentTypeChange={(val) => {
+                setEmploymentType(val === 'all' ? '' : val)
+                setPage(1)
+              }}
               status={status}
-              onStatusChange={(val) => { setStatus(val === 'all' ? '' : val); setPage(1) }}
+              onStatusChange={(val) => {
+                setStatus(val === 'all' ? '' : val)
+                setPage(1)
+              }}
               onReset={handleResetFilters}
             />
           </div>
@@ -153,7 +172,10 @@ export function EmployeesPage() {
                 pageSize: response.limit,
                 total: response.total,
                 onPageChange: setPage,
-                onPageSizeChange: (val) => { setLimit(val); setPage(1) },
+                onPageSizeChange: (val) => {
+                  setLimit(val)
+                  setPage(1)
+                },
               }}
             />
           ) : (
@@ -179,16 +201,14 @@ export function EmployeesPage() {
             </div>
             <h3 className="text-lg font-semibold">No employees found</h3>
             <p className="mt-1 max-w-sm text-sm text-text-2">
-              Get started by adding your first employee. Click the "Add Employee" button above.
+              Get started by adding your first employee. Click the "Add
+              Employee" button above.
             </p>
           </CardContent>
         </Card>
       )}
 
-      <CreateEmployeeModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-      />
+      <CreateEmployeeModal open={createOpen} onOpenChange={setCreateOpen} />
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -196,10 +216,9 @@ export function EmployeesPage() {
         title="Delete employee permanently?"
         description={
           <>
-            <strong>{deleteTarget?.fullName}</strong> and their payroll
-            records, leaves and schedules will be permanently deleted. This
-            cannot be undone. To keep the records, deactivate the employee
-            instead.
+            <strong>{deleteTarget?.fullName}</strong> and their payroll records,
+            leaves and schedules will be permanently deleted. This cannot be
+            undone. To keep the records, deactivate the employee instead.
           </>
         }
         confirmLabel="Delete permanently"

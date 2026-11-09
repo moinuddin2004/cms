@@ -1,11 +1,12 @@
 import { useMemo } from 'react'
 import {
-  type Appointment,
-  type Doctor,
+  
+  
   HOURS,
   HOUR_HEIGHT,
-  MINUTE_HEIGHT,
+  MINUTE_HEIGHT
 } from '@/features/appointments/types'
+import type {Appointment, Doctor} from '@/features/appointments/types';
 import { AppointmentCard } from './AppointmentCard'
 import { useAppointmentStore } from '@/store/appointment-store'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -73,7 +74,8 @@ export function TimelineGrid({
       .toUpperCase()
       .slice(0, 2)
 
-  const colWidth = doctors.length <= 3 ? 'minmax(220px, 1fr)' : 'minmax(180px, 1fr)'
+  const colWidth =
+    doctors.length <= 3 ? 'minmax(220px, 1fr)' : 'minmax(180px, 1fr)'
 
   return (
     <div className="flex-1 overflow-auto border rounded-xl bg-card">

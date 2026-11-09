@@ -10,7 +10,7 @@ type Status = 'verifying' | 'done' | 'failed'
 
 /** Landing page of the verification email link (`/verify-email?token=…`). */
 export function VerifyEmailPage() {
-  const search = useSearch({ strict: false }) as { token?: string }
+  const search = useSearch({ strict: false })
   const token = search.token ?? ''
   const navigate = useNavigate()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)

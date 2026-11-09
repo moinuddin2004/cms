@@ -60,7 +60,9 @@ function routeCan(file: string): unknown {
   const m = /staticData:\s*\{\s*can:\s*(\[[^\]]*\]|'[^']*')/.exec(
     readFileSync(file, 'utf8'),
   )
-  return m ? JSON.parse(m[1].replace(/'/g, '"').replace(/,\s*\]/, ']')) : undefined
+  return m
+    ? JSON.parse(m[1].replace(/'/g, '"').replace(/,\s*\]/, ']'))
+    : undefined
 }
 
 describe('settings registry', () => {

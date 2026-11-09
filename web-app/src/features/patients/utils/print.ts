@@ -1,7 +1,4 @@
-import type {
-  Patient,
-  PatientConsent,
-} from '../types'
+import type { Patient, PatientConsent } from '../types'
 import { formatDateTime } from '@/lib/datetime'
 
 /**

@@ -203,7 +203,7 @@ export function LabOrdersPage() {
         setPage(1)
       }}
     >
-      <SelectTrigger className="h-9 w-44" aria-label={label}>
+      <SelectTrigger className="h-9 w-full sm:w-44" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -265,7 +265,7 @@ export function LabOrdersPage() {
                 }}
                 placeholder="From"
                 clearable
-                className="h-9 w-36"
+                className="h-9 w-full sm:w-36"
               />
               <DatePicker
                 value={to || undefined}
@@ -275,7 +275,7 @@ export function LabOrdersPage() {
                 }}
                 placeholder="To"
                 clearable
-                className="h-9 w-36"
+                className="h-9 w-full sm:w-36"
               />
             </>
           }

@@ -3,9 +3,10 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import {
   EmployeeForm,
-  useCreateEmployee,
-  type EmployeeFormData,
+  useCreateEmployee
+  
 } from '@/features/employees'
+import type {EmployeeFormData} from '@/features/employees';
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/employees/create')({

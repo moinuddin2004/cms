@@ -326,8 +326,7 @@
 [data-sonner-toast][data-styled='true'] {
   --toast-tone: var(--muted-foreground);
   border-radius: var(--radius-lg) !important;
-  border: 1px solid
-    color-mix(in oklab, var(--toast-tone) 28%, var(--border)) !important;
+  border: 1px solid color-mix(in oklab, var(--toast-tone) 28%, var(--border)) !important;
   background: color-mix(
     in oklab,
     var(--toast-tone) 7%,
@@ -596,7 +595,11 @@ select:-webkit-autofill {
 :root[data-sidebar-style='brand'] aside.bg-sidebar,
 [data-sidebar-preview='brand'] {
   --sidebar: var(--brand);
-  --sidebar-border: color-mix(in oklab, var(--primary-foreground) 16%, transparent);
+  --sidebar-border: color-mix(
+    in oklab,
+    var(--primary-foreground) 16%,
+    transparent
+  );
   --border: var(--sidebar-border);
   --foreground: var(--primary-foreground);
   --text-2: color-mix(in oklab, var(--primary-foreground) 85%, transparent);
@@ -604,7 +607,11 @@ select:-webkit-autofill {
   --muted-foreground: var(--text-3);
   --panel: color-mix(in oklab, var(--primary-foreground) 12%, transparent);
   --accent: var(--panel);
-  --primary-soft: color-mix(in oklab, var(--primary-foreground) 20%, transparent);
+  --primary-soft: color-mix(
+    in oklab,
+    var(--primary-foreground) 20%,
+    transparent
+  );
   --primary-text: var(--primary-foreground);
   --primary: var(--primary-foreground);
 }

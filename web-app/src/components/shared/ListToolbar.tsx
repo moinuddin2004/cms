@@ -34,48 +34,55 @@ export function ListToolbar({
   onViewMode: (mode: ViewMode) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-2">
-      <div className="relative min-w-[200px] max-w-sm flex-1">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" />
-        <Input
-          value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder={placeholder}
-          aria-label={placeholder}
-          className="h-9 pl-9 pr-8"
-        />
-        {search && (
-          <button
-            type="button"
-            onClick={() => onSearch('')}
-            aria-label="Clear search"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-3 hover:bg-accent"
-          >
-            <X className="size-3.5" />
-          </button>
-        )}
+    <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-2">
+      {/* Row 1: search + result count + view toggle */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[160px] max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-3" />
+          <Input
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            className="h-9 pl-9 pr-8"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => onSearch('')}
+              aria-label="Clear search"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-3 hover:bg-accent"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <span className="ml-auto pr-1 text-xs text-text-3">{resultLabel}</span>
+        <ViewToggle value={viewMode} onChange={onViewMode} size="sm" />
       </div>
 
-      {filters}
+      {/* Row 2: filters (wraps on mobile) */}
+      {(filters || activeFilters > 0) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {filters}
 
-      {activeFilters > 0 && (
-        <>
-          <Badge variant="secondary" className="tabular-nums">
-            {activeFilters} filter{activeFilters === 1 ? '' : 's'}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-text-3"
-            onClick={onClear}
-          >
-            <X className="size-3.5" /> Clear all filters
-          </Button>
-        </>
+          {activeFilters > 0 && (
+            <>
+              <Badge variant="secondary" className="tabular-nums">
+                {activeFilters} filter{activeFilters === 1 ? '' : 's'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-text-3"
+                onClick={onClear}
+              >
+                <X className="size-3.5" /> Clear all filters
+              </Button>
+            </>
+          )}
+        </div>
       )}
-
-      <span className="ml-auto pr-1 text-xs text-text-3">{resultLabel}</span>
-      <ViewToggle value={viewMode} onChange={onViewMode} size="sm" />
     </div>
   )
 }

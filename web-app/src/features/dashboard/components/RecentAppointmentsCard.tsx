@@ -14,10 +14,11 @@ import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/formatters'
 import { formatInClinic, formatTime } from '@/lib/datetime'
 import {
-  type Appointment,
+  
   AppointmentStatus,
-  STATUS_BG_COLORS,
+  STATUS_BG_COLORS
 } from '@/features/appointments/types'
+import type {Appointment} from '@/features/appointments/types';
 
 interface Props {
   data: Appointment[]

@@ -32,7 +32,11 @@ const STOCK_COLORS: Record<StockLevel, string> = {
 export function StockCell({ item }: { item: InventoryItem }) {
   const level = getStockLevel(item)
   if (level === 'out') {
-    return <span className="text-sm font-medium text-muted-foreground">Out of stock</span>
+    return (
+      <span className="text-sm font-medium text-muted-foreground">
+        Out of stock
+      </span>
+    )
   }
   return (
     <span className={cn('text-sm font-semibold', STOCK_COLORS[level])}>
@@ -94,7 +98,9 @@ export function MovementBadge({ type }: { type: StockMovementType }) {
 export function QtyDelta({ value }: { value: number }) {
   const n = Number(value)
   return (
-    <span className={cn('font-medium', n >= 0 ? 'text-green-600' : 'text-red-600')}>
+    <span
+      className={cn('font-medium', n >= 0 ? 'text-green-600' : 'text-red-600')}
+    >
       {n >= 0 ? '+' : ''}
       {n}
     </span>

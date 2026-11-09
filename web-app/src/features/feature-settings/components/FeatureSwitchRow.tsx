@@ -12,8 +12,7 @@ import { formatDate } from '@/lib/datetime'
 import type { OwnerFeature } from '../types/feature-settings.types'
 
 export const LOCKED_MESSAGE = 'Not in your plan — contact your super admin'
-export const TRIAL_ENDED_MESSAGE =
-  'Trial has ended — contact your super admin'
+export const TRIAL_ENDED_MESSAGE = 'Trial has ended — contact your super admin'
 
 export function formatUntil(until: string | null) {
   if (!until) return null

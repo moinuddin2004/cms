@@ -61,7 +61,9 @@ export async function fetchItem(id: string): Promise<InventoryItem> {
   return data.data
 }
 
-export async function createItem(payload: ItemFormData): Promise<InventoryItem> {
+export async function createItem(
+  payload: ItemFormData,
+): Promise<InventoryItem> {
   const { data } = await api.post('/inventory/items', payload)
   return data.data
 }
@@ -82,7 +84,10 @@ export async function adjustStock(
   id: string,
   payload: AdjustStockData,
 ): Promise<StockMovement> {
-  const { data } = await api.post(`/inventory/items/${id}/adjust-stock`, payload)
+  const { data } = await api.post(
+    `/inventory/items/${id}/adjust-stock`,
+    payload,
+  )
   return data.data
 }
 

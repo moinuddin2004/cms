@@ -14,7 +14,7 @@ export function OrganizationsPage() {
       actions={
         <Button onClick={() => viewRef.current?.create()}>
           <Plus className="size-4" />
-          Create 
+          Create
         </Button>
       }
     >

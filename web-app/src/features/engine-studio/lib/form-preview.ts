@@ -9,8 +9,7 @@ import type { FieldDef, FormUi, ToothAnswer } from '../types'
  */
 
 export type JsonParse =
-  | { ok: true; value: unknown }
-  | { ok: false; error: string }
+  { ok: true; value: unknown } | { ok: false; error: string }
 
 /** Empty text = null (optional JSON blocks). */
 export function parseJson(text: string): JsonParse {

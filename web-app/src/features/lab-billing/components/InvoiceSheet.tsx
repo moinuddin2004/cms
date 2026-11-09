@@ -127,7 +127,9 @@ export function InvoiceSheet({
       await onSave({
         lines: pick(v).map((o) => {
           const typed = v.prices[o.id]?.trim()
-          const unitPriceMinor = typed ? (rupeesToMinor(typed) ?? undefined) : undefined
+          const unitPriceMinor = typed
+            ? (rupeesToMinor(typed) ?? undefined)
+            : undefined
           return o.kind === 'lab_item'
             ? { kind: 'lab_item', itemId: o.id, unitPriceMinor }
             : { kind: 'lab_charge', chargeRequestId: o.id, unitPriceMinor }
@@ -229,7 +231,9 @@ export function InvoiceSheet({
                                       placeholder={minorToRupeesText(
                                         o.priceMinor,
                                       )}
-                                      value={pricesField.state.value[o.id] ?? ''}
+                                      value={
+                                        pricesField.state.value[o.id] ?? ''
+                                      }
                                       onChange={(e) =>
                                         pricesField.handleChange({
                                           ...pricesField.state.value,

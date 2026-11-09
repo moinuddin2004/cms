@@ -71,8 +71,7 @@ vi.mock('@/components/layout/DashboardLayout', () => ({
 }))
 const socket = vi.hoisted(() => ({
   onChange: null as
-    | null
-    | ((e: { organizationId: string; version: number } | null) => void),
+    null | ((e: { organizationId: string; version: number } | null) => void),
 }))
 vi.mock('../hooks/useAccessSocket', () => ({
   useAccessSocket: (_org: string, onChange: typeof socket.onChange) => {
@@ -281,8 +280,11 @@ describe('THEME-13 builder', () => {
     expect(await screen.findByText(/very light/i)).toBeTruthy()
     await waitFor(() =>
       expect(
-        (screen.getByRole('button', { name: 'Save theme' }) as HTMLButtonElement)
-          .disabled,
+        (
+          screen.getByRole('button', {
+            name: 'Save theme',
+          })
+        ).disabled,
       ).toBe(false),
     )
 
@@ -351,7 +353,7 @@ describe('NAV-12 builder', () => {
     // Hide a page and rename another through the controls.
     fireEvent.click(screen.getByRole('switch', { name: 'Hide Patients' }))
     expect(
-      (screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement)
+      (screen.getByRole('button', { name: 'Save' }))
         .disabled,
     ).toBe(false)
     expect(screen.getByText('You have unsaved changes.')).toBeTruthy()
@@ -362,7 +364,9 @@ describe('NAV-12 builder', () => {
 
     // Reset is behind a confirm dialog.
     fireEvent.click(screen.getByRole('button', { name: /Reset to default/ }))
-    expect(await screen.findByText('Reset the sidebar to default?')).toBeTruthy()
+    expect(
+      await screen.findByText('Reset the sidebar to default?'),
+    ).toBeTruthy()
     expect(api.delete).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
     void within
@@ -422,7 +426,12 @@ describe('RT — frontend', () => {
     )
     const { result } = renderHook(() => useMyAccess(), { wrapper })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(accessKeys.me('org1', 'loc1')).toEqual(['access', 'me', 'org1', 'loc1'])
+    expect(accessKeys.me('org1', 'loc1')).toEqual([
+      'access',
+      'me',
+      'org1',
+      'loc1',
+    ])
     expect(client.getQueryData(['access', 'me', 'org1', 'loc1'])).toBeTruthy()
 
     act(() => useAuthStore.setState({ activeLocationId: 'loc2' } as never))
@@ -433,7 +442,9 @@ describe('RT — frontend', () => {
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(3))
     // org2 never reuses org1's cached payload.
     expect(client.getQueryData(['access', 'me', 'org2', 'loc2'])).toBeTruthy()
-    expect(accessKeys.me('org1', 'loc2')).not.toEqual(accessKeys.me('org2', 'loc2'))
+    expect(accessKeys.me('org1', 'loc2')).not.toEqual(
+      accessKeys.me('org2', 'loc2'),
+    )
   })
 })
 
@@ -473,7 +484,13 @@ describe('UNIT — static checks over the web source', () => {
   })
 
   it('UI-11 icon-only buttons on the new admin screens use TooltipButton / Tooltip', () => {
-    const dirs = ['roles', 'feature-settings', 'nav-builder', 'theme', 'feature-flags']
+    const dirs = [
+      'roles',
+      'feature-settings',
+      'nav-builder',
+      'theme',
+      'feature-flags',
+    ]
     const offenders: string[] = []
     for (const d of dirs) {
       for (const file of walk(join(SRC, 'features', d))) {

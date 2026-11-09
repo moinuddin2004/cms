@@ -3,12 +3,7 @@ import { dateToYmd, todayYmd, ymdToDate } from '@/lib/datetime'
 import type { ReportScopeKind, RevenueBasis } from '../types/reports.types'
 
 export type PeriodPreset =
-  | 'month'
-  | 'lastMonth'
-  | 'quarter'
-  | 'year'
-  | 'lastYear'
-  | 'custom'
+  'month' | 'lastMonth' | 'quarter' | 'year' | 'lastYear' | 'custom'
 
 interface ReportsFilters {
   preset: PeriodPreset

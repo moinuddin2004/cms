@@ -2,8 +2,10 @@ import * as React from 'react'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-export interface NumberInputProps
-  extends Omit<React.ComponentProps<'input'>, 'type' | 'inputMode'> {
+export interface NumberInputProps extends Omit<
+  React.ComponentProps<'input'>,
+  'type' | 'inputMode'
+> {
   /** `integer` = digits only; `decimal` = digits + one point. */
   mode?: 'integer' | 'decimal'
   /** Max digits after the point in `decimal` mode. */

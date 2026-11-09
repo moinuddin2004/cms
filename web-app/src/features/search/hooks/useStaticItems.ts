@@ -11,7 +11,15 @@ import type { StaticSearchItem } from '../types'
 
 /** Extra words a page answers to, keyed by href. */
 const PAGE_KEYWORDS: Record<string, string[]> = {
-  '/settings': ['theme', 'roles', 'navigation', 'features', 'location', 'tax', 'preferences'],
+  '/settings': [
+    'theme',
+    'roles',
+    'navigation',
+    'features',
+    'location',
+    'tax',
+    'preferences',
+  ],
   '/patients': ['mr', 'records'],
   '/appointments': ['calendar', 'booking', 'schedule'],
   '/billing': ['cash', 'counter', 'collect'],

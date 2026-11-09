@@ -105,10 +105,17 @@ export function DatePicker({
           onSelect={(day) => day && select(day)}
           disabled={disabledDays.length ? disabledDays : undefined}
           captionLayout={withYearDropdown ? 'dropdown' : 'label'}
-          startMonth={withYearDropdown ? (minDate ?? new Date(1900, 0)) : minDate}
-          endMonth={withYearDropdown ? (maxDate ?? new Date(today.getFullYear() + 10, 11)) : maxDate}
+          startMonth={
+            withYearDropdown ? (minDate ?? new Date(1900, 0)) : minDate
+          }
+          endMonth={
+            withYearDropdown
+              ? (maxDate ?? new Date(today.getFullYear() + 10, 11))
+              : maxDate
+          }
           classNames={{
-            dropdowns: 'flex h-8 items-center justify-center gap-1.5 text-sm font-medium',
+            dropdowns:
+              'flex h-8 items-center justify-center gap-1.5 text-sm font-medium',
             dropdown_root:
               'relative rounded-md border border-input shadow-xs has-[:focus]:border-ring has-[:focus]:ring-[3px] has-[:focus]:ring-ring/50',
             dropdown: 'absolute inset-0 cursor-pointer bg-popover opacity-0',

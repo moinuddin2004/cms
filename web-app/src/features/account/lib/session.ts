@@ -2,8 +2,9 @@ import apiClient from '@/lib/api'
 import { useAuthStore } from '@/store/useAuthStore'
 
 export function errorMessage(err: unknown) {
-  const msg = (err as { response?: { data?: { message?: unknown } } } | undefined)
-    ?.response?.data?.message
+  const msg = (
+    err as { response?: { data?: { message?: unknown } } } | undefined
+  )?.response?.data?.message
   return Array.isArray(msg)
     ? String(msg[0])
     : (msg as string) || 'Could not save. Try again.'

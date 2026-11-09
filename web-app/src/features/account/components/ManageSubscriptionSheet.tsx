@@ -35,17 +35,15 @@ import {
 } from '../hooks/useAdminSubscriptionForms'
 import { fieldError } from '../lib/fieldError'
 import { formatDay, planPrice } from '../pages/SubscriptionPage'
-import {
-  PAYMENT_METHOD_LABEL,
-  STATUS_LABEL,
-  STATUS_TONE,
-} from '../types'
+import { PAYMENT_METHOD_LABEL, STATUS_LABEL, STATUS_TONE } from '../types'
 import type { AdminSubscription, PaymentMethod, PlanKey } from '../types'
 
 function errorMessage(err: unknown) {
-  const msg = (err as { response?: { data?: { message?: unknown } } })
-    ?.response?.data?.message
-  return Array.isArray(msg) ? String(msg[0]) : (msg as string) || 'Could not save. Try again.'
+  const msg = (err as { response?: { data?: { message?: unknown } } })?.response
+    ?.data?.message
+  return Array.isArray(msg)
+    ? String(msg[0])
+    : (msg as string) || 'Could not save. Try again.'
 }
 
 /** Monthly price × months typed, rounded to minor units ('' while months is empty). */
@@ -106,7 +104,12 @@ function RecordPaymentForm({
         </form.Field>
         <form.Field name="months">
           {(f) => (
-            <FieldWrapper label="Months paid" htmlFor="pay-months" required error={fieldError(f)}>
+            <FieldWrapper
+              label="Months paid"
+              htmlFor="pay-months"
+              required
+              error={fieldError(f)}
+            >
               <NumberInput
                 id="pay-months"
                 mode="integer"
@@ -128,7 +131,12 @@ function RecordPaymentForm({
         </form.Field>
         <form.Field name="amount">
           {(f) => (
-            <FieldWrapper label="Amount received (PKR)" htmlFor="pay-amount" required error={fieldError(f)}>
+            <FieldWrapper
+              label="Amount received (PKR)"
+              htmlFor="pay-amount"
+              required
+              error={fieldError(f)}
+            >
               <NumberInput
                 id="pay-amount"
                 mode="decimal"
@@ -169,7 +177,11 @@ function RecordPaymentForm({
         </form.Field>
         <form.Field name="reference">
           {(f) => (
-            <FieldWrapper label="Reference / transaction ID" htmlFor="pay-ref" error={fieldError(f)}>
+            <FieldWrapper
+              label="Reference / transaction ID"
+              htmlFor="pay-ref"
+              error={fieldError(f)}
+            >
               <Input
                 id="pay-ref"
                 value={f.state.value}
@@ -200,7 +212,10 @@ function RecordPaymentForm({
       <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
         {([canSubmit, isSubmitting]) => (
           <div className="flex justify-end">
-            <Button type="submit" disabled={!canSubmit || isSubmitting || record.isPending}>
+            <Button
+              type="submit"
+              disabled={!canSubmit || isSubmitting || record.isPending}
+            >
               {(isSubmitting || record.isPending) && (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               )}
@@ -329,7 +344,9 @@ function PlanForm({ orgId, sub }: { orgId: string; sub: AdminSubscription }) {
             )}
             <Button
               type="submit"
-              disabled={!canSubmit || isSubmitting || update.isPending || !isDirty}
+              disabled={
+                !canSubmit || isSubmitting || update.isPending || !isDirty
+              }
             >
               {(isSubmitting || update.isPending) && (
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -350,7 +367,10 @@ function History({ sub }: { sub: AdminSubscription }) {
   return (
     <ul className="divide-y divide-border rounded-lg border border-border">
       {sub.payments.map((p) => (
-        <li key={p.id} className="flex items-start justify-between gap-4 p-3 text-sm">
+        <li
+          key={p.id}
+          className="flex items-start justify-between gap-4 p-3 text-sm"
+        >
           <div>
             <p className="font-medium capitalize">
               {p.plan} · {p.months} month{p.months === 1 ? '' : 's'}
@@ -366,7 +386,9 @@ function History({ sub }: { sub: AdminSubscription }) {
             <p className="font-semibold">
               PKR {Number(p.amount).toLocaleString('en-PK')}
             </p>
-            <p className="text-xs text-muted-foreground">{formatDay(p.paidAt)}</p>
+            <p className="text-xs text-muted-foreground">
+              {formatDay(p.paidAt)}
+            </p>
           </div>
         </li>
       ))}

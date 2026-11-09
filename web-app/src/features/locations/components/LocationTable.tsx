@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { type ColumnDef } from '@/components/shared/table-features'
+import type {ColumnDef} from '@/components/shared/table-features';
 import { Edit2, PowerOff, Settings } from 'lucide-react'
 import { DataTable } from '@/components/shared/DataTable'
 import { TooltipButton } from '@/components/shared/TooltipButton'
@@ -69,7 +69,9 @@ export function LocationTable({
         header: 'Phone',
         enableSorting: false,
         cell: ({ getValue }) => (
-          <span className="text-sm">{getValue<string | undefined>() ?? '—'}</span>
+          <span className="text-sm">
+            {getValue<string | undefined>() ?? '—'}
+          </span>
         ),
       },
       {

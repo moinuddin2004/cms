@@ -8,7 +8,11 @@ import { PrescriptionStatusBadge } from './PrescriptionStatusBadge'
 import { MedicineChips } from './MedicineChips'
 import { formatInClinic } from '@/lib/datetime'
 
-export function PrescriptionCard({ prescription: rx }: { prescription: Prescription }) {
+export function PrescriptionCard({
+  prescription: rx,
+}: {
+  prescription: Prescription
+}) {
   const patientName = rx.patient?.fullName ?? 'Unknown patient'
   const created = new Date(rx.createdAt)
 

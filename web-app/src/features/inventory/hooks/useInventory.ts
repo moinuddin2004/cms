@@ -74,8 +74,13 @@ export function useCreateItem() {
 export function useUpdateItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<ItemFormData> }) =>
-      updateItem(id, payload),
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string
+      payload: Partial<ItemFormData>
+    }) => updateItem(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [INVENTORY_ITEMS_KEY] })
       toast.success('Item updated')
@@ -93,7 +98,8 @@ export function useDeactivateItem() {
       qc.invalidateQueries({ queryKey: [INVENTORY_STATS_KEY] })
       toast.success('Item deactivated')
     },
-    onError: (e) => toast.error(getErrorMessage(e, 'Failed to deactivate item')),
+    onError: (e) =>
+      toast.error(getErrorMessage(e, 'Failed to deactivate item')),
   })
 }
 

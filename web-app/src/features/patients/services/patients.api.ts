@@ -141,7 +141,10 @@ export async function updatePatient(
   id: string,
   payload: Partial<PatientFormData>,
 ): Promise<Patient> {
-  const { data } = await api.put(`/patients/${id}`, toPatientUpdateBody(payload))
+  const { data } = await api.put(
+    `/patients/${id}`,
+    toPatientUpdateBody(payload),
+  )
   return data.data
 }
 

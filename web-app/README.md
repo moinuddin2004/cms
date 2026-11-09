@@ -32,11 +32,11 @@
 
 **You need:** Node.js 22 and the API running locally on port `5000`.
 
-| Step | Command |
-| --- | --- |
-| 1 · Install | `npm install` |
+| Step                     | Command                                                              |
+| ------------------------ | -------------------------------------------------------------------- |
+| 1 · Install              | `npm install`                                                        |
 | 2 · Configure (optional) | Set `VITE_API_BASE_URL` if the API is not at `http://localhost:5000` |
-| 3 · Start | `npm run dev` |
+| 3 · Start                | `npm run dev`                                                        |
 
 Open [http://localhost:3000](http://localhost:3000). The default API URL is `http://localhost:5000`; no web-specific `.env` file is required for local development.
 
@@ -46,14 +46,14 @@ Open [http://localhost:3000](http://localhost:3000). The default API URL is `htt
 
 The web app is the full clinic workspace. Screens are organized by feature, with access-aware routes, clinic/location context, and live updates where supported.
 
-| Area | Includes |
-| --- | --- |
-| Front desk | Appointment calendar and booking, check-in, doctor-wise queue, reception and TV displays |
-| Patient care | Patient records, consultations, treatment plans, prescriptions and medicine directory |
-| Billing | Charges, invoices, payments, refunds, expenses, commissions, cash close and reports |
-| Labs | Lab directory and portal, orders, production, billing, payables and workflow templates |
-| Clinic operations | Employees, locations, payroll, inventory and notifications |
-| Administration | Clinic access, roles, permissions, feature switches, sidebar, theme, subscriptions and workflow studio |
+| Area              | Includes                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| Front desk        | Appointment calendar and booking, check-in, doctor-wise queue, reception and TV displays               |
+| Patient care      | Patient records, consultations, treatment plans, prescriptions and medicine directory                  |
+| Billing           | Charges, invoices, payments, refunds, expenses, commissions, cash close and reports                    |
+| Labs              | Lab directory and portal, orders, production, billing, payables and workflow templates                 |
+| Clinic operations | Employees, locations, payroll, inventory and notifications                                             |
+| Administration    | Clinic access, roles, permissions, feature switches, sidebar, theme, subscriptions and workflow studio |
 
 <br />
 
@@ -77,15 +77,15 @@ Routes should stay thin; feature behavior belongs under `features/`. Cross-featu
 
 ## Scripts
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Start Vite on port `3000` |
-| `npm run build` | Create the production build |
-| `npm run preview` | Serve the production build locally |
-| `npm run test` | Run Vitest |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Check formatting with Prettier |
-| `npm run check` | Format files and run ESLint with fixes |
+| Command           | What it does                           |
+| ----------------- | -------------------------------------- |
+| `npm run dev`     | Start Vite on port `3000`              |
+| `npm run build`   | Create the production build            |
+| `npm run preview` | Serve the production build locally     |
+| `npm run test`    | Run Vitest                             |
+| `npm run lint`    | Run ESLint                             |
+| `npm run format`  | Check formatting with Prettier         |
+| `npm run check`   | Format files and run ESLint with fixes |
 
 <br />
 
@@ -102,14 +102,14 @@ Vitest uses Testing Library for component and hook tests. The production build i
 
 ## Rules
 
-| Rule | Use |
-| --- | --- |
-| Keep route files free of business logic | Route files import and render feature pages |
-| Use TanStack Form + Zod | Define schemas in the feature and wire them as form validators; do not use React Hook Form |
-| Put HTTP calls in feature API files | Components call typed TanStack Query hooks, not Axios directly |
-| Check permissions with `useAccess().can(...)` | Do not branch on role names |
-| Use `@/lib/datetime` for dates and times | Display and enter instants in the active location's timezone |
-| Keep forms in sheets and use shared UI | Follow the shared form and component patterns |
+| Rule                                          | Use                                                                                        |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Keep route files free of business logic       | Route files import and render feature pages                                                |
+| Use TanStack Form + Zod                       | Define schemas in the feature and wire them as form validators; do not use React Hook Form |
+| Put HTTP calls in feature API files           | Components call typed TanStack Query hooks, not Axios directly                             |
+| Check permissions with `useAccess().can(...)` | Do not branch on role names                                                                |
+| Use `@/lib/datetime` for dates and times      | Display and enter instants in the active location's timezone                               |
+| Keep forms in sheets and use shared UI        | Follow the shared form and component patterns                                              |
 
 For folder conventions, date handling, forms, access and design rules, read the root [`CLAUDE.md`](../CLAUDE.md).
 

@@ -129,13 +129,17 @@ describe('ROLE — role detail screen', () => {
       const label = level[0].toUpperCase() + level.slice(1)
       fireEvent.click(radio('Billing', label))
       // Granting high-risk permissions (void, refund, price override…) asks for a reason first.
-      if (await screen.findByText('Grant high-risk access?').catch(() => null)) {
+      if (
+        await screen.findByText('Grant high-risk access?').catch(() => null)
+      ) {
         fireEvent.change(screen.getByLabelText(/reason/i), {
           target: { value: 'Acceptance run' },
         })
         fireEvent.click(screen.getByRole('button', { name: 'Grant access' }))
       }
-      fireEvent.click(await screen.findByRole('button', { name: /save changes/i }))
+      fireEvent.click(
+        await screen.findByRole('button', { name: /save changes/i }),
+      )
       await waitFor(() => expect(api.patch).toHaveBeenCalled())
       const body = api.patch.mock.calls[0][1] as { permissions: object }
       expect(body.permissions).toEqual(BUNDLES.Billing[level])
@@ -193,7 +197,9 @@ describe('ROLE — role detail screen', () => {
     fireEvent.click(within(section).getByRole('button', { name: /Advanced/ }))
     const rows = section.querySelectorAll('li.opacity-60')
     expect(rows.length).toBeGreaterThan(0)
-    expect(within(section).getAllByText('Feature is off').length).toBeGreaterThan(1)
+    expect(
+      within(section).getAllByText('Feature is off').length,
+    ).toBeGreaterThan(1)
     // An unrelated module (feature on) is not greyed.
     const patients = levelControl('Patients').closest('section')!
     expect(within(patients).queryByText('Feature is off')).toBeNull()
@@ -204,7 +210,10 @@ describe('ROLE — role detail screen', () => {
     api.patch.mockRejectedValue({
       response: {
         data: {
-          error: { code: 'ESCALATION', permissions: ['inventory.stock.adjust'] },
+          error: {
+            code: 'ESCALATION',
+            permissions: ['inventory.stock.adjust'],
+          },
         },
       },
     })
@@ -244,7 +253,11 @@ describe('FEAT — feature screens', () => {
       {
         module: 'billing',
         features: [
-          feature({ key: 'billing.discounts', name: 'Discounts', permissionCount: 2 }),
+          feature({
+            key: 'billing.discounts',
+            name: 'Discounts',
+            permissionCount: 2,
+          }),
         ],
       },
       {
@@ -273,9 +286,19 @@ describe('FEAT — feature screens', () => {
           featureKey: 'billing.discounts',
           name: 'Discounts',
           permissions: [
-            { key: 'billing.discount.apply', label: 'Apply preset discounts', group: 'Discounts' },
+            {
+              key: 'billing.discount.apply',
+              label: 'Apply preset discounts',
+              group: 'Discounts',
+            },
           ],
-          roles: [{ id: 'r1', name: 'Receptionist', permissions: ['billing.discount.apply'] }],
+          roles: [
+            {
+              id: 'r1',
+              name: 'Receptionist',
+              permissions: ['billing.discount.apply'],
+            },
+          ],
         })
       return Promise.reject(new Error(`unexpected GET ${url}`))
     })
@@ -297,9 +320,12 @@ describe('FEAT — feature screens', () => {
     expect(impact.textContent).toContain('Receptionist')
     fireEvent.click(screen.getByRole('button', { name: 'Turn off' }))
     await waitFor(() =>
-      expect(api.patch).toHaveBeenCalledWith('/admin/features/billing.discounts', {
-        enabled: false,
-      }),
+      expect(api.patch).toHaveBeenCalledWith(
+        '/admin/features/billing.discounts',
+        {
+          enabled: false,
+        },
+      ),
     )
   })
 

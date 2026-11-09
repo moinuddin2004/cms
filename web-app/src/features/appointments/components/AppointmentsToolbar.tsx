@@ -1,5 +1,11 @@
-import { useMemo, type ReactNode } from 'react'
-import { ChevronLeft, ChevronRight, CalendarDays, Stethoscope } from 'lucide-react'
+import { useMemo  } from 'react'
+import type {ReactNode} from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  Stethoscope,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/shared/DatePicker'
 import {
@@ -28,8 +34,18 @@ function fromYMD(value: string): Date {
 
 const DAY_NAMES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
 const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ]
 
 // ─── Props ──────────────────────────────────────────────────────────────
@@ -122,10 +138,7 @@ export function AppointmentsToolbar({
 
   return (
     <div
-      className={cn(
-        'bg-card border rounded-xl px-3 py-2 space-y-2',
-        className,
-      )}
+      className={cn('bg-card border rounded-xl px-3 py-2 space-y-2', className)}
     >
       {/* Row 1: jump-to-date + doctor filter + actions */}
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -176,7 +189,8 @@ export function AppointmentsToolbar({
               size="sm"
               className={cn(
                 'h-8 w-[170px] text-xs',
-                doctorActive && 'border-primary/50 text-primary ring-1 ring-primary/20',
+                doctorActive &&
+                  'border-primary/50 text-primary ring-1 ring-primary/20',
               )}
             >
               <Stethoscope className="h-3.5 w-3.5 shrink-0 opacity-70" />

@@ -70,12 +70,7 @@ export function ItemDetailSheet({
                   }
                 />
               )}
-              <Info
-                label="Expiry"
-                value={
-                  formatYmd(item.expiryDate)
-                }
-              />
+              <Info label="Expiry" value={formatYmd(item.expiryDate)} />
             </div>
 
             {item.description && (

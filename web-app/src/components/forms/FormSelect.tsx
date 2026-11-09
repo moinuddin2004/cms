@@ -41,7 +41,9 @@ export function FormSelect({
   containerClassName,
   className,
 }: FormSelectProps) {
-  const inputId = label ? `f-${label.replace(/\s+/g, '-').toLowerCase()}` : undefined
+  const inputId = label
+    ? `f-${label.replace(/\s+/g, '-').toLowerCase()}`
+    : undefined
   return (
     <FieldWrapper
       label={label}

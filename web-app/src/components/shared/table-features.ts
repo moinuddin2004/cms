@@ -10,7 +10,10 @@ import {
   sortFn_text,
   tableFeatures,
 } from '@tanstack/react-table'
-import type { ColumnDef as TanStackColumnDef, RowData } from '@tanstack/react-table'
+import type {
+  ColumnDef as TanStackColumnDef,
+  RowData,
+} from '@tanstack/react-table'
 
 /**
  * Feature set shared by every DataTable instance.
@@ -42,5 +45,7 @@ export type DataTableFeatures = typeof dataTableFeatures
  * Column definition with this table's feature set pre-bound, so column modules
  * keep the familiar `ColumnDef<TData, TValue>` shape from v8.
  */
-export type ColumnDef<TData extends RowData, TValue = unknown> =
-  TanStackColumnDef<DataTableFeatures, TData, TValue>
+export type ColumnDef<
+  TData extends RowData,
+  TValue = unknown,
+> = TanStackColumnDef<DataTableFeatures, TData, TValue>

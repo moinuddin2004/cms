@@ -26,8 +26,9 @@ const URDU_FONT_LINK_ID = 'urdu-nastaliq-font'
  * for now Urdu fidelity is a preview-only feature with PDF as a planned
  * follow-up.
  */
-export interface PreviewData
-  extends Partial<Omit<Prescription, 'medicines' | 'patient' | 'doctor'>> {
+export interface PreviewData extends Partial<
+  Omit<Prescription, 'medicines' | 'patient' | 'doctor'>
+> {
   medicines?: PrescriptionMedicine[]
   patient?: Prescription['patient']
   doctor?: Prescription['doctor']
@@ -47,9 +48,9 @@ export function PrescriptionPreview({
   // Lazy-load the Nastaliq font once.
   useUrduFont()
 
-  const styling = (template?.styling ?? {}) as Record<string, any>
-  const header = (template?.header ?? {}) as Record<string, any>
-  const footer = (template?.footer ?? {}) as Record<string, any>
+  const styling = (template?.styling ?? {})
+  const header = (template?.header ?? {})
+  const footer = (template?.footer ?? {})
 
   const primary = styling.primaryColor ?? '#0d9488'
   const showUrdu = styling.showMedicineUrdu !== false
@@ -164,7 +165,10 @@ export function PrescriptionPreview({
         <div className="px-5 py-2 border-b text-[10px] flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
           {data.vitals.bp && (
             <span>
-              BP: <span className="text-foreground font-medium">{data.vitals.bp}</span>
+              BP:{' '}
+              <span className="text-foreground font-medium">
+                {data.vitals.bp}
+              </span>
             </span>
           )}
           {data.vitals.pulse && (
@@ -186,7 +190,9 @@ export function PrescriptionPreview({
           {data.vitals.spo2 && (
             <span>
               SpO₂:{' '}
-              <span className="text-foreground font-medium">{data.vitals.spo2}</span>
+              <span className="text-foreground font-medium">
+                {data.vitals.spo2}
+              </span>
             </span>
           )}
           {data.vitals.weight && (
@@ -299,7 +305,9 @@ export function PrescriptionPreview({
               <p className="text-[9px] uppercase font-semibold text-muted-foreground tracking-wider mb-1 text-right">
                 ہدایات
               </p>
-              <p className="urdu whitespace-pre-wrap">{data.instructionsUrdu}</p>
+              <p className="urdu whitespace-pre-wrap">
+                {data.instructionsUrdu}
+              </p>
             </div>
           )}
         </div>

@@ -1,8 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Navigate  } from '@tanstack/react-router'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { OrganizationSettingsFeature } from '@/features/organizations/OrganizationSettingsFeature'
 import { useAuthStore } from '@/store/useAuthStore'
-import { Navigate } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/organizations_/$id/settings')({
   component: OrganizationSettingsRouteComponent,

@@ -19,7 +19,10 @@ export function useMarkPaid() {
     // Optimistic update
     onMutate: async ({ recordId, employeeId }) => {
       await queryClient.cancelQueries({ queryKey: [PAYROLL_KEY, employeeId] })
-      const previousPayroll = queryClient.getQueryData([PAYROLL_KEY, employeeId])
+      const previousPayroll = queryClient.getQueryData([
+        PAYROLL_KEY,
+        employeeId,
+      ])
 
       queryClient.setQueryData(
         [PAYROLL_KEY, employeeId],

@@ -27,11 +27,11 @@ export function FiltersBar({
   const hasActiveFilters = gender || status
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
       {/* Gender Filter */}
       <Select value={gender} onValueChange={onGenderChange}>
         <SelectTrigger
-          className="w-[140px] h-8 text-xs"
+          className="w-full sm:w-[140px] h-8 text-xs"
           size="sm"
           aria-label="Filter by gender"
           id="filter-gender"
@@ -50,7 +50,7 @@ export function FiltersBar({
       {/* Status Filter */}
       <Select value={status} onValueChange={onStatusChange}>
         <SelectTrigger
-          className="w-[140px] h-8 text-xs"
+          className="w-full sm:w-[140px] h-8 text-xs"
           size="sm"
           aria-label="Filter by status"
           id="filter-status"

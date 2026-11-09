@@ -103,7 +103,11 @@ function LocationStep({
       </form.Field>
       <form.Field name="address">
         {(f) => (
-          <FieldWrapper label="Address" htmlFor="loc-address" error={fieldError(f)}>
+          <FieldWrapper
+            label="Address"
+            htmlFor="loc-address"
+            error={fieldError(f)}
+          >
             <Input
               id="loc-address"
               value={f.state.value}
@@ -128,7 +132,11 @@ function LocationStep({
         </form.Field>
         <form.Field name="phone">
           {(f) => (
-            <FieldWrapper label="Phone" htmlFor="loc-phone" error={fieldError(f)}>
+            <FieldWrapper
+              label="Phone"
+              htmlFor="loc-phone"
+              error={fieldError(f)}
+            >
               <Input
                 id="loc-phone"
                 inputMode="tel"
@@ -141,7 +149,11 @@ function LocationStep({
         </form.Field>
         <form.Field name="email">
           {(f) => (
-            <FieldWrapper label="Email" htmlFor="loc-email" error={fieldError(f)}>
+            <FieldWrapper
+              label="Email"
+              htmlFor="loc-email"
+              error={fieldError(f)}
+            >
               <Input
                 id="loc-email"
                 type="email"
@@ -178,7 +190,10 @@ function LocationStep({
             <Button type="button" variant="outline" onClick={onBack}>
               Back
             </Button>
-            <Button type="submit" disabled={!canSubmit || isSubmitting || save.isPending}>
+            <Button
+              type="submit"
+              disabled={!canSubmit || isSubmitting || save.isPending}
+            >
               {(isSubmitting || save.isPending) && (
                 <Loader2 className="mr-2 size-4 animate-spin" />
               )}
@@ -208,8 +223,8 @@ function TeamStep({ onBack }: { onBack: () => void }) {
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
         Add your doctors and front-desk staff whenever you are ready — each
-        person gets a role (Doctor, Receptionist, …) that decides what they
-        can see. You can also do this later.
+        person gets a role (Doctor, Receptionist, …) that decides what they can
+        see. You can also do this later.
       </p>
       <ul className="space-y-2 text-sm">
         <li className="flex items-start gap-2">
@@ -272,8 +287,8 @@ export function SetupWizardPage() {
             Set up your clinic
           </h1>
           <p className="mb-6 mt-1 text-sm text-muted-foreground">
-            A few details so invoices, schedules and reports come out right.
-            You can change all of this later in settings.
+            A few details so invoices, schedules and reports come out right. You
+            can change all of this later in settings.
           </p>
           <Stepper step={step} />
           {setup.isLoading ? (

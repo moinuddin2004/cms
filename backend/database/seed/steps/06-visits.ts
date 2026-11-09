@@ -26,6 +26,7 @@ import {
   staffByRole,
   tenant,
 } from '../lib/context';
+import { servicesFor } from '../data/services';
 import { DENTAL_SCENARIOS, GENERAL_SCENARIOS, Med, Scenario } from '../data/clinical';
 
 /**
@@ -139,6 +140,10 @@ class VisitSim {
       if (next.visit?.dead) continue;
       travelTo(new Date(next.at));
       await next.run();
+      // The app finishes some work after a request returns (notifications
+      // after commit, in their own transaction). Let it land before the next
+      // event, or it deadlocks with it and runs at the wrong simulated time.
+      await new Promise((r) => setTimeout(r, 350));
     }
   }
 
@@ -466,7 +471,10 @@ class VisitSim {
       docUser,
     );
 
+    // Only PROCEDURE services can be recorded as treatments.
+    const procedures = new Set(servicesFor(clinic.kind).filter((x) => x.kind === 'PROCEDURE').map((x) => x.code));
     for (const code of sc.today) {
+      if (!procedures.has(code)) continue; // e.g. a certificate: billed by the desk, not a treatment
       const serviceId = clinic.services[code];
       await this.treatments.createForEncounter(t, encounterId, serviceId ? { serviceId } : { treatmentName: code }, docUser);
     }

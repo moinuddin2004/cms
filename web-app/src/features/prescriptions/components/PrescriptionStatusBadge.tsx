@@ -13,7 +13,11 @@ const LABEL: Record<PrescriptionStatus, string> = {
   [PrescriptionStatus.AMENDED]: 'Amended',
 }
 
-export function PrescriptionStatusBadge({ status }: { status: PrescriptionStatus }) {
+export function PrescriptionStatusBadge({
+  status,
+}: {
+  status: PrescriptionStatus
+}) {
   return (
     <StatusBadge
       status={status}

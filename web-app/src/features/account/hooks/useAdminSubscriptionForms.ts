@@ -54,7 +54,10 @@ export function useRecordPaymentForm(
   const record = useRecordSubscriptionPayment(orgId)
   const form = useForm({
     defaultValues: paymentDefaults(sub),
-    validators: { onChange: recordPaymentSchema, onSubmit: recordPaymentSchema },
+    validators: {
+      onChange: recordPaymentSchema,
+      onSubmit: recordPaymentSchema,
+    },
     onSubmit: async ({ value }) => {
       await record.mutateAsync({
         ...value,

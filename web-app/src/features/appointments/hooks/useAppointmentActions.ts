@@ -15,7 +15,9 @@ function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: ['appointment-detail'] })
 }
 
-function useStatusMutation(mutationFn: (id: string, ...args: any[]) => Promise<any>) {
+function useStatusMutation(
+  mutationFn: (id: string, ...args: any[]) => Promise<any>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,

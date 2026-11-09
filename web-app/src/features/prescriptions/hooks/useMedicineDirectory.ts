@@ -38,7 +38,9 @@ export function useMedicineSearch(query: string, type?: MedicineType) {
   return useQuery({
     queryKey: [MEDICINES_KEY, 'search', debounced, type],
     queryFn: () =>
-      debounced.length >= 2 ? searchMedicines(debounced, type) : Promise.resolve([]),
+      debounced.length >= 2
+        ? searchMedicines(debounced, type)
+        : Promise.resolve([]),
     enabled: debounced.length >= 2,
     placeholderData: (prev) => prev,
   })

@@ -352,6 +352,14 @@ async function settlePatient(
   if (todays.length && rng.chance(0.07)) await giveDiscount(ctx, desk, todays);
   if (unpriced.length || todays.length) open = await charges.list(desk.tenant, patientId, 'open');
 
+  // A charge discounted to Rs 0 can't be selected in a payment (nothing to
+  // pay): the desk issues today's invoice first, then collects the rest.
+  if (open.some((c) => !c.invoiceId && c.balance <= 0 && !c.needsPricing)) {
+    const unbilled = open.filter((c) => !c.invoiceId && c.source !== ChargeSource.TREATMENT_PLAN);
+    await ctx.app.get(InvoicesService).create(desk, { patientId, chargeIds: unbilled.map((c) => c.id) });
+    open = await charges.list(desk.tenant, patientId, 'open');
+  }
+
   const visitCharges = open.filter((c) => c.source !== ChargeSource.TREATMENT_PLAN);
   const planCharges = open.filter((c) => c.source === ChargeSource.TREATMENT_PLAN);
 

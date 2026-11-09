@@ -19,7 +19,17 @@ import { errorMessage } from '../lib/session'
 import { SPECIALTY_OPTIONS } from '../types'
 import type { ClinicSetup } from '../types'
 
-const CURRENCIES = ['PKR', 'AED', 'SAR', 'QAR', 'INR', 'BDT', 'GBP', 'USD', 'EUR']
+const CURRENCIES = [
+  'PKR',
+  'AED',
+  'SAR',
+  'QAR',
+  'INR',
+  'BDT',
+  'GBP',
+  'USD',
+  'EUR',
+]
 
 /**
  * The clinic's own details. `wizard` = setup step with "Save & continue";
@@ -49,7 +59,12 @@ export function ClinicDetailsForm({
     >
       <form.Field name="name">
         {(f) => (
-          <FieldWrapper label="Clinic name" htmlFor="setup-name" required error={fieldError(f)}>
+          <FieldWrapper
+            label="Clinic name"
+            htmlFor="setup-name"
+            required
+            error={fieldError(f)}
+          >
             <Input
               id="setup-name"
               value={f.state.value}
@@ -102,7 +117,11 @@ export function ClinicDetailsForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <form.Field name="phone">
           {(f) => (
-            <FieldWrapper label="Phone" htmlFor="setup-phone" error={fieldError(f)}>
+            <FieldWrapper
+              label="Phone"
+              htmlFor="setup-phone"
+              error={fieldError(f)}
+            >
               <Input
                 id="setup-phone"
                 inputMode="tel"
@@ -115,7 +134,11 @@ export function ClinicDetailsForm({
         </form.Field>
         <form.Field name="email">
           {(f) => (
-            <FieldWrapper label="Clinic email" htmlFor="setup-email" error={fieldError(f)}>
+            <FieldWrapper
+              label="Clinic email"
+              htmlFor="setup-email"
+              error={fieldError(f)}
+            >
               <Input
                 id="setup-email"
                 type="email"
@@ -128,7 +151,11 @@ export function ClinicDetailsForm({
         </form.Field>
         <form.Field name="website">
           {(f) => (
-            <FieldWrapper label="Website" htmlFor="setup-website" error={fieldError(f)}>
+            <FieldWrapper
+              label="Website"
+              htmlFor="setup-website"
+              error={fieldError(f)}
+            >
               <Input
                 id="setup-website"
                 inputMode="url"
@@ -184,7 +211,9 @@ export function ClinicDetailsForm({
       </div>
 
       <form.Subscribe
-        selector={(s) => [s.canSubmit, s.isSubmitting, !s.isDefaultValue] as const}
+        selector={(s) =>
+          [s.canSubmit, s.isSubmitting, !s.isDefaultValue] as const
+        }
       >
         {([canSubmit, isSubmitting, isDirty]) => {
           const saving = isSubmitting || save.isPending

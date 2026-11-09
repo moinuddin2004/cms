@@ -17,12 +17,7 @@ import { ConsentsTab } from '@/features/patients/components/tabs/ConsentsTab'
 import { FilesTab } from '@/features/patients/components/tabs/FilesTab'
 
 export type RecordTab =
-  | 'history'
-  | 'teeth'
-  | 'vitals'
-  | 'rx'
-  | 'files'
-  | 'consents'
+  'history' | 'teeth' | 'vitals' | 'rx' | 'files' | 'consents'
 
 /**
  * The patient's complete record in a slide-over panel. It opens on top of the

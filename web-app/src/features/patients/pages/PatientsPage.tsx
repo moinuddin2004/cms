@@ -56,8 +56,7 @@ export function PatientsPage() {
   useEffect(() => {
     const { search, create } = linkParams
     if (search === undefined && create === undefined) return
-    if (search !== undefined)
-      setParams((p) => ({ ...p, search, page: 1 }))
+    if (search !== undefined) setParams((p) => ({ ...p, search, page: 1 }))
     if (create === '1' && can('patients.create')) setShowCreate(true)
     void navigate({ to: '/patients', search: {}, replace: true })
   }, [linkParams.search, linkParams.create])
@@ -177,7 +176,7 @@ export function PatientsPage() {
       }
     >
       <Card className="py-0">
-        <CardContent className="flex flex-row items-center gap-3 p-2 px-3">
+        <CardContent className="flex flex-col gap-2 p-2 px-3 sm:flex-row sm:items-center">
           <SearchInput
             value={params.search || ''}
             onChange={(v) => updateParam('search', v)}

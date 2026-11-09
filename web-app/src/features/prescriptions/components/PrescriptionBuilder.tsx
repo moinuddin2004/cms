@@ -371,10 +371,7 @@ export function PrescriptionBuilder({
                 </div>
               )}
               {presets.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => applyPreset(p.id)}
-                >
+                <DropdownMenuItem key={p.id} onClick={() => applyPreset(p.id)}>
                   <div className="flex flex-col">
                     <span className="text-sm">{p.name}</span>
                     <span className="text-[10px] text-muted-foreground">

@@ -11,7 +11,12 @@ interface ViewToggleProps {
 }
 
 /** Segmented control to switch between list (table) and card views. */
-export function ViewToggle({ value, onChange, className, size = 'default' }: ViewToggleProps) {
+export function ViewToggle({
+  value,
+  onChange,
+  className,
+  size = 'default',
+}: ViewToggleProps) {
   const isSm = size === 'sm'
   return (
     <div

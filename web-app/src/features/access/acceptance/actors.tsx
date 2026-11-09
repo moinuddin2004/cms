@@ -19,14 +19,7 @@ import type { MeAccess } from '../types/access.types'
 import type { NavLayout } from '../nav/nav.registry'
 
 export type ActorName =
-  | 'OwnerA'
-  | 'SA'
-  | 'AdminU'
-  | 'Doc1'
-  | 'RecU'
-  | 'AsstU'
-  | 'AcctU'
-  | 'NoRoleU'
+  'OwnerA' | 'SA' | 'AdminU' | 'Doc1' | 'RecU' | 'AsstU' | 'AcctU' | 'NoRoleU'
 
 /** Every feature key the catalog's permissions hang on (all on, as in the fixtures). */
 export const ALL_FEATURES: string[] = [

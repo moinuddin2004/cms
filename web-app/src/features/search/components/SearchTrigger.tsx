@@ -24,7 +24,9 @@ export function SearchTrigger() {
         className="hidden h-[38px] w-64 items-center gap-2 rounded-[9px] border border-border bg-surface px-3 text-sm text-muted-foreground transition-colors hover:bg-panel hover:text-foreground md:flex lg:w-80"
       >
         <Search className="size-4 shrink-0" />
-        <span className="flex-1 truncate text-left">Search patients, pages…</span>
+        <span className="flex-1 truncate text-left">
+          Search patients, pages…
+        </span>
         <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px]">
           {shortcut}
         </kbd>

@@ -68,8 +68,9 @@ export function PresetsPage() {
   const [category, setCategory] = useState('all')
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PrescriptionPreset | null>(null)
-  const [deactivating, setDeactivating] =
-    useState<PrescriptionPreset | null>(null)
+  const [deactivating, setDeactivating] = useState<PrescriptionPreset | null>(
+    null,
+  )
   const query = useDebounce(search, 300).trim().toLowerCase()
 
   const filtered = useMemo(

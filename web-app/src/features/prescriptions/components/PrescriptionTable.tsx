@@ -1,9 +1,10 @@
 import { useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { type ColumnDef } from '@/components/shared/table-features'
+import type {ColumnDef} from '@/components/shared/table-features';
 import { formatDistanceToNow } from 'date-fns'
 import { Eye, Stethoscope } from 'lucide-react'
-import { DataTable, type ServerPagination } from '@/components/shared/DataTable'
+import { DataTable  } from '@/components/shared/DataTable'
+import type {ServerPagination} from '@/components/shared/DataTable';
 import { InitialsAvatar } from '@/components/shared'
 import { TooltipButton } from '@/components/shared/TooltipButton'
 import type { Prescription, PrescriptionStatus } from '../types'
@@ -63,7 +64,9 @@ export function PrescriptionTable({
                 <Stethoscope className="size-3.5" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">Dr. {doctor.fullName}</p>
+                <p className="truncate text-sm font-medium">
+                  Dr. {doctor.fullName}
+                </p>
                 {doctor.designation && (
                   <p className="truncate text-[11px] text-text-3">
                     {doctor.designation}

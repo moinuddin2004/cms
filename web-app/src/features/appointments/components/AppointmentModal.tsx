@@ -462,7 +462,10 @@ export function AppointmentModal() {
                       >
                         <Lightbulb className="w-3.5 h-3.5" />
                         Suggested:{' '}
-                        {formatInClinic(validation.suggestedStartTime, 'hh:mm a')}
+                        {formatInClinic(
+                          validation.suggestedStartTime,
+                          'hh:mm a',
+                        )}
                         <span className="underline ml-1">Apply</span>
                       </button>
                     )}

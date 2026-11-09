@@ -78,7 +78,11 @@ export const DARK_BASE_OPTIONS: {
     label: 'Brand tint',
     description: 'Greys with a hint of your brand colour',
   },
-  { value: 'graphite', label: 'Graphite', description: 'Pure grey, no colour cast' },
+  {
+    value: 'graphite',
+    label: 'Graphite',
+    description: 'Pure grey, no colour cast',
+  },
   { value: 'midnight', label: 'Midnight', description: 'Cool blue-grey' },
   { value: 'stone', label: 'Stone', description: 'Soft, warm grey' },
   {

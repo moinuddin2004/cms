@@ -6,10 +6,7 @@ import {
   canSeeSettingsItem,
   matchesSettingsSearch,
 } from '../lib/settings.registry'
-import type {
-  SettingsGroupId,
-  SettingsItemDef,
-} from '../lib/settings.registry'
+import type { SettingsGroupId, SettingsItemDef } from '../lib/settings.registry'
 
 export interface SettingsGroupView {
   id: SettingsGroupId

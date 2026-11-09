@@ -155,12 +155,7 @@ export function LiveDot({ show }: { show: boolean }) {
 }
 
 export type RangePreset =
-  | 'today'
-  | 'month'
-  | 'lastMonth'
-  | 'past30'
-  | 'all'
-  | 'custom'
+  'today' | 'month' | 'lastMonth' | 'past30' | 'all' | 'custom'
 export interface DateRange {
   from?: string
   to?: string
@@ -222,7 +217,7 @@ export function DatePresetBar({
 }) {
   return (
     <>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {presets.map((p) => (
           <button
             key={p}

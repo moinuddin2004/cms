@@ -154,8 +154,13 @@ export const PRESET_CATEGORY_OPTIONS = Object.values(PresetCategory)
  * Presets saved before categories were fixed may hold free text ("General",
  * "Dental"…). Map what can be mapped; anything else becomes Other.
  */
-export function toPresetCategory(raw: string | null | undefined): PresetCategory {
-  const key = (raw ?? '').trim().toUpperCase().replace(/[\s&-]+/g, '_')
+export function toPresetCategory(
+  raw: string | null | undefined,
+): PresetCategory {
+  const key = (raw ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s&-]+/g, '_')
   return (Object.values(PresetCategory) as string[]).includes(key)
     ? (key as PresetCategory)
     : PresetCategory.OTHER

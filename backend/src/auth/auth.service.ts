@@ -62,12 +62,22 @@ const PASSWORD_RESET_EXPIRY_MINUTES = 15;
  * response: 1 day for a normal sign-in, 30 days for "keep me signed in".
  * On refresh it is the session's remaining lifetime, never a fresh window.
  */
-const REFRESH_TOKEN_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: SECURE_COOKIES,
-  sameSite: 'lax' as const,
-  path: '/',
-};
+function getCookieOptions(req?: Request) {
+  const isHttps =
+    process.env.NODE_ENV === 'production' ||
+    (process.env.FRONTEND_URL ?? '').startsWith('https://') ||
+    req?.secure ||
+    req?.headers['x-forwarded-proto'] === 'https' ||
+    (typeof req?.headers.origin === 'string' &&
+      req.headers.origin.startsWith('https://'));
+
+  return {
+    httpOnly: true,
+    secure: Boolean(isHttps),
+    sameSite: (isHttps ? 'none' : 'lax') as 'none' | 'lax',
+    path: '/',
+  };
+}
 
 /**
  * Login response with location selection context.
@@ -301,6 +311,7 @@ export class AuthService {
       session.uuid,
       refreshToken,
       remainingLifetimeMs(session.expiresAt),
+      req,
     );
 
     // Log successful login
@@ -551,6 +562,7 @@ export class AuthService {
       sessionId,
       rotated.refreshToken,
       remainingLifetimeMs(rotated.session.expiresAt),
+      req,
     );
 
     // Resolve access info for the refreshed user
@@ -929,10 +941,11 @@ export class AuthService {
     sessionId: string,
     refreshToken: string,
     maxAgeMs: number,
+    req?: Request,
   ): void {
     const cookieValue = `${sessionId}:${refreshToken}`;
     res.cookie('refresh_token', cookieValue, {
-      ...REFRESH_TOKEN_COOKIE_OPTIONS,
+      ...getCookieOptions(req),
       maxAge: maxAgeMs,
     });
   }
@@ -940,13 +953,8 @@ export class AuthService {
   /**
    * Clear session cookie.
    */
-  private clearSessionCookie(res: Response): void {
-    res.clearCookie('refresh_token', {
-      httpOnly: true,
-      secure: SECURE_COOKIES,
-      sameSite: 'lax',
-      path: '/',
-    });
+  private clearSessionCookie(res: Response, req?: Request): void {
+    res.clearCookie('refresh_token', getCookieOptions(req));
   }
 
   /**

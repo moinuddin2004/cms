@@ -34,7 +34,7 @@ export function createAccessChecks(
 
   const scope = (perm: PermissionKey): Scope | null => {
     if (fallback) return 'org'
-    const grant = permissions[perm] as Scope | true | undefined
+    const grant = permissions[perm]
     if (grant === undefined) return null
     return grant === true ? 'org' : grant
   }
