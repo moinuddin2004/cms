@@ -6,7 +6,7 @@ export function printLogins(ctx: SeedContext): void {
   const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join('  ');
   // eslint-disable-next-line no-console
   console.log(
-    `\nLogins (password for all: ${SEED_PASSWORD})\n` +
+    `\nLogins (password for all: ${SEED_PASSWORD}; super admin: its own, see README)\n` +
       line(['Clinic', 'Role', 'Name', 'Email']) +
       '\n' +
       rows.map(line).join('\n') +

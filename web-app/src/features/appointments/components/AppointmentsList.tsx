@@ -48,9 +48,8 @@ import {
 import { CheckInDialog } from '@/features/queue'
 import type { CheckInTarget } from '@/features/queue'
 import { useAppointmentStore } from '@/store/appointment-store'
-import type {
-  AppointmentListParams,
-  type Appointment,
+import type { AppointmentListParams, Appointment } from '../types'
+import {
   AppointmentStatus,
   NOT_ARRIVED_STATUSES,
   QUEUE_STATUS_LABELS,

@@ -45,7 +45,7 @@ function newContext(app: SeedApp): SeedContext {
     clinics: [],
     logins: [],
     today: localDate('Asia/Karachi', new Date()),
-    historyDays: Number(process.env.SEED_HISTORY_DAYS || 60),
+    historyDays: Number(process.env.SEED_HISTORY_DAYS || 30),
     hooks: { endOfDay: [] },
     data: {},
   };

@@ -38,6 +38,10 @@ import { CLINICS, ClinicDef, PENDING_CLINIC, StaffDef } from '../data/clinics';
 
 const TZ = 'Asia/Karachi';
 
+/** The platform admin's own login (everyone else uses SEED_PASSWORD). */
+export const SUPER_ADMIN_EMAIL = 'moin@gmail.com';
+export const SUPER_ADMIN_PASSWORD = 'moin1234';
+
 /** Features with no provider yet / not part of the demo stay off. */
 const FLAGS_OFF = new Set([
   'comms.sms',
@@ -61,6 +65,7 @@ async function createUser(
   name: string,
   phone: string | null,
   globalRole: GlobalRole | null = null,
+  password?: string,
 ): Promise<User> {
   const repo = ctx.app.ds.getRepository(User);
   return repo.save(
@@ -68,7 +73,7 @@ async function createUser(
       email: email.toLowerCase(),
       name,
       phone,
-      password: await hash(),
+      password: password ? await bcrypt.hash(password, 12) : await hash(),
       provider: ProviderEnum.LOCAL,
       globalRole,
       emailVerifiedAt: new Date(),
@@ -79,10 +84,11 @@ async function createUser(
 export async function seedPlatform(ctx: SeedContext): Promise<void> {
   const admin = await createUser(
     ctx,
-    `superadmin@${SEED_EMAIL_DOMAIN}`,
+    SUPER_ADMIN_EMAIL,
     'Platform Admin',
     '03000000001',
     GlobalRole.SUPER_ADMIN,
+    SUPER_ADMIN_PASSWORD,
   );
   ctx.superAdminId = admin.uuid;
   ctx.logins.push({ who: 'Platform Admin', email: admin.email, role: 'Super admin' });

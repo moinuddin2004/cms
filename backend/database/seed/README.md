@@ -2,7 +2,7 @@
 
 Fills an **empty** database with a realistic demo: a super admin, three
 clinics (two dental, one general), their staff with logins, ~38 patients
-(names in English and Urdu), about two months of clinic history —
+(names in English and Urdu), about a month of clinic history —
 appointments, queue tokens, consultations, treatments, treatment plans,
 prescriptions, invoices and payments, lab orders, stock — plus bookings for
 the next two weeks. Built for dev / QA / demos. **Never run it on production.**
@@ -26,9 +26,10 @@ everything — then `01 → 05`, then `npm run seed`.)
 - Uses `DATABASE_URL` from `backend/.env` (or `SEED_DATABASE_URL`). On Neon
   it switches to the direct host (not `-pooler`) by itself.
 - Refuses to run when organizations already exist (`--force` to override).
-- Takes roughly 30–40 min on a hosted database like Neon (~100 ms per
-  query); most of it is the day-by-day visits, which run one process per
-  clinic in parallel. On a local Postgres it is a few minutes.
+- Takes roughly 1 hour on a hosted database like Neon (~100 ms per query; a
+  14-day run measured 48 min, the 30-day default is longer), mostly the
+  day-by-day visits, which run one process per clinic in parallel. On a
+  local Postgres it is a few minutes. Use `SEED_HISTORY_DAYS=14` for a quicker run.
 - Sends nothing: SMTP and Redis are switched off for the run. Notifications
   are only written to the database.
 
@@ -47,18 +48,18 @@ inspection (drop later: `DROP SCHEMA seedcheck CASCADE`).
 
 | Variable | Default | |
 |---|---|---|
-| `SEED_HISTORY_DAYS` | `60` | how many days of history |
+| `SEED_HISTORY_DAYS` | `30` | how many days of history (more = longer run) |
 | `SEED_ONLY` | all | `visits`, `billing`, `labs`, `inventory` — core steps + only these groups |
 | `SEED_PARALLEL` | on | `0` = visits in one process (slower, easier to debug) |
 
 ## Logins
 
-Password for **every** login: **`Seed@12345`**. All emails are on the
+Password for **every** login: **`Seed@12345`**, except the super admin (`moin@gmail.com` / `moin1234`). All emails are on the
 reserved `.test` domain (mail to them can never be delivered).
 
 | Clinic | Role | Name | Email |
 |---|---|---|---|
-| — | Super admin | Platform Admin | `superadmin@seed.test` |
+| — | Super admin (own password: `moin1234`) | Platform Admin | `moin@gmail.com` |
 | Smile Care Dental Clinic (Karachi) | Owner + dentist | Dr. Kamran Siddiqui | `owner@smilecare.seed.test` |
 | | Admin (manager) | Zainab Hussain | `manager@smilecare.seed.test` |
 | | Doctor — orthodontist | Dr. Ayesha Malik | `dr.ayesha@smilecare.seed.test` |
@@ -103,7 +104,7 @@ step is final).
   attendant without a login; weekly schedules.
 - **Patients:** consents, insurance, dental history, recalls, referrals,
   feedback, communications; minors with guardians.
-- **History (last 60 days, busier in the last two weeks):** bookings,
+- **History (last 30 days, busier in the last two weeks):** bookings,
   confirmations, cancellations, no-shows, walk-ins, queue tokens per doctor,
   consultations with notes, vitals, teeth charts, treatments, treatment
   plans with sessions over later visits, prescriptions (Urdu instructions).
