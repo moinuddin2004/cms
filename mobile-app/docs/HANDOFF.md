@@ -1088,3 +1088,13 @@ none
 
 ### Notes for the next task
 - Nothing reads the settings yet; the `/patient-api` read services (M2-xx) consume `PATIENT_APP_SETTINGS`.
+
+## Rework M2-12 #1
+Branch `mobile/M2-12-patient-app-keys`. Finding → fix:
+1. **Blocker** — removed `patients.app_link.manage` from the Queue bundle; added it to the Patients **basic** bundle (Patients full gets it via `fullOf`). `appointments.requests.manage` stays in Appointments basic. Removed `CROSS_MODULE_BUNDLE_GRANTS`; the strict "bundle group = permission group" test is restored. Both catalogs regenerated with `npm run access:export`.
+2. **Major** — added tests: `matchBundle(g, BUNDLES[g][l]) === l` for every group and level; basic ⊆ full per group; Patients basic carries the app-link permission and Queue basic does not.
+3. No code change. `patients.app_link.manage` is high-risk and opt-in: only new orgs' Admin template gets it (via Patients full). Receptionists must be granted it explicitly.
+4. No code change. Existing orgs' roles are not updated on deploy (templates are insert-missing).
+5. Left as is. The settings import in `app.module.ts` moves into `PatientAppModule` after M2-01 is merged (note for M2-02).
+
+Install commands: none. Questions: none.
