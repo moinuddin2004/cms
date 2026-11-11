@@ -250,3 +250,86 @@ Branch: mobile/develop (new, from master)   Status set to: M0-01, M0-08 → done
 
 ### Notes for the next task
 - `git switch mobile/develop && git pull` before creating your card branch.
+
+---
+## M0-03 — Storage layer (prefs + encrypted cache)  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M0-03-storage   Commit(s): b235a1f (code)   Status set to: review
+
+### Done
+- `core/storage/prefs.ts`: plain MMKV instance `prefs` (`createMMKV({ id: 'prefs' })`, v4 API) behind
+  typed `getPref` / `setPref` / `removePref`. `PrefKey` is the whole unencrypted allow-list — active
+  space, queue segment, theme cache, last tab/filter, dismissed tips, patient language — so adding a
+  pref requires editing the union (docs/03 §2.6).
+- `core/storage/secure-cache.ts`: `openSecureCache(space)` reads/creates the key in SecureStore
+  `<space>.cacheKey`, opens `createMMKV({ id: '<space>-cache', encryptionKey, encryptionType: 'AES-256' })`,
+  caches one instance per space and single-flights concurrent opens. `wipeSecureCache(space)` awaits an
+  in-flight open, clears all keys, calls v4 `deleteMMKV(id)` and deletes the SecureStore key.
+- `core/storage/query-persister.ts`: `createSecureQueryPersister(cache, key?)` adapts the encrypted
+  MMKV to `createSyncStoragePersister` for `@tanstack/react-query-persist-client`. Not wired (M1-06).
+- Colocated unit tests: `prefs.test.ts` (round-trip, remove, unknown-key type error), `secure-cache.test.ts`
+  (SecureStore key reused, wipe removes data and key), `query-persister.test.ts` (restore/remove).
+- Reported installed version: **react-native-mmkv 4.3.2** (Nitro); the code uses `createMMKV` /
+  `deleteMMKV`, not the v3 `new MMKV()` / instance `delete()` API.
+
+### Files
+- Created: `mobile-app/src/core/storage/{prefs.ts, secure-cache.ts, query-persister.ts, prefs.test.ts, secure-cache.test.ts, query-persister.test.ts}`
+- Modified: `mobile-app/package.json`, `mobile-app/package-lock.json` (installs), `mobile-app/docs/PROGRESS.md`, `mobile-app/docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+```bash
+npx expo install react-native-mmkv expo-crypto
+npx expo install @tanstack/react-query-persist-client @tanstack/query-sync-storage-persister
+```
+Already installed in this worktree: `react-native-mmkv@4.3.2`, `expo-crypto@58.0.8`,
+`@tanstack/react-query-persist-client@5.107.1`, `@tanstack/query-sync-storage-persister@5.107.1`.
+The lockfile also installed `@tanstack/react-query@5.107.1` (from `^5.106.1`).
+`react-native-mmkv` v4 is a Nitro module: `react-native-nitro-modules@0.37.2` and `nitro-core@0.37.2`
+are present via its peer dependency. If a clean install ever misses it:
+`npx expo install react-native-nitro-modules`.
+
+### Verification
+- `npm run lint` → `✖ 3 problems (0 errors, 3 warnings)`; all three are pre-existing
+  (`core/http/api-error.ts`, `core/ui/skeleton.tsx`, `staff/lib/api.ts`), no new findings.
+- `npm run typecheck` → exit 0, no output.
+- `npm test` → `npm error Missing script: "test"` — the Jest runner is card M0-06. The three test files
+  are written next to the code and will run once M0-06 lands (`npm test -- src/core/storage`).
+- Manual: no device/emulator needed; this is a pure storage card, no UI. No screenshots.
+- Note: a fresh worktree has no generated `expo-env.d.ts` (gitignored), so baseline `tsc` failed on
+  `@/global.css`; I copied the generated file from the main checkout to verify. It is not committed.
+
+### Acceptance criteria
+- [x] Prefs round-trip — `prefs.test.ts`.
+- [x] Unknown pref key is a type error — `// @ts-expect-error` in `prefs.test.ts`, enforced by
+      `npm run typecheck` (which includes the test files).
+- [x] Secure cache uses the key from SecureStore and the same key/instance on second open —
+      `secure-cache.test.ts`.
+- [x] Wipe removes data and the SecureStore key — `secure-cache.test.ts`.
+- [x] No PHI stored anywhere yet: prefs only accepts `PrefKey`; nothing writes to the secure cache
+      until M1-06.
+- [ ] `npm test` green — not possible until M0-06 (runner missing, as the task note says).
+
+### Deviations from the card / docs
+- **Key length:** MMKV v4 rejects AES-256 keys longer than 32 bytes, while base64 of the card's 32
+  random bytes is 44 characters. Implemented as 32 random bytes → base64 → keep the first 32 characters,
+  stored in SecureStore and passed to MMKV (192 bits of entropy, exactly the key MMKV receives).
+  Storing the full 44-character string makes `createMMKV` throw in v4.
+- `wipeSecureCache` uses v4's `deleteMMKV(id)`; the v3 `instance.delete()` does not exist.
+- Test files read Jest's globals from `globalThis` with a local type instead of relying on `@types/jest`,
+  which is not installed until M0-06; this keeps `tsc --noEmit` green without a shim or tsconfig change.
+- `expo-env.d.ts` copied only for local verification (gitignored, not committed).
+
+### Questions for the architect
+- Confirm the 32-character key adaptation above, or name the preferred derivation (e.g.
+  `getRandomBytes(24)` for an exact 32-character base64 AES-256 key).
+- M0-06's `react-native-mmkv` mock must export `deleteMMKV` (v4 API) for `wipeSecureCache`; the
+  library's own Jest auto-mock already does. Please pass this to M0-06.
+- The card puts the persister factory in `core/storage`, while 02 §1 lists `core/query/` as the home of
+  a "persister factory". I followed the card; say if it should move in M1-06.
+
+### Notes for the next task
+- `openSecureCache(space)` and `wipeSecureCache(space)` are both async; instances are shared per space.
+- Prefs values are strings; a new pref key must be added to `PrefKey` before use.
+- `createSecureQueryPersister(cache, key = 'query-cache')` is ready for M1-06's
+  `PersistQueryClientProvider`; only allow-listed queries should be dehydrated into it.
+- The cache key uses the same SecureStore options as tokens (`AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY`).
