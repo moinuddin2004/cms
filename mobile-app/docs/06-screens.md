@@ -164,16 +164,17 @@ Row ActionSheet (each item shown only if permitted and valid for the status):
 
 | Action | Endpoint | Permission | Valid when |
 | --- | --- | --- | --- |
-| Mark urgent (reason required) | `PATCH entries/:id/priority` | `queue.entry.reprioritize` | waiting |
-| Transfer to doctor | `PATCH entries/:id/transfer` | any member (server checks) | waiting, skipped |
-| Skip | `PATCH entries/:id/skip` | `queue.entry.manage` | waiting, called |
+| Mark urgent (reason required) | `PATCH entries/:id/priority` | `queue.entry.reprioritize` | waiting, and not already `authorized_urgent` |
+| Transfer to doctor | `PATCH entries/:id/transfer` | `queue.entry.manage` | waiting |
+| Skip | `PATCH entries/:id/skip` | `queue.entry.manage` | called |
 | Rejoin queue | `PATCH entries/:id/rejoin` | `queue.entry.manage` | skipped |
 | Back from test | `PATCH entries/:id/return-from-test` | `queue.checkin` | on_hold |
 | Cancel visit (confirm) | `PATCH entries/:id/cancel` | `queue.entry.manage` | waiting, skipped, on_hold |
 | Patient file | navigate S-05 | `patients.view` | always |
 | Show ticket | `GET entries/:id/ticket` → sheet with token + people ahead | — | always |
 
-There is no free reorder — do not build drag-to-reorder.
+Valid statuses follow the backend transition map `backend/src/queue/queue-transitions.ts` (`ENTRY_TRANSITIONS`) —
+that file wins over this table. There is no free reorder — do not build drag-to-reorder.
 
 #### S-02c Walk-in sheet — `(staff)/(main)/queue/walk-in.tsx` (modal)
 

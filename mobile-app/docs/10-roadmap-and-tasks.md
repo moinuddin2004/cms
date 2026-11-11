@@ -481,7 +481,7 @@ MOB · M · Depends: M0-03, M1-02 · Branch `mobile/M1-06-offline`
 1. `core/http/idempotent-mutation.ts`: `useIdempotentMutation({ mutationFn: (vars, key) => …, … })`
    behaviour per [04 §8](04-coding-standards.md#8-mutations); retries only on network error / 503
    `LOCK_TIMEOUT`; exposes `isPending`. Tests.
-2. `staff/lib/persist.ts`: `PersistQueryClientProvider` in `StaffLayout` with the encrypted staff cache,
+2. `staff/lib/persist.ts` (never allow-list `patients` list/search or `checkPhone` keys — they hold phone/search text, M1-11a review #7): `PersistQueryClientProvider` in `StaffLayout` with the encrypted staff cache,
    `maxAge` 24 h, `buster` per [02 §9](02-architecture.md#9-offline), `dehydrateOptions.shouldDehydrateQuery`
    = key root in the allow-list (`access`, `queue`, `appointments` today only, `patients` detail).
 3. `core/components/feedback/OfflineBanner` wired into `Screen`; `useOnline()`.
@@ -727,12 +727,12 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 | M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
 | M2-04 | BE | M | `src/patient-links` staff endpoints (claim token, status, revoke) + `/patient-api/claims/*` + events `patient.record_linked/link_revoked` + audit | M2-03 | full claim flow via HTTP in an int spec |
 | M2-05 | WEB | S | "Link app" button + QR dialog on web patient detail (`patients.app_link.manage`) | M2-04 | QR scannable from phone; status refresh |
-| M2-06 | MOB | L | Patient space foundation (also: StaffLayout skips restore when already `signedIn`, see M0-04 review): `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |
+| M2-06 | MOB | L | Patient space foundation (refresh MUST be single-flight — a retried old token is treated as theft and logs out, M2-02 review #8; also: StaffLayout skips restore when already `signedIn`, see M0-04 review): `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |
 | M2-07 | MOB | M | Claim flow (P-01): deep link route, pending claim store, confirm page | M2-04, M2-06 | QR → app → linked in < 2 min |
 | M2-08 | BE | L | Read services: appointments, visits, prescriptions (+detail), billing summary; visibility rules ([07 §3](07-backend-contracts.md#3-patient-visibility-rules)); access log writes; settings `patient_app.show_billing`, `patient_app.show_diagnosis` | M2-03 | DTO snapshot tests prove no internal fields |
 | M2-09 | MOB | L | Records tab (P-03) + prescription/appointment details | M2-08, M2-06 | 4 segments with all states; clinic chips |
 | M2-10 | MOB+BE | M | Profiles endpoints + Family tab (P-04) + profile detail | M2-06 | dependents shown with their links |
-| M2-11 | MOB+BE | M | Linked clinics (P-08), unlink, link history, delete account (P-09) | M2-06 | delete → re-sign-up is a fresh account |
+| M2-11 | MOB+BE | M | Linked clinics (P-08), unlink, link history, delete account (P-09) — delete must also remove `patient_account_identities` (M2-02 review #5) | M2-06 | delete → re-sign-up is a fresh account |
 | M2-12 | BE | S | `patient_app` feature, permissions, settings keys — **full card below** | M0-09 | catalog regenerated in web + mobile |
 | M2-13 | BE+MOB | S | `product_events` + `POST /patient-api/events`, staff `POST /me/events`; event list in `docs/analytics-events.md` | M2-06 | pilot metrics queries documented |
 | M2-14 | WEB | S | Public landing pages `/c/:token` (open app or go to store) and `/v/:token` (visit state) | M2-04 | works on a phone without the app |

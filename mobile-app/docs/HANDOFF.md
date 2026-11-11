@@ -1067,3 +1067,16 @@ Branch: reviewed four lanes (independent reviewer agent per lane; every Blocker 
 ### Notes for the next task
 - Rework happens in the same worktree and branch; fix only the listed findings; append "Rework <ID> #1".
 
+---
+## REVIEW round 5  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: six branches reviewed (reworks by the architect; new cards with an independent reviewer agent each; key claims verified in code)   Status set to: M1-01, M0-07, M2-12 done (merge pending) · M1-07a, M1-11a, M2-02 changes-requested · M1-06a not handed off yet
+
+### Done
+- Reworks M1-01, M0-07 (EAS `env:set` verified in Expo docs), M2-12 all pass — see `reviews/<ID>/rework-1.md`.
+- M1-07a: two board action cells came from a wrong 06 S-02b table (skip from waiting, transfer from skipped) — 06 fixed against `queue-transitions.ts`.
+- M1-11a: boolean query bug (`"false"` → true), phone masking, schema tightening. M2-02: atomic attempt counter (Major) + small fixes.
+- DECISIONS: open risks R-01 (login-code rate limits in memory), R-02 (backend boolean filters). Cards M2-06, M2-11, M1-06 annotated.
+
+### Notes for the next task
+- Rework branches must read updated docs from mobile/develop (`git show mobile/develop:<path>`).
+

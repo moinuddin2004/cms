@@ -54,6 +54,13 @@
 | O-06 | Patient UI languages at pilot: English + Urdu? | English + Urdu (LTR layout in pilot, Urdu text in Noto Nastaliq) | M4 translation pass |
 | O-07 | Domain for links/QR landing pages (`https://<domain>/c/<token>`) | `FRONTEND_URL` of the web app | M2-14, Android App Links |
 
+## Open risks
+
+| ID | Risk | Accepted for | Mitigation later |
+| --- | --- | --- | --- |
+| R-01 | Patient login codes: rate limits are in memory (per process, reset on restart) → about 960 code guesses/day/email | Pilot | DB-backed daily cap on failed verifies per email (with the Postgres rate-limiter move) |
+| R-02 | Backend `PatientQueryDto` boolean filters (`isMinor`, `isBlacklisted`) turn `"false"` into `true` | Mobile sends only `true` | Backend: copy the `isActive` transform (small card when touched) |
+
 ## Change log
 
 | Date | Change |
