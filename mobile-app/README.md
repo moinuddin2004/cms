@@ -90,11 +90,15 @@ Keep route files focused on rendering a feature page. Feature APIs live in their
 ## Testing
 
 ```bash
-npm run lint
+npm test            # Jest unit tests (jest-expo preset)
+npm run lint        # Expo's ESLint configuration
+npm run lint:fences # cross-space imports must fail lint
 npm run typecheck
 ```
 
-There is no mobile unit-test script configured yet. Run lint and typecheck before submitting changes.
+Unit tests live next to the code as `*.test.ts(x)`. They run on Jest 30 with the `jest-expo` preset, so no device or development build is needed: `jest.setup.ts` replaces the native modules (SecureStore, MMKV, notifications, NetInfo, `expo-crypto.randomUUID`) with in-memory implementations, and `__mocks__/react-native-mmkv.ts` wires the library's own v4 test mock (`createMMKV` / `deleteMMKV`).
+
+Run all four commands before submitting changes — they are the Definition of Done in [`docs/09`](docs/09-testing-and-quality.md#1-definition-of-done-every-task).
 
 <br />
 

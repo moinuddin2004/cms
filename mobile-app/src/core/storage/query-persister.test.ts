@@ -6,17 +6,6 @@ import {
   QUERY_CACHE_KEY,
 } from './query-persister';
 
-// The Jest runner is card M0-06; until it (and @types/jest) lands, read the
-// globals from `globalThis` so `tsc --noEmit` stays green.
-const { describe, it, expect } = globalThis as unknown as {
-  describe: (name: string, fn: () => void) => void;
-  it: (name: string, fn: () => void | Promise<void>) => void;
-  expect: (actual: unknown) => {
-    toEqual: (expected: unknown) => void;
-    toBeUndefined: () => void;
-  };
-};
-
 const client: PersistedClient = {
   timestamp: 1_700_000_000_000,
   buster: 'test',
