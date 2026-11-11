@@ -1,8 +1,7 @@
 import * as Application from 'expo-application';
-import * as WebBrowser from 'expo-web-browser';
 import { CircleArrowUp } from 'lucide-react-native';
 import { useEffect } from 'react';
-import { Platform, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import { markReady } from '@/core/splash';
 import { Button } from '@/core/ui/button';
@@ -14,18 +13,33 @@ interface UpdateRequiredPageProps {
   message?: string;
 }
 
+/** iOS App Store listing. Placeholder until O-01 / M4 (first TestFlight build). */
+const IOS_APP_STORE_URL = 'https://apps.apple.com/';
+
 /**
- * Store URL for the Update button. Android uses the application id from the
- * installed build, so a `.dev` / `.preview` build links to its own listing.
- *
- * iOS has no numeric App Store id yet — decision O-01 fixes the identity, and
- * the listing URL is added with the first TestFlight build (M4).
+ * Store targets for the Update button, preferred first. Android uses the
+ * application id of the installed build, so a `.dev` / `.preview` build points
+ * at its own listing; `market://` opens the Play app, https is the fallback.
  */
-function storeUrl(): string {
-  if (Platform.OS === 'ios') return 'https://apps.apple.com/';
+function storeUrls(): string[] {
+  if (Platform.OS === 'ios') return [IOS_APP_STORE_URL];
 
   const applicationId = Application.applicationId ?? 'com.placeholder.clinicapp';
-  return `https://play.google.com/store/apps/details?id=${applicationId}`;
+  return [
+    `market://details?id=${applicationId}`,
+    `https://play.google.com/store/apps/details?id=${applicationId}`,
+  ];
+}
+
+async function openStore(): Promise<void> {
+  for (const url of storeUrls()) {
+    try {
+      await Linking.openURL(url);
+      return;
+    } catch {
+      // try the next target
+    }
+  }
 }
 
 /**
@@ -39,10 +53,6 @@ export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
     markReady();
   }, []);
 
-  function openStore(): void {
-    void WebBrowser.openBrowserAsync(storeUrl());
-  }
-
   return (
     <View className="bg-background flex-1 items-center justify-center gap-4 px-6 py-safe">
       <View className="bg-primary/10 size-16 items-center justify-center rounded-full">
@@ -54,7 +64,7 @@ export function UpdateRequiredPage({ message }: UpdateRequiredPageProps) {
       <Text variant="muted" className="text-center">
         {message ?? 'This version of the app is no longer supported. Please update to continue.'}
       </Text>
-      <Button size="lg" className="mt-2 min-w-40" onPress={openStore}>
+      <Button size="lg" className="mt-2 min-w-40" onPress={() => void openStore()}>
         <Text>Update</Text>
       </Button>
     </View>

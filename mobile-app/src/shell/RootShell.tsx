@@ -10,6 +10,14 @@ import { fetchMinVersion } from './min-version';
 import { RootProviders } from './RootProviders';
 import { UpdateRequiredPage } from './UpdateRequiredPage';
 
+/** One check per cold start, shared by every mount (StrictMode mounts twice). */
+let minVersionCheck: ReturnType<typeof fetchMinVersion> | undefined;
+
+function checkMinVersion(): ReturnType<typeof fetchMinVersion> {
+  minVersionCheck ??= fetchMinVersion();
+  return minVersionCheck;
+}
+
 /**
  * The composition root (docs/02 §1–2): every global provider plus the root
  * Stack. The root only decides *which space* is active — `welcome` when none
@@ -35,7 +43,7 @@ export function RootShell() {
   useEffect(() => {
     let cancelled = false;
 
-    void fetchMinVersion().then((info) => {
+    void checkMinVersion().then((info) => {
       if (cancelled || !info) return;
 
       const minimum = Platform.OS === 'ios' ? info.ios : info.android;

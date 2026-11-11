@@ -36,23 +36,33 @@ npx eas-cli@latest init
 ```
 
 `eas init` creates the Expo project and prints its **project id**. `app.config.ts` is a *dynamic*
-config, so EAS cannot write the id into it (it does not edit TypeScript files). Paste it in
-yourself, in `mobile-app/app.config.ts`:
+config, so EAS cannot write the id into it (it does not edit TypeScript files). Paste the id into the
+one `EAS_PROJECT_ID` constant in `mobile-app/app.config.ts` (empty string today). The updates URL
+(`https://u.expo.dev/<id>`) and `extra.eas.projectId` are derived from that constant. While it is
+empty the app runs embedded JS only (`updates.enabled` is `false`).
 
-```ts
-// line ~53: paste the id printed by `eas init`
-const easProjectId = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+### EAS environments (required before any build or update)
 
-// line ~46: the EAS Update endpoint for the same project
-const updatesUrl = 'https://u.expo.dev/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
+`APP_VARIANT` and `EXPO_PUBLIC_API_URL` live in **EAS environments** (`development`, `preview`,
+`production`). Build profiles select one with `"environment"` in `eas.json`, and `eas update` reads
+the same one via `--environment`. Replace the URL with the real backend per environment. (The Expo
+docs document `env:set`; it creates or updates a variable.)
+
+```powershell
+npx eas-cli@latest env:set --name APP_VARIANT --value development --environment development --visibility plaintext
+npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://api.example.com --environment development --visibility plaintext
+
+npx eas-cli@latest env:set --name APP_VARIANT --value preview --environment preview --visibility plaintext
+npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://api.example.com --environment preview --visibility plaintext
+
+npx eas-cli@latest env:set --name APP_VARIANT --value production --environment production --visibility plaintext
+npx eas-cli@latest env:set --name EXPO_PUBLIC_API_URL --value https://api.example.com --environment production --visibility plaintext
 ```
 
-Or set `EAS_PROJECT_ID` / `EXPO_UPDATES_URL` in the environment when you run EAS locally or on the
-build server. Until `updatesUrl` is set the app runs its embedded JS only (`updates.enabled` is
-`false`) — nothing breaks, OTA updates just do not exist yet.
+Both values are public (they ship inside the app), so `plaintext` is right.
 
-Then replace the placeholder API URL in `eas.json` (`https://api.example.com`, three profiles) with
-the real backend URL. `APP_VARIANT` is supplied by the profile; do not set it by hand for EAS builds.
+**Every `eas update` MUST pass the matching `--environment` (`preview` channel → `preview`, `production` channel → `production`); builds and updates must read the same environment.** An update bundled without `APP_VARIANT` /
+`EXPO_PUBLIC_API_URL` makes `core/env.ts` throw at start and breaks every installed build.
 
 > **Do not run `eas update:configure`**: it writes `app.json`, and this project now uses
 > `app.config.ts`. `runtimeVersion` (`{ policy: 'appVersion' }`) and the update channel are already
@@ -71,8 +81,8 @@ npx eas-cli@latest build --profile preview --platform android
 npx eas-cli@latest build --profile production --platform android
 ```
 
-- The `development` profile needs `expo-dev-client` in the project. If it is missing:
-  `npx expo install expo-dev-client` (see the M0-07 handoff note).
+- The `development` profile needs `expo-dev-client` (`npx expo install expo-dev-client`, in the M0-07 rework handoff). The profile also has to be built once on a device before M0-D can be ticked.
+- `appVersionSource` is `remote` and the production profile auto-increments the Android `versionCode`, so every AAB is accepted by Play.
 - Local builds while developing: `$env:APP_VARIANT = "development"; npx expo run:android` (this
   creates the native folders on your machine only; they stay gitignored).
 - `ios` builds must compile too (docs/01 §3), but only the Android pilot is in scope.
@@ -94,8 +104,7 @@ npx eas-cli@latest update --channel production --message "..." --environment pro
   version. Bump `version` in `app.config.ts` for every store release that changes native code.
 - Test an update on a release build by force-closing and reopening the app twice; in a development
   build use the Expo dev-client "Extensions" tab.
-- The `--environment` flag selects EAS environment variables and is required on current EAS CLI
-  (Expo docs: [Get started with Expo Update](https://docs.expo.dev/eas-update/getting-started/)).
+- `--environment` makes the update use that EAS environment's variables (Expo docs: [Environment variables](https://docs.expo.dev/eas/environment-variables/)).
 
 ## 5. Minimum supported version (X-03)
 

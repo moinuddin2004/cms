@@ -3,8 +3,8 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 /**
  * App config (card M0-07, docs/02 §11).
  *
- * `APP_VARIANT` selects the build variant. EAS sets it from the matching
- * profile in `eas.json`; a plain `npx expo start` / `expo run:android` is the
+ * `APP_VARIANT` selects the build variant. EAS supplies it from the EAS environment
+ * (development / preview / production) the build profile points at; a plain `npx expo start` / `expo run:android` is the
  * development variant. Each variant needs its own package/bundle id so a
  * development build can be installed next to a preview build (Expo docs:
  * "Install app variants on the same device").
@@ -46,18 +46,11 @@ const variant = VARIANTS[resolveVariant()];
 const applicationId = `com.placeholder.clinicapp${variant.idSuffix}`;
 
 /**
- * Filled by the user after `eas init` (docs/RELEASE.md):
- *   EXPO_UPDATES_URL=https://u.expo.dev/<projectId>
- * Until it is set, builds only use their embedded JS — no update checks.
+ * EAS project id — not a secret. Placeholder until the user runs `eas init`
+ * (docs/RELEASE.md §2): paste the id it prints between the quotes below.
+ * Leave it empty and updates stay disabled. M1-05 needs it for push tokens.
  */
-const updatesUrl = process.env.EXPO_UPDATES_URL?.trim() || '';
-
-/**
- * Filled by the user after `eas init` (docs/RELEASE.md): paste the project id
- * printed by the command here (or set EAS_PROJECT_ID). M1-05 needs it for push
- * tokens; EAS commands need it to address the project.
- */
-const easProjectId = process.env.EAS_PROJECT_ID?.trim() || '';
+const EAS_PROJECT_ID = '';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -83,7 +76,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     predictiveBackGestureEnabled: false,
   },
   web: {
-    output: 'server',
     favicon: './assets/images/favicon.png',
   },
   plugins: [
@@ -104,13 +96,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   runtimeVersion: {
     policy: 'appVersion',
   },
-  updates: updatesUrl
-    ? { url: updatesUrl }
-    : {
-        // Placeholder: after `eas init` set EXPO_UPDATES_URL (see docs/RELEASE.md).
-        enabled: false,
-      },
-  extra: easProjectId ? { eas: { projectId: easProjectId } } : undefined,
+  updates: EAS_PROJECT_ID
+    ? { url: `https://u.expo.dev/${EAS_PROJECT_ID}` }
+    : { enabled: false },
+  extra: EAS_PROJECT_ID ? { eas: { projectId: EAS_PROJECT_ID } } : undefined,
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
