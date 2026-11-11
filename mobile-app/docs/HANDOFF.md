@@ -1495,6 +1495,69 @@ Branch: mobile/M1-11a-patients-api   Status set to: review
 mobile: `npm test` 125 passed, typecheck clean, ESLint 0 errors (3 pre-existing warnings), `lint:fences` pass. No install needed. `mobile-app/package-lock.json` remains an unrelated uncommitted local change (not staged).
 
 ---
+## M1-02 — Staff tabs shell, More tab, location switch, sign-out  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-02-staff-shell   Commit(s): c1398eb   Status set to: review
+
+### Done
+- `(staff)/(main)/(tabs)/` routes (zero logic) + `staff/navigation/StaffTabs.tsx` (`expo-router/js-tabs`, since `Tabs` from `expo-router` is deprecated in SDK 58). Gates in `tab-access.ts` exactly as docs/02 §4; hidden with `href: null`; once `/me/access` is ready the app moves to the first allowed of Queue → Today → Patients → Schedule → More.
+- Placeholders for Today/Queue/Patients/Schedule: one `TabPlaceholderPage` (EmptyState "Coming soon") in `staff/navigation/pages`, so the queue/patients features stay untouched; later cards swap the route file import.
+- More (S-08) in `staff/features/more`: profile card, Switch location (ActionSheet → `switchLocation` in `auth.api.ts` → cache cleared except `access`, which is invalidated → `setLocationContext`; brand re-applies from the new theme query), Switch to patient space, App version (`currentVersion`), Sign out via `ConfirmDialog`, `__DEV__`-only "Component gallery" row. "No mobile features for your role" empty state when only More is visible (docs/05 §7).
+- `NotificationBell` (`staff/features/notifications`), count 0, labelled IconButton, shown in every tab header. No onPress yet (TODO M1-13).
+- Theme `default_mode`: `core/theme/apply-theme-mode.ts`; applied from the cache in `applyCachedBrand`, from the live theme in `BrandTheme`, `'system'` restored in `StaffLayout` cleanup.
+- Removed `home` route and `features/dashboard`; gallery non-dev redirect now goes to `/more`.
+
+### Files
+- Created: app/(staff)/(main)/(tabs)/{_layout,today,queue,patients,schedule,more}.tsx, core/theme/apply-theme-mode(.test).ts, staff/navigation/{StaffTabs.tsx,tab-access(.test).ts,pages/TabPlaceholderPage.tsx}, staff/features/more/**, staff/features/notifications/**
+- Modified: staff/features/auth/{api/auth.api.ts,index.ts}, staff/features/theme/{components/BrandTheme.tsx,lib/apply-cached-brand.ts}, staff/features/gallery/pages/GalleryPage.tsx, staff/navigation/{StaffLayout.tsx,index.ts}
+- Deleted: app/(staff)/(main)/home.tsx, staff/features/dashboard/**
+
+### Install commands for the user
+None (expo-application and uniwind already installed).
+
+### Verification
+- Route types regenerated (`CI=1 npx expo start --offline`); `npm run typecheck` clean; `npm test` 26 suites / 107 tests pass; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green.
+- Tests: tab matrix (doctor / receptionist / owner / nobody), cache clear keeps access and marks it stale, location options, sign-out only after dialog confirm, theme mode mapping.
+- No device: screenshots and the real Tabs / sheet / Uniwind.setTheme behaviour are not seen (gate M0-D).
+
+### Acceptance criteria
+- [x] Doctor-only → Queue + Patients + More; owner → all five; nobody → More only (unit test)
+- [~] Receptionist → Queue + Patients + Schedule + More, **plus Today**: the Today gate includes `appointments.view`, which Schedule also needs (see questions)
+- [ ] Device screenshots — not available
+
+### Deviations from the card / docs
+- "Switch location" row is hidden when the user has only one place to work in (nothing to switch to).
+- Access-ready jump to the first allowed tab is an effect in `StaffTabs` (js-tabs has no dynamic `initialRouteName`); before access loads the tab bar shows only More.
+- Tab bar colours use `useCSSVariable` tokens in `tabBarStyle` (navigator chrome cannot take classes).
+
+### Questions for the architect
+- Receptionist matrix: should Today be gated without `appointments.view`, or is Today expected for a receptionist? Gates were kept exactly as docs/02 §4.
+- Docs 06 S-08 also lists Notifications settings, Check for updates and Help; not in the card, so not built.
+- A switched location changes the brand but `StaffLayout`'s cached brand is only repainted on cold start (existing M0-05 behaviour).
+
+### Notes for the next task
+- M1-13: pass the real count to `NotificationBell` and add `onPress` → notifications route. Real tab pages replace `TabPlaceholderPage` by changing the import in the route file.
+
+---
+
+## Rework M1-02 #1
+
+Branch: mobile/M1-02-staff-shell   Status set to: review   (PROGRESS row already `review`)
+
+| # | Result |
+| --- | --- |
+| 1 (Major) | Fixed. New `AccessErrorBanner` (slim banner with Retry, above the tabs in `StaffTabs`) and `AccessErrorState` (full `ErrorState` with retry, on More) in `staff/features/access/components/AccessErrorNotice.tsx`; both call `access.refetch` and render only when `status === 'error'`. Tests: `AccessErrorNotice.test.tsx`. |
+| 2 | Fixed. `clearStaffCacheExceptAccess` no longer invalidates/awaits the old access key; it cancels + removes non-access queries, then `setLocationContext` runs and the new key fetches. Test updated (access left untouched). |
+| 3 | Fixed. `useSwitchLocation.test.tsx`: success clears cache before the store moves; error leaves store and cache unchanged. |
+| 4 | Fixed (cheap). Sheet label gets " (current)"; `SheetAction` has an optional `selected` -> `accessibilityState.selected`. Tapping the current row still closes the sheet (the generic ActionSheet always closes) but triggers no switch. |
+| 5 | Fixed. `NotificationBell` passes `disabled={!onPress}`. |
+| 6 | Fixed. Comment in `StaffTabs` documents the run-once jump and expo-router's fallback to the first visible tab. |
+| 7 | Accepted by the reviewer; no change. |
+
+Verification: `npm test` 28 suites / 112 tests pass; `npm run typecheck` clean; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green. Route types already present. No device check.
+Note: `AccessErrorNotice` imports `ErrorState` from its file rather than the `@/core/components` barrel, because the barrel pulls native keyboard-controller into jest for anything importing the access barrel.
+Install commands: none. Questions: none.
+
+---
 ## REVIEW round 7: reworks M1-02 + M1-07a + M1-11a + M2-02  ·  2026-11-12  ·  Claude Opus (architect)
 Branch: four rework branches verified against every finding   Status set to: all four done (merge pending)
 
