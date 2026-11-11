@@ -45,6 +45,9 @@ import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DevicesModule } from './devices/devices.module';
+import { PatientAppModule } from './patient-app/patient-app.module';
+import { PatientAuthModule } from './patient-auth/patient-auth.module';
+import { PatientLinksModule } from './patient-links/patient-links.module';
 import { LabOrdersModule } from './lab-orders/lab-orders.module';
 import { LabAccessModule } from './lab-access/lab-access.module';
 import { LabProductionModule } from './lab-production/lab-production.module';
@@ -126,6 +129,9 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
     DevicesModule, // /me/devices — staff push tokens (M1-04)
+    PatientAuthModule, // patient identity entities only (M2-01)
+    PatientAppModule, // patient profile/link/consent/access-log entities only (M2-01)
+    PatientLinksModule, // claim-token entity only (M2-01)
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
     SettingsRegistryModule,
     SearchModule, // global quick search (Ctrl+K)
