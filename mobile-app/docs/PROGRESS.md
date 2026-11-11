@@ -29,7 +29,7 @@
 | M1-01 | Core component kit | MOB | L | M0-05 | ready | | | |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-04 | ready | | | |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
-| M1-04 | Devices + Expo push provider | BE | M | M0-08 | ready | | | |
+| M1-04 | Devices + Expo push provider | BE | M | M0-08 | review | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
 | M1-05 | Push registration + tap routing | MOB | M | M1-04, M0-07 | ready | | | |
 | M1-06 | Offline cache + idempotent mutations | MOB | M | M0-03, M1-02 | ready | | | |
 | M1-07 | Queue data layer | MOB | M | M1-03, M1-06 | ready | | | |

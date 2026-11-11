@@ -485,3 +485,147 @@ Branch: reviewed the three task branches (parallel worktrees)   Status set to: d
 - **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
   EAS development build from M0-07.
 - After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
+
+---
+## M1-04 — Backend: devices + Expo push provider  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M1-04-be-push   Commit(s): 6491789 (code)   Status set to: review
+
+### Done
+- Schema (step 1): `user_devices` block in `database/schema/02_tables.sql` + the entity
+  `src/devices/entities/user-device.entity.ts`, and one idempotent change script
+  `database/changes/2026-11-11_push_devices.sql` (`BEGIN/COMMIT`, all `IF NOT EXISTS` / `DROP … IF EXISTS`).
+  The same file extends **every** CHECK that lists `'in_app'` (`notification_outbox.channel`,
+  `notification_templates.channel`, `notification_rules.channel`) with `'push'`, and
+  `notification_outbox.status` with `'skipped_no_device'`.
+- `src/devices/` (step 2): module, entity, `DevicesService` (register = upsert by token, moves a token to the
+  calling user; unregister = own token only; `pushTokensOf` / `removeTokens` for the provider), controller
+  `POST/DELETE /me/devices` returning `{ id }` / `{ deleted }`, DTO per 07 §4.2. Registered in `app.module.ts`.
+- Notifications (step 3): `NotificationChannel.PUSH`, `OutboxStatus.SKIPPED_NO_DEVICE`,
+  `CHANNELS_BY_AUDIENCE` doctor/coordinator/staff = in-app + email + push (lab and patient unchanged;
+  `CHANNELS_BY_RECIPIENT.USER` already gets every channel), `defaultRuleEnabled(..., pushDefault)`.
+  Push is **opt-in per event**: `channelsFor`/`eventChannels` only offer push when the event's own
+  `channels` list contains it, so `channels: null` ("every audience channel") never starts pushing every
+  event. `EventSeed.pushDefault` marks the event; `queue.patient_checked_in` is `[in_app, push]` with
+  `pushDefault: true`. `notifications.enums.spec.ts` updated deliberately — patient still `[]`.
+- `EnqueueInput.scheduledFor?: Date` added; final `scheduled_for` = later of it and the quiet-hours decision.
+  Also: push rows are no longer failed at enqueue for "no address" (devices are resolved at send time).
+- Provider (step 4): `delivery/expo-push.provider.ts` (`ExpoPushProvider` + lazy `ExpoPushClientFactory`,
+  registered in `ChannelProviderRegistry` and `NotificationsModule`). Resolves the user's tokens, chunks with
+  the SDK, title/body from the rendered payload, `channelId` = `queue` for `queue.*` else `general`, `data`
+  = `{ space:'staff', type, route: payload.link, organizationId, locationId, entityId }`. No devices →
+  `SkipSendError('skipped_no_device')`. Tickets: `DeviceNotRegistered` deletes the device row; other ticket
+  errors are `PermanentSendError`; receipts are checked once after 15 min (in-process timer in the worker
+  role) and also delete `DeviceNotRegistered` devices. `EXPO_ACCESS_TOKEN` optional (added to `.env.example`).
+- Privacy (step 5): the push template for `queue.patient_checked_in` is
+  `pushTitle: 'Patient checked in'` / `pushBody: '{patient_first_name} · Token {token}'`.
+  `NotificationService.enqueue` derives `patient_first_name` from `patient_name` with
+  `notifications/privacy.ts#firstNameOf` (first whitespace token) for every event, so a full name can never
+  reach a push body; the bell/email keep the full name. Template seeding (`defaultTemplateSeeds`) emits the
+  push variant only for push events.
+- Web settings parity: the notification-settings view/rule validation now use the same push opt-in
+  (`defaultRuleEnabled(..., event.channels.includes('push'))`, `channelsFor`), so the screen and the sender
+  agree.
+- Tests (step 6): `delivery/expo-push.provider.spec.ts` with a mocked Expo client (no device → skip; payload
+  + channel + data; ticket `DeviceNotRegistered` → device deleted; receipt after 15 min → device deleted;
+  other ticket errors permanent) and `notifications/privacy.spec.ts`; `notifications.enums.spec.ts` rewritten
+  for the new channel/defaults/privacy.
+
+### Files
+- Created: `backend/src/devices/{devices.module.ts,devices.controller.ts,devices.service.ts}`,
+  `backend/src/devices/dto/device.dto.ts`, `backend/src/devices/entities/user-device.entity.ts`,
+  `backend/src/notifications/privacy.ts`, `backend/src/notifications/privacy.spec.ts`,
+  `backend/src/notifications/delivery/expo-push.provider.ts`,
+  `backend/src/notifications/delivery/expo-push.provider.spec.ts`,
+  `backend/database/changes/2026-11-11_push_devices.sql`
+- Modified: `backend/database/schema/02_tables.sql`, `backend/src/app.module.ts`,
+  `backend/src/notifications/notifications.enums.ts`, `backend/src/notifications/notifications.enums.spec.ts`,
+  `backend/src/notifications/notifications.module.ts`, `backend/src/notifications/seeds/notification-events.seed.ts`,
+  `backend/src/notifications/services/notification.service.ts`,
+  `backend/src/notifications/services/notification-settings.service.ts`,
+  `backend/src/notifications/delivery/channel-provider.ts`,
+  `backend/src/notifications/delivery/channel-provider.registry.ts`,
+  `backend/src/notifications/delivery/notification-dispatcher.service.ts`,
+  `backend/src/notifications/delivery/{email,in-app}.provider.spec.ts` (two new required fields in the
+  `OutgoingNotification` fixtures), `backend/.env.example`, `backend/package.json` + `package-lock.json`
+  (`expo-server-sdk`, installed by the user before this task), `mobile-app/docs/PROGRESS.md`
+- Deleted / moved: none
+
+### Install commands for the user
+```bash
+cd backend && npm i expo-server-sdk   # already installed in this worktree (8.0.0); package.json/lock committed
+```
+Nothing else is new. No `npm install` was run by me.
+
+### Verification
+- `npm run build` → clean (`nest build`, no diagnostics), run again after formatting.
+- `npx jest --runInBand` → **90 suites, 922 tests passed** (121 s), including `access-coverage.spec.ts`,
+  `guard.acceptance.spec.ts`, `notifications/**` and `patient-api-coverage.spec.ts`.
+  Named re-run: `npx jest --runInBand --testPathPattern "access-coverage|guard.acceptance|patient-api-coverage"`
+  → 4 suites, 37 tests passed.
+- `npx jest --runInBand --testPathPattern "src/notifications"` → 7 suites, 58 tests passed.
+- Prettier: `npx prettier --check --end-of-line auto <changed files>` → "All matched files use Prettier code
+  style!". ESLint `npx eslint --rule 'prettier/prettier: off' <changed files>` → clean.
+  `npm run lint` was **not** run: it is `eslint --fix` over the whole tree and this checkout has CRLF line
+  endings (`core.autocrlf=true`), so `prettier/prettier` flags every existing file with "Delete ␍" (the M0-08
+  finding; no `.gitattributes`). No `eslint-disable` was added.
+- **Change file not executed**: no local/disposable Postgres on this machine (`127.0.0.1:5432` closed, no
+  `psql`, no Docker), and the only configured `DATABASE_URL` is the shared one — per the task rule I did not
+  point SQL at it. Reviewer: `psql "<disposable>" -v ON_ERROR_STOP=1 -1 -f database/changes/2026-11-11_push_devices.sql`.
+- Manual: no device — real push is the M1-05 carry-over below. Provider behaviour proven with mocked
+  `expo-server-sdk` (no live network).
+
+### Acceptance criteria
+- [x] `POST /me/devices` upserts by token, moves a token to the calling user, returns `{ id }`;
+      `DELETE /me/devices` removes only the caller's token, returns `{ deleted }` (07 §4.2).
+- [x] `push` channel + `skipped_no_device` exist in the TS enums, entity CHECKs and the SQL schema/change file.
+- [x] The decision path only creates push rows for events that opt in (`queue.patient_checked_in`), never for
+      patients — proven in `notifications.enums.spec.ts`.
+- [x] Provider: mocked-Expo tests prove sending (chunk/title/body/channel/data), no-device skip and
+      `DeviceNotRegistered` device deletion (ticket and receipt).
+- [x] Push privacy (docs/03 §5): first name + token only; `firstNameOf` unit-tested.
+- [x] `npm run build` clean; full unit suite green incl. access-coverage, guard.acceptance, notifications,
+      patient-api-coverage.
+- [ ] **Carry-over — real device push within 5 s**: needs M1-05 (mobile registration + a device token). Not
+      possible in this backend-only worktree; provider proven with mocked tests as the task allows.
+
+### Deviations from the card / docs
+- Card step 2 says `@AnyMember() @ContextFree()`; I used **`@ContextFree()` only** (like `/me/notifications`).
+  Verified against `access-coverage.spec.ts`: `CONTEXT_FREE_KEY` is an accepted marker, so coverage passes.
+  `@AnyMember()` additionally makes `AccessGuard` require an organisation header and a membership
+  (`access.guard.ts:84`), which would 403 a lab user or a user whose active org is not selected — for a
+  device that belongs to the user, not the clinic. Documented in the controller.
+- `EventSeed.pushDefault` has **no DB column** (08 §4 adds none): the seed's `channels` list is what the boot
+  seed writes to `notification_events.channels`, so the enqueue path derives the push default from
+  `event.channels.includes('push')`. A spec asserts `push in eventChannels(e) ⇔ e.pushDefault`.
+- `OutgoingNotification` gained `locationId` and `entityId` (07 §8 push `data` needs them; the dispatcher claim
+  now returns them) — two existing spec fixtures were updated.
+- The enqueue "no address → failed" rule now applies only to email/SMS/WhatsApp; otherwise every push row would
+  be failed before the worker could resolve devices.
+- The notification-settings service (view + rule validation) was aligned with the push opt-in; without that the
+  web screen would show push "off" for the queue event while the sender pushes.
+- Receipts: chose the in-process 15-minute check (no new table, no receipt job); a worker restart drops a
+  pending check — the stale device is then cleaned on the next ticket/receipt. Documented in the provider.
+- `appVersion` is required in `POST /me/devices` (07 §4.2 has no `?` on it); `deviceLabel` optional.
+- Prettier also re-wrapped two pre-existing long lines in `notification-events.seed.ts` (whitespace only).
+
+### Questions for the architect
+- Is `EventSeed.pushDefault` as a seed-only marker acceptable (runtime reads `notification_events.channels`),
+  or should M3-07 add a `push_default` column/receipt table?
+- Confirm `@ContextFree()` only for `/me/devices` (rationale above), or insist on `@AnyMember()`.
+- Confirm `appVersion` required — M1-05 must send it or the registration 400s.
+- Push is currently held by quiet hours (it is not in-app, so `decide()` holds it until the window ends).
+  Keep that, or treat push like in-app for quiet hours?
+- The web `/settings/notifications` screen now receives `push` in `channelsByAudience`/rules (this is what the
+  card asks). It needs a label + toggle handling in the web app — flag for a web task (not touched here).
+
+### Notes for the next task
+- M1-05: `POST /me/devices` body `{ expoPushToken, platform: 'android'|'ios', appVersion, deviceLabel? }`;
+  `DELETE /me/devices` `{ expoPushToken }` before dropping the staff session.
+- Push `data` to route on: `{ space: 'staff', type, route, organizationId, locationId, entityId }`
+  (`route` = the payload link, e.g. `/queue/doctor`); Android channels `queue` / `general`.
+- Run `database/changes/2026-11-11_push_devices.sql` on a database **before** deploying this build: the boot
+  seed inserts the new `push` template for `queue.patient_checked_in`, which the old CHECK would reject.
+- No push rows exist for any other event; add `channels: [.., PUSH]` + `pushDefault` to a seed to opt one in,
+  and keep its `pushBody` free of full names (docs/03 §5).
+- Patient push stays off (`CHANNELS_BY_AUDIENCE.patient = []`) until M3-07.
+
