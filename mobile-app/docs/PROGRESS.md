@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 0 — Foundations · **Next up:** M0-07 finish + review; M1-01 can start · **Gate:** M0-D device smoke must pass before M1-02 · Updated 2026-11-11
+**Current phase:** 0 — Foundations · **Next up:** M0-07 (wt-b, running) · M1-01 (wt-a) · M2-01 then M2-12 (wt-c) · user: M0-D device setup · **Gate:** M0-D device smoke must pass before M1-02 · Updated 2026-11-11
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -45,7 +45,9 @@
 | M1-15 | Today snapshot | MOB | M | M1-07, M1-14 | ready | | | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
-| M2-01 … M2-16 | Patient core | — | — | see 10 | spec | | | |
+| M2-01 | Patient identity tables + entities | BE | M | M0-09 | ready | | | |
+| M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | ready | | | |
+| M2-02 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
 

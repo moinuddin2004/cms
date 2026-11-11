@@ -642,7 +642,7 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 
 | ID | Area | Size | Title | Depends | Key acceptance |
 | --- | --- | --- | --- | --- | --- |
-| M2-01 | BE | M | Identity tables + entities (accounts, identities, sessions, login codes, profiles, links, claim tokens, consents, access log) | M0-09 | change file runs twice without error; entities load |
+| M2-01 | BE | M | Identity tables + entities — **full card below** | M0-09 | change file runs twice without error; entities load |
 | M2-02 | BE | L | `src/patient-auth`: email code, Google (multi-audience), sessions with rotation + reuse detection, `patient-jwt` strategy (separate secret, `aud`, attaches to `req.patientAuth` **not** `req.user`), `PatientJwtGuard`, `/patient-api/me` | M2-01 | strategy tests both directions; start-up fails if patient secret missing/equal to staff secret |
 | M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
 | M2-04 | BE | M | `src/patient-links` staff endpoints (claim token, status, revoke) + `/patient-api/claims/*` + events `patient.record_linked/link_revoked` + audit | M2-03 | full claim flow via HTTP in an int spec |
@@ -653,11 +653,79 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 | M2-09 | MOB | L | Records tab (P-03) + prescription/appointment details | M2-08, M2-06 | 4 segments with all states; clinic chips |
 | M2-10 | MOB+BE | M | Profiles endpoints + Family tab (P-04) + profile detail | M2-06 | dependents shown with their links |
 | M2-11 | MOB+BE | M | Linked clinics (P-08), unlink, link history, delete account (P-09) | M2-06 | delete → re-sign-up is a fresh account |
-| M2-12 | BE | S | `patient_app` feature (un-retire `patients.portal`? **No** — new key `patient_app`), permission `patients.app_link.manage`, `npm run access:export` | M0-09 | catalog regenerated in web + mobile |
+| M2-12 | BE | S | `patient_app` feature, permissions, settings keys — **full card below** | M0-09 | catalog regenerated in web + mobile |
 | M2-13 | BE+MOB | S | `product_events` + `POST /patient-api/events`, staff `POST /me/events`; event list in `docs/analytics-events.md` | M2-06 | pilot metrics queries documented |
 | M2-14 | WEB | S | Public landing pages `/c/:token` (open app or go to store) and `/v/:token` (visit state) | M2-04 | works on a phone without the app |
 | M2-15 | MOB | S | Staff "Link app" QR screen (S-09) | M2-04, M1-12 | |
 | M2-16 | MOB | S | Apple sign-in (iOS only), behind platform check | M2-06 | only when iOS build is planned |
+
+
+### M2-01 — Patient identity tables + entities (full card)
+
+BE · M · Depends: M0-09 · Branch `mobile/M2-01-patient-identity`
+
+**Goal:** the nine patient-identity tables exist in SQL and as TypeORM entities. No endpoints, no services.
+
+**Read first:** [08 §1–3, §7](08-database.md), `backend/database/README.md`, root `CLAUDE.md` (Database),
+[03 §3](03-security.md#3-backend-rules-for-the-patient-space), an existing entity with CHECKs for style
+(`backend/src/devices/entities/user-device.entity.ts`).
+
+**Steps:**
+1. One change file `backend/database/changes/2026-11-12_patient_identity.sql` with all nine tables from 08 §1–3
+   exactly (names, columns, constraints, indexes). Idempotent: `CREATE TABLE IF NOT EXISTS`, `CREATE [UNIQUE] INDEX IF NOT EXISTS`,
+   and for CHECKs added outside `CREATE TABLE` the `DROP CONSTRAINT IF EXISTS` + `ADD` pattern. Wrapped in `BEGIN; … COMMIT;`.
+2. Same nine blocks in `backend/database/schema/02_tables.sql` (place them after `patients` and the `user_devices`
+   block, each with the usual header comment naming its entity file). FKs to `organizations`, `patients` and `users`
+   are inline (those tables are defined earlier). `patient_access_log.account_id` has **no** FK (08 §3).
+3. Entities (08 §7) — one file per table, column decorators matching SQL exactly (`timestamptz` for instants,
+   `date` for `dob`, `char(64)` hashes, string-literal union types + `@Check` for every CHECK, `@Index` names
+   identical to the SQL):
+   - `src/patient-auth/entities/`: `patient-account.entity.ts`, `patient-account-identity.entity.ts`,
+     `patient-session.entity.ts`, `patient-login-code.entity.ts`
+   - `src/patient-app/entities/`: `patient-profile.entity.ts`, `patient-record-link.entity.ts`,
+     `patient-account-consent.entity.ts`, `patient-access-log.entity.ts`
+   - `src/patient-links/entities/`: `patient-claim-token.entity.ts`
+   Partial unique indexes (`WHERE …`) are declared in SQL; in the entity use `@Index(name, cols, { unique: true, where: '…' })`.
+4. Three modules that only register entities (`TypeOrmModule.forFeature([...])`, exported): `PatientAuthModule`,
+   `PatientAppModule`, `PatientLinksModule`; import all three in `app.module.ts`. No controllers, no providers yet.
+5. `src/patient-app/entities/patient-entities.spec.ts`: using `getMetadataArgsStorage()` assert for every new entity
+   the table name, that every SQL column has a matching `@Column` name, and that the unique/partial index names exist
+   (`uq_patient_accounts_email`, `uq_patient_profiles_self`, `uq_patient_record_links_active_patient`,
+   `uq_patient_sessions_refresh_token_hash`, `uq_patient_claim_tokens_token_hash`, `uq_patient_account_identities_provider_subject`).
+6. Do **not** touch `patients.user_id`.
+
+**Acceptance:**
+- [ ] `npm run build` clean; full `npx jest --runInBand` green (incl. access-coverage, guard.acceptance, patient-api-coverage).
+- [ ] New metadata spec green.
+- [ ] Change file reviewed line by line against 08 (it will be executed on a disposable Postgres by the reviewer/user; never on the shared DB).
+- [ ] No service, controller or endpoint added.
+
+**Out of scope:** any auth logic (M2-02), guards (M2-02/03), claim flow (M2-04).
+
+---
+
+### M2-12 — `patient_app` feature, permissions, settings keys (full card)
+
+BE · S · Depends: M0-09 · Branch `mobile/M2-12-patient-app-keys`
+
+**Read first:** `backend/src/feature-flags/feature-catalog.seed.ts`, `backend/src/access/catalog/{permissions,bundles,templates}.ts`,
+`backend/src/settings-registry/setting-definition.ts`, `backend/src/clinic-access/sign-in-policy.settings.ts` (example), root `CLAUDE.md` (Access).
+
+**Steps:**
+1. Feature seed: new key `patient_app` (name "Patient app", module `patients`, description "Patients can link their records in the mobile app.",
+   specialtyTags `['general']`, `enabledByDefault: false`). Do **not** un-retire `patients.portal`.
+2. Permissions (`permissions.ts`), both `feature: 'patient_app'`:
+   `patients.app_link.manage` (label "Link patients to the app", group Patients, risk high if the type supports it) and
+   `appointments.requests.manage` (label "Handle patient appointment requests", group Appointments).
+3. Bundles: add `patients.app_link.manage: true` to the bundle that holds `queue.checkin` (front desk); add
+   `appointments.requests.manage: true` to the Appointments bundle. Never reference role names in code.
+4. Settings: `src/patient-app/patient-app.settings.ts` with `patient_app.show_billing` and `patient_app.show_diagnosis`
+   (`s.boolean()`, default `true`, scopes `[ORG]`, `lockable: false`); make sure the file is imported at boot
+   (the registry map is module-level — follow how existing settings files are imported).
+5. `npm run access:export` (regenerates web + mobile catalogs) and commit the generated files.
+6. Tests: update any catalog/bundle snapshot specs deliberately; add a small spec that both permissions map to `patient_app`.
+
+**Acceptance:** build clean; full unit suite green (incl. `catalog.spec.ts`, access-coverage, guard.acceptance); both generated catalogs contain the two keys.
 
 # Phase 3 — Patient hook (weeks 25–30)
 
