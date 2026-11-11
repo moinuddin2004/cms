@@ -375,7 +375,7 @@ MOB · M · Depends: M1-01, M0-04 · Branch `mobile/M1-02-staff-shell`
    `Uniwind.setTheme('light' | 'dark' | 'system')` while the staff space is mounted; restore `'system'` on leave (M0-05 review).
 
 **Acceptance:** permission matrix: a doctor-only test user sees Queue + Patients + More; a receptionist
-sees Queue + Patients + Schedule + More; an owner sees all five (screenshots or test with mocked access).
+(with `appointments.view`) sees Today + Queue + Patients + Schedule + More; an owner sees all five (screenshots or test with mocked access).
 
 ---
 
@@ -391,7 +391,7 @@ MOB · M · Depends: M1-02 · Branch `mobile/M1-03-staff-realtime`
    Lifecycle per 02 §7 (background 30 s disconnect, foreground reconnect, auth_error → refresh once).
 2. `StaffRealtimeProvider` (in `StaffMainLayout`): exposes `useRealtimeStatus()` (`live | reconnecting | offline`)
    and `useRoomSubscription(room | null)` (subscribe on mount/change, unsubscribe on unmount, re-subscribe after reconnect).
-   Always subscribes `org:<activeOrgId>`.
+   Always subscribes `org:<activeOrgId>`; resubscribe all rooms whenever `activeOrganizationId` or `activeLocationId` changes (M1-02 review).
 3. `staff/lib/realtime-invalidation.ts`: map events to query keys with a 300 ms coalescing window;
    `queue.event` handler compares `seq` with the cached snapshot's `session.eventSeq` (read via
    `queryClient.getQueryData`) and ignores stale.

@@ -70,7 +70,7 @@ validated (uuid) before use; invalid → `ErrorState` "Not found".
 - Function components only. Props interface named `<Component>Props`, declared above the component.
 - Keep a component under ~150 lines; extract subcomponents into the same feature's `components/`.
 - No inline `style={{…}}` when a class exists. Allowed only for values computed at runtime
-  (animated styles, measured heights). No hex colours anywhere — tokens only (see [05](05-ui-ux-design-system.md)).
+  (animated styles, measured heights) and navigator chrome options (`tabBarStyle`, header styles) fed from tokens. No hex colours anywhere — tokens only (see [05](05-ui-ux-design-system.md)).
 - Use logical spacing classes: `ms-/me-/ps-/pe-/start-/end-` (A-13). `ml-/mr-/pl-/pr-/left-/right-` are forbidden.
 - Text always inside `<Text>` from `@/core/ui/text` (never raw RN `Text` in feature code).
 - Pressables: `Button` from `@/core/ui/button`, or `IconButton` from `@/core/components` (requires

@@ -1324,3 +1324,12 @@ Branch: six branches reviewed (reworks by the architect; new cards with an indep
 ### Notes for the next task
 - Rework branches must read updated docs from mobile/develop (`git show mobile/develop:<path>`).
 
+---
+## REVIEW round 6: M1-02 + M1-06a  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed `mobile/M1-02-staff-shell` (reviewer agent + architect) and `mobile/M1-06a-idempotent` (architect)   Status set to: M1-06a done (merge pending) · M1-02 changes-requested
+
+### Done
+- M1-06a done (63 tests). M1-02: Major — access load failure leaves a More-only app with no retry; small fixes listed in `reviews/M1-02/review.md`.
+- Card fixes: M1-02 acceptance (receptionist sees Today), M1-03 resubscribe on org/location change; 04 §4 navigator-chrome style exception.
+- Reworks M1-07a, M1-11a, M2-02 have no new commits yet.
+
