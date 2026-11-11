@@ -40,7 +40,7 @@
 | M1-08 | Doctor queue screen | MOB | L | M1-07 | ready | | | |
 | M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | ready | | | |
 | M1-10 | Arrivals + close session | MOB | M | M1-08, M1-09 | ready | | | |
-| M1-11a | Patients types, API, keys, pure logic | MOB | S | — | ready | | | |
+| M1-11a | Patients types, API, keys, pure logic | MOB | S | — | review | mobile/M1-11a-patients-api | Claude Sonnet 5.5 | 2026-11-11 |
 | M1-11 | Patients list + quick register | MOB | M | M1-01, M1-06, M1-11a | ready | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
 | M1-13 | Notifications inbox + bell | MOB | S | M1-03 | ready | | | |
