@@ -493,9 +493,89 @@ actions disabled; reconnect → refresh. Test proves a retried mutation reuses i
 
 ---
 
-### M1-07 — Queue data layer
+### M1-06a — Idempotent mutation helper + online state (split from M1-06)
 
-MOB · M · Depends: M1-03, M1-06 · Branch `mobile/M1-07-queue-data`
+MOB · S · Depends: — · Branch `mobile/M1-06a-idempotent`
+
+**Goal:** the core pieces every queue action needs, without UI and without a device.
+
+**Read first:** [04 §8](04-coding-standards.md#8-mutations), [07 §2.3](07-backend-contracts.md#23-queue) (headers + retry rule),
+`web-app/src/features/queue/services/queue.api.ts:34-64` (the web's retry loop — same behaviour), `src/core/query/managers.ts`.
+
+**Steps:**
+1. `src/core/network/use-online.ts`: `useOnline(): boolean` from `@react-native-community/netinfo` (`isConnected !== false`),
+   plus `isOnlineNow()` for non-React code. `src/core/network/index.ts` barrel.
+2. `src/core/http/idempotency.ts`: `newIdempotencyKey()` = `expo-crypto` `randomUUID()`; `isRetryable(err)` = no response
+   (network error) **or** HTTP 503 with `error.code === 'LOCK_TIMEOUT'`; `retryDelayMs(attempt)` = 250 × (attempt + 1) + 0–100 ms jitter.
+3. `src/core/http/idempotent-mutation.ts`: `useIdempotentMutation<TVars, TData>({ mutationFn: (vars, ctx: { idempotencyKey: string }) => Promise<TData>, onSuccess?, onError? })`
+   built on TanStack `useMutation`. A key is created **once per `mutate()` call** (one user intent), reused for up to 3
+   automatic retries of that call when `isRetryable`, never reused for a new `mutate()`. Any 4xx stops immediately.
+   Returns the normal mutation result (`isPending`, `mutate`, `mutateAsync`, `error`).
+4. `src/core/http/use-can-mutate.ts`: `useCanMutate()` → `false` while offline.
+5. Tests: same key across retries of one call; a new key for the next call; stops on 4xx; retries on network error and
+   503 LOCK_TIMEOUT only; gives up after 3 retries; uses fake timers for the delays.
+6. Remove these steps from the M1-06 card scope (M1-06 keeps persistence, OfflineBanner wiring, sign-out wipe).
+
+**Acceptance:** tests green; no import outside `src/core`; no UI.
+
+---
+
+### M1-07a — Queue data layer: types, API, keys, pure logic (split from M1-07)
+
+MOB · M · Depends: — · Branch `mobile/M1-07a-queue-api`
+
+**Goal:** everything in `staff/features/queue` that is not a React hook or a screen.
+
+**Read first:** [07 §2.3](07-backend-contracts.md#23-queue) (the whole section is the contract), [06 S-02a/S-02b](06-screens.md)
+(action tables), `backend/src/queue/controllers/{doctor-queue,queue}.controller.ts`, `backend/src/queue/queue.errors.ts`,
+`backend/src/queue/services/queue-query.service.ts:28-86` (views), `web-app/src/features/queue/services/queue.api.ts` (web client — same endpoints).
+
+**Steps:**
+1. `types/queue.types.ts`: `EntryStatus`, `SessionStatus`, `QueueType`, `PriorityClass`, `SelectionReason` unions;
+   `EntryView`, `SessionView`, `SessionSnapshot`, `BoardResponse` (lanes), `EntryResult`, `ArrivalResult`, `CallNextResult`,
+   `TransferResult`, `TicketView`, request DTO types (`WalkInInput`, `CloseSessionInput`, …) — copied from 07 §2.3, verified against the backend files.
+2. `api/queue.api.ts`: one function per endpoint in both 07 §2.3 tables plus `PATCH /appointments/:id/check-in` and
+   `POST /appointments/:id/convert-to-walk-in`. Reads take plain args; mutations take `(vars, { idempotencyKey, ifMatch?: number })`
+   and send `Idempotency-Key` and, when given, `If-Match: "<version>"`. Use `staffApi`; return the unwrapped `data`.
+3. `api/queue.keys.ts`: `queueKeys.all`, `mySession(locationId, ymd)`, `board(locationId, ymd)`, `session(id)`, `ticket(entryId)`, `patientVisits(patientId)`.
+4. `lib/entry-actions.ts`: pure `availableEntryActions(entry, session, perms, viewer: 'doctor' | 'board')` → action ids,
+   exactly per the S-02a current-card table and the S-02b ActionSheet table (status validity × permission). `perms` is a
+   `(perm) => boolean` function (the caller passes `can`). Exhaustive table tests: every status × viewer × relevant permission.
+5. `lib/queue-errors.ts`: `queueErrorMessage(err)` mapping every code in the 07 §2.3 "error codes → UI copy" table, plus
+   `shouldRefetch(err)` (true for NOT_FOUND, INVALID_TRANSITION, VERSION_CONFLICT, ALREADY_CHECKED_IN). Unknown → `apiErrorMessage` fallback. Tests.
+6. `index.ts` barrel exporting types, api, keys and the two libs. No hooks, no components (those stay in M1-07/M1-08/M1-09).
+
+**Acceptance:** typecheck; tests for `availableEntryActions` (all combinations listed) and `queue-errors`; an api test that a
+mutation sends both headers (mock the axios adapter); nothing imports React.
+
+---
+
+### M1-11a — Patients data layer: types, API, keys, pure logic (split from M1-11/M1-12)
+
+MOB · S · Depends: — · Branch `mobile/M1-11a-patients-api`
+
+**Read first:** [07 §2.4](07-backend-contracts.md#24-patients-srcpatientspatientscontrollerts-every-id-route-is-scope-checked--404-outside-scope),
+[06 S-04, S-05](06-screens.md), `backend/src/patients/dto/{request/patient-query.dto.ts,request/create-patient.dto.ts,response/patient-response.dto.ts}`,
+`web-app/src/features/patients/components/tabs/OverviewTab.tsx:238-306` (alerts logic to port).
+
+**Steps:**
+1. `staff/features/patients/types/patients.types.ts`: `PatientListItem`/`PatientDetail` (fields the mobile screens need, names
+   exactly as the response DTO), `PatientQuery`, `CreatePatientInput`, `PatientHistory`, `Vitals`, prescription list item.
+2. `api/patients.api.ts`: list (`GET /patients` with the query), detail, create, `check-phone`, history, vitals, latest teeth
+   chart, `GET /prescriptions/patient/:patientId`. `api/patients.keys.ts` (keys include org + location).
+3. `lib/mask-phone.ts` (`0300•••4567` style; short/odd input safe) and `lib/patient-alerts.ts` (port of the web logic:
+   allergies split, blacklisted + reason, minor + guardian) — both with table tests.
+4. `schemas/quick-register.schema.ts` (Zod 4): fullName 1–150, phone 1–20 (digits, `+`, spaces, dashes), gender optional,
+   dob optional `YYYY-MM-DD` not in the future, isMinor → guardianName + guardianPhone required. Tests.
+5. `index.ts` barrel. No hooks, no screens.
+
+**Acceptance:** typecheck; tests for masking, alerts and the schema; types match the backend DTO names.
+
+---
+
+### M1-07 — Queue data layer (hooks only — types/api/logic are M1-07a)
+
+MOB · M · Depends: M1-03, M1-06, M1-07a · Branch `mobile/M1-07-queue-data`
 
 **Goal:** `staff/features/queue` types, api, keys, query hooks and all mutation hooks — no UI.
 
@@ -701,6 +781,76 @@ BE · M · Depends: M0-09 · Branch `mobile/M2-01-patient-identity`
 - [ ] No service, controller or endpoint added.
 
 **Out of scope:** any auth logic (M2-02), guards (M2-02/03), claim flow (M2-04).
+
+---
+
+### M2-02 — Patient auth: email code, sessions, patient JWT, guard (full card)
+
+BE · L · Depends: M2-01 (branch from `mobile/M2-01-patient-identity` until it is merged) · Branch `mobile/M2-02-patient-auth`
+
+**Goal:** a patient can sign in with an emailed 6-digit code, refresh, and log out; `/patient-api/me` works behind the real
+`PatientJwtGuard`. Google sign-in is the next card (M2-02b).
+
+**Read first:** [03 §3](03-security.md#3-backend-rules-for-the-patient-space) rules 1, 5, 6, 10 · [07 §5–§6](07-backend-contracts.md#5-new-patient-auth-patient-auth--module-srcpatient-auth-m2-02)
+(contracts) · [08 §1, §3](08-database.md) · `backend/src/patient-app/{decorators,guards}/*` (M0-09 fence + stubs) ·
+`backend/src/auth/strategies/jwt.strategy.ts`, `backend/src/auth/jwt.service.ts`, `backend/src/auth/staff-audience.ts` (staff side, for symmetry) ·
+`backend/src/common/services/mail.service.ts` · `backend/src/auth/guards/rate-limiter.guard.ts` (`@RateLimit`) ·
+`backend/src/session/session.service.ts` (staff refresh rotation, for style only — patient tokens use sha256, not bcrypt).
+
+**Steps:**
+1. Config: `JWT_PATIENT_ACCESS_SECRET` (+ `.env.example`). At boot, when the patient module loads, throw if it is missing or
+   equal to `JWT_ACCESS_SECRET`. Optional `PATIENT_CODE_PEPPER` (default: derived from the patient secret).
+2. `src/patient-auth/patient-token.service.ts`: sign access tokens `{ sub: accountId, sid: sessionId }`, `aud: 'patient'`,
+   15 min, patient secret. Verify helper used by the strategy and (later) the patient socket.
+3. `src/patient-auth/patient-session.service.ts`: create session → refresh token `"<sessionId>:<base64url 32 bytes>"`,
+   store `sha256(token part)` in `refresh_token_hash`, `expires_at` = now + 60 days (sliding on refresh). Refresh: look up by
+   session id, compare hash in constant time; on match rotate (new token, old hash → `previous_token_hash`); if the presented
+   token equals `previous_token_hash` → **revoke the session** (theft signal) and fail. Logout = set `revoked_at`.
+4. `src/patient-auth/login-code.service.ts`: `start(email)` → lower-case + trim, create a 6-digit code (crypto), store
+   `sha256(code + pepper)`, 10 min expiry, send with a new public `MailService.sendLoginCode(email, code)` (plain template,
+   logged in `email_log`; in development without SMTP the existing "not configured" path logs it). Always returns `{ sent: true }`.
+   `verify(email, code)` → latest unused unexpired code for that email; increment `attempts`; > 5 → invalid; on match set `used_at`.
+   Any failure → one error code `CODE_INVALID` (401).
+5. Accounts: on successful verify, find account by `lower(email)` (not deleted) or create it (`email_verified_at = now`);
+   upsert identity `('email', lower(email))`; record consents `terms` and `privacy` with the versions from the body
+   (`patient_account_consents`, with IP). `isNewAccount`, `needsName = !full_name`.
+6. `src/patient-auth/strategies/patient-jwt.strategy.ts`: passport strategy name `patient-jwt`, patient secret,
+   `audience: 'patient'`; `validate` checks the session is alive (not revoked, not expired) and the account `status = 'active'`.
+   It attaches `{ accountId, sessionId }` to **`request.patientAuth`** (never `request.user`: configure the guard's
+   `property`). Replace the M0-09 stub `PatientJwtGuard` with `AuthGuard('patient-jwt')` using that property.
+   `PatientLinkGuard` stays a stub that now **allows** requests and sets `request.patientContext = { accountId, sessionId, profiles: [], links: [] }`
+   (real links in M2-03) — so `/patient-api/me` works.
+7. Controllers:
+   - `src/patient-auth/patient-auth.controller.ts` `@Controller('patient-auth')`, every handler `@PatientAuthRoute()` + `@RateLimit` per 07 §5:
+     `POST email/start`, `POST email/verify`, `POST refresh` (header `x-patient-refresh-token`), `POST logout`. All return `ResponseWrapper.success`.
+   - `src/patient-app/me.controller.ts` `@Controller('patient-api/me')` `@PatientApi()`: `GET` and `PATCH { fullName }` (1–150) → `{ id, fullName, email, createdAt }` (explicit DTO).
+8. DTOs with class-validator (email, 6-digit code, version strings ≤ 20, fullName).
+9. Security log: reuse `SecurityLogService` only if it accepts a non-staff subject; otherwise skip (note in handoff) — do not
+   write patient ids into staff `users` columns.
+10. Tests (unit, no DB): token service (aud, secret, expiry); strategy rejects staff tokens (staff secret) and `aud: 'staff'`;
+   the staff `JwtStrategy` rejects a patient token (`aud: 'patient'`); session rotation and reuse-detection revoke; login-code
+   hashing, expiry, 5-attempt limit, single use; controller decorators (`patient-api-coverage.spec.ts` must pass with real routes now);
+   boot check for a missing / equal secret.
+11. Int spec (write it; runs on a disposable DB only): `test/patient/patient-auth.int-spec.ts` — start → read the code from the
+    mocked mailer → verify → `GET /patient-api/me` → refresh → old refresh token rejected → reuse revokes. Run
+    `changes/2026-11-12_patient_identity.sql` after synchronize (08 §7).
+
+**Acceptance:** build clean; full unit suite green incl. patient-api-coverage, access-coverage, guard.acceptance; all
+tests in step 10 present; the int spec written (executed only if a disposable Postgres exists — say so).
+
+**Out of scope:** Google (M2-02b), links/profiles (M2-03), any mobile code.
+
+---
+
+### M2-02b — Patient Google sign-in (full card)
+
+BE · S · Depends: M2-02 · Branch `mobile/M2-02b-patient-google`
+
+**Steps:** `GoogleIdentityService.verify` accepts an **array** of audiences from `GOOGLE_CLIENT_ID`, `GOOGLE_ANDROID_CLIENT_ID`,
+`GOOGLE_IOS_CLIENT_ID` (unset ones skipped; staff `/auth/google` behaviour unchanged — add a spec). `POST /patient-auth/google`
+`{ idToken, termsVersion, privacyVersion }` (`@PatientAuthRoute`, `@RateLimit` 30/15 min per IP): identity `('google', sub)` →
+account; else verified email → existing account + add identity; else create. Consents as M2-02. Returns `PatientSession`.
+`GOOGLE_TOKEN_INVALID` on any verify failure. Unit tests with a mocked verifier.
 
 ---
 

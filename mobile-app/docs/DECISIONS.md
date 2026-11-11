@@ -59,3 +59,4 @@
 | Date | Change |
 | --- | --- |
 | 2026-11-11 | Initial log created with the doc set |
+| 2026-11-11 | User: staff cards (M1-02 onward) may start without the device gate M0-D; device checks accumulate in M0-D and must pass before the staff pilot (Gate A) |
