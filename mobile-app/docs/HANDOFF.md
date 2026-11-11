@@ -1367,3 +1367,23 @@ None (expo-application and uniwind already installed).
 
 ### Notes for the next task
 - M1-13: pass the real count to `NotificationBell` and add `onPress` → notifications route. Real tab pages replace `TabPlaceholderPage` by changing the import in the route file.
+
+---
+
+## Rework M1-02 #1
+
+Branch: mobile/M1-02-staff-shell   Status set to: review   (PROGRESS row already `review`)
+
+| # | Result |
+| --- | --- |
+| 1 (Major) | Fixed. New `AccessErrorBanner` (slim banner with Retry, above the tabs in `StaffTabs`) and `AccessErrorState` (full `ErrorState` with retry, on More) in `staff/features/access/components/AccessErrorNotice.tsx`; both call `access.refetch` and render only when `status === 'error'`. Tests: `AccessErrorNotice.test.tsx`. |
+| 2 | Fixed. `clearStaffCacheExceptAccess` no longer invalidates/awaits the old access key; it cancels + removes non-access queries, then `setLocationContext` runs and the new key fetches. Test updated (access left untouched). |
+| 3 | Fixed. `useSwitchLocation.test.tsx`: success clears cache before the store moves; error leaves store and cache unchanged. |
+| 4 | Fixed (cheap). Sheet label gets " (current)"; `SheetAction` has an optional `selected` -> `accessibilityState.selected`. Tapping the current row still closes the sheet (the generic ActionSheet always closes) but triggers no switch. |
+| 5 | Fixed. `NotificationBell` passes `disabled={!onPress}`. |
+| 6 | Fixed. Comment in `StaffTabs` documents the run-once jump and expo-router's fallback to the first visible tab. |
+| 7 | Accepted by the reviewer; no change. |
+
+Verification: `npm test` 28 suites / 112 tests pass; `npm run typecheck` clean; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green. Route types already present. No device check.
+Note: `AccessErrorNotice` imports `ErrorState` from its file rather than the `@/core/components` barrel, because the barrel pulls native keyboard-controller into jest for anything importing the access barrel.
+Install commands: none. Questions: none.
