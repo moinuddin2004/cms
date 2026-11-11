@@ -133,10 +133,41 @@ const overview: NotificationOverview = {
         },
       ],
     },
+    {
+      code: 'queue.patient_checked_in',
+      name: 'Patient waiting',
+      description: 'A patient checked in to your queue.',
+      audiences: ['doctor'],
+      isMandatoryInternal: false,
+      variables: ['patient_name', 'patient_first_name', 'token'],
+      rules: [
+        {
+          audience: 'doctor',
+          channel: 'in_app',
+          isEnabled: true,
+          isDefault: true,
+          locked: false,
+        },
+        {
+          audience: 'doctor',
+          channel: 'email',
+          isEnabled: false,
+          isDefault: true,
+          locked: false,
+        },
+        {
+          audience: 'doctor',
+          channel: 'push',
+          isEnabled: true,
+          isDefault: true,
+          locked: false,
+        },
+      ],
+    },
   ],
   channelsByAudience: {
     patient: ['whatsapp', 'sms'],
-    doctor: ['in_app', 'whatsapp', 'email'],
+    doctor: ['in_app', 'whatsapp', 'email', 'push'],
     coordinator: ['in_app', 'whatsapp', 'email'],
     lab: ['in_app', 'whatsapp', 'email'],
     staff: ['in_app', 'email'],
@@ -189,6 +220,32 @@ describe('NotificationSettingsPage', () => {
     expect(locked.getAttribute('aria-checked')).toBe('true')
     expect((locked as HTMLButtonElement).disabled).toBe(true)
     expect(screen.getByText('Quiet hours 22:00 – 08:00')).toBeTruthy()
+  })
+
+  it('shows the phone (push) channel and toggles it', async () => {
+    renderWithClient(<NotificationSettingsPage />)
+    const tab = await screen.findByRole('tab', { name: 'Team & labs' })
+    fireEvent.mouseDown(tab, { button: 0, ctrlKey: false })
+    expect(
+      await screen.findByRole('columnheader', { name: 'Phone (push)' }),
+    ).toBeTruthy()
+    const push = await screen.findByRole('switch', {
+      name: 'Patient waiting — Phone (push) to doctors',
+    })
+    expect(push.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(push)
+    await waitFor(() =>
+      expect(api.put).toHaveBeenCalledWith('/notification-settings/rules', {
+        rules: [
+          {
+            eventCode: 'queue.patient_checked_in',
+            audience: 'doctor',
+            channel: 'push',
+            isEnabled: false,
+          },
+        ],
+      }),
+    )
   })
 
   it('shows an error state with retry when settings fail to load', async () => {

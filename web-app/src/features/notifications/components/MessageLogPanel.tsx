@@ -46,6 +46,7 @@ const STATUS_TONE: Record<
   skipped_disabled: 'muted',
   skipped_opt_out: 'muted',
   skipped_unverified: 'warning',
+  skipped_no_device: 'warning',
 }
 
 function LogStatus({ entry }: { entry: OutboxLogEntry }) {
@@ -193,7 +194,10 @@ export function MessageLogPanel() {
                 setPage(1)
               }}
             >
-              <SelectTrigger className="h-9 w-full sm:w-48" aria-label="Filter by status">
+              <SelectTrigger
+                className="h-9 w-full sm:w-48"
+                aria-label="Filter by status"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

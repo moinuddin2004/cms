@@ -57,8 +57,10 @@ export interface Decision {
  *   6. otherwise                           → queued
  *
  * Step 1 covers the in-app channel only: "always send" can't mean paid
- * WhatsApp/SMS nobody configured; those follow steps 2–6. In-app is silent,
- * so quiet hours never hold it.
+ * WhatsApp/SMS nobody configured; those follow steps 2–6. Quiet hours hold
+ * the store-and-forward channels only: in-app is silent, and push is
+ * time-sensitive (M1-04a — a "patient checked in" push delivered next
+ * morning is useless), so neither is held.
  */
 export function decide(input: DecisionInput): Decision {
   const { now } = input;
@@ -94,7 +96,7 @@ export function decide(input: DecisionInput): Decision {
       reason: 'opted_out',
     };
   }
-  if (input.quietHours && input.channel !== NotificationChannel.IN_APP) {
+  if (input.quietHours && !isQuietHoursExempt(input.channel)) {
     const until = quietHoursEnd(now, input.quietHours);
     if (until) {
       return {
@@ -108,6 +110,14 @@ export function decide(input: DecisionInput): Decision {
 }
 
 const hhmm = (t: string) => t.slice(0, 5);
+
+/**
+ * Channels whose delivery is not held back by quiet hours: in-app (silent)
+ * and push (time-sensitive — M1-04a). Everything else waits for the window.
+ */
+const isQuietHoursExempt = (channel: NotificationChannel) =>
+  channel === NotificationChannel.IN_APP ||
+  channel === NotificationChannel.PUSH;
 
 /** True for a mandatory internal in-app rule — the settings screen shows it locked on. */
 export const isLockedRule = (

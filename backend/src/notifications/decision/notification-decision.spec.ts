@@ -138,6 +138,36 @@ describe('notification decision order (lab ERD §7)', () => {
     expect(d.status).toBe(S.QUEUED);
   });
 
+  it('5. push follows in-app and is never held by quiet hours (M1-04a)', () => {
+    const d = decide(
+      base({
+        audience: A.DOCTOR,
+        channel: C.PUSH,
+        quietHours: OVERNIGHT,
+        now: NIGHT,
+      }),
+    );
+    expect(d).toEqual({
+      status: S.QUEUED,
+      scheduledFor: NIGHT,
+      reason: 'enabled',
+    });
+  });
+
+  it('5. push is still held by the audience/rule switches before quiet hours', () => {
+    expect(
+      decide(
+        base({
+          audience: A.DOCTOR,
+          channel: C.PUSH,
+          ruleEnabled: false,
+          quietHours: OVERNIGHT,
+          now: NIGHT,
+        }),
+      ).status,
+    ).toBe(S.SKIPPED_DISABLED);
+  });
+
   it('§19: patient notifications OFF by default → skipped_disabled', () => {
     for (const channel of [C.WHATSAPP, C.SMS]) {
       expect(
