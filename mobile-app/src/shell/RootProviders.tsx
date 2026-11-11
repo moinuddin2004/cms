@@ -6,6 +6,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaListener, SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { Uniwind } from 'uniwind';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { PortalHost } from '@rn-primitives/portal';
 
 import { setupQueryManagers } from '@/core/query/managers';
@@ -30,7 +31,8 @@ export function RootProviders({ children }: { children: ReactNode }) {
         <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
           <KeyboardProvider>
             <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-              {children}
+              {/* Hosts FormSheet / ActionSheet (core overlays). */}
+              <BottomSheetModalProvider>{children}</BottomSheetModalProvider>
               <Toaster />
               {/* Must be last: Dialog / Popover / Select render into this. */}
               <PortalHost />

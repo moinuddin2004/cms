@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Button } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
+import { cn } from '@/core/utils';
 
 interface EmptyStateProps {
   icon?: LucideIcon;
@@ -12,12 +13,14 @@ interface EmptyStateProps {
   description?: string;
   actionLabel?: string;
   onAction?: () => void;
+  /** Override the default centred padding when the state fills a `Screen`. */
+  className?: string;
 }
 
 /** Nothing here yet: icon + message + call to action. */
-export function EmptyState({ icon = Inbox, title, description, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ icon = Inbox, title, description, actionLabel, onAction, className }: EmptyStateProps) {
   return (
-    <View className="items-center gap-3 px-6 py-16">
+    <View className={cn('items-center gap-3 px-6 py-16', className)}>
       <View className="bg-muted size-14 items-center justify-center rounded-full">
         <Icon as={icon} className="text-muted-foreground size-6" />
       </View>
