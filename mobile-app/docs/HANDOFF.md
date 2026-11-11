@@ -1067,3 +1067,46 @@ Branch: reviewed four lanes (independent reviewer agent per lane; every Blocker 
 ### Notes for the next task
 - Rework happens in the same worktree and branch; fix only the listed findings; append "Rework <ID> #1".
 
+
+---
+## M1-06a — Idempotent mutation helper + online state  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-06a-idempotent   Commit(s): see `git log` on the branch (code commit + docs commit)   Status set to: review
+
+### Done
+- Step 1: `core/network/use-online.ts` — `useOnline()` (NetInfo, `isConnected !== false`) + `isOnlineNow()`; barrel `core/network/index.ts`.
+- Step 2: `core/http/idempotency.ts` — `newIdempotencyKey()` (expo-crypto `randomUUID`), `isRetryable()` (no response, or 503 `LOCK_TIMEOUT`; cancel is not retried), `retryDelayMs()` (250 × (attempt+1) + 0–100 ms).
+- Step 3: `core/http/idempotent-mutation.ts` — `useIdempotentMutation`; one key per `mutate()` call, retries inside `mutationFn` (max 3) with TanStack `retry: false`; 4xx and other errors stop at once.
+- Step 4: `core/http/use-can-mutate.ts` — `useCanMutate()` = `useOnline()`.
+- Step 5: tests (fake timers) for same key across retries, new key per call, stop on 4xx, 503 non-LOCK_TIMEOUT not retried, give up after 3 retries (4 calls), backoff delay, `isRetryable`, `retryDelayMs`, `useOnline`, `useCanMutate`.
+- Added `core/http/index.ts` barrel (docs/04 §8 says import from `@/core/http`); re-exports the existing `apiErrorMessage` too.
+
+### Files
+- Created: `src/core/network/{use-online.ts,index.ts,use-online.test.ts}`, `src/core/http/{idempotency.ts,idempotent-mutation.ts,use-can-mutate.ts,index.ts,idempotent-mutation.test.tsx}`
+- Modified: `docs/PROGRESS.md` (my row), `docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+none
+
+### Verification
+- `npm test` → 12 suites / 63 tests passed before final edits; http+network suites 8 passed after the last import tweak (full run before it: all green)
+- `npm run typecheck` → clean (after `expo start --offline` generated `.expo/types/router.d.ts`)
+- eslint `src` → 0 errors; 1 pre-existing warning (`api-error.ts` axios default import)
+- `npm run lint:fences` → all forbidden directions fail as expected
+- Manual: none (no UI).
+
+### Acceptance criteria
+- [x] tests green — see above
+- [x] no import outside `src/core` — only `@/core/network` inside core
+- [x] no UI
+
+### Deviations from the card / docs
+- `retryDelayMs` jitter is an integer 0–100.
+- This worktree's `node_modules` was still being copied when I started and has no `.bin`; I ran jest/tsc/eslint via `node node_modules/<pkg>/bin/...` directly.
+- `mobile-app/package-lock.json` shows as modified in the worktree (not by me, not staged).
+
+### Questions for the architect
+- `isOnlineNow()` returns a module-level value that is only updated while a `useOnline` hook is mounted (default `true`). Should it instead be fed by `setupQueryManagers` / a NetInfo subscription started at app boot? Left minimal per card.
+
+### Notes for the next task
+- M1-06 can build the OfflineBanner on `useOnline` and call mutations via `useIdempotentMutation` (`mutationFn(vars, { idempotencyKey })` → send header `Idempotency-Key`).
