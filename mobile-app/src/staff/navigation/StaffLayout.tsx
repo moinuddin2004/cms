@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { markReady } from '@/core/splash';
 import { applyBrand } from '@/core/theme/apply-brand';
+import { applyThemeMode } from '@/core/theme/apply-theme-mode';
 import { applyTextScale } from '@/core/theme/apply-text-scale';
 import { useRestoreStaffSession } from '@/staff/features/auth';
 import { applyCachedBrand } from '@/staff/features/theme';
@@ -37,12 +38,13 @@ export function StaffLayout() {
   // The clinic brand is painted from prefs before the theme query answers, so
   // a returning user never sees the platform colour (docs/10 M0-05 step 4).
   // Leaving the staff space restores the platform palette: the welcome screen
-  // is never branded.
+  // is never branded, and the forced light/dark mode goes back to the phone's.
   useEffect(() => {
     applyTextScale('staff');
     applyCachedBrand();
     return () => {
       applyBrand(null);
+      applyThemeMode('system');
       applyTextScale('staff');
     };
   }, []);

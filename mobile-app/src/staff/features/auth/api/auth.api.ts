@@ -15,6 +15,12 @@ export async function selectLocation(organizationId: string, locationId: string)
   return data.data as { activeOrganizationId: string; activeLocationId: string };
 }
 
+/** Move an open session to another clinic / location (same body and reply as `selectLocation`). */
+export async function switchLocation(organizationId: string, locationId: string) {
+  const { data } = await staffApi.post('/auth/switch-location', { organizationId, locationId });
+  return data.data as { activeOrganizationId: string; activeLocationId: string };
+}
+
 /** Revoke this device's session on the server. Best effort — the caller signs out locally either way. */
 export async function logout(): Promise<void> {
   const refreshToken = await getRefreshToken();

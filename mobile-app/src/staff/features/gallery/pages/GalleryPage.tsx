@@ -59,7 +59,7 @@ export function GalleryPage() {
   const [confirm, setConfirm] = useState(false);
   const [name, setName] = useState('');
 
-  if (!__DEV__) return <Redirect href="/home" />;
+  if (!__DEV__) return <Redirect href="/more" />;
 
   return (
     <Screen
