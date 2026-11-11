@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 1 — Staff space · **Next up:** M1-03 (realtime), M1-06 (offline cache), M2-02b (patient Google), M2-03 (links — card to be expanded) · then M1-07 → M1-08 doctor queue · **Device:** M0-D open (must pass before Gate A) · **DB:** run M2-01 change file + M2-02 int spec on a disposable Postgres · Updated 2026-11-12
+**Current phase:** 1 — Staff space · **Next up:** round 8 — M1-03 (A), M1-06 (B), M2-02b (C), M2-03 (D) · **Device:** M0-D open (must pass before Gate A) · **DB:** run M2-01 change file + M2-02 int spec on a disposable Postgres · Updated 2026-11-12
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -52,7 +52,8 @@
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | ready | | | |
-| M2-03 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
+| M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | ready | | | |
+| M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
 

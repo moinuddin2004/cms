@@ -473,23 +473,30 @@ screenshots + note); signing out stops pushes to that device.
 
 ---
 
-### M1-06 — Offline cache and idempotent mutations
+### M1-06 — Offline cache (persistence, banner, wipe)
 
-MOB · M · Depends: M0-03, M1-02 · Branch `mobile/M1-06-offline`
+MOB · M · Depends: M0-03, M1-02, M1-06a · Branch `mobile/M1-06-offline`
+
+**Read first:** [02 §9](02-architecture.md#9-offline), [03 §2](03-security.md#2-mobile-rules) rules 5–6, `src/core/storage/{secure-cache,query-persister}.ts`
+(M0-03), `src/core/network` + `src/core/http/use-can-mutate.ts` (M1-06a), `src/staff/navigation/StaffLayout.tsx`, `src/staff/features/auth/hooks/useSignOut.ts`,
+TanStack `PersistQueryClientProvider` docs in `node_modules/@tanstack/react-query-persist-client`.
 
 **Steps:**
-1. `core/http/idempotent-mutation.ts`: `useIdempotentMutation({ mutationFn: (vars, key) => …, … })`
-   behaviour per [04 §8](04-coding-standards.md#8-mutations); retries only on network error / 503
-   `LOCK_TIMEOUT`; exposes `isPending`. Tests.
-2. `staff/lib/persist.ts` (never allow-list `patients` list/search or `checkPhone` keys — they hold phone/search text, M1-11a review #7): `PersistQueryClientProvider` in `StaffLayout` with the encrypted staff cache,
-   `maxAge` 24 h, `buster` per [02 §9](02-architecture.md#9-offline), `dehydrateOptions.shouldDehydrateQuery`
-   = key root in the allow-list (`access`, `queue`, `appointments` today only, `patients` detail).
-3. `core/components/feedback/OfflineBanner` wired into `Screen`; `useOnline()`.
-4. A `useCanMutate()` helper → false offline; action buttons use it ("Offline" label).
-5. Sign-out wipes cache (`wipeSecureCache('staff')`) — add to `useSignOut`.
+1. `staff/lib/persist.ts`: allow-list by query-key root and shape — `access`, `queue` (my-session / board for **today** only),
+   `appointments` (today only), `patients` **detail** only. Never persist patient list/search or `checkPhone` keys (they hold phone/search text — M1-11a review #7),
+   never `theme` (prefs already cache it). `dehydrateOptions.shouldDehydrateQuery` = allow-list ∧ `status === 'success'`.
+2. Wrap the staff `QueryClientProvider` in `StaffLayout` with `PersistQueryClientProvider` using `createSecureQueryPersister(await openSecureCache('staff'))`,
+   `maxAge` 24 h, `buster` = `${appVersion}:${userId}:${orgId}:${locationId}` (02 §9). Opening the cache is async: render the existing splash/
+   restoring state until it is open — never render a second provider tree.
+3. `OfflineBanner` (core) shown by `Screen` when `useOnline()` is false, with "Showing saved data from hh:mm" (clinic time via `@/staff/lib/datetime`
+   from the newest `dataUpdatedAt` of the screen's main query — accept it as a prop).
+4. Action buttons: a tiny `OfflineAwareButton` (core) or pattern using `useCanMutate()` → disabled with label "Offline".
+5. Sign-out: `useSignOut` also calls `wipeSecureCache('staff')` and the persister's `removeClient()`; switching location removes persisted
+   non-access data too (buster changes — verify).
+6. Tests: allow-list (table: which keys persist); buster changes on user/org/location; sign-out wipes; banner shows offline.
 
-**Acceptance:** airplane mode after loading the board → reopen app → board visible with "Updated hh:mm";
-actions disabled; reconnect → refresh. Test proves a retried mutation reuses its key.
+**Acceptance:** tests green; nothing outside the allow-list is ever written (test); device check (airplane mode → reopen → cached board
+with "saved data from…"; actions disabled) joins gate M0-D.
 
 ---
 
@@ -724,7 +731,7 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 | --- | --- | --- | --- | --- | --- |
 | M2-01 | BE | M | Identity tables + entities — **full card below** | M0-09 | change file runs twice without error; entities load |
 | M2-02 | BE | L | `src/patient-auth`: email code, Google (multi-audience), sessions with rotation + reuse detection, `patient-jwt` strategy (separate secret, `aud`, attaches to `req.patientAuth` **not** `req.user`), `PatientJwtGuard`, `/patient-api/me` | M2-01 | strategy tests both directions; start-up fails if patient secret missing/equal to staff secret |
-| M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
+| M2-03 | BE | M | **Full card below.** `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
 | M2-04 | BE | M | `src/patient-links` staff endpoints (claim token, status, revoke) + `/patient-api/claims/*` + events `patient.record_linked/link_revoked` + audit | M2-03 | full claim flow via HTTP in an int spec |
 | M2-05 | WEB | S | "Link app" button + QR dialog on web patient detail (`patients.app_link.manage`) | M2-04 | QR scannable from phone; status refresh |
 | M2-06 | MOB | L | Patient space foundation (refresh MUST be single-flight — a retried old token is treated as theft and logs out, M2-02 review #8; also: StaffLayout skips restore when already `signedIn`, see M0-04 review): `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |
@@ -851,6 +858,49 @@ BE · S · Depends: M2-02 · Branch `mobile/M2-02b-patient-google`
 `{ idToken, termsVersion, privacyVersion }` (`@PatientAuthRoute`, `@RateLimit` 30/15 min per IP): identity `('google', sub)` →
 account; else verified email → existing account + add identity; else create. Consents as M2-02. Returns `PatientSession`.
 `GOOGLE_TOKEN_INVALID` on any verify failure. Unit tests with a mocked verifier.
+
+---
+
+### M2-03 — Patient link guard, linked-patient helper, isolation tests (full card)
+
+BE · M · Depends: M2-02 · Branch `mobile/M2-03-patient-links-guard`
+
+**Goal:** every `/patient-api` request carries the account's real profiles and links, and every future read can only reach
+patients that are linked to that account. No read endpoints yet (those are M2-08) — this card builds and proves the wall.
+
+**Read first:** [03 §3](03-security.md#3-backend-rules-for-the-patient-space) (rules 2–4) · [07 §6](07-backend-contracts.md#6-new-patient-api-patient-api--module-srcpatient-app-m2-03-) (`PatientContext`, frozen/disabled → read-only, unlinked → 404) ·
+[08 §2, §7](08-database.md) · `backend/src/patient-app/guards/{patient-link.guard.ts,patient-jwt.guard.ts}` (current stub + real JWT guard from M2-02) ·
+`backend/src/feature-flags/feature-flags.service.ts` (`isFeatureEnabled(orgId, key, …)`) · `test/patient/route-matrix.int-spec.ts` (M0-09) and
+`test/patient/patient-auth.int-spec.ts` (M2-02) · reviews `M0-09`, `M2-01`, `M2-02` (all on mobile/develop).
+
+**Steps:**
+1. `PatientLinkGuard` (real): requires `request.patientAuth` (else 401). Loads, for that account, all `patient_profiles` and their
+   `patient_record_links` with status `active` or `frozen` (never `revoked`), in **one** query. For each link compute
+   `patientAppEnabled` = `isFeatureEnabled(link.organizationId, 'patient_app')` (cache per request; one call per distinct org).
+   Sets `request.patientContext: PatientContext` exactly as 07 §6 (`accountId`, `sessionId`, `profiles[]`, `links[]`).
+2. `src/patient-app/context/patient-context.ts`: the `PatientContext` type, a `@PatientCtx()` param decorator, and helpers:
+   - `linkedPatientWhere(qb, ctx, opts?: { profileId?: string; alias?: string; orgColumn?: string; patientColumn?: string; includeFrozen?: boolean })`
+     → adds `(org, patient) IN (…pairs…)` for the account's links (optionally narrowed to one profile, which must belong to the account —
+     otherwise the query must return nothing). **No links → a condition that matches nothing (`1 = 0`), never "no filter".**
+   - `assertProfile(ctx, profileId)` → 404 `NOT_FOUND` when the profile is not the account's.
+   - `assertWritableLink(ctx, linkId)` → 404 when not found; 403 `PATIENT_APP_DISABLED` when the link is `frozen` or its org has `patient_app` off.
+3. Move the `patient-app.settings` side-effect import from `app.module.ts` into `patient-app.module.ts` (M2-12 review #5).
+4. Unit tests: guard (no auth → 401; revoked links excluded; frozen kept; feature off → `patientAppEnabled: false`; single query);
+   `linkedPatientWhere` (empty links → matches nothing; profile filter; foreign profile → nothing; parameters bound, no string concatenation of ids);
+   `assertProfile` / `assertWritableLink`.
+5. Test DB safety (M0-09 review #3): a helper used by every patient int spec that **refuses** to run unless the DB URL host is
+   `localhost` / `127.0.0.1` or the env `PATIENT_IT_DATABASE_URL` is set explicitly. Add `"test:int:patient"` to `backend/package.json`
+   running `test/patient/**`.
+6. Route-matrix second half (`test/patient/route-matrix.int-spec.ts`): a **staff** token on every `/patient-api/*` and `/patient-auth/*`-protected route → 401.
+7. `test/patient/link-isolation.int-spec.ts`: two orgs, two patients, two accounts (A linked to org1/patient1, B to org2/patient2). Register a
+   **test-only** controller inside the spec's testing module (`@PatientApi()`, `GET /patient-api/__isolation/patients`) that lists `patients`
+   through `linkedPatientWhere`; assert A sees only patient1, B only patient2, a profile filter of B's profile from A returns nothing / 404,
+   a revoked link disappears, a frozen link stays visible. Runs the M2-01 change file after synchronize (08 §7).
+
+**Acceptance:** build clean; full unit suite green (incl. patient-api-coverage — the test-only controller lives in the spec, not in `src/`);
+int specs written (and run only on a local/explicit test DB — say so); no read endpoint added to `src/`.
+
+**Out of scope:** profiles/links endpoints (M2-10, M2-11), claim flow (M2-04), wallet reads (M2-08).
 
 ---
 
