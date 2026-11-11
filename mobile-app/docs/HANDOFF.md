@@ -1096,3 +1096,43 @@ none
 
 ### Notes for the next task
 - Entities are registered via `autoLoadEntities`; M2-02 can inject `Repository<PatientAccount>` etc. by importing `PatientAuthModule` (it exports `TypeOrmModule`).
+
+---
+## M2-02 — Patient auth: email code, sessions, patient JWT, guard  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M2-02-patient-auth   Commit(s): see git log   Status set to: review
+
+### Done
+- Boot check (`patient-config.ts`): `JWT_PATIENT_ACCESS_SECRET` missing/equal to staff secret throws; optional `PATIENT_CODE_PEPPER`.
+- `PatientTokenService`, `PatientSessionService` (sha256, rotation, reuse revokes, CAS on rotate), `LoginCodeService` (hashed, 10 min, 5 attempts, single use, one `CODE_INVALID`).
+- `PatientJwtStrategy` (`patient-jwt`) + real `PatientJwtGuard` attaching `request.patientAuth`; `PatientLinkGuard` interim: allows, sets empty `patientContext`.
+- `/patient-auth/{email/start,email/verify,refresh,logout}` and `/patient-api/me` GET/PATCH; `MailService.sendLoginCode`; `.env.example`.
+- Unit specs for all of step 10; int spec written.
+
+### Files
+- Created: `backend/src/patient-auth/{patient-config,patient-token.service,patient-session.service,login-code.service,patient-auth.service,patient-auth.controller}.ts`, `dto/`, `strategies/`, 4 specs; `backend/src/patient-app/{me.controller,patient-me.service}.ts`, `dto/`; `backend/test/patient/patient-auth.int-spec.ts`
+- Modified: patient-auth/patient-app modules, both guards, `mail.service.ts`, `.env.example`, `test/patient/route-matrix.int-spec.ts` (asserts patient routes now exist)
+
+### Install commands for the user
+none (set `JWT_PATIENT_ACCESS_SECRET` in `backend/.env`, different from `JWT_ACCESS_SECRET`, or the API will not boot)
+
+### Verification
+- `npm run build` clean. `npx jest --runInBand` → 95 suites / 995 tests passed.
+- ESLint + Prettier on changed files clean (whole-tree lint not run).
+- Int spec NOT run: no disposable Postgres used; shared DATABASE_URL untouched.
+
+### Acceptance criteria
+- [x] build, full unit suite, all step-10 tests present
+- [ ] int spec executed — needs disposable Postgres
+
+### Deviations from the card / docs
+- Security log skipped (staff `SecurityLogService` is user-bound; no patient ids in `users`).
+- Consents deduped per (account, kind, version).
+- `x-device-label` header optional for session label.
+- `package-lock.json` was already modified; not staged.
+
+### Questions for the architect
+- None.
+
+### Notes for the next task
+- M2-03 replaces the interim `PatientLinkGuard` (TODO there) and adds the staff-token half of the route matrix.
+- M2-02b can reuse `PatientAuthService.issue/build` pattern (make `issue` public).
