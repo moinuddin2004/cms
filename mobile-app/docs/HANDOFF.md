@@ -1136,3 +1136,20 @@ none (set `JWT_PATIENT_ACCESS_SECRET` in `backend/.env`, different from `JWT_ACC
 ### Notes for the next task
 - M2-03 replaces the interim `PatientLinkGuard` (TODO there) and adds the staff-token half of the route matrix.
 - M2-02b can reuse `PatientAuthService.issue/build` pattern (make `issue` public).
+
+## Rework M2-02 #1
+Date: 2026-11-12 · Branch `mobile/M2-02-patient-auth`
+
+| # | Result |
+| --- | --- |
+| 1 Major | Fixed. `verify()` claims an attempt atomically (`UPDATE ... SET attempts = attempts + 1 WHERE id AND attempts < 5 AND used_at IS NULL AND expires_at > now() RETURNING id`); no row → `CODE_INVALID`. Unit test with the claim returning 0 rows. |
+| 2 Minor | Fixed. `start()` closes earlier open codes for the email; a successful verify closes all open codes. Test added. |
+| 3 Minor | Fixed. `termsVersion` / `privacyVersion`: `@IsNotEmpty()` + `@Matches(/^[\w.-]{1,20}$/)`. |
+| 4 Minor | Not fixed: accepted as existing behaviour per review. |
+| 5 Minor | Not fixed here: M2-11 (card already updated). |
+| 6 Minor | Fixed. New `patient-app/guards/patient-jwt.guard.spec.ts` (real passport, fake `patient-jwt` strategy): sets `request.patientAuth`, `request.user` unset. |
+| 7 Decision | No code; R-01 logged by architect. |
+| 8 Info | No code; M2-06 note. |
+
+Verification: `npm run build` clean; full `npx jest --runInBand` 96 suites / 998 tests passed (re-ran `src/patient-auth` + build after a final lint-only tweak). ESLint on changed files: only the repo-wide CRLF prettier noise remains. Int spec still not run (no disposable Postgres).
+Install commands: none.
