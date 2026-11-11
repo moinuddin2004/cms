@@ -17,6 +17,7 @@ export function NotificationBell({ count = 0, onPress }: NotificationBellProps) 
       <IconButton
         icon={Bell}
         accessibilityLabel={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
+        disabled={!onPress}
         onPress={onPress}
       />
       {count > 0 ? (

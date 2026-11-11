@@ -1,10 +1,18 @@
 import { useRouter } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { CalendarDays, Ellipsis, ListOrdered, Sun, Users, type LucideIcon } from 'lucide-react-native';
+import {
+  CalendarDays,
+  Ellipsis,
+  ListOrdered,
+  Sun,
+  Users,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 
-import { useAccess } from '@/staff/features/access';
+import { AccessErrorBanner, useAccess } from '@/staff/features/access';
 
 import { initialTab, STAFF_TABS, visibleTabs, type StaffTabName } from './tab-access';
 
@@ -34,7 +42,10 @@ function useTokenColor(name: string): string | undefined {
  * The staff bottom tabs (docs/02 §4). Each tab declares the permissions it
  * needs (`tab-access.ts`); a tab the user may not open is hidden with
  * `href: null`. Access loads after mount, so once it is ready for the first
- * time the app moves to the first allowed tab (Queue → Today → …).
+ * time the app moves to the first allowed tab (Queue → Today → …). That jump
+ * runs once per mount; after a later role change expo-router itself falls back
+ * to the first *visible* tab. If `/me/access` fails, every `can()` is false, so
+ * a banner with a retry sits above the tabs (docs/05 §7).
  */
 export function StaffTabs() {
   const router = useRouter();
@@ -55,28 +66,31 @@ export function StaffTabs() {
   }, [access.status, access.can, router]);
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: active,
-        tabBarInactiveTintColor: inactive,
-        tabBarStyle: { backgroundColor: background, borderTopColor: border },
-      }}>
-      {STAFF_TABS.map((tab) => {
-        const TabIcon = ICONS[tab.name];
-        return (
-          <Tabs.Screen
-            key={tab.name}
-            name={tab.name}
-            options={{
-              title: tab.title,
-              href: shown.has(tab.name) ? undefined : null,
-              tabBarIcon: ({ color }) => <TabIcon size={24} color={color} />,
-              tabBarAccessibilityLabel: tab.title,
-            }}
-          />
-        );
-      })}
-    </Tabs>
+    <View className="flex-1">
+      <AccessErrorBanner />
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: active,
+          tabBarInactiveTintColor: inactive,
+          tabBarStyle: { backgroundColor: background, borderTopColor: border },
+        }}>
+        {STAFF_TABS.map((tab) => {
+          const TabIcon = ICONS[tab.name];
+          return (
+            <Tabs.Screen
+              key={tab.name}
+              name={tab.name}
+              options={{
+                title: tab.title,
+                href: shown.has(tab.name) ? undefined : null,
+                tabBarIcon: ({ color }) => <TabIcon size={24} color={color} />,
+                tabBarAccessibilityLabel: tab.title,
+              }}
+            />
+          );
+        })}
+      </Tabs>
+    </View>
   );
 }

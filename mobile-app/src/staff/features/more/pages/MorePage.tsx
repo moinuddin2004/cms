@@ -7,7 +7,7 @@ import { currentVersion } from '@/core/app-version';
 import { EmptyState, ListRow, Screen, ScreenHeader, Spinner } from '@/core/components';
 import { switchSpace } from '@/core/space/switch-space';
 import { Icon } from '@/core/ui/icon';
-import { useAccess } from '@/staff/features/access';
+import { AccessErrorState, useAccess } from '@/staff/features/access';
 import { NotificationBell } from '@/staff/features/notifications';
 import { visibleTabs } from '@/staff/navigation';
 import { activeOrganization, useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
@@ -35,8 +35,12 @@ export function MorePage() {
   const noFeatures = access.status === 'ready' && visibleTabs(access.can).length === 1;
 
   return (
-    <Screen scroll header={<ScreenHeader title="More" back={false} actions={<NotificationBell />} />}>
+    <Screen
+      scroll
+      header={<ScreenHeader title="More" back={false} actions={<NotificationBell />} />}>
       <ProfileCard />
+
+      <AccessErrorState className="py-6" />
 
       {noFeatures ? (
         <EmptyState
@@ -88,7 +92,10 @@ export function MorePage() {
         onClose={() => setSheetOpen(false)}
         options={options}
         onPick={(o) =>
-          switchLocation.mutate({ organizationId: o.organizationId, locationId: o.locationId })
+          switchLocation.mutate({
+            organizationId: o.organizationId,
+            locationId: o.locationId,
+          })
         }
       />
     </Screen>

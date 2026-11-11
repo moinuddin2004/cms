@@ -20,7 +20,8 @@ export function SwitchLocationSheet({ open, onClose, options, onPick }: SwitchLo
       title="Switch location"
       cancelLabel="Cancel"
       actions={options.map((o) => ({
-        label: o.label,
+        label: o.current ? `${o.label} (current)` : o.label,
+        selected: o.current,
         icon: o.current ? Check : undefined,
         onPress: () => {
           if (!o.current) onPick(o);

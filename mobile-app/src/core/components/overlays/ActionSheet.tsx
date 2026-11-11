@@ -12,6 +12,8 @@ export interface SheetAction {
   label: string;
   icon?: LucideIcon;
   destructive?: boolean;
+  /** Marks the current choice for screen readers. */
+  selected?: boolean;
   onPress: () => void;
 }
 
@@ -25,7 +27,11 @@ export interface ActionSheetProps {
 
 /** List of actions for a row (long-press or "…"). Destructive ones should then ask via `ConfirmDialog`. */
 export function ActionSheet({ open, onClose, title, actions, cancelLabel }: ActionSheetProps) {
-  const { ref, onDismiss } = useControlledSheet({ open, onUserDismiss: onClose, onBack: onClose });
+  const { ref, onDismiss } = useControlledSheet({
+    open,
+    onUserDismiss: onClose,
+    onBack: onClose,
+  });
 
   const backdrop = useSheetBackdrop(onClose);
 
@@ -48,6 +54,9 @@ export function ActionSheet({ open, onClose, title, actions, cancelLabel }: Acti
           <Pressable
             key={action.label}
             accessibilityRole="button"
+            accessibilityState={
+              action.selected === undefined ? undefined : { selected: action.selected }
+            }
             onPress={() => {
               onClose();
               action.onPress();

@@ -14,8 +14,8 @@ interface Target {
 
 /**
  * Switch the open session to another clinic / location (docs/10 M1-02 step 3):
- * server first, then the cache is emptied (access refetches), then the store
- * moves — so nothing from the old place is shown under the new headers.
+ * server first, then the cache is emptied (except access), then the store
+ * moves and the new access key fetches — so nothing from the old place is shown under the new headers.
  */
 export function useSwitchLocation() {
   const queryClient = useQueryClient();
