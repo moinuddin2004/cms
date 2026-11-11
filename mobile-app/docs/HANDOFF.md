@@ -1107,3 +1107,20 @@ None.
 ### Notes for the next task
 - M1-07 hooks: call `fn({ ...vars }, { idempotencyKey, ifMatch: entry.version })` from `useIdempotentMutation`; use `queueErrorMessage` for toasts and `shouldRefetch` to invalidate `queueKeys.mySession/board`. `ACTIVE_WITH_OTHER_DOCTOR` and `LATE_LIMIT_EXCEEDED` should be intercepted with `queueErrorCode` to open the dialogs.
 - `queueErrorMessage` logs (`log.error`) for IDEMPOTENCY_* / REQUEST_IN_FLIGHT codes only.
+
+## Rework M1-07a #1  ·  2026-11-12  ·  Claude Sonnet 5.5
+Branch: mobile/M1-07a-queue-api   Status set to: review
+
+| # | Result | What changed |
+| --- | --- | --- |
+| 1 | fixed | `lib/entry-actions.ts`: board `skip` valid only for `called` |
+| 2 | fixed | board `transfer` valid only for `waiting` |
+| 3 | fixed | board `transfer` gated on `queue.entry.manage` |
+| 4 | fixed | `SelectResult = { entry, reason: 'MANUAL_SELECT', suggestedEntryId: string \| null, eventSeq }`; `selectEntry` returns it |
+| 5 | fixed | `openSession(vars)` takes no options and sends no `Idempotency-Key` |
+| 6 | fixed | new `IdemOptions { idempotencyKey }`; `MutationOptions extends IdemOptions` (+`ifMatch`). Session actions, `callNext`, `recallEntry`, `registerWalkIn`, `checkInAppointment`, `convertToWalkIn` take `IdemOptions` (backend has no `@IfMatch` there) |
+| 7 | fixed | `queueKeys.nextPreview(sessionId)` |
+
+Also (review answer 2): `mark-urgent` hidden when `priorityClass === 'authorized_urgent'`. Tests updated for #1-#3 (oracle table) plus new cases for skip/transfer/urgent.
+
+Verification: jest 13 suites / 122 tests pass; `tsc --noEmit` clean; eslint 0 errors (3 pre-existing warnings); `lint:fences` pass. Install commands: none. Questions: none.
