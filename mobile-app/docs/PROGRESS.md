@@ -27,7 +27,7 @@
 | M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | in-progress (not handed off yet) | mobile/M0-07-eas | | 2026-11-11 |
 | M0-08 | Staff `aud` + min-version | BE | S | — | done (in develop) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
-| M1-01 | Core component kit | MOB | L | M0-05 | ready | | | |
+| M1-01 | Core component kit | MOB | L | M0-05 | review | mobile/M1-01-core-kit | Claude Sonnet 5.5 | 2026-11-11 |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-D | ready | | | |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
 | M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (in develop) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |

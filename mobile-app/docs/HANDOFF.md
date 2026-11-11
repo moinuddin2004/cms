@@ -1053,3 +1053,66 @@ Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status s
 
 ### Notes for the next task
 - 5 web-app tests fail on the base branch (not mobile work) — see `reviews/M1-04a/review.md`.
+
+---
+## M1-01 — Core component kit  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-01-core-kit   Commit(s): bf55629 (code) + this docs commit   Status set to: review
+
+### Done
+- Every 05 §6 component except `QrCode`, in `src/core/components/{layout,data-display,feedback,forms,overlays}` with a barrel (`@/core/components`):
+  layout `Screen` (safe-area edges, banner/header slots, pull-to-refresh, `KeyboardAwareScrollView`), `ScreenHeader` (auto back arrow from `router.canGoBack()`), `IconButton` (`accessibilityLabel` required by type, 44 pt, `loading`), `ListRow` (reads as one sentence), `SectionHeader`, `FAB`;
+  data-display `StatusBadge` (tones from `status-tones.ts`), `TokenBadge`, `Avatar` (ui/avatar + expo-image, deterministic 8-tint palette in `avatar-tint.ts`), `StatTile`;
+  feedback `OfflineBanner`, `ConnectionPill` (+ pure `deriveConnectionState`), existing four states (added optional `className`; `ErrorState` `retryLabel`);
+  forms `SearchBar` (300 ms debounce), `FilterChips` (single/multi, Clear chip with count), `SegmentedControl` (selection haptic);
+  overlays `FormSheet`, `ActionSheet` (both `BottomSheetModal`), `ConfirmDialog` (ui/alert-dialog, async confirm with spinner).
+- `FormSheet`: dynamic height ≤ 90 %, `keyboardBehavior="interactive"`, `android_keyboardInputMode="adjustResize"`, `BottomSheetScrollView` (+ `keyboardShouldPersistTaps="handled"`), sticky `BottomSheetFooter` submit (content padded by the measured footer height), server-error banner, dirty guard: with `isDirty` pan-down is off and X / backdrop / Android back open the "Discard changes?" `ConfirmDialog`.
+- Dev gallery: `src/app/(staff)/(main)/__gallery.tsx` → `@/staff/features/gallery` `GalleryPage` (route has no logic; the page redirects to `/home` when `!__DEV__`). Shows every component/state.
+- Tests (16 new): `StatusBadge` (every status spec renders its label; tone classes), `IconButton` (label, loading blocks press, `@ts-expect-error` proves the label is required), `SearchBar` (fake-timer debounce, clear, external reset), `FilterChips`, `SegmentedControl`, `avatar-tint`, `connection-state`.
+
+### Files
+- Created: `src/core/components/{index.ts, layout/{IconButton,Screen,ScreenHeader,ListRow,SectionHeader,FAB}.tsx (+IconButton.test.tsx), data-display/{StatusBadge,TokenBadge,Avatar,StatTile}.tsx, data-display/avatar-tint.ts, feedback/{OfflineBanner,ConnectionPill}.tsx, feedback/connection-state.ts, forms/{SearchBar,FilterChips,SegmentedControl}.tsx, overlays/{FormSheet,ActionSheet,ConfirmDialog,sheet-parts}.tsx}` + 7 test files, `src/staff/features/gallery/{index.ts,pages/GalleryPage.tsx}`, `src/app/(staff)/(main)/__gallery.tsx`
+- Modified: `src/core/components/feedback/{EmptyState,ErrorState,LoadingSkeleton}.tsx` (optional `className`, `retryLabel`), `src/shell/RootProviders.tsx` (+`BottomSheetModalProvider`), `package.json` (jest `moduleNameMapper` for `lucide-react-native` → its CJS build; `transformIgnorePatterns` += `@rn-primitives/.*|uniwind`), `docs/PROGRESS.md`, `docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+```bash
+# none required — built with the RNR components that already exist
+# (alert-dialog, avatar, button, card, input, label, separator, skeleton, switch, text, textarea).
+# Not needed: dialog / popover / select / tabs / progress / toggle-group.
+```
+
+### Verification
+- `node node_modules/eslint/bin/eslint.js src` → `✖ 3 problems (0 errors, 3 warnings)` — only the 3 pre-existing warnings.
+- `npm run typecheck` → exit 0, after `CI=1 npx expo start --offline` regenerated `.expo/types/router.d.ts` (contains `/__gallery`).
+- `npm test` → `Test Suites: 17 passed · Tests: 69 passed` (53 before + 16 new).
+- `npm run lint:fences` → all three forbidden directions fail as expected.
+- `npx expo export --platform android --no-bytecode` → exits 0 (bundle check; output deleted).
+- grep for hex colours / `ml- mr- pl- pr- left- right-` in the new code → none.
+- Manual: **not run — no device/emulator** (`adb devices` empty). Gallery screenshots (light/dark, 1.3× font), TalkBack pass and keyboard behaviour of `FormSheet` are not done; they join gate M0-D.
+
+### Acceptance criteria
+- [x] Every 05 §6 component except `QrCode` exists in core, props as in the table.
+- [x] Tests green (StatusBadge tones, IconButton label at type level, SearchBar debounce).
+- [x] Every icon-only control has a label (`IconButton`, SearchBar clear, FormSheet close, back arrow; `FAB` label doubles as its a11y label).
+- [ ] Gallery screenshots light/dark + 1.3× — no device; joins gate M0-D. The gallery itself is built.
+
+### Deviations from the card / docs
+- Added `BottomSheetModalProvider` to `src/shell/RootProviders.tsx` (outside the card's file list): `BottomSheetModal` cannot render without it and M1-02+ all need it.
+- Changed jest config in `package.json` (M0-06 file): component tests could not load `lucide-react-native` (ESM-only `react-native` export) or `@rn-primitives/slot` (JSX in dist) otherwise.
+- RNTL here is v14: `render`/`fireEvent`/`act` are async — tests `await` them (relevant for every later component test).
+- `ConnectionPill` "reads realtime + network state" in 05 §6; core cannot import a space's socket, so it takes `state` + `labels` props and exports `deriveConnectionState({ online, realtimeConnected })`. The staff space wires it in M1-07/M1-09. Likewise `OfflineBanner` takes `message`/`visible` (no `core/network/useOnline` exists yet).
+- `FormSheet` takes `discard`/`closeLabel` strings as required props (core never calls `t()`); `ScreenHeader.backLabel` and `SearchBar.clearLabel` have English accessibility defaults.
+- `GalleryPage` lives in `staff/features/gallery` (not the route file) to keep routes logic-free; it is 250 lines (dev-only).
+- No hex / `ml-` anywhere. StatusBadge `soft`/`outline` keep text on `text-foreground` with a tone dot (tone-coloured text on a tint can miss 4.5:1, e.g. warning).
+
+### Questions for the architect
+- Is it OK that `BottomSheetModalProvider` was added to `RootProviders` (shell) and the jest config touched?
+- `FormSheet` pan-down is disabled while dirty (the library has no way to veto a drag); users must use X / Android back. Acceptable?
+- `Screen` defaults `edges` to top+bottom; tab screens (M1-02) should pass `['top']`. Want the default flipped?
+- Gallery has no entry point; open it in a dev build with `router.push('/__gallery')` or the deep link `<scheme>://__gallery`. Should M1-02's More tab get a dev-only "Gallery" row?
+
+### Notes for the next task
+- Import from `@/core/components` (barrel). Spread tone specs: `<StatusBadge {...QUEUE_STATUS_TONES[status]} />`.
+- `FormSheet` needs the provider that `RootProviders` now mounts; in tests mock `@gorhom/bottom-sheet` with its `mock.js`.
+- `FormSheet`'s footer is a render-prop component re-created when `submit` changes; keep `submit` stable-ish (the React Compiler handles it).
+- Native behaviour not yet seen on a device: sheet keyboard handling (interactive + adjustResize), footer padding, Android back handling, haptics.
