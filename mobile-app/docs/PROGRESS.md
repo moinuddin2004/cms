@@ -28,7 +28,7 @@
 | M0-08 | Staff `aud` + min-version | BE | S | — | done (in develop) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
 | M1-01 | Core component kit | MOB | L | M0-05 | done (in develop) | mobile/M1-01-core-kit | DeepSeek Flash | 2026-11-11 |
-| M1-02 | Staff tabs, More, location switch | MOB | M | M1-01 | ready (after M1-01 rework) | | | |
+| M1-02 | Staff tabs, More, location switch | MOB | M | M1-01 | review | mobile/M1-02-staff-shell | Claude Sonnet 5.5 | 2026-11-11 |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
 | M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (in develop) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
 | M1-04a | Push follow-ups (quiet hours, web label, Node engine) | BE+WEB | S | M1-04 | done (in develop) | mobile/M1-04a-push-followups | DeepSeek Flash | 2026-11-11 |

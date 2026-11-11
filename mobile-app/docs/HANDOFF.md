@@ -1324,3 +1324,46 @@ Branch: six branches reviewed (reworks by the architect; new cards with an indep
 ### Notes for the next task
 - Rework branches must read updated docs from mobile/develop (`git show mobile/develop:<path>`).
 
+
+---
+## M1-02 — Staff tabs shell, More tab, location switch, sign-out  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-02-staff-shell   Commit(s): c1398eb   Status set to: review
+
+### Done
+- `(staff)/(main)/(tabs)/` routes (zero logic) + `staff/navigation/StaffTabs.tsx` (`expo-router/js-tabs`, since `Tabs` from `expo-router` is deprecated in SDK 58). Gates in `tab-access.ts` exactly as docs/02 §4; hidden with `href: null`; once `/me/access` is ready the app moves to the first allowed of Queue → Today → Patients → Schedule → More.
+- Placeholders for Today/Queue/Patients/Schedule: one `TabPlaceholderPage` (EmptyState "Coming soon") in `staff/navigation/pages`, so the queue/patients features stay untouched; later cards swap the route file import.
+- More (S-08) in `staff/features/more`: profile card, Switch location (ActionSheet → `switchLocation` in `auth.api.ts` → cache cleared except `access`, which is invalidated → `setLocationContext`; brand re-applies from the new theme query), Switch to patient space, App version (`currentVersion`), Sign out via `ConfirmDialog`, `__DEV__`-only "Component gallery" row. "No mobile features for your role" empty state when only More is visible (docs/05 §7).
+- `NotificationBell` (`staff/features/notifications`), count 0, labelled IconButton, shown in every tab header. No onPress yet (TODO M1-13).
+- Theme `default_mode`: `core/theme/apply-theme-mode.ts`; applied from the cache in `applyCachedBrand`, from the live theme in `BrandTheme`, `'system'` restored in `StaffLayout` cleanup.
+- Removed `home` route and `features/dashboard`; gallery non-dev redirect now goes to `/more`.
+
+### Files
+- Created: app/(staff)/(main)/(tabs)/{_layout,today,queue,patients,schedule,more}.tsx, core/theme/apply-theme-mode(.test).ts, staff/navigation/{StaffTabs.tsx,tab-access(.test).ts,pages/TabPlaceholderPage.tsx}, staff/features/more/**, staff/features/notifications/**
+- Modified: staff/features/auth/{api/auth.api.ts,index.ts}, staff/features/theme/{components/BrandTheme.tsx,lib/apply-cached-brand.ts}, staff/features/gallery/pages/GalleryPage.tsx, staff/navigation/{StaffLayout.tsx,index.ts}
+- Deleted: app/(staff)/(main)/home.tsx, staff/features/dashboard/**
+
+### Install commands for the user
+None (expo-application and uniwind already installed).
+
+### Verification
+- Route types regenerated (`CI=1 npx expo start --offline`); `npm run typecheck` clean; `npm test` 26 suites / 107 tests pass; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green.
+- Tests: tab matrix (doctor / receptionist / owner / nobody), cache clear keeps access and marks it stale, location options, sign-out only after dialog confirm, theme mode mapping.
+- No device: screenshots and the real Tabs / sheet / Uniwind.setTheme behaviour are not seen (gate M0-D).
+
+### Acceptance criteria
+- [x] Doctor-only → Queue + Patients + More; owner → all five; nobody → More only (unit test)
+- [~] Receptionist → Queue + Patients + Schedule + More, **plus Today**: the Today gate includes `appointments.view`, which Schedule also needs (see questions)
+- [ ] Device screenshots — not available
+
+### Deviations from the card / docs
+- "Switch location" row is hidden when the user has only one place to work in (nothing to switch to).
+- Access-ready jump to the first allowed tab is an effect in `StaffTabs` (js-tabs has no dynamic `initialRouteName`); before access loads the tab bar shows only More.
+- Tab bar colours use `useCSSVariable` tokens in `tabBarStyle` (navigator chrome cannot take classes).
+
+### Questions for the architect
+- Receptionist matrix: should Today be gated without `appointments.view`, or is Today expected for a receptionist? Gates were kept exactly as docs/02 §4.
+- Docs 06 S-08 also lists Notifications settings, Check for updates and Help; not in the card, so not built.
+- A switched location changes the brand but `StaffLayout`'s cached brand is only repainted on cold start (existing M0-05 behaviour).
+
+### Notes for the next task
+- M1-13: pass the real count to `NotificationBell` and add `onPress` → notifications route. Real tab pages replace `TabPlaceholderPage` by changing the import in the route file.
