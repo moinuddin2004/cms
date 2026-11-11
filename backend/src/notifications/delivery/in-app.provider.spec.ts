@@ -12,11 +12,13 @@ const message = (
 ): OutgoingNotification => ({
   id: 'outbox-1',
   organizationId: 'org-1',
+  locationId: null,
   eventCode: 'order.accepted',
   audience: NotificationAudience.DOCTOR,
   recipientType: RecipientType.USER,
   recipientId: 'user-1',
   channel: NotificationChannel.IN_APP,
+  entityId: null,
   payload: {
     title: 'Order 7 accepted',
     body: 'Lab accepted order 7',

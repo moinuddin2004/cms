@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from 'src/common/common.module';
+import { DevicesModule } from 'src/devices/devices.module';
 import { EngineModule } from 'src/engine/engine.module';
 import { AddressVerifier } from './delivery/address-verifier';
 import { EmailChannelProvider } from './delivery/email.provider';
@@ -8,6 +9,10 @@ import { MyNotificationsController } from './controllers/my-notifications.contro
 import { NotificationSettingsController } from './controllers/notification-settings.controller';
 import { ChannelProviderRegistry } from './delivery/channel-provider.registry';
 import { DevLogChannelProvider } from './delivery/dev-log.provider';
+import {
+  ExpoPushClientFactory,
+  ExpoPushProvider,
+} from './delivery/expo-push.provider';
 import { InAppChannelProvider } from './delivery/in-app.provider';
 import { NotificationDispatcher } from './delivery/notification-dispatcher.service';
 import { PayloadFinalizers } from './delivery/payload-finalizers';
@@ -52,6 +57,7 @@ import { UserNotificationsService } from './services/user-notifications.service'
     ]),
     EngineModule,
     CommonModule,
+    DevicesModule,
   ],
   controllers: [
     NotificationSettingsController,
@@ -68,6 +74,8 @@ import { UserNotificationsService } from './services/user-notifications.service'
     InAppChannelProvider,
     DevLogChannelProvider,
     EmailChannelProvider,
+    ExpoPushClientFactory,
+    ExpoPushProvider,
     AddressVerifier,
     ChannelProviderRegistry,
     NotificationDispatcher,

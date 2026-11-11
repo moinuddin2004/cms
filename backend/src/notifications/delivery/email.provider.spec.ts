@@ -25,11 +25,13 @@ const message = (
 ): OutgoingNotification => ({
   id: 'o1',
   organizationId: 'org',
+  locationId: 'loc',
   eventCode: 'order.rejected',
   audience: NotificationAudience.DOCTOR,
   recipientType: RecipientType.USER,
   recipientId: 'u1',
   channel: NotificationChannel.EMAIL,
+  entityId: 'o1',
   payload: {
     title: 'Order 7 rejected',
     body: 'Precision rejected order 7: wrong shade',

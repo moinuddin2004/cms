@@ -1828,6 +1828,27 @@ CREATE TABLE lab_members (
 CREATE INDEX idx_lab_members_user ON lab_members (user_id);
 
 -- ------------------------------------------------------------------------
+-- user_devices   (src/devices/entities/user-device.entity.ts)
+-- Push targets of a signed-in clinic user (Expo push tokens). Global, not
+-- org-scoped: the same phone gets the user's alerts at every clinic; a token
+-- moves to the newest user who registered it (uq_user_devices_token).
+-- ------------------------------------------------------------------------
+CREATE TABLE user_devices (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id         uuid NOT NULL,
+  expo_push_token varchar(200) NOT NULL,
+  platform        varchar(10) NOT NULL,
+  device_label    varchar(80),
+  app_version     varchar(20),
+  last_seen_at    timestamptz NOT NULL DEFAULT now(),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT chk_user_devices_platform CHECK ("platform" IN ('android', 'ios')),
+  CONSTRAINT fk_user_devices_user_id FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX uq_user_devices_token ON user_devices (expo_push_token);
+CREATE INDEX idx_user_devices_user_id ON user_devices (user_id);
+
+-- ------------------------------------------------------------------------
 -- notification_outbox   (src/notifications/entities/notification-outbox.entity.ts)
 -- ------------------------------------------------------------------------
 CREATE TABLE notification_outbox (
@@ -1850,9 +1871,9 @@ CREATE TABLE notification_outbox (
   sent_at             timestamptz,
   created_at          timestamptz NOT NULL DEFAULT now(),
   updated_at          timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT chk_notification_outbox_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email')),
+  CONSTRAINT chk_notification_outbox_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email', 'push')),
   CONSTRAINT chk_notification_outbox_audience CHECK ("audience" IN ('patient', 'doctor', 'coordinator', 'lab', 'staff')),
-  CONSTRAINT chk_notification_outbox_status CHECK ("status" IN ('queued', 'held_quiet_hours', 'sent', 'delivered', 'failed', 'skipped_disabled', 'skipped_opt_out', 'skipped_unverified')),
+  CONSTRAINT chk_notification_outbox_status CHECK ("status" IN ('queued', 'held_quiet_hours', 'sent', 'delivered', 'failed', 'skipped_disabled', 'skipped_opt_out', 'skipped_unverified', 'skipped_no_device')),
   CONSTRAINT fk_notification_outbox_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE RESTRICT,
   CONSTRAINT fk_notification_outbox_event_code FOREIGN KEY (event_code) REFERENCES notification_events (code) ON DELETE RESTRICT
 );
@@ -1879,7 +1900,7 @@ CREATE TABLE notification_templates (
   updated_by            uuid,
   version               integer NOT NULL DEFAULT 1,
   CONSTRAINT chk_notification_templates_language CHECK ("language" IN ('en', 'ur', 'roman_ur')),
-  CONSTRAINT chk_notification_templates_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email')),
+  CONSTRAINT chk_notification_templates_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email', 'push')),
   CONSTRAINT fk_notification_templates_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
   CONSTRAINT fk_notification_templates_event_code FOREIGN KEY (event_code) REFERENCES notification_events (code) ON DELETE RESTRICT
 );
@@ -3240,7 +3261,7 @@ CREATE TABLE notification_rules (
   updated_by      uuid,
   version         integer NOT NULL DEFAULT 1,
   CONSTRAINT uq_notification_rules_org_event_audience_channel UNIQUE (organization_id, event_code, audience, channel),
-  CONSTRAINT chk_notification_rules_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email')),
+  CONSTRAINT chk_notification_rules_channel CHECK ("channel" IN ('in_app', 'whatsapp', 'sms', 'email', 'push')),
   CONSTRAINT chk_notification_rules_audience CHECK ("audience" IN ('patient', 'doctor', 'coordinator', 'lab', 'staff')),
   CONSTRAINT fk_notification_rules_organization_id FOREIGN KEY (organization_id) REFERENCES organizations (id) ON DELETE CASCADE,
   CONSTRAINT fk_notification_rules_event_code FOREIGN KEY (event_code) REFERENCES notification_events (code) ON DELETE RESTRICT,
