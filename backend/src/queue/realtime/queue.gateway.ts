@@ -18,6 +18,7 @@ import {
 import { Namespace, Socket } from 'socket.io';
 import { DataSource } from 'typeorm';
 import { AuthorizationService } from 'src/auth/services/authorization.service';
+import { assertStaffAudience } from 'src/auth/staff-audience';
 import { QueueSession } from '../entities/queue-session.entity';
 import { Location } from 'src/locations/entities/location.entity';
 import {
@@ -107,9 +108,15 @@ export class QueueGateway
     socket.data.userId = null;
     if (!token) return; // display screens connect anonymously
     try {
-      const payload = await this.jwt.verifyAsync<{ sub: string }>(token, {
+      const payload = await this.jwt.verifyAsync<{
+        sub: string;
+        aud?: unknown;
+      }>(token, {
         secret: this.config.get<string>('JWT_ACCESS_SECRET'),
       });
+      // `/realtime` is the staff socket. A patient token (or any other
+      // audience) must never get a room here.
+      assertStaffAudience(payload);
       socket.data.userId = payload.sub;
       // Personal room for in-app notifications (`notification.new`). Joined
       // here only — `subscribe` refuses `user:*`, so nobody joins another's.

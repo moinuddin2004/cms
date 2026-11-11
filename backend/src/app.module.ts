@@ -61,6 +61,7 @@ import { AccessModule } from './access/access.module';
 import { AccessGuard } from './access/access.guard';
 import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
 import { SearchModule } from './search/search.module';
+import { AppVersionModule } from './app-version/app-version.module';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -89,6 +90,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     IdempotencyModule,
     // Core modules
     AuthModule,
+    AppVersionModule, // GET /app/min-version — mobile build gate (public)
     ClinicAccessModule,
     UserModule,
     StorageModule,
