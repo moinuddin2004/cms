@@ -884,3 +884,34 @@ Already installed in the working tree. Normalise the lockfile with `npm install`
 
 ### Notes for the next task
 - M1-05 needs `EAS_PROJECT_ID` (after `eas init`, see docs/RELEASE.md).
+
+---
+## Rework M0-07 #1  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M0-07-eas   Commit(s): see `git log` ("fix(mobile): M0-07 rework #1 …")   Status set to: review
+
+### Finding → fix
+1. **Blocker** — `APP_VARIANT` / `EXPO_PUBLIC_API_URL` now come from EAS environments. `eas.json` profiles use `"environment"` (env blocks removed). RELEASE.md §2 has the commands per environment and a bold warning that every `eas update` passes the matching `--environment`. Deviation: the Expo docs (environment-variables + manage pages) document `eas env:set`, not `env:create`, so the runbook uses `env:set` (flags `--name --value --environment --visibility plaintext`).
+2. **Major** — single `EAS_PROJECT_ID` constant in `app.config.ts` (empty placeholder; comment says paste after `eas init`); `updates.url` and `extra.eas.projectId` derive from it. `EXPO_UPDATES_URL`/`EAS_PROJECT_ID` env options removed from code and RELEASE.md.
+3. **Major** — `npx expo install expo-dev-client` listed below; "dev build installs beside preview" is NOT ticked, pending gate M0-D (needs a device).
+4. `appVersionSource: "remote"`, `autoIncrement: true` on production.
+5. `UpdateRequiredPage` opens `market://details?id=…`, falls back to the https Play URL (`Linking.openURL`); expo-web-browser import dropped there. iOS uses `IOS_APP_STORE_URL` placeholder constant (decided with O-01 at M4).
+6. `RootShell` caches the check in a module-level promise (one request per cold start, also under StrictMode); new `RootShell.test.tsx` mocks `fetchMinVersion` and asserts the update screen renders and one fetch happens.
+7. RELEASE.md refers to constant names (`EAS_PROJECT_ID`), no line numbers.
+Also: `web.output: "server"` removed (favicon kept).
+
+### Install commands for the user
+```
+npx expo install expo-dev-client
+```
+(not run by me). Then run the `env:set` commands in docs/RELEASE.md §2 after `eas init`.
+
+### Verification
+- `npm test` 9 suites / 33 tests pass; `npm run typecheck` clean; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green.
+- `expo config --type public`: development → "Clinic (Dev)", .dev, clinicapp-dev; preview → "Clinic (Preview)", .preview, clinicapp-preview; production → "Clinic", com.placeholder.clinicapp, clinicapp. All: runtimeVersion appVersion, updates.enabled false (until EAS_PROJECT_ID is set).
+
+### Acceptance criteria
+- [x] config output per variant · [x] distinct package ids (config level)
+- [ ] dev build installs beside preview — pending gate M0-D (device)
+
+### Questions
+- None. Note: the review and updated docs (03 rule 10) live on mobile/develop, not on this branch; I read them from the main checkout.
