@@ -9,7 +9,7 @@
 
 | ID | Title | Area | Size | Depends | Status | Branch | Implementer | Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| M0-01 | Split source into core/staff/shell | MOB | M | — | ready | | | |
+| M0-01 | Split source into core/staff/shell | MOB | M | — | review | mobile/M0-01-folder-split | DeepSeek Flash | 2026-11-11 |
 | M0-02 | Import fences (lint) | MOB | S | M0-01 | ready | | | |
 | M0-03 | Storage layer | MOB | S | M0-01 | ready | | | |
 | M0-04 | Spaces + welcome + two-level guards | MOB | M | M0-01..03 | ready | | | |
