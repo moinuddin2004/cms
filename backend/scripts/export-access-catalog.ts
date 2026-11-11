@@ -16,7 +16,7 @@ import { BUNDLES } from '../src/access/catalog/bundles';
 /** The web app and the mobile app share one generated catalog. */
 const OUTS = [
   resolve(__dirname, '../../web-app/src/features/access/generated/catalog.ts'),
-  resolve(__dirname, '../../mobile-app/src/features/access/generated/catalog.ts'),
+  resolve(__dirname, '../../mobile-app/src/staff/features/access/generated/catalog.ts'),
 ];
 const OUT = OUTS[0];
 
