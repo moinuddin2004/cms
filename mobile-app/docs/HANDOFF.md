@@ -948,6 +948,101 @@ Branch: mobile/M0-05-theme   Commit(s): this commit (code + docs)   Status set t
 - `docs/reviews/M0-05/` has no screenshots on purpose (no device); they belong in the M0-D gate.
 
 ---
+## M1-04a — Push follow-ups (quiet hours, web label, Node engine)  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M1-04a-push-followups   Commit(s): ecb5af8 (code) + this docs commit   Status set to: review
+
+### Done
+- Backend decision logic (`notifications/decision/notification-decision.ts`): quiet hours now hold only
+  channels that can wait. Added `isQuietHoursExempt()` = `in_app` + `push`; every other channel still returns
+  `held_quiet_hours` until the window ends. Push therefore follows the in-app rule and is never delayed —
+  a "patient checked in" push is queued immediately at night. Order is unchanged: mandatory → audience
+  switch → rule switch → opt-out → quiet hours → queued.
+- Spec (`notification-decision.spec.ts`): two new cases — push inside an overnight quiet window → `queued`
+  at `now` with reason `enabled`; push with the rule off before quiet hours → still `skipped_disabled`
+  (quiet hours never bypass the switches).
+- `backend/package.json`: `"engines": { "node": ">=22.12" }` (the ESM-only `expo-server-sdk` is loaded
+  through CommonJS `require`; Node 22.12 is the first release that supports it).
+- Web `/settings/notifications`: `NotificationChannel` type + `CHANNEL_LABEL.push = 'Phone (push)'`. The page
+  already builds its channel columns from the API's `channelsByAudience`, so the `push` column appears as soon
+  as M1-04's settings payload includes it; each cell uses the existing `RuleSwitch` → `PUT
+  /notification-settings/rules` toggle (tooltip, pending state, disabled while saving).
+- Web message log (same screen): added the `skipped_no_device` status label/tone M1-04 emits, so a push row
+  with no registered device reads "Skipped — no phone registered" instead of an unlabelled status.
+- Web test (`notifications.test.tsx`): mock overview now contains a doctor push rule; new test asserts the
+  "Phone (push)" column header and that clicking the "Patient waiting" push switch PUTs
+  `{ eventCode: 'queue.patient_checked_in', audience: 'doctor', channel: 'push', isEnabled: false }`.
+
+### Files
+- Created: none
+- Modified: `backend/package.json`,
+  `backend/src/notifications/decision/notification-decision.ts`,
+  `backend/src/notifications/decision/notification-decision.spec.ts`,
+  `web-app/src/features/notifications/types.ts`,
+  `web-app/src/features/notifications/components/MessageLogPanel.tsx`,
+  `web-app/src/features/notifications/notifications.test.tsx`,
+  `mobile-app/docs/PROGRESS.md`, `mobile-app/docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+None — no dependency was added or changed (the `engines` field is metadata only). Deploy/CI must run Node
+≥ 22.12; nothing to install locally.
+
+### Verification
+- Backend `npm run build` → clean (`nest build`, no diagnostics).
+- Backend `npx jest --runInBand` → **90 suites, 924 tests passed** (357 s), including
+  `access-coverage.spec.ts`, `guard.acceptance.spec.ts`, `patient-api-coverage.spec.ts` and all notification
+  suites. Targeted: `npx jest --runInBand --testPathPattern "src/notifications/decision"` → 1 suite, 20 tests.
+- Backend formatting: `npx prettier --check --end-of-line auto` on the 3 changed files → clean;
+  `npx eslint --rule 'prettier/prettier: off'` on the 2 changed TS files → clean. `npm run lint` was not run
+  (whole-tree `eslint --fix`, CRLF checkout → the known M0-08 `prettier/prettier` "Delete ␍" noise).
+- Web `npm run build` → success (TanStack Start + Nitro, `✓ built`), no type errors.
+- Web `npm run test` → **42 files / 387 tests: 382 passed, 5 failed** — **all failures are pre-existing on this
+  branch's base**, proven by stashing this task's diff and re-running the same suites (identical failures):
+  `features/access/acceptance/builders.acceptance.test.tsx` (THEME-15 expects 14 blue/indigo lines, finds 11),
+  `features/notifications/notification-realtime.test.tsx` (2 socket/timer assertions, io mock not called),
+  `features/roles/roles.test.tsx` ("escalation error from the server"), and `components/shared/DataTable.test.tsx`
+  ("Showing 1–2 of 3"), which passes when run alone (flaky under the full parallel run). None touches the
+  notification settings, the push channel or the decision logic.
+- Web lint: `npx eslint` on the 3 changed files → clean; `npx prettier --check` (after `--write`) → clean.
+- Screenshot: **not taken** — `/settings/notifications` needs a running API and a signed-in clinic admin, and
+  no backend server/credentials are available in this worktree. Reviewed by component test instead.
+
+### Acceptance criteria
+- [x] Push rows follow the in-app quiet-hours rule (never held) in the decision logic — `isQuietHoursExempt`,
+      proven by the new push spec case (night + overnight window → queued now).
+- [x] `backend/package.json` has `"engines": { "node": ">=22.12" }`.
+- [x] `/settings/notifications` shows the `push` channel labelled exactly "Phone (push)" with a working toggle —
+      column header + switch asserted by the new web test; toggle goes through the existing `PUT` path.
+- [x] Backend `npm run build` + full `npx jest --runInBand` green (90/924), incl. access-coverage,
+      guard.acceptance, patient-api-coverage.
+- [x] Web `npm run build` green; changed-file ESLint/Prettier clean.
+- [ ] Web `npm run test` fully green — blocked only by the pre-existing failures listed above (not caused by
+      this diff; reproduced with the diff stashed).
+
+### Deviations from the card / docs
+- Also added `skipped_no_device` to the web status type/labels/tone. M1-04 already emits it and the message log
+  lives on the same screen; without it the push log row shows an unlabelled status.
+- Prettier re-wrapped one pre-existing long `<SelectTrigger>` line in `MessageLogPanel.tsx` (whitespace only).
+- No DB/schema change (none needed).
+
+### Questions for the architect
+- Web `npm run test` is not green on the branch base (4 suites above). Do you want a separate cleanup card, or
+  should the reviewer accept this task on changed-file evidence (full backend suite + web build + notifications
+  test are green)?
+- The wording sheet still hides the title field for `push` (`hasSubject` is `in_app`/`email` only; a push
+  template keeps its title in `subject`). Editing a push title is not in this card — should it be added to a
+  follow-up card?
+- The card's label is "Phone (push)" for every audience (doctors, coordinators, staff). Keep it universal?
+
+### Notes for the next task
+- Push is now exempt from quiet hours globally (decision level). If a future event needs "don't wake me",
+  use `EnqueueInput.scheduledFor` or a per-event rule — not quiet hours.
+- `engines` is advisory to npm only; make sure the deploy image/CI Node is ≥ 22.12 or `expo-server-sdk` (ESM)
+  fails to load at boot.
+- The web column is fully data-driven: adding another channel to `channelsByAudience` only needs a
+  `CHANNEL_LABEL` entry.
+
+---
 ## REVIEW round 3: M0-05 + M1-04a  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status set to: done (merge pending, both)
 

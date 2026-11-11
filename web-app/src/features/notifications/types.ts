@@ -1,6 +1,7 @@
 export type NotificationAudience =
   'patient' | 'doctor' | 'coordinator' | 'lab' | 'staff'
-export type NotificationChannel = 'in_app' | 'whatsapp' | 'sms' | 'email'
+export type NotificationChannel =
+  'in_app' | 'whatsapp' | 'sms' | 'email' | 'push'
 export type NotificationLanguage = 'en' | 'ur' | 'roman_ur'
 export type OutboxStatus =
   | 'queued'
@@ -11,6 +12,7 @@ export type OutboxStatus =
   | 'skipped_disabled'
   | 'skipped_opt_out'
   | 'skipped_unverified'
+  | 'skipped_no_device'
 
 export interface Paginated<T> {
   data: T[]
@@ -197,6 +199,7 @@ export const CHANNEL_LABEL: Record<NotificationChannel, string> = {
   whatsapp: 'WhatsApp',
   sms: 'SMS',
   email: 'Email',
+  push: 'Phone (push)',
 }
 
 export const LANGUAGE_LABEL: Record<NotificationLanguage, string> = {
@@ -214,6 +217,7 @@ export const STATUS_LABEL: Record<OutboxStatus, string> = {
   skipped_disabled: 'Skipped — off',
   skipped_opt_out: 'Skipped — opted out',
   skipped_unverified: 'Skipped — email not verified',
+  skipped_no_device: 'Skipped — no phone registered',
 }
 
 /** Why a message was skipped / held, in the clinic's words. */
