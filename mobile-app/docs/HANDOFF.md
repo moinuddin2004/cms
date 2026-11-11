@@ -843,3 +843,15 @@ Branch: reviewed the three task branches   Status set to: M0-06, M1-04 done · M
 ### Notes for the next task
 - Merge order: M0-06 before M0-04 (M0-04's test needs jest types). Normalise `package-lock.json` with `npm install`.
 - `changes/2026-11-11_push_devices.sql` has not been run anywhere yet.
+
+---
+## REVIEW round 3: M0-05 + M1-04a  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status set to: done (merge pending, both)
+
+### Done
+- M0-05 done (53 mobile tests); its screenshots / no-flash check join gate M0-D. M1-04a done.
+- M0-07 was **not** reviewed: still uncommitted in worktree B with no handoff.
+- M1-02 card: apply `theme.default_mode`. 05 §3: variant → Tailwind class mapping recorded.
+
+### Notes for the next task
+- 5 web-app tests fail on the base branch (not mobile work) — see `reviews/M1-04a/review.md`.

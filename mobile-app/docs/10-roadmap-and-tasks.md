@@ -371,6 +371,8 @@ MOB · M · Depends: M1-01, M0-04 · Branch `mobile/M1-02-staff-shell`
    switch to patient space (placeholder space still), app version, sign out (confirm).
 4. Header bell button component (shows unread count — wired in M1-13; render 0 now).
 5. Remove the old `home` route / placeholder dashboard.
+6. Apply the clinic's `theme.default_mode` (from `staff.theme.cache` / `useClinicTheme`) with
+   `Uniwind.setTheme('light' | 'dark' | 'system')` while the staff space is mounted; restore `'system'` on leave (M0-05 review).
 
 **Acceptance:** permission matrix: a doctor-only test user sees Queue + Patients + More; a receptionist
 sees Queue + Patients + Schedule + More; an owner sees all five (screenshots or test with mocked access).

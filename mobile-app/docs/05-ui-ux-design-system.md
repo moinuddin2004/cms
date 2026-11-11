@@ -82,7 +82,9 @@ Use `<Text variant=…>` from `@/core/ui/text`. Do not set font sizes with arbit
 | `muted` | 13 / 400, muted | 15 / 400, muted | Secondary lines |
 | `mono` | 15 tabular | 17 tabular | Token numbers, times |
 
-The patient sizes come from a `patient` text scale applied by `PatientProviders`
+Implementation (M0-05): the variants map to Tailwind classes h1→`text-4xl`, h2→`text-3xl`, h3→`text-2xl`,
+large→`text-lg`, p→`text-base`, small/muted→`text-sm`, and `core/theme/apply-text-scale.ts` overrides those
+`--text-*` variables per space. The patient sizes come from a `patient` text scale applied by `PatientProviders`
 (`TextScaleContext`), so core components render larger in the patient space without separate
 components. Token numbers and times always use tabular numerals (`font-variant-numeric: tabular-nums`
 equivalent: `tabular-nums` class).
