@@ -1376,3 +1376,14 @@ Branch: reviewed `mobile/M1-02-staff-shell` (reviewer agent + architect) and `mo
 - Card fixes: M1-02 acceptance (receptionist sees Today), M1-03 resubscribe on org/location change; 04 §4 navigator-chrome style exception.
 - Reworks M1-07a, M1-11a, M2-02 have no new commits yet.
 
+---
+## REVIEW round 7: reworks M1-02 + M1-07a + M1-11a + M2-02  ·  2026-11-12  ·  Claude Opus (architect)
+Branch: four rework branches verified against every finding   Status set to: all four done (merge pending)
+
+### Done
+- All required findings fixed; tests: mobile 112 / 122 / 125, backend 998. Notes in `reviews/<ID>/rework-1.md`.
+- The user's `expo-dev-client` install committed on mobile/develop.
+
+### Notes for the next task
+- M2-02's int spec and the M2-01 change file still need one run on a disposable Postgres.
+
