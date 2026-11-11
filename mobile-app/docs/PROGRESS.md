@@ -35,7 +35,7 @@
 | M1-05 | Push registration + tap routing | MOB | M | M1-04, M0-07 | ready | | | |
 | M1-06a | Idempotent mutation + online state | MOB | S | — | ready | | | |
 | M1-06 | Offline cache (persistence, banner, wipe) | MOB | M | M0-03, M1-02, M1-06a | ready | | | |
-| M1-07a | Queue types, API, keys, pure logic | MOB | M | — | ready | | | |
+| M1-07a | Queue types, API, keys, pure logic | MOB | M | — | review | mobile/M1-07a-queue-api | Claude Sonnet 5.5 | 2026-11-11 |
 | M1-07 | Queue hooks | MOB | M | M1-03, M1-06, M1-07a | ready | | | |
 | M1-08 | Doctor queue screen | MOB | L | M1-07 | ready | | | |
 | M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | ready | | | |

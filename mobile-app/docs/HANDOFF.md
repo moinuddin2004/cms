@@ -1067,3 +1067,43 @@ Branch: reviewed four lanes (independent reviewer agent per lane; every Blocker 
 ### Notes for the next task
 - Rework happens in the same worktree and branch; fix only the listed findings; append "Rework <ID> #1".
 
+
+---
+## M1-07a — Queue data layer: types, API, keys, pure logic  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-07a-queue-api   Commit(s): 6ac0c68 (code) + docs commit   Status set to: review
+
+### Done
+- Step 1 `types/queue.types.ts`: unions, `EntryView`, `SessionView`, `SessionSnapshot`, `BoardResponse`, `EntryResult`, `ArrivalResult`, `CallNextResult`, `TransferResult`, `TicketView`, `PatientVisit`, `NextPreview`, `QueuePolicy`, request types, `MutationOptions`. Verified field by field against `queue-query.service.ts`, `queue.dto.ts`, `queue-policies.service.ts`, orchestrator return shapes.
+- Step 2 `api/queue.api.ts`: every endpoint of both 07 §2.3 tables plus check-in and convert-to-walk-in (+ `next-preview`). Mutations are `fn(vars, { idempotencyKey, ifMatch? })`; `If-Match` is sent quoted (`"7"`). Reads take plain args. All via `staffApi`.
+- Step 3 `api/queue.keys.ts`; step 4 `lib/entry-actions.ts` (`availableEntryActions`, rule tables for S-02a/S-02b); step 5 `lib/queue-errors.ts` (`queueErrorMessage`, `shouldRefetch`, plus `queueErrorCode`); step 6 barrel. No React, no hooks.
+
+### Files
+- Created: `mobile-app/src/staff/features/queue/{index.ts, types/queue.types.ts, api/queue.api.ts, api/queue.keys.ts, api/queue.api.test.ts, lib/entry-actions.ts, lib/entry-actions.test.ts, lib/queue-errors.ts, lib/queue-errors.test.ts}`
+- Modified: `docs/PROGRESS.md`, `docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+None.
+
+### Verification
+- `node node_modules/jest/bin/jest.js` → 13 suites, 120 tests passed (queue: 3 suites, 67 tests).
+- `tsc --noEmit` (after `CI=1 expo start --offline` generated `.expo/types/router.d.ts`) → **no errors in any file I touched**. The only errors are TS7016 "no declaration file for `lucide-react-native`" in 8 older files (core/ui, shell, auth…) — environment issue in this worktree's `node_modules`, present without my change.
+- `eslint src` → 0 errors, 3 pre-existing warnings (api-error.ts, skeleton.tsx, staff/lib/api.ts).
+- `npm run lint:fences` → all 3 forbidden directions rejected as expected.
+
+### Acceptance criteria
+- [x] typecheck clean for the new code; [x] `availableEntryActions` tested for every status × viewer × permission combination (board: all 16 permission masks × 9 statuses vs. an independent table); [x] `queue-errors` tested for all 12 codes + 3 developer-bug codes + fallbacks; [x] api test proves `Idempotency-Key` + `If-Match` on a mutation (fake axios adapter on the real `staffApi`); [x] nothing imports React.
+
+### Deviations from the card / docs
+- `availableEntryActions` extras beyond the tables: `select` also needs `session.status === 'open'` (backend `assertOpen` → `SESSION_NOT_OPEN`); `patient-file` needs `entry.patient` and `patients.view`; on the doctor viewer it appears only on the current card (called / in_consultation). `show-ticket` is board-only.
+- `openSession` (`POST /queue/sessions`) is not Idem in 07, but accepts `MutationOptions` for uniformity (header is harmless).
+- Contract types follow the code where 07 differs: `EntryView.checkedInAt` is non-null, `patient.phone/patientNumber` nullable, `SessionView.lastCallReason` typed `SelectionReason | null`, `select` returns `{ entry, eventSeq }` (EntryResult), not CallNextResult as web types it.
+
+### Questions for the architect
+- **S-02b table vs backend transitions:** `ENTRY_TRANSITIONS` (backend `queue-transitions.ts`) allows `skip` only from `called` (`waiting → skipped` is not allowed → 422 INVALID_TRANSITION), and `transfer` is a normal entry move out of waiting/in_consultation (not clearly from `skipped`). The card says implement the table exactly, so `skip` is offered for waiting and called and `transfer` for waiting and skipped. Should I restrict skip to `called`? (One-line change per rule table + test.)
+- `setPriority` backend also accepts `skipped` and `on_hold` (table says waiting only) — kept the table. Also "Mark urgent" is still offered on an entry that is already `authorized_urgent`; hide it?
+- `GET /queue/my-session` also accepts `?doctorId=` (needs `queue.doctor.any`); not in 07, so `fetchMySession()` takes no args. Add later if a "run another doctor's queue" screen is wanted.
+
+### Notes for the next task
+- M1-07 hooks: call `fn({ ...vars }, { idempotencyKey, ifMatch: entry.version })` from `useIdempotentMutation`; use `queueErrorMessage` for toasts and `shouldRefetch` to invalidate `queueKeys.mySession/board`. `ACTIVE_WITH_OTHER_DOCTOR` and `LATE_LIMIT_EXCEEDED` should be intercepted with `queueErrorCode` to open the dialogs.
+- `queueErrorMessage` logs (`log.error`) for IDEMPOTENCY_* / REQUEST_IN_FLIGHT codes only.
