@@ -1,16 +1,5 @@
 import { getPref, removePref, setPref } from './prefs';
 
-// The Jest runner is card M0-06; until it (and @types/jest) lands, read the
-// globals from `globalThis` so `tsc --noEmit` stays green.
-const { describe, it, expect } = globalThis as unknown as {
-  describe: (name: string, fn: () => void) => void;
-  it: (name: string, fn: () => void) => void;
-  expect: (actual: unknown) => {
-    toBe: (expected: unknown) => void;
-    toBeUndefined: () => void;
-  };
-};
-
 describe('prefs', () => {
   it('round-trips a value', () => {
     setPref('staff.queue.segment', 'board');

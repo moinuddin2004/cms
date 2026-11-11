@@ -63,9 +63,13 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "30.0.0",
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "jest": "~30.5.2",
+    "jest-expo": "~58.0.14",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -75,7 +79,17 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "lint:fences": "node scripts/check-fences.mjs",
+    "test": "jest",
     "typecheck": "tsc --noEmit"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.ts"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
+    ]
   },
   "private": true
 }
