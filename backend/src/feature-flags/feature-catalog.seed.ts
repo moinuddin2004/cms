@@ -137,6 +137,15 @@ export const FEATURE_CATALOG_SEED: FeatureSeed[] = [
     enabledByDefault: false,
     sortOrder: 5,
   },
+  {
+    key: 'patient_app',
+    name: 'Patient app',
+    module: 'patients',
+    description: 'Patients can link their records in the mobile app.',
+    specialtyTags: ['general'],
+    enabledByDefault: false,
+    sortOrder: 6,
+  },
   // {
   //   key: 'patients.portal',
   //   name: 'Patient Portal',

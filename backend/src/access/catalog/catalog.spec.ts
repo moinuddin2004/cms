@@ -11,6 +11,8 @@ import {
 import { BUNDLES, matchBundle } from './bundles';
 import { ROLE_TEMPLATES } from './templates';
 
+import type { Permission, PermissionGroup } from './permissions';
+
 /** The design doc's permission catalog table, verbatim. */
 const DOC_KEYS = [
   'patients.view',
@@ -85,12 +87,21 @@ const DOC_KEYS = [
 ];
 
 describe('permission catalog', () => {
-  it('contains every key from the design doc, plus admin.theme.manage', () => {
+  it('contains every key from the design doc, plus admin.theme.manage and the patient-app keys', () => {
     for (const key of DOC_KEYS) expect(isPermission(key)).toBe(true);
     expect(isPermission('admin.theme.manage')).toBe(true);
     expect(PERMISSION_KEYS.filter((k) => !DOC_KEYS.includes(k))).toEqual([
+      'patients.app_link.manage',
+      'appointments.requests.manage',
       'admin.theme.manage',
     ]);
+  });
+
+  it('maps both patient-app permissions to the patient_app feature', () => {
+    expect(PERMISSIONS['patients.app_link.manage'].feature).toBe('patient_app');
+    expect(PERMISSIONS['appointments.requests.manage'].feature).toBe(
+      'patient_app',
+    );
   });
 
   it("marks the doc's (s) permissions as scoped", () => {
@@ -224,14 +235,36 @@ describe('bundles and templates', () => {
       for (const level of ['none', 'basic', 'full'] as const) {
         expect(validatePermissionMap(BUNDLES[group][level])).toBeNull();
         for (const key of Object.keys(BUNDLES[group][level])) {
-          expect(PERMISSIONS[key as keyof typeof PERMISSIONS].group).toBe(
-            group,
-          );
+          const permission = key as Permission;
+          expect(PERMISSIONS[permission].group).toBe(group);
         }
       }
     }
     for (const t of ROLE_TEMPLATES)
       expect(validatePermissionMap(t.permissions)).toBeNull();
+  });
+
+  it('every bundle level round-trips through matchBundle', () => {
+    for (const group of PERMISSION_GROUPS) {
+      for (const level of ['none', 'basic', 'full'] as const) {
+        expect(matchBundle(group, BUNDLES[group][level])).toBe(level);
+      }
+    }
+  });
+
+  it('basic is a subset of full for every group', () => {
+    for (const group of PERMISSION_GROUPS) {
+      const full = BUNDLES[group].full;
+      for (const [k, v] of Object.entries(BUNDLES[group].basic)) {
+        expect(full[k as Permission]).toBeDefined();
+        void v;
+      }
+    }
+  });
+
+  it('Patients basic carries the app-link permission', () => {
+    expect(BUNDLES.Patients.basic['patients.app_link.manage']).toBe(true);
+    expect(BUNDLES.Queue.basic['patients.app_link.manage']).toBeUndefined();
   });
 
   it('full bundles reach the widest scope', () => {

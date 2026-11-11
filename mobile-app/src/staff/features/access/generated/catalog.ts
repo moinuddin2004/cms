@@ -14,6 +14,7 @@ export const PERMISSION_KEYS = [
   'patients.price.view',
   'patients.clinical.view',
   'patients.clinical.edit',
+  'patients.app_link.manage',
   'patients.documents.manage',
   'patients.chart.edit',
   'plans.manage',
@@ -23,6 +24,7 @@ export const PERMISSION_KEYS = [
   'appointments.reschedule',
   'appointments.cancel',
   'appointments.override_rules',
+  'appointments.requests.manage',
   'queue.board.view',
   'queue.checkin',
   'queue.entry.manage',
@@ -122,6 +124,7 @@ export const PERMISSION_FEATURES: Record<Permission, string> = {
   'patients.price.view': 'patients.core',
   'patients.clinical.view': 'patients.core',
   'patients.clinical.edit': 'patients.core',
+  'patients.app_link.manage': 'patient_app',
   'patients.documents.manage': 'patients.documents',
   'patients.chart.edit': 'patients.teeth_chart',
   'plans.manage': 'patients.treatment_plans',
@@ -131,6 +134,7 @@ export const PERMISSION_FEATURES: Record<Permission, string> = {
   'appointments.reschedule': 'appointments.core',
   'appointments.cancel': 'appointments.core',
   'appointments.override_rules': 'appointments.core',
+  'appointments.requests.manage': 'patient_app',
   'queue.board.view': 'appointments.core',
   'queue.checkin': 'appointments.core',
   'queue.entry.manage': 'appointments.core',
@@ -235,6 +239,12 @@ export const PERMISSIONS: Record<Permission, PermissionDef> = {
     group: 'Patients',
     implies: ['patients.clinical.view'],
   },
+  'patients.app_link.manage': {
+    feature: 'patient_app',
+    label: 'Link patients to the app',
+    group: 'Patients',
+    risk: 'high',
+  },
   'patients.documents.manage': {
     feature: 'patients.documents',
     label: 'Manage patient documents',
@@ -286,6 +296,11 @@ export const PERMISSIONS: Record<Permission, PermissionDef> = {
     group: 'Appointments',
     implies: ['appointments.book'],
     risk: 'high',
+  },
+  'appointments.requests.manage': {
+    feature: 'patient_app',
+    label: 'Handle patient appointment requests',
+    group: 'Appointments',
   },
   'queue.board.view': {
     feature: 'appointments.core',
@@ -600,6 +615,7 @@ export const BUNDLES: Record<
       'patients.create': true,
       'patients.edit': true,
       'patients.documents.manage': true,
+      'patients.app_link.manage': true,
     },
     full: {
       'patients.view': 'org',
@@ -610,6 +626,7 @@ export const BUNDLES: Record<
       'patients.price.view': true,
       'patients.clinical.view': true,
       'patients.clinical.edit': true,
+      'patients.app_link.manage': true,
       'patients.documents.manage': true,
       'patients.chart.edit': true,
       'plans.manage': true,
@@ -623,6 +640,7 @@ export const BUNDLES: Record<
       'appointments.book': true,
       'appointments.reschedule': true,
       'appointments.cancel': true,
+      'appointments.requests.manage': true,
     },
     full: {
       'appointments.view': 'org',
@@ -630,6 +648,7 @@ export const BUNDLES: Record<
       'appointments.reschedule': true,
       'appointments.cancel': true,
       'appointments.override_rules': true,
+      'appointments.requests.manage': true,
     },
   },
   Queue: {

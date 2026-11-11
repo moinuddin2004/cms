@@ -67,6 +67,7 @@ import { SettingsRegistryModule } from './settings-registry/settings-registry.mo
 import { SearchModule } from './search/search.module';
 import { AppVersionModule } from './app-version/app-version.module';
 import { PatientFenceGuard } from './patient-app/guards/patient-fence.guard';
+import './patient-app/patient-app.settings'; // registers the patient_app.* settings keys
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';

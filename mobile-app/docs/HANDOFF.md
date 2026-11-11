@@ -1111,6 +1111,51 @@ none
 - Entities are registered via `autoLoadEntities`; M2-02 can inject `Repository<PatientAccount>` etc. by importing `PatientAuthModule` (it exports `TypeOrmModule`).
 
 ---
+## M2-12 — `patient_app` feature, permissions, settings keys  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M2-12-patient-app-keys   Commit(s): a62d9ab (code) + docs commit   Status set to: review
+
+### Done
+- Feature seed `patient_app` (module `patients`, `enabledByDefault: false`, sortOrder 6); `patients.portal` left retired.
+- Permissions `patients.app_link.manage` (risk high) and `appointments.requests.manage`, both `feature: 'patient_app'`.
+- Bundles: `patients.app_link.manage` added to the Queue bundle (holds `queue.checkin`); `appointments.requests.manage` added to the Appointments bundle. No role names in code.
+- `src/patient-app/patient-app.settings.ts`: `patient_app.show_billing`, `patient_app.show_diagnosis` (boolean, default true, ORG, not lockable); imported as a side effect in `app.module.ts`.
+- `npm run access:export` regenerated web + mobile catalogs (both contain the two keys).
+- Tests: `catalog.spec.ts` updated (extra keys listed; new spec mapping both to `patient_app`).
+
+### Files
+- Created: backend/src/patient-app/patient-app.settings.ts
+- Modified: backend/src/access/catalog/{permissions,bundles,catalog.spec}.ts, backend/src/feature-flags/feature-catalog.seed.ts, backend/src/app.module.ts, both generated catalog.ts files, PROGRESS.md, HANDOFF.md
+
+### Install commands for the user
+none
+
+### Verification
+- Backend `npm run build` → clean. Full `npx jest --runInBand` → 90 suites / 925 tests passed (incl. catalog, access-coverage, guard.acceptance, patient-api-coverage).
+- Changed-file ESLint (prettier rule off) → clean; `npm run lint` not run (CRLF `prettier/prettier` noise).
+
+### Acceptance criteria
+- [x] Build clean, full unit suite green, both catalogs contain the keys.
+
+### Deviations from the card / docs
+- The "bundle group = permission group" check in `catalog.spec.ts` gained a small `CROSS_MODULE_BUNDLE_GRANTS` allowance, because the Queue bundle now holds a Patients-group permission as the card requires.
+
+### Questions for the architect
+- Is a cross-group bundle grant (Queue bundle → `patients.app_link.manage`) acceptable, or should a front-desk Patients bundle entry be used instead?
+
+### Notes for the next task
+- Nothing reads the settings yet; the `/patient-api` read services (M2-xx) consume `PATIENT_APP_SETTINGS`.
+
+## Rework M2-12 #1
+Branch `mobile/M2-12-patient-app-keys`. Finding → fix:
+1. **Blocker** — removed `patients.app_link.manage` from the Queue bundle; added it to the Patients **basic** bundle (Patients full gets it via `fullOf`). `appointments.requests.manage` stays in Appointments basic. Removed `CROSS_MODULE_BUNDLE_GRANTS`; the strict "bundle group = permission group" test is restored. Both catalogs regenerated with `npm run access:export`.
+2. **Major** — added tests: `matchBundle(g, BUNDLES[g][l]) === l` for every group and level; basic ⊆ full per group; Patients basic carries the app-link permission and Queue basic does not.
+3. No code change. `patients.app_link.manage` is high-risk and opt-in: only new orgs' Admin template gets it (via Patients full). Receptionists must be granted it explicitly.
+4. No code change. Existing orgs' roles are not updated on deploy (templates are insert-missing).
+5. Left as is. The settings import in `app.module.ts` moves into `PatientAppModule` after M2-01 is merged (note for M2-02).
+
+Install commands: none. Questions: none.
+
+---
 ## REVIEW round 5  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: six branches reviewed (reworks by the architect; new cards with an independent reviewer agent each; key claims verified in code)   Status set to: M1-01, M0-07, M2-12 done (merge pending) · M1-07a, M1-11a, M2-02 changes-requested · M1-06a not handed off yet
 
