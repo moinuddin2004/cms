@@ -166,7 +166,11 @@ MOB · M · Depends: M0-01, M0-02, M0-03 · Branch `mobile/M0-04-spaces`
    is coming soon" with [Back] → `switchSpace(null)`. Route `src/app/(patient)/_layout.tsx` + `index.tsx`.
 7. Staff login page gets a back arrow to welcome (`switchSpace(null)`). Staff sign-out sets
    `activeSpace` to `null` (patient space does not exist yet).
-8. `resolve-staff-route.ts` pure function + unit tests (M0-06 adds the runner; write the test now,
+8. Lint (from M0-02 review): add the remaining 02 §1 fence rows to `eslint.config.js` — root files
+   `src/app/*.tsx` may import only `@/shell` and `@/core` (no `@/staff*`, `@/patient*`), and
+   `src/app/(staff)/**` / `src/app/(patient)/**` may not import `@/shell*`. Add a third fixture to
+   `scripts/check-fences.mjs` (`src/app/__fence_fixture__.tsx` importing `@/staff`).
+9. `resolve-staff-route.ts` pure function + unit tests (M0-06 adds the runner; write the test now,
    it runs once M0-06 lands — or do M0-06 first if convenient).
 
 **Acceptance:**
@@ -175,7 +179,8 @@ MOB · M · Depends: M0-01, M0-02, M0-03 · Branch `mobile/M0-04-spaces`
 - [ ] Sign out → welcome; reopen → welcome.
 - [ ] Staff offline at start → staff offline page with retry.
 - [ ] Lint fences pass; no shell file imports a deep staff path.
-- [ ] **Carry-over from M0-01/M0-08 reviews — must run on a real device or emulator against a running API:**
+- [ ] **Carry-over from M0-01/M0-08 reviews — must run on a real device or emulator against a running API,
+      using a development build** (`npx expo run:android`; Expo Go no longer works since M0-03 added native MMKV):
       a session created *before* updating the app still restores; login → select location → home → sign out
       works; a web sign-in still works (staff tokens now carry `aud: 'staff'`). Screenshots in `docs/reviews/M0-04/`.
       If no device is available, stop and say so in the handoff — do not mark this card `review` without it.
@@ -231,7 +236,10 @@ MOB · S · Depends: M0-01 · Branch `mobile/M0-06-tests`
 
 **Install:** `npx expo install jest-expo jest @testing-library/react-native @types/jest`
 
-**Steps:** per [09 §2](09-testing-and-quality.md#2-mobile-test-setup-task-m0-06). Add first tests: `core/datetime`
+**Steps:** per [09 §2](09-testing-and-quality.md#2-mobile-test-setup-task-m0-06). From the M0-03 review: the
+`react-native-mmkv` mock must export the **v4** API (`createMMKV`, `deleteMMKV`; prefer the library's own
+Jest mock if it exists), and remove the `globalThis` Jest-globals shims at the top of
+`src/core/storage/*.test.ts` once `@types/jest` is installed — then make those three files pass. Add first tests: `core/datetime`
 (Karachi + New York day bounds, `formatInZone` of a UTC instant), `staff/lib/api` single-flight refresh
 (two parallel 401s → one refresh call).
 
@@ -622,7 +630,7 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 | --- | --- | --- | --- | --- | --- |
 | M2-01 | BE | M | Identity tables + entities (accounts, identities, sessions, login codes, profiles, links, claim tokens, consents, access log) | M0-09 | change file runs twice without error; entities load |
 | M2-02 | BE | L | `src/patient-auth`: email code, Google (multi-audience), sessions with rotation + reuse detection, `patient-jwt` strategy (separate secret, `aud`, attaches to `req.patientAuth` **not** `req.user`), `PatientJwtGuard`, `/patient-api/me` | M2-01 | strategy tests both directions; start-up fails if patient secret missing/equal to staff secret |
-| M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec | M2-02 | isolation + matrix green |
+| M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
 | M2-04 | BE | M | `src/patient-links` staff endpoints (claim token, status, revoke) + `/patient-api/claims/*` + events `patient.record_linked/link_revoked` + audit | M2-03 | full claim flow via HTTP in an int spec |
 | M2-05 | WEB | S | "Link app" button + QR dialog on web patient detail (`patients.app_link.manage`) | M2-04 | QR scannable from phone; status refresh |
 | M2-06 | MOB | L | Patient space foundation: `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |

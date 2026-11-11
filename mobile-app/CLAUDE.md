@@ -45,7 +45,7 @@ a HANDOFF entry, and your PROGRESS row → `review`. Rules that fail a review: [
 ## Commands
 
 ```bash
-npm run dev          # expo start
+npm run dev          # expo start — needs a development build (native MMKV): npx expo run:android
 npm run lint         # + npm run lint:fences after M0-02
 npm run typecheck
 npm test             # after M0-06

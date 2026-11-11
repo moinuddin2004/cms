@@ -32,10 +32,10 @@ mobile-app/
     │   ├── datetime/          # pure tz helpers: formatInZone, zonedToUtc, dayBounds … (zone is a parameter)
     │   ├── money/             # formatMoney(amount, currency)
     │   ├── theme/             # tokens, brand palette math, applyBrand()
-    │   ├── storage/           # prefs (MMKV plain), secureCache(space) (MMKV encrypted), secure-store wrapper
+    │   ├── storage/           # prefs (MMKV plain), secure-cache (MMKV encrypted), secure-store, query-persister
     │   ├── notifications/     # expo-notifications setup, channels, permission prompt, token getter
     │   ├── network/           # online state hook, OfflineBanner logic
-    │   ├── query/             # createQueryClient(), persister factory, query helpers
+    │   ├── query/             # createQueryClient(), query managers, query helpers
     │   ├── http/              # createApiClient() factory, ApiResponse types, apiErrorMessage, idempotency key
     │   ├── i18n/              # i18next instance (used by patient space; core components take strings as props)
     │   ├── space/             # useSpaceStore (activeSpace) — the only cross-space state

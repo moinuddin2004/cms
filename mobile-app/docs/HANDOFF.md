@@ -250,3 +250,19 @@ Branch: mobile/develop (new, from master)   Status set to: M0-01, M0-08 → done
 
 ### Notes for the next task
 - `git switch mobile/develop && git pull` before creating your card branch.
+
+---
+## REVIEW M0-02 + M0-03 + M0-09  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed the three task branches (parallel worktrees)   Status set to: done (merge pending)
+
+### Done
+- M0-02 done, M0-03 done (one major fixed at merge: add `react-native-nitro-modules` as a direct dependency),
+  M0-09 done (route-matrix int spec carried over to M2-03). Reviews in `docs/reviews/<ID>/review.md`.
+- Cards updated: M0-04 (remaining fence rows + dev-build smoke), M0-06 (MMKV v4 mock, drop test shims),
+  M2-03 (disposable DB guard, `test:int:patient`). 02 §1 storage/query lines, CLAUDE.md dev-build note,
+  PROGRESS fresh-worktree note.
+
+### Notes for the next task
+- **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
+  EAS development build from M0-07.
+- After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
