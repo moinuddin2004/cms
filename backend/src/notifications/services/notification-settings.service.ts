@@ -340,7 +340,13 @@ export class NotificationSettingsService {
                 ? platformMode === 'on'
                 : locked ||
                   (r?.isEnabled ??
-                    defaultRuleEnabled(audience, channel, e.emailDefault)),
+                    defaultRuleEnabled(
+                      audience,
+                      channel,
+                      e.emailDefault,
+                      // Push is on by default only where the event allows it.
+                      e.channels?.includes(NotificationChannel.PUSH) === true,
+                    )),
               isDefault: !r,
               locked,
               platformMode,
@@ -449,8 +455,10 @@ export class NotificationSettingsService {
           );
         }
         if (
-          !CHANNELS_BY_AUDIENCE[c.audience].includes(c.channel) ||
-          (event.channels && !event.channels.includes(c.channel))
+          !channelsFor(
+            { audience: c.audience, type: RecipientType.USER },
+            event,
+          ).includes(c.channel)
         ) {
           throw notificationError(
             'NOTIFICATION_CHANNEL_INVALID',

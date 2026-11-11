@@ -10,11 +10,15 @@ import type {
 export interface OutgoingNotification {
   id: string;
   organizationId: string;
+  /** The clinic branch the change happened at (push `data`, 07 §8). */
+  locationId: string | null;
   eventCode: string;
   audience: NotificationAudience;
   recipientType: RecipientType;
   recipientId: string;
   channel: NotificationChannel;
+  /** The row that caused it (e.g. the queue entry — push `data`, 07 §8). */
+  entityId: string | null;
   payload: NotificationPayload;
   /** Including this one. */
   attempts: number;

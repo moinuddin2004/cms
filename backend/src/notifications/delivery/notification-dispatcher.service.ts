@@ -34,11 +34,13 @@ export interface DrainResult {
 interface ClaimedRow {
   id: string;
   organization_id: string;
+  location_id: string | null;
   event_code: string;
   audience: NotificationAudience;
   recipient_type: RecipientType;
   recipient_id: string;
   channel: NotificationChannel;
+  entity_id: string | null;
   payload: NotificationPayload;
   attempts: number;
 }
@@ -105,18 +107,21 @@ export class NotificationDispatcher {
            ORDER BY scheduled_for
            LIMIT $1
            FOR UPDATE SKIP LOCKED)
-        RETURNING o.id, o.organization_id, o.event_code, o.audience,
-                  o.recipient_type, o.recipient_id, o.channel, o.payload, o.attempts`,
+        RETURNING o.id, o.organization_id, o.location_id, o.event_code,
+                  o.audience, o.recipient_type, o.recipient_id, o.channel,
+                  o.entity_id, o.payload, o.attempts`,
       [limit],
     );
     return rows.map((r) => ({
       id: r.id,
       organizationId: r.organization_id,
+      locationId: r.location_id,
       eventCode: r.event_code,
       audience: r.audience,
       recipientType: r.recipient_type,
       recipientId: r.recipient_id,
       channel: r.channel,
+      entityId: r.entity_id,
       payload: r.payload,
       attempts: r.attempts,
     }));

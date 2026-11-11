@@ -13,12 +13,21 @@ export interface EventSeed {
   isMandatoryInternal: boolean;
   /** Email on by default (important events). Default false = in-app only until switched on. */
   emailDefault?: boolean;
-  /** Channels this event may use at all; omitted = every channel of its audiences. */
+  /**
+   * Push on by default (M1-04). Every other event stays push-off until its
+   * seed lists `push` in `channels`; the seed service writes that list to
+   * `notification_events.channels`, which is what the enqueue path reads.
+   */
+  pushDefault?: boolean;
+  /** Channels this event may use at all; omitted = every channel of its audiences (push excepted, which is opt-in). */
   channels?: NotificationChannel[];
   variables: string[];
   /** Platform default wording (English). Title doubles as email subject. */
   title: string;
   body: string;
+  /** Push title/body when they must differ from the bell wording (docs/03 §5). */
+  pushTitle?: string;
+  pushBody?: string;
 }
 
 /**
@@ -292,15 +301,21 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
     description: 'A patient checked in to your queue.',
     audiences: [A.DOCTOR],
     isMandatoryInternal: false,
-    channels: [NotificationChannel.IN_APP],
-    variables: ['patient_name', 'token'],
+    channels: [NotificationChannel.IN_APP, NotificationChannel.PUSH],
+    pushDefault: true,
+    variables: ['patient_name', 'patient_first_name', 'token'],
     title: '{patient_name} is waiting ({token})',
     body: '{patient_name} checked in to your queue with token {token}.',
+    // docs/03 §5: the lock screen may carry the patient's FIRST name and the
+    // token only — never the full name or anything clinical.
+    pushTitle: 'Patient checked in',
+    pushBody: '{patient_first_name} · Token {token}',
   },
   {
     code: 'inventory.low_stock',
     name: 'Low stock (daily)',
-    description: 'Once a day: items at or below their reorder level, or out of stock.',
+    description:
+      'Once a day: items at or below their reorder level, or out of stock.',
     audiences: [A.STAFF],
     isMandatoryInternal: false,
     emailDefault: true,
@@ -322,7 +337,8 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
   {
     code: 'join_request.created',
     name: 'Someone asked to join',
-    description: 'A person asked to join the clinic (invite link or Google Workspace).',
+    description:
+      'A person asked to join the clinic (invite link or Google Workspace).',
     audiences: [A.STAFF],
     isMandatoryInternal: false,
     emailDefault: true,
@@ -420,13 +436,24 @@ export const NOTIFICATION_EVENT_SEEDS: EventSeed[] = [
   },
 ];
 
-/** Channels an event can use: its own list ∩ its audiences' channels. */
+/**
+ * Channels an event can use: its own list ∩ its audiences' channels. Push is
+ * opt-in per event — a null `channels` ("every channel of the audience") must
+ * not start pushing every existing event (M1-04, docs/03 §5).
+ */
 export function eventChannels(e: {
   audiences: A[];
   channels?: NotificationChannel[] | null;
 }): NotificationChannel[] {
-  const byAudience = new Set(e.audiences.flatMap((a) => CHANNELS_BY_AUDIENCE[a]));
-  return [...byAudience].filter((c) => !e.channels || e.channels.includes(c));
+  const byAudience = new Set(
+    e.audiences.flatMap((a) => CHANNELS_BY_AUDIENCE[a]),
+  );
+  return [...byAudience].filter(
+    (c) =>
+      (!e.channels || e.channels.includes(c)) &&
+      (c !== NotificationChannel.PUSH ||
+        !!e.channels?.includes(NotificationChannel.PUSH)),
+  );
 }
 
 /** Platform default templates: English, every channel any audience of the event uses. */
@@ -443,11 +470,14 @@ export function defaultTemplateSeeds(): {
       channel,
       language: NotificationLanguage.EN,
       subject:
-        channel === NotificationChannel.IN_APP ||
-        channel === NotificationChannel.EMAIL
-          ? e.title
-          : null,
-      body: e.body,
+        channel === NotificationChannel.PUSH
+          ? (e.pushTitle ?? e.title)
+          : channel === NotificationChannel.IN_APP ||
+              channel === NotificationChannel.EMAIL
+            ? e.title
+            : null,
+      body:
+        channel === NotificationChannel.PUSH ? (e.pushBody ?? e.body) : e.body,
     }));
   });
 }

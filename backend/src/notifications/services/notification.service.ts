@@ -16,6 +16,7 @@ import { NotificationRule } from '../entities/notification-rule.entity';
 import { NotificationTemplate } from '../entities/notification-template.entity';
 import { PatientCommPref } from '../entities/patient-comm-pref.entity';
 import { notificationError } from '../notification-errors';
+import { firstNameOf } from '../privacy';
 import {
   CHANNELS_BY_AUDIENCE,
   CHANNELS_BY_RECIPIENT,
@@ -57,6 +58,11 @@ export interface EnqueueInput {
   link?: string | null;
   /** What caused it, for per-entity message logs. */
   entity?: { type: string; id: string } | null;
+  /**
+   * Do not send before this (e.g. an appointment reminder 24 h ahead). The
+   * final `scheduled_for` is the later of this and the quiet-hours decision.
+   */
+  scheduledFor?: Date;
 }
 
 export interface EnqueuedNotification {
@@ -233,6 +239,16 @@ export class NotificationService {
 
     const now = this.clock.now();
     const baseVars = stringify(input.variables ?? {});
+    // docs/03 §5: a remote push may carry the patient's first name only, so
+    // every event that supplies `patient_name` also gets `patient_first_name`
+    // for its push wording — the full name stays in the bell/email text.
+    if (baseVars.patient_name && !baseVars.patient_first_name) {
+      baseVars.patient_first_name = firstNameOf(baseVars.patient_name);
+    }
+    // The event's push opt-in is the `push` entry in its code-owned `channels`
+    // list (seeded from `EventSeed.pushDefault`, M1-04).
+    const pushDefault =
+      event.channels?.includes(NotificationChannel.PUSH) === true;
     const rows: Partial<NotificationOutbox>[] = [];
     const results: Omit<EnqueuedNotification, 'id'>[] = [];
 
@@ -276,7 +292,12 @@ export class NotificationService {
           ruleEnabled: forced
             ? forced === 'on'
             : (rule?.isEnabled ??
-              defaultRuleEnabled(r.audience, channel, event.emailDefault)),
+              defaultRuleEnabled(
+                r.audience,
+                channel,
+                event.emailDefault,
+                pushDefault,
+              )),
           // A user's own "no email for this event" (never for mandatory events).
           optedOut:
             isOptedOut(pref, channel) ||
@@ -295,7 +316,13 @@ export class NotificationService {
         const sendable =
           status === OutboxStatus.QUEUED ||
           status === OutboxStatus.HELD_QUIET_HOURS;
-        if (sendable && channel !== NotificationChannel.IN_APP && !to) {
+        // Push has no address at enqueue time: the devices are resolved when
+        // the worker sends, so an empty device list must not fail the row here.
+        const needsAddress =
+          channel === NotificationChannel.EMAIL ||
+          channel === NotificationChannel.SMS ||
+          channel === NotificationChannel.WHATSAPP;
+        if (sendable && needsAddress && !to) {
           status = OutboxStatus.FAILED;
           reason = 'no_address';
           lastError = `Recipient has no ${channel === NotificationChannel.EMAIL ? 'email address' : 'phone number'}`;
@@ -318,6 +345,10 @@ export class NotificationService {
           variables,
           reason,
         };
+        const scheduledFor =
+          input.scheduledFor && input.scheduledFor > decision.scheduledFor
+            ? input.scheduledFor
+            : decision.scheduledFor;
         rows.push({
           organizationId: org,
           locationId: input.locationId ?? null,
@@ -330,7 +361,7 @@ export class NotificationService {
           entityId: input.entity?.id ?? null,
           payload,
           status,
-          scheduledFor: decision.scheduledFor,
+          scheduledFor,
           attempts: 0,
           lastError,
         });
@@ -341,7 +372,7 @@ export class NotificationService {
           channel,
           status,
           reason,
-          scheduledFor: decision.scheduledFor,
+          scheduledFor,
         });
       }
     }
@@ -478,7 +509,9 @@ export class NotificationService {
 
 /**
  * Channels considered for a recipient: what its audience uses ∩ what it can
- * receive ∩ what the event allows (e.g. queue check-in is in-app only).
+ * receive ∩ what the event allows (e.g. queue check-in is in-app + push).
+ * Push is opt-in per event: an event without `push` in its own `channels`
+ * list never creates push rows (M1-04).
  */
 export function channelsFor(
   r: Pick<NotificationRecipient, 'audience' | 'type'>,
@@ -487,7 +520,10 @@ export function channelsFor(
   const reachable = CHANNELS_BY_RECIPIENT[r.type];
   return CHANNELS_BY_AUDIENCE[r.audience].filter(
     (c) =>
-      reachable.includes(c) && (!event?.channels || event.channels.includes(c)),
+      reachable.includes(c) &&
+      (c === NotificationChannel.PUSH
+        ? !!event?.channels?.includes(NotificationChannel.PUSH)
+        : !event?.channels || event.channels.includes(c)),
   );
 }
 

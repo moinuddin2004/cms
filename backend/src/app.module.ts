@@ -44,6 +44,7 @@ import { EngineModule } from './engine/engine.module';
 import { LabCatalogModule } from './lab-catalog/lab-catalog.module';
 import { QueueRuntimeModule } from './queue/queue-runtime.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DevicesModule } from './devices/devices.module';
 import { LabOrdersModule } from './lab-orders/lab-orders.module';
 import { LabAccessModule } from './lab-access/lab-access.module';
 import { LabProductionModule } from './lab-production/lab-production.module';
@@ -124,6 +125,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     LabFinanceModule,
     ReportsModule,
     NotificationsModule, // NotificationsRuntimeModule (sending loop) is added per role
+    DevicesModule, // /me/devices — staff push tokens (M1-04)
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
     SettingsRegistryModule,
     SearchModule, // global quick search (Ctrl+K)

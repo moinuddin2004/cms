@@ -17,6 +17,8 @@ export enum NotificationChannel {
   WHATSAPP = 'whatsapp',
   SMS = 'sms',
   EMAIL = 'email',
+  /** Expo remote push to the user's registered devices (M1-04). */
+  PUSH = 'push',
 }
 
 /** Who the outbox row is addressed to: a signed-in user, a patient, or a lab's own contact. */
@@ -36,6 +38,8 @@ export enum OutboxStatus {
   SKIPPED_OPT_OUT = 'skipped_opt_out',
   /** Email to an address nobody has verified (decided when sending). */
   SKIPPED_UNVERIFIED = 'skipped_unverified',
+  /** Push to a user who has no registered device (decided when sending). */
+  SKIPPED_NO_DEVICE = 'skipped_no_device',
 }
 
 export enum NotificationLanguage {
@@ -63,10 +67,11 @@ export const isInternalAudience = (a: NotificationAudience) =>
  * shows, and the only channels `channelsFor()` ever queues.
  *
  * Clinic-side people get in-app + email (email only to verified addresses,
- * see `AddressVerifier`). WhatsApp / SMS have no provider yet. Patients get
- * nothing for now (2026-11-05: the system is for clinic users only) — add
- * EMAIL here when the patient follow-up project builds patient email
- * confirmation; `notifications.enums.spec.ts` guards it.
+ * see `AddressVerifier`) + push (staff app devices, M1-04 — only for events
+ * whose seed allows `push`, e.g. a patient checking in). WhatsApp / SMS have
+ * no provider yet. Patients get nothing for now (2026-11-05: the system is
+ * for clinic users only) — add channels here when the patient follow-up
+ * project builds patient messaging; `notifications.enums.spec.ts` guards it.
  */
 export const CHANNELS_BY_AUDIENCE: Record<
   NotificationAudience,
@@ -76,10 +81,12 @@ export const CHANNELS_BY_AUDIENCE: Record<
   [NotificationAudience.DOCTOR]: [
     NotificationChannel.IN_APP,
     NotificationChannel.EMAIL,
+    NotificationChannel.PUSH,
   ],
   [NotificationAudience.COORDINATOR]: [
     NotificationChannel.IN_APP,
     NotificationChannel.EMAIL,
+    NotificationChannel.PUSH,
   ],
   [NotificationAudience.LAB]: [
     NotificationChannel.IN_APP,
@@ -88,6 +95,7 @@ export const CHANNELS_BY_AUDIENCE: Record<
   [NotificationAudience.STAFF]: [
     NotificationChannel.IN_APP,
     NotificationChannel.EMAIL,
+    NotificationChannel.PUSH,
   ],
 };
 
@@ -113,7 +121,9 @@ export const CHANNELS_BY_RECIPIENT: Record<
  * Lazy defaults when a clinic has no row yet (§7 "Patient defaults OFF"):
  * the patient master switch and every patient rule are off; internal
  * audiences are on, with in-app on, email on only for events marked
- * `email_default` (the important ones), and WhatsApp / SMS off.
+ * `email_default` (the important ones), push only for events marked
+ * `push_default` (currently just a patient checking in — M1-04), and
+ * WhatsApp / SMS off.
  */
 export const defaultAudienceEnabled = (a: NotificationAudience) =>
   isInternalAudience(a);
@@ -122,10 +132,12 @@ export const defaultRuleEnabled = (
   a: NotificationAudience,
   c: NotificationChannel,
   emailDefault = false,
+  pushDefault = false,
 ) =>
   isInternalAudience(a) &&
   (c === NotificationChannel.IN_APP ||
-    (c === NotificationChannel.EMAIL && emailDefault));
+    (c === NotificationChannel.EMAIL && emailDefault) ||
+    (c === NotificationChannel.PUSH && pushDefault));
 
 /** Personal switch key in `user_notification_prefs` for one event's email. */
 export const emailPrefKey = (eventCode: string) => `email:${eventCode}`;
