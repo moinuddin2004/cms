@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 0→1 · **Next up:** merge M2-01, M1-01, M0-07, M2-12 · reworks M1-07a (E), M1-11a (F), M2-02 (C) · M1-06a (G) running · then M1-02 · **Device:** M0-D open (no longer blocks M1-02; must pass before Gate A) · Updated 2026-11-11
+**Current phase:** 0→1 · **Next up:** M1-02 (staff tabs) · reworks M1-07a (E), M1-11a (F), M2-02 (C) · M1-06a (G) running · then M1-02 · **Device:** M0-D open (no longer blocks M1-02; must pass before Gate A) · Updated 2026-11-11
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -24,10 +24,10 @@
 | M0-D | Device smoke run (M0-01/04/08 carry-overs) | USER | S | M0-04 | blocked — needs Android emulator or phone + dev build | | user | |
 | M0-05 | Tokens, text scale, brand theming | MOB | M | M0-04 | done (in develop) | mobile/M0-05-theme | DeepSeek Flash | 2026-11-11 |
 | M0-06 | Mobile test runner | MOB | S | M0-01 | done (in develop) | mobile/M0-06-tests | DeepSeek Flash | 2026-11-11 |
-| M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | done (merge pending) | mobile/M0-07-eas | Sonnet | 2026-11-11 |
+| M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | done (in develop) | mobile/M0-07-eas | Sonnet | 2026-11-11 |
 | M0-08 | Staff `aud` + min-version | BE | S | — | done (in develop) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
-| M1-01 | Core component kit | MOB | L | M0-05 | done (merge pending) | mobile/M1-01-core-kit | DeepSeek Flash | 2026-11-11 |
+| M1-01 | Core component kit | MOB | L | M0-05 | done (in develop) | mobile/M1-01-core-kit | DeepSeek Flash | 2026-11-11 |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01 | ready (after M1-01 rework) | | | |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
 | M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (in develop) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
@@ -48,8 +48,8 @@
 | M1-15 | Today snapshot | MOB | M | M1-07, M1-14 | ready | | | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
-| M2-01 | Patient identity tables + entities | BE | M | M0-09 | done (merge pending) | mobile/M2-01-patient-identity | DeepSeek Flash | 2026-11-11 |
-| M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (merge pending) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
+| M2-01 | Patient identity tables + entities | BE | M | M0-09 | done (in develop) | mobile/M2-01-patient-identity | DeepSeek Flash | 2026-11-11 |
+| M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | changes-requested | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | ready | | | |
 | M2-03 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
