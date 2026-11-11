@@ -843,3 +843,44 @@ Branch: reviewed the three task branches   Status set to: M0-06, M1-04 done · M
 ### Notes for the next task
 - Merge order: M0-06 before M0-04 (M0-04's test needs jest types). Normalise `package-lock.json` with `npm install`.
 - `changes/2026-11-11_push_devices.sql` has not been run anywhere yet.
+
+---
+## M0-07 — Build configuration: app.config.ts, EAS, updates  ·  2026-11-11  ·  DeepSeek Flash (finished by Claude Sonnet 5.5)
+Branch: mobile/M0-07-eas   Commit(s): 2fd216d   Status set to: review
+
+### Done
+- `app.json` → `app.config.ts` with `APP_VARIANT` (development default / preview / production): name, scheme, package + bundle id `com.placeholder.clinicapp` (+ `.dev`/`.preview`); kept splash + localization plugins, `typedRoutes`, `reactCompiler`.
+- `eas.json` profiles development / preview (APK, channel) / production (AAB, channel) with `APP_VARIANT` + `EXPO_PUBLIC_API_URL` placeholders.
+- expo-updates: `runtimeVersion: appVersion`; `updates.url`/`eas.projectId` come from `EXPO_UPDATES_URL`/`EAS_PROJECT_ID` (updates disabled until set).
+- `core/app-version.ts` (`isBelow`), `shell/min-version.ts` (fail open, 6 s timeout), `shell/UpdateRequiredPage.tsx` (X-03), wired into `RootShell`.
+- `core/notifications/channels.ts`: Android channels queue/reminders/general, no permission prompt, created at start.
+- `{ virtual: true }` dropped from expo-notifications mock. `docs/RELEASE.md` written.
+
+### Files
+- Created: app.config.ts, eas.json, docs/RELEASE.md, src/core/app-version(.test).ts, src/core/notifications/channels.ts, src/shell/{min-version(.test).ts,UpdateRequiredPage.tsx}
+- Modified: package.json, package-lock.json, jest.setup.ts, src/shell/RootShell.tsx
+- Deleted / moved: app.json
+
+### Install commands for the user
+Already installed in the working tree. Normalise the lockfile with `npm install` after merge.
+
+### Verification
+- `npm test` → 8 suites, 32 passed; `npm run typecheck` clean; `npm run lint:fences` green
+- eslint src → 0 errors, 3 pre-existing warnings
+- `expo config --type public`: development → "Clinic (Dev)", com.placeholder.clinicapp.dev, scheme clinicapp-dev; preview → "Clinic (Preview)", .preview, clinicapp-preview; production → "Clinic", com.placeholder.clinicapp, clinicapp. All: runtimeVersion.policy appVersion, updates.enabled false.
+- `expo-doctor`: one failed check — 11 packages a patch behind SDK 58 (expo, expo-router, expo-font, …); none are from this task.
+
+### Acceptance criteria
+- [x] config output per variant (above)
+- [x] distinct package ids → dev installs beside preview
+- [x] expo-doctor: no new errors (only pre-existing patch drift)
+
+### Deviations from the card / docs
+- `web.output: "server"` left in place (docs do not confirm nothing depends on it).
+
+### Questions for the architect
+- Remove `web.output: "server"`? Run `npx expo install --check` to fix doctor drift in a separate chore?
+- iOS Update button links to the generic App Store URL until O-01/M4 gives a listing.
+
+### Notes for the next task
+- M1-05 needs `EAS_PROJECT_ID` (after `eas init`, see docs/RELEASE.md).
