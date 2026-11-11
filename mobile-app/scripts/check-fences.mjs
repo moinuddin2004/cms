@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * M0-02 lint-fence check (docs/03 §7). Proves that the import fences actually
- * fail lint: it writes two temporary fixtures (one per forbidden direction),
- * runs ESLint on them, deletes them, and exits non-zero unless both were
+ * fail lint: it writes three temporary fixtures (one per forbidden direction),
+ * runs ESLint on them, deletes them, and exits non-zero unless all were
  * rejected by the `no-restricted-imports` rule. The fixtures never stay on disk.
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -21,6 +21,11 @@ const FIXTURES = [
     file: 'src/core/__fence_fixture__.ts',
     source: "import '@/patient';\n",
     label: 'core importing @/patient',
+  },
+  {
+    file: 'src/app/__fence_fixture__.tsx',
+    source: "import '@/staff';\n",
+    label: 'root app route importing @/staff',
   },
 ];
 
@@ -69,4 +74,4 @@ if (failed) {
   process.exit(1);
 }
 
-out('lint:fences: both forbidden directions failed lint as expected.');
+out('lint:fences: all forbidden directions failed lint as expected.');

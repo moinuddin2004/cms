@@ -558,6 +558,118 @@ now in `devDependencies`. A fresh checkout/worktree only needs `npm ci` (or `npm
   (e.g. a Nitro module) is not transformed, mock it with a manual mock rather than widening the pattern first.
 
 ---
+## M0-04 — Space store, welcome screen, two-level guards  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M0-04-spaces   Commit(s): 649d323 (code) + this docs commit   Status set to: **blocked (device check not run)**
+
+### Done
+- `core/space/useSpaceStore.ts`: `{ activeSpace: 'staff' | 'patient' | null, setActiveSpace }`, read synchronously from
+  prefs `space.active` at module load (`getPref`) and written with `setPref` (`removePref` for `null`).
+  `core/space/switch-space.ts`: `switchSpace(target)` (card step 1).
+- `core/splash.ts`: `preventAutoHideAsync()` in global scope + `markReady()` (hide once). Welcome, staff and patient
+  layouts call it; the staff layout waits until its restore is no longer `restoring` (card step 2).
+- `shell/RootShell.tsx`: `RootProviders` + root `Stack` with `Stack.Protected` on `activeSpace` for
+  `welcome` / `(staff)` / `(patient)`; `index` always available (card step 2). `shell/WelcomePage.tsx` (X-01: neutral
+  mark, two card buttons, no product name) and `shell/EntryRedirect.tsx` (routes by `activeSpace` only).
+  `shell/RootProviders.tsx` no longer owns `QueryClientProvider` (card steps 2–3).
+- `staff/navigation/`: `resolve-staff-route.ts` (pure, every row of 02 §4) + `resolve-staff-route.test.ts`
+  (7 cases), `StaffLayout.tsx` (`QueryClientProvider(staffQueryClient)`, `useRestoreStaffSession` on mount,
+  four `Stack.Protected` guards), `StaffMainLayout.tsx` (`AccessProvider` + `Stack`) (card steps 4 and 9).
+- `useRestoreSession` → `useRestoreStaffSession` (git mv); the staff login page has a Back button →
+  `switchSpace(null)`; `useSignOut` clears the session/cache and then `switchSpace(null)` (card step 7).
+- `patient/navigation/PatientLayout.tsx` (Stack + `markReady`) and `PatientPlaceholderPage.tsx` ("Patient app is
+  coming soon", [Back] → `switchSpace(null)`); `patient/index.ts` exports `PatientLayout` for the shell (card step 6).
+- Routes: `src/app/(staff)/{_layout,offline,login,select-location}.tsx`, `src/app/(staff)/(main)/{_layout,home}.tsx`
+  (home = existing `DashboardPage`), `src/app/(patient)/{_layout,index}.tsx`, `src/app/welcome.tsx`. Deleted
+  `(auth)/`, `(app)/`, `app/offline.tsx`, `app/select-location.tsx` and the superseded staff `EntryRedirect.tsx`
+  (card step 5).
+- Lint: root `src/app/*.tsx` may not import `@/staff*` / `@/patient*`; `(staff)`/`(patient)`/`claim` may not import
+  `@/shell*`; third fixture `src/app/__fence_fixture__.tsx` → `@/staff` in `scripts/check-fences.mjs` (card step 8).
+
+### Files
+- Created: `src/core/space/{useSpaceStore.ts,switch-space.ts}`, `src/core/splash.ts`,
+  `src/shell/{RootShell.tsx,WelcomePage.tsx,EntryRedirect.tsx}`,
+  `src/staff/navigation/{resolve-staff-route.ts,resolve-staff-route.test.ts,StaffLayout.tsx,StaffMainLayout.tsx,index.ts}`,
+  `src/patient/navigation/{PatientLayout.tsx,PatientPlaceholderPage.tsx,index.ts}`,
+  `src/app/(staff)/{_layout,offline,login,select-location}.tsx`, `src/app/(staff)/(main)/{_layout,home}.tsx`,
+  `src/app/(patient)/{_layout,index}.tsx`, `src/app/welcome.tsx`
+- Modified: `src/app/{_layout,index}.tsx`, `src/shell/RootProviders.tsx`, `src/patient/index.ts`,
+  `src/staff/features/auth/{index.ts,hooks/useSignOut.ts,pages/LoginPage.tsx,pages/OfflinePage.tsx}`,
+  `eslint.config.js`, `scripts/check-fences.mjs`, `docs/PROGRESS.md`
+- Deleted / moved: `src/app/(auth)/*`, `src/app/(app)/*`, `src/app/{offline,select-location}.tsx`,
+  `src/staff/features/auth/components/EntryRedirect.tsx`; `hooks/useRestoreSession.ts` →
+  `hooks/useRestoreStaffSession.ts` (git mv, history kept)
+
+### Install commands for the user
+```bash
+npx expo install jest-expo jest @testing-library/react-native @types/jest   # card M0-06, makes typecheck green again
+```
+No package is needed for this card (none added).
+
+### Verification
+- `npm run lint` (`node node_modules/eslint/bin/eslint.js src`) → `✖ 3 problems (0 errors, 3 warnings)`; the same three
+  pre-existing warnings M0-01/M0-03 recorded (`core/http/api-error.ts`, `core/ui/skeleton.tsx`, `staff/lib/api.ts`).
+- `npm run lint:fences` → exit 0:
+  `PASS patient space importing @/staff …` · `PASS core importing @/patient …` · `PASS root app route importing @/staff …`
+  `lint:fences: all forbidden directions failed lint as expected.`
+- Fence probe (temporary files, deleted): `src/app/(staff)/__probe__.tsx` importing `@/shell/RootShell` and
+  `src/app/__probe__.tsx` importing `@/staff/features/auth` both failed with `no-restricted-imports` (2 errors),
+  proving the two new rows including deep imports.
+- `npm run typecheck` → **fails only in `src/staff/navigation/resolve-staff-route.test.ts`**: `TS2593 Cannot find name
+  'describe'/'it'` ×8 and `TS2304 Cannot find name 'expect'` ×7. Expected: the test is written with normal Jest globals
+  and `@types/jest` is installed by M0-06 (per the task note I did not shim, reference or exclude it). Every other file
+  typechecks, including the typed `/(patient)` redirect and `Stack.Protected` usage.
+- `npm test` → `npm error Missing script: "test"` (runner is M0-06).
+- Static bundle check (best evidence available without a device): `npx expo export --platform android` → exit 0,
+  `Android Bundled … node_modules\expo-router\entry.js (4547 modules)`; output directory removed afterwards (not committed).
+- Device check: **not run — no device/emulator available.** `adb devices` → empty; `%LOCALAPPDATA%\Android\Sdk` has no
+  `emulator/` and no `system-images/`; no AVDs in `~/.android/avd`; the backend probe on `http://localhost:5000` timed out.
+  The M0-04 acceptance explicitly forbids setting this task to `review` without it, so the row says `blocked`.
+
+### Acceptance criteria
+- [ ] First launch → welcome; choose clinic → staff login → … → home; kill and reopen → home (not run: no device)
+- [ ] Choose patient → placeholder → back → welcome (not run: no device)
+- [ ] Sign out → welcome; reopen → welcome (not run: no device)
+- [ ] Staff offline at start → offline page with retry (not run: no device)
+- [x] Lint fences pass; no shell file imports a deep staff path (lint + probe outputs above; shell imports only `@/core`)
+- [ ] Carry-over: pre-update session restores, login → select location → home → sign out, web sign-in still works, screenshots
+      in `docs/reviews/M0-04/` (not run: no device)
+
+### Deviations from the card / docs
+- `claim/[token]` is **not declared** in the root Stack yet: the route does not exist (M2-14) and declaring a missing
+  screen would break the navigator. Expo Router includes routes by default, so M2-14 only has to keep it outside
+  `Stack.Protected` (02 §4 "always"). Documented here so it is not forgotten.
+- The patient placeholder is split into `PatientLayout` (`<Stack>`) + `PatientPlaceholderPage` (rendered by
+  `(patient)/index.tsx`) instead of one layout file rendering the page: a group `_layout.tsx` must return a navigator and
+  a route file must render one page.
+- Deleted the superseded `staff/features/auth/components/EntryRedirect.tsx` (step 3 moves EntryRedirect to `shell`;
+  leaving the staff copy would keep root route logic in the wrong space; nothing imported it after the move).
+- X-01's language toggle (English / اردو) is not rendered: patient i18n (`i18next`) arrives with M2-06 and there is
+  nothing to switch yet. "Privacy · Terms" is plain muted text — the legal routes do not exist (M4); no dead links added.
+- `space.active` is **removed** (`removePref`) when `activeSpace === null`, not stored as `''`; a stored value outside
+  the union also reads as `null`.
+
+### Questions for the architect
+- Typecheck is red only for the Jest globals in the new test, as the task instructions anticipated. OK to keep the
+  branch in that state and merge M0-06 first, or should I add a temporary `globalThis` shim like M0-03 did?
+- Card step 6 puts the patient placeholder at `(patient)/index.tsx`, so `/` has two candidates (root `index.tsx` and
+  the patient group index). I navigate with the group-qualified `/(patient)`; the router resolves the root `/` through
+  the protected groups correctly in the bundle, but a device run is needed to confirm the patient cold start.
+- `resolveStaffRoute` takes `mustSelectLocation` and `clinicBlocked` as two inputs (the 02 §4 table lists them together);
+  StaffLayout computes both from the existing selectors. Fine, or prefer one combined flag?
+
+### Notes for the next task
+- M0-06: add `@types/jest`; remove the `globalThis` shims in `core/storage/*.test.ts`; then `resolve-staff-route.test.ts`
+  (7 cases) runs with the rest. The runner is still missing here.
+- M0-05: mount `BrandTheme` in `StaffMainLayout` (access + brand live there); WelcomePage deliberately uses the platform
+  `primary` token, and the staff login/home are still on the default palette.
+- M0-07: the native splash is now controlled by `core/splash.ts` (`preventAutoHideAsync` + `markReady`); keep the
+  `expo-splash-screen` plugin when `app.json` becomes `app.config.ts`.
+- M1-02: staff tabs nest under `(staff)/(main)`; `staff/index.ts` still exposes `staffQueryClient` (the shell no longer
+  needs it) — replace that barrel with the real public surface when the tabs arrive.
+- M2-06: add the patient session restore/guards/`resolve-patient-route.ts` around `PatientLayout`; signing out of staff
+  currently always goes to welcome (`useSignOut`), switch to the other space once it can be signed in.
+
+---
 ## REVIEW M0-02 + M0-03 + M0-09  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: reviewed the three task branches (parallel worktrees)   Status set to: done (merge pending)
 

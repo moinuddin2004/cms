@@ -1,10 +1,10 @@
 import { ErrorState } from '@/core/components/feedback/ErrorState';
 
-import { useRestoreSession } from '../hooks/useRestoreSession';
+import { useRestoreStaffSession } from '../hooks/useRestoreStaffSession';
 
 /** A saved session exists but the API can't be reached: keep it, offer a retry. */
 export function OfflinePage() {
-  const restore = useRestoreSession();
+  const restore = useRestoreStaffSession();
   return (
     <ErrorState
       title="Can't reach the server"
