@@ -1434,6 +1434,67 @@ Also (review answer 2): `mark-urgent` hidden when `priorityClass === 'authorized
 Verification: jest 13 suites / 122 tests pass; `tsc --noEmit` clean; eslint 0 errors (3 pre-existing warnings); `lint:fences` pass. Install commands: none. Questions: none.
 
 ---
+## M1-11a — Patients data layer: types, API, keys, pure logic  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M1-11a-patients-api   Commit(s): 0354cac (code) + docs commit   Status set to: review
+
+### Done
+- Step 1: `types/patients.types.ts` — `PatientDetail` (= `PatientResponseDto`, field names verbatim), `PatientListItem`, `PatientQuery` (`PatientQueryDto`), `CreatePatientInput` (`CreatePatientDto` subset), `PatientHistory`, `Vitals`, `PatientTeethChart`, `PrescriptionListItem`/`PrescriptionPage`, `PatientAlert`.
+- Step 2: `api/patients.api.ts` (list, detail, create, check-phone, history, vitals, teeth-charts, `GET /prescriptions/patient/:id`) + `api/patients.keys.ts` (every key has org + location).
+- Step 3: `lib/mask-phone.ts` (`03001234567` → `0300•••4567`; short/odd/null safe) and `lib/patient-alerts.ts` (web port: allergies split, blacklist + reason, minor + guardian), with table tests.
+- Step 4: `schemas/quick-register.schema.ts` (Zod 4): name 1–150, phone 1–20 digits/`+`/space/dash, gender optional, dob optional real `YYYY-MM-DD` not after `todayYmd()`, minor → guardian name + phone required; blank optionals → `undefined`. Table tests (todayYmd mocked).
+- Step 5: `index.ts` barrel. No hooks, no components.
+
+### Files
+- Created: `mobile-app/src/staff/features/patients/{index.ts, types/patients.types.ts, api/patients.api.ts, api/patients.keys.ts, lib/mask-phone.ts(+test), lib/patient-alerts.ts(+test), schemas/quick-register.schema.ts(+test)}`
+- Modified: `docs/PROGRESS.md` (M1-11a row), `docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+none
+
+### Verification
+- `npm test` → 13 suites, 106 passed (53 in patients: 3 suites)
+- `tsc --noEmit` → 0 errors (after generating `.expo/types/router.d.ts`)
+- eslint `src` → 0 errors, 3 pre-existing warnings in other files
+- `lint:fences` → all pass
+- Backend: none touched. Manual: none (no UI).
+
+### Acceptance criteria
+- [x] typecheck green; tests for masking, alerts, schema; types use backend DTO names (compared with the three DTO files).
+
+### Deviations from the card / docs
+- History appointment/treatment rows are typed with only the columns the app is likely to read (`id`, dates, status…); the card says "fields mobile screens need" — extend in M1-12 if more are needed.
+- `Vitals` decimal columns typed `number | string | null` (Postgres decimals can arrive as strings).
+- `maskPhone` keeps 4+4 chars for numbers ≥ 9 chars, 2+2 for 7–8, last 2 for ≤ 6 (card only gave the 11-digit example).
+
+### Questions for the architect
+- `GET /prescriptions/patient/:id` returns `{ data, total }` (no `totalPages`, no `page`/`limit`), so `PrescriptionPage` is separate from `Paginated<T>`; paging rule `page * limit < total`. It returns ALL statuses (incl. DRAFT) — card S-05 says "finalized first"; should the screen filter/sort client-side?
+- Vitals returns the whole list, not just the latest; `fetchPatientVitals` returns the array and the hook (M1-12) should take `[0]`. Confirm the backend sorts newest first (not verified in the service).
+
+### Notes for the next task
+- The worktree's `node_modules` was still being copied in by another process while I worked; `npx expo start` also tried to fetch expo from npm once (npx cache only). `mobile-app/package-lock.json` shows an unrelated local modification (34 lines removed) that I did NOT commit — please check where it came from.
+- Run tools with `node node_modules/<pkg>/bin/…` here: `node_modules/.bin` is absent in this worktree.
+
+## Rework M1-11a #1  ·  2026-11-12  ·  Claude Sonnet 5.5
+Branch: mobile/M1-11a-patients-api   Status set to: review
+
+| # | Result |
+| --- | --- |
+| 1 | Fixed. `isBlacklisted` / `isMinor` typed `true` only with a doc comment; new `lib/patient-query.ts` `patientQueryParams` (used by `fetchPatients`) drops anything but `true`; tests in `patient-query.test.ts`. |
+| 2 | Fixed. `maskPhone` works on digits only, keeps a leading `+`; 4+4 when >= 3 digits stay hidden, else 2+2, <= 4 digits keep last 2. New rows incl. `+92 300 1234567`, `123456789`, `---`, `+`. |
+| 3 | Fixed. Phone regex `^\+?[0-9][0-9 -]*$` + >= 7 digits for `phone` and `guardianPhone`; tests for `---`, `+`, tab, newline, few digits. |
+| 4 | Fixed. Final `.transform` drops guardian fields when `!isMinor`; test added. |
+| 5 | Fixed. `gender: ''` preprocessed to `undefined`; test added. |
+| 6 | Noted, no change. |
+| 7 | Noted, no change (card already updated). |
+
+### Deviation
+- Finding 2 says 4+4 "only when >= 4 digits stay hidden", but that would turn the S-04 example `03001234567` (11 digits, 3 hidden) into `03•••67`. I used >= 3 hidden (>= 11 digits) so the doc example still holds and the 9-digit bug is fixed. Say if you want the stricter rule.
+
+### Results
+mobile: `npm test` 125 passed, typecheck clean, ESLint 0 errors (3 pre-existing warnings), `lint:fences` pass. No install needed. `mobile-app/package-lock.json` remains an unrelated uncommitted local change (not staged).
+
+---
 ## REVIEW round 7: reworks M1-02 + M1-07a + M1-11a + M2-02  ·  2026-11-12  ·  Claude Opus (architect)
 Branch: four rework branches verified against every finding   Status set to: all four done (merge pending)
 
