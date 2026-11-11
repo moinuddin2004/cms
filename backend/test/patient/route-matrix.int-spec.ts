@@ -247,7 +247,7 @@ describe('Patient fence — route matrix (API)', () => {
     expect(failures).toEqual([]);
   });
 
-  it('has no patient routes yet — the second half lands in M2-03', () => {
-    expect(routes.filter((r) => r.isPatient)).toEqual([]);
+  it('has the first patient routes — the staff-token half lands in M2-03', () => {
+    expect(routes.filter((r) => r.isPatient).length).toBeGreaterThan(0);
   });
 });

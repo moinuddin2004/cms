@@ -1,17 +1,18 @@
-import { CanActivate, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+/** Request property the patient identity lives on — never `request.user`. */
+export const PATIENT_AUTH_PROPERTY = 'patientAuth';
 
 /**
- * Patient access-token guard — stub for M0-09.
- *
- * The real guard (M2-02) verifies the patient JWT with
- * `JWT_PATIENT_ACCESS_SECRET` and `aud: 'patient'`, checks that the session is
- * alive and attaches `request.patientContext`. Until it exists every
- * `@PatientApi()` route must fail closed.
+ * Patient access-token guard: strategy `patient-jwt` (patient secret,
+ * `aud: 'patient'`, live session, active account). On success the identity is
+ * attached to `request.patientAuth`, so a patient can never be mistaken for
+ * staff by code that reads `request.user`.
  */
 @Injectable()
-export class PatientJwtGuard implements CanActivate {
-  canActivate(): boolean {
-    // TODO(M2-02): replace with the real patient access-token guard.
-    throw new UnauthorizedException();
+export class PatientJwtGuard extends AuthGuard('patient-jwt') {
+  getAuthenticateOptions() {
+    return { property: PATIENT_AUTH_PROPERTY, session: false };
   }
 }
