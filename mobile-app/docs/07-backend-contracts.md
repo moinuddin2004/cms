@@ -232,7 +232,7 @@ caller's scope (`@PatientInScope`). Feature `patient_app` must be active.
 
 | Method + path | Access | Body | Response |
 | --- | --- | --- | --- |
-| POST `/me/devices` | `@AnyMember()` + `@ContextFree()` | `{ expoPushToken, platform: 'android'\|'ios', deviceLabel? ≤80, appVersion ≤20 }` | `{ id }` — upsert by token; a token moves to the calling user if it belonged to another user |
+| POST `/me/devices` | `@ContextFree()` (user-owned, no tenant) | `{ expoPushToken, platform: 'android'\|'ios', deviceLabel? ≤80, appVersion ≤20 }` | `{ id }` — upsert by token; a token moves to the calling user if it belonged to another user |
 | DELETE `/me/devices` | same | `{ expoPushToken }` | `{ deleted }` |
 
 ### 4.3 App version — `GET /app/min-version` (`@Public`, M0-08)

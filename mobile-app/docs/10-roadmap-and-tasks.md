@@ -268,7 +268,8 @@ MOB · M · Depends: M0-04 · Branch `mobile/M0-07-eas`
    (filled after `eas init` by the user).
 4. `core/app-version.ts`: current version + `isBelow(min)`; `shell/UpdateRequiredPage.tsx` (X-03);
    `RootShell` checks `GET /app/min-version` (M0-08) once per cold start (fail open on network error).
-5. Android notification channels created at start in `core/notifications/channels.ts` (`queue`,
+5. Drop `{ virtual: true }` from the `expo-notifications` mock in `jest.setup.ts` (package now installed).
+6. Android notification channels created at start in `core/notifications/channels.ts` (`queue`,
    `reminders`, `general`) — no permission prompt yet.
 6. Write `docs/RELEASE.md`: commands the user runs (`npx eas-cli@latest init`, `build --profile preview --platform android`, `update --channel preview`).
 
@@ -436,6 +437,17 @@ BE · M · Depends: M0-08 · Branch `mobile/M1-04-be-push`
 
 ---
 
+### M1-04a — Push follow-ups (quiet hours, web label, Node engine)
+
+BE + WEB · S · Depends: M1-04 · Branch `mobile/M1-04a-push-followups`
+
+From the M1-04 review: (1) push rows follow the in-app quiet-hours rule (not held) in the notification
+decision logic, with a spec; (2) `backend/package.json` gets `"engines": { "node": ">=22.12" }` (the
+ESM-only `expo-server-sdk` is loaded through `require`); (3) web `/settings/notifications` shows the
+`push` channel with label "Phone (push)" and a working toggle — follow the web CLAUDE.md rules.
+
+---
+
 ### M1-05 — Mobile push registration and tap routing
 
 MOB · M · Depends: M1-04, M0-07 · Branch `mobile/M1-05-push`
@@ -447,7 +459,7 @@ from EAS config, Android channels, response listeners, cold-start `getLastNotifi
 1. `core/notifications/permissions.ts`: `getPermissionState()`, `requestPermission()`; never at launch.
 2. `core/notifications/push-token.ts`: `getExpoPushToken()` (returns null on simulator / denied).
 3. `staff/features/devices`: after `StaffMainLayout` mounts, if permission is granted → register
-   (`POST /me/devices`); if undetermined → show an explanation sheet once ("Get alerts when patients
+   (`POST /me/devices` with `expoPushToken`, `platform`, `appVersion` — **required**, from `expo-application` — and optional `deviceLabel`); if undetermined → show an explanation sheet once ("Get alerts when patients
    arrive") → request → register. On sign-out → `DELETE /me/devices` before dropping the session.
 4. `shell/notification-router.ts` per [02 §8](02-architecture.md#8-push-and-local-notifications): handles
    foreground display (show banner for `queue` channel), taps (warm and cold start), space switching,
@@ -633,7 +645,7 @@ Architect expands each card before it starts. Contracts: [07 §5–6](07-backend
 | M2-03 | BE | M | `PatientLinkGuard` + `linkedPatientWhere()` + route-matrix second half + link-isolation int spec; int specs refuse a non-local DB URL; `test:int:patient` script | M2-02 | isolation + matrix green **on a disposable Postgres** (first real run of the M0-09 spec) |
 | M2-04 | BE | M | `src/patient-links` staff endpoints (claim token, status, revoke) + `/patient-api/claims/*` + events `patient.record_linked/link_revoked` + audit | M2-03 | full claim flow via HTTP in an int spec |
 | M2-05 | WEB | S | "Link app" button + QR dialog on web patient detail (`patients.app_link.manage`) | M2-04 | QR scannable from phone; status refresh |
-| M2-06 | MOB | L | Patient space foundation: `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |
+| M2-06 | MOB | L | Patient space foundation (also: StaffLayout skips restore when already `signedIn`, see M0-04 review): `patient/lib/api.ts` (factory `createApiClient` extracted from staff), `usePatientAuthStore`, session restore, `PatientLayout` guards, sign-in + verify-code (P-00), i18n setup (A-12), `PatientProviders`, sign-out wipe, space switching both ways | M2-02, M0-04 | sign-out wipes only patient; both spaces signed in at once |
 | M2-07 | MOB | M | Claim flow (P-01): deep link route, pending claim store, confirm page | M2-04, M2-06 | QR → app → linked in < 2 min |
 | M2-08 | BE | L | Read services: appointments, visits, prescriptions (+detail), billing summary; visibility rules ([07 §3](07-backend-contracts.md#3-patient-visibility-rules)); access log writes; settings `patient_app.show_billing`, `patient_app.show_diagnosis` | M2-03 | DTO snapshot tests prove no internal fields |
 | M2-09 | MOB | L | Records tab (P-03) + prescription/appointment details | M2-08, M2-06 | 4 segments with all states; clinic chips |

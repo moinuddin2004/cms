@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 0 — Foundations · **Round 2 running:** M0-04 (wt-a), M0-06 (wt-b), M1-04 (wt-c) · **then:** M0-05 + M0-07 (both need M0-04) · Updated 2026-11-11
+**Current phase:** 0 — Foundations · **Next up:** M0-05, M0-07, M1-01, M1-04a (parallel) · **Gate:** M0-D device smoke must pass before M1-02 · Updated 2026-11-11
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -20,16 +20,18 @@
 | M0-01 | Split source into core/staff/shell | MOB | M | — | done (in develop) | mobile/M0-01-folder-split | DeepSeek Flash | 2026-11-11 |
 | M0-02 | Import fences (lint) | MOB | S | M0-01 | done (in develop) | mobile/M0-02-lint-fences | DeepSeek Flash | 2026-11-11 |
 | M0-03 | Storage layer | MOB | S | M0-01 | done (in develop) | mobile/M0-03-storage | DeepSeek Flash | 2026-11-11 |
-| M0-04 | Spaces + welcome + two-level guards | MOB | M | M0-01..03 | ready | | | |
+| M0-04 | Spaces + welcome + two-level guards | MOB | M | M0-01..03 | done (code) — device check in M0-D | mobile/M0-04-spaces | DeepSeek Flash | 2026-11-11 |
+| M0-D | Device smoke run (M0-01/04/08 carry-overs) | USER | S | M0-04 | blocked — needs Android emulator or phone + dev build | | user | |
 | M0-05 | Tokens, text scale, brand theming | MOB | M | M0-04 | ready | | | |
-| M0-06 | Mobile test runner | MOB | S | M0-01 | ready | | | |
+| M0-06 | Mobile test runner | MOB | S | M0-01 | done (merge pending) | mobile/M0-06-tests | DeepSeek Flash | 2026-11-11 |
 | M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | ready | | | |
 | M0-08 | Staff `aud` + min-version | BE | S | — | done (in develop) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
 | M1-01 | Core component kit | MOB | L | M0-05 | ready | | | |
-| M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-04 | ready | | | |
+| M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-D | ready | | | |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
-| M1-04 | Devices + Expo push provider | BE | M | M0-08 | ready | | | |
+| M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (merge pending) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
+| M1-04a | Push follow-ups (quiet hours, web label, Node engine) | BE+WEB | S | M1-04 | ready | | | |
 | M1-05 | Push registration + tap routing | MOB | M | M1-04, M0-07 | ready | | | |
 | M1-06 | Offline cache + idempotent mutations | MOB | M | M0-03, M1-02 | ready | | | |
 | M1-07 | Queue data layer | MOB | M | M1-03, M1-06 | ready | | | |

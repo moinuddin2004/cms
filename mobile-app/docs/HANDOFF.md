@@ -485,3 +485,19 @@ Branch: reviewed the three task branches (parallel worktrees)   Status set to: d
 - **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
   EAS development build from M0-07.
 - After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
+
+---
+## REVIEW round 2: M0-04 + M0-06 + M1-04  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed the three task branches   Status set to: M0-06, M1-04 done · M0-04 done (code), device check → M0-D
+
+### Done
+- M0-06 done (16 tests). M1-04 done (95 related backend tests; ESM SDK loads on Node 22.16). M0-04 code done;
+  its device acceptance is now its own gate row **M0-D** (user needs an emulator or phone + dev build), and
+  M1-02 depends on M0-D. Reviews in `docs/reviews/<ID>/review.md`.
+- New card **M1-04a** (push not held by quiet hours, Node ≥ 22.12 engine, web push label/toggle).
+- Cards updated: M1-05 (`appVersion` required), M0-07 (drop virtual notifications mock), M2-06 (no restore
+  when already signed in). 07 §4.2: `/me/devices` is `@ContextFree()` only.
+
+### Notes for the next task
+- Merge order: M0-06 before M0-04 (M0-04's test needs jest types). Normalise `package-lock.json` with `npm install`.
+- `changes/2026-11-11_push_devices.sql` has not been run anywhere yet.
