@@ -8,7 +8,7 @@ import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
  * No token or a rejected one → signed out. No connection → `unreachable`,
  * so the user keeps their session and can retry instead of being logged out.
  */
-export function useRestoreSession() {
+export function useRestoreStaffSession() {
   const setStatus = useStaffAuthStore((s) => s.setStatus);
 
   return useCallback(async () => {

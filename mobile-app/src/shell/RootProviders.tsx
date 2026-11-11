@@ -1,4 +1,3 @@
-import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { useEffect, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
@@ -10,14 +9,14 @@ import { Uniwind } from 'uniwind';
 import { PortalHost } from '@rn-primitives/portal';
 
 import { setupQueryManagers } from '@/core/query/managers';
-import { staffQueryClient } from '@/staff';
 
 /**
  * Every global provider, in one place. Order matters: gestures → safe area →
- * keyboard → data → UI.
+ * keyboard → theme → UI.
  *
- * `QueryClientProvider` stays here for now; it moves into the staff layout in
- * M0-04 so each space mounts its own cache.
+ * There is no `QueryClientProvider` here on purpose (docs/02 §2): each space
+ * mounts its own cache inside its own layout, so an inactive space runs no
+ * queries. The staff layout owns `staffQueryClient`.
  */
 export function RootProviders({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
@@ -30,14 +29,12 @@ export function RootProviders({ children }: { children: ReactNode }) {
         {/* Feeds the safe-area insets to Uniwind's `pt-safe` / `pb-safe` classes. */}
         <SafeAreaListener onChange={({ insets }) => Uniwind.updateInsets(insets)}>
           <KeyboardProvider>
-            <QueryClientProvider client={staffQueryClient}>
-              <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-                {children}
-                <Toaster />
-                {/* Must be last: Dialog / Popover / Select render into this. */}
-                <PortalHost />
-              </ThemeProvider>
-            </QueryClientProvider>
+            <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+              {children}
+              <Toaster />
+              {/* Must be last: Dialog / Popover / Select render into this. */}
+              <PortalHost />
+            </ThemeProvider>
           </KeyboardProvider>
         </SafeAreaListener>
       </SafeAreaProvider>

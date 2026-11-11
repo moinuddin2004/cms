@@ -1,4 +1,4 @@
-import { EntryRedirect } from '@/staff/features/auth';
+import { EntryRedirect } from '@/shell/EntryRedirect';
 
 export default function IndexRoute() {
   return <EntryRedirect />;

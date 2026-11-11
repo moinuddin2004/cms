@@ -42,13 +42,22 @@ const SHELL_FENCE = importFence(
 );
 
 const APP_STAFF_FENCE = importFence(
-  ['@/patient*'],
-  'staff routes may not import patient code (docs/02 §1)'
+  ['@/patient', '@/patient/**', '@/shell', '@/shell/**'],
+  'staff routes may not import patient code or the shell (docs/02 §1)'
 );
 
 const APP_PATIENT_FENCE = importFence(
-  ['@/staff*'],
-  'patient routes may not import staff code (docs/02 §1)'
+  ['@/staff', '@/staff/**', '@/shell', '@/shell/**'],
+  'patient routes may not import staff code or the shell (docs/02 §1)'
+);
+
+/**
+ * Root `src/app/*` route files only compose: they may use the shell and core,
+ * never a space (docs/02 §1, fence row "src/app/ root files").
+ */
+const APP_ROOT_FENCE = importFence(
+  ['@/staff', '@/staff/**', '@/patient', '@/patient/**'],
+  'root app routes may import only @/shell and @/core (docs/02 §1)'
 );
 
 /**
@@ -96,6 +105,10 @@ module.exports = defineConfig([
   {
     files: ['src/app/(patient)/**', 'src/app/claim/**'],
     rules: { 'no-restricted-imports': APP_PATIENT_FENCE },
+  },
+  {
+    files: ['src/app/*.tsx'],
+    rules: { 'no-restricted-imports': APP_ROOT_FENCE },
   },
 
   // ---- logging (docs/03 §2.7, docs/04 §13) ----

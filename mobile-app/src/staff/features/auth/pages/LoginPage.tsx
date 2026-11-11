@@ -1,10 +1,13 @@
+import { ArrowLeft } from 'lucide-react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { View } from 'react-native';
 
 import { FieldWrapper } from '@/core/components/forms/FieldWrapper';
 import { fieldError } from '@/core/components/forms/fieldError';
 import { FormInput } from '@/core/components/forms/FormInput';
+import { switchSpace } from '@/core/space/switch-space';
 import { Button } from '@/core/ui/button';
+import { Icon } from '@/core/ui/icon';
 import { Switch } from '@/core/ui/switch';
 import { Text } from '@/core/ui/text';
 
@@ -18,6 +21,15 @@ export function LoginPage() {
       className="bg-background flex-1"
       contentContainerClassName="flex-grow justify-center gap-6 px-6 py-safe"
       keyboardShouldPersistTaps="handled">
+      <Button
+        variant="ghost"
+        size="lg"
+        className="min-h-11 self-start ps-0"
+        onPress={() => switchSpace(null)}>
+        <Icon as={ArrowLeft} className="size-5" />
+        <Text>Back</Text>
+      </Button>
+
       <View className="gap-1">
         <Text variant="h2" className="border-0 pb-0">
           Welcome back
