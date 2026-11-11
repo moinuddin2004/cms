@@ -5,6 +5,7 @@ export { ScreenHeader, type ScreenHeaderProps } from './layout/ScreenHeader';
 export { ListRow, type ListRowProps } from './layout/ListRow';
 export { SectionHeader, type SectionHeaderProps } from './layout/SectionHeader';
 export { FAB, type FABProps } from './layout/FAB';
+export { Spinner, type SpinnerProps } from './layout/Spinner';
 
 export { StatusBadge, type StatusBadgeProps } from './data-display/StatusBadge';
 export { TokenBadge, type TokenBadgeProps } from './data-display/TokenBadge';

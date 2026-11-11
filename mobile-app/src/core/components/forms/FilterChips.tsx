@@ -41,16 +41,16 @@ export function FilterChips({ options, value, onChange, multiple = false, clearL
         return (
           <Pressable
             key={option.value}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
+            accessibilityRole={multiple ? 'checkbox' : 'button'}
+            accessibilityState={multiple ? { checked: selected } : { selected }}
             onPress={() => toggle(option.value)}
             className={cn(
-              'min-h-11 items-center justify-center rounded-full border px-4',
+              'min-h-11 max-w-60 items-center justify-center rounded-full border px-4 py-1',
               selected ? 'border-primary bg-primary' : 'border-border bg-card active:bg-accent',
             )}>
             <Text
               className={cn('text-sm font-medium', selected && 'text-primary-foreground')}
-              numberOfLines={1}>
+              numberOfLines={2}>
               {option.label}
             </Text>
           </Pressable>

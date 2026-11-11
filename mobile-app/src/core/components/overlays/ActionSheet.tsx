@@ -6,7 +6,7 @@ import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
 import { cn } from '@/core/utils';
 
-import { makeBackdrop, SheetBackground, SheetHandle, useControlledSheet } from './sheet-parts';
+import { SheetBackground, SheetHandle, useControlledSheet, useSheetBackdrop } from './sheet-parts';
 
 export interface SheetAction {
   label: string;
@@ -27,12 +27,14 @@ export interface ActionSheetProps {
 export function ActionSheet({ open, onClose, title, actions, cancelLabel }: ActionSheetProps) {
   const { ref, onDismiss } = useControlledSheet({ open, onUserDismiss: onClose, onBack: onClose });
 
+  const backdrop = useSheetBackdrop(onClose);
+
   return (
     <BottomSheetModal
       ref={ref}
       enableDynamicSizing
       enablePanDownToClose
-      backdropComponent={makeBackdrop(onClose)}
+      backdropComponent={backdrop}
       backgroundComponent={SheetBackground}
       handleComponent={SheetHandle}
       onDismiss={onDismiss}>

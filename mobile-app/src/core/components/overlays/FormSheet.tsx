@@ -1,25 +1,21 @@
-import {
-  BottomSheetFooter,
-  BottomSheetModal,
-  BottomSheetScrollView,
-  type BottomSheetFooterProps,
-} from '@gorhom/bottom-sheet';
+import { BottomSheetModal, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { X } from 'lucide-react-native';
-import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, useWindowDimensions, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useWindowDimensions, View } from 'react-native';
 
 import { IconButton } from '@/core/components/layout/IconButton';
-import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 
 import { ConfirmDialog } from './ConfirmDialog';
-import { makeBackdrop, SheetBackground, SheetHandle, useControlledSheet } from './sheet-parts';
+import { SheetInputContext } from './sheet-input-context';
+import { SheetBackground, SheetHandle, useControlledSheet, useSheetBackdrop } from './sheet-parts';
+import { createFooterStore, SubmitFooter, type SubmitSpec } from './SubmitFooter';
 
 export interface FormSheetProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  /** Form fields. Use `FieldWrapper` + `FormInput`; `BottomSheetTextInput` is not needed. */
+  /** Form fields. Use `FieldWrapper` + `FormInput` (it renders `BottomSheetTextInput` inside a sheet). */
   children: ReactNode;
   /** Unsaved changes: closing (X, back, backdrop) asks first; pan-down is disabled. */
   isDirty?: boolean;
@@ -28,7 +24,7 @@ export interface FormSheetProps {
   /** Accessibility label of the close (X) button. */
   closeLabel: string;
   /** Sticky submit button. Pass `disabled = !canSubmit`, `pending = isSubmitting`. */
-  submit?: { label: string; onPress: () => void; disabled?: boolean; pending?: boolean };
+  submit?: SubmitSpec;
   /** Server error banner at the top of the sheet. */
   error?: string;
 }
@@ -54,31 +50,28 @@ export function FormSheet({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [footerHeight, setFooterHeight] = useState(0);
 
+  // The footer is created once per sheet and reads the latest `submit` from the store,
+  // so it never remounts (see SubmitFooter).
+  const [store] = useState(createFooterStore);
+  const [Footer] = useState(
+    () =>
+      function FormSheetFooter(props: Omit<Parameters<typeof SubmitFooter>[0], 'store'>) {
+        return <SubmitFooter {...props} store={store} />;
+      },
+  );
+  useEffect(() => {
+    store.set({ submit, onHeight: setFooterHeight });
+  }, [store, submit]);
+
   const requestClose = () => (isDirty ? setConfirmOpen(true) : onClose());
   const { ref, onDismiss } = useControlledSheet({
     open,
-    onUserDismiss: requestClose,
-    onBack: requestClose,
+    // The sheet is already gone (programmatic dismissal): tell the parent, don't ask.
+    onUserDismiss: onClose,
+    // Back closes an open confirmation first.
+    onBack: confirmOpen ? () => setConfirmOpen(false) : requestClose,
   });
-
-  const Footer = submit
-    ? (props: BottomSheetFooterProps) => (
-        <BottomSheetFooter {...props}>
-          <View
-            onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
-            className="bg-card border-border border-t px-4 pt-3 pb-safe">
-            <Button
-              className="min-h-12"
-              disabled={submit.disabled || submit.pending}
-              accessibilityState={{ busy: !!submit.pending, disabled: !!submit.disabled }}
-              onPress={submit.onPress}>
-              {submit.pending ? <ActivityIndicator size="small" /> : null}
-              <Text>{submit.label}</Text>
-            </Button>
-          </View>
-        </BottomSheetFooter>
-      )
-    : undefined;
+  const backdrop = useSheetBackdrop(requestClose);
 
   return (
     <>
@@ -90,29 +83,31 @@ export function FormSheet({
         keyboardBehavior="interactive"
         keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
-        backdropComponent={makeBackdrop(requestClose)}
+        backdropComponent={backdrop}
         backgroundComponent={SheetBackground}
         handleComponent={SheetHandle}
         footerComponent={Footer}
         onDismiss={onDismiss}>
-        <View className="flex-row items-center justify-between gap-2 ps-4 pe-2">
-          <Text variant="h3" className="flex-1 text-start">
-            {title}
-          </Text>
-          <IconButton icon={X} accessibilityLabel={closeLabel} onPress={requestClose} />
-        </View>
-        <BottomSheetScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerClassName="gap-4 p-4"
-          // The sticky footer floats over the scroll area: keep the last field above it.
-          contentContainerStyle={{ paddingBottom: 16 + footerHeight }}>
-          {error ? (
-            <View accessibilityRole="alert" className="bg-destructive/10 rounded-md p-3">
-              <Text className="text-destructive text-sm font-medium">{error}</Text>
-            </View>
-          ) : null}
-          {children}
-        </BottomSheetScrollView>
+        <SheetInputContext.Provider value>
+          <View className="flex-row items-center justify-between gap-2 ps-4 pe-2">
+            <Text variant="h3" className="flex-1 text-start">
+              {title}
+            </Text>
+            <IconButton icon={X} accessibilityLabel={closeLabel} onPress={requestClose} />
+          </View>
+          <BottomSheetScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerClassName="gap-4 p-4"
+            // The sticky footer floats over the scroll area: keep the last field above it.
+            contentContainerStyle={{ paddingBottom: 16 + (submit ? footerHeight : 0) }}>
+            {error ? (
+              <View accessibilityRole="alert" className="bg-destructive/10 rounded-md p-3">
+                <Text className="text-destructive text-sm font-medium">{error}</Text>
+              </View>
+            ) : null}
+            {children}
+          </BottomSheetScrollView>
+        </SheetInputContext.Provider>
       </BottomSheetModal>
       <ConfirmDialog
         open={confirmOpen}

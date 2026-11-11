@@ -39,8 +39,8 @@ export function SegmentedControl({ segments, value, onChange, haptic = true }: S
               selected && 'bg-background shadow-sm',
             )}>
             <Text
-              className={cn('text-sm font-medium', !selected && 'text-muted-foreground')}
-              numberOfLines={1}>
+              className={cn('text-center text-sm font-medium', !selected && 'text-muted-foreground')}
+              numberOfLines={2}>
               {segment.label}
             </Text>
           </Pressable>

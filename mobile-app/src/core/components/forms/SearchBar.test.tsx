@@ -35,4 +35,15 @@ describe('SearchBar', () => {
     await rerender(<SearchBar value="" onChange={jest.fn()} placeholder="Search" />);
     expect(screen.getByLabelText('Search').props.value).toBe('');
   });
+
+  it('keeps what the user typed when the debounced value echoes back', async () => {
+    const onChange = jest.fn();
+    const { rerender } = await render(<SearchBar value="" onChange={onChange} placeholder="Search" />);
+    const input = screen.getByLabelText('Search');
+    await fireEvent.changeText(input, 'Ahm');
+    await act(async () => jest.advanceTimersByTime(300));
+    await fireEvent.changeText(input, 'Ahme');
+    await rerender(<SearchBar value="Ahm" onChange={onChange} placeholder="Search" />);
+    expect(screen.getByLabelText('Search').props.value).toBe('Ahme');
+  });
 });

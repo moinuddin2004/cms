@@ -12,7 +12,7 @@ export interface SearchBarProps {
   /** Called 300 ms after the last keystroke, or at once when cleared. */
   onChange: (value: string) => void;
   placeholder: string;
-  /** Accessibility label of the clear button; callers pass it (core never translates). */
+  /** Accessibility label of the clear button. Staff default; patient callers must pass a translated string. */
   clearLabel?: string;
   debounceMs?: number;
 }

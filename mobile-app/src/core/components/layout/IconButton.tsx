@@ -1,8 +1,8 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { ActivityIndicator } from 'react-native';
-
 import { Button, type ButtonProps } from '@/core/ui/button';
 import { Icon } from '@/core/ui/icon';
+
+import { Spinner } from './Spinner';
 import { cn } from '@/core/utils';
 
 export interface IconButtonProps
@@ -34,7 +34,7 @@ export function IconButton({
       accessibilityState={{ disabled: !!blocked, busy: loading }}
       disabled={blocked}
       {...props}>
-      {loading ? <ActivityIndicator size="small" /> : <Icon as={icon} />}
+      {loading ? <Spinner tone={variant === 'default' ? 'primary-foreground' : variant === 'destructive' ? 'destructive-foreground' : 'foreground'} /> : <Icon as={icon} />}
     </Button>
   );
 }

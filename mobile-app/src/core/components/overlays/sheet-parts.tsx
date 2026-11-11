@@ -1,5 +1,5 @@
 import { BottomSheetBackdrop, type BottomSheetBackdropProps, type BottomSheetBackgroundProps, type BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { BackHandler, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -17,19 +17,37 @@ export function SheetHandle() {
   );
 }
 
-/** Dimmed backdrop. `pressToClose` false lets the owner intercept the tap (dirty guard). */
-export function makeBackdrop(onPress?: () => void) {
-  return function SheetBackdrop(props: BottomSheetBackdropProps) {
-    return (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="none"
-        onPress={onPress}
-      />
-    );
-  };
+/** Dimmed backdrop. Taps go to `onPress` (pressBehavior none) so the owner can guard the close. */
+export function SheetBackdrop({
+  onPress,
+  ...props
+}: BottomSheetBackdropProps & { onPress?: () => void }) {
+  return (
+    <BottomSheetBackdrop
+      {...props}
+      appearsOnIndex={0}
+      disappearsOnIndex={-1}
+      pressBehavior="none"
+      onPress={onPress}
+    />
+  );
+}
+
+/**
+ * Stable `backdropComponent` for a sheet. Its identity never changes (so the
+ * backdrop does not remount); it always calls the latest `onPress`.
+ */
+export function useSheetBackdrop(onPress: () => void) {
+  const latest = useRef(onPress);
+  useEffect(() => {
+    latest.current = onPress;
+  });
+  return useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <SheetBackdrop {...props} onPress={() => latest.current()} />
+    ),
+    [],
+  );
 }
 
 /**

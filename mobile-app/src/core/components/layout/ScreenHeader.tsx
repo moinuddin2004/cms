@@ -15,7 +15,7 @@ export interface ScreenHeaderProps {
    * `true` forces it, `false` hides it.
    */
   back?: boolean;
-  /** Accessibility label of the back arrow; callers pass it (core never translates). */
+  /** Accessibility label of the back arrow. Staff default; patient callers must pass a translated string. */
   backLabel?: string;
   /** Right side: `IconButton`s (each carries its own label). */
   actions?: ReactNode;

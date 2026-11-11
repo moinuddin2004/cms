@@ -40,3 +40,27 @@ describe('StatusBadge', () => {
     expect(String(screen.getByLabelText('Done').props.className)).toContain('bg-success/15');
   });
 });
+
+describe('status-tones table (docs/05 §2)', () => {
+  it.each([
+    ['waiting', 'neutral', undefined],
+    ['called', 'info', undefined],
+    ['in_consultation', 'primary', undefined],
+    ['on_hold', 'warning', undefined],
+    ['skipped', 'warning', 'outline'],
+    ['completed', 'success', undefined],
+    ['cancelled', 'destructive', 'outline'],
+    ['aborted', 'destructive', 'outline'],
+    ['transferred', 'neutral', 'outline'],
+  ] as const)('queue %s → %s %s', (status, tone, variant) => {
+    expect(QUEUE_STATUS_TONES[status].tone).toBe(tone);
+    expect(QUEUE_STATUS_TONES[status].variant).toBe(variant);
+  });
+
+  it('covers every appointment and dose status with a tone', () => {
+    expect(Object.keys(APPOINTMENT_STATUS_TONES)).toHaveLength(6);
+    expect(DOSE_STATUS_TONES.taken.tone).toBe('success');
+    expect(DOSE_STATUS_TONES.missed.tone).toBe('warning');
+    expect(URGENT_BADGE.tone).toBe('destructive');
+  });
+});

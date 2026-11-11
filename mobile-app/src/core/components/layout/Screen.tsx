@@ -15,7 +15,9 @@ export interface ScreenProps {
   header?: ReactNode;
   /** Slot for `OfflineBanner`; sits above the header. */
   banner?: ReactNode;
-  /** Which safe-area edges to pad. Tab screens pass `['top']` (the tab bar owns the bottom). */
+  /** Rendered outside the scroll container, above the body (FAB, floating bar). */
+  floating?: ReactNode;
+  /** Safe-area edges to pad. Default `['top']` (the tab bar owns the bottom); full-screen and modal flows pass `['top', 'bottom']`. */
   edges?: ('top' | 'bottom')[];
   className?: string;
   contentClassName?: string;
@@ -29,7 +31,8 @@ export function Screen({
   onRefresh,
   header,
   banner,
-  edges = ['top', 'bottom'],
+  floating,
+  edges = ['top'],
   className,
   contentClassName,
 }: ScreenProps) {
@@ -56,6 +59,7 @@ export function Screen({
       ) : (
         <View className={cn('flex-1', contentClassName)}>{children}</View>
       )}
+      {floating}
     </View>
   );
 }

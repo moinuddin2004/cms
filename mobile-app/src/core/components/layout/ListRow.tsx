@@ -52,7 +52,7 @@ export function ListRow({
       )}>
       {leading}
       <View className="flex-1 gap-0.5">
-        <Text variant="large" numberOfLines={1}>
+        <Text variant="large" numberOfLines={2}>
           {title}
         </Text>
         {subtitle ? (

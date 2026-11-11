@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { ActivityIndicator } from 'react-native';
 
 import {
   AlertDialog,
@@ -10,6 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/core/ui/alert-dialog';
+import { Spinner } from '@/core/components/layout/Spinner';
 import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 
@@ -70,7 +70,7 @@ export function ConfirmDialog({
             disabled={pending}
             accessibilityState={{ busy: pending, disabled: pending }}
             onPress={() => void handleConfirm()}>
-            {pending ? <ActivityIndicator size="small" /> : null}
+            {pending ? <Spinner tone={destructive ? 'destructive-foreground' : 'primary-foreground'} /> : null}
             <Text>{confirmLabel}</Text>
           </Button>
           <AlertDialogCancel disabled={pending} className="min-h-11">

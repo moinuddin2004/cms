@@ -7,10 +7,12 @@ import { Text } from '@/core/ui/text';
 import { cn } from '@/core/utils';
 
 interface ErrorStateProps {
+  /** Staff default; patient callers must pass a translated string. */
   title?: string;
+  /** Staff default; patient callers must pass a translated string. */
   message?: string;
   onRetry?: () => void;
-  /** Label of the retry button; callers pass translated/inline copy. */
+  /** Label of the retry button. Staff default; patient callers must pass a translated string. */
   retryLabel?: string;
   className?: string;
 }

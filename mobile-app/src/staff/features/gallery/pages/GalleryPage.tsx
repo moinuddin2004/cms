@@ -65,6 +65,7 @@ export function GalleryPage() {
     <Screen
       scroll
       edges={['top']}
+      floating={<FAB icon={Plus} label="Walk-in" extended onPress={() => undefined} />}
       banner={<OfflineBanner message="Offline — showing saved data from 10:42" />}
       header={
         <ScreenHeader
@@ -245,7 +246,6 @@ export function GalleryPage() {
         destructive
         onConfirm={() => new Promise<void>((resolve) => setTimeout(resolve, 1200))}
       />
-      <FAB icon={Plus} label="Walk-in" extended onPress={() => undefined} />
     </Screen>
   );
 }
