@@ -1,3 +1,6 @@
+> **Project docs first:** read `CLAUDE.md` and `docs/README.md` in this folder before any task. They define the
+> architecture (staff/patient spaces), rules, task cards and the handoff process. This file only covers Expo SDK usage.
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data

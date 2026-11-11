@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Multi-tenant dental/medical practice management SaaS (DentalFlow). Monorepo with:
 - `cms/backend/` — NestJS 11 REST API (TypeScript, TypeORM, PostgreSQL)
 - `cms/web-app/` — React 19 SPA (TanStack Start/Router/Query/Form/Table, shadcn/ui, Tailwind CSS 4, Zustand)
+- `cms/mobile-app/` — Expo SDK 58 app: staff space + patient space in one binary. **All mobile work (and the backend/web pieces it needs) follows `mobile-app/CLAUDE.md` and `mobile-app/docs/`** (architecture, rules, task cards, handoff log)
 
 ---
 
