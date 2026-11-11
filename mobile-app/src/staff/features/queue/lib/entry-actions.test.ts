@@ -177,10 +177,8 @@ describe('availableEntryActions — board viewer (S-02b)', () => {
   function expected(status: EntryStatus, has: (p: PermissionKey) => boolean): EntryActionId[] {
     const out: EntryActionId[] = [];
     if (status === 'waiting' && has('queue.entry.reprioritize')) out.push('mark-urgent');
-    if (status === 'waiting' || status === 'skipped') out.push('transfer');
-    if ((status === 'waiting' || status === 'called') && has('queue.entry.manage')) {
-      out.push('skip');
-    }
+    if (status === 'waiting' && has('queue.entry.manage')) out.push('transfer');
+    if (status === 'called' && has('queue.entry.manage')) out.push('skip');
     if (status === 'skipped' && has('queue.entry.manage')) out.push('rejoin');
     if (status === 'on_hold' && has('queue.checkin')) out.push('return-from-test');
     if (
@@ -208,19 +206,20 @@ describe('availableEntryActions — board viewer (S-02b)', () => {
     }
   });
 
-  it('with no permissions: transfer (any member) and the ticket remain where valid', () => {
-    expect(run('waiting', 'board', can())).toEqual(['transfer', 'show-ticket']);
-    expect(run('skipped', 'board', can())).toEqual(['transfer', 'show-ticket']);
+  it('with no permissions only the ticket remains', () => {
+    expect(run('waiting', 'board', can())).toEqual(['show-ticket']);
+    expect(run('skipped', 'board', can())).toEqual(['show-ticket']);
     expect(run('called', 'board', can())).toEqual(['show-ticket']);
     expect(run('on_hold', 'board', can())).toEqual(['show-ticket']);
     expect(run('completed', 'board', can())).toEqual(['show-ticket']);
   });
 
   it('spot checks: each permission unlocks only its own actions', () => {
-    expect(run('waiting', 'board', reprioritize)).toEqual(['mark-urgent', 'transfer', 'show-ticket']);
-    expect(run('waiting', 'board', manage)).toEqual(['transfer', 'skip', 'cancel', 'show-ticket']);
+    expect(run('waiting', 'board', reprioritize)).toEqual(['mark-urgent', 'show-ticket']);
+    expect(run('waiting', 'board', manage)).toEqual(['transfer', 'cancel', 'show-ticket']);
     expect(run('on_hold', 'board', checkin)).toEqual(['return-from-test', 'show-ticket']);
-    expect(run('skipped', 'board', manage)).toEqual(['transfer', 'rejoin', 'cancel', 'show-ticket']);
+    expect(run('skipped', 'board', manage)).toEqual(['rejoin', 'cancel', 'show-ticket']);
+    expect(run('called', 'board', manage)).toEqual(['skip', 'show-ticket']);
     expect(run('completed', 'board', file)).toEqual(['patient-file', 'show-ticket']);
   });
 
@@ -228,6 +227,16 @@ describe('availableEntryActions — board viewer (S-02b)', () => {
     for (const status of ['completed', 'cancelled', 'transferred', 'aborted'] as const) {
       expect(run(status, 'board', ALL)).toEqual(['patient-file', 'show-ticket']);
     }
+  });
+
+  it('never offers skip on waiting, nor transfer on skipped', () => {
+    expect(run('waiting', 'board', ALL)).not.toContain('skip');
+    expect(run('skipped', 'board', ALL)).not.toContain('transfer');
+  });
+
+  it('hides mark-urgent when the entry is already urgent', () => {
+    const urgent = { ...entry('waiting'), priorityClass: 'authorized_urgent' as const };
+    expect(availableEntryActions(urgent, session(), ALL, 'board')).not.toContain('mark-urgent');
   });
 
   it('in_consultation offers no board mutation', () => {

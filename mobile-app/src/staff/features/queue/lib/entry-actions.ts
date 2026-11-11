@@ -53,8 +53,8 @@ const DOCTOR_RULES: readonly Rule[] = [
 /** S-02b. Skip needs `queue.entry.manage` here, unlike the doctor screen. */
 const BOARD_RULES: readonly Rule[] = [
   { id: 'mark-urgent', statuses: ['waiting'], perm: 'queue.entry.reprioritize' },
-  { id: 'transfer', statuses: ['waiting', 'skipped'], perm: null },
-  { id: 'skip', statuses: ['waiting', 'called'], perm: 'queue.entry.manage' },
+  { id: 'transfer', statuses: ['waiting'], perm: 'queue.entry.manage' },
+  { id: 'skip', statuses: ['called'], perm: 'queue.entry.manage' },
   { id: 'rejoin', statuses: ['skipped'], perm: 'queue.entry.manage' },
   { id: 'return-from-test', statuses: ['on_hold'], perm: 'queue.checkin' },
   {
@@ -81,6 +81,8 @@ export function availableEntryActions(
     if (rule.perm !== null && !can(rule.perm)) continue;
     // The server refuses a call unless the session is open (SESSION_NOT_OPEN).
     if (rule.id === 'select' && session.status !== 'open') continue;
+    // Already urgent: nothing left to mark.
+    if (rule.id === 'mark-urgent' && entry.priorityClass === 'authorized_urgent') continue;
     out.push(rule.id);
   }
 

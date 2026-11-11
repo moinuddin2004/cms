@@ -163,8 +163,13 @@ export interface CallNextResult {
   eventSeq: number;
 }
 
-/** `PATCH entries/:id/select` answers with the entry, like other entry actions. */
-export type SelectResult = EntryResult;
+/** `PATCH entries/:id/select` — the manual pick plus what the smart order would have chosen. */
+export interface SelectResult {
+  entry: EntryView;
+  reason: 'MANUAL_SELECT';
+  suggestedEntryId: string | null;
+  eventSeq: number;
+}
 
 export interface TransferResult {
   /** The entry in the source session (now `transferred`). */
@@ -235,9 +240,13 @@ export interface CloseSessionInput {
 }
 
 /** Headers every queue mutation carries (docs/07 §2.3). */
-export interface MutationOptions {
+export interface IdemOptions {
   /** One per user intent — from `useIdempotentMutation`. */
   idempotencyKey: string;
-  /** Entry actions only: the `entry.version` the screen is looking at. */
+}
+
+/** Entry actions that honour `If-Match` (the server checks `entry.version`). */
+export interface MutationOptions extends IdemOptions {
+  /** The `entry.version` the screen is looking at. */
   ifMatch?: number;
 }

@@ -7,9 +7,11 @@ import type {
   CallNextResult,
   CloseSessionInput,
   EntryResult,
+  IdemOptions,
   MutationOptions,
   NextPreview,
   PatientVisit,
+  SelectResult,
   SessionResult,
   SessionSnapshot,
   TicketView,
@@ -27,10 +29,10 @@ import type {
 
 type Method = 'post' | 'patch';
 
-function mutationHeaders(opts: MutationOptions): Record<string, string> {
+function mutationHeaders(opts: IdemOptions | MutationOptions): Record<string, string> {
   const headers: Record<string, string> = { 'Idempotency-Key': opts.idempotencyKey };
   // Quoted ETag style; the backend strips `W/` and quotes before parsing.
-  if (opts.ifMatch !== undefined) headers['If-Match'] = `"${opts.ifMatch}"`;
+  if ('ifMatch' in opts && opts.ifMatch !== undefined) headers['If-Match'] = `"${opts.ifMatch}"`;
   return headers;
 }
 
@@ -38,7 +40,7 @@ async function mutate<T>(
   method: Method,
   url: string,
   body: object,
-  opts: MutationOptions,
+  opts: IdemOptions | MutationOptions,
 ): Promise<T> {
   const res = await staffApi.request<ApiResponse<T>>({
     method,
@@ -98,11 +100,11 @@ export async function fetchPatientVisits(patientId: string): Promise<PatientVisi
 
 // ─── Session (doctor) ────────────────────────────────────────────
 
-export function startSession(vars: { sessionId: string }, opts: MutationOptions) {
+export function startSession(vars: { sessionId: string }, opts: IdemOptions) {
   return mutate<SessionResult>('patch', `/queue/sessions/${id(vars.sessionId)}/start`, {}, opts);
 }
 
-export function pauseSession(vars: { sessionId: string; reason: string }, opts: MutationOptions) {
+export function pauseSession(vars: { sessionId: string; reason: string }, opts: IdemOptions) {
   return mutate<SessionResult>(
     'patch',
     `/queue/sessions/${id(vars.sessionId)}/pause`,
@@ -111,13 +113,13 @@ export function pauseSession(vars: { sessionId: string; reason: string }, opts: 
   );
 }
 
-export function resumeSession(vars: { sessionId: string }, opts: MutationOptions) {
+export function resumeSession(vars: { sessionId: string }, opts: IdemOptions) {
   return mutate<SessionResult>('patch', `/queue/sessions/${id(vars.sessionId)}/resume`, {}, opts);
 }
 
 export function closeSession(
   vars: { sessionId: string } & CloseSessionInput,
-  opts: MutationOptions,
+  opts: IdemOptions,
 ) {
   return mutate<SessionResult>(
     'patch',
@@ -130,7 +132,7 @@ export function closeSession(
 /** Smart order on/off — needs `queue.entry.reprioritize`. */
 export function setSessionMode(
   vars: { sessionId: string; smartQueueEnabled: boolean },
-  opts: MutationOptions,
+  opts: IdemOptions,
 ) {
   return mutate<SessionResult>(
     'patch',
@@ -140,7 +142,7 @@ export function setSessionMode(
   );
 }
 
-export function callNext(vars: { sessionId: string }, opts: MutationOptions) {
+export function callNext(vars: { sessionId: string }, opts: IdemOptions) {
   return mutate<CallNextResult>(
     'post',
     `/queue/sessions/${id(vars.sessionId)}/call-next`,
@@ -161,7 +163,7 @@ export function openSession(vars: { doctorId?: string }, opts: MutationOptions) 
 // ─── Entry actions (doctor) ──────────────────────────────────────
 
 export function selectEntry(vars: { entryId: string; reason?: string }, opts: MutationOptions) {
-  return mutate<EntryResult>(
+  return mutate<SelectResult>(
     'patch',
     `/queue/entries/${id(vars.entryId)}/select`,
     { reason: vars.reason },
@@ -169,7 +171,7 @@ export function selectEntry(vars: { entryId: string; reason?: string }, opts: Mu
   );
 }
 
-export function recallEntry(vars: { entryId: string }, opts: MutationOptions) {
+export function recallEntry(vars: { entryId: string }, opts: IdemOptions) {
   return mutate<EntryResult>('patch', `/queue/entries/${id(vars.entryId)}/recall`, {}, opts);
 }
 
@@ -268,13 +270,13 @@ export function setPriority(vars: { entryId: string; reason: string }, opts: Mut
 
 // ─── Arrivals ────────────────────────────────────────────────────
 
-export function registerWalkIn(vars: WalkInInput, opts: MutationOptions) {
+export function registerWalkIn(vars: WalkInInput, opts: IdemOptions) {
   return mutate<ArrivalResult>('post', '/queue/walk-ins', vars, opts);
 }
 
 export function checkInAppointment(
   vars: { appointmentId: string } & UrgentInput,
-  opts: MutationOptions,
+  opts: IdemOptions,
 ) {
   return mutate<ArrivalResult>(
     'patch',
@@ -286,7 +288,7 @@ export function checkInAppointment(
 
 export function convertToWalkIn(
   vars: { appointmentId: string } & UrgentInput,
-  opts: MutationOptions,
+  opts: IdemOptions,
 ) {
   return mutate<ArrivalResult>(
     'post',
