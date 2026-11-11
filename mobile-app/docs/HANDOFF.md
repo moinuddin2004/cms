@@ -485,3 +485,90 @@ Branch: reviewed the three task branches (parallel worktrees)   Status set to: d
 - **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
   EAS development build from M0-07.
 - After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
+
+---
+## M0-06 — Mobile test runner  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M0-06-tests   Commit(s): e881b03 (code)   Status set to: review
+
+### Done
+- `package.json`: `"test": "jest"`, `"jest": { "preset": "jest-expo" }`, `setupFilesAfterEnv`
+  (`<rootDir>/jest.setup.ts`) and `transformIgnorePatterns` copied from the SDK 58 unit-testing docs
+  (npm/Yarn variant). The four test packages moved to `devDependencies` with the installed versions:
+  `@testing-library/react-native ^14.1.0`, `@types/jest 30.0.0`, `jest ~30.5.2`, `jest-expo ~58.0.14`.
+- `jest.setup.ts`: in-memory `expo-secure-store` (Map), `react-native-mmkv` (via the library's own mock,
+  see below), `expo-notifications` (scheduled list, `virtual: true` until M0-07 installs it), NetInfo
+  (always online), and `expo-crypto.randomUUID` (counter). `getRandomBytes` stays real.
+- `__mocks__/react-native-mmkv.ts`: Jest manual mock that wires the library's **own** v4 test mock
+  (`createMockMMKV`) and keeps `createMMKV` / `deleteMMKV` / `existsMMKV`. Instances are shared per id;
+  `deleteMMKV` drops the instance so a wipe is observable (next open starts empty). The automatic
+  in-Jest detection could not run because importing `react-native-mmkv` eagerly loads the Nitro ESM
+  runtime (`nitro-core`), which Jest cannot `require`.
+- `tsconfig.json`: `"types": ["jest"]` (SDK 58 docs step; the Expo base config no longer auto-includes
+  `@types`, so `describe`/`it`/`expect` were untyped).
+- Removed the `globalThis` Jest-globals shims from `core/storage/{prefs,secure-cache,query-persister}.test.ts`;
+  all three files now run and pass unchanged otherwise.
+- New tests: `core/datetime/index.test.ts` (Karachi day bounds; New York day bounds on both 2026 DST
+  boundaries; `formatInZone` of the same UTC instant in both zones; date roll-over; calendar date;
+  wall-time→UTC) and `staff/lib/api.test.ts` (two parallel 401s → exactly one `/auth/refresh`, both
+  requests retried with the refreshed token, session + SecureStore refreshed).
+- README "Testing" section replaced with the four commands and how the mocks work.
+
+### Files
+- Created: `mobile-app/jest.setup.ts`, `mobile-app/__mocks__/react-native-mmkv.ts`,
+  `mobile-app/src/core/datetime/index.test.ts`, `mobile-app/src/staff/lib/api.test.ts`
+- Modified: `mobile-app/package.json`, `mobile-app/package-lock.json`, `mobile-app/tsconfig.json`,
+  `mobile-app/README.md`, `mobile-app/src/core/storage/{prefs,secure-cache,query-persister}.test.ts`,
+  `mobile-app/docs/PROGRESS.md`, `mobile-app/docs/HANDOFF.md`
+- Deleted / moved: none
+
+### Install commands for the user
+none — `jest-expo`, `jest`, `@testing-library/react-native` and `@types/jest` are already installed and are
+now in `devDependencies`. A fresh checkout/worktree only needs `npm ci` (or `npm install`) in `mobile-app/`.
+
+### Verification
+- `npm test` → `Test Suites: 5 passed, 5 total` · `Tests: 16 passed, 16 total` · `Time: 7 s`
+  (prefs 3, secure-cache 2, query-persister 1, datetime 9, staff api 1).
+- `npm run typecheck` → exit 0, no output.
+- `npm run lint` → `✖ 3 problems (0 errors, 3 warnings)`; all three are the pre-existing ones
+  (`core/http/api-error.ts`, `core/ui/skeleton.tsx`, `staff/lib/api.ts`), no new findings.
+  `node node_modules/eslint/bin/eslint.js src` → same; `eslint jest.setup.ts __mocks__` → clean.
+- `npm run lint:fences` → `PASS` both directions + `lint:fences: both forbidden directions failed lint as expected.`
+- Manual: none — configuration/tests only, no screen and no device needed.
+
+### Acceptance criteria
+- [x] `npm test` runs green locally (5 suites / 16 tests) — output above.
+- [x] README "Testing" section updated — shows `npm test`, lint, fences and typecheck plus the mock story.
+- [x] Jest config + `jest.setup.ts` with the docs/09 §2 mocks — see Files; MMKV uses the library's own v4 mock.
+- [x] Storage test shims removed and the three files pass.
+- [x] First tests added: Karachi + New York day bounds / `formatInZone`; single-flight refresh.
+
+### Deviations from the card / docs
+- The `react-native-mmkv` mock is a manual mock in `__mocks__/react-native-mmkv.ts` rather than code inside
+  `jest.setup.ts`. The card says "prefer the library's own jest mock if it ships one": it does, but its
+  auto-selection is unreachable because the package import loads the Nitro ESM runtime first, so the manual
+  mock wraps the library's own `createMockMMKV` instead of reimplementing MMKV.
+- `expo-notifications` is not installed yet (M0-07 owns it), so its mock is registered with
+  `{ virtual: true }`. Once the package exists the same mock keeps working; drop `virtual` then.
+- `tsconfig.json` gained `"types": ["jest"]` — not in the card text, but the SDK 58 unit-testing docs require
+  it and typecheck fails without it (`Cannot find name 'describe'`).
+- `package-lock.json`: only the root `dependencies` / `devDependencies` lists were moved. Transitive `dev`
+  flags still reflect `npx expo install` (which recorded the packages as production); no installer was run,
+  and the next `npm install`/`npm ci` normalises them.
+
+### Questions for the architect
+- Is the manual `__mocks__` MMKV mock acceptable, or do you prefer `nitro-core` added to
+  `transformIgnorePatterns` (which would still need a Nitro runtime mock)? Behaviour is identical for the
+  storage tests either way; this route avoids touching the transform pattern beyond the docs value.
+- docs/09 §2's "What must have tests" table also lists route resolvers, `brand.ts`, `core/http` idempotent
+  mutation, realtime invalidation and queue row actions. Those modules do not exist on this branch, so M0-06
+  added only the three items the card names. Confirm each is picked up by its own card rather than M0-06.
+
+### Notes for the next task
+- `npm test` and `npm test -- <path>` work on Windows without a device; jest-expo runs the iOS/Node env.
+- The manual MMKV mock is global for all tests; if a later card imports the `useMMKV*` hooks, add them to
+  `__mocks__/react-native-mmkv.ts` (they do not exist there yet).
+- `jest.setup.ts` registers the mocks per test file; tests can still `jest.spyOn`/`jest.mock` on top.
+- `tsconfig.json` now restricts global `@types` to `jest`. Adding another global type package means extending
+  that array.
+- `transformIgnorePatterns` replaces the jest-expo preset array with the documented one. If a future library
+  (e.g. a Nitro module) is not transformed, mock it with a manual mock rather than widening the pattern first.
