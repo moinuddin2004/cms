@@ -32,6 +32,7 @@ const BASIC: Record<PermissionGroup, PermissionMap> = {
     'patients.create': true,
     'patients.edit': true,
     'patients.documents.manage': true,
+    'patients.app_link.manage': true,
   },
   Appointments: {
     'appointments.view': 'location',
@@ -44,7 +45,6 @@ const BASIC: Record<PermissionGroup, PermissionMap> = {
     'queue.board.view': true,
     'queue.checkin': true,
     'queue.entry.manage': true,
-    'patients.app_link.manage': true,
   },
   Consultation: {
     'consultation.conduct': 'own',

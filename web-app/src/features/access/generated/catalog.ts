@@ -615,6 +615,7 @@ export const BUNDLES: Record<
       'patients.create': true,
       'patients.edit': true,
       'patients.documents.manage': true,
+      'patients.app_link.manage': true,
     },
     full: {
       'patients.view': 'org',
@@ -656,7 +657,6 @@ export const BUNDLES: Record<
       'queue.board.view': true,
       'queue.checkin': true,
       'queue.entry.manage': true,
-      'patients.app_link.manage': true,
     },
     full: {
       'queue.board.view': true,
