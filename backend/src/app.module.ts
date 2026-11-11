@@ -62,6 +62,7 @@ import { AccessGuard } from './access/access.guard';
 import { SettingsRegistryModule } from './settings-registry/settings-registry.module';
 import { SearchModule } from './search/search.module';
 import { AppVersionModule } from './app-version/app-version.module';
+import { PatientFenceGuard } from './patient-app/guards/patient-fence.guard';
 
 // Entities needed by AuthorizationService (for global guard)
 import { User } from './user/entities/user.entity';
@@ -135,7 +136,11 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     AppLogger,
     {
       provide: APP_GUARD,
-      useClass: RateLimiterGuard, // First: per-IP ceiling + @RateLimit routes (before auth)
+      useClass: PatientFenceGuard, // First: cheapest check; a fence 403 must never be masked by 401/429
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RateLimiterGuard, // Then: per-IP ceiling + @RateLimit routes (before auth)
     },
     {
       provide: APP_GUARD,
