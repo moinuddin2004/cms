@@ -23,7 +23,7 @@
 | M0-06 | Mobile test runner | MOB | S | M0-01 | ready | | | |
 | M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | ready | | | |
 | M0-08 | Staff `aud` + min-version | BE | S | — | done (in develop) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
-| M0-09 | Patient fence skeleton | BE | M | M0-08 | ready | | | |
+| M0-09 | Patient fence skeleton | BE | M | M0-08 | review | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
 | M1-01 | Core component kit | MOB | L | M0-05 | ready | | | |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-04 | ready | | | |
 | M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |

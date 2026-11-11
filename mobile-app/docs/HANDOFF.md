@@ -250,3 +250,55 @@ Branch: mobile/develop (new, from master)   Status set to: M0-01, M0-08 → done
 
 ### Notes for the next task
 - `git switch mobile/develop && git pull` before creating your card branch.
+
+---
+## M0-09 — Backend: patient fence skeleton  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M0-09-be-fence   Commit(s): 36630a2 (backend)   Status set to: review
+
+### Done
+- `src/patient-app/decorators/patient-api.decorator.ts`: `IS_PATIENT_API = 'isPatientApi'`, `IS_PATIENT_AUTH = 'isPatientAuth'`, `@PatientApi()` = `@Public()` + metadata + `@UseGuards(PatientJwtGuard, PatientLinkGuard)`, `@PatientAuthRoute()` = `@Public()` + metadata.
+- `src/patient-app/guards/patient-jwt.guard.ts` and `patient-link.guard.ts`: stubs that always throw 401, with `TODO(M2-02)` / `TODO(M2-03)` markers.
+- `src/patient-app/guards/patient-fence.guard.ts`: HTTP path ↔ decorator equivalence, `403 { code: 'PATIENT_FENCE' }` on any mismatch, non-HTTP passes; `request.path` with a `request.url` (query-stripped) fallback.
+- Registered as the **first** `APP_GUARD` in `app.module.ts`, before `RateLimiterGuard` (cheapest check; a fence 403 must never be masked by 401/429).
+- `src/patient-app/patient-api-coverage.spec.ts`: reflection over every controller — the four card rules, plus fixture controllers proving each rule fires (the tree has no patient controllers yet, so the self-check keeps it meaningful).
+- `src/patient-app/guards/patient-fence.guard.spec.ts`: 9 cases incl. the dummy `@Controller('patient-api')` handler without `@PatientApi()` → 403 `PATIENT_FENCE`.
+- `test/patient/route-matrix.int-spec.ts`: boots `AppModule` (real global guard chain, fence first) on its own `patientit` schema, enumerates every controller route by `PATH_METADATA`/`METHOD_METADATA`, signs a patient token (`aud: 'patient'`, patient test secret) and asserts 401/403 on every non-patient route. **Not run here — see Verification.** The patient-token-on-`/patient-api` half is marked for M2-03.
+
+### Files
+- Created: `backend/src/patient-app/decorators/patient-api.decorator.ts`, `backend/src/patient-app/guards/{patient-fence.guard.ts,patient-fence.guard.spec.ts,patient-jwt.guard.ts,patient-link.guard.ts}`, `backend/src/patient-app/patient-api-coverage.spec.ts`, `backend/test/patient/route-matrix.int-spec.ts`
+- Modified: `backend/src/app.module.ts` (guard import + provider, rate-limiter comment now "Then")
+- Deleted / moved: none
+
+### Install commands for the user
+none
+
+### Verification
+- `npm run build` → clean (`nest build`, no diagnostics).
+- `npx jest --runInBand` → 88 suites, 900 tests passed (84.7 s), including `access-coverage.spec.ts` and `guard.acceptance.spec.ts`.
+- `npx jest --runInBand --testPathPattern "patient-fence|patient-api-coverage"` → 2 suites, 13 tests passed.
+- `npx jest --runInBand --testPathPattern "access-coverage|guard.acceptance"` → 3 suites, 33 tests passed.
+- `npx tsc -p test/tsconfig.int.json --noEmit` → clean (the new int spec typechecks).
+- ESLint (`npx eslint "src/patient-app/**/*.ts" "test/patient/*.ts" "src/app.module.ts"`) → clean; Prettier `--write` run on the new files and `app.module.ts`.
+- `npm run lint` was **not** run: it is `eslint --fix` over the whole tree and this checkout has CRLF line endings, so Prettier flags every existing file (the M0-08 finding; no `.gitattributes` yet). New/changed files are clean under Prettier + ESLint as above.
+- `test/patient/route-matrix.int-spec.ts` was **not run**: the only reachable database is `DATABASE_URL`, which resolves to a **remote/shared** host; `BILLING_IT_DATABASE_URL` is unset, nothing listens on `127.0.0.1:5432`, and Docker is not installed. Per the task rule I did not point tests at the shared DB. Reviewer: run it with a disposable Postgres, e.g. `BILLING_IT_DATABASE_URL=<url> npx jest --config test/jest-int.json --runInBand test/patient/route-matrix.int-spec.ts`.
+
+### Acceptance criteria
+- [x] All backend unit tests green (88 suites / 900 tests); `access-coverage.spec.ts` and `guard.acceptance.spec.ts` stay green.
+- [x] A dummy controller in `patient-fence.guard.spec.ts` proves `/patient-api/x` without `@PatientApi()` returns 403 `PATIENT_FENCE`.
+- [ ] The new int spec green — written and typechecked, but not executed (no local/disposable DB; the only DB is the shared remote one — see above). The staff-token-on-`/patient-api` half is M2-03.
+
+### Deviations from the card / docs
+- The route-matrix spec **skips `@Public()` routes** (e.g. `/auth/login`, `/app/min-version`) instead of requiring 401/403 from them: they are unauthenticated by design, and every non-public non-patient route is asserted.
+- The route-matrix spec boots `AppModule` on a throw-away schema rather than reusing `test/access/acceptance/harness.ts`: that harness swaps `JwtAuthGuard` for an `x-test-user` header guard, which would never exercise the patient-token rejection this spec exists to prove. It mirrors the harnesses' `TypeOrmModule.forRoot({ synchronize: true, search_path })` + real global filter/pipes instead.
+- The card names only the decorator file for step 1; the two stub guards live next to the fence in `src/patient-app/guards/` so M2 can replace them in place.
+- `guard.acceptance.spec.ts` (GRD-06) needed no change: there are no patient controllers yet, and `@PatientApi()` already carries `@Public()` (which GRD-06 accepts); adding `patient-app` to its `MODULE_DIRS` can happen in M2-03 when the first controllers exist.
+
+### Questions for the architect
+- Route-matrix DB config: `test/billing/db.config.ts` falls back to `DATABASE_URL` when `BILLING_IT_DATABASE_URL` is unset, so on this machine it would target the shared dev DB. Is the intended reviewer run `BILLING_IT_DATABASE_URL=<disposable>` only (as noted above), or should M2-03 add a guard that refuses a non-local/`BILLING_IT_*` URL?
+- No dedicated `test:int:patient` script was added (the card did not ask for one); the spec is picked up by `npm run test:int`. Want a dedicated script in M2-03?
+
+### Notes for the next task
+- M2-02: replace `PatientJwtGuard` (`TODO(M2-02)`) with the real `JWT_PATIENT_ACCESS_SECRET` + `aud: 'patient'` guard and add `JWT_PATIENT_ACCESS_SECRET` to `.env.example` (still absent).
+- M2-03: replace `PatientLinkGuard` (`TODO(M2-03)`) and add the first patient controllers under `src/patient-app/**`; the coverage spec will then start enforcing `@PatientApi()` for real. Add the second half of `test/patient/route-matrix.int-spec.ts` (staff token → 401 on every `/patient-api` route).
+- `PatientApi()`'s guards are not provided by any module yet (no patient controllers exist); create the `PatientAppModule` in M2-02/03 so Nest can resolve them.
+- The fence compares `request.path` to the literal `/patient-api/` / `/patient-auth/` prefixes; any future patient route must sit under those paths or the coverage spec fails on the prefix rule.
