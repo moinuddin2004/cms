@@ -174,3 +174,19 @@ none
   modules must use `@/core/datetime` and `formatMoney` directly, never these.
 - `staff/lib/api.ts` is the only bearer/tenant-header path; M0-04 renames `useRestoreSession` →
   `useRestoreStaffSession` and moves `QueryClientProvider` out of `RootProviders`.
+
+---
+## REVIEW M0-01 + M0-08  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed `mobile/M0-01-folder-split` and `mobile/M0-08-be-aud`   Status set to: done (both, merge pending)
+
+### Done
+- M0-01: typecheck ✓, ESLint 0 errors ✓, import greps ✓ — verdict done. Review: `docs/reviews/M0-01/review.md`.
+- M0-08: 7 suites / 46 tests ✓ (strategy, gateway, app-version, access-coverage, guard acceptance) — verdict done.
+  Review: `docs/reviews/M0-08/review.md`.
+- Runtime smoke (device + DB) for both moved into M0-04's acceptance.
+- PROGRESS: parallel-work rule added (one checkout = one implementer; use `git worktree` for parallel cards).
+
+### Notes for the next task
+- Both branches must be merged into `master` (by the user) before M0-02 / M0-03 / M0-05 / M0-06 / M0-09 branch off.
+  Expect a small conflict in `docs/PROGRESS.md` and `docs/HANDOFF.md` (both branches edited them) — keep both entries.
+- M0-02 also creates `src/core/log.ts` (see M0-01 review notes).

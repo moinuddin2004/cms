@@ -5,18 +5,23 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 0 — Foundations · **Next up:** M0-01 (and M0-08 in parallel) · Updated 2026-11-11
+**Current phase:** 0 — Foundations · **Next up:** merge M0-01 + M0-08 into master, then M0-02 / M0-03 / M0-05 / M0-06 (any order) and M0-09 · Updated 2026-11-11
+
+> **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
+> share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
+> each implementer needs its own `git worktree` (e.g. `git worktree add ../cms-be mobile/M0-09-...`).
+> **Branch base:** a card whose dependencies are `done` branches from `master` only after those branches are merged.
 
 | ID | Title | Area | Size | Depends | Status | Branch | Implementer | Updated |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| M0-01 | Split source into core/staff/shell | MOB | M | — | review | mobile/M0-01-folder-split | DeepSeek Flash | 2026-11-11 |
+| M0-01 | Split source into core/staff/shell | MOB | M | — | done (merge pending) | mobile/M0-01-folder-split | DeepSeek Flash | 2026-11-11 |
 | M0-02 | Import fences (lint) | MOB | S | M0-01 | ready | | | |
 | M0-03 | Storage layer | MOB | S | M0-01 | ready | | | |
 | M0-04 | Spaces + welcome + two-level guards | MOB | M | M0-01..03 | ready | | | |
 | M0-05 | Tokens, text scale, brand theming | MOB | M | M0-01 | ready | | | |
 | M0-06 | Mobile test runner | MOB | S | M0-01 | ready | | | |
 | M0-07 | app.config.ts, EAS, updates | MOB | M | M0-04 | ready | | | |
-| M0-08 | Staff `aud` + min-version | BE | S | — | ready | | | |
+| M0-08 | Staff `aud` + min-version | BE | S | — | done (merge pending) | mobile/M0-08-be-aud | DeepSeek | 2026-11-11 |
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | ready | | | |
 | M1-01 | Core component kit | MOB | L | M0-05 | ready | | | |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01, M0-04 | ready | | | |
