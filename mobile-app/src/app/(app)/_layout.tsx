@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 
-import { AccessProvider } from '@/features/access';
+import { AccessProvider } from '@/staff/features/access';
 
 /** Everything behind sign-in + a chosen location. */
 export default function AppLayout() {

@@ -4,9 +4,13 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
-import { useRestoreSession } from '@/features/auth';
-import { AppProviders } from '@/providers/AppProviders';
-import { activeClinicBlock, needsLocationSelection, useAuthStore } from '@/store/useAuthStore';
+import { RootProviders } from '@/shell/RootProviders';
+import { useRestoreSession } from '@/staff/features/auth';
+import {
+  activeClinicBlock,
+  needsLocationSelection,
+  useStaffAuthStore,
+} from '@/staff/store/useStaffAuthStore';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -21,8 +25,8 @@ SplashScreen.preventAutoHideAsync();
  */
 function RootNavigator() {
   const restore = useRestoreSession();
-  const status = useAuthStore((s) => s.status);
-  const mustSelect = useAuthStore(
+  const status = useStaffAuthStore((s) => s.status);
+  const mustSelect = useStaffAuthStore(
     (s) => needsLocationSelection(s) || activeClinicBlock(s) !== null,
   );
 
@@ -57,8 +61,8 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AppProviders>
+    <RootProviders>
       <RootNavigator />
-    </AppProviders>
+    </RootProviders>
   );
 }

@@ -175,6 +175,10 @@ MOB · M · Depends: M0-01, M0-02, M0-03 · Branch `mobile/M0-04-spaces`
 - [ ] Sign out → welcome; reopen → welcome.
 - [ ] Staff offline at start → staff offline page with retry.
 - [ ] Lint fences pass; no shell file imports a deep staff path.
+- [ ] **Carry-over from M0-01/M0-08 reviews — must run on a real device or emulator against a running API:**
+      a session created *before* updating the app still restores; login → select location → home → sign out
+      works; a web sign-in still works (staff tokens now carry `aud: 'staff'`). Screenshots in `docs/reviews/M0-04/`.
+      If no device is available, stop and say so in the handoff — do not mark this card `review` without it.
 
 ---
 
