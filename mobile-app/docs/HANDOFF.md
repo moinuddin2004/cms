@@ -1116,3 +1116,24 @@ Branch: mobile/M1-01-core-kit   Commit(s): bf55629 (code) + this docs commit   S
 - `FormSheet` needs the provider that `RootProviders` now mounts; in tests mock `@gorhom/bottom-sheet` with its `mock.js`.
 - `FormSheet`'s footer is a render-prop component re-created when `submit` changes; keep `submit` stable-ish (the React Compiler handles it).
 - Native behaviour not yet seen on a device: sheet keyboard handling (interactive + adjustResize), footer padding, Android back handling, haptics.
+
+## Rework M1-01 #1
+
+Branch `mobile/M1-01-core-kit`. Tests 18 suites / 83 tests ✓ · typecheck ✓ · ESLint 0 errors · lint:fences ✓.
+
+| # | Result |
+| --- | --- |
+| 1 Blocker | **Fixed.** `overlays/sheet-input-context.ts` (`SheetInputContext`, `useInSheet`); `FormSheet` provides it inside the modal content (gorhom portals content, so it is provided inside, not outside). `FormInput` swaps to `withUniwind(BottomSheetTextInput)` with the same classes as `ui/input`. Wrong doc comment removed. Test `FormSheet.test.tsx`: `FormInput` in `FormSheet` renders the sheet input; outside renders the plain one. No textarea component exists in core, so nothing else to swap. |
+| 2 Major | **Fixed.** Backdrop: module-level `SheetBackdrop` + `useSheetBackdrop(onPress)` (stable callback, latest `onPress` via ref) in `sheet-parts.tsx`, used by FormSheet and ActionSheet; `makeBackdrop` removed. Footer: module-level `SubmitFooter` reading `submit` from a per-sheet store (`createFooterStore`), because the footer renders in the library portal where React context from FormSheet is not available; the footer component is created once per sheet, so no remount. |
+| 3 Major | **Fixed.** `Screen` has a `floating` slot outside the scroll container; gallery FAB moved into it. |
+| 4 | **Fixed.** `accessibilityState.disabled = !!(disabled \|\| pending)` in `SubmitFooter`. |
+| Answer 3 | **Done.** `Screen` default `edges = ['top']`. |
+| 5 | **Fixed.** Non-user dismissal → `onClose`; Android back closes an open confirm first. |
+| 6 | **Fixed.** New `Spinner` (`colorClassName` accent token) used by IconButton, ConfirmDialog, FormSheet submit; exported from the barrel. |
+| 7 | **Partly.** `checkbox` role + `checked` state when `multiple`. Not moved the count to a "Filters" chip: the Clear chip already carries the count and a separate chip adds an element for no extra function; say if you want it. |
+| 8 | **Fixed.** `h3`, count in its own `Text` with a gap. |
+| 9 | **Fixed.** ListRow title, FilterChips and SegmentedControl labels allow 2 lines. |
+| 10 | **Fixed.** Prop docs on ScreenHeader, SearchBar, ErrorState state "patient callers must pass a translated string". |
+| 11 | **Fixed.** Status-tones table test (in `StatusBadge.test.tsx`) and SearchBar echo-while-typing test. |
+
+Not run: device checks (keyboard behaviour of the sheet still joins gate M0-D). No new installs.
