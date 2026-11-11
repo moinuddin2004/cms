@@ -46,7 +46,7 @@
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
 | M2-01 | Patient identity tables + entities | BE | M | M0-09 | ready | | | |
-| M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | ready | | | |
+| M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | review | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |

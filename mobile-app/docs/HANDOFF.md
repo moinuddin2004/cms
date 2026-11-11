@@ -1053,3 +1053,38 @@ Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status s
 
 ### Notes for the next task
 - 5 web-app tests fail on the base branch (not mobile work) — see `reviews/M1-04a/review.md`.
+
+---
+## M2-12 — `patient_app` feature, permissions, settings keys  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M2-12-patient-app-keys   Commit(s): a62d9ab (code) + docs commit   Status set to: review
+
+### Done
+- Feature seed `patient_app` (module `patients`, `enabledByDefault: false`, sortOrder 6); `patients.portal` left retired.
+- Permissions `patients.app_link.manage` (risk high) and `appointments.requests.manage`, both `feature: 'patient_app'`.
+- Bundles: `patients.app_link.manage` added to the Queue bundle (holds `queue.checkin`); `appointments.requests.manage` added to the Appointments bundle. No role names in code.
+- `src/patient-app/patient-app.settings.ts`: `patient_app.show_billing`, `patient_app.show_diagnosis` (boolean, default true, ORG, not lockable); imported as a side effect in `app.module.ts`.
+- `npm run access:export` regenerated web + mobile catalogs (both contain the two keys).
+- Tests: `catalog.spec.ts` updated (extra keys listed; new spec mapping both to `patient_app`).
+
+### Files
+- Created: backend/src/patient-app/patient-app.settings.ts
+- Modified: backend/src/access/catalog/{permissions,bundles,catalog.spec}.ts, backend/src/feature-flags/feature-catalog.seed.ts, backend/src/app.module.ts, both generated catalog.ts files, PROGRESS.md, HANDOFF.md
+
+### Install commands for the user
+none
+
+### Verification
+- Backend `npm run build` → clean. Full `npx jest --runInBand` → 90 suites / 925 tests passed (incl. catalog, access-coverage, guard.acceptance, patient-api-coverage).
+- Changed-file ESLint (prettier rule off) → clean; `npm run lint` not run (CRLF `prettier/prettier` noise).
+
+### Acceptance criteria
+- [x] Build clean, full unit suite green, both catalogs contain the keys.
+
+### Deviations from the card / docs
+- The "bundle group = permission group" check in `catalog.spec.ts` gained a small `CROSS_MODULE_BUNDLE_GRANTS` allowance, because the Queue bundle now holds a Patients-group permission as the card requires.
+
+### Questions for the architect
+- Is a cross-group bundle grant (Queue bundle → `patients.app_link.manage`) acceptable, or should a front-desk Patients bundle entry be used instead?
+
+### Notes for the next task
+- Nothing reads the settings yet; the `/patient-api` read services (M2-xx) consume `PATIENT_APP_SETTINGS`.
