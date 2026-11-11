@@ -53,6 +53,18 @@ export class MailService {
     });
   }
 
+  /** Patient sign-in code (M2-02). The code is never logged; `email_log` keeps only the kind. */
+  sendLoginCode(email: string, code: string) {
+    return this.send('patient_login_code', email, undefined, {
+      eyebrow: 'Sign in',
+      title: 'Your sign-in code',
+      body: `Use this code to sign in: ${code}
+
+It works for 10 minutes and only once.`,
+      note: 'If you did not ask for this code, you can safely ignore this email.',
+    });
+  }
+
   /** "Your password was changed" and similar security notices. */
   sendSecurityNotice(
     kind: string,

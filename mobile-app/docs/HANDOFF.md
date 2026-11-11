@@ -1558,6 +1558,63 @@ Note: `AccessErrorNotice` imports `ErrorState` from its file rather than the `@/
 Install commands: none. Questions: none.
 
 ---
+## M2-02 — Patient auth: email code, sessions, patient JWT, guard  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M2-02-patient-auth   Commit(s): see git log   Status set to: review
+
+### Done
+- Boot check (`patient-config.ts`): `JWT_PATIENT_ACCESS_SECRET` missing/equal to staff secret throws; optional `PATIENT_CODE_PEPPER`.
+- `PatientTokenService`, `PatientSessionService` (sha256, rotation, reuse revokes, CAS on rotate), `LoginCodeService` (hashed, 10 min, 5 attempts, single use, one `CODE_INVALID`).
+- `PatientJwtStrategy` (`patient-jwt`) + real `PatientJwtGuard` attaching `request.patientAuth`; `PatientLinkGuard` interim: allows, sets empty `patientContext`.
+- `/patient-auth/{email/start,email/verify,refresh,logout}` and `/patient-api/me` GET/PATCH; `MailService.sendLoginCode`; `.env.example`.
+- Unit specs for all of step 10; int spec written.
+
+### Files
+- Created: `backend/src/patient-auth/{patient-config,patient-token.service,patient-session.service,login-code.service,patient-auth.service,patient-auth.controller}.ts`, `dto/`, `strategies/`, 4 specs; `backend/src/patient-app/{me.controller,patient-me.service}.ts`, `dto/`; `backend/test/patient/patient-auth.int-spec.ts`
+- Modified: patient-auth/patient-app modules, both guards, `mail.service.ts`, `.env.example`, `test/patient/route-matrix.int-spec.ts` (asserts patient routes now exist)
+
+### Install commands for the user
+none (set `JWT_PATIENT_ACCESS_SECRET` in `backend/.env`, different from `JWT_ACCESS_SECRET`, or the API will not boot)
+
+### Verification
+- `npm run build` clean. `npx jest --runInBand` → 95 suites / 995 tests passed.
+- ESLint + Prettier on changed files clean (whole-tree lint not run).
+- Int spec NOT run: no disposable Postgres used; shared DATABASE_URL untouched.
+
+### Acceptance criteria
+- [x] build, full unit suite, all step-10 tests present
+- [ ] int spec executed — needs disposable Postgres
+
+### Deviations from the card / docs
+- Security log skipped (staff `SecurityLogService` is user-bound; no patient ids in `users`).
+- Consents deduped per (account, kind, version).
+- `x-device-label` header optional for session label.
+- `package-lock.json` was already modified; not staged.
+
+### Questions for the architect
+- None.
+
+### Notes for the next task
+- M2-03 replaces the interim `PatientLinkGuard` (TODO there) and adds the staff-token half of the route matrix.
+- M2-02b can reuse `PatientAuthService.issue/build` pattern (make `issue` public).
+
+## Rework M2-02 #1
+Date: 2026-11-12 · Branch `mobile/M2-02-patient-auth`
+
+| # | Result |
+| --- | --- |
+| 1 Major | Fixed. `verify()` claims an attempt atomically (`UPDATE ... SET attempts = attempts + 1 WHERE id AND attempts < 5 AND used_at IS NULL AND expires_at > now() RETURNING id`); no row → `CODE_INVALID`. Unit test with the claim returning 0 rows. |
+| 2 Minor | Fixed. `start()` closes earlier open codes for the email; a successful verify closes all open codes. Test added. |
+| 3 Minor | Fixed. `termsVersion` / `privacyVersion`: `@IsNotEmpty()` + `@Matches(/^[\w.-]{1,20}$/)`. |
+| 4 Minor | Not fixed: accepted as existing behaviour per review. |
+| 5 Minor | Not fixed here: M2-11 (card already updated). |
+| 6 Minor | Fixed. New `patient-app/guards/patient-jwt.guard.spec.ts` (real passport, fake `patient-jwt` strategy): sets `request.patientAuth`, `request.user` unset. |
+| 7 Decision | No code; R-01 logged by architect. |
+| 8 Info | No code; M2-06 note. |
+
+Verification: `npm run build` clean; full `npx jest --runInBand` 96 suites / 998 tests passed (re-ran `src/patient-auth` + build after a final lint-only tweak). ESLint on changed files: only the repo-wide CRLF prettier noise remains. Int spec still not run (no disposable Postgres).
+Install commands: none.
+
+---
 ## REVIEW round 7: reworks M1-02 + M1-07a + M1-11a + M2-02  ·  2026-11-12  ·  Claude Opus (architect)
 Branch: four rework branches verified against every finding   Status set to: all four done (merge pending)
 
