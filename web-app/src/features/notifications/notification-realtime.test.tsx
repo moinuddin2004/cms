@@ -101,9 +101,12 @@ describe('NotificationBell realtime', () => {
 
   it('connects with the token and, on notification.new, refreshes the badge, toasts and chimes', async () => {
     renderBell()
-    expect(io).toHaveBeenCalledWith(
-      expect.stringContaining('/realtime'),
-      expect.objectContaining({ auth: { token: 'token' } }),
+    // socket.io-client is imported lazily, so io() runs after mount.
+    await waitFor(() =>
+      expect(io).toHaveBeenCalledWith(
+        expect.stringContaining('/realtime'),
+        expect.objectContaining({ auth: { token: 'token' } }),
+      ),
     )
 
     await waitFor(() =>
@@ -136,6 +139,9 @@ describe('NotificationBell realtime', () => {
 
   it('a notification from another clinic names it and has no Open', async () => {
     renderBell()
+    await waitFor(() =>
+      expect(socket.handlers.has('notification.new')).toBe(true),
+    )
     act(() =>
       socket.fire('notification.new', event({ organizationId: 'org-b' })),
     )
@@ -149,9 +155,13 @@ describe('NotificationBell realtime', () => {
     )
   })
 
-  it('does not connect when signed out', () => {
+  it('does not connect when signed out', async () => {
     useAuthStore.setState({ accessToken: null })
     renderBell()
+    // Let a (wrongly) started lazy import settle before asserting.
+    await act(async () => {
+      await import('socket.io-client')
+    })
     expect(io).not.toHaveBeenCalled()
   })
 
