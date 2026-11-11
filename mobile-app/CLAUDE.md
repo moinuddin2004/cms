@@ -12,6 +12,8 @@ Backend: `../backend` (rules in the root `../CLAUDE.md`). Web: `../web-app`.
 4. Your card in [`docs/10-roadmap-and-tasks.md`](docs/10-roadmap-and-tasks.md) and every doc it lists.
 5. [`AGENTS.md`](AGENTS.md) before touching any Expo / React Native API (SDK 58 docs, never memory).
 
+**Git:** branch from `mobile/develop`, never from or into `master` (see docs/04 §18).
+
 Finish with the Definition of Done ([`docs/09`](docs/09-testing-and-quality.md#1-definition-of-done-every-task)),
 a HANDOFF entry, and your PROGRESS row → `review`. Rules that fail a review: [`docs/03-security.md`](docs/03-security.md),
 [`docs/04-coding-standards.md`](docs/04-coding-standards.md), checklist in [`docs/11`](docs/11-review-protocol.md).

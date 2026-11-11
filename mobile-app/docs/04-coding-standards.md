@@ -239,7 +239,10 @@ export function useMySession() {
 
 ## 18. Git
 
-- Branch `mobile/<TASK-ID>-<short-slug>` from `master` (or the branch named in the task card).
+- **`master` is off-limits.** All mobile work integrates on **`mobile/develop`** (created from `master`, pushed to GitHub).
+  Nothing from this programme is merged into `master` until the user says so.
+- Branch `mobile/<TASK-ID>-<short-slug>` **from `mobile/develop`** (pull it first). Never branch from, commit to, or merge into `master`.
+- After the architect's `done`, the task branch is merged into `mobile/develop` (`--no-ff`) — by the architect or the user, never by the implementer.
 - Commit message: `feat(mobile): <TASK-ID> <summary>` / `fix(mobile): …` / `feat(backend): <TASK-ID> …`.
   Body lists notable decisions. End with the attribution line your tool requires.
 - Do not commit unrelated changes, generated `.expo/`, `ios/`, `android/` folders, or secrets.

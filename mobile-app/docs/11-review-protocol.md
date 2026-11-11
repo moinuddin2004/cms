@@ -12,13 +12,14 @@
 
 ## 2. How the review runs
 
-1. Read the task card, the handoff entry, then the diff (`git diff master...<branch>`).
+1. Read the task card, the handoff entry, then the diff (`git diff mobile/develop...<branch>`).
 2. Run: `npm run lint`, `npm run typecheck`, `npm test` (mobile); `npm run lint`, `npm run build`,
    `npm test` and named int specs (backend). Never trust pasted output alone.
 3. Walk the checklist below. Each finding gets a severity.
-4. Write `docs/reviews/<TASK-ID>/review.md` (format in §4), update `PROGRESS.md`:
+4. On `done` (and only with the user's go-ahead), merge the task branch into `mobile/develop` with `--no-ff`; never into `master`.
+5. Write `docs/reviews/<TASK-ID>/review.md` (format in §4), update `PROGRESS.md`:
    `done` / `changes-requested`, and add any new decision to `DECISIONS.md`.
-5. If the review changes a contract or rule, update the doc **in the same review** so the next
+6. If the review changes a contract or rule, update the doc **in the same review** so the next
    implementer reads the corrected version.
 
 ## 3. Checklist

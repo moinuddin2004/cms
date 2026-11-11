@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { STAFF_AUDIENCE } from './staff-audience';
 
 @Injectable()
 export class JwtTokenService {
@@ -33,6 +34,9 @@ export class JwtTokenService {
     return this.jwt.signAsync(payload, {
       secret: this.config.get('JWT_ACCESS_SECRET'),
       expiresIn: '15m',
+      // The patient space signs with its own secret and `aud: 'patient'`;
+      // both verifiers reject the other space's tokens.
+      audience: STAFF_AUDIENCE,
     });
   }
 }
