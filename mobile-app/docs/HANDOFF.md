@@ -471,6 +471,22 @@ none
 - The fence compares `request.path` to the literal `/patient-api/` / `/patient-auth/` prefixes; any future patient route must sit under those paths or the coverage spec fails on the prefix rule.
 
 ---
+## REVIEW M0-02 + M0-03 + M0-09  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed the three task branches (parallel worktrees)   Status set to: done (merge pending)
+
+### Done
+- M0-02 done, M0-03 done (one major fixed at merge: add `react-native-nitro-modules` as a direct dependency),
+  M0-09 done (route-matrix int spec carried over to M2-03). Reviews in `docs/reviews/<ID>/review.md`.
+- Cards updated: M0-04 (remaining fence rows + dev-build smoke), M0-06 (MMKV v4 mock, drop test shims),
+  M2-03 (disposable DB guard, `test:int:patient`). 02 §1 storage/query lines, CLAUDE.md dev-build note,
+  PROGRESS fresh-worktree note.
+
+### Notes for the next task
+- **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
+  EAS development build from M0-07.
+- After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
+
+---
 ## M0-06 — Mobile test runner  ·  2026-11-11  ·  DeepSeek Flash
 Branch: mobile/M0-06-tests   Commit(s): e881b03 (code)   Status set to: review
 
@@ -811,22 +827,6 @@ Nothing else is new. No `npm install` was run by me.
 - No push rows exist for any other event; add `channels: [.., PUSH]` + `pushDefault` to a seed to opt one in,
   and keep its `pushBody` free of full names (docs/03 §5).
 - Patient push stays off (`CHANNELS_BY_AUDIENCE.patient = []`) until M3-07.
-
----
-## REVIEW M0-02 + M0-03 + M0-09  ·  2026-11-11  ·  Claude Opus (architect)
-Branch: reviewed the three task branches (parallel worktrees)   Status set to: done (merge pending)
-
-### Done
-- M0-02 done, M0-03 done (one major fixed at merge: add `react-native-nitro-modules` as a direct dependency),
-  M0-09 done (route-matrix int spec carried over to M2-03). Reviews in `docs/reviews/<ID>/review.md`.
-- Cards updated: M0-04 (remaining fence rows + dev-build smoke), M0-06 (MMKV v4 mock, drop test shims),
-  M2-03 (disposable DB guard, `test:int:patient`). 02 §1 storage/query lines, CLAUDE.md dev-build note,
-  PROGRESS fresh-worktree note.
-
-### Notes for the next task
-- **Expo Go no longer works** (native MMKV). Device runs need `npx expo run:android` (Android SDK) or the
-  EAS development build from M0-07.
-- After merging, M0-04, M0-05 and M0-06 can run in parallel worktrees; M1-04 (backend push) is also free.
 
 ---
 ## REVIEW round 2: M0-04 + M0-06 + M1-04  ·  2026-11-11  ·  Claude Opus (architect)

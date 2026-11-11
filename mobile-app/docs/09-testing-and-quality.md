@@ -6,6 +6,9 @@ A task is **done** only when all of these are true. The reviewer checks each one
 
 1. Every acceptance criterion in the task card is met and demonstrated in the handoff note.
 2. `mobile-app`: `npm run lint`, `npm run typecheck`, `npm test` pass (paste the summary lines).
+   **Typed routes first:** if your card adds, moves or links routes, run `CI=1 npx expo start --offline`
+   once (stop it when `.expo/types/router.d.ts` exists) so typecheck validates every `href`. Without that
+   file typecheck accepts any route string — this hid a real error in M0-04.
 3. `backend` (if touched): `npm run lint`, `npm run build`, `npm test` (unit) pass; e2e/integration
    tests named in the card pass; `access-coverage.spec.ts` passes.
 4. No rule from [03-security.md](03-security.md) or [04-coding-standards.md](04-coding-standards.md) is broken.
