@@ -1068,6 +1068,49 @@ Branch: reviewed four lanes (independent reviewer agent per lane; every Blocker 
 - Rework happens in the same worktree and branch; fix only the listed findings; append "Rework <ID> #1".
 
 ---
+## M2-01 — Patient identity tables + entities  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M2-01-patient-identity   Commit(s): 971dcfb   Status set to: review
+
+### Done
+- Step 1: `backend/database/changes/2026-11-12_patient_identity.sql` — the nine tables of 08 §1–3 copied verbatim from the doc (names, columns, constraints, indexes), `IF NOT EXISTS` throughout, wrapped in `BEGIN; … COMMIT;`. CHECKs are inline in `CREATE TABLE` (no DROP/ADD needed: no table is altered).
+- Step 2: same nine blocks in `schema/02_tables.sql` right after `user_devices` (without `IF NOT EXISTS`, with the usual header naming the entity file). FKs to `organizations`, `patients`, `patient_*` inline; `patient_access_log.account_id` has no FK.
+- Step 3: nine entities — `patient-auth/entities/` (account, identity, session, login-code), `patient-app/entities/` (profile, record-link, consent, access-log), `patient-links/entities/` (claim-token). `@Index`/`@Check` names identical to SQL; partial unique indexes use `where`.
+- Step 4: `PatientAuthModule`, `PatientAppModule`, `PatientLinksModule` (only `TypeOrmModule.forFeature`, exported) imported in `app.module.ts`. No providers/controllers.
+- Step 5: `patient-app/entities/patient-entities.spec.ts` (44 tests) — for each entity compares table name, columns, index names and CHECK names against BOTH the change file and `02_tables.sql`; asserts the six named unique indexes, WHERE on the two partial ones, no relations on the access log, and that the change file never alters `patients`.
+- Step 6: `patients.user_id` untouched.
+
+### Files
+- Created: `backend/database/changes/2026-11-12_patient_identity.sql`; 9 entity files; `patient-auth/patient-auth.module.ts`, `patient-app/patient-app.module.ts`, `patient-links/patient-links.module.ts`; `patient-app/entities/patient-entities.spec.ts`
+- Modified: `backend/database/schema/02_tables.sql`, `backend/src/app.module.ts`, PROGRESS row, this file
+- Deleted / moved: none
+
+### Install commands for the user
+none
+
+### Verification
+- `npm run build` → clean.
+- `npx jest --runInBand` → 91 suites / 968 tests passed (incl. new spec, access-coverage, guard.acceptance, patient-api-coverage).
+- `npm run lint` not run (whole-tree `--fix`, CRLF noise); `npx eslint` (prettier rule off) + `prettier --write` on the changed TS files → clean.
+- SQL **not executed**: no `psql` / local Postgres in this environment and the shared DATABASE_URL was never touched. The change file is unexecuted — reviewer must run it twice on a disposable Postgres (and `schema/run_all.sql` on an empty one).
+
+### Acceptance criteria
+- [x] build clean, full jest green, new spec green.
+- [x] no service/controller/endpoint added.
+- [ ] Change file executed twice on a real Postgres — not possible here; left for reviewer.
+
+### Deviations from the card / docs
+- `uq_patient_accounts_email` (expression index on `lower(email)`) and `idx_patient_login_codes_email` (`created_at DESC`) cannot be expressed with column lists, so the entity declares them as `@Index('<name>', { synchronize: false })` — name only, SQL stays the source of truth.
+- `patient_access_log.id` is `PrimaryGeneratedColumn('increment', { type: 'bigint' })` (TS type `string`).
+- `package-lock.json` was already modified in the worktree before this task; not staged.
+- `database/README.md` still says "156 tables" (was already stale); left alone (not a listed file).
+
+### Questions for the architect
+- Should `action` / `resource_type` on `patient_access_log` and `relation`-style unions get CHECKs? 08 §3 specifies none, so none were added.
+
+### Notes for the next task
+- Entities are registered via `autoLoadEntities`; M2-02 can inject `Repository<PatientAccount>` etc. by importing `PatientAuthModule` (it exports `TypeOrmModule`).
+
+---
 ## REVIEW round 5  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: six branches reviewed (reworks by the architect; new cards with an independent reviewer agent each; key claims verified in code)   Status set to: M1-01, M0-07, M2-12 done (merge pending) · M1-07a, M1-11a, M2-02 changes-requested · M1-06a not handed off yet
 
