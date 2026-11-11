@@ -10,7 +10,7 @@ import { Uniwind } from 'uniwind';
 import { PortalHost } from '@rn-primitives/portal';
 
 import { setupQueryManagers } from '@/core/query/managers';
-import { staffQueryClient } from '@/staff/lib/query-client';
+import { staffQueryClient } from '@/staff';
 
 /**
  * Every global provider, in one place. Order matters: gestures → safe area →
