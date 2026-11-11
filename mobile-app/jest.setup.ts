@@ -48,8 +48,8 @@ jest.mock('expo-secure-store', () => {
 // Jest applies that manual mock automatically — no `jest.mock` call needed.
 
 // ==================== expo-notifications: scheduled-notification list ====================
-// expo-notifications is installed by card M0-07; the virtual mock keeps the
-// setup file importable today and gives tests a real scheduled list afterwards.
+// Installed by card M0-07. The mock exposes the API the app calls and keeps
+// scheduled notifications in an in-memory list (docs/09 §2).
 jest.mock(
   'expo-notifications',
   () => {
@@ -80,7 +80,6 @@ jest.mock(
       AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
     };
   },
-  { virtual: true },
 );
 
 // ==================== NetInfo: always online ====================

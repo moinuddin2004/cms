@@ -1240,6 +1240,78 @@ Branch `mobile/M1-01-core-kit`. Tests 18 suites / 83 tests ✓ · typecheck ✓ 
 Not run: device checks (keyboard behaviour of the sheet still joins gate M0-D). No new installs.
 
 ---
+## M0-07 — Build configuration: app.config.ts, EAS, updates  ·  2026-11-11  ·  DeepSeek Flash (finished by Claude Sonnet 5.5)
+Branch: mobile/M0-07-eas   Commit(s): 2fd216d   Status set to: review
+
+### Done
+- `app.json` → `app.config.ts` with `APP_VARIANT` (development default / preview / production): name, scheme, package + bundle id `com.placeholder.clinicapp` (+ `.dev`/`.preview`); kept splash + localization plugins, `typedRoutes`, `reactCompiler`.
+- `eas.json` profiles development / preview (APK, channel) / production (AAB, channel) with `APP_VARIANT` + `EXPO_PUBLIC_API_URL` placeholders.
+- expo-updates: `runtimeVersion: appVersion`; `updates.url`/`eas.projectId` come from `EXPO_UPDATES_URL`/`EAS_PROJECT_ID` (updates disabled until set).
+- `core/app-version.ts` (`isBelow`), `shell/min-version.ts` (fail open, 6 s timeout), `shell/UpdateRequiredPage.tsx` (X-03), wired into `RootShell`.
+- `core/notifications/channels.ts`: Android channels queue/reminders/general, no permission prompt, created at start.
+- `{ virtual: true }` dropped from expo-notifications mock. `docs/RELEASE.md` written.
+
+### Files
+- Created: app.config.ts, eas.json, docs/RELEASE.md, src/core/app-version(.test).ts, src/core/notifications/channels.ts, src/shell/{min-version(.test).ts,UpdateRequiredPage.tsx}
+- Modified: package.json, package-lock.json, jest.setup.ts, src/shell/RootShell.tsx
+- Deleted / moved: app.json
+
+### Install commands for the user
+Already installed in the working tree. Normalise the lockfile with `npm install` after merge.
+
+### Verification
+- `npm test` → 8 suites, 32 passed; `npm run typecheck` clean; `npm run lint:fences` green
+- eslint src → 0 errors, 3 pre-existing warnings
+- `expo config --type public`: development → "Clinic (Dev)", com.placeholder.clinicapp.dev, scheme clinicapp-dev; preview → "Clinic (Preview)", .preview, clinicapp-preview; production → "Clinic", com.placeholder.clinicapp, clinicapp. All: runtimeVersion.policy appVersion, updates.enabled false.
+- `expo-doctor`: one failed check — 11 packages a patch behind SDK 58 (expo, expo-router, expo-font, …); none are from this task.
+
+### Acceptance criteria
+- [x] config output per variant (above)
+- [x] distinct package ids → dev installs beside preview
+- [x] expo-doctor: no new errors (only pre-existing patch drift)
+
+### Deviations from the card / docs
+- `web.output: "server"` left in place (docs do not confirm nothing depends on it).
+
+### Questions for the architect
+- Remove `web.output: "server"`? Run `npx expo install --check` to fix doctor drift in a separate chore?
+- iOS Update button links to the generic App Store URL until O-01/M4 gives a listing.
+
+### Notes for the next task
+- M1-05 needs `EAS_PROJECT_ID` (after `eas init`, see docs/RELEASE.md).
+
+---
+## Rework M0-07 #1  ·  2026-11-11  ·  Claude Sonnet 5.5
+Branch: mobile/M0-07-eas   Commit(s): see `git log` ("fix(mobile): M0-07 rework #1 …")   Status set to: review
+
+### Finding → fix
+1. **Blocker** — `APP_VARIANT` / `EXPO_PUBLIC_API_URL` now come from EAS environments. `eas.json` profiles use `"environment"` (env blocks removed). RELEASE.md §2 has the commands per environment and a bold warning that every `eas update` passes the matching `--environment`. Deviation: the Expo docs (environment-variables + manage pages) document `eas env:set`, not `env:create`, so the runbook uses `env:set` (flags `--name --value --environment --visibility plaintext`).
+2. **Major** — single `EAS_PROJECT_ID` constant in `app.config.ts` (empty placeholder; comment says paste after `eas init`); `updates.url` and `extra.eas.projectId` derive from it. `EXPO_UPDATES_URL`/`EAS_PROJECT_ID` env options removed from code and RELEASE.md.
+3. **Major** — `npx expo install expo-dev-client` listed below; "dev build installs beside preview" is NOT ticked, pending gate M0-D (needs a device).
+4. `appVersionSource: "remote"`, `autoIncrement: true` on production.
+5. `UpdateRequiredPage` opens `market://details?id=…`, falls back to the https Play URL (`Linking.openURL`); expo-web-browser import dropped there. iOS uses `IOS_APP_STORE_URL` placeholder constant (decided with O-01 at M4).
+6. `RootShell` caches the check in a module-level promise (one request per cold start, also under StrictMode); new `RootShell.test.tsx` mocks `fetchMinVersion` and asserts the update screen renders and one fetch happens.
+7. RELEASE.md refers to constant names (`EAS_PROJECT_ID`), no line numbers.
+Also: `web.output: "server"` removed (favicon kept).
+
+### Install commands for the user
+```
+npx expo install expo-dev-client
+```
+(not run by me). Then run the `env:set` commands in docs/RELEASE.md §2 after `eas init`.
+
+### Verification
+- `npm test` 9 suites / 33 tests pass; `npm run typecheck` clean; eslint src 0 errors (3 pre-existing warnings); `lint:fences` green.
+- `expo config --type public`: development → "Clinic (Dev)", .dev, clinicapp-dev; preview → "Clinic (Preview)", .preview, clinicapp-preview; production → "Clinic", com.placeholder.clinicapp, clinicapp. All: runtimeVersion appVersion, updates.enabled false (until EAS_PROJECT_ID is set).
+
+### Acceptance criteria
+- [x] config output per variant · [x] distinct package ids (config level)
+- [ ] dev build installs beside preview — pending gate M0-D (device)
+
+### Questions
+- None. Note: the review and updated docs (03 rule 10) live on mobile/develop, not on this branch; I read them from the main checkout.
+
+---
 ## REVIEW round 5  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: six branches reviewed (reworks by the architect; new cards with an independent reviewer agent each; key claims verified in code)   Status set to: M1-01, M0-07, M2-12 done (merge pending) · M1-07a, M1-11a, M2-02 changes-requested · M1-06a not handed off yet
 
