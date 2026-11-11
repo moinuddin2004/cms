@@ -23,14 +23,46 @@ class FakeCodes {
       .reverse();
     return rows[0] ?? null;
   }
-  async increment({ id }: { id: string }, _col: string, n: number) {
-    this.rows.find((r) => r.id === id)!.attempts += n;
+  claimZero = false;
+  createQueryBuilder() {
+    let id = '';
+    const qb = {
+      update: () => qb,
+      set: () => qb,
+      where: (_s: string, p: { id: string; max: number }) => {
+        id = p.id;
+        return qb;
+      },
+      returning: () => qb,
+      execute: async () => {
+        const r = this.rows.find((x) => x.id === id);
+        const now = Date.now();
+        if (
+          this.claimZero ||
+          !r ||
+          r.attempts >= 5 ||
+          r.usedAt ||
+          r.expiresAt.getTime() <= now
+        )
+          return { raw: [] };
+        r.attempts += 1;
+        return { raw: [{ id }] };
+      },
+    };
+    return qb;
   }
-  async update({ id }: { id: string }, patch: Partial<PatientLoginCode>) {
-    const r = this.rows.find((x) => x.id === id && !x.usedAt);
-    if (!r) return { affected: 0 };
-    Object.assign(r, patch);
-    return { affected: 1 };
+  async update(
+    where: { id?: string; email?: string },
+    patch: Partial<PatientLoginCode>,
+  ) {
+    const hit = this.rows.filter(
+      (x) =>
+        !x.usedAt &&
+        (where.id === undefined || x.id === where.id) &&
+        (where.email === undefined || x.email === where.email),
+    );
+    hit.forEach((r) => Object.assign(r, patch));
+    return { affected: hit.length };
   }
 }
 
@@ -121,5 +153,31 @@ describe('LoginCodeService', () => {
     if (first !== second)
       expect(await codeError(svc.verify('a@b.co', first))).toBe('CODE_INVALID');
     expect(await codeError(svc.verify('a@b.co', second))).toBe('OK');
+  });
+
+  it('verify: a lost attempt claim (update returns 0 rows) is CODE_INVALID, even with the right code', async () => {
+    await svc.start('a@b.co');
+    const code = sentCode();
+    codes.claimZero = true;
+    expect(await codeError(svc.verify('a@b.co', code))).toBe('CODE_INVALID');
+    expect(codes.rows[0].usedAt).toBeNull();
+  });
+
+  it('start closes earlier open codes; success closes all open codes of the email', async () => {
+    await svc.start('a@b.co');
+    await svc.start('a@b.co');
+    expect(codes.rows[0].usedAt).not.toBeNull();
+    // simulate an older still-open code appearing
+    codes.rows.unshift({
+      ...codes.rows[0],
+      id: 'old',
+      usedAt: null,
+      codeHash: svc.hash('999999'),
+    } as PatientLoginCode);
+    expect(await codeError(svc.verify('a@b.co', sentCode()))).toBe('OK');
+    expect(codes.rows.every((r) => r.usedAt)).toBe(true);
+    expect(await codeError(svc.verify('a@b.co', '999999'))).toBe(
+      'CODE_INVALID',
+    );
   });
 });

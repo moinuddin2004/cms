@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, Matches, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -22,10 +28,14 @@ export class VerifyEmailDto {
   code: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^[\w.-]{1,20}$/)
   @MaxLength(20)
   termsVersion: string;
 
   @IsString()
+  @IsNotEmpty()
+  @Matches(/^[\w.-]{1,20}$/)
   @MaxLength(20)
   privacyVersion: string;
 }

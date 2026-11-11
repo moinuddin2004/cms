@@ -37,6 +37,8 @@ export class LoginCodeService {
   async start(rawEmail: string): Promise<void> {
     const email = normalizeEmail(rawEmail);
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
+    // Only the newest code may be used: close earlier open ones.
+    await this.closeOpen(email);
     await this.codes.save(
       this.codes.create({
         email,
@@ -58,7 +60,18 @@ export class LoginCodeService {
     });
     if (!row || row.attempts >= MAX_CODE_ATTEMPTS) throw codeInvalid();
 
-    await this.codes.increment({ id: row.id }, 'attempts', 1);
+    // Claim one attempt atomically so parallel guesses cannot exceed the limit.
+    const claim = await this.codes
+      .createQueryBuilder()
+      .update(PatientLoginCode)
+      .set({ attempts: () => 'attempts + 1' })
+      .where(
+        'id = :id AND attempts < :max AND used_at IS NULL AND expires_at > now()',
+        { id: row.id, max: MAX_CODE_ATTEMPTS },
+      )
+      .returning('id')
+      .execute();
+    if (!(claim.raw as unknown[] | undefined)?.length) throw codeInvalid();
 
     const expected = Buffer.from(row.codeHash, 'hex');
     const given = Buffer.from(this.hash(code), 'hex');
@@ -71,5 +84,14 @@ export class LoginCodeService {
       { usedAt: new Date() },
     );
     if (!res.affected) throw codeInvalid();
+    await this.closeOpen(email);
+  }
+
+  /** Mark every open (unused) code of `email` as used. */
+  private async closeOpen(email: string): Promise<void> {
+    await this.codes.update(
+      { email, usedAt: IsNull() },
+      { usedAt: new Date() },
+    );
   }
 }
