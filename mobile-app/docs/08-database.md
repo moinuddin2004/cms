@@ -7,7 +7,7 @@
 > `organization_id` (never `tenant_id`). UUID PKs `gen_random_uuid()`. Instants `timestamptz`.
 > Do **not** use or alter `patients.user_id` (legacy, unused).
 
-## 1. Identity (M2-01) — `changes/<date>_patient_accounts.sql`
+## 1. Identity (M2-01) — `changes/2026-11-12_patient_identity.sql` (sections 1–3)
 
 ```sql
 CREATE TABLE IF NOT EXISTS patient_accounts (
@@ -257,4 +257,6 @@ the patient's property and must survive a clinic deleting its data (plan §4.4).
   `src/patient-links/entities`, `src/devices/entities`, `src/medications/entities`).
 - Register with `TypeOrmModule.forFeature([...])` in the module (`autoLoadEntities: true` in `app.module.ts`).
 - Column decorators match SQL exactly (`type: 'timestamptz'` for instants, `type: 'date'` for dates).
-- Integration-test harnesses that `synchronize` must include new entities they touch.
+- Integration-test harnesses that `synchronize` must include new entities they touch. `synchronize` does **not**
+  create expression/partial indexes or FKs that entities don't declare (patient tables): patient int specs must run
+  `changes/2026-11-12_patient_identity.sql` after synchronize (M2-01 review).

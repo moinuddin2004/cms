@@ -44,7 +44,8 @@
    screenshot (user's own data / staff device policy). No blocking in MVP — revisit with
    biometric lock in V1.
 9. **Clipboard**: never copy PHI automatically. Copy actions are explicit and show a toast.
-10. **WebView**: none in MVP. Open external links with `expo-web-browser` only.
+10. **WebView**: none in MVP. Open external links with `expo-web-browser` only. Exception: store intents
+    (`market://`, App Store URL) via `Linking.openURL`.
 11. **Deep links**: `claim/[token]` validates the token format (base64url, 43 chars) before any
     network call; a malformed token shows "This link is not valid" — never echoes it.
 

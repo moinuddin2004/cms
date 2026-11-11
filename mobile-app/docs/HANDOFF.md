@@ -1053,3 +1053,17 @@ Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status s
 
 ### Notes for the next task
 - 5 web-app tests fail on the base branch (not mobile work) — see `reviews/M1-04a/review.md`.
+
+---
+## REVIEW round 4: M1-01 + M0-07 + M2-01 + M2-12  ·  2026-11-11  ·  Claude Opus (architect)
+Branch: reviewed four lanes (independent reviewer agent per lane; every Blocker verified by the architect)   Status set to: M2-01 done (merge pending) · M1-01, M0-07, M2-12 changes-requested
+
+### Done
+- M2-01 done (968 backend tests). M1-01: FormSheet keyboard blocker (gorhom needs BottomSheetTextInput), footer remount, floating FAB.
+  M0-07: OTA updates would bundle without APP_VARIANT / API URL (EAS environments), plus project id and dev-client.
+  M2-12: cross-group bundle grant breaks matchBundle; the card's wording was wrong and is fixed.
+- Doc fixes: 10 (M2-12 step 3, M1-02 gallery row), 08 (file name, synchronize note), 03 §2 rule 10 (store intents).
+
+### Notes for the next task
+- Rework happens in the same worktree and branch; fix only the listed findings; append "Rework <ID> #1".
+

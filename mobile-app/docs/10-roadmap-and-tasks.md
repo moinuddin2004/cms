@@ -370,7 +370,7 @@ MOB · M · Depends: M1-01, M0-04 · Branch `mobile/M1-02-staff-shell`
    → `setLocationContext` → `staffQueryClient.clear()` except `access` keys refetch → brand re-applies),
    switch to patient space (placeholder space still), app version, sign out (confirm).
 4. Header bell button component (shows unread count — wired in M1-13; render 0 now).
-5. Remove the old `home` route / placeholder dashboard.
+5. Remove the old `home` route / placeholder dashboard. Add a dev-only (`__DEV__`) "Component gallery" row in More (M1-01 review).
 6. Apply the clinic's `theme.default_mode` (from `staff.theme.cache` / `useClinicTheme`) with
    `Uniwind.setTheme('light' | 'dark' | 'system')` while the staff space is mounted; restore `'system'` on leave (M0-05 review).
 
@@ -717,8 +717,9 @@ BE · S · Depends: M0-09 · Branch `mobile/M2-12-patient-app-keys`
 2. Permissions (`permissions.ts`), both `feature: 'patient_app'`:
    `patients.app_link.manage` (label "Link patients to the app", group Patients, risk high if the type supports it) and
    `appointments.requests.manage` (label "Handle patient appointment requests", group Appointments).
-3. Bundles: add `patients.app_link.manage: true` to the bundle that holds `queue.checkin` (front desk); add
-   `appointments.requests.manage: true` to the Appointments bundle. Never reference role names in code.
+3. Bundles: add `patients.app_link.manage: true` to the **Patients basic** bundle and
+   `appointments.requests.manage: true` to the **Appointments basic** bundle. A bundle may only hold permissions of
+   its own group (`matchBundle` counts per group). Never reference role names in code.
 4. Settings: `src/patient-app/patient-app.settings.ts` with `patient_app.show_billing` and `patient_app.show_diagnosis`
    (`s.boolean()`, default `true`, scopes `[ORG]`, `lockable: false`); make sure the file is imported at boot
    (the registry map is module-level — follow how existing settings files are imported).
