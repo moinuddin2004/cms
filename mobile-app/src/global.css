@@ -29,8 +29,9 @@
       --color-card-foreground: hsl(0 0% 3.9%);
       --color-popover: hsl(0 0% 100%);
       --color-popover-foreground: hsl(0 0% 3.9%);
-      --color-primary: hsl(0 0% 9%);
-      --color-primary-foreground: hsl(0 0% 98%);
+      /* Platform teal-blue (seed #0e7490, 5.36:1 with white); docs/10 M0-05. */
+      --color-primary: #0e7490;
+      --color-primary-foreground: #ffffff;
       --color-secondary: hsl(0 0% 96.1%);
       --color-secondary-foreground: hsl(0 0% 9%);
       --color-muted: hsl(0 0% 96.1%);
@@ -39,6 +40,13 @@
       --color-accent-foreground: hsl(0 0% 9%);
       --color-destructive: hsl(0 84.2% 60.2%);
       --color-destructive-foreground: hsl(0 0% 98%);
+      /* Semantic status tones (docs/05 §2): 5.02:1, 6.59:1 and 5.17:1 on their foregrounds. */
+      --color-success: #15803d;
+      --color-success-foreground: #ffffff;
+      --color-warning: #d97706;
+      --color-warning-foreground: #000000;
+      --color-info: #2563eb;
+      --color-info-foreground: #ffffff;
       --color-border: hsl(0 0% 89.8%);
       --color-input: hsl(0 0% 89.8%);
       --color-ring: hsl(0 0% 63%);
@@ -51,8 +59,8 @@
       --color-card-foreground: hsl(0 0% 98%);
       --color-popover: hsl(0 0% 3.9%);
       --color-popover-foreground: hsl(0 0% 98%);
-      --color-primary: hsl(0 0% 98%);
-      --color-primary-foreground: hsl(0 0% 9%);
+      --color-primary: #3a92af;
+      --color-primary-foreground: #000000;
       --color-secondary: hsl(0 0% 14.9%);
       --color-secondary-foreground: hsl(0 0% 98%);
       --color-muted: hsl(0 0% 14.9%);
@@ -61,6 +69,13 @@
       --color-accent-foreground: hsl(0 0% 98%);
       --color-destructive: hsl(0 70.9% 59.4%);
       --color-destructive-foreground: hsl(0 0% 98%);
+      /* Lifted for the dark background (docs/05 §2): 12.05:1, 14.56:1 and 8.26:1. */
+      --color-success: #4ade80;
+      --color-success-foreground: #000000;
+      --color-warning: #fcd34d;
+      --color-warning-foreground: #000000;
+      --color-info: #60a5fa;
+      --color-info-foreground: #000000;
       --color-border: hsl(0 0% 14.9%);
       --color-input: hsl(0 0% 14.9%);
       --color-ring: hsl(300 0% 45%);

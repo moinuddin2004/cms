@@ -845,6 +845,109 @@ Branch: reviewed the three task branches   Status set to: M0-06, M1-04 done · M
 - `changes/2026-11-11_push_devices.sql` has not been run anywhere yet.
 
 ---
+## M0-05 — Design tokens, text scale and brand theming  ·  2026-11-11  ·  DeepSeek Flash
+Branch: mobile/M0-05-theme   Commit(s): this commit (code + docs)   Status set to: review
+
+### Done
+- Picked up the uncommitted M0-05 work already in the worktree (brand math, `applyBrand`, theme feature
+  files, status tones) and completed the card. Card steps 1–7:
+- Step 1: `src/global.css` gets `success` / `warning` / `info` (+ `-foreground`) for light and dark, and
+  the platform `primary` is now the teal-blue seed `#0e7490` (light) / `#3a92af` (dark, the OKLCH-lifted
+  brand) instead of near-black. `platform-tokens.test.ts` keeps `platform-tokens.ts` and the stylesheet in
+  sync and asserts every tone pair is ≥ 4.5:1 (light primary 5.36, success 5.02, warning 6.59, info 5.17;
+  dark primary 5.91, success 12.05, warning 14.56, info 8.26).
+- Step 2: `core/theme/brand.ts` is the port of the web `color.ts` (same names: `isHexColor`,
+  `hexToOklch`, `oklchToHex`, `luminance`, `contrastRatio`, `readableForeground`,
+  `deriveBrandPalette`, `RAMP_STEPS`, plus the web's `checkBrandContrast` / `ContrastCheck`).
+- Step 3: `core/theme/apply-brand.ts` — `applyBrand(hex | null)` writes `--color-primary`,
+  `--color-primary-foreground` and `--color-ring` for both themes; `null` (and a malformed value) writes
+  the platform tokens back.
+- Step 4: `staff/features/theme/`: `fetchTheme()` (`GET /theme`), `useClinicTheme()` (key = org + location,
+  reference-data `staleTime` 10 min), `BrandTheme` (applies + caches `{ orgId, brandColor, logoUrl,
+  defaultMode }` in prefs `staff.theme.cache`), `applyCachedBrand()`. `BrandTheme` is mounted in
+  `StaffMainLayout`; `StaffLayout` paints the cache on mount and its unmount cleanup calls
+  `applyBrand(null)` (welcome screen stays platform-coloured).
+- Step 5: `core/components/data-display/status-tones.ts` — queue / appointment / dose tables from 05 §2
+  (one source, labels included so colour is never the only signal).
+- Step 6: **preferred path** — `core/theme/apply-text-scale.ts` overrides `--text-4xl`, `--text-3xl`,
+  `--text-2xl`, `--text-lg`, `--text-base`, `--text-sm` for both themes; applied in `StaffLayout`
+  (`staff`) and `PatientLayout` (`patient`), reset to `staff` on patient unmount. No `text.tsx` patch,
+  so `src/core/ui/PATCHES.md` is untouched. **Spike (10 lines, build-level):**
+  `npx expo export --platform android --no-bytecode` then search the bundle — `text-sm` compiles to
+  `["fontSize",function(t){return t["--text-sm"]?.(t)}]` and the vars block contains
+  `"--text-sm":t=>14`. `Uniwind.updateCSSVariables` writes the same `UniwindStore.vars[theme]` map the
+  getter reads (`dist/common/core/config/config.native.js`), so runtime override is the supported path.
+  Runtime confirmation on a device joins M0-D.
+- Step 7: unit tests for `brand.ts` (5 sample colours: exact round-trip, readable foreground ≥ 4.5 in both
+  schemes, dark lift, 50–900 ramp, hue) plus `apply-brand.test.ts`, `apply-text-scale.test.ts`,
+  `platform-tokens.test.ts`.
+
+### Files
+- Created: `src/core/theme/{brand.ts,apply-brand.ts,apply-text-scale.ts,platform-tokens.ts}`,
+  `src/core/theme/{brand,apply-brand,apply-text-scale,platform-tokens}.test.ts`,
+  `src/core/components/data-display/status-tones.ts`,
+  `src/staff/features/theme/{index.ts,api/theme.api.ts,hooks/useClinicTheme.ts,components/BrandTheme.tsx,lib/theme-cache.ts,lib/apply-cached-brand.ts,types/theme.types.ts}`
+- Modified: `src/global.css`, `src/staff/navigation/{StaffLayout.tsx,StaffMainLayout.tsx}`,
+  `src/patient/navigation/PatientLayout.tsx`, `docs/PROGRESS.md`
+- Deleted: the throwaway spike files from the earlier attempt (`src/core/theme/__spike-colors.test.ts`,
+  `mobile-app/_spike-dist/` — both untracked, never committed)
+
+### Install commands for the user
+```bash
+# none — this card adds no dependency
+```
+
+### Verification
+- `node node_modules/eslint/bin/eslint.js src` → `✖ 3 problems (0 errors, 3 warnings)`; only the
+  pre-existing warnings (`core/http/api-error.ts`, `core/ui/skeleton.tsx`, `staff/lib/api.ts`).
+- `npm run typecheck` → exit 0 (after `CI=1 npx expo start --offline` regenerated
+  `.expo/types/router.d.ts`, 21:27).
+- `npm test` → `Test Suites: 10 passed, 10 total · Tests: 53 passed, 53 total`.
+- `npm run lint:fences` → exit 0, all three forbidden directions fail as expected.
+- Bundle check: `npx expo export --platform android --no-bytecode` → exit 0 (6.3 MB bundle); used for the
+  text-scale spike, output deleted afterwards.
+- Manual: **not run — no device/emulator.** `adb devices` → empty; `%LOCALAPPDATA%\Android\Sdk` has no
+  `emulator/` or system images. Screenshots of login/home (light + dark) were therefore not produced.
+
+### Acceptance criteria
+- [x] Theme tokens exist for success/warning/info with 4.5:1 foregrounds (automated contrast test).
+- [x] Clinic brand is fetched, applied to primary/ring in both schemes, cached and re-applied on mount
+      (code + unit tests); changing it on the web needs a device + API to see the button change.
+- [ ] Cold start shows the cached brand without a flash — implemented (cache painted on staff mount, before
+      the theme query answers, under the splash) but not observed on a device.
+- [x] Welcome screen uses platform colours — `applyBrand(null)` runs when the staff space unmounts and no
+      brand is applied before entering staff.
+- [ ] Light + dark screenshots of login and home — no device; joins the M0-D device gate.
+- [x] Unit tests for `core/theme/brand.ts` (09 §2).
+
+### Deviations from the card / docs
+- 05 §3's variant sizes do not line up with the Tailwind classes in `core/ui/text.tsx`; mapped
+  `h1→text-4xl`, `h2→text-3xl`, `h3→text-2xl`, `large→text-lg`, `p/default→text-base`,
+  `small/muted→text-sm` (staff 28/22/18/17/15/13, patient 30/24/20/18/17/15). `h4`, `lead` and `mono`
+  have no row in 05 §3, so they keep the platform values (`text-xl` / `text-sm`).
+- The text scale is reset to `staff` when the patient layout unmounts, so the welcome screen always uses
+  the staff/platform sizes. The card only says "applied on space mount".
+- `checkBrandContrast` was ported as well (web parity, used by its colour picker) even though the mobile
+  card does not call it yet.
+
+### Questions for the architect
+- Is the Tailwind-class → 05 §3 variant mapping above the intended one? (05 gives seven variants; the
+  generated `Text` has `h4`, `lead` and `mono` too.)
+- `theme.default_mode` is fetched and cached but not applied: the card's steps only name the three brand
+  colour variables. Which card should call `Uniwind.setTheme(default_mode)` — M1-01 (kit) or M1-02 (tabs)?
+- `applyCachedBrand()` currently does not check the cached `orgId` against the restored session; after a
+  clinic change the previous clinic's colour can show until `GET /theme` answers. Should the cold-start
+  paint be filtered by `activeOrganizationId` (needs the restore to finish first, so it would lose the
+  no-flash benefit)?
+
+### Notes for the next task
+- M1-01: use `status-tones.ts` for `StatusBadge`; `<Text variant>` now renders at the scale applied by the
+  space layout (staff 28/22/18/17/15/13, patient 30/24/20/18/17/15). Do not add another text-scale mechanism.
+- M1-02: the theme query key includes location, so switching location refetches the brand.
+- M1-05 / M0-07: `default_mode` is in `staff.theme.cache` but no code applies it yet.
+- `docs/reviews/M0-05/` has no screenshots on purpose (no device); they belong in the M0-D gate.
+
+---
 ## REVIEW round 3: M0-05 + M1-04a  ·  2026-11-11  ·  Claude Opus (architect)
 Branch: reviewed `mobile/M0-05-theme`, `mobile/M1-04a-push-followups`   Status set to: done (merge pending, both)
 
