@@ -69,6 +69,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "lint:fences": "node scripts/check-fences.mjs",
     "typecheck": "tsc --noEmit"
   },
   "private": true
