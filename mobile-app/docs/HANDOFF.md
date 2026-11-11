@@ -1109,3 +1109,22 @@ none
 ### Notes for the next task
 - The worktree's `node_modules` was still being copied in by another process while I worked; `npx expo start` also tried to fetch expo from npm once (npx cache only). `mobile-app/package-lock.json` shows an unrelated local modification (34 lines removed) that I did NOT commit — please check where it came from.
 - Run tools with `node node_modules/<pkg>/bin/…` here: `node_modules/.bin` is absent in this worktree.
+
+## Rework M1-11a #1  ·  2026-11-12  ·  Claude Sonnet 5.5
+Branch: mobile/M1-11a-patients-api   Status set to: review
+
+| # | Result |
+| --- | --- |
+| 1 | Fixed. `isBlacklisted` / `isMinor` typed `true` only with a doc comment; new `lib/patient-query.ts` `patientQueryParams` (used by `fetchPatients`) drops anything but `true`; tests in `patient-query.test.ts`. |
+| 2 | Fixed. `maskPhone` works on digits only, keeps a leading `+`; 4+4 when >= 3 digits stay hidden, else 2+2, <= 4 digits keep last 2. New rows incl. `+92 300 1234567`, `123456789`, `---`, `+`. |
+| 3 | Fixed. Phone regex `^\+?[0-9][0-9 -]*$` + >= 7 digits for `phone` and `guardianPhone`; tests for `---`, `+`, tab, newline, few digits. |
+| 4 | Fixed. Final `.transform` drops guardian fields when `!isMinor`; test added. |
+| 5 | Fixed. `gender: ''` preprocessed to `undefined`; test added. |
+| 6 | Noted, no change. |
+| 7 | Noted, no change (card already updated). |
+
+### Deviation
+- Finding 2 says 4+4 "only when >= 4 digits stay hidden", but that would turn the S-04 example `03001234567` (11 digits, 3 hidden) into `03•••67`. I used >= 3 hidden (>= 11 digits) so the doc example still holds and the 9-digit bug is fixed. Say if you want the stricter rule.
+
+### Results
+mobile: `npm test` 125 passed, typecheck clean, ESLint 0 errors (3 pre-existing warnings), `lint:fences` pass. No install needed. `mobile-app/package-lock.json` remains an unrelated uncommitted local change (not staged).
