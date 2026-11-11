@@ -3,7 +3,10 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 import { markReady } from '@/core/splash';
+import { applyBrand } from '@/core/theme/apply-brand';
+import { applyTextScale } from '@/core/theme/apply-text-scale';
 import { useRestoreStaffSession } from '@/staff/features/auth';
+import { applyCachedBrand } from '@/staff/features/theme';
 import { staffQueryClient } from '@/staff/lib/query-client';
 import {
   activeClinicBlock,
@@ -30,6 +33,19 @@ export function StaffLayout() {
   useEffect(() => {
     void restore();
   }, [restore]);
+
+  // The clinic brand is painted from prefs before the theme query answers, so
+  // a returning user never sees the platform colour (docs/10 M0-05 step 4).
+  // Leaving the staff space restores the platform palette: the welcome screen
+  // is never branded.
+  useEffect(() => {
+    applyTextScale('staff');
+    applyCachedBrand();
+    return () => {
+      applyBrand(null);
+      applyTextScale('staff');
+    };
+  }, []);
 
   useEffect(() => {
     if (status !== 'restoring') markReady();
