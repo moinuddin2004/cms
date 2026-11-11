@@ -189,7 +189,7 @@ MOB · M · Depends: M0-01, M0-02, M0-03 · Branch `mobile/M0-04-spaces`
 
 ### M0-05 — Design tokens, text scale and brand theming
 
-MOB · M · Depends: M0-01 · Branch `mobile/M0-05-theme`
+MOB · M · Depends: M0-04 (mounts into `StaffLayout` / `StaffMainLayout`) · Branch `mobile/M0-05-theme`
 
 **Goal:** semantic tokens and the staff clinic brand colour at runtime.
 
