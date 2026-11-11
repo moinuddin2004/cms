@@ -45,7 +45,7 @@
 | M1-15 | Today snapshot | MOB | M | M1-07, M1-14 | ready | | | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
-| M2-01 | Patient identity tables + entities | BE | M | M0-09 | ready | | | |
+| M2-01 | Patient identity tables + entities | BE | M | M0-09 | review | mobile/M2-01-patient-identity | Claude Sonnet 5.5 | 2026-11-11 |
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | ready | | | |
 | M2-02 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
