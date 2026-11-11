@@ -75,8 +75,13 @@ export interface PatientQuery {
   city?: string;
   tag?: string;
   isActive?: boolean;
-  isBlacklisted?: boolean;
-  isMinor?: boolean;
+  /**
+   * `true` only. The backend reads these with `@Type(() => Boolean)`, so the
+   * query string `"false"` becomes `true`; to not filter, omit the key.
+   */
+  isBlacklisted?: true;
+  /** `true` only — see `isBlacklisted`. */
+  isMinor?: true;
   sortBy?: PatientSortBy;
   sortOrder?: SortOrder;
 }

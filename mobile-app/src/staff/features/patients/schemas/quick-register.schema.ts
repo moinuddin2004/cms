@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { isYmd, todayYmd } from '@/staff/lib/datetime';
 
-/** Digits, `+`, spaces and dashes only (the backend itself accepts any string ≤ 20). */
-const PHONE = /^[0-9+\-\s]+$/;
-const PHONE_MESSAGE = 'Use digits, +, spaces or dashes only';
+/** Optional leading `+`, then digits, spaces or dashes; at least 7 digits (the backend accepts any string up to 20). */
+const PHONE_SHAPE = /^\+?[0-9][0-9 -]*$/;
+const PHONE_MESSAGE = 'Enter a valid phone number (7+ digits; digits, spaces, dashes, leading +)';
+const isPhone = (v: string) => PHONE_SHAPE.test(v) && v.replace(/\D/g, '').length >= 7;
 
 /** Real calendar date `YYYY-MM-DD`, not after the clinic's today. */
 function isValidPastYmd(value: string): boolean {
@@ -31,8 +32,11 @@ export const quickRegisterSchema = z
       .trim()
       .min(1, 'Enter a phone number')
       .max(20, 'Max 20 characters')
-      .regex(PHONE, PHONE_MESSAGE),
-    gender: z.enum(['male', 'female', 'other']).optional(),
+      .refine(isPhone, PHONE_MESSAGE),
+    gender: z.preprocess(
+      (v) => (v === '' ? undefined : v),
+      z.enum(['male', 'female', 'other']).optional(),
+    ),
     dob: z
       .string()
       .trim()
@@ -46,7 +50,7 @@ export const quickRegisterSchema = z
       .trim()
       .max(20, 'Max 20 characters')
       .optional()
-      .refine((v) => !v || PHONE.test(v), PHONE_MESSAGE)
+      .refine((v) => !v || isPhone(v), PHONE_MESSAGE)
       .transform(emptyToUndefined),
     guardianRelation: z.string().trim().max(50, 'Max 50 characters').optional().transform(emptyToUndefined),
   })
@@ -58,7 +62,12 @@ export const quickRegisterSchema = z
     if (!v.guardianPhone) {
       ctx.addIssue({ code: 'custom', path: ['guardianPhone'], message: 'Enter the guardian phone' });
     }
-  });
+  })
+  .transform((v) =>
+    v.isMinor
+      ? v
+      : { ...v, guardianName: undefined, guardianPhone: undefined, guardianRelation: undefined },
+  );
 
 export type QuickRegisterValues = z.input<typeof quickRegisterSchema>;
 export type QuickRegisterOutput = z.output<typeof quickRegisterSchema>;

@@ -1,6 +1,7 @@
 import type { ApiResponse } from '@/core/types';
 import { staffApi } from '@/staff/lib/api';
 
+import { patientQueryParams } from '../lib/patient-query';
 import type {
   CheckPhoneResult,
   CreatePatientInput,
@@ -15,7 +16,7 @@ import type {
 
 /** `GET /patients` — undefined query values are dropped by axios. */
 export async function fetchPatients(query: PatientQuery): Promise<PatientPage> {
-  const res = await staffApi.get<ApiResponse<PatientPage>>('/patients', { params: query });
+  const res = await staffApi.get<ApiResponse<PatientPage>>('/patients', { params: patientQueryParams(query) });
   return res.data.data;
 }
 

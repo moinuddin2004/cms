@@ -1,20 +1,22 @@
 /**
- * Masks the middle of a phone number for list rows (docs/06 S-04):
- * `03001234567` → `0300•••4567` (first 4 + last 4 kept). Shorter numbers keep
- * less so something is always hidden: 7–8 chars keep 2 + 2, ≤ 6 keep only the
- * last 2 (or nothing for a single character). Empty / null → `''`.
+ * Masks the middle of a phone number for list rows (docs/06 S-04), on digits
+ * only (separators and spaces are ignored; a leading `+` is kept):
+ * `03001234567` → `0300•••4567`, `+923001234567` → `+9230•••4567`.
+ * 4 + 4 digits are shown only when at least 4 digits stay hidden (≥ 12 digits);
+ * otherwise 2 + 2 (≥ 5 digits). With ≤ 4 digits only the last 2 are kept
+ * (nothing for a single digit). Empty / null / no digits → `''`.
  */
 const HIDDEN = '•••';
 
 export function maskPhone(phone: string | null | undefined): string {
-  const chars = Array.from((phone ?? '').trim());
-  if (chars.length === 0) return '';
-  if (chars.length <= 6) {
-    const keep = Math.min(2, chars.length - 1);
-    return HIDDEN + chars.slice(chars.length - keep).join('');
+  const raw = (phone ?? '').trim();
+  const plus = raw.startsWith('+') ? '+' : '';
+  const digits = raw.replace(/\D/g, '');
+  const n = digits.length;
+  if (n === 0) return '';
+  if (n <= 4) {
+    return HIDDEN + digits.slice(n - Math.min(2, n - 1));
   }
-  if (chars.length <= 8) {
-    return chars.slice(0, 2).join('') + HIDDEN + chars.slice(-2).join('');
-  }
-  return chars.slice(0, 4).join('') + HIDDEN + chars.slice(-4).join('');
+  const edge = n - 8 >= 3 ? 4 : 2;
+  return plus + digits.slice(0, edge) + HIDDEN + digits.slice(-edge);
 }
