@@ -99,6 +99,12 @@ export const PERMISSIONS = defineCatalog({
     group: 'Patients',
     implies: ['patients.clinical.view'],
   },
+  'patients.app_link.manage': {
+    feature: 'patient_app',
+    label: 'Link patients to the app',
+    group: 'Patients',
+    risk: 'high',
+  },
 
   // ── Patient extras ──
   'patients.documents.manage': {
@@ -154,6 +160,11 @@ export const PERMISSIONS = defineCatalog({
     group: 'Appointments',
     implies: ['appointments.book'],
     risk: 'high',
+  },
+  'appointments.requests.manage': {
+    feature: 'patient_app',
+    label: 'Handle patient appointment requests',
+    group: 'Appointments',
   },
 
   // ── Queue (appointments.core) ──
