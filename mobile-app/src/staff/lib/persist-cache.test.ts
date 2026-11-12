@@ -32,7 +32,36 @@ describe('staff persisted cache', () => {
     expect(await createStaffPersister(reopened).restoreClient()).toBeUndefined();
   });
 
-  it('ignores a late throttled write after sign-out', async () => {
+  it('drops a throttled write queued BEFORE the wipe that fires after it', async () => {
+    const cache = await openSecureCache('staff');
+    const setSpy = jest.spyOn(cache, 'set');
+    const removeSpy = jest.spyOn(cache, 'remove');
+    const persister = createStaffPersister(cache);
+
+    await persister.persistClient(client('queued')); // throttle timer started, nothing written yet
+    expect(setSpy).not.toHaveBeenCalled();
+    await wipeStaffPersistedCache();
+    setSpy.mockClear();
+    removeSpy.mockClear();
+    await flushThrottle(); // the trailing write fires now
+
+    expect(setSpy).not.toHaveBeenCalled(); // no `set` on the old instance
+    expect(removeSpy).not.toHaveBeenCalled();
+  });
+
+  it('a persister created after sign-out is not sealed by it', async () => {
+    const old = createStaffPersister(await openSecureCache('staff'));
+    await wipeStaffPersistedCache();
+    const fresh = createStaffPersister(await openSecureCache('staff'));
+    await fresh.persistClient(client('new-login'));
+    await flushThrottle();
+    expect((await fresh.restoreClient())?.buster).toBe('new-login');
+    await old.persistClient(client('stale'));
+    await flushThrottle();
+    expect((await fresh.restoreClient())?.buster).toBe('new-login');
+  });
+
+  it('ignores a persistClient call that arrives after sign-out', async () => {
     const cache = await openSecureCache('staff');
     const persister = createStaffPersister(cache);
     await wipeStaffPersistedCache();

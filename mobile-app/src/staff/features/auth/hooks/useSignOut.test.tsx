@@ -30,12 +30,18 @@ describe('useSignOut', () => {
   it('wipes the staff cache, clears the client and leaves the space', async () => {
     (logout as jest.Mock).mockRejectedValueOnce(new Error('offline'));
     const { result, queryClient } = await setup();
+    const clearSpy = jest.spyOn(queryClient, 'clear');
     await act(async () => {
       await result.current.mutateAsync();
     });
 
     expect(dropSession).toHaveBeenCalled();
     expect(wipeStaffPersistedCache).toHaveBeenCalledTimes(1);
+    // The wipe (which seals the persister) must run BEFORE the in-memory clear.
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    expect((wipeStaffPersistedCache as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      clearSpy.mock.invocationCallOrder[0],
+    );
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
     expect(switchSpace).toHaveBeenCalledWith(null);
   });

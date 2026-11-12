@@ -1,5 +1,8 @@
 import type { Query, QueryKey } from '@tanstack/react-query';
-import type { PersistQueryClientProviderProps } from '@tanstack/react-query-persist-client';
+import type {
+  PersistedClient,
+  PersistQueryClientProviderProps,
+} from '@tanstack/react-query-persist-client';
 
 import { formatTime, todayYmd } from '@/staff/lib/datetime';
 
@@ -13,8 +16,8 @@ import { formatTime, todayYmd } from '@/staff/lib/datetime';
  */
 export const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000;
 
-const isPrimitive = (v: unknown) =>
-  v === null || ['string', 'number', 'boolean', 'undefined'].includes(typeof v);
+/** Patient details kept on disk (docs/02 §9): the newest by `dataUpdatedAt`. */
+export const MAX_PERSISTED_PATIENT_DETAILS = 20;
 
 /** Pure allow-list: may a query with this key be written to disk on `today` (clinic YYYY-MM-DD)? */
 export function isPersistableKey(key: QueryKey, today: string): boolean {
@@ -25,8 +28,15 @@ export function isPersistableKey(key: QueryKey, today: string): boolean {
     case 'queue':
       return (kind === 'my-session' || kind === 'board') && key[3] === today;
     case 'appointments':
-      // Today's schedule only; a key holding an object (filters / search) never qualifies.
-      return key.every(isPrimitive) && key.includes(today);
+      // Exactly ['appointments', 'list', orgId, locationId, today] — nothing else
+      // (no filter objects, no search text, no detail keys that happen to hold a date).
+      return (
+        key.length === 5 &&
+        kind === 'list' &&
+        typeof key[2] === 'string' &&
+        typeof key[3] === 'string' &&
+        key[4] === today
+      );
     case 'patients':
       return kind === 'detail';
     default:
@@ -46,6 +56,26 @@ export const staffDehydrateOptions: NonNullable<
   // There is no write queue (docs/02 §9): paused mutations are never saved.
   shouldDehydrateMutation: () => false,
 };
+
+/** Keep only the newest `MAX_PERSISTED_PATIENT_DETAILS` patient details in a persisted client. */
+export function trimPersistedClient<T extends PersistedClient>(persisted: T): T {
+  const isDetail = (q: { queryKey: QueryKey }) =>
+    q.queryKey[0] === 'patients' && q.queryKey[1] === 'detail';
+  const details = persisted.clientState.queries.filter(isDetail);
+  if (details.length <= MAX_PERSISTED_PATIENT_DETAILS) return persisted;
+  const keep = new Set(
+    [...details]
+      .sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt)
+      .slice(0, MAX_PERSISTED_PATIENT_DETAILS),
+  );
+  return {
+    ...persisted,
+    clientState: {
+      ...persisted.clientState,
+      queries: persisted.clientState.queries.filter((q) => !isDetail(q) || keep.has(q)),
+    },
+  };
+}
 
 interface BusterParts {
   appVersion: string;

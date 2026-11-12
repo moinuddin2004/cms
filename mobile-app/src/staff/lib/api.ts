@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 import { env } from '@/core/env';
+import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 import { clearRefreshToken, getRefreshToken, setRefreshToken } from '@/staff/lib/session';
 import {
   useStaffAuthStore,
@@ -86,6 +87,12 @@ async function doRefresh(): Promise<SessionPayload | null> {
     const status = (err as AxiosError).response?.status;
     // 401/403 = the session is gone. Anything else (no response, 5xx) = try later.
     if (status === 401 || status === 403) {
+      // Forced sign-out: the encrypted offline cache goes with the session.
+      try {
+        await wipeStaffPersistedCache();
+      } catch {
+        // still drop the session; the cache is keyed to this user and busts on next login
+      }
       await dropSession();
       return null;
     }

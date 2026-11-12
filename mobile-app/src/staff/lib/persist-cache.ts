@@ -3,6 +3,8 @@ import type { Persister } from '@tanstack/react-query-persist-client';
 import { openSecureCache, wipeSecureCache } from '@/core/storage/secure-cache';
 import { createSecureQueryPersister } from '@/core/storage/query-persister';
 
+import { trimPersistedClient } from './persist';
+
 /** A persister that reads nothing and writes nothing (identity not known yet, or signing out). */
 export const idlePersister: Persister = {
   persistClient: () => undefined,
@@ -10,27 +12,29 @@ export const idlePersister: Persister = {
   removeClient: () => undefined,
 };
 
-let sealed = false;
+/** One seal per live persister instance; sign-out seals them all (never a module-wide flag). */
+const liveSeals = new Set<{ sealed: boolean }>();
 
 /**
  * The staff persister over the encrypted cache. TanStack throttles writes, so a
- * trailing write could land after sign-out; `sealStaffPersist` stops it.
+ * trailing write could land after sign-out: the seal is checked inside the
+ * storage `setItem`/`removeItem` (at write time), not when `persistClient` is called.
  */
 export function createStaffPersister(cache: Parameters<typeof createSecureQueryPersister>[0]): Persister {
-  sealed = false; // a new sign-in
-  const inner = createSecureQueryPersister(cache);
+  const seal = { sealed: false };
+  liveSeals.add(seal);
+  const inner = createSecureQueryPersister(cache, undefined, () => !seal.sealed);
   return {
-    persistClient: (client) => {
-      if (!sealed) return inner.persistClient(client);
-    },
+    persistClient: (client) => inner.persistClient(trimPersistedClient(client)),
     restoreClient: () => inner.restoreClient(),
     removeClient: () => inner.removeClient(),
   };
 }
 
-/** Sign-out: remove the persisted client, stop late writes, then wipe the encrypted cache and its key. */
+/** Sign-out: seal every live persister, remove the persisted client, then wipe the encrypted cache and its key. */
 export async function wipeStaffPersistedCache(): Promise<void> {
-  sealed = true;
+  for (const seal of liveSeals) seal.sealed = true;
+  liveSeals.clear();
   try {
     await createSecureQueryPersister(await openSecureCache('staff')).removeClient();
   } finally {
