@@ -580,6 +580,16 @@ MOB · S · Depends: — · Branch `mobile/M1-11a-patients-api`
 
 ---
 
+### M1-06b — Cached staff data on an offline cold start (follow-up)
+
+MOB · S · Depends: M1-06 · Branch `mobile/M1-06b-offline-start` · Status: spec (architect expands when needed)
+
+Today an offline cold start shows the staff offline screen even when a persisted cache exists. Follow-up: read the identity
+hint from the **encrypted** staff cache (the persisted client's buster), never from prefs; offer "Open saved data" read-only only
+when the refresh failed with a **network error**, never after 401/403.
+
+---
+
 ### M1-07 — Queue data layer (hooks only — types/api/logic are M1-07a)
 
 MOB · M · Depends: M1-03, M1-06, M1-07a · Branch `mobile/M1-07-queue-data`

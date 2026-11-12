@@ -261,8 +261,10 @@ Responses are always `ApiResponse<T>`; API functions unwrap `res.data.data` and 
   is foregrounded and the user is not on the notifications screen.
 - App goes to background → disconnect after 30 s. Foreground → reconnect, then invalidate all
   realtime-driven keys once (we may have missed events).
-- Token refresh → reconnect with the new token. `connect_error` with an auth reason → trigger
-  `refreshSession()` once, then reconnect.
+- No reconnect on token refresh: the gateway checks the JWT only at the handshake, and the `auth` callback hands the
+  fresh token to any later reconnect. `auth_error` → `refreshSession()` once, then reconnect (M1-03 review).
+- Status is `live` only after the org-room subscribe ack is `ok`.
+- Compare `seq` **per cached snapshot**: invalidate each key whose own `eventSeq` is missing or below the event's.
 - Location switch → leave old rooms, join new ones.
 
 ### Patient (`patient/lib/realtime.ts`, M3-06)
@@ -292,6 +294,7 @@ Namespace `/patient-realtime`, patient token, rooms `patient:<accountId>` (serve
 
 - `core/network/useOnline()` from NetInfo (already wired into TanStack `onlineManager`).
 - `OfflineBanner` (core component) shows on every screen of a space when offline.
+- The staff `QueryClient` uses `gcTime` 24 h (must be ≥ the persist `maxAge`, or TanStack drops and un-persists inactive queries).
 - Persisted queries: each space has an allow-list (`staff/lib/persist.ts`,
   `patient/lib/persist.ts`). Persist only queries whose keys are listed. Max age 24 h. Buster =
   `${appVersion}:${spaceUserId}:${orgId ?? ''}:${locationId ?? ''}`.

@@ -1625,3 +1625,13 @@ Branch: four rework branches verified against every finding   Status set to: all
 ### Notes for the next task
 - M2-02's int spec and the M2-01 change file still need one run on a disposable Postgres.
 
+---
+## REVIEW round 8 (part 1): M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
+Branch: reviewed `mobile/M1-03-staff-realtime`, `mobile/M1-06-offline` (reviewer agent each; Majors verified in code)   Status set to: both changes-requested
+
+### Done
+- M1-03: realtime dies after a second effect run (permanent dispose); stale check uses max seq across caches. M1-06: throttled
+  trailing write lands after the wipe; gcTime 10 min defeats the 24 h cache. Details in `reviews/<ID>/review.md`.
+- 02 §7 (no token-driven reconnect, live after ack, per-snapshot seq) and §9 (staff gcTime 24 h) updated. New follow-up card M1-06b.
+- M2-02b and M2-03 not handed off yet (uncommitted work in folders C and D).
+

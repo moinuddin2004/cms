@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 1 — Staff space · **Next up:** round 8 — M1-03 (A), M1-06 (B), M2-02b (C), M2-03 (D) · **Device:** M0-D open (must pass before Gate A) · **DB:** run M2-01 change file + M2-02 int spec on a disposable Postgres · Updated 2026-11-12
+**Current phase:** 1 — Staff space · **Next up:** reworks M1-03 (A), M1-06 (B) · M2-02b (C), M2-03 (D) still uncommitted · **Device:** M0-D open (must pass before Gate A) · **DB:** run M2-01 change file + M2-02 int spec on a disposable Postgres · Updated 2026-11-12
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -29,12 +29,13 @@
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
 | M1-01 | Core component kit | MOB | L | M0-05 | done (in develop) | mobile/M1-01-core-kit | DeepSeek Flash | 2026-11-11 |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01 | done (in develop) | mobile/M1-02-staff-shell | | 2026-11-11 |
-| M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
+| M1-03 | Staff realtime client | MOB | M | M1-02 | changes-requested | | | |
 | M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (in develop) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
 | M1-04a | Push follow-ups (quiet hours, web label, Node engine) | BE+WEB | S | M1-04 | done (in develop) | mobile/M1-04a-push-followups | DeepSeek Flash | 2026-11-11 |
 | M1-05 | Push registration + tap routing | MOB | M | M1-04, M0-07 | ready | | | |
 | M1-06a | Idempotent mutation + online state | MOB | S | — | done (in develop) | mobile/M1-06a-idempotent | | 2026-11-11 |
-| M1-06 | Offline cache (persistence, banner, wipe) | MOB | M | M0-03, M1-02, M1-06a | ready | | | |
+| M1-06 | Offline cache (persistence, banner, wipe) | MOB | M | M0-03, M1-02, M1-06a | changes-requested | | | |
+| M1-06b | Cached data on offline cold start | MOB | S | M1-06 | spec | | | |
 | M1-07a | Queue types, API, keys, pure logic | MOB | M | — | done (in develop) | mobile/M1-07a-queue-api | | 2026-11-11 |
 | M1-07 | Queue hooks | MOB | M | M1-03, M1-06, M1-07a | ready | | | |
 | M1-08 | Doctor queue screen | MOB | L | M1-07 | ready | | | |
