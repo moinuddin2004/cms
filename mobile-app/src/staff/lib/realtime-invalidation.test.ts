@@ -2,7 +2,6 @@ import { QueryClient } from '@tanstack/react-query';
 
 import {
   COALESCE_MS,
-  cachedEventSeq,
   createRealtimeInvalidator,
   queueEventKeys,
 } from './realtime-invalidation';
@@ -22,15 +21,14 @@ describe('realtime invalidation', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  it('maps a queue event to the session, board, my-session, next-preview and ticket keys', () => {
-    expect(queueEventKeys({ sessionId: SID, entryId: 'e1' })).toEqual([
+  it('maps a queue event to the session, next-preview and ticket keys (nothing cached)', () => {
+    const { client } = setup();
+    expect(queueEventKeys(client, { sessionId: SID, entryId: 'e1', seq: 1 })).toEqual([
       ['queue', 'session', SID],
       ['queue', 'next-preview', SID],
-      ['queue', 'board'],
-      ['queue', 'my-session'],
       ['queue', 'ticket', 'e1'],
     ]);
-    expect(queueEventKeys({ sessionId: SID, entryId: null })).toHaveLength(4);
+    expect(queueEventKeys(client, { sessionId: SID, entryId: null, seq: 1 })).toHaveLength(2);
   });
 
   it('access.changed invalidates the access keys', () => {
@@ -54,35 +52,47 @@ describe('realtime invalidation', () => {
     expect(invalidatedKeys(spy)).toEqual([['queue'], ['access'], ['notifications']]);
   });
 
-  it('ignores a queue event whose seq is not newer than the cached snapshot', () => {
+  it('skips a session snapshot already at or above the event seq', () => {
     const { client, spy, inv } = setup();
     client.setQueryData(['queue', 'session', SID], { session: { id: SID, eventSeq: 7 } });
 
     inv.queueEvent({ sessionId: SID, seq: 7 });
     inv.queueEvent({ sessionId: SID, seq: 3 });
     jest.advanceTimersByTime(COALESCE_MS);
-    expect(spy).not.toHaveBeenCalled();
-
-    inv.queueEvent({ sessionId: SID, seq: 8 });
-    jest.advanceTimersByTime(COALESCE_MS);
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('reads the cached seq from board lanes too, and invalidates when nothing is cached', () => {
-    const { client, spy, inv } = setup();
-    expect(cachedEventSeq(client, SID)).toBeUndefined();
-    inv.queueEvent({ sessionId: SID, seq: 1 });
-    jest.advanceTimersByTime(COALESCE_MS);
-    expect(spy).toHaveBeenCalled();
+    expect(invalidatedKeys(spy)).not.toContainEqual(['queue', 'session', SID]);
 
     spy.mockClear();
-    client.setQueryData(['queue', 'board', 'l1', '2026-11-13'], {
+    inv.queueEvent({ sessionId: SID, seq: 8 });
+    jest.advanceTimersByTime(COALESCE_MS);
+    expect(invalidatedKeys(spy)).toContainEqual(['queue', 'session', SID]);
+  });
+
+  it('compares seq per key: board ahead, session behind refreshes only the session', () => {
+    const { client, spy, inv } = setup();
+    const boardKey = ['queue', 'board', 'l1', '2026-11-13'];
+    client.setQueryData(['queue', 'session', SID], { session: { id: SID, eventSeq: 4 } });
+    client.setQueryData(boardKey, {
       lanes: [{ doctor: {}, snapshot: { session: { id: SID, eventSeq: 9 } } }],
     });
-    expect(cachedEventSeq(client, SID)).toBe(9);
+
     inv.queueEvent({ sessionId: SID, seq: 9 });
     jest.advanceTimersByTime(COALESCE_MS);
-    expect(spy).not.toHaveBeenCalled();
+    const keys = invalidatedKeys(spy);
+    expect(keys).toContainEqual(['queue', 'session', SID]);
+    expect(keys).not.toContainEqual(boardKey);
+  });
+
+  it('refreshes a board that is behind or lacks the session', () => {
+    const { client, spy, inv } = setup();
+    const behindKey = ['queue', 'board', 'l1', 'a'];
+    const missingKey = ['queue', 'board', 'l1', 'b'];
+    client.setQueryData(behindKey, {
+      lanes: [{ doctor: {}, snapshot: { session: { id: SID, eventSeq: 2 } } }],
+    });
+    client.setQueryData(missingKey, { lanes: [] });
+    inv.queueEvent({ sessionId: SID, seq: 5 });
+    jest.advanceTimersByTime(COALESCE_MS);
+    expect(invalidatedKeys(spy)).toEqual(expect.arrayContaining([behindKey, missingKey]));
   });
 
   it('coalesces a burst into one invalidation per key per 300 ms window', () => {
@@ -96,8 +106,8 @@ describe('realtime invalidation', () => {
 
     jest.advanceTimersByTime(1);
     const keys = invalidatedKeys(spy);
-    expect(keys).toHaveLength(6); // 5 queue keys + access, each once
-    expect(new Set(keys.map((k) => JSON.stringify(k))).size).toBe(6);
+    expect(keys).toHaveLength(4); // session, next-preview, ticket + access, each once
+    expect(new Set(keys.map((k) => JSON.stringify(k))).size).toBe(4);
 
     spy.mockClear();
     inv.accessChanged(); // a new window

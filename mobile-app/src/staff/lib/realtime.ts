@@ -2,6 +2,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { io, type Socket } from 'socket.io-client';
 
 import { env } from '@/core/env';
+import { log } from '@/core/log';
 
 import type { RealtimeInvalidator, QueueRealtimeEvent } from './realtime-invalidation';
 
@@ -21,7 +22,12 @@ export function createStaffSocket(getToken: () => string | null): Socket {
   });
 }
 
-type NotificationHandler = (e: { id?: string; title?: string }) => void;
+export interface NotificationEvent {
+  id?: string;
+  title?: string;
+  organizationId?: string;
+}
+type NotificationHandler = (e: NotificationEvent) => void;
 
 export interface StaffRealtimeDeps {
   getToken: () => string | null;
@@ -46,7 +52,6 @@ export class StaffRealtime {
   private connected = false;
   private everConnected = false;
   private authRetried = false;
-  private tokenUsed: string | null = null;
   private backgroundTimer: ReturnType<typeof setTimeout> | null = null;
   private backgroundedAt: number | null = null;
   private disposed = false;
@@ -78,18 +83,17 @@ export class StaffRealtime {
 
   // ---------- connection ----------
   connect(): void {
-    if (this.disposed) return;
+    // Reversible: a second effect run (StrictMode / Fast Refresh) after dispose() reconnects.
+    this.disposed = false;
     if (this.socket) {
       if (!this.socket.connected && !this.socket.active) this.socket.connect();
       return;
     }
     const socket = (this.deps.createSocket ?? createStaffSocket)(this.deps.getToken);
     this.socket = socket;
-    this.tokenUsed = this.deps.getToken();
 
     socket.on('connect', () => {
-      this.tokenUsed = this.deps.getToken();
-      this.setConnected(true);
+      // Not `live` yet: that waits for the org-room subscribe ack (token accepted).
       this.rooms.forEach((_n, room) => this.emitSubscribe(room));
       // A reconnect: events may have been missed while we were away.
       if (this.everConnected) this.deps.invalidator.all();
@@ -100,7 +104,7 @@ export class StaffRealtime {
     socket.on('auth_error', () => this.onAuthError());
     socket.on('queue.event', (e: QueueRealtimeEvent) => this.deps.invalidator.queueEvent(e));
     socket.on('access.changed', () => this.deps.invalidator.accessChanged());
-    socket.on('notification.new', (e: { id?: string; title?: string }) => {
+    socket.on('notification.new', (e: NotificationEvent) => {
       this.deps.invalidator.notificationNew();
       this.onNotification?.(e);
     });
@@ -118,11 +122,6 @@ export class StaffRealtime {
     if (!this.socket) return this.connect();
     this.socket.disconnect();
     this.socket.connect();
-  }
-
-  /** Reconnect only when the access token changed since this connection's handshake. */
-  reconnectIfTokenChanged(): void {
-    if (this.socket && this.deps.getToken() !== this.tokenUsed) this.reconnect();
   }
 
   /**
@@ -168,8 +167,13 @@ export class StaffRealtime {
     const socket = this.socket;
     if (!socket?.connected) return; // joined on the next 'connect'
     socket.emit('subscribe', { room }, (ack?: { ok?: boolean }) => {
-      // An accepted org room proves the token was good: allow a future auth retry.
-      if (ack?.ok && room.startsWith('org:')) {
+      if (!ack?.ok) {
+        // Retried on the next connect (every connect re-subscribes all rooms).
+        log.warn(`realtime: subscribe refused for ${room}`);
+        return;
+      }
+      // An accepted org room proves the token was good: now `live`, allow a future auth retry.
+      if (room.startsWith('org:')) {
         this.authRetried = false;
         this.setConnected(true);
       }
@@ -215,6 +219,8 @@ export class StaffRealtime {
     this.socket = null;
     this.rooms.clear();
     this.connected = false;
-    this.listeners.clear();
+    this.everConnected = false;
+    this.authRetried = false;
+    this.listeners.forEach((l) => l());
   }
 }

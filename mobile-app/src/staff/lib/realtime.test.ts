@@ -152,17 +152,58 @@ describe('StaffRealtime', () => {
     expect(socket.connect).toHaveBeenCalledTimes(1);
   });
 
-  it('reconnects with the new token only when it changed', () => {
-    let token = 'a';
-    const { socket, realtime } = setup({ token: () => token });
+  it('is live only after the org-room subscribe ack is ok', () => {
+    const { socket, realtime } = setup();
+    realtime.joinRoom('org:o1');
+    realtime.connect();
+    socket.emit = jest.fn((event: string, payload: unknown, ack?: Handler) => {
+      socket.emits.push({ event, payload });
+      ack?.({ ok: false });
+    });
+    socket.serverConnect();
+    expect(realtime.isConnected()).toBe(false); // connected, ack refused
+
+    socket.emit = jest.fn((event: string, payload: unknown, ack?: Handler) => {
+      socket.emits.push({ event, payload });
+      ack?.({ ok: true });
+    });
+    socket.connected = false;
+    socket.fire('disconnect');
+    socket.serverConnect(); // the next connect retries the subscribe
+    expect(realtime.isConnected()).toBe(true);
+  });
+
+  it('is not live on connect alone (no org room joined yet)', () => {
+    const { socket, realtime } = setup();
     realtime.connect();
     socket.serverConnect();
-    realtime.reconnectIfTokenChanged();
-    expect(socket.disconnect).not.toHaveBeenCalled();
-    token = 'b';
-    realtime.reconnectIfTokenChanged();
-    expect(socket.disconnect).toHaveBeenCalledTimes(1);
-    expect(socket.connect).toHaveBeenCalledTimes(2);
+    expect(realtime.isConnected()).toBe(false);
+  });
+
+  it('can connect again after dispose (StrictMode second effect run)', () => {
+    const sockets: FakeSocket[] = [];
+    const realtime = new StaffRealtime({
+      getToken: () => 't',
+      refreshSession: async () => null,
+      invalidator: {
+        queueEvent: jest.fn(),
+        accessChanged: jest.fn(),
+        notificationNew: jest.fn(),
+        all: jest.fn(),
+        dispose: jest.fn(),
+      },
+      createSocket: () => {
+        const s = new FakeSocket();
+        sockets.push(s);
+        return s as unknown as Socket;
+      },
+    });
+    realtime.connect();
+    realtime.dispose();
+    realtime.connect();
+    expect(sockets).toHaveLength(2);
+    expect(sockets.filter((s) => s.active)).toHaveLength(1);
+    expect(sockets[0].disconnect).toHaveBeenCalled();
   });
 
   it('disconnects 30 s after backgrounding and reconnects + invalidates on foreground', () => {

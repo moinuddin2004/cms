@@ -56,7 +56,12 @@ export function StaffRealtimeProvider({ children }: { children: ReactNode }) {
       if (AppState.currentState !== 'active') return;
       if (isNotificationsPath(pathname)) return;
       // Title only: the body can carry patient details (docs/03).
-      toast(e.title || 'New notification');
+      const active = useStaffAuthStore.getState().activeOrganizationId;
+      const otherClinic = Boolean(e.organizationId && active && e.organizationId !== active);
+      toast(e.title || 'New notification', {
+        ...(e.id ? { id: `notification-${e.id}` } : {}),
+        ...(otherClinic ? { description: 'Another clinic' } : {}),
+      });
     });
   }, [client, pathname]);
 
@@ -64,12 +69,9 @@ export function StaffRealtimeProvider({ children }: { children: ReactNode }) {
     const { realtime, invalidator } = client;
     realtime.connect();
     const detachLifecycle = realtime.attachAppLifecycle();
-    // A refreshed access token → reconnect so the handshake carries it.
-    const unsubscribeToken = useStaffAuthStore.subscribe((s, prev) => {
-      if (s.accessToken !== prev.accessToken && s.accessToken) realtime.reconnectIfTokenChanged();
-    });
+    // No token-driven reconnect: the socket's `auth` callback reads the fresh token on
+    // every handshake, and `auth_error` refreshes + reconnects once.
     return () => {
-      unsubscribeToken();
       detachLifecycle();
       realtime.dispose();
       invalidator.dispose();

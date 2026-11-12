@@ -22,7 +22,6 @@ jest.mock('./realtime', () => ({
     isConnected = () => false;
     connect = jest.fn();
     attachAppLifecycle = () => () => {};
-    reconnectIfTokenChanged = jest.fn();
     dispose = jest.fn();
     setOnNotification = jest.fn();
     joinRoom = (room: string) => {

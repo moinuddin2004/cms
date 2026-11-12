@@ -21,14 +21,44 @@ export interface QueueRealtimeEvent {
 /** Coalescing window: a key is invalidated at most once per window. */
 export const COALESCE_MS = 300;
 
-/** The query keys a queue event makes stale (the single mapping table for queue). */
-export function queueEventKeys(e: Pick<QueueRealtimeEvent, 'sessionId' | 'entryId'>): QueryKey[] {
-  const keys: QueryKey[] = [
-    queueKeys.session(e.sessionId),
-    queueKeys.nextPreview(e.sessionId),
-    [...queueKeys.all, 'board'],
-    [...queueKeys.all, 'my-session'],
-  ];
+/** The seq a cached snapshot holds, if it is the given session's. */
+const seqOf = (snap: SessionSnapshot | null | undefined, sessionId: string): number | undefined =>
+  snap?.session?.id === sessionId && typeof snap.session.eventSeq === 'number'
+    ? snap.session.eventSeq
+    : undefined;
+
+/** A key is stale when its own cached seq is missing or older than the event's. */
+const behind = (have: number | undefined, seq: number) => have === undefined || have < seq;
+
+/**
+ * The query keys a queue event makes stale. The seq is compared PER cached
+ * snapshot (session, each board, each my-session): a key already at or above
+ * the event's seq is skipped, one that is behind or has no seq is refreshed.
+ */
+export function queueEventKeys(
+  queryClient: QueryClient,
+  e: Pick<QueueRealtimeEvent, 'sessionId' | 'entryId' | 'seq'>,
+): QueryKey[] {
+  const keys: QueryKey[] = [];
+
+  const own = queryClient.getQueryData<SessionSnapshot>(queueKeys.session(e.sessionId));
+  if (behind(seqOf(own, e.sessionId), e.seq)) keys.push(queueKeys.session(e.sessionId));
+
+  keys.push(queueKeys.nextPreview(e.sessionId));
+
+  for (const [key, board] of queryClient.getQueriesData<BoardResponse>({
+    queryKey: queueKeys.boardAll(),
+  })) {
+    const lane = board?.lanes?.find((l) => l.snapshot?.session.id === e.sessionId);
+    if (behind(seqOf(lane?.snapshot, e.sessionId), e.seq)) keys.push(key);
+  }
+
+  for (const [key, mine] of queryClient.getQueriesData<SessionSnapshot | null>({
+    queryKey: queueKeys.mySessionAll(),
+  })) {
+    if (behind(seqOf(mine, e.sessionId), e.seq)) keys.push(key);
+  }
+
   if (e.entryId) keys.push(queueKeys.ticket(e.entryId));
   return keys;
 }
@@ -39,44 +69,6 @@ export const ALL_REALTIME_KEYS: readonly QueryKey[] = [
   accessKeys.all,
   notificationKeys.all,
 ];
-
-/**
- * The newest `eventSeq` the cache holds for a session (its own snapshot, the
- * board lanes, or my-session), or `undefined` when nothing is cached.
- */
-export function cachedEventSeq(queryClient: QueryClient, sessionId: string): number | undefined {
-  const seqs: number[] = [];
-
-  const own = queryClient.getQueryData<SessionSnapshot>(queueKeys.session(sessionId));
-  if (typeof own?.session?.eventSeq === 'number') seqs.push(own.session.eventSeq);
-
-  for (const [, board] of queryClient.getQueriesData<BoardResponse>({
-    queryKey: [...queueKeys.all, 'board'],
-  })) {
-    for (const lane of board?.lanes ?? []) {
-      const snap = lane.snapshot;
-      if (snap?.session.id === sessionId && typeof snap.session.eventSeq === 'number') {
-        seqs.push(snap.session.eventSeq);
-      }
-    }
-  }
-
-  for (const [, mine] of queryClient.getQueriesData<SessionSnapshot | null>({
-    queryKey: [...queueKeys.all, 'my-session'],
-  })) {
-    if (mine?.session?.id === sessionId && typeof mine.session.eventSeq === 'number') {
-      seqs.push(mine.session.eventSeq);
-    }
-  }
-
-  return seqs.length ? Math.max(...seqs) : undefined;
-}
-
-/** True when the event is not newer than what the cache already holds. */
-export function isStaleQueueEvent(queryClient: QueryClient, e: QueueRealtimeEvent): boolean {
-  const have = cachedEventSeq(queryClient, e.sessionId);
-  return have !== undefined && e.seq <= have;
-}
 
 export interface RealtimeInvalidator {
   queueEvent: (e: QueueRealtimeEvent) => void;
@@ -113,8 +105,7 @@ export function createRealtimeInvalidator(
 
   return {
     queueEvent: (e) => {
-      if (isStaleQueueEvent(queryClient, e)) return;
-      request(queueEventKeys(e));
+      request(queueEventKeys(queryClient, e));
     },
     accessChanged: () => request([accessKeys.all]),
     notificationNew: () => request([notificationKeys.all]),
