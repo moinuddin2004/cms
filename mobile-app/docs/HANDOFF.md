@@ -1662,3 +1662,21 @@ none
 ### Questions for the architect
 - Buster needs user/org/location, which exist only after a successful silent refresh. A cold start in airplane mode ends in `unreachable` (offline screen), so the cached board is not shown. Persisting a non-secret "last identity" hint in prefs would fix it — want that as a follow-up card?
 - Remount of the Stack on location switch acceptable? Alternative: manual `persistQueryClientRestore` controller outside the Stack.
+
+---
+
+## Rework M1-06 #1 — 2026-11-13
+Branch: `mobile/M1-06-offline` · Status set to: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Seal checked at call time, not write time | `createSecureQueryPersister(cache, key, canWrite)` — the storage `setItem`/`removeItem` are no-ops when `canWrite()` is false. The seal is per persister instance (`{ sealed }` in a `liveSeals` set); `wipeStaffPersistedCache` seals every live instance, so there is no module-global flag reset in render. Tests: persistClient → wipe → advance timers → no `set`/`remove` on the old MMKV instance; a persister created after sign-out is not sealed. |
+| 2 | gcTime 10 min < maxAge 24 h | `createQueryClient({ gcTime })` option (default 10 min, other defaults unchanged); `staffQueryClient` passes `PERSIST_MAX_AGE`. New `create-query-client.test.ts`. |
+| 3 | Last 20 patient details | Done (cheap). `trimPersistedClient` (persist.ts) keeps the 20 newest `patients/detail` by `dataUpdatedAt`; applied inside the staff persister's `persistClient`. `shouldDehydrateQuery` cannot see sibling queries, so it is done on the dehydrated client, not there. Tested end to end. |
+| 4 | Appointments rule too loose | Matches exactly `['appointments','list', orgId, locationId, today]`. No appointments feature/key factory exists yet, so there is none to consume; the appointments card must build this exact shape (tests added for wrong shapes). |
+| 5 | "Never written" proven on the predicate only | New `persist-e2e.test.ts`: real `persistQueryClientSave` + `staffDehydrateOptions` + persister over mock MMKV. Seeds allowed keys and forbidden ones (patient list, check-phone, theme, history, an errored detail, yesterday's board/appointments); parses the stored JSON and asserts only the allowed keys are there, no phone/search text, no mutations. |
+| 6 | Forced sign-out did not wipe | `doRefresh` (401/403) calls `wipeStaffPersistedCache()` (failure swallowed) before `dropSession()`. Test in `api.test.ts`. |
+| 7 | Sign-out order not asserted | `useSignOut.test.tsx` asserts the wipe's `invocationCallOrder` is before `queryClient.clear()`. |
+| 8 | Stack remount on location switch | Note only: accepted for MVP (`key={persistKey}` remounts navigation on login / location switch). |
+
+Verification: jest 44 suites / 305 tests green; typecheck clean; eslint `src` 0 errors (3 old warnings); lint:fences ok.
