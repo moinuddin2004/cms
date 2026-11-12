@@ -457,6 +457,8 @@ MOB · M · Depends: M1-04, M0-07 · Branch `mobile/M1-05-push`
 **Read first:** SDK 58 `expo-notifications` docs (permissions, `getExpoPushTokenAsync` needs `projectId`
 from EAS config, Android channels, response listeners, cold-start `getLastNotificationResponse`).
 
+**Note:** reuse `staff/lib/link-router.ts` (`resolveStaffLink`, created in M1-13) for the route map in step 5.
+
 **Steps:**
 1. `core/notifications/permissions.ts`: `getPermissionState()`, `requestPermission()`; never at launch.
 2. `core/notifications/push-token.ts`: `getExpoPushToken()` (returns null on simulator / denied).
@@ -590,25 +592,36 @@ when the refresh failed with a **network error**, never after 401/403.
 
 ---
 
-### M1-07 — Queue data layer (hooks only — types/api/logic are M1-07a)
+### M1-07 — Queue hooks (types/api/logic already exist from M1-07a)
 
-MOB · M · Depends: M1-03, M1-06, M1-07a · Branch `mobile/M1-07-queue-data`
+MOB · M · Depends: M1-03, M1-06, M1-06a, M1-07a · Branch `mobile/M1-07-queue-hooks`
 
-**Goal:** `staff/features/queue` types, api, keys, query hooks and all mutation hooks — no UI.
+**Goal:** React hooks over the existing `staff/features/queue` api — reads that stay live, and one mutation hook per action. No UI.
+
+**Read first:** `src/staff/features/queue/**` (M1-07a: types, `queue.api.ts`, `queue.keys.ts`, `lib/entry-actions.ts`, `lib/queue-errors.ts`),
+`src/staff/lib/realtime-provider.tsx` (`useRoomSubscription`, `useRealtimeStatus`), `src/core/http/idempotent-mutation.ts` (M1-06a),
+`src/staff/lib/datetime.ts` (`todayYmd`), [02 §6–§7](02-architecture.md#6-data-fetching-conventions), [04 §7–§8](04-coding-standards.md#7-queries),
+[07 §2.3](07-backend-contracts.md#23-queue) (headers, error codes), reviews M1-03 and M1-07a.
 
 **Steps:**
-1. `types/queue.types.ts` = views and enums from [07 §2.3](07-backend-contracts.md#23-queue) verbatim.
-2. `api/queue.api.ts`: one function per endpoint in the doctor + board tables and the two appointment arrival endpoints. Mutations take `(vars, { idempotencyKey, ifMatch? })` and set headers.
-3. `api/queue.keys.ts`: `mySession(locId, ymd)`, `board(locId, ymd)`, `session(id)`, `ticket(entryId)`, `patientVisits(patientId)`.
-4. Hooks: `useMySession`, `useBoard`, `useSession(id)`; each subscribes the right room through `useRoomSubscription` and falls back to `refetchInterval: 10_000` while realtime is not `live`.
-5. Mutation hooks (`useCallNext`, `useStartConsultation`, … one per action) built on `useIdempotentMutation`;
-   `onSuccess` invalidates the session/board keys; `onError` maps codes with `queue-errors.ts`
-   (table in 07 §2.3) and handles `VERSION_CONFLICT`/`INVALID_TRANSITION` by invalidating.
-6. `lib/entry-actions.ts`: pure `availableEntryActions(entry, session, perms, viewer: 'doctor'|'board')`
-   → list of action ids, per the tables in [06 S-02a/S-02b](06-screens.md#s-02-queue-tab--staffmaintabsqueuetsx). Exhaustive tests.
+1. Read hooks in `hooks/`: `useMySession()`, `useBoard()`, `useSession(id)`, `useTicket(entryId)`, `usePatientQueueVisits(patientId)`.
+   Keys from `queueKeys` with the active location id + `todayYmd()`. `staleTime: 0`. Each live read subscribes its room
+   (`session:<id>`, `location:<id>:board`) via `useRoomSubscription` **only while mounted**, and sets `refetchInterval: 10_000`
+   while `useRealtimeStatus() !== 'live'` (false when live).
+2. Mutation hooks, one per action in the M1-07a api (`useStartSession`, `usePauseSession`, `useResumeSession`, `useCloseSession`,
+   `useSetSessionMode`, `useCallNext`, `useSelectEntry`, `useRecallEntry`, `useUndoCall`, `useSkipEntry`, `useStartConsultation`,
+   `useSendForTest`, `useCompleteEntry`, `useAbortEntry`, `useWalkIn`, `useOpenSession`, `useCancelEntry`, `useRejoinEntry`,
+   `useReturnFromTest`, `useTransferEntry`, `useMarkUrgent`, `useCheckIn`, `useConvertToWalkIn`). Idem endpoints use
+   `useIdempotentMutation`; entry actions pass `ifMatch: entry.version`; `openSession` is a plain mutation (no key).
+3. `onSuccess`: invalidate the affected session, board and my-session keys (use `queueKeys` prefixes, not literals).
+   `onError`: toast `queueErrorMessage(err)`; when `shouldRefetch(err)` invalidate the same keys. `CallNext` with
+   `reason === 'NO_ELIGIBLE_PATIENT'` → toast "No one is waiting" (not an error).
+4. `useEntryActions(entry, session, viewer)` → `availableEntryActions(entry, session, can, viewer)` with `useAccess().can`.
+5. Export everything from the feature barrel.
+6. Tests (React Testing Library + mocked api module): a read hook subscribes/unsubscribes its room and polls only when not live;
+   a mutation sends one key and reuses it on a 503 LOCK_TIMEOUT retry; `VERSION_CONFLICT` invalidates; `NO_ELIGIBLE_PATIENT` toast.
 
-**Acceptance:** tests for `availableEntryActions` cover every status × viewer × permission combination listed; typecheck green.
-
+**Acceptance:** typecheck + tests green; no component or route added.
 ---
 
 ### M1-08 — Doctor queue screen (S-02a)
@@ -650,16 +663,31 @@ cancel/transfer decisions, doctor picker from `GET /appointments/doctors`).
 
 ---
 
-### M1-11 — Patients list and quick register (S-04)
+### M1-11 — Patients list and quick register (S-04) (data layer already exists from M1-11a)
 
-MOB · M · Depends: M1-01, M1-06 · Branch `mobile/M1-11-patients`
+MOB · M · Depends: M1-01, M1-02, M1-06, M1-11a · Branch `mobile/M1-11-patients-list`
 
-**Steps:** `staff/features/patients`: api/keys/types (from [07 §2.4](07-backend-contracts.md#24-patients-srcpatientspatientscontrollerts-every-id-route-is-scope-checked--404-outside-scope)),
-`usePatientsInfinite(filters)`, S-04 page (search, chips, infinite list, recently opened), quick register
-`FormSheet` with phone-exists check. Masking helper `maskPhone` in `lib/`. Tests for schema and masking.
+**Read first:** [06 S-04](06-screens.md) (wireframe), [05 §6–§8](05-ui-ux-design-system.md) (list patterns, FormSheet), `src/staff/features/patients/**`
+(M1-11a: types, api, keys, `mask-phone`, `quick-register.schema`), `src/core/components/**` (kit), `src/core/http`, reviews M1-11a and M1-06
+(never persist list/search keys).
 
-**Acceptance:** search, filters, infinite scroll, empty vs no-results states, quick register → opens S-05 stub.
+**Steps:**
+1. Hooks: `usePatientsInfinite(filters)` (`useInfiniteQuery`, page size 20, `getNextPageParam` from `page < totalPages`), `useCheckPhone(phone)`
+   (enabled on blur, debounced), `useQuickRegister()` (mutation → invalidate patient lists → returns the new id). Recently opened:
+   an in-memory Zustand store of the last 10 patient **ids only** (never persisted).
+2. Page `PatientsPage` (route `(staff)/(main)/(tabs)/patients.tsx` already exists as a placeholder — render the page there):
+   `SearchBar` (300 ms, min 2 chars), `FilterChips` (Active default on, Minors), FlashList of `ListRow` (initials avatar, name,
+   MR no. · masked phone, age · gender), pull-to-refresh, infinite footer, recently-opened section when search is empty,
+   `EmptyState` / `NoResultsState` (with Clear) / `ErrorState` / `LoadingSkeleton`. Header ＋ (only with `patients.create`).
+   Row tap → `router.push('/patients/' + id)` (the detail screen is M1-12 — add a minimal placeholder route
+   `(staff)/(main)/patients/[patientId].tsx` rendering an EmptyState "Patient details come next" if it does not exist).
+3. `QuickRegisterSheet` (FormSheet + TanStack Form + `quickRegisterSchema`, `hooks/useQuickRegisterForm.ts`): full name, phone
+   (check-phone on blur → "A patient with this phone exists: <name>" + Open), gender, DOB (`DatePicker` if present in core, otherwise
+   a text `YYYY-MM-DD` field — note it), minor toggle → guardian fields. Submit disabled on `!canSubmit || isSubmitting`; success →
+   close, toast, open the new patient.
+4. Tests: list states (loading / empty / no-results / error), search debounce, permission hides ＋, quick-register validation and success path.
 
+**Acceptance:** tests green; screenshots only with a device (else gate M0-D).
 ---
 
 ### M1-12 — Patient summary (S-05)
@@ -677,14 +705,26 @@ no drawing). ⋯ menu: call, WhatsApp, copy MR no. Adds to "recently opened".
 
 ### M1-13 — Notifications inbox and bell (S-07)
 
-MOB · S · Depends: M1-03 · Branch `mobile/M1-13-notifications`
+MOB · S · Depends: M1-02, M1-03 · Branch `mobile/M1-13-notifications`
 
-**Steps:** `staff/features/notifications`: api/keys, `useUnreadCount`, infinite inbox, mark read / all,
-link router (shared with push routing: `staff/lib/link-router.ts`), other-clinic rows prompt. Bell in
-headers wired. Sound pref toggle in More.
+**Read first:** [06 S-07](06-screens.md), [07 §2.2](07-backend-contracts.md#22-notifications-inbox-srcnotificationscontrollersmy-notificationscontrollerts-contextfree),
+`backend/src/notifications/controllers/my-notifications.controller.ts` (verify), `src/staff/features/notifications/**`
+(`notificationKeys` from M1-03, `NotificationBell` from M1-02), `src/staff/lib/realtime-provider.tsx`, `web-app/src/features/notifications` (link handling).
 
-**Acceptance:** realtime `notification.new` increments the badge without refresh.
+**Steps:**
+1. `api/notifications.api.ts`: list (page, limit ≤ 50, unreadOnly), unread count, read one, read all, get/put prefs (`sound` only on mobile).
+2. Hooks: `useUnreadCount()`, `useNotificationsInfinite()`, `useMarkRead()`, `useMarkAllRead()`, `useNotificationPrefs()`; keys from `notificationKeys`
+   (realtime already invalidates `notificationKeys.all`).
+3. `staff/lib/link-router.ts`: pure `resolveStaffLink(link)` → an app route or `null` (`/queue/doctor` → Queue tab doctor segment,
+   `/patients/:id` → `/patients/<id>`, unknown → `null`), with table tests. **M1-05 (push) will reuse this file.**
+4. `NotificationsPage` (route `(staff)/(main)/notifications.tsx`): infinite list, unread bold + dot, "Mark all read",
+   tap → mark read → navigate via `resolveStaffLink`; a row whose `organizationId` ≠ active org shows the clinic name and asks
+   "Switch to <clinic>?" before navigating (reuse the M1-02 switch-location flow); all list states.
+5. Wire `NotificationBell` in headers: badge = unread count (hide at 0, "99+" cap), `onPress` → notifications screen.
+6. More tab: "Notification sound" switch (prefs `sound`), optimistic off/on with rollback on error.
+7. Tests: link router table; badge shows count and hides at 0; mark-all-read invalidates; other-clinic row prompts.
 
+**Acceptance:** tests green; realtime `notification.new` updates the badge (unit-level via invalidation; live check joins M0-D).
 ---
 
 ### M1-14 — Schedule tab (S-06)
