@@ -29,7 +29,7 @@
 | M0-09 | Patient fence skeleton | BE | M | M0-08 | done (in develop) | mobile/M0-09-be-fence | DeepSeek Flash | 2026-11-11 |
 | M1-01 | Core component kit | MOB | L | M0-05 | done (in develop) | mobile/M1-01-core-kit | DeepSeek Flash | 2026-11-11 |
 | M1-02 | Staff tabs, More, location switch | MOB | M | M1-01 | done (in develop) | mobile/M1-02-staff-shell | | 2026-11-11 |
-| M1-03 | Staff realtime client | MOB | M | M1-02 | ready | | | |
+| M1-03 | Staff realtime client | MOB | M | M1-02 | review | mobile/M1-03-staff-realtime | Sonnet | 2026-11-13 |
 | M1-04 | Devices + Expo push provider | BE | M | M0-08 | done (in develop) | mobile/M1-04-be-push | DeepSeek Flash | 2026-11-11 |
 | M1-04a | Push follow-ups (quiet hours, web label, Node engine) | BE+WEB | S | M1-04 | done (in develop) | mobile/M1-04a-push-followups | DeepSeek Flash | 2026-11-11 |
 | M1-05 | Push registration + tap routing | MOB | M | M1-04, M0-07 | ready | | | |
