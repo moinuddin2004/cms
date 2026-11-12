@@ -5,8 +5,11 @@ import axios, {
 
 import { useStaffAuthStore, type SessionPayload } from '@/staff/store/useStaffAuthStore';
 
+import { wipeStaffPersistedCache } from './persist-cache';
 import { getRefreshToken, setRefreshToken } from './session';
 import { staffApi } from './api';
+
+jest.mock('./persist-cache', () => ({ wipeStaffPersistedCache: jest.fn() }));
 
 /**
  * The staff client refreshes once for concurrent 401s (docs/02 §5): the
@@ -111,5 +114,18 @@ describe('staff api single-flight refresh', () => {
     expect(retries).toBe(2);
     expect(useStaffAuthStore.getState().accessToken).toBe('refreshed-access');
     expect(await getRefreshToken()).toBe('session-2:token-2');
+  });
+
+  it('wipes the encrypted staff cache when the refresh is rejected (forced sign-out)', async () => {
+    (wipeStaffPersistedCache as jest.Mock).mockClear();
+    jest.spyOn(axios, 'post').mockRejectedValue(
+      Object.assign(new Error('401'), { isAxiosError: true, response: { status: 401 } }),
+    );
+    staffApi.defaults.adapter = async (config) => {
+      throw unauthorized(config);
+    };
+    await expect(staffApi.get('/queue/board')).rejects.toBeDefined();
+    expect(wipeStaffPersistedCache).toHaveBeenCalledTimes(1);
+    expect(await getRefreshToken()).toBeNull();
   });
 });

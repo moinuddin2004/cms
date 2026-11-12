@@ -13,16 +13,22 @@ export const QUERY_CACHE_KEY = 'query-cache';
 export function createSecureQueryPersister(
   cache: MMKV,
   key: string = QUERY_CACHE_KEY,
+  /**
+   * Checked at WRITE time. TanStack throttles `persistClient` (trailing, 1 s),
+   * so the actual `setItem` can run long after the call — e.g. after sign-out
+   * deleted the cache. Return false to turn `setItem`/`removeItem` into no-ops.
+   */
+  canWrite: () => boolean = () => true,
 ): Persister {
   return createSyncStoragePersister({
     key,
     storage: {
       getItem: (name) => cache.getString(name) ?? null,
       setItem: (name, value) => {
-        cache.set(name, value);
+        if (canWrite()) cache.set(name, value);
       },
       removeItem: (name) => {
-        cache.remove(name);
+        if (canWrite()) cache.remove(name);
       },
     },
   });
