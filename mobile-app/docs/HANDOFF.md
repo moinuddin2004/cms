@@ -1669,3 +1669,20 @@ none (`socket.io-client` already in package.json)
 - M1-13: build the inbox/unread queries on `notificationKeys.list()` / `unreadCount()`; the toast already skips paths matching `/notifications`.
 - `auth_error` leaves an anonymous connection open; status reports `reconnecting` until an org-room ack succeeds.
 
+
+## Rework M1-03 #1  ·  2026-11-13  ·  Claude Sonnet 5.5
+
+Review: `docs/reviews/M1-03/review.md` (from mobile/develop). Status stays `review`.
+
+| # | Fix |
+| --- | --- |
+| 1 | `StaffRealtime.dispose()` is now reversible: `connect()` clears `disposed`, `dispose()` resets `everConnected`/`authRetried` and notifies (not drops) listeners, so a second effect run opens a fresh socket. Tests: `realtime.test.ts` dispose→connect leaves one active socket of two; `realtime-provider.strict.test.tsx` renders the provider under `<StrictMode>` with a counted fake `socket.io-client` → exactly one live socket. |
+| 2 | `queueEventKeys(queryClient, e)` compares `e.seq` per cached snapshot: session key, each board query (its lane for the session), each my-session query. A key is invalidated when its own seq is missing or `< e.seq`, skipped when at/above. `cachedEventSeq` / `isStaleQueueEvent` removed. Tests: board ahead + session behind; board behind / lane missing. next-preview and ticket always refresh. |
+| 3 | Token subscription and `reconnectIfTokenChanged` (and `tokenUsed`) removed. `auth_error` → `refreshSession` once → reconnect stays. |
+| 4 | `connect` no longer sets `live`; only an `ok` org-room subscribe ack does. Tests: not live on connect alone; ack `ok:false` then ok on next connect. |
+| 5 | Done: `log.warn` with the room name only on `ok:false`; every connect re-subscribes all rooms, so it retries then. |
+| 6 | Toast id `notification-${e.id}` (dedupe); when `e.organizationId` differs from the active org the toast carries description "Another clinic". Not unit-tested (provider test mocks the controller). |
+| 7 | Done: `queueKeys.boardAll()` / `mySessionAll()` added and used. |
+
+Verification: `npm test` 41 suites / 289 tests ✓ · `npm run typecheck` ✓ · ESLint src 0 errors (3 pre-existing warnings) · `npm run lint:fences` ✓.
+Note: `mobile-app/package-lock.json` is modified in this worktree from before this rework; not staged.
