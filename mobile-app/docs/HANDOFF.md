@@ -1636,6 +1636,68 @@ Branch: reviewed `mobile/M1-03-staff-realtime`, `mobile/M1-06-offline` (reviewer
 - M2-02b and M2-03 not handed off yet (uncommitted work in folders C and D).
 
 ---
+## M1-03 — Staff realtime client  ·  2026-11-13  ·  Claude Sonnet 5.5
+Branch: mobile/M1-03-staff-realtime   Commit(s): f37c3b9 (code), docs commit follows   Status set to: review
+
+### Done
+- Step 1 `staff/lib/realtime.ts`: `createStaffSocket(getToken)` (`transports: ['websocket']`, `auth: (cb) => cb({ token })`, `autoConnect: false`) and `StaffRealtime`, a plain controller: connect/disconnect/reconnect, counted `joinRoom(room)` → leave fn, re-subscribes every wanted room on each `connect`, background → disconnect after 30 s, foreground → reconnect (the `connect` after a first one invalidates all once) or, if the socket survived a >=30 s background, invalidate all once. `auth_error` → `refreshSession()` once → reconnect; the one-shot flag resets when an `org:` subscribe ack is `ok` or on foreground. Token change in the store → `reconnectIfTokenChanged()`.
+- Step 2 `staff/lib/realtime-provider.tsx`: `StaffRealtimeProvider` (mounted in `StaffMainLayout` inside `AccessProvider`), `useRealtimeStatus()` (`live | reconnecting | offline` via core `deriveConnectionState` + `useOnline`), `useRoomSubscription(room | null)`. Always joins `org:<activeOrgId>`. The hook's effect depends on `[room, activeOrganizationId, activeLocationId]`, so every room is left and re-joined whenever either changes (M1-02 review note).
+- Step 3 `staff/lib/realtime-invalidation.ts`: `queueEventKeys` (session, next-preview, board prefix, my-session prefix, ticket), `cachedEventSeq` (own snapshot, board lanes, my-session) and `isStaleQueueEvent` (`seq <= cached` ignored; nothing cached → invalidate), `createRealtimeInvalidator` with a 300 ms window (one timer, each distinct key invalidated once per window). Invalidates only; never writes cache (A-07).
+- Step 4 `access.changed` → `accessKeys.all`; `notification.new` → `notificationKeys.all` + `toast(title)` only when `AppState` is `active` and the path is not `/notifications`. New `staff/features/notifications/api/notifications.keys.ts` (`notificationKeys`: `all`, `list()`, `unreadCount()`), exported from the feature barrel.
+- Step 5 `staff/lib/realtime-connection-pill.tsx`: `RealtimeConnectionPill` = core `ConnectionPill` fed by `useRealtimeStatus()` (core cannot read the staff socket; M1-08/09 place it).
+- Step 6 tests: 22 new (invalidation map, stale seq, board-lane seq, coalescing, access/notification maps; controller events, room replay + reconnect invalidation, shared rooms, auth_error once / signed-out, token change, 30 s background disconnect + foreground, quick return; provider rooms on location and org change).
+
+### Files
+- Created: `staff/lib/realtime.ts`, `realtime-invalidation.ts`, `realtime-provider.tsx`, `realtime-connection-pill.tsx`, three `*.test.ts(x)`; `staff/features/notifications/api/notifications.keys.ts`
+- Modified: `staff/navigation/StaffMainLayout.tsx`, `staff/features/notifications/index.ts`, PROGRESS row
+- Deleted / moved: none
+
+### Install commands for the user
+none (`socket.io-client` already in package.json)
+
+### Verification
+- Contract checked against `queue.gateway.ts` (namespace `/realtime`, `handshake.auth.token`, `subscribe`/`unsubscribe` acks, `auth_error` is an EVENT on an accepted socket — not `connect_error`), `queue-tx.ts` (`queue.event` payload with `seq`), web hooks, and `SocketOptions.auth` function form in socket.io-client types.
+- `npm run typecheck` → clean. `npm test` → 40 suites / 285 tests passed. ESLint `src/staff src/core` (and the touched dirs) → 0 errors (1 pre-existing `axios.create` warning in `api.ts`). `npm run lint:fences` → ok.
+- Manual (web↔phone, background 60 s): NOT done — needs a device and running API. Joins gate M0-D.
+
+### Acceptance criteria
+- [x] unit-level: role change → `access.changed` → `accessKeys.all` invalidated within 300 ms; 30 s background disconnect + foreground reconnect (fake timers)
+- [ ] live: web role change refreshes phone within 2 s; 60 s background shows disconnect in server logs (device needed)
+
+### Deviations from the card / docs
+- `realtime-invalidation.ts` imports key modules directly (`.../hooks/useMyAccess`, `.../notifications.keys`, `.../queue.keys`), not feature barrels: the barrels pull screens/native UI into a pure-logic file (jest failed on `react-native-keyboard-controller`).
+- `RealtimeConnectionPill` lives in `staff/lib` (core must not import the staff store); card step 5 "ConnectionPill reads useRealtimeStatus()" is met by this wrapper.
+- Toast shows the notification title only, not the body (body may carry patient details).
+- "While disconnected, poll every 10 s" (02 §7) is NOT in this card; screens (M1-07/08/09) own it. `useRealtimeStatus()` is what they key it off.
+
+### Questions for the architect
+- Token refresh reconnects the socket (02 §7), and every reconnect after the first invalidates all realtime keys. That costs one refetch burst per access-token refresh. Keep, or skip the invalidate for token-driven reconnects?
+- Foreground with a socket that survived a >=30 s background: I invalidate all once as a safety net. Fine?
+
+### Notes for the next task
+- Screens: `useRoomSubscription(\`location:${locationId}:board\`)` / `session:<id>`; pass `useRealtimeStatus()` to the 10 s fallback poll.
+- M1-13: build the inbox/unread queries on `notificationKeys.list()` / `unreadCount()`; the toast already skips paths matching `/notifications`.
+- `auth_error` leaves an anonymous connection open; status reports `reconnecting` until an org-room ack succeeds.
+
+
+## Rework M1-03 #1  ·  2026-11-13  ·  Claude Sonnet 5.5
+
+Review: `docs/reviews/M1-03/review.md` (from mobile/develop). Status stays `review`.
+
+| # | Fix |
+| --- | --- |
+| 1 | `StaffRealtime.dispose()` is now reversible: `connect()` clears `disposed`, `dispose()` resets `everConnected`/`authRetried` and notifies (not drops) listeners, so a second effect run opens a fresh socket. Tests: `realtime.test.ts` dispose→connect leaves one active socket of two; `realtime-provider.strict.test.tsx` renders the provider under `<StrictMode>` with a counted fake `socket.io-client` → exactly one live socket. |
+| 2 | `queueEventKeys(queryClient, e)` compares `e.seq` per cached snapshot: session key, each board query (its lane for the session), each my-session query. A key is invalidated when its own seq is missing or `< e.seq`, skipped when at/above. `cachedEventSeq` / `isStaleQueueEvent` removed. Tests: board ahead + session behind; board behind / lane missing. next-preview and ticket always refresh. |
+| 3 | Token subscription and `reconnectIfTokenChanged` (and `tokenUsed`) removed. `auth_error` → `refreshSession` once → reconnect stays. |
+| 4 | `connect` no longer sets `live`; only an `ok` org-room subscribe ack does. Tests: not live on connect alone; ack `ok:false` then ok on next connect. |
+| 5 | Done: `log.warn` with the room name only on `ok:false`; every connect re-subscribes all rooms, so it retries then. |
+| 6 | Toast id `notification-${e.id}` (dedupe); when `e.organizationId` differs from the active org the toast carries description "Another clinic". Not unit-tested (provider test mocks the controller). |
+| 7 | Done: `queueKeys.boardAll()` / `mySessionAll()` added and used. |
+
+Verification: `npm test` 41 suites / 289 tests ✓ · `npm run typecheck` ✓ · ESLint src 0 errors (3 pre-existing warnings) · `npm run lint:fences` ✓.
+Note: `mobile-app/package-lock.json` is modified in this worktree from before this rework; not staged.
+
+---
 ## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
 Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
 
