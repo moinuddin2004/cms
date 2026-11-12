@@ -23,6 +23,7 @@ export { ConnectionPill, type ConnectionPillProps } from './feedback/ConnectionP
 export { deriveConnectionState, type ConnectionState } from './feedback/connection-state';
 
 export { FieldWrapper } from './forms/FieldWrapper';
+export { OfflineAwareButton, type OfflineAwareButtonProps } from './forms/OfflineAwareButton';
 export { FormInput } from './forms/FormInput';
 export { fieldError } from './forms/fieldError';
 export { SearchBar, type SearchBarProps } from './forms/SearchBar';

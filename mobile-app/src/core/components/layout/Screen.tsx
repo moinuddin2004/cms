@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
+import { OfflineBanner } from '@/core/components/feedback/OfflineBanner';
+import { useOnline } from '@/core/network';
 import { cn } from '@/core/utils';
 
 export interface ScreenProps {
@@ -13,8 +15,10 @@ export interface ScreenProps {
   onRefresh?: () => void;
   /** Usually a `ScreenHeader`; stays fixed above the body. */
   header?: ReactNode;
-  /** Slot for `OfflineBanner`; sits above the header. */
+  /** Overrides the automatic offline banner; sits above the header. */
   banner?: ReactNode;
+  /** Clinic-clock time ("hh:mm") of the screen's newest data, for the offline banner. */
+  savedAt?: string;
   /** Rendered outside the scroll container, above the body (FAB, floating bar). */
   floating?: ReactNode;
   /** Safe-area edges to pad. Default `['top']` (the tab bar owns the bottom); full-screen and modal flows pass `['top', 'bottom']`. */
@@ -31,11 +35,13 @@ export function Screen({
   onRefresh,
   header,
   banner,
+  savedAt,
   floating,
   edges = ['top'],
   className,
   contentClassName,
 }: ScreenProps) {
+  const online = useOnline();
   return (
     <View
       className={cn(
@@ -44,7 +50,12 @@ export function Screen({
         edges.includes('bottom') && 'pb-safe',
         className,
       )}>
-      {banner}
+      {banner ?? (
+        <OfflineBanner
+          visible={!online}
+          message={savedAt ? `Showing saved data from ${savedAt}` : 'You are offline'}
+        />
+      )}
       {header}
       {scroll ? (
         <KeyboardAwareScrollView
