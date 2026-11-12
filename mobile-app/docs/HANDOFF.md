@@ -1625,3 +1625,40 @@ Branch: four rework branches verified against every finding   Status set to: all
 ### Notes for the next task
 - M2-02's int spec and the M2-01 change file still need one run on a disposable Postgres.
 
+
+---
+## M1-06 — Offline cache (persistence, banner, wipe)  ·  2026-11-13  ·  Claude Sonnet 5.5
+Branch: mobile/M1-06-offline   Commit(s): see git log   Status set to: review
+
+### Done
+- Step 1 `staff/lib/persist.ts`: pure allow-list `isPersistableKey` (access/me; queue my-session+board for today; appointments with today's date and no object in the key; patients/detail), `shouldPersistQuery` (∧ success), `staffDehydrateOptions` (mutations never dehydrated), `staffPersistBuster`, `savedDataTime` (clinic clock).
+- Step 2 `StaffLayout`: one `PersistQueryClientProvider`, encrypted staff cache, maxAge 24 h, buster `${appVersion}:${userId}:${orgId}:${locationId}`. Splash (`markReady`) waits for session restore AND cache open/failed.
+- Step 3 `Screen` shows `OfflineBanner` automatically when `!useOnline()` ("Showing saved data from <savedAt>", or "You are offline"); new `savedAt` prop, `banner` prop still overrides.
+- Step 4 `core/components/forms/OfflineAwareButton` (uses `useCanMutate`, label "Offline", disabled).
+- Step 5 `useSignOut` → `wipeStaffPersistedCache()` (removeClient + seal against late writes + `wipeSecureCache('staff')`) before `queryClient.clear()`; failure of the wipe never blocks sign-out.
+- Step 6 tests (below).
+
+### Files
+- Created: `src/staff/lib/persist.ts`, `persist-cache.ts` (+ tests), `src/core/components/forms/OfflineAwareButton.tsx` (+ test), `layout/Screen.test.tsx`, `auth/hooks/useSignOut.test.tsx`
+- Modified: `StaffLayout.tsx`, `useSignOut.ts`, `core/components/layout/Screen.tsx`, `core/components/index.ts`, PROGRESS row
+
+### Install commands for the user
+none
+
+### Verification
+- `npm test` → 42 suites / 295 tests passed; `npm run typecheck` clean; eslint `src` 0 errors (3 old warnings); `npm run lint:fences` ok.
+- Airplane-mode device check NOT done (no device) — joins gate M0-D.
+
+### Acceptance criteria
+- [x] allow-list table test; nothing outside it persists (`persist.test.ts`)
+- [x] buster changes on build/user/org/location; sign-out wipe; banner offline
+- [ ] device check (gate M0-D)
+
+### Deviations from the card / docs
+- TanStack restores only once per provider mount, so a buster change would never re-restore. The provider therefore carries `key={buster}` (still ONE provider, remounted on user/clinic/location change; the Stack below remounts then). While identity or cache is not ready it uses an idle persister (reads/writes nothing) so it cannot wipe a saved cache.
+- Appointments have no key factory yet; the rule is "root `appointments`, only primitives in the key, one of them is today's YYYY-MM-DD". The appointments feature must follow that shape.
+- docs/02 §9 "last 20 patient summaries" is NOT enforced: all `patients/detail` queries persist (in-memory gcTime bounds them).
+
+### Questions for the architect
+- Buster needs user/org/location, which exist only after a successful silent refresh. A cold start in airplane mode ends in `unreachable` (offline screen), so the cached board is not shown. Persisting a non-secret "last identity" hint in prefs would fix it — want that as a follow-up card?
+- Remount of the Stack on location switch acceptable? Alternative: manual `persistQueryClientRestore` controller outside the Stack.
