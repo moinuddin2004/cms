@@ -1635,3 +1635,11 @@ Branch: reviewed `mobile/M1-03-staff-realtime`, `mobile/M1-06-offline` (reviewer
 - 02 §7 (no token-driven reconnect, live after ack, per-snapshot seq) and §9 (staff gcTime 24 h) updated. New follow-up card M1-06b.
 - M2-02b and M2-03 not handed off yet (uncommitted work in folders C and D).
 
+---
+## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
+Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
+
+### Done
+- M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
+- M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
+
