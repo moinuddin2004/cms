@@ -13,6 +13,7 @@ import {
   ScreenHeader,
 } from '@/core/components';
 import { useCanMutate } from '@/core/http';
+import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 import { useAccess } from '@/staff/features/access';
 import { NotificationBell } from '@/staff/features/notifications';
@@ -80,7 +81,14 @@ export function ScheduleTabPage() {
   const filterCount = (active.doctorId ? 1 : 0) + (active.status ? 1 : 0);
 
   const query = useDayAppointments(day, active);
-  const rows = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
+  // Offset paging can repeat a row when one is inserted between page fetches: keep the first copy.
+  const rows = useMemo(() => {
+    const byId = new Map<string, AppointmentListItem>();
+    for (const row of query.data?.pages.flatMap((p) => p.data) ?? []) {
+      if (!byId.has(row.id)) byId.set(row.id, row);
+    }
+    return [...byId.values()];
+  }, [query.data]);
   const list = useMemo(() => buildScheduleList(groupByHour(rows, zone)), [rows, zone]);
 
   const [sheet, setSheet] = useState<{ row: AppointmentListItem; open: boolean } | null>(null);
@@ -173,8 +181,16 @@ export function ScheduleTabPage() {
               status: v[0] && STATUS_VALUES.has(v[0]) ? (v[0] as AppointmentStatus) : undefined,
             }))
           }
-          clearLabel={filterCount > 0 ? 'Clear' : undefined}
         />
+        {filterCount > 0 ? (
+          <Button
+            variant="outline"
+            className="mx-4 min-h-11 self-start"
+            accessibilityLabel={`Clear all filters (${filterCount})`}
+            onPress={clearFilters}>
+            <Text>{`Clear all (${filterCount})`}</Text>
+          </Button>
+        ) : null}
       </View>
       <View className="flex-1">{body}</View>
       <AppointmentSheet

@@ -293,6 +293,36 @@ describe('ScheduleTabPage', () => {
       expect(screen.getByText('No appointments')).toBeTruthy();
     });
 
+    it('a doctor-only filter shows Clear all (1) and clears it', async () => {
+      await renderPage();
+      expect(screen.queryByLabelText(/Clear all filters/)).toBeNull();
+      await fireEvent.press(screen.getByText('Dr Ayesha'));
+      expect(mockDay).toHaveBeenLastCalledWith('2026-11-15', { doctorId: 'd1', status: undefined });
+      await fireEvent.press(screen.getByLabelText('Clear all filters (1)'));
+      expect(mockDay).toHaveBeenLastCalledWith('2026-11-15', { doctorId: undefined, status: undefined });
+      expect(screen.queryByLabelText(/Clear all filters/)).toBeNull();
+    });
+
+    it('Clear all (2) resets doctor and status together', async () => {
+      await renderPage();
+      await fireEvent.press(screen.getByText('Dr Ayesha'));
+      await fireEvent.press(screen.getByText('Done'));
+      await fireEvent.press(screen.getByLabelText('Clear all filters (2)'));
+      expect(mockDay).toHaveBeenLastCalledWith('2026-11-15', { doctorId: undefined, status: undefined });
+    });
+
+    it('shows a row once when two pages repeat it', async () => {
+      const page = (rows: AppointmentListItem[], n: number) => ({ data: rows, total: 3, page: n, limit: 2 });
+      mockDay.mockReturnValue(
+        result([], {
+          data: { pages: [page([item('a1'), item('a2')], 1), page([item('a2'), item('a3')], 2)] },
+        }),
+      );
+      await renderPage();
+      expect(screen.getAllByText('Patient a2')).toHaveLength(1);
+      expect(screen.getByText('Patient a3')).toBeTruthy();
+    });
+
     it('a failed refresh keeps the rows and says so', async () => {
       mockDay.mockReturnValue(result([item('a1')], { isError: true }));
       await renderPage();

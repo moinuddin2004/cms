@@ -14,7 +14,7 @@ export function LateWalkInDialog({ open, onClose, onConfirm }: LateWalkInDialogP
       open={open}
       onClose={onClose}
       title="Too late for this appointment"
-      description="Too late for this appointment. Add as walk-in? The patient joins the queue as a walk-in."
+      description="The patient joins the queue as a walk-in."
       confirmLabel="Add as walk-in"
       cancelLabel="Cancel"
       onConfirm={onConfirm}

@@ -11,6 +11,7 @@ import type { AppointmentListItem } from '../types/appointments.types';
 
 import { doctorLabel } from './ScheduleRow';
 
+// FormSheet requires these strings, but the sheet is read-only (never dirty), so they cannot show.
 const DISCARD = {
   title: 'Discard changes?',
   description: 'There is nothing to save here.',
