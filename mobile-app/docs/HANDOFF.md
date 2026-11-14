@@ -2019,3 +2019,18 @@ none (`npm install` from the existing lockfile only)
 
 ### Questions for the architect
 - Abort asks via the ReasonSheet (title "Abort consultation", consequence text) instead of a separate ConfirmDialog; is that enough as the confirm?
+
+---
+## Rework M1-08 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-08-doctor-queue-d5f636 · Status set to: review (PROGRESS stays `review`)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Abort needs a confirm | The ReasonSheet submit (now destructive) no longer sends; it opens a destructive `ConfirmDialog` ("Abort consultation? This ends the visit without completing it. It cannot be undone."). `actions.abort` runs only on confirm, with the entry as it is on screen then (fresh `version`); a plain failure keeps the dialog open. Test: abort not called until confirmed. Needed one additive field in core: `SubmitSpec.destructive` (`core/components/overlays/SubmitFooter.tsx`) — flag for the review. |
+| 2 | Call next + "Call this patient" can both fire | `locked = sessionBusy \|\| busyEntryIds.size > 0` disables Call next and every row menu (`WaitingRow.locked`, no spinner on other rows); `callThisPatient` also returns early when locked. Tests for entry-busy and session-busy. |
+| 3 | Announce after select | `select` announces "Called A-009, Umar" via the shared `announceCalled`, same as Call next. Test. |
+| 4 | my-session NOT_FOUND | `queueErrorCode(error) === 'NOT_FOUND'` → `EmptyState` "You are not set up as a doctor at this location." (no retry). Test. |
+| 5 | Waiting minutes froze | `doctor/useTickingNow`: server `now` + phone-elapsed time, ticked each minute, re-based on every snapshot. Tests with fake timers. |
+
+Verification: `npm test` 63 suites / 452 tests passed · typecheck clean · eslint 0 errors (3 old warnings) · lint:fences ok.
+Not run on a device: device items wait for gate M0-D (the 10-patient run and the 4 state screenshots).
