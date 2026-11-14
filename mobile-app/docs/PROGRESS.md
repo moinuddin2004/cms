@@ -43,7 +43,7 @@
 | M1-10 | Arrivals + close session | MOB | M | M1-08, M1-09 | ready | | | |
 | M1-11a | Patients types, API, keys, pure logic | MOB | S | — | done (in develop) | mobile/M1-11a-patients-api | | 2026-11-11 |
 | M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | done (in develop) | | | |
-| M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | ready (UI phase) | | | |
+| M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | review | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
