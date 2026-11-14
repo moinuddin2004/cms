@@ -1760,3 +1760,41 @@ Branch: verified both reworks against every finding   Status set to: M1-03, M1-0
 - M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
 - M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
 
+
+---
+## M1-07 — Queue hooks  ·  2026-11-14  ·  Claude Sonnet 5.5
+Branch: claude/m1-07-queue-hooks-487ca3 (worktree branch; card name mobile/M1-07-queue-hooks)   Commit(s): ae8c52f   Status set to: review
+
+### Done
+- Step 1: `useMySession`, `useBoard`, `useSession`, `useTicket`, `usePatientQueueVisits` (keys from `queueKeys` + active location + `todayYmd()`, staleTime 0). The three live reads join `session:<id>` / `location:<id>:board` via `useRoomSubscription` and set `refetchInterval` 10 s only when `useRealtimeStatus() !== 'live'`. `useMySession` joins once the session id is known.
+- Step 2: all 23 mutation hooks (`useSessionMutations`, `useEntryMutations`, `useArrivalMutations`) on `useIdempotentMutation`; entry actions take `{ entryId, version, ... }` and send `ifMatch: version`. `useRecallEntry` takes no version (api: IdemOptions only).
+- Step 3: success invalidates `queueKeys.all`; error toasts `queueErrorMessage`, invalidates when `shouldRefetch`. CallNext `NO_ELIGIBLE_PATIENT` → plain toast "No one is waiting".
+- Step 4: `useEntryActions`. Step 5: barrel exports. Step 6: 24 tests in 3 files.
+
+### Files
+- Created: `src/staff/features/queue/hooks/{queue-rooms,queue-mutation,useMySession,useBoard,useSession,useTicket,usePatientQueueVisits,useEntryActions,useSessionMutations,useEntryMutations,useArrivalMutations}.ts`, tests `queue-reads.test.tsx`, `queue-mutations.test.tsx`, `useEntryActions.test.tsx`
+- Modified: `src/staff/features/queue/index.ts`, `docs/PROGRESS.md`
+
+### Install commands for the user
+none (`npm ci` from the lockfile only; package-lock unchanged)
+
+### Verification
+- `npm run typecheck` → clean
+- ESLint (`node node_modules/eslint/bin/eslint.js src`) → 0 errors, 3 pre-existing warnings
+- `npm run lint:fences` → all PASS
+- `npm test` → 51 suites, 355 tests passed (one run under heavy load showed 1 unidentified failure; the rerun was fully green)
+- Router types: `expo start --offline` generated `.expo/types/router.d.ts` after a clean `npm ci`; no routes added.
+
+### Acceptance criteria
+- [x] typecheck + tests green; no component or route added
+
+### Deviations from the card / docs
+- Invalidation uses the whole `queueKeys.all` prefix (no session-prefix key exists; tickets/visits/next-preview also depend on entry state).
+- `openSession`: the api still requires `MutationOptions`, so the hook mints a throw-away key per call (plain `useMutation`, no retry).
+- `useTicket` / `usePatientQueueVisits` have no room and no polling (card names rooms only for session/board).
+
+### Questions for the architect
+- Should `openSession` drop its options in the api (M1-07a review #5 said so; the code still has them)?
+
+### Notes for the next task
+- Entry-action vars must include the on-screen `version`. Room names live in `hooks/queue-rooms.ts`.
