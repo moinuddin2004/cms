@@ -2014,3 +2014,17 @@ none (`npm install` from the lockfile only).
 
 ### Questions for the architect
 - Is a transfer to a doctor without an open session accepted by `PATCH entries/:id/transfer`, or should the picker list open lanes only?
+
+---
+## Rework M1-09 #1 — 2026-11-15
+Branch: `claude/m1-09-board-745a66` · Commit: b7df3af · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Open lane needs `queue.checkin` | `[+]` chip and the empty-board "Open a lane" button show only with `can('queue.checkin')` (and online). Tests: no `[+]`, no button without it. |
+| 2 | Walk-in search over-fetches / 403 | `usePatientsInfinite(filters, { enabled })` (additive, default true; patients-hooks test). `WalkInPatientSearch` passes `enabled` = 2+ chars. Without `patients.view` the walk-in has no Existing mode and starts on New patient (`useWalkInForm(doctorId, defaultMode, onCreated)`). Tests: `WalkInPage.test.tsx`, hook mode test. |
+| 3 | Arrivals row -> missing route | Row hidden (`buildLaneItems(..., false)`, `TODO(M1-10)` in `BoardView.tsx`); the untyped route cast is gone; `onOpenArrivals` is optional in `BoardLaneList`. Test: no Arrivals text. |
+| 4 | Name the other doctor | Backend `QueueErrors.activeElsewhere` sends `error.entries: [{ entryId, token, doctorName, status }]` (`queue-orchestrator.service.ts:235`). `lib/walk-in-conflict.ts` `activeElsewhereDoctor(err)` reads the first `doctorName`; dialog title "Already in <name>'s queue", falls back to the generic title when absent. Tests: with and without a name. |
+| 5 | Vanished entry fails silently | Mark urgent, transfer and cancel on an entry that left the lane toast "This patient is no longer in the queue."; urgent also closes the sheet. Test: `EntryActionsHost.test.tsx`. |
+
+Verification: `npm run typecheck` ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓ · full jest 67 suites / 474 tests ✓ (`--forceExit`). No device.
