@@ -21,3 +21,4 @@ export type { EntryVars } from './hooks/queue-mutation';
 export * from './hooks/useSessionMutations';
 export * from './hooks/useEntryMutations';
 export * from './hooks/useArrivalMutations';
+export { QueueTabPage } from './pages/QueueTabPage';

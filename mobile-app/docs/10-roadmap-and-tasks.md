@@ -624,6 +624,11 @@ MOB · M · Depends: M1-03, M1-06, M1-06a, M1-07a · Branch `mobile/M1-07-queue-
 **Acceptance:** typecheck + tests green; no component or route added.
 ---
 
+> **Parallel file ownership (team lead, 2026-11-15):** the Queue tab page (`staff/features/queue/pages/QueueTabPage.tsx`)
+> already renders `components/DoctorQueueView.tsx` (**M1-08 owns it**) and `components/BoardView.tsx` (**M1-09 owns it**, plus the
+> walk-in route `(staff)/(main)/queue/walk-in.tsx`). The patient detail route already renders `staff/features/patients/pages/PatientDetailPage.tsx`
+> (**M1-12 owns it**); M1-11 only links to `/patients/<id>`. M1-14 owns `(tabs)/schedule.tsx` and its page. Do not edit another card's file.
+
 ### M1-08 — Doctor queue screen (S-02a)
 
 MOB · L · Depends: M1-07 · Branch `mobile/M1-08-doctor-queue`

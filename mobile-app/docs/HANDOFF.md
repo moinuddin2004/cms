@@ -1753,6 +1753,14 @@ Branch: `mobile/M1-06-offline` · Status set to: review
 Verification: jest 44 suites / 305 tests green; typecheck clean; eslint `src` 0 errors (3 old warnings); lint:fences ok.
 
 ---
+## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
+Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
+
+### Done
+- M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
+- M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
+
+---
 ## M1-07 — Queue hooks  ·  2026-11-14  ·  Claude Sonnet 5.5
 Branch: claude/m1-07-queue-hooks-487ca3 (worktree branch; card name mobile/M1-07-queue-hooks)   Commit(s): ae8c52f   Status set to: review
 
@@ -1961,14 +1969,6 @@ Branch: mobile/M2-03-patient-links-guard · Status set to: review
 | 6 | patient_app off → 403 | Int case: test controller `writable` route → 403 `PATIENT_APP_DISABLED` (org1 has no `patient_app` row) and 404 for B's link. Written, not run (no disposable DB). |
 
 Verification: build clean; full jest — see session report. Int specs still not run (no disposable Postgres).
-
----
-## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
-Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
-
-### Done
-- M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
-- M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
 
 ---
 ## REVIEW baseline wave 1: M1-07 + M1-11b + M1-14a + M2-03  ·  2026-11-15  ·  Claude Opus (team lead)

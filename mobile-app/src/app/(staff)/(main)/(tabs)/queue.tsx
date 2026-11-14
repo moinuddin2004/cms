@@ -1,5 +1,5 @@
-import { TabPlaceholderPage } from '@/staff/navigation';
+import { QueueTabPage } from '@/staff/features/queue';
 
 export default function QueueRoute() {
-  return <TabPlaceholderPage tab="queue" />;
+  return <QueueTabPage />;
 }

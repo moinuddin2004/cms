@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 1 — Staff BASELINE (team-lead mode: Opus runs Sonnet sessions) · **Wave 1:** M1-07, M1-11b, M1-13a, M1-14a, M2-02b (continue), M2-03 (continue) · **Wave 2:** M1-05, M1-15a · then report to the user before the UI phase · **Device:** M0-D open · Updated 2026-11-14
+**Current phase:** 1 — Staff baseline + UI in parallel (all Sonnet sessions; a final Opus audit session when everything is done) · **Running:** M1-15a, M1-08, M1-09, M1-11, M1-12, M1-14 · **Blocked on user npm-install approval:** M1-13a, M2-02b · **Next:** M1-10, M1-13, M1-05, M1-15, then M1-16 · Updated 2026-11-15
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -37,17 +37,17 @@
 | M1-06 | Offline cache (persistence, banner, wipe) | MOB | M | M0-03, M1-02, M1-06a | done (in develop) | | | |
 | M1-06b | Cached data on offline cold start | MOB | S | M1-06 | spec | | | |
 | M1-07a | Queue types, API, keys, pure logic | MOB | M | — | done (in develop) | mobile/M1-07a-queue-api | | 2026-11-11 |
-| M1-07 | Queue hooks | MOB | M | M1-03, M1-06, M1-07a | ready | | | |
+| M1-07 | Queue hooks | MOB | M | M1-03, M1-06, M1-07a | done (in develop) | | | |
 | M1-08 | Doctor queue screen | MOB | L | M1-07 | ready | | | |
 | M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | ready | | | |
 | M1-10 | Arrivals + close session | MOB | M | M1-08, M1-09 | ready | | | |
 | M1-11a | Patients types, API, keys, pure logic | MOB | S | — | done (in develop) | mobile/M1-11a-patients-api | | 2026-11-11 |
-| M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | ready | | | |
+| M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | done (in develop) | | | |
 | M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | ready (UI phase) | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
-| M1-14a | Appointments data layer | MOB | S | M1-06 | ready | | | |
+| M1-14a | Appointments data layer | MOB | S | M1-06 | done (in develop) | | | |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | ready (UI phase) | | | |
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | ready | | | |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | ready (UI phase) | | | |
@@ -57,7 +57,7 @@
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | ready | | | |
-| M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | ready | | | |
+| M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | done (in develop) | | | |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |

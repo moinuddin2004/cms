@@ -26,3 +26,4 @@ export { useRecentPatientsStore } from './store/useRecentPatientsStore';
 export { isValidPhone, quickRegisterSchema } from './schemas/quick-register.schema';
 export type { QuickRegisterOutput, QuickRegisterValues } from './schemas/quick-register.schema';
 export type * from './types/patients.types';
+export { PatientDetailPage } from './pages/PatientDetailPage';
