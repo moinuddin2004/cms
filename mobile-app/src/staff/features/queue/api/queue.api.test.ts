@@ -9,6 +9,7 @@ import {
   completeEntry,
   fetchBoard,
   fetchMySession,
+  openSession,
   registerWalkIn,
   transferEntry,
 } from './queue.api';
@@ -105,6 +106,27 @@ describe('queue api mutations', () => {
     expect(sent[0].method).toBe('patch');
     expect(sent[0].url).toBe('/appointments/a%201/check-in');
     expect(sent[0].headers.get('Idempotency-Key')).toBe('k');
+  });
+});
+
+describe('openSession', () => {
+  const defaultAdapter = staffApi.defaults.adapter;
+  afterEach(() => {
+    staffApi.defaults.adapter = defaultAdapter;
+  });
+
+  it('is a plain post: no Idempotency-Key, no If-Match', async () => {
+    sent = [];
+    respond({ session: { id: 's1' } });
+
+    const result = await openSession({ doctorId: 'd1' });
+
+    expect(result).toEqual({ session: { id: 's1' } });
+    expect(sent[0].method).toBe('post');
+    expect(sent[0].url).toBe('/queue/sessions');
+    expect(JSON.parse(sent[0].data)).toEqual({ doctorId: 'd1' });
+    expect(sent[0].headers.has('Idempotency-Key')).toBe(false);
+    expect(sent[0].headers.has('If-Match')).toBe(false);
   });
 });
 

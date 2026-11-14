@@ -18,6 +18,15 @@ const REFETCH_CODES: ReadonlySet<string> = new Set([
   'ALREADY_CHECKED_IN',
 ]);
 
+/**
+ * Codes the UI answers with a dialog, not a toast (docs/07 §2.3): resend with
+ * `force: true` (S-02c) / convert to a walk-in (S-03). The caller's `onError` handles them.
+ */
+export const DIALOG_ERROR_CODES: ReadonlySet<string> = new Set([
+  'ACTIVE_WITH_OTHER_DOCTOR',
+  'LATE_LIMIT_EXCEEDED',
+]);
+
 /** Codes that point at a bug in the app (missing / reused / racing key). */
 const DEVELOPER_BUG_CODES: ReadonlySet<string> = new Set([
   'IDEMPOTENCY_KEY_REQUIRED',
@@ -64,4 +73,10 @@ export function queueErrorMessage(err: unknown): string {
 export function shouldRefetch(err: unknown): boolean {
   const code = queueErrorCode(err);
   return code !== undefined && REFETCH_CODES.has(code);
+}
+
+/** True when this error opens a dialog instead of showing a toast. */
+export function isDialogError(err: unknown): boolean {
+  const code = queueErrorCode(err);
+  return code !== undefined && DIALOG_ERROR_CODES.has(code);
 }

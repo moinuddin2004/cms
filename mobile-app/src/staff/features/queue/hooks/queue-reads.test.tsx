@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react-native';
+import { act, cleanup, renderHook } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
@@ -27,7 +27,8 @@ jest.mock('@/staff/lib/realtime-provider', () => ({
     }, [room]);
   },
 }));
-jest.mock('@/staff/lib/datetime', () => ({ todayYmd: () => '2026-11-14' }));
+let mockToday = '2026-11-14';
+jest.mock('@/staff/lib/clinic-today', () => ({ useClinicToday: () => mockToday }));
 
 const mockFetchMySession = jest.fn();
 const mockFetchBoard = jest.fn();
@@ -44,8 +45,11 @@ jest.mock('../api/queue.api', () => ({
 
 const snapshot = (id: string) => ({ session: { id, eventSeq: 1 }, entries: [] });
 
+const clients: QueryClient[] = [];
+
 function makeWrapper() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  clients.push(client);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
@@ -63,6 +67,7 @@ describe('queue read hooks', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     mockStatus = 'live';
+    mockToday = '2026-11-14';
     useStaffAuthStore.setState({ activeOrganizationId: 'o1', activeLocationId: 'l1' });
     mockFetchMySession.mockResolvedValue(snapshot('s1'));
     mockFetchBoard.mockResolvedValue({ serviceDate: '2026-11-14', lanes: [] });
@@ -70,7 +75,12 @@ describe('queue read hooks', () => {
     mockFetchTicket.mockResolvedValue({ entryId: 'e1' });
     mockFetchPatientVisits.mockResolvedValue([]);
   });
-  afterEach(() => jest.useRealTimers());
+  afterEach(async () => {
+    // Unmount hooks and drop query timers before the fake clock goes away.
+    await cleanup();
+    clients.splice(0).forEach((c) => c.clear());
+    jest.useRealTimers();
+  });
 
   describe('useMySession', () => {
     it('keys by location + today, and joins the session room once the id is known', async () => {
@@ -84,6 +94,19 @@ describe('queue read hooks', () => {
 
       await unmount();
       expect(mockLeave).toHaveBeenCalledWith('session:s1');
+    });
+
+    it('moves to the new day key when the clinic day rolls over', async () => {
+      const { client, wrapper } = makeWrapper();
+      const { rerender } = await renderHook(() => useMySession(), { wrapper });
+      await tick();
+      expect(client.getQueryData(queueKeys.mySession('l1', '2026-11-14'))).toBeDefined();
+
+      mockToday = '2026-11-15';
+      await rerender(undefined);
+      await tick();
+      expect(mockFetchMySession).toHaveBeenCalledTimes(2);
+      expect(client.getQueryData(queueKeys.mySession('l1', '2026-11-15'))).toBeDefined();
     });
 
     it('does not fetch without an active location', async () => {
@@ -136,6 +159,31 @@ describe('queue read hooks', () => {
 
       await unmount();
       expect(mockLeave).toHaveBeenCalledWith('location:l1:board');
+    });
+
+    it('leaves the old board room and joins the new one when the location changes', async () => {
+      const { client, wrapper } = makeWrapper();
+      await renderHook(() => useBoard(), { wrapper });
+      await tick();
+      expect(mockJoin).toHaveBeenCalledWith('location:l1:board');
+
+      await act(async () => {
+        useStaffAuthStore.setState({ activeLocationId: 'l2' });
+      });
+      await tick();
+      expect(mockLeave).toHaveBeenCalledWith('location:l1:board');
+      expect(mockJoin).toHaveBeenCalledWith('location:l2:board');
+      expect(client.getQueryData(queueKeys.board('l2', '2026-11-14'))).toBeDefined();
+    });
+
+    it('fetches the new day after a rollover', async () => {
+      const { wrapper } = makeWrapper();
+      const { rerender } = await renderHook(() => useBoard(), { wrapper });
+      await tick();
+      mockToday = '2026-11-15';
+      await rerender(undefined);
+      await tick();
+      expect(mockFetchBoard).toHaveBeenLastCalledWith('2026-11-15');
     });
 
     it('polls only when realtime is not live', async () => {

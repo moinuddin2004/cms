@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { todayYmd } from '@/staff/lib/datetime';
+import { useClinicToday } from '@/staff/lib/clinic-today';
 import { useRoomSubscription } from '@/staff/lib/realtime-provider';
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
@@ -16,8 +16,9 @@ import { sessionRoom, useQueuePollInterval } from './queue-rooms';
 export function useMySession() {
   const locationId = useStaffAuthStore((s) => s.activeLocationId);
   const refetchInterval = useQueuePollInterval();
+  const ymd = useClinicToday();
   const query = useQuery({
-    queryKey: queueKeys.mySession(locationId ?? '', todayYmd()),
+    queryKey: queueKeys.mySession(locationId ?? '', ymd),
     queryFn: fetchMySession,
     enabled: !!locationId,
     staleTime: 0,

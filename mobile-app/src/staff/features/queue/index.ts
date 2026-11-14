@@ -3,7 +3,13 @@ export * from './api/queue.api';
 export { queueKeys } from './api/queue.keys';
 export { availableEntryActions } from './lib/entry-actions';
 export type { CanFn, EntryActionId, EntryViewer } from './lib/entry-actions';
-export { queueErrorCode, queueErrorMessage, shouldRefetch } from './lib/queue-errors';
+export {
+  DIALOG_ERROR_CODES,
+  isDialogError,
+  queueErrorCode,
+  queueErrorMessage,
+  shouldRefetch,
+} from './lib/queue-errors';
 export type * from './types/queue.types';
 export { useMySession } from './hooks/useMySession';
 export { useBoard } from './hooks/useBoard';

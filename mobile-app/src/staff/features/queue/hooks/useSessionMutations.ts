@@ -1,7 +1,5 @@
 import { toast } from 'sonner-native';
 
-import { newIdempotencyKey } from '@/core/http';
-
 import {
   callNext,
   closeSession,
@@ -44,12 +42,5 @@ export const useCallNext = () =>
     },
   );
 
-/**
- * Reception: open a doctor's lane. The endpoint is a get-or-create and ignores
- * the key, so this is a plain mutation (no retry, no key reuse); the api layer
- * still wants a key, so each call mints a throw-away one.
- */
-export const useOpenSession = () =>
-  usePlainQueueMutation((vars: { doctorId?: string }) =>
-    openSession(vars, { idempotencyKey: newIdempotencyKey() }),
-  );
+/** Reception: open a doctor's lane. A get-or-create, not Idem: a plain mutation. */
+export const useOpenSession = () => usePlainQueueMutation(openSession);

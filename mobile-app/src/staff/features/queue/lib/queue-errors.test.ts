@@ -1,6 +1,6 @@
 import { log } from '@/core/log';
 
-import { queueErrorCode, queueErrorMessage, shouldRefetch } from './queue-errors';
+import { isDialogError, queueErrorCode, queueErrorMessage, shouldRefetch } from './queue-errors';
 
 /** Shape of an axios error for a queue API failure (`error.code` + `message`). */
 function apiError(code: string | undefined, message = 'Server text', status = 422) {
@@ -107,5 +107,22 @@ describe('queueErrorCode', () => {
   it('reads error.code', () => {
     expect(queueErrorCode(apiError('NOT_TODAY'))).toBe('NOT_TODAY');
     expect(queueErrorCode({})).toBeUndefined();
+  });
+});
+
+describe('isDialogError', () => {
+  it.each(['ACTIVE_WITH_OTHER_DOCTOR', 'LATE_LIMIT_EXCEEDED'])('true for %s', (code) => {
+    expect(isDialogError(apiError(code))).toBe(true);
+  });
+
+  it.each(['VERSION_CONFLICT', 'DOCTOR_BUSY', 'LOCK_TIMEOUT', 'constructor'])(
+    'false for %s',
+    (code) => {
+      expect(isDialogError(apiError(code))).toBe(false);
+    },
+  );
+
+  it('false for an error without a code', () => {
+    expect(isDialogError(new Error('x'))).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, renderHook } from '@testing-library/react-native';
+import { act, cleanup, renderHook } from '@testing-library/react-native';
 import { AxiosError, AxiosHeaders, type AxiosResponse } from 'axios';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner-native';
@@ -41,8 +41,11 @@ function httpError(status: number, code: string) {
   return new AxiosError('failed', 'ERR_BAD_REQUEST', undefined, undefined, response);
 }
 
+const clients: QueryClient[] = [];
+
 function makeWrapper() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+  clients.push(client);
   const spy = jest.spyOn(client, 'invalidateQueries');
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -64,7 +67,11 @@ describe('queue mutation hooks', () => {
     jest.useFakeTimers();
     jest.clearAllMocks();
   });
-  afterEach(() => jest.useRealTimers());
+  afterEach(async () => {
+    await cleanup();
+    clients.splice(0).forEach((c) => c.clear());
+    jest.useRealTimers();
+  });
 
   it('sends one idempotency key and reuses it on a 503 LOCK_TIMEOUT retry', async () => {
     mockStartSession
@@ -81,6 +88,37 @@ describe('queue mutation hooks', () => {
     expect(keys[1]).toBe(keys[0]);
     expect(toast.error).not.toHaveBeenCalled();
   });
+
+  it('toasts "Busy, please try again." only after the 3 retries gave up', async () => {
+    mockStartSession.mockRejectedValue(httpError(503, 'LOCK_TIMEOUT'));
+    const { wrapper } = makeWrapper();
+    const { result } = await renderHook(() => useStartSession(), { wrapper });
+
+    await run(result.current.mutateAsync, { sessionId: 's1' });
+
+    expect(mockStartSession).toHaveBeenCalledTimes(4);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Busy, please try again.');
+  });
+
+  it.each(['ACTIVE_WITH_OTHER_DOCTOR', 'LATE_LIMIT_EXCEEDED'])(
+    '%s opens the caller dialog: no toast, the caller onError runs',
+    async (code) => {
+      mockCheckIn.mockRejectedValue(httpError(409, code));
+      const { spy, wrapper } = makeWrapper();
+      const { result } = await renderHook(() => useCheckIn(), { wrapper });
+      const callerOnError = jest.fn();
+
+      await act(async () => {
+        result.current.mutate({ appointmentId: 'a1' }, { onError: callerOnError });
+        await jest.runAllTimersAsync();
+      });
+
+      expect(toast.error).not.toHaveBeenCalled();
+      expect(spy).not.toHaveBeenCalled();
+      expect(callerOnError).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('uses a new key for the next tap', async () => {
     mockStartSession.mockResolvedValue({});
@@ -202,6 +240,7 @@ describe('queue mutation hooks', () => {
 
     await run(result.current.mutateAsync, { doctorId: 'd1' });
     expect(mockOpenSession).toHaveBeenCalledTimes(1);
+    expect(mockOpenSession).toHaveBeenCalledWith({ doctorId: 'd1' });
     expect(toast.error).toHaveBeenCalledWith('Busy, please try again.');
 
     mockOpenSession.mockResolvedValueOnce({});

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { todayYmd } from '@/staff/lib/datetime';
+import { useClinicToday } from '@/staff/lib/clinic-today';
 import { useRoomSubscription } from '@/staff/lib/realtime-provider';
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
@@ -12,7 +12,7 @@ import { boardRoom, useQueuePollInterval } from './queue-rooms';
 export function useBoard() {
   const locationId = useStaffAuthStore((s) => s.activeLocationId);
   const refetchInterval = useQueuePollInterval();
-  const ymd = todayYmd();
+  const ymd = useClinicToday();
   const query = useQuery({
     queryKey: queueKeys.board(locationId ?? '', ymd),
     queryFn: () => fetchBoard(ymd),

@@ -4,7 +4,7 @@ import { toast } from 'sonner-native';
 import { useIdempotentMutation, type IdempotencyContext } from '@/core/http';
 
 import { queueKeys } from '../api/queue.keys';
-import { queueErrorMessage, shouldRefetch } from '../lib/queue-errors';
+import { isDialogError, queueErrorMessage, shouldRefetch } from '../lib/queue-errors';
 
 /** Variables of an entry action: the entry and the version the screen shows (`If-Match`). */
 export type EntryVars<T extends object = object> = { entryId: string; version: number } & T;
@@ -19,6 +19,8 @@ export function useQueueInvalidation() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queueKeys.all });
   const onError = (err: unknown) => {
+    // Dialog codes are the caller's: its mutate-level `onError` opens the dialog.
+    if (isDialogError(err)) return;
     toast.error(queueErrorMessage(err));
     if (shouldRefetch(err)) void invalidate();
   };
@@ -45,7 +47,8 @@ export function useQueueMutation<TVars, TData>(
 export function usePlainQueueMutation<TVars, TData>(mutationFn: (vars: TVars) => Promise<TData>) {
   const { invalidate, onError } = useQueueInvalidation();
   return useMutation<TData, unknown, TVars>({
-    mutationFn,
+    // Only the variables: TanStack also passes a context object as 2nd argument.
+    mutationFn: (vars) => mutationFn(vars),
     retry: false,
     onSuccess: () => invalidate(),
     onError,
