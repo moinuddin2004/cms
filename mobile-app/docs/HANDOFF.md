@@ -1753,6 +1753,62 @@ Branch: `mobile/M1-06-offline` · Status set to: review
 Verification: jest 44 suites / 305 tests green; typecheck clean; eslint `src` 0 errors (3 old warnings); lint:fences ok.
 
 ---
+## M1-07 — Queue hooks  ·  2026-11-14  ·  Claude Sonnet 5.5
+Branch: claude/m1-07-queue-hooks-487ca3 (worktree branch; card name mobile/M1-07-queue-hooks)   Commit(s): ae8c52f   Status set to: review
+
+### Done
+- Step 1: `useMySession`, `useBoard`, `useSession`, `useTicket`, `usePatientQueueVisits` (keys from `queueKeys` + active location + `todayYmd()`, staleTime 0). The three live reads join `session:<id>` / `location:<id>:board` via `useRoomSubscription` and set `refetchInterval` 10 s only when `useRealtimeStatus() !== 'live'`. `useMySession` joins once the session id is known.
+- Step 2: all 23 mutation hooks (`useSessionMutations`, `useEntryMutations`, `useArrivalMutations`) on `useIdempotentMutation`; entry actions take `{ entryId, version, ... }` and send `ifMatch: version`. `useRecallEntry` takes no version (api: IdemOptions only).
+- Step 3: success invalidates `queueKeys.all`; error toasts `queueErrorMessage`, invalidates when `shouldRefetch`. CallNext `NO_ELIGIBLE_PATIENT` → plain toast "No one is waiting".
+- Step 4: `useEntryActions`. Step 5: barrel exports. Step 6: 24 tests in 3 files.
+
+### Files
+- Created: `src/staff/features/queue/hooks/{queue-rooms,queue-mutation,useMySession,useBoard,useSession,useTicket,usePatientQueueVisits,useEntryActions,useSessionMutations,useEntryMutations,useArrivalMutations}.ts`, tests `queue-reads.test.tsx`, `queue-mutations.test.tsx`, `useEntryActions.test.tsx`
+- Modified: `src/staff/features/queue/index.ts`, `docs/PROGRESS.md`
+
+### Install commands for the user
+none (`npm ci` from the lockfile only; package-lock unchanged)
+
+### Verification
+- `npm run typecheck` → clean
+- ESLint (`node node_modules/eslint/bin/eslint.js src`) → 0 errors, 3 pre-existing warnings
+- `npm run lint:fences` → all PASS
+- `npm test` → 51 suites, 355 tests passed (one run under heavy load showed 1 unidentified failure; the rerun was fully green)
+- Router types: `expo start --offline` generated `.expo/types/router.d.ts` after a clean `npm ci`; no routes added.
+
+### Acceptance criteria
+- [x] typecheck + tests green; no component or route added
+
+### Deviations from the card / docs
+- Invalidation uses the whole `queueKeys.all` prefix (no session-prefix key exists; tickets/visits/next-preview also depend on entry state).
+- `openSession`: the api still requires `MutationOptions`, so the hook mints a throw-away key per call (plain `useMutation`, no retry).
+- `useTicket` / `usePatientQueueVisits` have no room and no polling (card names rooms only for session/board).
+
+### Questions for the architect
+- Should `openSession` drop its options in the api (M1-07a review #5 said so; the code still has them)?
+
+### Notes for the next task
+- Entry-action vars must include the on-screen `version`. Room names live in `hooks/queue-rooms.ts`.
+
+---
+## Rework M1-07 #1  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-07-queue-hooks-487ca3   Commit(s): 801157b   Status set to: review (unchanged)
+
+### Findings
+1. **Dialog codes** — `lib/queue-errors.ts` exports `DIALOG_ERROR_CODES` (ACTIVE_WITH_OTHER_DOCTOR, LATE_LIMIT_EXCEEDED) and `isDialogError(err)` (also in the barrel). The shared mutation `onError` returns early for them: no toast, no invalidate; the caller's mutate-level `onError` handles them. Tests: `isDialogError` table; hook test that both codes toast nothing and call the caller's `onError`.
+2. **Midnight rollover** — new `src/staff/lib/clinic-today.ts` `useClinicToday()`: timer to the next clinic midnight (`clinicDayBounds(today).end + 1`, re-armed on tick/zone change) and re-read on AppState → active. Used by `useBoard` and `useMySession`. Fake-timer tests (23:30 Karachi → rolls at 00:00; foreground re-read after a slept-through midnight; listener removed) plus hook tests that the key/fetch moves to the new day.
+3. **openSession** — `api/queue.api.ts` `openSession(vars)` is a plain post (no options, no Idempotency-Key); `useOpenSession` no longer mints a key; api test asserts no `Idempotency-Key`/`If-Match`. Found while testing: `usePlainQueueMutation` passed TanStack's 2nd (context) argument into the api fn; it now calls `mutationFn(vars)` only.
+4. **Timer leaks** — both hook test files now `await cleanup()`, `client.clear()` for every client, then `useRealTimers()` in `afterEach`. The queue/clinic-today suites no longer print "worker failed to exit".
+5. **New tests** — board room switches when the active location changes (leave l1 / join l2, new key); LOCK_TIMEOUT toast once after 4 calls (3 retries) on an Idem hook; day rollover (see 2).
+
+### Verification
+- `npm run typecheck` → clean; ESLint → 0 errors (3 pre-existing warnings); `npm run lint:fences` → all PASS
+- `npm test` → 52 suites, 371 passed, **1 failed**: `src/core/components/forms/FilterChips.test.tsx` "single select…" times out at 5000 ms in the full parallel run only; it passes alone (2/2) and is not touched by this card (it explains the earlier unidentified failure and the remaining "worker failed to exit" warning). Queue + clinic-today: 7 suites, 110 tests green.
+
+### Questions for the architect
+- FilterChips flake is outside this card: want a separate fix card (raise timeout / look at its leaked timer)?
+
+---
 ## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
 Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
 

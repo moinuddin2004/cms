@@ -153,11 +153,13 @@ export function callNext(vars: { sessionId: string }, opts: IdemOptions) {
 
 /**
  * Reception: open a doctor's lane for today (`doctorId` defaults to the caller).
- * The backend does not read an Idempotency-Key here (it is a get-or-create),
- * but sending one is harmless and keeps every mutation uniform.
+ * A get-or-create: the endpoint is not Idem and reads no `Idempotency-Key`.
  */
-export function openSession(vars: { doctorId?: string }, opts: MutationOptions) {
-  return mutate<SessionSnapshot>('post', '/queue/sessions', { doctorId: vars.doctorId }, opts);
+export async function openSession(vars: { doctorId?: string }): Promise<SessionSnapshot> {
+  const res = await staffApi.post<ApiResponse<SessionSnapshot>>('/queue/sessions', {
+    doctorId: vars.doctorId,
+  });
+  return res.data.data;
 }
 
 // ─── Entry actions (doctor) ──────────────────────────────────────
