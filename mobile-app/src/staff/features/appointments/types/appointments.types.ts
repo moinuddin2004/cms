@@ -37,6 +37,7 @@ export interface AppointmentPatient {
   patientNumber: string | null;
 }
 
+/** For a walk-in row whose session has no doctor name, `fullName` is `''` (backend `?? ''`). */
 export interface AppointmentDoctor {
   id: string;
   fullName: string;

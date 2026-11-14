@@ -7,6 +7,7 @@ export {
   useArrivals,
   useDayAppointments,
   useDoctors,
+  useUpcomingAppointments,
 } from './hooks/useAppointments';
 export { selectArrivals } from './lib/arrivals';
 export { dayStrip } from './lib/day-strip';

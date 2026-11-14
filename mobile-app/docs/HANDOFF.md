@@ -1800,3 +1800,15 @@ none (`npm ci` only; package-lock reverted after a stray `npm install` touched i
 
 ### Notes for the next task
 - M1-15a: `useAppointmentStats(today)` is ready; "next appointments" should use `fetchAppointments(ymd, { includeWalkIns: false }, 1, 5)` or filter `useDayAppointments` by time.
+
+---
+## Rework M1-14a #1 — 2026-11-15
+Branch: claude/m1-14a-appointments-data-4dcf38 · Status set to: review (unchanged)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `fetchAllDayBookings` can see repeated rows across pages (sort by startTime only + skip/take); page cap implicit | De-duplicates by `id` (Map, first wins). Cap is the named export `MAX_DAY_PAGES = 20`; hitting it calls `log.warn('appointments: day list truncated at the page cap')` (`@/core/log`, no payload). Tests: dedupe across pages; cap stops at 20 calls + exactly one payload-free warn. |
+| 2 | "Next appointments" must start from NOW | `fetchAppointmentsRange({ start, end }, filters, page, limit)` (UTC ISO bounds; `fetchAppointments(ymd, …)` now delegates to it). `fetchUpcomingAppointments(from, ymd, limit)` and `useUpcomingAppointments(limit = 5)` (now → end of clinic day via `clinicDayBounds(todayYmd()).end`, `includeWalkIns: false`; `from` read when the request runs). Key `['appointments','upcoming',org,loc,ymd,limit]`; `persist.ts` untouched, test asserts it is not persistable. Tests: API params, hook (start ≥ now, scope+limit key). |
+| nits | doctor `fullName === ''`; DST test TZ | Commented both. Left `patientNumber`/`designation` nullable: the walk-in SQL path selects `p.patient_number` / employee data without a non-null guarantee, so non-null would be a guess. |
+
+Verification: see numbers in the report (full DoD run).

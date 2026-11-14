@@ -40,6 +40,9 @@ export const appointmentKeys = {
     ['appointments', 'stats', orgId, locationId, ymd] as const,
   arrivals: (orgId: Id, locationId: Id, ymd: string) =>
     ['appointments', 'arrivals', orgId, locationId, ymd] as const,
+  /** Next-N from now: moves with the clock, never persisted. */
+  upcoming: (orgId: Id, locationId: Id, ymd: string, limit: number) =>
+    ['appointments', 'upcoming', orgId, locationId, ymd, limit] as const,
   detail: (orgId: Id, locationId: Id, id: string) =>
     ['appointments', 'detail', orgId, locationId, id] as const,
   doctors: (orgId: Id, locationId: Id) => ['appointments', 'doctors', orgId, locationId] as const,

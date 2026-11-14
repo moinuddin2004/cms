@@ -34,6 +34,7 @@ describe('appointmentKeys', () => {
       expect(isPersistableKey(appointmentKeys.list('o', 'l', TODAY, { doctorId: 'd' }), TODAY)).toBe(false);
       expect(isPersistableKey(appointmentKeys.stats('o', 'l', TODAY), TODAY)).toBe(false);
       expect(isPersistableKey(appointmentKeys.arrivals('o', 'l', TODAY), TODAY)).toBe(false);
+      expect(isPersistableKey(appointmentKeys.upcoming('o', 'l', TODAY, 5), TODAY)).toBe(false);
       expect(isPersistableKey(appointmentKeys.detail('o', 'l', 'a1'), TODAY)).toBe(false);
       expect(isPersistableKey(appointmentKeys.doctors('o', 'l'), TODAY)).toBe(false);
     });

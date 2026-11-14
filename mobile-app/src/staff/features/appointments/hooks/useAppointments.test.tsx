@@ -5,7 +5,13 @@ import type { ReactNode } from 'react';
 import * as api from '../api/appointments.api';
 import type { AppointmentListItem } from '../types/appointments.types';
 
-import { useArrivals, useAppointment, useDayAppointments, useDoctors } from './useAppointments';
+import {
+  useAppointment,
+  useArrivals,
+  useDayAppointments,
+  useDoctors,
+  useUpcomingAppointments,
+} from './useAppointments';
 
 let mockScope: { activeOrganizationId: string | null; activeLocationId: string | null } = {
   activeOrganizationId: 'o1',
@@ -15,6 +21,7 @@ let mockScope: { activeOrganizationId: string | null; activeLocationId: string |
 jest.mock('@/staff/store/useStaffAuthStore', () => ({
   useStaffAuthStore: (sel: (s: unknown) => unknown) => sel(mockScope),
 }));
+jest.mock('@/staff/lib/datetime', () => ({ todayYmd: () => '2026-11-14' }));
 jest.mock('../api/appointments.api', () => ({
   APPOINTMENTS_PAGE_SIZE: 50,
   fetchAppointments: jest.fn(),
@@ -22,6 +29,7 @@ jest.mock('../api/appointments.api', () => ({
   fetchAppointment: jest.fn(),
   fetchAppointmentStats: jest.fn(),
   fetchDoctors: jest.fn(),
+  fetchUpcomingAppointments: jest.fn(),
 }));
 
 const m = api as jest.Mocked<typeof api>;
@@ -104,5 +112,17 @@ describe('appointments hooks', () => {
     const client = newClient();
     await renderHook(() => useDoctors(), { wrapper: wrapperFor(client) });
     await waitFor(() => expect(client.getQueryState(['appointments', 'doctors', 'o1', 'l1'])?.status).toBe('success'));
+  });
+
+  it('useUpcomingAppointments starts from now, ends the clinic day, and keys by scope + limit', async () => {
+    m.fetchUpcomingAppointments.mockResolvedValue([item('a')]);
+    const client = newClient();
+    const before = Date.now();
+    const { result } = await renderHook(() => useUpcomingAppointments(5), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const [from, ymd, limit] = m.fetchUpcomingAppointments.mock.calls[0];
+    expect(Date.parse(from)).toBeGreaterThanOrEqual(before);
+    expect([ymd, limit]).toEqual(['2026-11-14', 5]);
+    expect(client.getQueryState(['appointments', 'upcoming', 'o1', 'l1', '2026-11-14', 5])?.status).toBe('success');
   });
 });

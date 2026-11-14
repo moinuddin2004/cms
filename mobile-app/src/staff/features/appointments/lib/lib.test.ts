@@ -79,6 +79,8 @@ describe('dayStrip', () => {
     expect(days[7]).toBe('2027-01-05');
   });
 
+  // Pure calendar maths on YYYY-MM-DD strings (noon local), so it must hold whatever TZ the
+  // machine runs in; if this ever fails only under a specific TZ, the helper is the bug.
   it('crosses a DST change without skipping or repeating a day', () => {
     expect(dayStrip('2026-11-01')).toEqual([
       '2026-10-31',
