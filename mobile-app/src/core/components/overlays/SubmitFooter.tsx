@@ -11,6 +11,8 @@ export interface SubmitSpec {
   onPress: () => void;
   disabled?: boolean;
   pending?: boolean;
+  /** Destructive styling for the submit (e.g. abort). */
+  destructive?: boolean;
 }
 
 export interface FooterState {
@@ -56,11 +58,14 @@ export function SubmitFooter({
         onLayout={(e) => state?.onHeight(e.nativeEvent.layout.height)}
         className="bg-card border-border border-t px-4 pt-3 pb-safe">
         <Button
+          variant={submit.destructive ? 'destructive' : 'default'}
           className="min-h-12"
           disabled={blocked}
           accessibilityState={{ busy: !!submit.pending, disabled: blocked }}
           onPress={submit.onPress}>
-          {submit.pending ? <Spinner tone="primary-foreground" /> : null}
+          {submit.pending ? (
+            <Spinner tone={submit.destructive ? 'destructive-foreground' : 'primary-foreground'} />
+          ) : null}
           <Text>{submit.label}</Text>
         </Button>
       </View>

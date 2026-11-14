@@ -2197,3 +2197,59 @@ Date: 2026-11-15 · Branch `mobile/M2-02b-patient-google`
 | 6 Note | **For the account-deletion card:** soft-deleted accounts keep their `patient_account_identities` rows, so that Google account is blocked forever — deletion must remove identity rows. |
 
 Verification: `npm run build` clean; patient-auth + auth/google specs 6 suites / 41 tests; full `npx jest --runInBand` 98 suites / 1014 tests passed. No int specs run (no DB). Install commands: none.
+
+---
+## M1-08 — Doctor queue screen (S-02a)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-08-doctor-queue-d5f636 (worktree of mobile/develop)   Commit(s): see git log (feat + docs)   Status set to: review
+
+### Done
+- `DoctorQueueView` replaced (data via `useMySession`; wiring, sheets, session states). Body for open/paused in `doctor/DoctorQueueList.tsx` (FlashList in `waitingOrder`, header = pill + ⋮ + summary + paused banner + current card + suggestion line; footer = collapsible On hold / Skipped).
+- Session states: `waiting_for_doctor` (Start session), `open`, `paused` (banner with reason + Resume, Call next disabled), `closed` (summary counts).
+- `doctor/CurrentPatientCard`: actions come from `useEntryActions(…, 'doctor')` (primary Start/Done, secondary Recall / Undo call / Skip / Send for test / Abort, Patient file → `/patients/[patientId]`).
+- `doctor/WaitingRow`: ⋯ → ActionSheet "Call this patient"; selecting the suggested patient goes straight through, jumping the order opens the ReasonSheet (optional reason).
+- `doctor/ReasonSheet` + `hooks/useReasonForm.ts` + `schemas/reason.schema.ts`: FormSheet + TanStack Form + Zod 4 (`validators`, `fieldError`); pause requires a reason, others optional; max 500. Sheet stays open on a plain failure, closes on success or a stale entry (`shouldRefetch`).
+- `doctor/useDoctorQueueActions`: all mutations in one hook; `busyEntryIds` (from each mutation's `isPending` + `variables.entryId`) locks a row/card while any action on it runs; `ifMatch: entry.version` comes from the entry on screen; haptics success/warning; `AccessibilityInfo.announceForAccessibility("Called A-008, Sara K.")` after Call next; NO_ELIGIBLE_PATIENT → the hook's "No one is waiting" toast.
+- ConnectionPill via existing `RealtimeConnectionPill`; pull to refresh; offline: Call next/Start/Resume use `OfflineAwareButton`, other buttons disabled via `useCanMutate`.
+
+### Files
+- Created: `components/DoctorQueueView.test.tsx`, `components/doctor/{CurrentPatientCard,DoctorQueueList,ReasonSheet,SessionPanels,WaitingRow}.tsx`, `doctor/{doctor-labels,haptics,useDoctorQueueActions}.ts`, `doctor/useDoctorQueueActions.test.tsx`, `hooks/useReasonForm.ts`, `schemas/reason.schema.ts`
+- Modified: `components/DoctorQueueView.tsx`, `docs/PROGRESS.md`, `docs/HANDOFF.md`
+
+### Install commands for the user
+none (`npm install` from the existing lockfile only)
+
+### Verification
+- `npm test` → 62 suites, 446 tests passed (19 new: 15 view, 4 actions hook)
+- `npm run typecheck` → clean
+- eslint `src` → 0 errors, 3 pre-existing warnings (api-error.ts, skeleton.tsx, staff/lib/api.ts)
+- `npm run lint:fences` → all directions fail as expected
+- Manual: **no device or emulator here — not run on a device.** Screenshots of the 4 session states and the 10-patient seeded-clinic run join gate M0-D.
+
+### Acceptance criteria
+- [x] session states render; actions by status; Call next + NO_ELIGIBLE_PATIENT; actions disabled while pending; reason sheet validation (tests)
+- [ ] manual 10-patient run + 4 screenshots (no device)
+
+### Deviations from the card / docs
+- **Close session** (⋮ menu) is not here: the card text says M1-10 builds the close sheet. The menu has Pause / Resume / Smart order (needs `queue.entry.reprioritize`).
+- Current card shows the patient number and reason, not "34y · M": `EntryPatient` has no age or gender.
+- Segmented control + board placeholder already live in `QueueTabPage` (not touched).
+- Tests mock `FormSheet` / `ActionSheet` (native gesture runtime) and `FlashList` (no layout in Jest); the real `ReasonSheet` form logic runs.
+- Prettier was not configured in `mobile-app`; files were formatted with single quotes / width 100 to match the existing sources.
+
+### Questions for the architect
+- Abort asks via the ReasonSheet (title "Abort consultation", consequence text) instead of a separate ConfirmDialog; is that enough as the confirm?
+
+---
+## Rework M1-08 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-08-doctor-queue-d5f636 · Status set to: review (PROGRESS stays `review`)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Abort needs a confirm | The ReasonSheet submit (now destructive) no longer sends; it opens a destructive `ConfirmDialog` ("Abort consultation? This ends the visit without completing it. It cannot be undone."). `actions.abort` runs only on confirm, with the entry as it is on screen then (fresh `version`); a plain failure keeps the dialog open. Test: abort not called until confirmed. Needed one additive field in core: `SubmitSpec.destructive` (`core/components/overlays/SubmitFooter.tsx`) — flag for the review. |
+| 2 | Call next + "Call this patient" can both fire | `locked = sessionBusy \|\| busyEntryIds.size > 0` disables Call next and every row menu (`WaitingRow.locked`, no spinner on other rows); `callThisPatient` also returns early when locked. Tests for entry-busy and session-busy. |
+| 3 | Announce after select | `select` announces "Called A-009, Umar" via the shared `announceCalled`, same as Call next. Test. |
+| 4 | my-session NOT_FOUND | `queueErrorCode(error) === 'NOT_FOUND'` → `EmptyState` "You are not set up as a doctor at this location." (no retry). Test. |
+| 5 | Waiting minutes froze | `doctor/useTickingNow`: server `now` + phone-elapsed time, ticked each minute, re-based on every snapshot. Tests with fake timers. |
+
+Verification: `npm test` 63 suites / 452 tests passed · typecheck clean · eslint 0 errors (3 old warnings) · lint:fences ok.
+Not run on a device: device items wait for gate M0-D (the 10-patient run and the 4 state screenshots).
