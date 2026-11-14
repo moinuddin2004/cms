@@ -45,7 +45,7 @@
 | M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | ready | | | |
 | M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | ready (UI phase) | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
-| M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
+| M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | review | Sonnet session | 2026-11-15 | |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
 | M1-14a | Appointments data layer | MOB | S | M1-06 | ready | | | |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | ready (UI phase) | | | |
