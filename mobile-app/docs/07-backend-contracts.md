@@ -263,7 +263,8 @@ interface PatientSession {
 ```
 
 Error codes: `CODE_INVALID` (wrong/expired/too many tries — one code for all), `GOOGLE_TOKEN_INVALID`,
-`ACCOUNT_DISABLED`, `SESSION_INVALID` (refresh).
+`ACCOUNT_DISABLED`, `SESSION_INVALID` (refresh), `ACCOUNT_LINK_CONFLICT` (409, Google: the email's account
+already has a different Google identity — use the email-code sign-in).
 Google: reuse `GoogleIdentityService` but accept an **array** of audiences
 (`GOOGLE_CLIENT_ID` + `GOOGLE_ANDROID_CLIENT_ID` + `GOOGLE_IOS_CLIENT_ID`) — small change in
 `src/auth/google/google-identity.service.ts` (verifyIdToken `audience` accepts an array). Match

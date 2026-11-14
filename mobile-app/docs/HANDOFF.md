@@ -1648,3 +1648,17 @@ none (`npm ci` from lockfile only; lockfile changes discarded)
 
 ### Questions for the architect
 - None.
+
+## Rework M2-02b #1
+Date: 2026-11-15 · Branch `mobile/M2-02b-patient-google`
+
+| # | Result |
+| --- | --- |
+| 1 Medium | Fixed. Email-matched account that already has a `provider='google'` identity (different sub) → 409 `ACCOUNT_LINK_CONFLICT`; spec; code documented in 07 §5. |
+| 2 Med-low | Fixed. Identity inserted with `insert().orIgnore()` and re-read (other account → conflict); a 23505 on the transaction retries the whole resolve once. Specs: mocked 23505 (retry finds winner) and non-23505 not retried. |
+| 3 Low | Fixed. `ServiceUnavailableException` (Google not configured) is rethrown as 503; only verify failures → 401 `GOOGLE_TOKEN_INVALID`. Spec. |
+| 4 Low | Fixed. `GoogleIdentity.rawName` (Google's real `name` claim or null); patient flow stores only that, so `needsName` stays true without one. Staff `name` fallback unchanged. Specs in both services. |
+| 5 Nit | Fixed. `new OAuth2Client()` without client id. Spec updated. |
+| 6 Note | **For the account-deletion card:** soft-deleted accounts keep their `patient_account_identities` rows, so that Google account is blocked forever — deletion must remove identity rows. |
+
+Verification: `npm run build` clean; patient-auth + auth/google specs 6 suites / 41 tests; full `npx jest --runInBand` 98 suites / 1014 tests passed. No int specs run (no DB). Install commands: none.
