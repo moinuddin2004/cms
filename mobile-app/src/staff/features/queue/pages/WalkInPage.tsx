@@ -18,6 +18,7 @@ import {
   SegmentedControl,
   fieldError,
 } from '@/core/components';
+import { useAccess } from '@/staff/features/access';
 import { Button } from '@/core/ui/button';
 import { Switch } from '@/core/ui/switch';
 import { Text } from '@/core/ui/text';
@@ -39,6 +40,8 @@ function WalkInFormBody({ doctors, initialDoctorId }: {
   doctors: { id: string; fullName: string }[];
   initialDoctorId: string;
 }) {
+  // Searching patients needs `patients.view`; without it only new patients can be added.
+  const canSearchPatients = useAccess().can('patients.view');
   const router = useRouter();
   const [discardOpen, setDiscardOpen] = useState(false);
   const { focusEntry, showTicket } = useBoardUiStore();
@@ -52,8 +55,9 @@ function WalkInFormBody({ doctors, initialDoctorId }: {
     router.back();
   };
 
-  const { form, isDirty, forceOpen, dismissForce, confirmForce } = useWalkInForm(
+  const { form, isDirty, forceOpen, forceDoctorName, dismissForce, confirmForce } = useWalkInForm(
     initialDoctorId,
+    canSearchPatients ? 'existing' : 'new',
     onCreated,
   );
 
@@ -80,15 +84,17 @@ function WalkInFormBody({ doctors, initialDoctorId }: {
         )}
       </form.Field>
 
-      <form.Field name="mode">
-        {(field) => (
-          <SegmentedControl
-            segments={MODES}
-            value={field.state.value}
-            onChange={(v) => field.handleChange(v === 'new' ? 'new' : 'existing')}
-          />
-        )}
-      </form.Field>
+      {canSearchPatients ? (
+        <form.Field name="mode">
+          {(field) => (
+            <SegmentedControl
+              segments={MODES}
+              value={field.state.value}
+              onChange={(v) => field.handleChange(v === 'new' ? 'new' : 'existing')}
+            />
+          )}
+        </form.Field>
+      ) : null}
 
       <form.Subscribe selector={(s) => s.values.mode}>
         {(mode) =>
@@ -227,8 +233,10 @@ function WalkInFormBody({ doctors, initialDoctorId }: {
       <ConfirmDialog
         open={forceOpen}
         onClose={dismissForce}
-        title="Already in another doctor's queue"
-        description="This patient is already waiting for a different doctor today. Add anyway?"
+        title={
+          forceDoctorName ? `Already in ${forceDoctorName}'s queue` : "Already in another doctor's queue"
+        }
+        description="This patient is already waiting for a doctor today. Add anyway?"
         confirmLabel="Add anyway"
         cancelLabel="Cancel"
         onConfirm={confirmForce}

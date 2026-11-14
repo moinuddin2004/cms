@@ -116,6 +116,17 @@ describe('usePatientsInfinite', () => {
     });
   });
 
+  it('options.enabled=false holds the query (default stays on); enabling runs it', async () => {
+    mockApi.fetchPatients.mockResolvedValue(page(1, 1));
+    const { rerender } = await renderHook(
+      (p: { on: boolean }) => usePatientsInfinite({}, { enabled: p.on }),
+      { wrapper: wrapperFor(newClient()), initialProps: { on: false } },
+    );
+    expect(mockApi.fetchPatients).not.toHaveBeenCalled();
+    await rerender({ on: true });
+    await waitFor(() => expect(mockApi.fetchPatients).toHaveBeenCalledTimes(1));
+  });
+
   it('stays idle without an active location', async () => {
     useStaffAuthStore.setState({ activeLocationId: null });
     await renderHook(() => usePatientsInfinite({}), { wrapper: wrapperFor(newClient()) });

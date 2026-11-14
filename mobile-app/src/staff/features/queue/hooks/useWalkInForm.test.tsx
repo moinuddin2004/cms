@@ -18,10 +18,10 @@ jest.mock('../api/queue.api', () => ({
   registerWalkIn: (...a: unknown[]) => mockRegister(...a),
 }));
 
-function httpError(status: number, code: string) {
+function httpError(status: number, code: string, extra: object = {}) {
   const response = {
     status,
-    data: { error: { code } },
+    data: { error: { code, ...extra } },
     headers: {},
     statusText: '',
     config: { headers: new AxiosHeaders() },
@@ -36,7 +36,7 @@ async function setup(onCreated = jest.fn()) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
-  const hook = await renderHook(() => useWalkInForm('doc-1', onCreated), { wrapper });
+  const hook = await renderHook(() => useWalkInForm('doc-1', 'existing', onCreated), { wrapper });
   return { hook, onCreated, client };
 }
 
@@ -85,6 +85,35 @@ describe('useWalkInForm', () => {
     expect(secondKey).not.toBe(firstKey);
     expect(hook.result.current.forceOpen).toBe(false);
     expect(onCreated).toHaveBeenCalledWith(arrival, expect.objectContaining({ patientId: 'p1' }));
+  });
+
+  it('names the other doctor from the error payload when the server sends it', async () => {
+    mockRegister.mockRejectedValueOnce(
+      httpError(409, 'ACTIVE_WITH_OTHER_DOCTOR', {
+        entries: [{ entryId: 'x', token: 'B-004', doctorName: 'Dr Imran', status: 'waiting' }],
+      }),
+    );
+    const { hook } = await setup();
+    await fillAndSubmit(hook);
+    expect(hook.result.current.forceDoctorName).toBe('Dr Imran');
+  });
+
+  it('has no doctor name when the payload carries none', async () => {
+    mockRegister.mockRejectedValueOnce(httpError(409, 'ACTIVE_WITH_OTHER_DOCTOR'));
+    const { hook } = await setup();
+    await fillAndSubmit(hook);
+    expect(hook.result.current.forceOpen).toBe(true);
+    expect(hook.result.current.forceDoctorName).toBeNull();
+  });
+
+  it('starts in the given mode (new patient for roles that cannot search patients)', async () => {
+    const client = new QueryClient();
+    const { result } = await renderHook(() => useWalkInForm('doc-1', 'new', jest.fn()), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      ),
+    });
+    expect(result.current.form.state.values.mode).toBe('new');
   });
 
   it('dismissing the dialog sends nothing more', async () => {

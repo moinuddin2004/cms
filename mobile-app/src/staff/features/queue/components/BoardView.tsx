@@ -25,8 +25,6 @@ import { TicketSheet } from './board/TicketSheet';
 import { useBoardActions } from './board/useBoardActions';
 import { useBoardUiStore } from './board/useBoardUiStore';
 
-/** Where the arrivals screen (M1-10) will live. Untyped until that route exists. */
-const ARRIVALS_ROUTE = '/queue/arrivals';
 const FOCUS_HIGHLIGHT_MS = 4000;
 
 /**
@@ -106,7 +104,8 @@ export function BoardView() {
           icon={LayoutList}
           title="No open lanes"
           description="Open a lane for a doctor to start taking patients."
-          actionLabel={canMutate ? 'Open a lane' : undefined}
+          // The server lets only `queue.checkin` (or that doctor) open a session.
+          actionLabel={canMutate && canWalkIn ? 'Open a lane' : undefined}
           onAction={() => startFlow({ kind: 'open-lane' })}
           className="flex-1 justify-center"
         />
@@ -116,7 +115,8 @@ export function BoardView() {
   }
 
   const groups = groupLane(lane.snapshot);
-  const items = buildLaneItems(lane.snapshot.session, groups, canWalkIn);
+  // TODO(M1-10): show the Arrivals row (pass `canWalkIn`) once the arrivals screen exists.
+  const items = buildLaneItems(lane.snapshot.session, groups, false);
   const doctors = data.lanes.map((l) => l.doctor);
 
   return (
@@ -129,7 +129,9 @@ export function BoardView() {
           lanes={lanes}
           activeDoctorId={lane.doctor.id}
           onSelect={selectDoctor}
-          onOpenLane={closed.length > 0 ? () => startFlow({ kind: 'open-lane' }) : undefined}
+          onOpenLane={
+            closed.length > 0 && canWalkIn ? () => startFlow({ kind: 'open-lane' }) : undefined
+          }
           openLaneDisabled={!canMutate || openSession.isPending}
         />
       </View>
@@ -141,7 +143,6 @@ export function BoardView() {
         focusEntryId={focusEntryId}
         refreshing={board.isRefetching}
         onRefresh={() => void board.refetch()}
-        onOpenArrivals={() => router.push(ARRIVALS_ROUTE as never)}
         onOpenActions={(entry) => openActions(entry.id)}
         onBackFromTest={(entry) => void actions.backFromTest(entry).catch(() => undefined)}
       />

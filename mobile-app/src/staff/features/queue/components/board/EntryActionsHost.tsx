@@ -11,6 +11,8 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
+import { toast } from 'sonner-native';
+
 import { ActionSheet, ConfirmDialog, type SheetAction } from '@/core/components';
 import { useCanMutate } from '@/core/http';
 import { useAccess } from '@/staff/features/access';
@@ -33,6 +35,8 @@ const ICONS: Partial<Record<EntryActionId, LucideIcon>> = {
   'patient-file': User,
   'show-ticket': Ticket,
 };
+
+const GONE = 'This patient is no longer in the queue.';
 
 export interface EntryActionsHostProps {
   lane: OpenLane;
@@ -118,9 +122,13 @@ export function EntryActionsHost({ lane, doctors, actions }: EntryActionsHostPro
         open={flow?.kind === 'urgent'}
         onClose={endFlow}
         tokenLabel={flowEntry?.token ?? ''}
-        onSubmit={(reason) =>
-          flowEntry ? actions.markUrgent(flowEntry, reason) : Promise.reject(new Error('gone'))
-        }
+        onSubmit={(reason) => {
+          if (flowEntry) return actions.markUrgent(flowEntry, reason);
+          // The entry left the queue while the sheet was open.
+          toast.error(GONE);
+          endFlow();
+          return Promise.reject(new Error('gone'));
+        }}
       />
       <ActionSheet
         open={flow?.kind === 'transfer'}
@@ -132,6 +140,7 @@ export function EntryActionsHost({ lane, doctors, actions }: EntryActionsHostPro
           icon: ArrowRightLeft,
           onPress: () => {
             if (flowEntry) void actions.transfer(flowEntry, d.id).catch(() => undefined);
+            else toast.error(GONE);
           },
         }))}
       />
@@ -145,6 +154,7 @@ export function EntryActionsHost({ lane, doctors, actions }: EntryActionsHostPro
         destructive
         onConfirm={async () => {
           if (flowEntry) await actions.cancel(flowEntry);
+          else toast.error(GONE);
         }}
       />
     </>

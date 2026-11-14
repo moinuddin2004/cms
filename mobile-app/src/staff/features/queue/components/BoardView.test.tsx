@@ -220,7 +220,7 @@ describe('BoardView', () => {
     await render(<BoardView />);
     expect(screen.getByLabelText('Dr d1, 2 waiting')).toBeTruthy();
     expect(screen.getByLabelText('Dr d2, 1 waiting')).toBeTruthy();
-    for (const t of ['Now serving', 'Waiting', 'On hold / Skipped', 'Arrivals']) {
+    for (const t of ['Now serving', 'Waiting', 'On hold / Skipped']) {
       expect(screen.getByText(t)).toBeTruthy();
     }
     // Urgent first (server order), walk-in wait from the server clock, urgent badge.
@@ -288,6 +288,27 @@ describe('BoardView', () => {
     await render(<BoardView />);
     await fireEvent.press(screen.getByLabelText('Walk-in'));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/queue/walk-in', params: { doctorId: 'd1' } });
+  });
+
+  it('hides the Arrivals row until the arrivals screen exists (M1-10)', async () => {
+    setBoard([lane('d1', [], [])]);
+    await render(<BoardView />);
+    expect(screen.queryByText('Arrivals')).toBeNull();
+  });
+
+  it('without queue.checkin there is no [+] chip to open a lane', async () => {
+    mockPerms = ['queue.board.view'];
+    setBoard([lane('d1', [], []), closedLane('d2')]);
+    await render(<BoardView />);
+    expect(screen.queryByLabelText('Open a lane for another doctor')).toBeNull();
+  });
+
+  it('without queue.checkin the empty board has no "Open a lane" button', async () => {
+    mockPerms = ['queue.board.view'];
+    setBoard([closedLane('d1')]);
+    await render(<BoardView />);
+    expect(screen.getByText('No open lanes')).toBeTruthy();
+    expect(screen.queryByText('Open a lane')).toBeNull();
   });
 
   it('no walk-in FAB and no arrivals link without queue.checkin', async () => {

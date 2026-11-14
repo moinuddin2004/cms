@@ -20,7 +20,8 @@ export interface BoardLaneListProps {
   focusEntryId: string | null;
   refreshing: boolean;
   onRefresh: () => void;
-  onOpenArrivals: () => void;
+  /** M1-10: wired when the Arrivals row is shown. */
+  onOpenArrivals?: () => void;
   onOpenActions: (entry: EntryView) => void;
   onBackFromTest: (entry: EntryView) => void;
 }

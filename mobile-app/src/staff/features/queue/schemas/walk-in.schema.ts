@@ -37,9 +37,12 @@ export const walkInSchema = z
 
 export type WalkInValues = z.input<typeof walkInSchema>;
 
-export const walkInDefaults = (doctorId: string): WalkInValues => ({
+export const walkInDefaults = (
+  doctorId: string,
+  mode: WalkInValues['mode'] = 'existing',
+): WalkInValues => ({
   doctorId,
-  mode: 'existing',
+  mode,
   patientId: '',
   patientLabel: '',
   fullName: '',

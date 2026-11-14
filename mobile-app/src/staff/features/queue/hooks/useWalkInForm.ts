@@ -2,6 +2,7 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useState } from 'react';
 import { toast } from 'sonner-native';
 
+import { activeElsewhereDoctor } from '../lib/walk-in-conflict';
 import { toWalkInInput } from '../lib/walk-in-input';
 import { queueErrorCode, queueErrorMessage } from '../lib/queue-errors';
 import { walkInDefaults, walkInSchema, type WalkInValues } from '../schemas/walk-in.schema';
@@ -17,12 +18,15 @@ import { useWalkIn } from './useArrivalMutations';
  */
 export function useWalkInForm(
   defaultDoctorId: string,
+  defaultMode: WalkInValues['mode'],
   onCreated: (result: ArrivalResult, values: WalkInValues) => void,
 ) {
   const walkIn = useWalkIn();
-  const [forceInput, setForceInput] = useState<{ input: WalkInInput; values: WalkInValues } | null>(
-    null,
-  );
+  const [forceInput, setForceInput] = useState<{
+    input: WalkInInput;
+    values: WalkInValues;
+    doctorName: string | null;
+  } | null>(null);
 
   const send = async (input: WalkInInput, values: WalkInValues) => {
     try {
@@ -32,7 +36,7 @@ export function useWalkInForm(
     } catch (err) {
       const code = queueErrorCode(err);
       if (code === 'ACTIVE_WITH_OTHER_DOCTOR' && !input.force) {
-        setForceInput({ input, values });
+        setForceInput({ input, values, doctorName: activeElsewhereDoctor(err) });
         return;
       }
       setForceInput(null);
@@ -44,7 +48,7 @@ export function useWalkInForm(
   };
 
   const form = useForm({
-    defaultValues: walkInDefaults(defaultDoctorId),
+    defaultValues: walkInDefaults(defaultDoctorId, defaultMode),
     validators: { onChange: walkInSchema, onSubmit: walkInSchema },
     onSubmit: ({ value }) => send(toWalkInInput(value), value),
   });
@@ -59,6 +63,8 @@ export function useWalkInForm(
     form,
     isDirty,
     forceOpen: forceInput !== null,
+    /** The doctor the patient is already waiting for, when the server says. */
+    forceDoctorName: forceInput?.doctorName ?? null,
     dismissForce: () => setForceInput(null),
     confirmForce,
   };

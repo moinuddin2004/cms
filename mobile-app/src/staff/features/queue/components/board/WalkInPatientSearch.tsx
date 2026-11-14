@@ -17,7 +17,7 @@ export interface WalkInPatientSearchProps {
 /** Debounced patient search (`GET /patients?search=`) for the walk-in; first page only, refine to narrow. */
 export function WalkInPatientSearch({ onPick }: WalkInPatientSearchProps) {
   const [search, setSearch] = useState('');
-  const query = usePatientsInfinite({ search });
+  const query = usePatientsInfinite({ search }, { enabled: search.trim().length >= 2 });
   const searching = search.trim().length >= 2;
   const rows = query.data?.pages.flatMap((p) => p.data) ?? [];
 
