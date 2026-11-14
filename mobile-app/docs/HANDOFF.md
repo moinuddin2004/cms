@@ -1798,3 +1798,21 @@ none (`npm ci` from the lockfile only; package-lock unchanged)
 
 ### Notes for the next task
 - Entry-action vars must include the on-screen `version`. Room names live in `hooks/queue-rooms.ts`.
+
+---
+## Rework M1-07 #1  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-07-queue-hooks-487ca3   Commit(s): 801157b   Status set to: review (unchanged)
+
+### Findings
+1. **Dialog codes** — `lib/queue-errors.ts` exports `DIALOG_ERROR_CODES` (ACTIVE_WITH_OTHER_DOCTOR, LATE_LIMIT_EXCEEDED) and `isDialogError(err)` (also in the barrel). The shared mutation `onError` returns early for them: no toast, no invalidate; the caller's mutate-level `onError` handles them. Tests: `isDialogError` table; hook test that both codes toast nothing and call the caller's `onError`.
+2. **Midnight rollover** — new `src/staff/lib/clinic-today.ts` `useClinicToday()`: timer to the next clinic midnight (`clinicDayBounds(today).end + 1`, re-armed on tick/zone change) and re-read on AppState → active. Used by `useBoard` and `useMySession`. Fake-timer tests (23:30 Karachi → rolls at 00:00; foreground re-read after a slept-through midnight; listener removed) plus hook tests that the key/fetch moves to the new day.
+3. **openSession** — `api/queue.api.ts` `openSession(vars)` is a plain post (no options, no Idempotency-Key); `useOpenSession` no longer mints a key; api test asserts no `Idempotency-Key`/`If-Match`. Found while testing: `usePlainQueueMutation` passed TanStack's 2nd (context) argument into the api fn; it now calls `mutationFn(vars)` only.
+4. **Timer leaks** — both hook test files now `await cleanup()`, `client.clear()` for every client, then `useRealTimers()` in `afterEach`. The queue/clinic-today suites no longer print "worker failed to exit".
+5. **New tests** — board room switches when the active location changes (leave l1 / join l2, new key); LOCK_TIMEOUT toast once after 4 calls (3 retries) on an Idem hook; day rollover (see 2).
+
+### Verification
+- `npm run typecheck` → clean; ESLint → 0 errors (3 pre-existing warnings); `npm run lint:fences` → all PASS
+- `npm test` → 52 suites, 371 passed, **1 failed**: `src/core/components/forms/FilterChips.test.tsx` "single select…" times out at 5000 ms in the full parallel run only; it passes alone (2/2) and is not touched by this card (it explains the earlier unidentified failure and the remaining "worker failed to exit" warning). Queue + clinic-today: 7 suites, 110 tests green.
+
+### Questions for the architect
+- FilterChips flake is outside this card: want a separate fix card (raise timeout / look at its leaked timer)?
