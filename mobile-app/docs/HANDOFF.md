@@ -2007,3 +2007,18 @@ none (lockfile install only)
 
 ### Questions for the architect
 - Should `transformIgnorePatterns` include `@shopify/flash-list` so later page tests can use the real list?
+
+---
+## Rework M1-11 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-11-patients-list-118fe2 · Status: review (unchanged)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Stale duplicate-phone answer survived a successful register | `useQuickRegister` also invalidates `['patients','check-phone']`; the sheet clears `blurredPhone` in its `onCreated` path. Test: duplicate shown → register → retype the same phone → notice gone. |
+| 2 | Failed `fetchNextPage` showed "Could not refresh" and retried with `refetch()` | Footer "Could not load more" + Retry → `fetchNextPage()` on `isFetchNextPageError`; the banner now only for `isRefetchError`; `onEndReached` no longer auto-retries after a page error. Test added (rows stay, retry fetches page 2 only). |
+| 3 | Refresh control spun on background refetches | Local `pulling` state set in `onRefresh`, cleared when that refetch settles. |
+| 4 | (optional) blank skeleton on a new search | `placeholderData: keepPreviousData` in `usePatientsInfinite`. |
+
+FlashList in jest: kept the FlatList stand-in (real FlashList is ESM and needs native layout; not fighting shared jest config). The mock now records `onEndReached` so the paging test can drive it.
+Touched M1-11b files as asked: `hooks/useQuickRegister.ts`, `hooks/usePatientsInfinite.ts`.
+Verification: typecheck clean, eslint 0 errors, fences pass, patients tests green (page suite 16). Full `npm test`: 62 suites / 445 tests all green (the earlier FilterChips flake did not recur). No device.

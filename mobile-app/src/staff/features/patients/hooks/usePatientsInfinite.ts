@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
@@ -44,6 +44,8 @@ export function usePatientsInfinite(filters: PatientListFilters = {}) {
     queryKey: patientKeys.list(orgId, locationId, query),
     queryFn: ({ pageParam }) => fetchPatients({ ...query, page: pageParam }),
     initialPageParam: 1,
+    // a new search keeps the previous rows on screen instead of blanking to the skeleton
+    placeholderData: keepPreviousData,
     getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
     enabled: !!orgId && !!locationId,
   });

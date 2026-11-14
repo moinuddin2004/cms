@@ -15,6 +15,8 @@ export function useQuickRegister() {
     onSuccess: () => {
       // fire and forget: the caller must not wait for the list refetches
       void queryClient.invalidateQueries({ queryKey: patientKeys.lists });
+      // the new patient's phone now exists: a cached "no duplicate" answer is stale
+      void queryClient.invalidateQueries({ queryKey: [...patientKeys.all, 'check-phone'] });
     },
     onError: (err) => toast.error(apiErrorMessage(err, 'Could not register the patient.')),
   });

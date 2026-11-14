@@ -17,6 +17,7 @@ import {
   SearchBar,
   Spinner,
 } from '@/core/components';
+import { Button } from '@/core/ui/button';
 import { Text } from '@/core/ui/text';
 import { useAccess } from '@/staff/features/access';
 import { NotificationBell } from '@/staff/features/notifications';
@@ -46,6 +47,8 @@ export function PatientsPage() {
   const [search, setSearch] = useState('');
   const [chips, setChips] = useState<string[]>(DEFAULT_CHIPS);
   const [registerOpen, setRegisterOpen] = useState(false);
+  // Only a user pull-to-refresh spins the control, not background refetches.
+  const [pulling, setPulling] = useState(false);
 
   const searching = search.trim().length >= MIN_SEARCH_LENGTH;
   const filters = useMemo(
@@ -90,7 +93,7 @@ export function PatientsPage() {
   };
 
   const onEndReached = () => {
-    if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
+    if (query.hasNextPage && !query.isFetchingNextPage && !query.isFetchNextPageError) void query.fetchNextPage();
   };
 
   let body;
@@ -105,8 +108,11 @@ export function PatientsPage() {
         keyExtractor={keyOf}
         renderItem={({ item }) => <PatientRow patient={item} onPress={open} />}
         keyboardShouldPersistTaps="handled"
-        refreshing={query.isRefetching && !query.isFetchingNextPage}
-        onRefresh={() => void query.refetch()}
+        refreshing={pulling}
+        onRefresh={() => {
+          setPulling(true);
+          void query.refetch().finally(() => setPulling(false));
+        }}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={searching ? null : <RecentPatients onOpen={open} />}
@@ -124,7 +130,14 @@ export function PatientsPage() {
           )
         }
         ListFooterComponent={
-          query.isFetchingNextPage ? (
+          query.isFetchNextPageError ? (
+            <View className="items-center gap-1 py-4">
+              <Text variant="muted">Could not load more</Text>
+              <Button variant="outline" className="min-h-11" onPress={() => void query.fetchNextPage()}>
+                <Text>Retry</Text>
+              </Button>
+            </View>
+          ) : query.isFetchingNextPage ? (
             <View accessibilityRole="progressbar" className="flex-row items-center justify-center gap-2 py-4">
               <Spinner />
               <Text variant="muted">Loading more…</Text>
@@ -161,7 +174,7 @@ export function PatientsPage() {
         </View>
         <FilterChips options={CHIPS} value={chips} onChange={setChips} multiple />
       </View>
-      {query.isError && patients.length > 0 ? (
+      {query.isRefetchError && patients.length > 0 ? (
         <ErrorState
           title="Could not refresh"
           message="Showing the patients already loaded."

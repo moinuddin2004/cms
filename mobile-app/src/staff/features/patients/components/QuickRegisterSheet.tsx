@@ -40,11 +40,14 @@ export function QuickRegisterSheet({
   onCreated,
   onSearchPhone,
 }: QuickRegisterSheetProps) {
-  const { form, isDirty } = useQuickRegisterForm(onCreated);
-  const canSubmit = useStore(form.store, (s) => s.canSubmit);
-  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
   // The phone the user last left the field with; the duplicate check runs for this value only.
   const [blurredPhone, setBlurredPhone] = useState('');
+  const { form, isDirty } = useQuickRegisterForm((patient) => {
+    setBlurredPhone('');
+    onCreated(patient);
+  });
+  const canSubmit = useStore(form.store, (s) => s.canSubmit);
+  const isSubmitting = useStore(form.store, (s) => s.isSubmitting);
   const check = useCheckPhone(blurredPhone);
 
   const close = () => {

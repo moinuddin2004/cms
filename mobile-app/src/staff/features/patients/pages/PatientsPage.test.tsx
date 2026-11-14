@@ -8,10 +8,16 @@ import { useRecentPatientsStore } from '../store/useRecentPatientsStore';
 import type { PatientListItem } from '../types/patients.types';
 import { PatientsPage } from './PatientsPage';
 
+const mockListProps: { onEndReached?: () => void } = {};
 // FlashList ships ESM and needs native layout; a FlatList stand-in keeps the same props.
 jest.mock('@shopify/flash-list', () => {
   const { FlatList } = jest.requireActual<typeof import('react-native')>('react-native');
-  return { FlashList: FlatList };
+  return {
+    FlashList: (props: { onEndReached?: () => void }) => {
+      mockListProps.onEndReached = props.onEndReached;
+      return <FlatList {...(props as object)} data={(props as { data: never[] }).data} />;
+    },
+  };
 });
 
 jest.mock('react-native-keyboard-controller', () => {
@@ -190,6 +196,24 @@ describe('PatientsPage list states', () => {
   });
 });
 
+describe('paging', () => {
+  it('a failed next page shows a footer Retry that fetches only that page', async () => {
+    mockFetchPatients
+      .mockResolvedValueOnce(page([patient()], 1, 2))
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(page([patient({ id: 'p2', fullName: 'Sara Khan' })], 2, 2));
+    await renderPage();
+    await screen.findByText('Ali Raza');
+    await act(async () => mockListProps.onEndReached?.());
+    expect(await screen.findByText('Could not load more')).toBeTruthy();
+    expect(screen.queryByText('Could not refresh')).toBeNull();
+    expect(screen.getByText('Ali Raza')).toBeTruthy(); // rows stay
+    await fireEvent.press(screen.getByText('Retry'));
+    expect(await screen.findByText('Sara Khan')).toBeTruthy();
+    expect(mockFetchPatients).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }));
+  });
+});
+
 describe('search', () => {
   beforeEach(() =>
     jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] }),
@@ -287,6 +311,20 @@ describe('quick register', () => {
     await waitFor(() =>
       expect(screen.getByLabelText('Name, phone or MR no.').props.value).toBe('03001234567'),
     );
+  });
+
+  it('forgets the duplicate answer after a successful register', async () => {
+    mockCheckPhone.mockResolvedValue({ exists: true });
+    mockCreate.mockResolvedValue(patient({ id: 'new-2' }));
+    await renderPage();
+    await fireEvent.press(screen.getByLabelText('Register patient'));
+    await fill('Sara Khan', '03001234567');
+    await fireEvent(screen.getByLabelText('Phone'), 'blur');
+    expect(await screen.findByText('A patient with this phone already exists')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Register'));
+    await waitFor(() => expect(mockPush).toHaveBeenCalled());
+    await fill('Next One', '03001234567');
+    expect(screen.queryByText('A patient with this phone already exists')).toBeNull();
   });
 
   it('creates the patient, toasts, opens the record and remembers it', async () => {
