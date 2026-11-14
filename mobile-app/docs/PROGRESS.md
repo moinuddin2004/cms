@@ -39,7 +39,7 @@
 | M1-07a | Queue types, API, keys, pure logic | MOB | M | — | done (in develop) | mobile/M1-07a-queue-api | | 2026-11-11 |
 | M1-07 | Queue hooks | MOB | M | M1-03, M1-06, M1-07a | done (in develop) | | | |
 | M1-08 | Doctor queue screen | MOB | L | M1-07 | ready | | | |
-| M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | ready | | | |
+| M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | review | mobile/M1-09-board | | |
 | M1-10 | Arrivals + close session | MOB | M | M1-08, M1-09 | ready | | | |
 | M1-11a | Patients types, API, keys, pure logic | MOB | S | — | done (in develop) | mobile/M1-11a-patients-api | | 2026-11-11 |
 | M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | done (in develop) | | | |
