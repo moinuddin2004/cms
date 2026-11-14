@@ -457,7 +457,7 @@ MOB · M · Depends: M1-04, M0-07 · Branch `mobile/M1-05-push`
 **Read first:** SDK 58 `expo-notifications` docs (permissions, `getExpoPushTokenAsync` needs `projectId`
 from EAS config, Android channels, response listeners, cold-start `getLastNotificationResponse`).
 
-**Note:** reuse `staff/lib/link-router.ts` (`resolveStaffLink`, created in M1-13) for the route map in step 5.
+**Note:** reuse `staff/lib/link-router.ts` (`resolveStaffLink`, created in M1-13a) for the route map in step 5.
 
 **Steps:**
 1. `core/notifications/permissions.ts`: `getPermissionState()`, `requestPermission()`; never at launch.
@@ -663,9 +663,9 @@ cancel/transfer decisions, doctor picker from `GET /appointments/doctors`).
 
 ---
 
-### M1-11 — Patients list and quick register (S-04) (data layer already exists from M1-11a)
+### M1-11 — Patients list and quick register (S-04) — UI only (hooks in M1-11b)
 
-MOB · M · Depends: M1-01, M1-02, M1-06, M1-11a · Branch `mobile/M1-11-patients-list`
+MOB · M · Depends: M1-01, M1-02, M1-11b · Branch `mobile/M1-11-patients-list`
 
 **Read first:** [06 S-04](06-screens.md) (wireframe), [05 §6–§8](05-ui-ux-design-system.md) (list patterns, FormSheet), `src/staff/features/patients/**`
 (M1-11a: types, api, keys, `mask-phone`, `quick-register.schema`), `src/core/components/**` (kit), `src/core/http`, reviews M1-11a and M1-06
@@ -703,9 +703,9 @@ no drawing). ⋯ menu: call, WhatsApp, copy MR no. Adds to "recently opened".
 
 ---
 
-### M1-13 — Notifications inbox and bell (S-07)
+### M1-13 — Notifications inbox and bell (S-07) — UI only (api/hooks/link router in M1-13a)
 
-MOB · S · Depends: M1-02, M1-03 · Branch `mobile/M1-13-notifications`
+MOB · S · Depends: M1-02, M1-13a · Branch `mobile/M1-13-notifications`
 
 **Read first:** [06 S-07](06-screens.md), [07 §2.2](07-backend-contracts.md#22-notifications-inbox-srcnotificationscontrollersmy-notificationscontrollerts-contextfree),
 `backend/src/notifications/controllers/my-notifications.controller.ts` (verify), `src/staff/features/notifications/**`
@@ -770,6 +770,104 @@ Needed only if the pilot clinic uses "Google only" sign-in. Backend: `GoogleIden
 array of audiences (env `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`). Mobile: native Google
 sign-in library chosen by the architect at expansion time (check SDK 58 docs), `POST /auth/google`,
 handle the three outcomes. Architect expands before start.
+
+---
+
+## Baseline data-layer cards (no UI) — added 2026-11-14
+
+> Rule for every card in this block: **no screens, no route files, no components** (except where a card says so). Hooks, api,
+> keys, pure logic and tests only. Screens are built later on top of these (UI phase).
+
+### M1-11b — Patients hooks (split from M1-11/M1-12)
+
+MOB · S · Depends: M1-06, M1-11a · Branch `mobile/M1-11b-patients-hooks`
+
+**Read first:** `src/staff/features/patients/**` (M1-11a: types, api, keys, mask-phone, alerts, schema), `src/core/http`, `src/staff/lib/persist.ts`
+(never persist list/search/checkPhone), [04 §7–§9](04-coding-standards.md#7-queries), [06 S-04/S-05](06-screens.md), reviews M1-11a and M1-06.
+
+**Steps:**
+1. `hooks/usePatientsInfinite(filters)` — `useInfiniteQuery`, page size 20, `getNextPageParam` from `page < totalPages`, search ≥ 2 chars
+   (shorter → list without search), boolean filters only ever sent as `true` (R-02).
+2. `hooks/usePatient(id)`, `usePatientHistory(id)` (only when `can('patients.clinical.view')`), `usePatientVitals(id)` (same gate),
+   `usePatientPrescriptions(id)` (same gate + `hasFeature('patients.prescriptions')`; sort finalized/amended first, then drafts),
+   `useLatestTeethChart(id)` (gate + `hasFeature('patients.teeth_chart')`). Disabled queries return a typed "not allowed" state, never an error.
+3. `hooks/useCheckPhone(phone)` — enabled only for a valid phone (schema helper), `staleTime` 30 s.
+4. `hooks/useQuickRegister()` — mutation → invalidate `patientKeys` lists → returns the new patient; `hooks/useQuickRegisterForm.ts`
+   (TanStack Form + `quickRegisterSchema` wired as `validators`, dirty tracking, submit → mutation).
+5. `store/useRecentPatientsStore.ts` — Zustand, in memory only, last 10 patient **ids**, `push(id)` moves to front; cleared on sign-out
+   and location switch (subscribe to the staff auth store).
+6. Barrel exports. Tests: infinite paging, gated hooks stay idle without permission, quick-register form validation + success
+   invalidation, recent store order/cap/clear.
+
+**Acceptance:** tests green; no component or route.
+
+---
+
+### M1-13a — Notifications api, hooks, link router (split from M1-13)
+
+MOB · S · Depends: M1-03 · Branch `mobile/M1-13a-notifications-data`
+
+**Read first:** [07 §2.2](07-backend-contracts.md#22-notifications-inbox-srcnotificationscontrollersmy-notificationscontrollerts-contextfree),
+`backend/src/notifications/controllers/my-notifications.controller.ts` + its DTOs (verify), `src/staff/features/notifications/**`
+(`notificationKeys` from M1-03, `NotificationBell` from M1-02), `src/staff/lib/realtime-provider.tsx`, [06 S-07](06-screens.md), `web-app/src/features/notifications`.
+
+**Steps:**
+1. `api/notifications.api.ts`: list (page, limit ≤ 50, unreadOnly), unread count, read one, read all, get prefs, put prefs (`sound` only).
+2. Hooks: `useUnreadCount()`, `useNotificationsInfinite()`, `useMarkRead()` (optimistic unread −1, rollback on error), `useMarkAllRead()`,
+   `useNotificationPrefs()` / `useSetNotificationSound()` (optimistic with rollback). All keys from `notificationKeys`.
+3. `src/staff/lib/link-router.ts`: pure `resolveStaffLink(link: string | null)` → `{ pathname, params? } | null`:
+   `/queue/doctor` → Queue tab (doctor segment), `/queue` or `/appointments` → Queue tab (board segment), `/patients/:id` → `/patients/<id>`,
+   anything else → `null`. Table tests. **Shared by push routing (M1-05) and the notifications screen.**
+4. `lib/notification-row.ts`: pure `describeNotification(n, activeOrgId, orgNames)` → `{ title, body, time, unread, otherClinic: string | null }`
+   (time on the clinic clock via `@/staff/lib/datetime`). Tests.
+5. Barrel exports. Tests for hooks (optimistic update + rollback) and the two pure modules.
+
+**Acceptance:** tests green; no screen or route (the screen is M1-13).
+
+---
+
+### M1-14a — Appointments data layer (split from M1-14 / M1-15)
+
+MOB · S · Depends: M1-06 · Branch `mobile/M1-14a-appointments-data`
+
+**Read first:** [07 §2.5](07-backend-contracts.md#25-appointments-srcappointmentsappointmentscontrollerts) and §2.7,
+`backend/src/appointments/appointments.controller.ts`, `backend/src/appointments/dto/appointment-filter.dto.ts`, the appointment
+service list/stats shapes (verify every field), `backend/src/common/enums/appointment-{status,type}.enum.ts`, `src/staff/lib/datetime.ts`
+(`clinicDayBounds`, `todayYmd`), `src/staff/lib/persist.ts` (the appointments allow-list rule expects a key shape — match it or update
+the rule + its test in the same change), [06 S-03, S-06](06-screens.md).
+
+**Steps:**
+1. `staff/features/appointments/types`: `AppointmentStatus`, `AppointmentType` unions; `AppointmentListItem` (incl. `queueEntry`, `kind`),
+   `AppointmentDetail`, `AppointmentStats`, `DoctorOption`, `AppointmentFilters` — field names exactly as the backend.
+2. `api/appointments.api.ts`: list (`startDate`, `endDate` from `clinicDayBounds`, `doctorId`, `status`, `includeWalkIns`, `search`, page, limit),
+   detail, stats, doctors. Response `{ data, total, page, limit }` (no `totalPages`).
+3. `api/appointments.keys.ts` (location + day in every list/stats key). Keep `persist.ts`'s today-only rule working (adjust both + test if needed).
+4. Hooks: `useDayAppointments(ymd, filters)` (infinite, `page * limit < total`), `useAppointment(id)`, `useAppointmentStats(ymd)`, `useDoctors()` (10 min stale),
+   `useArrivals(ymd)` (today's `scheduled|confirmed` with no `queueEntry`, sorted by time — for S-03).
+5. `lib/group-by-hour.ts` (pure, clinic clock) + tests; `lib/day-strip.ts` (yesterday … +6 days as YMD on the clinic clock) + tests.
+6. Barrel. Tests for hooks (paging, location in key) and the pure modules.
+
+**Acceptance:** tests green; no screen or route.
+
+---
+
+### M1-15a — Today snapshot data (split from M1-15)
+
+MOB · S · Depends: M1-14a, M1-07 · Branch `mobile/M1-15a-today-data`
+
+**Read first:** [06 S-01](06-screens.md), [07 §2.7](07-backend-contracts.md#27-dashboard-data-no-dashboard-endpoint-exists--compose), `backend/src/billing/financial-summary.controller.ts`
++ service (`daily`), `backend/src/billing/invoices/invoices.controller.ts` (`stats`), `web-app/src/features/dashboard/pages/DashboardPage.tsx` + `hooks/useAnalytics.ts`
+(what the web composes), `src/staff/features/{appointments,queue}` hooks.
+
+**Steps:**
+1. `staff/features/today/api/today.api.ts`: `GET /financial-summary/daily?date=` and `GET /invoices/stats?from&to` (verify shapes; money here is a **decimal amount**).
+2. Hooks, each gated and independent: `useTodayStats()` (`appointments.view` → `useAppointmentStats(today)`), `useTodayCollections()`
+   (`billing.invoice.view` + `reports.financial.view` + feature `billing.financial_summary` → daily summary; fallback to invoice stats when the feature is off),
+   `useDoctorsNow()` (`queue.board.view` → board lanes → `{ doctorName, nowServing, waitingCount, status }`), `useNextAppointments(5)` (from now to end of day).
+3. `lib/today-blocks.ts`: pure `visibleTodayBlocks(can, hasFeature)` → ordered block ids for S-01. Tests (owner / receptionist / doctor).
+4. Barrel. Tests for gating (no request without permission) and the fallback.
+
+**Acceptance:** tests green; no screen or route.
 
 ---
 
