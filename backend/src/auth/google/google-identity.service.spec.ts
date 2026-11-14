@@ -34,7 +34,7 @@ describe('GoogleIdentityService', () => {
 
     await identity.verify('staff-credential');
 
-    expect(OAuth2Client).toHaveBeenCalledWith('staff-web-client');
+    expect(OAuth2Client).toHaveBeenCalledWith();
     expect(mockVerifyIdToken).toHaveBeenCalledWith({
       idToken: 'staff-credential',
       audience: 'staff-web-client',
@@ -56,6 +56,22 @@ describe('GoogleIdentityService', () => {
     expect(mockVerifyIdToken).toHaveBeenCalledWith({
       idToken: 'patient-credential',
       audience: ['web-client', 'android-client'],
+    });
+  });
+
+  it('exposes rawName only when Google sent a name claim', async () => {
+    const identity = new GoogleIdentityService(
+      new ConfigService({ GOOGLE_CLIENT_ID: 'web' }),
+    );
+    await expect(identity.verify('c')).resolves.toMatchObject({
+      rawName: 'Patient Person',
+    });
+    mockVerifyIdToken.mockResolvedValue({
+      getPayload: () => ({ ...payload, name: undefined }),
+    });
+    await expect(identity.verify('c')).resolves.toMatchObject({
+      rawName: null,
+      name: 'person',
     });
   });
 });

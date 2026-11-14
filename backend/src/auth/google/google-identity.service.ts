@@ -12,6 +12,8 @@ export interface GoogleIdentity {
   sub: string;
   email: string;
   name: string;
+  /** Google's real `name` claim; null when absent (`name` falls back to the email local part). */
+  rawName: string | null;
   picture: string | null;
   /** Google Workspace domain; null for personal (Gmail) accounts. */
   hd: string | null;
@@ -56,9 +58,7 @@ export class GoogleIdentityService {
         'Google sign-in is not configured on this server.',
       );
     }
-    this.client ??= new OAuth2Client(
-      configuredAudience ?? expectedAudiences[0],
-    );
+    this.client ??= new OAuth2Client();
 
     let payload: TokenPayload | undefined;
     try {
@@ -91,6 +91,7 @@ export class GoogleIdentityService {
     return {
       sub: payload.sub,
       email: payload.email.toLowerCase(),
+      rawName: payload.name?.trim() || null,
       name: payload.name || payload.email.split('@')[0],
       picture: payload.picture ?? null,
       hd: payload.hd?.toLowerCase() ?? null,

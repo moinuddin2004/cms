@@ -1,6 +1,8 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -28,6 +30,18 @@ export interface ClientMeta {
   ip?: string | null;
   deviceLabel?: string | null;
 }
+
+const isUniqueViolation = (err: unknown): boolean => {
+  const e = err as { code?: string; driverError?: { code?: string } };
+  return e?.code === '23505' || e?.driverError?.code === '23505';
+};
+
+const accountLinkConflict = () =>
+  new ConflictException({
+    code: 'ACCOUNT_LINK_CONFLICT',
+    message:
+      'This email already has a different Google account linked. Sign in with the email code instead.',
+  });
 
 const accountDisabled = () =>
   new ForbiddenException({
@@ -84,17 +98,28 @@ export class PatientAuthService {
         input.idToken,
         this.googleIdentity.patientAudiences,
       );
-    } catch {
+    } catch (err) {
+      if (err instanceof ServiceUnavailableException) throw err;
       throw new UnauthorizedException({
         code: 'GOOGLE_TOKEN_INVALID',
         message: 'Google sign-in failed',
       });
     }
 
-    const { account, isNew } = await this.dataSource.transaction((em) =>
-      this.resolveGoogleAccount(em, identity, input, meta),
-    );
-    return this.issue(account, isNew, meta);
+    const run = () =>
+      this.dataSource.transaction((em) =>
+        this.resolveGoogleAccount(em, identity, input, meta),
+      );
+    let result: { account: PatientAccount; isNew: boolean };
+    try {
+      result = await run();
+    } catch (err) {
+      // A concurrent first sign-in won the unique index: the transaction is
+      // aborted, so redo the whole lookup once (it now finds the winner).
+      if (!isUniqueViolation(err)) throw err;
+      result = await run();
+    }
+    return this.issue(result.account, result.isNew, meta);
   }
 
   async refresh(
@@ -191,12 +216,23 @@ export class PatientAuthService {
     if (googleIdentity && !account) throw accountDisabled();
     if (account && account.status !== 'active') throw accountDisabled();
 
+    // Matched by email only: refuse when the account already trusts another
+    // Google subject (a reassigned/recreated Google email must not inherit it).
+    if (account && !googleIdentity) {
+      const otherGoogle = await identities.exist({
+        where: { accountId: account.id, provider: 'google' },
+      });
+      if (otherGoogle) throw accountLinkConflict();
+    }
+
+    const googleName = identity.rawName?.trim().slice(0, 150) || null;
+
     let isNew = false;
     if (!account) {
       account = await accounts.save(
         accounts.create({
           email: identity.email,
-          fullName: identity.name.trim().slice(0, 150) || null,
+          fullName: googleName,
           emailVerifiedAt: new Date(),
           status: 'active',
         }),
@@ -208,21 +244,29 @@ export class PatientAuthService {
         account.emailVerifiedAt = new Date();
         changed = true;
       }
-      if (!account.fullName) {
-        account.fullName = identity.name.trim().slice(0, 150) || null;
+      if (!account.fullName && googleName) {
+        account.fullName = googleName;
         changed = true;
       }
       if (changed) account = await accounts.save(account);
     }
 
     if (!googleIdentity) {
-      await identities.save(
-        identities.create({
+      await identities
+        .createQueryBuilder()
+        .insert()
+        .values({
           accountId: account.id,
           provider: 'google',
           subject: identity.sub,
-        }),
-      );
+        })
+        .orIgnore()
+        .execute();
+      const stored = await identities.findOne({
+        where: { provider: 'google', subject: identity.sub },
+      });
+      if (stored && stored.accountId !== account.id)
+        throw accountLinkConflict();
     }
 
     await this.recordConsent(em, account.id, 'terms', input.termsVersion, meta);

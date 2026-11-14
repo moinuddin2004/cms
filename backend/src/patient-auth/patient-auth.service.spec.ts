@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { GoogleIdentityService } from 'src/auth/google/google-identity.service';
 import { PatientAccountConsent } from 'src/patient-app/entities/patient-account-consent.entity';
@@ -12,6 +13,7 @@ const googleIdentity = {
   sub: 'google-sub',
   email: 'person@example.com',
   name: 'Patient Person',
+  rawName: 'Patient Person',
   picture: null,
   hd: null,
 };
@@ -31,24 +33,39 @@ function createHarness() {
     findOne: jest.fn(),
     createQueryBuilder: jest.fn(() => queryBuilder),
     create: jest.fn((value: Partial<PatientAccount>) => value),
-    save: jest.fn((value: Partial<PatientAccount>) => Promise.resolve({
-      id: value.id ?? 'new-account-id',
-      email: value.email ?? googleIdentity.email,
-      fullName: value.fullName ?? null,
-      emailVerifiedAt: value.emailVerifiedAt ?? null,
-      status: value.status ?? 'active',
-      phone: null,
-      phoneVerifiedAt: null,
-      deletedAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      ...value,
-    })),
+    save: jest.fn((value: Partial<PatientAccount>) =>
+      Promise.resolve({
+        id: value.id ?? 'new-account-id',
+        email: value.email ?? googleIdentity.email,
+        fullName: value.fullName ?? null,
+        emailVerifiedAt: value.emailVerifiedAt ?? null,
+        status: value.status ?? 'active',
+        phone: null,
+        phoneVerifiedAt: null,
+        deletedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...value,
+      }),
+    ),
+  };
+  let inserted: Partial<PatientAccountIdentity> | null = null;
+  const insertBuilder = {
+    insert: jest.fn().mockReturnThis(),
+    values: jest.fn((value: Partial<PatientAccountIdentity>) => {
+      inserted = value;
+      return insertBuilder;
+    }),
+    orIgnore: jest.fn().mockReturnThis(),
+    execute: jest.fn().mockResolvedValue(undefined),
   };
   const identityRepository = {
-    findOne: jest.fn().mockResolvedValue(null),
-    create: jest.fn((value: Partial<PatientAccountIdentity>) => value),
-    save: jest.fn(),
+    // before the insert: no identity yet; after it: the stored row
+    findOne: jest.fn(() =>
+      Promise.resolve(inserted ? { accountId: inserted.accountId } : null),
+    ),
+    exist: jest.fn().mockResolvedValue(false),
+    createQueryBuilder: jest.fn(() => insertBuilder),
   };
   const consentRepository = {
     exist: jest.fn().mockResolvedValue(false),
@@ -92,6 +109,7 @@ function createHarness() {
     service,
     accountRepository,
     identityRepository,
+    insertBuilder,
     consentRepository,
     queryBuilder,
     google,
@@ -119,7 +137,8 @@ describe('PatientAuthService Google sign-in', () => {
         status: 'active',
       }),
     );
-    expect(harness.identityRepository.save).toHaveBeenCalledWith(
+    expect(harness.insertBuilder.orIgnore).toHaveBeenCalled();
+    expect(harness.insertBuilder.values).toHaveBeenCalledWith(
       expect.objectContaining({
         accountId: 'new-account-id',
         provider: 'google',
@@ -164,7 +183,7 @@ describe('PatientAuthService Google sign-in', () => {
         emailVerifiedAt: expect.any(Date) as Date,
       }),
     );
-    expect(harness.identityRepository.save).toHaveBeenCalledWith(
+    expect(harness.insertBuilder.values).toHaveBeenCalledWith(
       expect.objectContaining({ accountId: 'existing-account-id' }),
     );
     expect(result.isNewAccount).toBe(false);
@@ -173,9 +192,9 @@ describe('PatientAuthService Google sign-in', () => {
 
   it('uses the account already linked to the Google subject', async () => {
     const harness = createHarness();
-    harness.identityRepository.findOne.mockResolvedValue({
+    harness.identityRepository.findOne.mockResolvedValueOnce({
       accountId: 'linked-account-id',
-    });
+    } as never);
     harness.accountRepository.findOne.mockResolvedValue({
       id: 'linked-account-id',
       email: 'different@example.com',
@@ -188,7 +207,7 @@ describe('PatientAuthService Google sign-in', () => {
     const result = await harness.service.signInWithGoogle(input, {});
 
     expect(harness.accountRepository.createQueryBuilder).not.toHaveBeenCalled();
-    expect(harness.identityRepository.save).not.toHaveBeenCalled();
+    expect(harness.insertBuilder.values).not.toHaveBeenCalled();
     expect(result.account.id).toBe('linked-account-id');
     expect(result.isNewAccount).toBe(false);
   });
@@ -206,5 +225,76 @@ describe('PatientAuthService Google sign-in', () => {
       status: 401,
     });
     expect(harness.sessions.create).not.toHaveBeenCalled();
+  });
+  const existingByEmail = {
+    id: 'existing-account-id',
+    email: googleIdentity.email,
+    fullName: 'Existing Name',
+    emailVerifiedAt: new Date(),
+    status: 'active',
+    deletedAt: null,
+  };
+
+  it('refuses an email match whose account already has another Google identity (409)', async () => {
+    const harness = createHarness();
+    harness.queryBuilder.getOne.mockResolvedValue(existingByEmail);
+    harness.identityRepository.exist.mockResolvedValue(true);
+
+    await expect(
+      harness.service.signInWithGoogle(input, {}),
+    ).rejects.toMatchObject({
+      status: 409,
+      response: { code: 'ACCOUNT_LINK_CONFLICT' },
+    });
+    expect(harness.insertBuilder.values).not.toHaveBeenCalled();
+    expect(harness.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it('retries the lookup once after a concurrent first sign-in hits a unique violation (23505)', async () => {
+    const harness = createHarness();
+    harness.accountRepository.save.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate key'), { code: '23505' }),
+    );
+    // second attempt finds the account the concurrent request created
+    harness.queryBuilder.getOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(existingByEmail);
+
+    const result = await harness.service.signInWithGoogle(input, {});
+
+    expect(result.account.id).toBe('existing-account-id');
+    expect(result.isNewAccount).toBe(false);
+  });
+
+  it('does not retry other database errors', async () => {
+    const harness = createHarness();
+    harness.accountRepository.save.mockRejectedValue(new Error('boom'));
+    await expect(harness.service.signInWithGoogle(input, {})).rejects.toThrow(
+      'boom',
+    );
+  });
+
+  it('rethrows 503 when Google sign-in is not configured', async () => {
+    const harness = createHarness();
+    harness.google.verify.mockRejectedValue(
+      new ServiceUnavailableException('not configured'),
+    );
+    await expect(
+      harness.service.signInWithGoogle(input, {}),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('keeps fullName null (needsName true) when Google sent no name claim', async () => {
+    const harness = createHarness();
+    harness.google.verify.mockResolvedValue({
+      ...googleIdentity,
+      name: 'person',
+      rawName: null,
+    });
+    const result = await harness.service.signInWithGoogle(input, {});
+    expect(harness.accountRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ fullName: null }),
+    );
+    expect(result.needsName).toBe(true);
   });
 });
