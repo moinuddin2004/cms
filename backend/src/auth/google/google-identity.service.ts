@@ -49,19 +49,23 @@ export class GoogleIdentityService {
     audiences?: string[],
   ): Promise<GoogleIdentity> {
     const configuredAudience = this.clientId;
-    const expectedAudiences = audiences ?? (configuredAudience ? [configuredAudience] : []);
+    const expectedAudiences =
+      audiences ?? (configuredAudience ? [configuredAudience] : []);
     if (expectedAudiences.length === 0) {
       throw new ServiceUnavailableException(
         'Google sign-in is not configured on this server.',
       );
     }
-    this.client ??= new OAuth2Client(configuredAudience ?? expectedAudiences[0]);
+    this.client ??= new OAuth2Client(
+      configuredAudience ?? expectedAudiences[0],
+    );
 
     let payload: TokenPayload | undefined;
     try {
       const ticket = await this.client.verifyIdToken({
         idToken: credential,
-        audience: audiences === undefined ? expectedAudiences[0] : expectedAudiences,
+        audience:
+          audiences === undefined ? expectedAudiences[0] : expectedAudiences,
       });
       payload = ticket.getPayload();
     } catch {

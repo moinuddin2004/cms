@@ -31,7 +31,7 @@ function createHarness() {
     findOne: jest.fn(),
     createQueryBuilder: jest.fn(() => queryBuilder),
     create: jest.fn((value: Partial<PatientAccount>) => value),
-    save: jest.fn(async (value: Partial<PatientAccount>) => ({
+    save: jest.fn((value: Partial<PatientAccount>) => Promise.resolve({
       id: value.id ?? 'new-account-id',
       email: value.email ?? googleIdentity.email,
       fullName: value.fullName ?? null,
@@ -64,9 +64,8 @@ function createHarness() {
     getRepository: jest.fn((entity: unknown) => repositories.get(entity)),
   };
   const dataSource = {
-    transaction: jest.fn(
-      (work: (em: EntityManager) => Promise<unknown>) =>
-        work(manager as EntityManager),
+    transaction: jest.fn((work: (em: EntityManager) => Promise<unknown>) =>
+      work(manager as unknown as EntityManager),
     ),
   };
   const google = {
@@ -162,7 +161,7 @@ describe('PatientAuthService Google sign-in', () => {
       expect.objectContaining({
         id: 'existing-account-id',
         fullName: googleIdentity.name,
-        emailVerifiedAt: expect.any(Date),
+        emailVerifiedAt: expect.any(Date) as Date,
       }),
     );
     expect(harness.identityRepository.save).toHaveBeenCalledWith(
@@ -198,7 +197,9 @@ describe('PatientAuthService Google sign-in', () => {
     const harness = createHarness();
     harness.google.verify.mockRejectedValue(new Error('invalid token'));
 
-    await expect(harness.service.signInWithGoogle(input, {})).rejects.toMatchObject({
+    await expect(
+      harness.service.signInWithGoogle(input, {}),
+    ).rejects.toMatchObject({
       response: {
         code: 'GOOGLE_TOKEN_INVALID',
       },
