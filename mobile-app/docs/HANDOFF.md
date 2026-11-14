@@ -2253,3 +2253,53 @@ Branch: claude/m1-08-doctor-queue-d5f636 · Status set to: review (PROGRESS stay
 
 Verification: `npm test` 63 suites / 452 tests passed · typecheck clean · eslint 0 errors (3 old warnings) · lint:fences ok.
 Not run on a device: device items wait for gate M0-D (the 10-patient run and the 4 state screenshots).
+
+---
+## M1-09 — Reception board (S-02b) and walk-in (S-02c)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-09-board-745a66   Commit(s): 3c56a1a (code)   Status set to: review
+
+### Done
+- `components/BoardView.tsx` (body replaced): `useBoard` states (skeleton / error+retry / "No doctors on the board" / "No open lanes" + Open a lane), `RealtimeConnectionPill`, `DoctorChips` (waiting counts, `[+]` only when a doctor has no session), one `FlashList` per lane: Arrivals link row, session banner (paused / closed / not started), Now serving, Waiting (server `waitingOrder`), On hold / Skipped (with inline Back from test), pull to refresh, walk-in FAB (`queue.checkin`).
+- Open lane: `[+]` -> ActionSheet of doctors with `snapshot === null` (taken from the board response, no extra fetch) -> `useOpenSession` -> that lane is selected.
+- Row ActionSheet = `availableEntryActions(..., 'board')` in S-02b order (Mark urgent hidden when already urgent): Mark urgent (reason sheet, TanStack form), Transfer (doctor picker), Skip, Rejoin, Back from test, Cancel visit (ConfirmDialog), Patient file (`/patients/[patientId]`), Show ticket (`useTicket` sheet). Offline: only Patient file / Show ticket remain, FAB, `[+]` and Back from test are disabled. The row is disabled while its action is pending (`pendingEntryId`).
+- Walk-in: route `(staff)/(main)/queue/walk-in.tsx` -> `WalkInPage` (modal, `Screen`), `walk-in.schema.ts`, `useWalkInForm.ts`, `lib/walk-in-input.ts` (`toWalkInInput`, because `.parse()` in onSubmit is banned). Doctor chips (preselect the open lane), Existing patient (debounced `usePatientsInfinite` search) / New patient (name + phone), reason, Urgent switch -> reason, discard-changes dialog. `ACTIVE_WITH_OTHER_DOCTOR` -> "Add anyway?" dialog -> `confirmForce` calls `mutateAsync` again with `force: true` = new Idempotency-Key. Success: toast "Token A-015 for Hina" + Show ticket action, board focuses/scrolls to the new row, sheet closes.
+- UI state in `board/useBoardUiStore.ts` (ids only, no patient data). Barrel: added `WalkInPage`.
+
+### Files
+- Created: `components/board/**` (model, lane-items, rows, chips, host, sheets, store, actions hook + 3 tests), `pages/WalkInPage.tsx`, `hooks/useWalkInForm.ts`, `lib/walk-in-input.ts`, `schemas/walk-in.schema.ts`, route `walk-in.tsx`, tests `BoardView.test.tsx`, `useWalkInForm.test.tsx`, `walk-in.schema.test.ts`.
+- Modified: `components/BoardView.tsx`, `index.ts` (one export line), PROGRESS row.
+
+### Install commands for the user
+none (`npm install` from the lockfile only).
+
+### Verification
+- `npm run typecheck` clean (router types generated, `/queue/walk-in` and `/patients/[patientId]` validated) · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ok.
+- Tests: queue feature 11 suites / 144 tests green; full run 65 suites / 464 tests green (`npx jest -i --forceExit`; jest does not exit by itself — open handle in an older suite).
+- NO DEVICE: not run on a phone or simulator; screenshots and the two-phone test join gate M0-D.
+
+### Acceptance criteria
+- [x] board, row actions per table, ticket, walk-in with force flow implemented and unit/component tested
+- [ ] two-phone test and screenshots (needs device, gate M0-D)
+
+### Deviations from the card / docs
+- Arrivals row shows no count and pushes `/queue/arrivals` with an untyped cast (`ARRIVALS_ROUTE as never`): the arrivals screen/route is M1-10, which should replace it with a typed href and may add the count. Until then the tap shows the unmatched-route screen.
+- Transfer target list = every doctor on the board except the entry's own (including ones without a session); the server decides if the target is valid.
+- The walk-in modal's Android hardware back is not intercepted by the discard dialog (only the X button and swipe gesture are).
+- Tests mock `ActionSheet`/`FormSheet`/`ConfirmDialog`, FlashList and reanimated (no gesture runtime in Jest).
+
+### Questions for the architect
+- Is a transfer to a doctor without an open session accepted by `PATCH entries/:id/transfer`, or should the picker list open lanes only?
+
+---
+## Rework M1-09 #1 — 2026-11-15
+Branch: `claude/m1-09-board-745a66` · Commit: b7df3af · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Open lane needs `queue.checkin` | `[+]` chip and the empty-board "Open a lane" button show only with `can('queue.checkin')` (and online). Tests: no `[+]`, no button without it. |
+| 2 | Walk-in search over-fetches / 403 | `usePatientsInfinite(filters, { enabled })` (additive, default true; patients-hooks test). `WalkInPatientSearch` passes `enabled` = 2+ chars. Without `patients.view` the walk-in has no Existing mode and starts on New patient (`useWalkInForm(doctorId, defaultMode, onCreated)`). Tests: `WalkInPage.test.tsx`, hook mode test. |
+| 3 | Arrivals row -> missing route | Row hidden (`buildLaneItems(..., false)`, `TODO(M1-10)` in `BoardView.tsx`); the untyped route cast is gone; `onOpenArrivals` is optional in `BoardLaneList`. Test: no Arrivals text. |
+| 4 | Name the other doctor | Backend `QueueErrors.activeElsewhere` sends `error.entries: [{ entryId, token, doctorName, status }]` (`queue-orchestrator.service.ts:235`). `lib/walk-in-conflict.ts` `activeElsewhereDoctor(err)` reads the first `doctorName`; dialog title "Already in <name>'s queue", falls back to the generic title when absent. Tests: with and without a name. |
+| 5 | Vanished entry fails silently | Mark urgent, transfer and cancel on an entry that left the lane toast "This patient is no longer in the queue."; urgent also closes the sheet. Test: `EntryActionsHost.test.tsx`. |
+
+Verification: `npm run typecheck` ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓ · full jest 67 suites / 474 tests ✓ (`--forceExit`). No device.

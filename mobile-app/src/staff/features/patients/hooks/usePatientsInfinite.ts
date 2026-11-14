@@ -34,8 +34,12 @@ export function normalizePatientFilters(filters: PatientListFilters): PatientLis
 /**
  * Patients list, 20 per page, next page while `page < totalPages`. The key holds
  * the search text, so this query is never allow-listed for persistence.
+ * `options.enabled` (default true) lets a caller hold the query until it has input.
  */
-export function usePatientsInfinite(filters: PatientListFilters = {}) {
+export function usePatientsInfinite(
+  filters: PatientListFilters = {},
+  options: { enabled?: boolean } = {},
+) {
   const orgId = useStaffAuthStore((s) => s.activeOrganizationId);
   const locationId = useStaffAuthStore((s) => s.activeLocationId);
   const query = { ...normalizePatientFilters(filters), limit: PATIENTS_PAGE_SIZE };
@@ -47,6 +51,6 @@ export function usePatientsInfinite(filters: PatientListFilters = {}) {
     // a new search keeps the previous rows on screen instead of blanking to the skeleton
     placeholderData: keepPreviousData,
     getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
-    enabled: !!orgId && !!locationId,
+    enabled: !!orgId && !!locationId && (options.enabled ?? true),
   });
 }

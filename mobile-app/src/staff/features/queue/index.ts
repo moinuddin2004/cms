@@ -22,3 +22,4 @@ export * from './hooks/useSessionMutations';
 export * from './hooks/useEntryMutations';
 export * from './hooks/useArrivalMutations';
 export { QueueTabPage } from './pages/QueueTabPage';
+export { WalkInPage } from './pages/WalkInPage';
