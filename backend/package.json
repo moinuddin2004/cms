@@ -24,6 +24,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:int": "jest --config ./test/jest-int.json --runInBand",
+    "test:int:patient": "jest --config ./test/jest-int-patient.json --runInBand --forceExit",
     "test:int:labs": "jest --config ./test/jest-int-labs.json --runInBand",
     "test:int:tenancy": "jest --config ./test/jest-int-tenancy.json --runInBand",
     "test:int:access": "jest --config ./test/jest-int-access.json --runInBand --forceExit",

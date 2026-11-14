@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import type { ObjectLiteral, QueryBuilder } from 'typeorm';
+import type { ObjectLiteral } from 'typeorm';
 import {
   assertProfile,
   assertWritableLink,
@@ -39,15 +39,15 @@ function queryBuilder() {
     sql: string;
     parameters?: ObjectLiteral;
   }[] = [];
-  const fake = {
+  const fake: Record<string, unknown> = {
     expressionMap: { mainAlias: { name: 'patient' } },
     andWhere(sql: string, parameters?: ObjectLiteral) {
       conditions.push({ sql, parameters });
-      return this;
+      return fake;
     },
   };
   return {
-    qb: fake as unknown as QueryBuilder<ObjectLiteral>,
+    qb: fake as unknown as Parameters<typeof linkedPatientWhere>[0],
     conditions,
   };
 }

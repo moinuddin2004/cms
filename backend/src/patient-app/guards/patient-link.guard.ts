@@ -9,10 +9,7 @@ import { Repository } from 'typeorm';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { PatientRecordLink } from '../entities/patient-record-link.entity';
-import {
-  PatientContext,
-  PatientRequest,
-} from '../context/patient-context';
+import { PatientContext, PatientRequest } from '../context/patient-context';
 
 interface PatientContextRow {
   profileId: string;
@@ -70,20 +67,20 @@ export class PatientLinkGuard implements CanActivate {
     ];
     const featureStates = new Map(
       await Promise.all(
-        organizationIds.map(async (organizationId) => [
-          organizationId,
-          await this.featureFlags.isFeatureEnabled(
-            organizationId,
-            'patient_app',
-          ),
-        ] as const),
+        organizationIds.map(
+          async (organizationId) =>
+            [
+              organizationId,
+              await this.featureFlags.isFeatureEnabled(
+                organizationId,
+                'patient_app',
+              ),
+            ] as const,
+        ),
       ),
     );
 
-    const profiles = new Map<
-      string,
-      PatientContext['profiles'][number]
-    >();
+    const profiles = new Map<string, PatientContext['profiles'][number]>();
     const links: PatientContext['links'] = [];
     for (const row of rows) {
       if (!profiles.has(row.profileId)) {

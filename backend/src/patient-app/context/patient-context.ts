@@ -6,7 +6,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import type { QueryBuilder } from 'typeorm';
+import type {
+  ObjectLiteral,
+  QueryBuilder,
+  WhereExpressionBuilder,
+} from 'typeorm';
 import type { PatientAuth } from 'src/patient-auth/strategies/patient-jwt.strategy';
 import type { PatientProfileRelation } from '../entities/patient-profile.entity';
 import type { PatientRecordLinkStatus } from '../entities/patient-record-link.entity';
@@ -57,11 +61,10 @@ function sqlIdentifier(value: string, label: string): string {
  * Restrict a query to the account's linked (organization, patient) pairs.
  * The helper always adds a predicate, including when there are no matching links.
  */
-export function linkedPatientWhere<Entity>(
-  qb: QueryBuilder<Entity>,
-  ctx: PatientContext,
-  opts: LinkedPatientWhereOptions = {},
-): QueryBuilder<Entity> {
+export function linkedPatientWhere<
+  Qb extends WhereExpressionBuilder &
+    Pick<QueryBuilder<ObjectLiteral>, 'expressionMap'>,
+>(qb: Qb, ctx: PatientContext, opts: LinkedPatientWhereOptions = {}): Qb {
   const profileIsLinked =
     opts.profileId === undefined ||
     ctx.profiles.some((profile) => profile.id === opts.profileId);
@@ -72,7 +75,8 @@ export function linkedPatientWhere<Entity>(
       (opts.includeFrozen !== false || link.status === 'active'),
   );
   if (links.length === 0) {
-    return qb.andWhere('1 = 0');
+    qb.andWhere('1 = 0');
+    return qb;
   }
 
   const alias = opts.alias ?? qb.expressionMap.mainAlias?.name;
@@ -95,10 +99,11 @@ export function linkedPatientWhere<Entity>(
     return `(:${organizationKey}, :${patientKey})`;
   });
 
-  return qb.andWhere(
+  qb.andWhere(
     `(${organizationColumn}, ${patientColumn}) IN (${tuples.join(', ')})`,
     params,
   );
+  return qb;
 }
 
 export function assertProfile(

@@ -3,7 +3,8 @@ import type { ExecutionContext } from '@nestjs/common';
 import type { Repository } from 'typeorm';
 import { FeatureFlagsService } from 'src/feature-flags/feature-flags.service';
 import { PatientProfile } from '../entities/patient-profile.entity';
-import { PatientLinkGuard, PatientRequest } from './patient-link.guard';
+import { PatientRequest } from '../context/patient-context';
+import { PatientLinkGuard } from './patient-link.guard';
 
 const rows = [
   {
@@ -35,7 +36,7 @@ const rows = [
   },
 ];
 
-function setup(rawRows = rows) {
+function setup(rawRows: Record<string, unknown>[] = rows) {
   const query = {
     select: jest.fn().mockReturnThis(),
     leftJoin: jest.fn().mockReturnThis(),
@@ -44,12 +45,13 @@ function setup(rawRows = rows) {
     addOrderBy: jest.fn().mockReturnThis(),
     getRawMany: jest.fn().mockResolvedValue(rawRows),
   };
+  const createQueryBuilder = jest.fn().mockReturnValue(query);
   const profiles = {
-    createQueryBuilder: jest.fn().mockReturnValue(query),
+    createQueryBuilder,
   } as unknown as Repository<PatientProfile>;
   const isFeatureEnabled = jest
     .fn()
-    .mockImplementation(async (orgId: string) => orgId === 'org-a');
+    .mockImplementation((orgId: string) => Promise.resolve(orgId === 'org-a'));
   const featureFlags = { isFeatureEnabled } as unknown as FeatureFlagsService;
   const guard = new PatientLinkGuard(profiles, featureFlags);
   const request: PatientRequest = {
@@ -58,7 +60,15 @@ function setup(rawRows = rows) {
   const executionContext = {
     switchToHttp: () => ({ getRequest: () => request }),
   } as unknown as ExecutionContext;
-  return { guard, request, executionContext, query, profiles, isFeatureEnabled };
+  return {
+    guard,
+    request,
+    executionContext,
+    query,
+    profiles,
+    createQueryBuilder,
+    isFeatureEnabled,
+  };
 }
 
 describe('PatientLinkGuard', () => {
@@ -69,16 +79,21 @@ describe('PatientLinkGuard', () => {
     await expect(
       setupResult.guard.canActivate(setupResult.executionContext),
     ).rejects.toBeInstanceOf(UnauthorizedException);
-    expect(setupResult.profiles.createQueryBuilder).not.toHaveBeenCalled();
+    expect(setupResult.createQueryBuilder).not.toHaveBeenCalled();
   });
 
   it('loads profiles and active/frozen links in one query and checks each org once', async () => {
-    const { guard, request, executionContext, profiles, isFeatureEnabled } =
-      setup();
+    const {
+      guard,
+      request,
+      executionContext,
+      createQueryBuilder,
+      isFeatureEnabled,
+    } = setup();
 
     await expect(guard.canActivate(executionContext)).resolves.toBe(true);
 
-    expect(profiles.createQueryBuilder).toHaveBeenCalledTimes(1);
+    expect(createQueryBuilder).toHaveBeenCalledTimes(1);
     expect(isFeatureEnabled).toHaveBeenCalledTimes(2);
     expect(isFeatureEnabled).toHaveBeenCalledWith('org-a', 'patient_app');
     expect(isFeatureEnabled).toHaveBeenCalledWith('org-b', 'patient_app');
@@ -108,6 +123,19 @@ describe('PatientLinkGuard', () => {
         },
       ],
     });
+  });
+
+  it('never loads revoked links (join is limited to active and frozen)', async () => {
+    const { guard, executionContext, query } = setup();
+
+    await guard.canActivate(executionContext);
+
+    expect(query.leftJoin).toHaveBeenCalledWith(
+      expect.anything(),
+      'link',
+      expect.stringContaining('link.status IN (:...linkStatuses)'),
+      { linkStatuses: ['active', 'frozen'] },
+    );
   });
 
   it('sets no links when every database row has no active or frozen link', async () => {

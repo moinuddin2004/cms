@@ -25,6 +25,7 @@ import { GlobalExceptionFilter } from 'src/common/exceptions/HttpExceptionHandle
 import { AppLogger } from 'src/common/services/logger.service';
 import { MailService } from 'src/common/services/mail.service';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
+import { assertSafePatientTestDb } from './test-db-safety';
 
 const SCHEMA = 'patientauthit';
 jest.setTimeout(180_000);
@@ -50,6 +51,7 @@ describe('patient auth (int)', () => {
   const versions = { termsVersion: '1.0', privacyVersion: '1.0' };
 
   beforeAll(async () => {
+    assertSafePatientTestDb();
     process.env.JWT_ACCESS_SECRET ??= 'patient-auth-it-staff-secret';
     process.env.JWT_PATIENT_ACCESS_SECRET = 'patient-auth-it-patient-secret';
 

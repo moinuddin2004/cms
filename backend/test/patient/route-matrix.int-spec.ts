@@ -11,8 +11,9 @@
  * Public routes (`@Public()`, e.g. `/auth/login`, `/app/min-version`) are
  * skipped: they are unauthenticated by design.
  *
- * The second half — every `/patient-api` route rejects a staff token — lands
- * with the first real patient routes in M2-03.
+ * Second half (M2-03): every `/patient-api/*` route, and every protected
+ * `/patient-auth/*` route, rejects a staff token (signed with the staff secret,
+ * `aud: 'staff'`) with 401.
  */
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import { randomUUID } from 'crypto';
@@ -36,6 +37,7 @@ import { IS_PUBLIC_KEY } from 'src/common/decorators/publicDecorator';
 import { GlobalExceptionFilter } from 'src/common/exceptions/HttpExceptionHandler';
 import { AppLogger } from 'src/common/services/logger.service';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
+import { assertSafePatientTestDb } from './test-db-safety';
 
 /** Own schema, created and dropped by this spec (never `public`). */
 const PATIENT_IT_SCHEMA = 'patientit';
@@ -164,7 +166,17 @@ describe('Patient fence — route matrix (API)', () => {
     );
   };
 
+  const staffToken = (): string => {
+    const { sign } = require('jsonwebtoken') as typeof import('jsonwebtoken');
+    return sign(
+      { sub: randomUUID(), email: 'staff@clinic.test', aud: 'staff' },
+      process.env.JWT_ACCESS_SECRET as string,
+      { expiresIn: '15m' },
+    );
+  };
+
   beforeAll(async () => {
+    assertSafePatientTestDb();
     process.env.JWT_ACCESS_SECRET ??= 'route-matrix-staff-secret';
     process.env.JWT_PATIENT_ACCESS_SECRET ??= PATIENT_TEST_SECRET;
 
@@ -247,7 +259,36 @@ describe('Patient fence — route matrix (API)', () => {
     expect(failures).toEqual([]);
   });
 
-  it('has the first patient routes — the staff-token half lands in M2-03', () => {
+  it('has patient routes', () => {
     expect(routes.filter((r) => r.isPatient).length).toBeGreaterThan(0);
+  });
+
+  it('rejects a staff token on every /patient-api route and protected /patient-auth route', async () => {
+    const token = staffToken();
+    const call = request(server()) as unknown as Record<
+      HttpMethod,
+      (url: string) => request.Test
+    >;
+    const protectedPatient = routes.filter(
+      (r) =>
+        r.url === '/patient-api' ||
+        r.url.startsWith('/patient-api/') ||
+        (r.isPatient && !r.isPublic),
+    );
+    expect(protectedPatient.length).toBeGreaterThan(0);
+    const failures: string[] = [];
+
+    for (const route of protectedPatient) {
+      const res = await call[route.method](route.url)
+        .set('Authorization', `Bearer ${token}`)
+        .set('x-organization-id', randomUUID())
+        .set('x-location-id', randomUUID());
+      if (res.status !== 401)
+        failures.push(
+          `${route.id} ${route.method.toUpperCase()} ${route.url} → ${res.status}`,
+        );
+    }
+
+    expect(failures).toEqual([]);
   });
 });
