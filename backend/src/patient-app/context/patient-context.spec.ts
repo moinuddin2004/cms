@@ -66,17 +66,26 @@ describe('patient context helpers', () => {
 
     linkedPatientWhere(qb, context, { profileId: 'profile-child' });
 
-    expect(conditions).toEqual([
-      {
-        sql:
-          '("patient"."organization_id", "patient"."patient_id") IN ' +
-          '((:patientLinkOrg0, :patientLinkId0))',
-        parameters: {
-          patientLinkOrg0: 'org-b',
-          patientLinkId0: 'patient-b',
-        },
-      },
-    ]);
+    expect(conditions).toHaveLength(1);
+    const [{ sql, parameters }] = conditions;
+    const [orgKey, idKey] = Object.keys(parameters ?? {});
+    expect(sql).toBe(
+      '("patient"."organization_id", "patient"."patient_id") IN ' +
+        `((:${orgKey}, :${idKey}))`,
+    );
+    expect(parameters).toEqual({ [orgKey]: 'org-b', [idKey]: 'patient-b' });
+    expect(sql).not.toContain('org-b');
+  });
+
+  it('uses distinct parameter names on every call so two calls on one builder do not collide', () => {
+    const { qb, conditions } = queryBuilder();
+
+    linkedPatientWhere(qb, context, { profileId: 'profile-a' });
+    linkedPatientWhere(qb, context, { profileId: 'profile-child' });
+
+    const keys = conditions.flatMap((c) => Object.keys(c.parameters ?? {}));
+    expect(keys).toHaveLength(4);
+    expect(new Set(keys).size).toBe(4);
   });
 
   it('adds a false condition for a profile outside the account', () => {
@@ -92,10 +101,10 @@ describe('patient context helpers', () => {
 
     linkedPatientWhere(qb, context, { includeFrozen: false });
 
-    expect(conditions[0].parameters).toEqual({
-      patientLinkOrg0: 'org-a',
-      patientLinkId0: 'patient-a',
-    });
+    expect(Object.values(conditions[0].parameters ?? {})).toEqual([
+      'org-a',
+      'patient-a',
+    ]);
   });
 
   it('returns only account profiles and permits writes only through active enabled links', () => {

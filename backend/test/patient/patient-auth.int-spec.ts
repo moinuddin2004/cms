@@ -27,6 +27,9 @@ import { MailService } from 'src/common/services/mail.service';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
 import { assertSafePatientTestDb } from './test-db-safety';
 
+// Module level on purpose: a throw here fails the file before ANY hook runs.
+assertSafePatientTestDb();
+
 const SCHEMA = 'patientauthit';
 jest.setTimeout(180_000);
 
@@ -51,7 +54,6 @@ describe('patient auth (int)', () => {
   const versions = { termsVersion: '1.0', privacyVersion: '1.0' };
 
   beforeAll(async () => {
-    assertSafePatientTestDb();
     process.env.JWT_ACCESS_SECRET ??= 'patient-auth-it-staff-secret';
     process.env.JWT_PATIENT_ACCESS_SECRET = 'patient-auth-it-patient-secret';
 

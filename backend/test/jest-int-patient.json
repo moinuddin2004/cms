@@ -2,9 +2,9 @@
   "moduleFileExtensions": ["js", "json", "ts"],
   "rootDir": ".",
   "testEnvironment": "node",
-  "testRegex": "patient/.*\.int-spec\.ts$",
+  "testRegex": "patient/.*\\.int-spec\\.ts$",
   "transform": {
-    "^.+\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.int.json" }]
+    "^.+\\.(t|j)s$": ["ts-jest", { "tsconfig": "<rootDir>/tsconfig.int.json" }]
   },
   "moduleNameMapper": { "^src/(.*)$": "<rootDir>/../src/$1" },
   "testTimeout": 180000

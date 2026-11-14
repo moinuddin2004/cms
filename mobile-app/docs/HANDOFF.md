@@ -1661,3 +1661,18 @@ none (`npm ci` only; lockfile untouched)
 
 ### Questions for the architect
 - None.
+
+---
+## Rework M2-03 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M2-03-patient-links-guard · Status set to: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `jest-int-patient.json` invalid JSON | `\.` escapes. `npx jest --config test/jest-int-patient.json --listTests` lists the 4 patient specs. |
+| 2 | `afterAll` ran after a refused `beforeAll` | `assertSafePatientTestDb()` now runs at module level (before `describe`) in all three int specs, so a refusal fails the file before ANY hook; no teardown can connect. Verified: `DATABASE_URL=postgres://…prod.example.com…` → "Refusing…", 0 tests, no connection. |
+| 3 | `host=` query override | `isLocalDatabaseUrl` parses with `pg-connection-string` (what pg uses), rejects `hostaddr`, requires the URL authority to be local too, treats `/…` socket hosts and no host as local. Table tests in `test/patient/test-db-safety.int-spec.ts` (10 cases incl. `?host=prod…`, hostaddr, socket, neon-with-host=localhost). No package added. |
+| 4 | `jest-int.json` matched patient specs | `testPathIgnorePatterns: ["/node_modules/", "/patient/"]`; `--listTests` shows no `test/patient/` file. |
+| 5 | Fixed param names | Per-call unique prefix (`patientLink<N>Org<i>`); new unit test calls it twice on one builder with different profiles → 4 distinct names. |
+| 6 | patient_app off → 403 | Int case: test controller `writable` route → 403 `PATIENT_APP_DISABLED` (org1 has no `patient_app` row) and 404 for B's link. Written, not run (no disposable DB). |
+
+Verification: build clean; full jest — see session report. Int specs still not run (no disposable Postgres).

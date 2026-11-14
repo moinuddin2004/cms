@@ -37,6 +37,7 @@ import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 import { Patient } from 'src/patients/entities/patient.entity';
 import {
   assertProfile,
+  assertWritableLink,
   linkedPatientWhere,
   PatientContext,
   PatientCtx,
@@ -45,6 +46,9 @@ import { PatientApi } from 'src/patient-app/decorators/patient-api.decorator';
 import { PatientAppModule } from 'src/patient-app/patient-app.module';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
 import { assertSafePatientTestDb } from './test-db-safety';
+
+// Module level on purpose: a throw here fails the file before ANY hook runs.
+assertSafePatientTestDb();
 
 const SCHEMA = 'patientlinkit';
 jest.setTimeout(180_000);
@@ -74,6 +78,13 @@ class IsolationController {
       includeFrozen: includeFrozen !== '0',
     });
     return (await qb.orderBy('patient.id').getMany()).map((p) => p.id);
+  }
+
+  /** Stand-in for a mutation: `assertWritableLink` is its first line. */
+  @Get('writable')
+  writable(@PatientCtx() ctx: PatientContext, @Query('linkId') linkId: string) {
+    assertWritableLink(ctx, linkId);
+    return ['ok'];
   }
 }
 
@@ -148,7 +159,6 @@ describe('patient link isolation (int)', () => {
   const ids = (res: request.Response): string[] => res.body.data ?? res.body;
 
   beforeAll(async () => {
-    assertSafePatientTestDb();
     process.env.JWT_ACCESS_SECRET ??= 'link-isolation-it-staff-secret';
     process.env.JWT_PATIENT_ACCESS_SECRET = 'link-isolation-it-patient-secret';
 
@@ -300,6 +310,22 @@ describe('patient link isolation (int)', () => {
       [linkA],
     );
     expect(ids(await list(tokenA).expect(200))).toEqual([patient1]);
+  });
+
+  it('a link whose clinic has patient_app off is read-only (403); an unknown link is 404', async () => {
+    // No feature row exists for org1, so patient_app is off for it.
+    const res = await request(server())
+      .get('/patient-api/__isolation/writable')
+      .query({ linkId: linkA })
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('PATIENT_APP_DISABLED');
+
+    const foreign = await request(server())
+      .get('/patient-api/__isolation/writable')
+      .query({ linkId: linkB })
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(foreign.status).toBe(404);
   });
 
   it('no token or a bad token never reaches the controller', async () => {

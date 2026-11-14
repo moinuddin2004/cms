@@ -39,7 +39,11 @@ import { AppLogger } from 'src/common/services/logger.service';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
 import { assertSafePatientTestDb } from './test-db-safety';
 
+// Module level on purpose: a throw here fails the file before ANY hook runs.
+assertSafePatientTestDb();
+
 /** Own schema, created and dropped by this spec (never `public`). */
+
 const PATIENT_IT_SCHEMA = 'patientit';
 /** Distinct from `JWT_ACCESS_SECRET`: a patient token must not verify as staff. */
 const PATIENT_TEST_SECRET = 'route-matrix-patient-secret';
@@ -176,7 +180,6 @@ describe('Patient fence — route matrix (API)', () => {
   };
 
   beforeAll(async () => {
-    assertSafePatientTestDb();
     process.env.JWT_ACCESS_SECRET ??= 'route-matrix-staff-secret';
     process.env.JWT_PATIENT_ACCESS_SECRET ??= PATIENT_TEST_SECRET;
 

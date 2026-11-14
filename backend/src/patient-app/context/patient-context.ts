@@ -57,6 +57,8 @@ function sqlIdentifier(value: string, label: string): string {
   return `"${value}"`;
 }
 
+let callSequence = 0;
+
 /**
  * Restrict a query to the account's linked (organization, patient) pairs.
  * The helper always adds a predicate, including when there are no matching links.
@@ -90,10 +92,13 @@ export function linkedPatientWhere<
     opts.patientColumn ?? 'patient_id',
     'patient column',
   )}`;
+  // Unique per call: a second call on the same builder must not overwrite the
+  // first call's bound parameters.
+  const prefix = `patientLink${++callSequence}`;
   const params: Record<string, string> = {};
   const tuples = links.map((link, index) => {
-    const organizationKey = `patientLinkOrg${index}`;
-    const patientKey = `patientLinkId${index}`;
+    const organizationKey = `${prefix}Org${index}`;
+    const patientKey = `${prefix}Id${index}`;
     params[organizationKey] = link.organizationId;
     params[patientKey] = link.patientId;
     return `(:${organizationKey}, :${patientKey})`;
