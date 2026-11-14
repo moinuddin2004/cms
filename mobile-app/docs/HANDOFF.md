@@ -1860,6 +1860,58 @@ Branch: `claude/m1-11b-patients-hooks-30cce3` · Status stays: review
 Verification (full DoD): `npm run typecheck` ✓ · `npm test` 52 suites / 360 tests ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓.
 
 ---
+## M1-14a — Appointments data layer  ·  2026-11-14  ·  Claude Sonnet 5.5
+Branch: claude/m1-14a-appointments-data-4dcf38 (worktree, from mobile/develop)   Commit(s): 4a02d19   Status set to: review
+
+### Done
+- Step 1 `types/appointments.types.ts`: `AppointmentStatus`, `AppointmentType` unions, `AppointmentListItem` (`queueEntry`, optional `kind`), `AppointmentDetail`, `AppointmentPage` (no `totalPages`), `AppointmentStats` (`avgWaitMinutes` nullable), `DoctorOption`, `AppointmentFilters` — checked against controller, `AppointmentFilterDto`, service list/walk-in/stats/doctors code and enums.
+- Step 2 `api/appointments.api.ts`: list (`startDate`/`endDate` from `clinicDayBounds`, `doctorId`, `status`, `includeWalkIns` default true, `search`, `page`, `limit` 50), detail, stats, doctors, plus `fetchAllDayBookings` (pages until `page*limit >= total`).
+- Step 3 `api/appointments.keys.ts`: org + location + day in every list/stats key. Unfiltered day list = exactly `['appointments','list',org,loc,ymd]` (the shape `persist.ts` already accepts, per M1-06 rework #4); any active filter appends a filter object so it is never persisted. `persist.ts` needed no change; a test runs real keys through `isPersistableKey`.
+- Step 4 `hooks/useAppointments.ts`: `useDayAppointments` (infinite), `useAppointment`, `useAppointmentStats`, `useDoctors` (10 min), `useArrivals` (all day bookings, `select: selectArrivals`).
+- Step 5 `lib/group-by-hour.ts` (zone param), `lib/day-strip.ts` (yesterday…+6), `lib/arrivals.ts`; tests.
+- Step 6 barrel + tests (hooks: paging, scope in key, no request without location).
+
+### Files
+- Created: `src/staff/features/appointments/{index.ts, types/, api/ (+keys, tests), hooks/ (+test), lib/ (+lib.test.ts)}`
+- Modified: `docs/PROGRESS.md`, `docs/HANDOFF.md`
+
+### Install commands for the user
+none (`npm ci` only; package-lock reverted after a stray `npm install` touched it)
+
+### Verification
+- `npm test` → 52 suites / 353 tests passed (22 new in 4 suites)
+- `npm run typecheck` → clean
+- eslint `src` → 0 errors (3 old warnings); `npm run lint:fences` → ok
+- No device/screen check (no UI in this card).
+
+### Acceptance criteria
+- [x] tests green; no screen or route
+
+### Deviations from the card / docs
+- `.expo/types/router.d.ts` copied from the main checkout (expo start crashed on a half-extracted install after a disk-full); routes unchanged by this card.
+- `AppointmentListItem.kind` is optional: the backend only sets it on the `includeWalkIns` path.
+- `groupByHour(rows, zone)` takes the zone as a parameter (pure); the screen passes `clinicTimezone()`.
+
+### Questions for the architect
+- `useArrivals` fetches all of the day's bookings (50/page, max 20 pages) and filters client-side, because the backend `status` filter accepts one value. OK for S-03?
+- `useDayAppointments` is not gated on `can('appointments.view')`; callers gate (like other data hooks). Confirm.
+
+### Notes for the next task
+- M1-15a: `useAppointmentStats(today)` is ready; "next appointments" should use `fetchAppointments(ymd, { includeWalkIns: false }, 1, 5)` or filter `useDayAppointments` by time.
+
+---
+## Rework M1-14a #1 — 2026-11-15
+Branch: claude/m1-14a-appointments-data-4dcf38 · Status set to: review (unchanged)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `fetchAllDayBookings` can see repeated rows across pages (sort by startTime only + skip/take); page cap implicit | De-duplicates by `id` (Map, first wins). Cap is the named export `MAX_DAY_PAGES = 20`; hitting it calls `log.warn('appointments: day list truncated at the page cap')` (`@/core/log`, no payload). Tests: dedupe across pages; cap stops at 20 calls + exactly one payload-free warn. |
+| 2 | "Next appointments" must start from NOW | `fetchAppointmentsRange({ start, end }, filters, page, limit)` (UTC ISO bounds; `fetchAppointments(ymd, …)` now delegates to it). `fetchUpcomingAppointments(from, ymd, limit)` and `useUpcomingAppointments(limit = 5)` (now → end of clinic day via `clinicDayBounds(todayYmd()).end`, `includeWalkIns: false`; `from` read when the request runs). Key `['appointments','upcoming',org,loc,ymd,limit]`; `persist.ts` untouched, test asserts it is not persistable. Tests: API params, hook (start ≥ now, scope+limit key). |
+| nits | doctor `fullName === ''`; DST test TZ | Commented both. Left `patientNumber`/`designation` nullable: the walk-in SQL path selects `p.patient_number` / employee data without a non-null guarantee, so non-null would be a guess. |
+
+Verification: see numbers in the report (full DoD run).
+
+---
 ## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
 Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
 
