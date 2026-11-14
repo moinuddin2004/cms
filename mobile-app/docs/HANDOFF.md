@@ -1760,3 +1760,43 @@ Branch: verified both reworks against every finding   Status set to: M1-03, M1-0
 - M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
 - M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
 
+
+---
+## M1-14a — Appointments data layer  ·  2026-11-14  ·  Claude Sonnet 5.5
+Branch: claude/m1-14a-appointments-data-4dcf38 (worktree, from mobile/develop)   Commit(s): 4a02d19   Status set to: review
+
+### Done
+- Step 1 `types/appointments.types.ts`: `AppointmentStatus`, `AppointmentType` unions, `AppointmentListItem` (`queueEntry`, optional `kind`), `AppointmentDetail`, `AppointmentPage` (no `totalPages`), `AppointmentStats` (`avgWaitMinutes` nullable), `DoctorOption`, `AppointmentFilters` — checked against controller, `AppointmentFilterDto`, service list/walk-in/stats/doctors code and enums.
+- Step 2 `api/appointments.api.ts`: list (`startDate`/`endDate` from `clinicDayBounds`, `doctorId`, `status`, `includeWalkIns` default true, `search`, `page`, `limit` 50), detail, stats, doctors, plus `fetchAllDayBookings` (pages until `page*limit >= total`).
+- Step 3 `api/appointments.keys.ts`: org + location + day in every list/stats key. Unfiltered day list = exactly `['appointments','list',org,loc,ymd]` (the shape `persist.ts` already accepts, per M1-06 rework #4); any active filter appends a filter object so it is never persisted. `persist.ts` needed no change; a test runs real keys through `isPersistableKey`.
+- Step 4 `hooks/useAppointments.ts`: `useDayAppointments` (infinite), `useAppointment`, `useAppointmentStats`, `useDoctors` (10 min), `useArrivals` (all day bookings, `select: selectArrivals`).
+- Step 5 `lib/group-by-hour.ts` (zone param), `lib/day-strip.ts` (yesterday…+6), `lib/arrivals.ts`; tests.
+- Step 6 barrel + tests (hooks: paging, scope in key, no request without location).
+
+### Files
+- Created: `src/staff/features/appointments/{index.ts, types/, api/ (+keys, tests), hooks/ (+test), lib/ (+lib.test.ts)}`
+- Modified: `docs/PROGRESS.md`, `docs/HANDOFF.md`
+
+### Install commands for the user
+none (`npm ci` only; package-lock reverted after a stray `npm install` touched it)
+
+### Verification
+- `npm test` → 52 suites / 353 tests passed (22 new in 4 suites)
+- `npm run typecheck` → clean
+- eslint `src` → 0 errors (3 old warnings); `npm run lint:fences` → ok
+- No device/screen check (no UI in this card).
+
+### Acceptance criteria
+- [x] tests green; no screen or route
+
+### Deviations from the card / docs
+- `.expo/types/router.d.ts` copied from the main checkout (expo start crashed on a half-extracted install after a disk-full); routes unchanged by this card.
+- `AppointmentListItem.kind` is optional: the backend only sets it on the `includeWalkIns` path.
+- `groupByHour(rows, zone)` takes the zone as a parameter (pure); the screen passes `clinicTimezone()`.
+
+### Questions for the architect
+- `useArrivals` fetches all of the day's bookings (50/page, max 20 pages) and filters client-side, because the backend `status` filter accepts one value. OK for S-03?
+- `useDayAppointments` is not gated on `can('appointments.view')`; callers gate (like other data hooks). Confirm.
+
+### Notes for the next task
+- M1-15a: `useAppointmentStats(today)` is ready; "next appointments" should use `fetchAppointments(ymd, { includeWalkIns: false }, 1, 5)` or filter `useDayAppointments` by time.

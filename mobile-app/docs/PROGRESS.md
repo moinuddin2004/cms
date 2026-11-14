@@ -47,7 +47,7 @@
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
-| M1-14a | Appointments data layer | MOB | S | M1-06 | ready | | | |
+| M1-14a | Appointments data layer | MOB | S | M1-06 | review | | Sonnet session | 2026-11-14 |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | ready (UI phase) | | | |
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | ready | | | |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | ready (UI phase) | | | |
