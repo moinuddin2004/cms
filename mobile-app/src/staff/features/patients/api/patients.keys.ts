@@ -8,6 +8,8 @@ type Id = string | null;
  */
 export const patientKeys = {
   all: ['patients'] as const,
+  /** Prefix of every list key — invalidate this after a create. */
+  lists: ['patients', 'list'] as const,
   list: (orgId: Id, locationId: Id, query: PatientQuery) =>
     ['patients', 'list', orgId, locationId, query] as const,
   detail: (orgId: Id, locationId: Id, patientId: string) =>

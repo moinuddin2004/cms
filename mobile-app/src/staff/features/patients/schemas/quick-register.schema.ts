@@ -7,6 +7,12 @@ const PHONE_SHAPE = /^\+?[0-9][0-9 -]*$/;
 const PHONE_MESSAGE = 'Enter a valid phone number (7+ digits; digits, spaces, dashes, leading +)';
 const isPhone = (v: string) => PHONE_SHAPE.test(v) && v.replace(/\D/g, '').length >= 7;
 
+/** Same rule the form applies to `phone`; the check-phone query uses it to stay idle on partial input. */
+export const isValidPhone = (v: string): boolean => {
+  const phone = v.trim();
+  return phone.length > 0 && phone.length <= 20 && isPhone(phone);
+};
+
 /** Real calendar date `YYYY-MM-DD`, not after the clinic's today. */
 function isValidPastYmd(value: string): boolean {
   if (!isYmd(value)) return false;
