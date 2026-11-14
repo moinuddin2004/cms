@@ -13,7 +13,7 @@ export function useCheckPhone(phone: string, excludeId?: string) {
   const { orgId, locationId, ready } = usePatientTenant();
   const value = phone.trim();
   return useQuery({
-    queryKey: patientKeys.checkPhone(orgId, locationId, value),
+    queryKey: patientKeys.checkPhone(orgId, locationId, value, excludeId ?? null),
     queryFn: () => checkPatientPhone(value, excludeId),
     enabled: ready && isValidPhone(value),
     staleTime: 30_000,

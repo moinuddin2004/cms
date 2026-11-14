@@ -14,8 +14,8 @@ export const patientKeys = {
     ['patients', 'list', orgId, locationId, query] as const,
   detail: (orgId: Id, locationId: Id, patientId: string) =>
     ['patients', 'detail', orgId, locationId, patientId] as const,
-  checkPhone: (orgId: Id, locationId: Id, phone: string) =>
-    ['patients', 'check-phone', orgId, locationId, phone] as const,
+  checkPhone: (orgId: Id, locationId: Id, phone: string, excludeId: string | null = null) =>
+    ['patients', 'check-phone', orgId, locationId, phone, excludeId] as const,
   history: (orgId: Id, locationId: Id, patientId: string) =>
     ['patients', 'history', orgId, locationId, patientId] as const,
   vitals: (orgId: Id, locationId: Id, patientId: string) =>

@@ -12,7 +12,10 @@ export function useQuickRegister() {
   const queryClient = useQueryClient();
   return useMutation<PatientDetail, unknown, CreatePatientInput>({
     mutationFn: (input) => createPatient(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: patientKeys.lists }),
+    onSuccess: () => {
+      // fire and forget: the caller must not wait for the list refetches
+      void queryClient.invalidateQueries({ queryKey: patientKeys.lists });
+    },
     onError: (err) => toast.error(apiErrorMessage(err, 'Could not register the patient.')),
   });
 }

@@ -28,6 +28,7 @@ useStaffAuthStore.subscribe((state, prev) => {
     state.activeOrganizationId !== prev.activeOrganizationId ||
     state.activeLocationId !== prev.activeLocationId
   ) {
-    useRecentPatientsStore.getState().clear();
+    // a new [] on every auth change would re-render subscribers for nothing
+    if (useRecentPatientsStore.getState().ids.length > 0) useRecentPatientsStore.getState().clear();
   }
 });

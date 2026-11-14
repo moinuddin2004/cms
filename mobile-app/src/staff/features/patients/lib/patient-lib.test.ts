@@ -1,4 +1,4 @@
-import type { QuickRegisterValues } from '../schemas/quick-register.schema';
+import { quickRegisterSchema, type QuickRegisterValues } from '../schemas/quick-register.schema';
 import type { PatientTeethChart, PrescriptionListItem } from '../types/patients.types';
 import { latestTeethChart } from './latest-teeth-chart';
 import { toCreatePatientInput } from './quick-register-input';
@@ -41,6 +41,32 @@ describe('toCreatePatientInput', () => {
       guardianName: 'G',
       guardianPhone: '03111111111',
       guardianRelation: undefined,
+    });
+  });
+});
+
+describe('toCreatePatientInput matches quickRegisterSchema output', () => {
+  const samples: QuickRegisterValues[] = [
+    base,
+    { ...base, isMinor: true, gender: 'male', dob: '2018-01-02' },
+    { ...base, isMinor: true, guardianRelation: '  ', dob: '' },
+    { ...base, gender: 'other', fullName: 'A', phone: '+92 300-1234567', guardianName: '' },
+  ];
+  it.each(samples.map((v, i) => [i, v] as const))('sample %s', (_i, v) => {
+    const parsed = quickRegisterSchema.parse(v);
+    expect(toCreatePatientInput(v)).toEqual({
+      fullName: parsed.fullName,
+      phone: parsed.phone,
+      dob: parsed.dob,
+      gender: parsed.gender,
+      isMinor: parsed.isMinor,
+      ...(parsed.isMinor
+        ? {
+            guardianName: parsed.guardianName,
+            guardianPhone: parsed.guardianPhone,
+            guardianRelation: parsed.guardianRelation,
+          }
+        : {}),
     });
   });
 });

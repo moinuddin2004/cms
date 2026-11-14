@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
+import { patientKeys } from '../api/patients.keys';
 import type { PatientTeethChart, PrescriptionListItem } from '../types/patients.types';
 import { useCheckPhone } from './useCheckPhone';
 import { useLatestTeethChart } from './useLatestTeethChart';
@@ -35,8 +36,10 @@ jest.mock('../api/patients.api', () => ({
 
 let mockPerms = new Set<string>();
 let mockFeatures = new Set<string>();
+let mockStatus = 'ready';
 jest.mock('@/staff/features/access', () => ({
   useAccess: () => ({
+    status: mockStatus,
     can: (p: string) => mockPerms.has(p),
     hasFeature: (f: string) => mockFeatures.has(f),
   }),
@@ -54,6 +57,7 @@ beforeEach(() => {
   Object.values(mockApi).forEach((m) => m.mockReset());
   mockPerms = new Set();
   mockFeatures = new Set();
+  mockStatus = 'ready';
   useStaffAuthStore.setState({ activeOrganizationId: 'o1', activeLocationId: 'l1' });
 });
 
@@ -78,8 +82,9 @@ describe('usePatientsInfinite', () => {
     await act(async () => {
       await result.current.fetchNextPage();
     });
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
     expect(mockApi.fetchPatients).toHaveBeenLastCalledWith({ limit: 20, page: 2 });
-    expect(result.current.hasNextPage).toBe(false);
+    await waitFor(() => expect(result.current.hasNextPage).toBe(false));
   });
 
   it('drops a search under 2 characters and trims longer ones', async () => {
@@ -119,34 +124,47 @@ describe('usePatientsInfinite', () => {
 });
 
 describe('gated hooks', () => {
-  it('stay idle and report allowed=false without permission', async () => {
+  async function renderAll() {
     const wrapper = wrapperFor(newClient());
-    const h = await renderHook(() => usePatientHistory('p1'), { wrapper });
-    const v = await renderHook(() => usePatientVitals('p1'), { wrapper });
-    const rx = await renderHook(() => usePatientPrescriptions('p1'), { wrapper });
-    const t = await renderHook(() => useLatestTeethChart('p1'), { wrapper });
-    for (const r of [h, v, rx, t]) {
-      expect(r.result.current.allowed).toBe(false);
-      expect(r.result.current.query.fetchStatus).toBe('idle');
-      expect(r.result.current.query.isError).toBe(false);
-    }
+    return {
+      h: await renderHook(() => usePatientHistory('p1'), { wrapper }),
+      v: await renderHook(() => usePatientVitals('p1'), { wrapper }),
+      rx: await renderHook(() => usePatientPrescriptions('p1'), { wrapper }),
+      t: await renderHook(() => useLatestTeethChart('p1'), { wrapper }),
+    };
+  }
+  const noCalls = () => {
     expect(mockApi.fetchPatientHistory).not.toHaveBeenCalled();
     expect(mockApi.fetchPatientVitals).not.toHaveBeenCalled();
     expect(mockApi.fetchPatientPrescriptions).not.toHaveBeenCalled();
     expect(mockApi.fetchPatientTeethCharts).not.toHaveBeenCalled();
+  };
+
+  it('are denied (never ran) without permission', async () => {
+    const r = await renderAll();
+    for (const x of [r.h, r.v, r.rx, r.t]) expect(x.result.current).toEqual({ access: 'denied' });
+    noCalls();
   });
 
-  it('clinical permission without the feature still blocks prescriptions and chart', async () => {
+  it('report loading, and do not run, while access is loading - even with the grants', async () => {
+    mockStatus = 'loading';
     mockPerms = new Set(['patients.clinical.view']);
-    const wrapper = wrapperFor(newClient());
+    mockFeatures = new Set(['patients.prescriptions', 'patients.teeth_chart']);
+    const r = await renderAll();
+    for (const x of [r.h, r.v, r.rx, r.t]) expect(x.result.current).toEqual({ access: 'loading' });
+    noCalls();
+  });
+
+  it('clinical permission without the feature still denies prescriptions and chart', async () => {
+    mockPerms = new Set(['patients.clinical.view']);
     mockApi.fetchPatientHistory.mockResolvedValue({ appointments: [] });
-    const h = await renderHook(() => usePatientHistory('p1'), { wrapper });
-    const rx = await renderHook(() => usePatientPrescriptions('p1'), { wrapper });
-    const t = await renderHook(() => useLatestTeethChart('p1'), { wrapper });
-    await waitFor(() => expect(h.result.current.query.isSuccess).toBe(true));
-    expect(h.result.current.allowed).toBe(true);
-    expect(rx.result.current.allowed).toBe(false);
-    expect(t.result.current.allowed).toBe(false);
+    const r = await renderAll();
+    await waitFor(() => {
+      const cur = r.h.result.current;
+      expect(cur.access === 'allowed' && cur.query.isSuccess).toBe(true);
+    });
+    expect(r.rx.result.current).toEqual({ access: 'denied' });
+    expect(r.t.result.current).toEqual({ access: 'denied' });
     expect(mockApi.fetchPatientPrescriptions).not.toHaveBeenCalled();
     expect(mockApi.fetchPatientTeethCharts).not.toHaveBeenCalled();
   });
@@ -162,8 +180,13 @@ describe('gated hooks', () => {
     const { result } = await renderHook(() => usePatientPrescriptions('p1'), {
       wrapper: wrapperFor(newClient()),
     });
-    await waitFor(() => expect(result.current.query.isSuccess).toBe(true));
-    expect(result.current.query.data?.data.map((p) => p.id)).toEqual(['b', 'd', 'a', 'c']);
+    await waitFor(() => {
+      const cur = result.current;
+      expect(cur.access === 'allowed' && cur.query.isSuccess).toBe(true);
+    });
+    const cur = result.current;
+    if (cur.access !== 'allowed') throw new Error('expected allowed');
+    expect(cur.query.data?.data.map((p) => p.id)).toEqual(['b', 'd', 'a', 'c']);
     expect(mockApi.fetchPatientPrescriptions).toHaveBeenCalledWith('p1', 1);
   });
 
@@ -171,18 +194,23 @@ describe('gated hooks', () => {
     mockPerms = new Set(['patients.clinical.view']);
     mockFeatures = new Set(['patients.teeth_chart']);
     const chart = (id: string, recordedAt: string) => ({ id, recordedAt }) as PatientTeethChart;
-    mockApi.fetchPatientTeethCharts.mockResolvedValue([
-      chart('old', '2026-01-01T00:00:00.000Z'),
-      chart('new', '2026-06-01T00:00:00.000Z'),
-    ]);
-    const a = await renderHook(() => useLatestTeethChart('p1'), { wrapper: wrapperFor(newClient()) });
-    await waitFor(() => expect(a.result.current.query.isSuccess).toBe(true));
-    expect(a.result.current.query.data?.id).toBe('new');
-
-    mockApi.fetchPatientTeethCharts.mockResolvedValue([]);
-    const b = await renderHook(() => useLatestTeethChart('p1'), { wrapper: wrapperFor(newClient()) });
-    await waitFor(() => expect(b.result.current.query.isSuccess).toBe(true));
-    expect(b.result.current.query.data).toBeNull();
+    const dataOf = async (charts: PatientTeethChart[]) => {
+      mockApi.fetchPatientTeethCharts.mockResolvedValue(charts);
+      const { result } = await renderHook(() => useLatestTeethChart('p1'), {
+        wrapper: wrapperFor(newClient()),
+      });
+      await waitFor(() => {
+        const cur = result.current;
+        expect(cur.access === 'allowed' && cur.query.isSuccess).toBe(true);
+      });
+      const cur = result.current;
+      if (cur.access !== 'allowed') throw new Error('expected allowed');
+      return cur.query.data;
+    };
+    expect(
+      (await dataOf([chart('old', '2026-01-01T00:00:00.000Z'), chart('new', '2026-06-01T00:00:00.000Z')]))?.id,
+    ).toBe('new');
+    expect(await dataOf([])).toBeNull();
   });
 });
 
@@ -199,5 +227,20 @@ describe('useCheckPhone', () => {
     await rerender({ phone: ' 0300 1234567 ' });
     await waitFor(() => expect(result.current.data).toEqual({ exists: true }));
     expect(mockApi.checkPatientPhone).toHaveBeenCalledWith('0300 1234567', undefined);
+  });
+});
+
+describe('useCheckPhone excludeId', () => {
+  it('create and edit checks of the same phone are separate cache entries', async () => {
+    mockApi.checkPatientPhone.mockResolvedValue({ exists: false });
+    const wrapper = wrapperFor(newClient());
+    await renderHook(() => useCheckPhone('03001234567'), { wrapper });
+    await renderHook(() => useCheckPhone('03001234567', 'p9'), { wrapper });
+    await waitFor(() => expect(mockApi.checkPatientPhone).toHaveBeenCalledTimes(2));
+    expect(mockApi.checkPatientPhone).toHaveBeenCalledWith('03001234567', undefined);
+    expect(mockApi.checkPatientPhone).toHaveBeenCalledWith('03001234567', 'p9');
+    expect(patientKeys.checkPhone('o1', 'l1', '03001234567')).not.toEqual(
+      patientKeys.checkPhone('o1', 'l1', '03001234567', 'p9'),
+    );
   });
 });

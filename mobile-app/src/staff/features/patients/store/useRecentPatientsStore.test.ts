@@ -46,4 +46,12 @@ describe('useRecentPatientsStore', () => {
     useStaffAuthStore.getState().setLocationContext('o2', 'l2');
     expect(ids()).toEqual([]);
   });
+
+  it('does not touch the store while signed out and already empty', () => {
+    useStaffAuthStore.getState().clearAuth();
+    const before = ids();
+    useStaffAuthStore.setState({ emailVerificationRequired: true });
+    useStaffAuthStore.getState().clearAuth();
+    expect(ids()).toBe(before);
+  });
 });
