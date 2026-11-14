@@ -5,7 +5,7 @@
 > Implementers change only their own row (`in-progress`, `review`). The architect sets `ready`,
 > `changes-requested`, `done`.
 
-**Current phase:** 1 — Staff baseline + UI in parallel (all Sonnet sessions; a final Opus audit session when everything is done) · **Running:** M1-15a, M1-08, M1-09, M1-11, M1-12, M1-14 · **Blocked on user npm-install approval:** M1-13a, M2-02b · **Next:** M1-10, M1-13, M1-05, M1-15, then M1-16 · Updated 2026-11-15
+**Current phase:** 1 — Staff baseline + UI in parallel (all Sonnet sessions; a final Opus audit session when everything is done) · **Running:** M1-08, M1-09, M1-11, M1-12, M1-14, M2-02b · **Merged today:** M1-15a, M1-13a · **Next:** M1-10, M1-13, M1-05, M1-15, then M1-16 · Updated 2026-11-15
 
 > **Parallel work rule:** one checkout = one implementer at a time. Two implementers in the same folder
 > share one branch and one working tree (that is how M0-08 ended up on M0-01's branch). For parallel work
@@ -45,11 +45,11 @@
 | M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | done (in develop) | | | |
 | M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | ready (UI phase) | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
-| M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | review | Sonnet session | 2026-11-15 | |
+| M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | done | Sonnet session | 2026-11-15 | approved; nits → M1-13 |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
 | M1-14a | Appointments data layer | MOB | S | M1-06 | done (in develop) | | | |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | ready (UI phase) | | | |
-| M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | review | | | |
+| M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | done | Sonnet session | 2026-11-15 | approved |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | ready (UI phase) | | | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |

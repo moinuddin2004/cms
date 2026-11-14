@@ -731,6 +731,12 @@ MOB · S · Depends: M1-02, M1-13a · Branch `mobile/M1-13-notifications`
 7. Tests: link router table; badge shows count and hides at 0; mark-all-read invalidates; other-clinic row prompts.
 
 **Acceptance:** tests green; realtime `notification.new` updates the badge (unit-level via invalidation; live check joins M0-D).
+
+**Steps 1–3 are DONE in M1-13a** (merged): only build steps 4–7. Also fix these M1-13a review nits:
+- `staff/lib/link-router.ts:7` `PATIENT_ID` accepts any word (`/patients/new` → id "new"): use a UUID regex, add a `/patients/new → null` test.
+- `useNotifications.ts` `useMarkRead` `onSettled` invalidates `notificationKeys.all` (refetches prefs on every tap): invalidate `list` + `unreadCount` only.
+- `QueueTabPage` ignores route params: make it honour `params.segment` (`'doctor'|'board'`) over the saved pref, so `resolveStaffLink` lands on the right segment. Param name stays `segment`.
+- One-line comment in `notification-row.ts` that other-clinic rows are shown on the active location's clock.
 ---
 
 ### M1-14 — Schedule tab (S-06)
