@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch } from '@nestjs/common';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
+import { PatientCtx, PatientRequest } from './context/patient-context';
 import { PatientApi } from './decorators/patient-api.decorator';
 import { UpdatePatientMeDto } from './dto/patient-me.dto';
-import type { PatientRequest } from './guards/patient-link.guard';
 import { PatientMeService } from './patient-me.service';
 
 @Controller('patient-api/me')
@@ -11,14 +11,17 @@ export class PatientMeController {
   constructor(private readonly me: PatientMeService) {}
 
   @Get()
-  async get(@Req() req: PatientRequest) {
-    return ResponseWrapper.success(await this.me.get(req.patientContext!));
+  async get(@PatientCtx() ctx: PatientRequest['patientContext']) {
+    return ResponseWrapper.success(await this.me.get(ctx));
   }
 
   @Patch()
-  async update(@Req() req: PatientRequest, @Body() dto: UpdatePatientMeDto) {
+  async update(
+    @PatientCtx() ctx: PatientRequest['patientContext'],
+    @Body() dto: UpdatePatientMeDto,
+  ) {
     return ResponseWrapper.success(
-      await this.me.updateName(req.patientContext!, dto.fullName),
+      await this.me.updateName(ctx, dto.fullName),
       'Profile updated',
     );
   }

@@ -52,7 +52,7 @@
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | ready | | | |
-| M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | ready | | | |
+| M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | in-progress | mobile/M2-03-patient-links-guard | Copilot SDK | 2026-11-12 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
