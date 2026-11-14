@@ -2022,3 +2022,41 @@ none (`npm install` of the existing lockfile only; lockfile untouched)
 
 ### Notes for the next task
 - M1-15: render `visibleTodayBlocks(can, hasFeature)`; each hook has its own `access` state, so a block is a skeleton on `loading`, absent on `denied`.
+
+---
+## M1-13a — Notifications api, hooks, link router  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: `claude/m1-13a-notifications-data-d3f6b8` (card name `mobile/M1-13a-notifications-data`)   Commit(s): see `git log`   Status set to: review
+
+### Done
+- Step 1 `api/notifications.api.ts`: list (limit clamped ≤ 50, `unreadOnly` sent only when true), unread count, read one, read all, get prefs, put prefs (`sound` only). Contract verified against `my-notifications.controller.ts`, `notifications.dto.ts` and `user-notifications.service.ts`.
+- Step 2 `hooks/useNotifications.ts`: `useUnreadCount`, `useNotificationsInfinite`, `useMarkRead` (optimistic row read + count −1 only if the row was cached unread; rollback of lists and count on error), `useMarkAllRead` (invalidates `notificationKeys.all`), `useNotificationPrefs`, `useSetNotificationSound` (optimistic, rollback).
+- Step 3 `staff/lib/link-router.ts`: `resolveStaffLink(link)` → `{ pathname, params? } | null`.
+- Step 4 `lib/notification-row.ts`: `describeNotification(n, activeOrgId, orgNames)`.
+- Step 5 barrel exports + tests (api, hooks, both pure modules).
+
+### Files
+- Created: `features/notifications/{api/notifications.api.ts, hooks/useNotifications.ts, lib/notification-row.ts, types/notifications.types.ts}` (+ `.test` files), `staff/lib/link-router.ts` (+ test)
+- Modified: `notifications.keys.ts` (added `inbox(unreadOnly)`, `prefs()`; `list()` kept as the prefix), `notifications/index.ts`, `docs/PROGRESS.md`
+
+### Install commands for the user
+none (`npm install` from the lockfile only; the resulting `package-lock.json` change was reverted)
+
+### Verification
+- `eslint src` → 0 errors, 3 old warnings
+- `npm run typecheck` → clean
+- `npm test` → 52 suites / 361 tests passed (jest needs `--forceExit` here: a worker does not exit cleanly, as before)
+- `npm run lint:fences` → ok
+
+### Acceptance criteria
+- [x] tests green; no screen or route
+
+### Deviations from the card / docs
+- Link router return shapes (card did not fix them): `/queue/doctor` → `{ pathname: '/queue', params: { segment: 'doctor' } }`; `/queue`, `/appointments` → `{ pathname: '/queue', params: { segment: 'board' } }`; `/patients/:id` → `{ pathname: '/patients/<id>' }`. The Queue screen must read the `segment` param (M1-13 / M1-07 UI). No `/patients/[id]` route exists yet. Query string/hash and trailing slash are ignored; ids must match `[A-Za-z0-9-]+`.
+- Keys carry no org/location: the inbox is per user and spans clinics.
+- `describeNotification` falls back to "Another clinic" when the org name is unknown.
+
+### Questions for the architect
+- Is `segment` (`doctor` | `board`) the param name you want for the Queue tab?
+
+### Notes for the next task
+- M1-05 and M1-13 reuse `resolveStaffLink`. Realtime already invalidates `notificationKeys.all`, which covers all new keys.
