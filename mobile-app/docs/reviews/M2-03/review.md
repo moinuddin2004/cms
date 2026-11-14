@@ -1,0 +1,5 @@
+# Review M2-03
+Date: 2026-11-15 · Reviewer: architect (Claude Opus) + independent reviewer agent · Verdict: **done** (after rework #1)
+Commits: be6ae7d + 4a820b3 (on WIP b90e690) · Commands re-run by the architect: build ✓ · full backend jest 1012 ✓ · `jest-int-patient.json` loads (4 specs)
+
+Reviewer agent (security): src is sound — no cross-tenant path; one query; ids bound; `1 = 0` for no links; asserts correct. Test-harness rework verified: valid JSON config, safety check runs before any hook and teardown is guarded, host resolved with `pg-connection-string` (query `host=` and `hostaddr` handled), `/patient/` ignored by `jest-int.json`, unique parameter prefix per `linkedPatientWhere` call. Minor: `pg-connection-string` is imported but only arrives through `pg` (test-only) — add it to devDependencies when packages are next touched. Int specs still unexecuted (no disposable Postgres). Open for M2-08: clinic approval/suspension is not considered by the link guard (only the feature flag).

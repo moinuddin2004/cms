@@ -1760,3 +1760,11 @@ Branch: verified both reworks against every finding   Status set to: M1-03, M1-0
 - M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
 - M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
 
+---
+## REVIEW baseline wave 1: M1-07 + M1-11b + M1-14a + M2-03  ·  2026-11-15  ·  Claude Opus (team lead)
+Branch: four Sonnet developer sessions; each reviewed by an independent reviewer agent, reworked once, fixes verified in code, tests re-run by the team lead   Status set to: all four done (merged)
+
+### Done
+- Reviews in `reviews/<ID>/review.md`. M1-13a and M2-02b are blocked: `npm install` in their worktrees was denied by the permission system — waiting for the user.
+- Architect miss owned: the M1-07a rework sign-off said `openSession` was fixed; it was not (fixed in M1-07). Rework reviews now always check the code, never only the handoff.
+
