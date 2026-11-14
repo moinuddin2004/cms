@@ -1795,3 +1795,19 @@ none (`npm install` from the lockfile only; its lockfile change was reverted)
 ### Questions for the architect
 - Is `{ allowed, query }` the shape you want for M1-12?
 - Backend `check-phone` returns only `{ exists }`, so S-04's "exists: <name>" copy cannot show a name without a backend change.
+
+---
+## Rework M1-11b #1 — 2026-11-14
+Branch: `claude/m1-11b-patients-hooks-30cce3` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Paging test read `hasNextPage` before re-render | Post-fetch assertions (`data.pages` length, `hasNextPage`) are inside `waitFor`. Patients suite run 3 times in a row: 8 suites / 101 tests green each time. |
+| 2 | `excludeId` missing from check-phone key | `patientKeys.checkPhone(org, loc, phone, excludeId = null)`; `useCheckPhone` passes `excludeId ?? null`. Test: create and edit checks of the same phone are two calls and two distinct keys. |
+| 3 | Gated hooks could not tell loading from denied | New `hooks/gated-query.ts`: `GatedQuery<T> = { access: 'loading' } \| { access: 'denied' } \| { access: 'allowed', query }`; query only enabled when `useAccess().status === 'ready'` and the grant holds. History, vitals, prescriptions, teeth chart updated; tests cover loading (even with grants), denied, allowed, feature missing. |
+| 4 | `onSuccess` returned the invalidate promise | `void queryClient.invalidateQueries(...)` — `mutateAsync` no longer waits for refetches. |
+| 5 | Recent store cleared on every signed-out auth change | Clears only when `ids.length > 0`; test that the `ids` array identity is untouched while empty. |
+| 6 | UI calls `useCheckPhone` on blur only | No code change (noted for M1-11). |
+| 7 | Mapper vs schema | Test: `toCreatePatientInput(v)` equals the relevant `quickRegisterSchema.parse(v)` fields for four samples. |
+
+Verification (full DoD): `npm run typecheck` ✓ · `npm test` 52 suites / 360 tests ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓.
