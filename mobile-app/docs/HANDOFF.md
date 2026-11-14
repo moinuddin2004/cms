@@ -1978,3 +1978,44 @@ Branch: four Sonnet developer sessions; each reviewed by an independent reviewer
 - Reviews in `reviews/<ID>/review.md`. M1-13a and M2-02b are blocked: `npm install` in their worktrees was denied by the permission system — waiting for the user.
 - Architect miss owned: the M1-07a rework sign-off said `openSession` was fixed; it was not (fixed in M1-07). Rework reviews now always check the code, never only the handoff.
 
+
+---
+## M1-08 — Doctor queue screen (S-02a)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-08-doctor-queue-d5f636 (worktree of mobile/develop)   Commit(s): see git log (feat + docs)   Status set to: review
+
+### Done
+- `DoctorQueueView` replaced (data via `useMySession`; wiring, sheets, session states). Body for open/paused in `doctor/DoctorQueueList.tsx` (FlashList in `waitingOrder`, header = pill + ⋮ + summary + paused banner + current card + suggestion line; footer = collapsible On hold / Skipped).
+- Session states: `waiting_for_doctor` (Start session), `open`, `paused` (banner with reason + Resume, Call next disabled), `closed` (summary counts).
+- `doctor/CurrentPatientCard`: actions come from `useEntryActions(…, 'doctor')` (primary Start/Done, secondary Recall / Undo call / Skip / Send for test / Abort, Patient file → `/patients/[patientId]`).
+- `doctor/WaitingRow`: ⋯ → ActionSheet "Call this patient"; selecting the suggested patient goes straight through, jumping the order opens the ReasonSheet (optional reason).
+- `doctor/ReasonSheet` + `hooks/useReasonForm.ts` + `schemas/reason.schema.ts`: FormSheet + TanStack Form + Zod 4 (`validators`, `fieldError`); pause requires a reason, others optional; max 500. Sheet stays open on a plain failure, closes on success or a stale entry (`shouldRefetch`).
+- `doctor/useDoctorQueueActions`: all mutations in one hook; `busyEntryIds` (from each mutation's `isPending` + `variables.entryId`) locks a row/card while any action on it runs; `ifMatch: entry.version` comes from the entry on screen; haptics success/warning; `AccessibilityInfo.announceForAccessibility("Called A-008, Sara K.")` after Call next; NO_ELIGIBLE_PATIENT → the hook's "No one is waiting" toast.
+- ConnectionPill via existing `RealtimeConnectionPill`; pull to refresh; offline: Call next/Start/Resume use `OfflineAwareButton`, other buttons disabled via `useCanMutate`.
+
+### Files
+- Created: `components/DoctorQueueView.test.tsx`, `components/doctor/{CurrentPatientCard,DoctorQueueList,ReasonSheet,SessionPanels,WaitingRow}.tsx`, `doctor/{doctor-labels,haptics,useDoctorQueueActions}.ts`, `doctor/useDoctorQueueActions.test.tsx`, `hooks/useReasonForm.ts`, `schemas/reason.schema.ts`
+- Modified: `components/DoctorQueueView.tsx`, `docs/PROGRESS.md`, `docs/HANDOFF.md`
+
+### Install commands for the user
+none (`npm install` from the existing lockfile only)
+
+### Verification
+- `npm test` → 62 suites, 446 tests passed (19 new: 15 view, 4 actions hook)
+- `npm run typecheck` → clean
+- eslint `src` → 0 errors, 3 pre-existing warnings (api-error.ts, skeleton.tsx, staff/lib/api.ts)
+- `npm run lint:fences` → all directions fail as expected
+- Manual: **no device or emulator here — not run on a device.** Screenshots of the 4 session states and the 10-patient seeded-clinic run join gate M0-D.
+
+### Acceptance criteria
+- [x] session states render; actions by status; Call next + NO_ELIGIBLE_PATIENT; actions disabled while pending; reason sheet validation (tests)
+- [ ] manual 10-patient run + 4 screenshots (no device)
+
+### Deviations from the card / docs
+- **Close session** (⋮ menu) is not here: the card text says M1-10 builds the close sheet. The menu has Pause / Resume / Smart order (needs `queue.entry.reprioritize`).
+- Current card shows the patient number and reason, not "34y · M": `EntryPatient` has no age or gender.
+- Segmented control + board placeholder already live in `QueueTabPage` (not touched).
+- Tests mock `FormSheet` / `ActionSheet` (native gesture runtime) and `FlashList` (no layout in Jest); the real `ReasonSheet` form logic runs.
+- Prettier was not configured in `mobile-app`; files were formatted with single quotes / width 100 to match the existing sources.
+
+### Questions for the architect
+- Abort asks via the ReasonSheet (title "Abort consultation", consequence text) instead of a separate ConfirmDialog; is that enough as the confirm?
