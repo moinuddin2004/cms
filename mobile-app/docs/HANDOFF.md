@@ -1625,3 +1625,26 @@ Branch: four rework branches verified against every finding   Status set to: all
 ### Notes for the next task
 - M2-02's int spec and the M2-01 change file still need one run on a disposable Postgres.
 
+
+---
+## M2-02b — Patient Google sign-in  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M2-02b-patient-google   Commit(s): f65ab70 (+ WIP 2261b77 by previous developer)   Status set to: review
+
+### Done
+- `GoogleIdentityService.verify(credential, audiences?)`: array of audiences from `GOOGLE_CLIENT_ID` / `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` (unset skipped, `patientAudiences`); staff path (no array) unchanged, proven by spec.
+- `POST /patient-auth/google { idToken, termsVersion, privacyVersion }`: `@PatientAuthRoute()`, `@RateLimit` 30 / 15 min per IP, returns the PatientSession shape. Resolution: ('google', sub) → account; else verified email → existing account + identity; else create. Consents as M2-02. Any verify failure → `GOOGLE_TOKEN_INVALID`.
+- Continued the WIP; finished it by fixing two failing specs: handler count in `patient-auth.controller.spec.ts` (4 → 5) and a TS cast + two lint nits in `patient-auth.service.spec.ts`.
+
+### Files
+- Modified: `auth/google/google-identity.service.ts` (+spec), `patient-auth/{controller,service,module,dto}`, specs, `.env.example`.
+
+### Install commands for the user
+none (`npm ci` from lockfile only; lockfile changes discarded)
+
+### Verification
+- `npm run build` → clean
+- full `npx jest --runInBand`: 98 suites / 1004 tests; the only 2 failures were the specs fixed above, re-run green (patient-auth, auth/google, access, patient-app: 19 suites / 178 tests). Not re-run as one full pass after the fix.
+- ESLint on changed files: only repo-wide CRLF prettier noise.
+
+### Questions for the architect
+- None.
