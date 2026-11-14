@@ -2,8 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { PatientAccount } from 'src/patient-auth/entities/patient-account.entity';
+import type { PatientContext } from './context/patient-context';
 import type { PatientMeDto } from './dto/patient-me.dto';
-import type { PatientContext } from './guards/patient-link.guard';
 
 @Injectable()
 export class PatientMeService {

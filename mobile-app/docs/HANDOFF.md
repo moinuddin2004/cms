@@ -1912,6 +1912,57 @@ Branch: claude/m1-14a-appointments-data-4dcf38 · Status set to: review (unchang
 Verification: see numbers in the report (full DoD run).
 
 ---
+## M2-03 — Patient link guard, linked-patient helper, isolation tests  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M2-03-patient-links-guard   Commit(s): see git log (continues the previous implementer's WIP commit)   Status set to: review
+
+### Done
+- Step 1: real `PatientLinkGuard` — 401 without `patientAuth`; ONE query (profiles LEFT JOIN active/frozen links, never revoked); `patientAppEnabled` via `FeatureFlagsService.isFeatureEnabled(orgId,'patient_app')`, one call per distinct org per request; sets `request.patientContext` per 07 §6.
+- Step 2: `src/patient-app/context/patient-context.ts` — type, `@PatientCtx()`, `linkedPatientWhere` (no links / foreign profile → `1 = 0`; bound parameters only; identifiers validated), `assertProfile` (404), `assertWritableLink` (404 / 403 `PATIENT_APP_DISABLED`).
+- Step 3: `patient-app.settings` import moved into `patient-app.module.ts`.
+- Step 4: unit tests for guard and helpers.
+- Step 5: `test/patient/test-db-safety.ts` (`assertSafePatientTestDb`, used by all three patient int specs) + `npm run test:int:patient`.
+- Step 6: route-matrix second half (staff token → 401 on every `/patient-api/*` and protected `/patient-auth/*` route).
+- Step 7: `test/patient/link-isolation.int-spec.ts` with a test-only controller declared inside the spec.
+
+### Files
+- Created: `src/patient-app/context/patient-context.ts` (+spec), `test/patient/test-db-safety.ts`, `test/patient/link-isolation.int-spec.ts`, `test/jest-int-patient.json`
+- Modified: `guards/patient-link.guard.ts` (+spec), `patient-app.module.ts`, `me.controller.ts`, `patient-me.service.ts`, `app.module.ts`, `test/patient/{route-matrix,patient-auth}.int-spec.ts`, `backend/package.json` (script only)
+
+### Install commands for the user
+none (`npm ci` only; lockfile untouched)
+
+### Verification
+- `npm run build` → clean
+- Full `npx jest --runInBand` → see report in the session summary
+- Integration specs (`test:int:patient`): WRITTEN, **NOT RUN** — no local Postgres here and I never touch a shared DB. They need a local Postgres or `PATIENT_IT_DATABASE_URL`.
+
+### Acceptance criteria
+- [x] build clean; unit suite green; no read endpoint added to `src/`
+- [ ] int specs green on a disposable Postgres (not run — see above)
+
+### Deviations from the card / docs
+- `test:int:patient` uses its own `test/jest-int-patient.json` WITHOUT the billing `globalSetup`: that setup connects and drops/creates a schema on `DATABASE_URL` before any spec runs, which would bypass the safety check. Patient specs create/drop their own schema.
+- `linkedPatientWhere` takes any `WhereExpressionBuilder` (select/update/delete builders), not the bare `QueryBuilder` (which has no `andWhere`).
+
+### Questions for the architect
+- None.
+
+---
+## Rework M2-03 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M2-03-patient-links-guard · Status set to: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `jest-int-patient.json` invalid JSON | `\.` escapes. `npx jest --config test/jest-int-patient.json --listTests` lists the 4 patient specs. |
+| 2 | `afterAll` ran after a refused `beforeAll` | `assertSafePatientTestDb()` now runs at module level (before `describe`) in all three int specs, so a refusal fails the file before ANY hook; no teardown can connect. Verified: `DATABASE_URL=postgres://…prod.example.com…` → "Refusing…", 0 tests, no connection. |
+| 3 | `host=` query override | `isLocalDatabaseUrl` parses with `pg-connection-string` (what pg uses), rejects `hostaddr`, requires the URL authority to be local too, treats `/…` socket hosts and no host as local. Table tests in `test/patient/test-db-safety.int-spec.ts` (10 cases incl. `?host=prod…`, hostaddr, socket, neon-with-host=localhost). No package added. |
+| 4 | `jest-int.json` matched patient specs | `testPathIgnorePatterns: ["/node_modules/", "/patient/"]`; `--listTests` shows no `test/patient/` file. |
+| 5 | Fixed param names | Per-call unique prefix (`patientLink<N>Org<i>`); new unit test calls it twice on one builder with different profiles → 4 distinct names. |
+| 6 | patient_app off → 403 | Int case: test controller `writable` route → 403 `PATIENT_APP_DISABLED` (org1 has no `patient_app` row) and 404 for B's link. Written, not run (no disposable DB). |
+
+Verification: build clean; full jest — see session report. Int specs still not run (no disposable Postgres).
+
+---
 ## REVIEW round 8 (part 2): reworks M1-03 + M1-06  ·  2026-11-13  ·  Claude Opus (architect)
 Branch: verified both reworks against every finding   Status set to: M1-03, M1-06 done (merge pending)
 

@@ -25,6 +25,10 @@ import { GlobalExceptionFilter } from 'src/common/exceptions/HttpExceptionHandle
 import { AppLogger } from 'src/common/services/logger.service';
 import { MailService } from 'src/common/services/mail.service';
 import { itDatabaseUrl, itSsl } from '../billing/db.config';
+import { assertSafePatientTestDb } from './test-db-safety';
+
+// Module level on purpose: a throw here fails the file before ANY hook runs.
+assertSafePatientTestDb();
 
 const SCHEMA = 'patientauthit';
 jest.setTimeout(180_000);
