@@ -14,3 +14,4 @@ export { dayStrip } from './lib/day-strip';
 export { groupByHour } from './lib/group-by-hour';
 export type { HourGroup } from './lib/group-by-hour';
 export type * from './types/appointments.types';
+export { ScheduleTabPage } from './pages/ScheduleTabPage';
