@@ -2008,7 +2008,7 @@ none (`npm install` from the existing lockfile only)
 ### Acceptance criteria
 - [x] own-scope doctor sees only own — server-side; the screen sends no doctor override (nothing to test client-side)
 - [x] day switching keeps filters — page test
-- [ ] times on a phone set to another timezone — unit-tested on the clinic zone; screenshot with phone tz = UTC NOT taken (no device)
+- [ ] times on a phone set to another timezone — unit-tested on the clinic zone; device check pending M0-D (waived for now)
 
 ### Deviations from the card / docs
 - No search box (not in the S-06 spec). `search` is supported by the data layer if wanted later.
@@ -2021,3 +2021,16 @@ none (`npm install` from the existing lockfile only)
 
 ### Notes for the next task
 - Tests need stand-ins for `react-native-reanimated`, `@gorhom/bottom-sheet`, `expo-router`, `react-native-keyboard-controller` when a page imports the `@/core/components` barrel (see `ScheduleTabPage.test.tsx`); a shared jest mock would remove the repetition.
+
+---
+## Rework M1-14 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-14-schedule-24ec32 · Status set to: review (unchanged)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Clear only on status chips, clears only status | Removed the status-chip `clearLabel`; one "Clear all (n)" outline button (label "Clear all filters (n)", 44 pt) shows whenever a doctor or status filter is active and resets both. Tests: doctor-only filter shows "(1)" and clears; doctor + status shows "(2)" and clears both. |
+| 2 | Offset paging can repeat a row (duplicate FlashList keys) | The flattened pages are de-duplicated by id in the `useMemo` (first copy wins). Test: two pages repeating `a2` render it once. |
+| 3 | Dialog description repeats the title | Now "The patient joins the queue as a walk-in." (title unchanged). |
+| 4 | Unreachable discard copy in the read-only sheet | Kept (FormSheet requires `discard`), with a comment saying why it cannot show. |
+
+Verification: `npm run typecheck` clean; eslint 0 errors (3 old warnings); `lint:fences` ok; `npm test` → 62 suites, 465 passed (appointments: 64). Device check pending M0-D (screenshot waived by the team lead).
