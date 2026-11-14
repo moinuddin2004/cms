@@ -12,6 +12,8 @@ export interface GoogleIdentity {
   sub: string;
   email: string;
   name: string;
+  /** Google's real `name` claim; null when absent (`name` falls back to the email local part). */
+  rawName: string | null;
   picture: string | null;
   /** Google Workspace domain; null for personal (Gmail) accounts. */
   hd: string | null;
@@ -30,23 +32,40 @@ export class GoogleIdentityService {
   constructor(private readonly config: ConfigService) {}
 
   get clientId(): string | null {
-    return this.config.get<string>('GOOGLE_CLIENT_ID') || null;
+    return this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() || null;
   }
 
-  async verify(credential: string): Promise<GoogleIdentity> {
-    const clientId = this.clientId;
-    if (!clientId) {
+  get patientAudiences(): string[] {
+    return [
+      this.config.get<string>('GOOGLE_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_IOS_CLIENT_ID'),
+    ].flatMap((audience) => {
+      const trimmed = audience?.trim();
+      return trimmed ? [trimmed] : [];
+    });
+  }
+
+  async verify(
+    credential: string,
+    audiences?: string[],
+  ): Promise<GoogleIdentity> {
+    const configuredAudience = this.clientId;
+    const expectedAudiences =
+      audiences ?? (configuredAudience ? [configuredAudience] : []);
+    if (expectedAudiences.length === 0) {
       throw new ServiceUnavailableException(
         'Google sign-in is not configured on this server.',
       );
     }
-    this.client ??= new OAuth2Client(clientId);
+    this.client ??= new OAuth2Client();
 
     let payload: TokenPayload | undefined;
     try {
       const ticket = await this.client.verifyIdToken({
         idToken: credential,
-        audience: clientId,
+        audience:
+          audiences === undefined ? expectedAudiences[0] : expectedAudiences,
       });
       payload = ticket.getPayload();
     } catch {
@@ -72,6 +91,7 @@ export class GoogleIdentityService {
     return {
       sub: payload.sub,
       email: payload.email.toLowerCase(),
+      rawName: payload.name?.trim() || null,
       name: payload.name || payload.email.split('@')[0],
       picture: payload.picture ?? null,
       hd: payload.hd?.toLowerCase() ?? null,

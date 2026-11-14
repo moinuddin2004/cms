@@ -2160,3 +2160,40 @@ Branch: claude/m1-11-patients-list-118fe2 · Status: review (unchanged)
 FlashList in jest: kept the FlatList stand-in (real FlashList is ESM and needs native layout; not fighting shared jest config). The mock now records `onEndReached` so the paging test can drive it.
 Touched M1-11b files as asked: `hooks/useQuickRegister.ts`, `hooks/usePatientsInfinite.ts`.
 Verification: typecheck clean, eslint 0 errors, fences pass, patients tests green (page suite 16). Full `npm test`: 62 suites / 445 tests all green (the earlier FilterChips flake did not recur). No device.
+
+---
+## M2-02b — Patient Google sign-in  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M2-02b-patient-google   Commit(s): f65ab70 (+ WIP 2261b77 by previous developer)   Status set to: review
+
+### Done
+- `GoogleIdentityService.verify(credential, audiences?)`: array of audiences from `GOOGLE_CLIENT_ID` / `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` (unset skipped, `patientAudiences`); staff path (no array) unchanged, proven by spec.
+- `POST /patient-auth/google { idToken, termsVersion, privacyVersion }`: `@PatientAuthRoute()`, `@RateLimit` 30 / 15 min per IP, returns the PatientSession shape. Resolution: ('google', sub) → account; else verified email → existing account + identity; else create. Consents as M2-02. Any verify failure → `GOOGLE_TOKEN_INVALID`.
+- Continued the WIP; finished it by fixing two failing specs: handler count in `patient-auth.controller.spec.ts` (4 → 5) and a TS cast + two lint nits in `patient-auth.service.spec.ts`.
+
+### Files
+- Modified: `auth/google/google-identity.service.ts` (+spec), `patient-auth/{controller,service,module,dto}`, specs, `.env.example`.
+
+### Install commands for the user
+none (`npm ci` from lockfile only; lockfile changes discarded)
+
+### Verification
+- `npm run build` → clean
+- full `npx jest --runInBand`: 98 suites / 1004 tests; the only 2 failures were the specs fixed above, re-run green (patient-auth, auth/google, access, patient-app: 19 suites / 178 tests). Not re-run as one full pass after the fix.
+- ESLint on changed files: only repo-wide CRLF prettier noise.
+
+### Questions for the architect
+- None.
+
+## Rework M2-02b #1
+Date: 2026-11-15 · Branch `mobile/M2-02b-patient-google`
+
+| # | Result |
+| --- | --- |
+| 1 Medium | Fixed. Email-matched account that already has a `provider='google'` identity (different sub) → 409 `ACCOUNT_LINK_CONFLICT`; spec; code documented in 07 §5. |
+| 2 Med-low | Fixed. Identity inserted with `insert().orIgnore()` and re-read (other account → conflict); a 23505 on the transaction retries the whole resolve once. Specs: mocked 23505 (retry finds winner) and non-23505 not retried. |
+| 3 Low | Fixed. `ServiceUnavailableException` (Google not configured) is rethrown as 503; only verify failures → 401 `GOOGLE_TOKEN_INVALID`. Spec. |
+| 4 Low | Fixed. `GoogleIdentity.rawName` (Google's real `name` claim or null); patient flow stores only that, so `needsName` stays true without one. Staff `name` fallback unchanged. Specs in both services. |
+| 5 Nit | Fixed. `new OAuth2Client()` without client id. Spec updated. |
+| 6 Note | **For the account-deletion card:** soft-deleted accounts keep their `patient_account_identities` rows, so that Google account is blocked forever — deletion must remove identity rows. |
+
+Verification: `npm run build` clean; patient-auth + auth/google specs 6 suites / 41 tests; full `npx jest --runInBand` 98 suites / 1014 tests passed. No int specs run (no DB). Install commands: none.
