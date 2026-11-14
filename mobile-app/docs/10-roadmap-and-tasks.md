@@ -682,7 +682,8 @@ MOB · M · Depends: M1-01, M1-02, M1-11b · Branch `mobile/M1-11-patients-list`
    Row tap → `router.push('/patients/' + id)` (the detail screen is M1-12 — add a minimal placeholder route
    `(staff)/(main)/patients/[patientId].tsx` rendering an EmptyState "Patient details come next" if it does not exist).
 3. `QuickRegisterSheet` (FormSheet + TanStack Form + `quickRegisterSchema`, `hooks/useQuickRegisterForm.ts`): full name, phone
-   (check-phone on blur → "A patient with this phone exists: <name>" + Open), gender, DOB (`DatePicker` if present in core, otherwise
+   (call `useCheckPhone` only on blur → "A patient with this phone already exists" + a "Search" action that fills the search box
+   with the phone — the endpoint returns only `{ exists }`, decision A-17), gender, DOB (`DatePicker` if present in core, otherwise
    a text `YYYY-MM-DD` field — note it), minor toggle → guardian fields. Submit disabled on `!canSubmit || isSubmitting`; success →
    close, toast, open the new patient.
 4. Tests: list states (loading / empty / no-results / error), search debounce, permission hides ＋, quick-register validation and success path.

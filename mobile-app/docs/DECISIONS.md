@@ -42,6 +42,9 @@
 | A-15 | Each task is one branch `mobile/<TASK-ID>-<slug>` and ends with a handoff note; the architect reviews before the next dependent task starts | Lower-model work needs a gate |
 | A-16 | Mobile unit tests with jest-expo + Testing Library; pure logic (planners, guards, colour math, date helpers) must be unit-tested | No test runner exists today |
 
+| A-17 | `GET /patients/check-phone` stays `{ exists }`; quick register shows "A patient with this phone already exists" + a Search action (no patient name/Open link) | Avoids a backend change and leaking a name to anyone with `patients.view` before they search |
+| A-18 | Gated data hooks return a tagged state `{ access: 'loading' \| 'denied' } \| { access: 'allowed', query }` | Screens must tell loading from denied (M1-11b review) |
+
 ## Open (user to decide — build with the default meanwhile)
 
 | ID | Question | Default we build with | Blocks |
