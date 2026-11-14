@@ -48,7 +48,7 @@
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
 | M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | ready (UI phase) | | | |
 | M1-14a | Appointments data layer | MOB | S | M1-06 | done (in develop) | | | |
-| M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | ready (UI phase) | | | |
+| M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | review | claude/m1-14-schedule-24ec32 | | 2026-11-15 |
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | ready | | | |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | ready (UI phase) | | | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |

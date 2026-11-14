@@ -1978,3 +1978,46 @@ Branch: four Sonnet developer sessions; each reviewed by an independent reviewer
 - Reviews in `reviews/<ID>/review.md`. M1-13a and M2-02b are blocked: `npm install` in their worktrees was denied by the permission system — waiting for the user.
 - Architect miss owned: the M1-07a rework sign-off said `openSession` was fixed; it was not (fixed in M1-07). Rework reviews now always check the code, never only the handoff.
 
+
+---
+## M1-14 — Schedule tab (S-06)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-14-schedule-24ec32   Commit(s): see `git log` (feat commit, then this docs commit)   Status set to: review
+
+### Done
+- Day strip (`DayStrip`): yesterday … +6 from `dayStrip(useClinicToday())`, so it follows the clinic clock and rolls at clinic midnight; a picked day that left the strip falls back to today.
+- Doctor chips (`useDoctors`) and status chips (`FilterChips`, single select each). Filters live in the page state above the selected day, so switching days keeps them. A doctor id not in the active location's list is ignored.
+- List: `groupByHour` → `buildScheduleList` (flat header + row items, `stickyHeaderIndices`) in a FlashList v2. Row = clinic-clock time, patient, doctor · type, status badge (`APPOINTMENT_STATUS_TONES`), queue token. Infinite scroll via `fetchNextPage`, pull to refresh, "Loading more…" footer.
+- States: loading skeleton, error + retry, empty day, no-results (+ Clear all filters), a failed refresh with rows kept, offline banner (Screen) with "saved data from HH:mm".
+- Read-only `AppointmentSheet` (FormSheet) with [Check in] only when `canCheckIn`: `queue.checkin`, booking today on the clinic clock, `scheduled|confirmed`, no queue entry, not a walk-in row. Offline: button reads "Offline", disabled; pending spinner while checking in.
+- `useCheckInFlow`: `useCheckIn`; success → invalidate `appointmentKeys.all`, toast with the token, close sheet. `LATE_LIMIT_EXCEEDED` → `LateWalkInDialog` ("Too late for this appointment. Add as walk-in?") → `useConvertToWalkIn` (dialog stays open on failure). `shouldRefetch` errors also invalidate appointments.
+- Route `schedule.tsx` renders `ScheduleTabPage` from the appointments barrel (zero logic).
+
+### Files
+- Created (all `src/staff/features/appointments/`): `pages/ScheduleTabPage.tsx` (+ test), `components/{DayStrip,ScheduleRow,AppointmentSheet,LateWalkInDialog}.tsx`, `hooks/useCheckInFlow.ts`, `lib/{checkin-rule,schedule-view}.ts`, `lib/schedule-view.test.ts`
+- Modified: `src/app/(staff)/(main)/(tabs)/schedule.tsx`, `appointments/index.ts` (exports `ScheduleTabPage`), `docs/PROGRESS.md`
+
+### Install commands for the user
+none (`npm install` from the existing lockfile only)
+
+### Verification
+- `npm run typecheck` → clean (router types generated first: `.expo/types/router.d.ts` exists)
+- eslint `src` → 0 errors (3 old warnings); `npm run lint:fences` → ok
+- `npm test` → 462 tests; 459 passed first run, the 3 failures were first-test timeouts in `FilterChips`, `SearchBar`, `FormSheet` (parallel sessions loading the machine); `npx jest src/core/components --runInBand` → 33/33 pass. Appointments suites: 61/61 (23 new in the page test, 14 in `schedule-view.test.ts`).
+- **No device / emulator**: no screenshots, no manual run. The timezone acceptance (phone tz = UTC) is covered by tests only: the page test formats on `Asia/Karachi` and asserts `10:00 AM` for 05:00Z and no `5:00 AM`.
+
+### Acceptance criteria
+- [x] own-scope doctor sees only own — server-side; the screen sends no doctor override (nothing to test client-side)
+- [x] day switching keeps filters — page test
+- [ ] times on a phone set to another timezone — unit-tested on the clinic zone; screenshot with phone tz = UTC NOT taken (no device)
+
+### Deviations from the card / docs
+- No search box (not in the S-06 spec). `search` is supported by the data layer if wanted later.
+- Sheet fetches `useAppointment` only for cancelled bookings (to show the cancel reason); every other field comes from the list row. Walk-in rows never fetch it (their id is a queue entry id).
+- Day and filter state are `useState` in the page, not persisted (no PHI-risk, no need).
+
+### Questions for the architect
+- The status filter is single-select (backend takes one `status`). OK?
+- Doctors with `fullName === ''` show as "No name" in chips / "No doctor" in rows.
+
+### Notes for the next task
+- Tests need stand-ins for `react-native-reanimated`, `@gorhom/bottom-sheet`, `expo-router`, `react-native-keyboard-controller` when a page imports the `@/core/components` barrel (see `ScheduleTabPage.test.tsx`); a shared jest mock would remove the repetition.
