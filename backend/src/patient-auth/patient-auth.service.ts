@@ -1,7 +1,15 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, IsNull, Repository } from 'typeorm';
 import { PatientAccountConsent } from '../patient-app/entities/patient-account-consent.entity';
+import {
+  GoogleIdentity,
+  GoogleIdentityService,
+} from '../auth/google/google-identity.service';
 import { PatientAccountIdentity } from './entities/patient-account-identity.entity';
 import { PatientAccount } from './entities/patient-account.entity';
 import { LoginCodeService, normalizeEmail } from './login-code.service';
@@ -35,6 +43,7 @@ export class PatientAuthService {
     private readonly codes: LoginCodeService,
     private readonly sessions: PatientSessionService,
     private readonly tokens: PatientTokenService,
+    private readonly googleIdentity: GoogleIdentityService,
     @InjectRepository(PatientAccount)
     private readonly accounts: Repository<PatientAccount>,
   ) {}
@@ -57,6 +66,33 @@ export class PatientAuthService {
 
     const { account, isNew } = await this.dataSource.transaction((em) =>
       this.resolveAccount(em, email, input, meta),
+    );
+    return this.issue(account, isNew, meta);
+  }
+
+  async signInWithGoogle(
+    input: {
+      idToken: string;
+      termsVersion: string;
+      privacyVersion: string;
+    },
+    meta: ClientMeta,
+  ): Promise<PatientSessionResponse> {
+    let identity: GoogleIdentity;
+    try {
+      identity = await this.googleIdentity.verify(
+        input.idToken,
+        this.googleIdentity.patientAudiences,
+      );
+    } catch {
+      throw new UnauthorizedException({
+        code: 'GOOGLE_TOKEN_INVALID',
+        message: 'Google sign-in failed',
+      });
+    }
+
+    const { account, isNew } = await this.dataSource.transaction((em) =>
+      this.resolveGoogleAccount(em, identity, input, meta),
     );
     return this.issue(account, isNew, meta);
   }
@@ -117,6 +153,77 @@ export class PatientAuthService {
       .values({ accountId: account.id, provider: 'email', subject: email })
       .orIgnore()
       .execute();
+
+    await this.recordConsent(em, account.id, 'terms', input.termsVersion, meta);
+    await this.recordConsent(
+      em,
+      account.id,
+      'privacy',
+      input.privacyVersion,
+      meta,
+    );
+    return { account, isNew };
+  }
+
+  private async resolveGoogleAccount(
+    em: EntityManager,
+    identity: GoogleIdentity,
+    input: { termsVersion: string; privacyVersion: string },
+    meta: ClientMeta,
+  ): Promise<{ account: PatientAccount; isNew: boolean }> {
+    const accounts = em.getRepository(PatientAccount);
+    const identities = em.getRepository(PatientAccountIdentity);
+    const googleIdentity = await identities.findOne({
+      where: { provider: 'google', subject: identity.sub },
+    });
+
+    let account = googleIdentity
+      ? await accounts.findOne({
+          where: { id: googleIdentity.accountId, deletedAt: IsNull() },
+        })
+      : await accounts
+          .createQueryBuilder('a')
+          .where('lower(a.email) = :email AND a.deleted_at IS NULL', {
+            email: identity.email,
+          })
+          .getOne();
+
+    if (googleIdentity && !account) throw accountDisabled();
+    if (account && account.status !== 'active') throw accountDisabled();
+
+    let isNew = false;
+    if (!account) {
+      account = await accounts.save(
+        accounts.create({
+          email: identity.email,
+          fullName: identity.name.trim().slice(0, 150) || null,
+          emailVerifiedAt: new Date(),
+          status: 'active',
+        }),
+      );
+      isNew = true;
+    } else {
+      let changed = false;
+      if (!account.emailVerifiedAt) {
+        account.emailVerifiedAt = new Date();
+        changed = true;
+      }
+      if (!account.fullName) {
+        account.fullName = identity.name.trim().slice(0, 150) || null;
+        changed = true;
+      }
+      if (changed) account = await accounts.save(account);
+    }
+
+    if (!googleIdentity) {
+      await identities.save(
+        identities.create({
+          accountId: account.id,
+          provider: 'google',
+          subject: identity.sub,
+        }),
+      );
+    }
 
     await this.recordConsent(em, account.id, 'terms', input.termsVersion, meta);
     await this.recordConsent(

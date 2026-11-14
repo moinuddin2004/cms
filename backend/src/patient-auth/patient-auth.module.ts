@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from 'src/common/common.module';
+import { GoogleIdentityService } from 'src/auth/google/google-identity.service';
 import { PatientAccountConsent } from 'src/patient-app/entities/patient-account-consent.entity';
 import { PatientAccountIdentity } from './entities/patient-account-identity.entity';
 import { PatientAccount } from './entities/patient-account.entity';
@@ -58,6 +59,7 @@ import { PatientJwtStrategy } from './strategies/patient-jwt.strategy';
     PatientTokenService,
     PatientAuthService,
     PatientJwtStrategy,
+    GoogleIdentityService,
   ],
   exports: [TypeOrmModule, PatientSessionService, PatientTokenService],
 })

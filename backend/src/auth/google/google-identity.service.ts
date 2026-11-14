@@ -30,23 +30,38 @@ export class GoogleIdentityService {
   constructor(private readonly config: ConfigService) {}
 
   get clientId(): string | null {
-    return this.config.get<string>('GOOGLE_CLIENT_ID') || null;
+    return this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() || null;
   }
 
-  async verify(credential: string): Promise<GoogleIdentity> {
-    const clientId = this.clientId;
-    if (!clientId) {
+  get patientAudiences(): string[] {
+    return [
+      this.config.get<string>('GOOGLE_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
+      this.config.get<string>('GOOGLE_IOS_CLIENT_ID'),
+    ].flatMap((audience) => {
+      const trimmed = audience?.trim();
+      return trimmed ? [trimmed] : [];
+    });
+  }
+
+  async verify(
+    credential: string,
+    audiences?: string[],
+  ): Promise<GoogleIdentity> {
+    const configuredAudience = this.clientId;
+    const expectedAudiences = audiences ?? (configuredAudience ? [configuredAudience] : []);
+    if (expectedAudiences.length === 0) {
       throw new ServiceUnavailableException(
         'Google sign-in is not configured on this server.',
       );
     }
-    this.client ??= new OAuth2Client(clientId);
+    this.client ??= new OAuth2Client(configuredAudience ?? expectedAudiences[0]);
 
     let payload: TokenPayload | undefined;
     try {
       const ticket = await this.client.verifyIdToken({
         idToken: credential,
-        audience: clientId,
+        audience: audiences === undefined ? expectedAudiences[0] : expectedAudiences,
       });
       payload = ticket.getPayload();
     } catch {

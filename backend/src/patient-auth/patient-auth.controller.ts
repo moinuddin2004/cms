@@ -3,7 +3,11 @@ import type { Request } from 'express';
 import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { PatientAuthRoute } from 'src/patient-app/decorators/patient-api.decorator';
-import { StartEmailDto, VerifyEmailDto } from './dto/patient-auth.dto';
+import {
+  PatientGoogleSignInDto,
+  StartEmailDto,
+  VerifyEmailDto,
+} from './dto/patient-auth.dto';
 import { PatientAuthService } from './patient-auth.service';
 
 const WINDOW_15_MIN = 15 * 60;
@@ -48,6 +52,19 @@ export class PatientAuthController {
     @Headers('x-device-label') label?: string,
   ) {
     const session = await this.auth.verifyEmail(dto, meta(req, label));
+    return ResponseWrapper.success(session, 'Signed in');
+  }
+
+  @Post('google')
+  @HttpCode(200)
+  @PatientAuthRoute()
+  @RateLimit({ maxAttempts: 30, windowSeconds: WINDOW_15_MIN })
+  async google(
+    @Body() dto: PatientGoogleSignInDto,
+    @Req() req: Request,
+    @Headers('x-device-label') label?: string,
+  ) {
+    const session = await this.auth.signInWithGoogle(dto, meta(req, label));
     return ResponseWrapper.success(session, 'Signed in');
   }
 

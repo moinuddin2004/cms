@@ -39,3 +39,22 @@ export class VerifyEmailDto {
   @MaxLength(20)
   privacyVersion: string;
 }
+
+export class PatientGoogleSignInDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(4096)
+  idToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[\w.-]{1,20}$/)
+  @MaxLength(20)
+  termsVersion: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[\w.-]{1,20}$/)
+  @MaxLength(20)
+  privacyVersion: string;
+}
