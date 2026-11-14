@@ -1,5 +1,5 @@
-import { TabPlaceholderPage } from '@/staff/navigation';
+import { ScheduleTabPage } from '@/staff/features/appointments';
 
 export default function ScheduleRoute() {
-  return <TabPlaceholderPage tab="schedule" />;
+  return <ScheduleTabPage />;
 }
