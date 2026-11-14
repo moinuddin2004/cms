@@ -27,3 +27,4 @@ export { isValidPhone, quickRegisterSchema } from './schemas/quick-register.sche
 export type { QuickRegisterOutput, QuickRegisterValues } from './schemas/quick-register.schema';
 export type * from './types/patients.types';
 export { PatientDetailPage } from './pages/PatientDetailPage';
+export { PatientsPage } from './pages/PatientsPage';
