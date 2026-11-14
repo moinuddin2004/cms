@@ -1760,3 +1760,38 @@ Branch: verified both reworks against every finding   Status set to: M1-03, M1-0
 - M1-03: reversible dispose + StrictMode test, per-key seq, no token reconnect, live on ack. M1-06: write-time seal, 24 h gcTime, e2e allow-list test, forced sign-out wipe.
 - M2-02b and M2-03 still not handed off (uncommitted work in folders C and D).
 
+
+---
+## M1-11b — Patients hooks  ·  2026-11-14  ·  Claude Sonnet 5.5
+Branch: claude/m1-11b-patients-hooks-30cce3   Commit(s): eb2f23c   Status set to: review
+
+### Done
+- Step 1 `usePatientsInfinite(filters)`: page size 20, `getNextPageParam` from `page < totalPages`, search trimmed and dropped under 2 chars, boolean filters only ever `true` (`normalizePatientFilters`).
+- Step 2 `usePatient`, and gated `usePatientHistory`, `usePatientVitals`, `usePatientPrescriptions` (sorted finalized/amended first, drafts last, `lib/sort-prescriptions.ts`), `useLatestTeethChart` (`lib/latest-teeth-chart.ts`). Gated hooks return `{ allowed, query }`; when not allowed the query never runs (`fetchStatus: 'idle'`, no error).
+- Step 3 `useCheckPhone(phone, excludeId?)`: enabled only when `isValidPhone` (new export of the schema's phone rule), `staleTime` 30 s.
+- Step 4 `useQuickRegister()` (invalidates `patientKeys.lists`, toasts on error) and `useQuickRegisterForm(onCreated?)` (schema as `validators`, `isDirty`, resets on success, keeps values on failure). `lib/quick-register-input.ts` `toCreatePatientInput` maps raw form values to the POST body because TanStack passes raw values to `onSubmit` and `.parse()` there is banned.
+- Step 5 `store/useRecentPatientsStore.ts`: ids only, memory only, max 10, `push` moves to front, cleared by a module-level subscription to the staff auth store on sign-out and on org/location change.
+- Step 6 barrel exports + tests (hooks, form, store, lib).
+- Added `patientKeys.lists` (prefix for invalidation). No list/search/checkPhone key is persisted; `persist.ts` untouched.
+
+### Files
+- Created: `hooks/*` (9 hooks + 2 test files), `lib/{sort-prescriptions,latest-teeth-chart,quick-register-input}.ts`, `lib/patient-lib.test.ts`, `store/useRecentPatientsStore.ts` (+ test)
+- Modified: `api/patients.keys.ts`, `schemas/quick-register.schema.ts`, `index.ts`, PROGRESS row
+
+### Install commands for the user
+none (`npm install` from the lockfile only; its lockfile change was reverted)
+
+### Verification
+- `npm run typecheck` clean · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ok.
+- `npm test`: all patients suites pass. Under heavy machine load (disk full, many concurrent installs) one full run had 5 `src/core/components` suites fail by timeout; they pass when run alone (core + patients: 126 tests green). One paging test in `patients-hooks.test.tsx` failed once under load and passed on isolated rerun.
+
+### Acceptance criteria
+- [x] tests green; no component or route
+
+### Deviations from the card / docs
+- Gated hooks return `{ allowed, query }` (not a spread query result). `allowed` is also false while `/me/access` is still loading.
+- `useCheckPhone` is not debounced (the card says debounce in the UI card M1-11; the hook only takes the phone string).
+
+### Questions for the architect
+- Is `{ allowed, query }` the shape you want for M1-12?
+- Backend `check-phone` returns only `{ exists }`, so S-04's "exists: <name>" copy cannot show a name without a backend change.

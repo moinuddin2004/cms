@@ -42,7 +42,7 @@
 | M1-09 | Reception board + walk-in | MOB | L | M1-07, M1-01 | ready | | | |
 | M1-10 | Arrivals + close session | MOB | M | M1-08, M1-09 | ready | | | |
 | M1-11a | Patients types, API, keys, pure logic | MOB | S | — | done (in develop) | mobile/M1-11a-patients-api | | 2026-11-11 |
-| M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | ready | | | |
+| M1-11b | Patients hooks | MOB | S | M1-06, M1-11a | review | claude/m1-11b-patients-hooks-30cce3 | Sonnet session | 2026-11-14 |
 | M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | ready (UI phase) | | | |
 | M1-12 | Patient summary | MOB | M | M1-11 | ready | | | |
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | ready | | | |
