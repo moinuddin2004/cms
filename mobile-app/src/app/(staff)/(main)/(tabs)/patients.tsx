@@ -1,5 +1,5 @@
-import { TabPlaceholderPage } from '@/staff/navigation';
+import { PatientsPage } from '@/staff/features/patients';
 
 export default function PatientsRoute() {
-  return <TabPlaceholderPage tab="patients" />;
+  return <PatientsPage />;
 }

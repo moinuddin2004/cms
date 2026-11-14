@@ -2116,3 +2116,47 @@ Branch: claude/m1-14-schedule-24ec32 · Status set to: review (unchanged)
 | 4 | Unreachable discard copy in the read-only sheet | Kept (FormSheet requires `discard`), with a comment saying why it cannot show. |
 
 Verification: `npm run typecheck` clean; eslint 0 errors (3 old warnings); `lint:fences` ok; `npm test` → 62 suites, 465 passed (appointments: 64). Device check pending M0-D (screenshot waived by the team lead).
+
+---
+## M1-11 — Patients list and quick register (S-04, UI only)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-11-patients-list-118fe2   Commit(s): see git log (feat + docs)   Status set to: review
+
+### Done
+- `PatientsPage` (new `pages/PatientsPage.tsx`) rendered by `(tabs)/patients.tsx`: `SearchBar` (300 ms, min 2 via `usePatientsInfinite`), `FilterChips` Active (default on → `isActive: true`) and Minors (`isMinor: true`), FlashList of `PatientRow` (`ListRow`: initials avatar, name, `MR no · masked phone`, `age · gender`), pull to refresh, "Loading more…" footer, "Recently opened" (ids → rows via `usePatient`) while search is empty, `LoadingSkeleton` / `EmptyState` / `NoResultsState` (Clear resets search + chips to default) / `ErrorState` (retry; a failed refresh with rows shows a retry banner above them). Header ＋ only with `patients.create` (sheet not mounted without it either).
+- `QuickRegisterSheet` (FormSheet + `useQuickRegisterForm`): name, phone, gender chips, DOB, minor switch → guardian name/phone/relation. `useCheckPhone` runs only for the value the phone field was last blurred with → "A patient with this phone already exists" + **Search** (resets the form, closes the sheet, fills the search box with the phone — A-17). Submit disabled on `!canSubmit || isSubmitting`; dirty guard via FormSheet; success → close, toast "Patient registered" (no name in the toast), push id to the recent store, `router.push` to the patient.
+- **DOB is a `YYYY-MM-DD` text field**: core has no date picker (hint "Format YYYY-MM-DD").
+- Navigation uses `router.push({ pathname: '/patients/[patientId]', params })`; the detail route/page are M1-12's and untouched.
+
+### Files
+- Created: `staff/features/patients/pages/PatientsPage.tsx` (+test), `components/{PatientRow,RecentPatients,QuickRegisterSheet}.tsx`, `components/patient-row-text.ts` (+test)
+- Modified: `src/app/(staff)/(main)/(tabs)/patients.tsx`, `staff/features/patients/index.ts` (+1 line: `export { PatientsPage }` — M1-12 may also touch this file; trivial merge)
+
+### Install commands for the user
+none (lockfile install only)
+
+### Verification
+- `npm run typecheck` clean; eslint `src`: 0 errors (3 pre-existing warnings in other files); `lint:fences` pass; patients tests: 14 page + 2 row-text new tests green. Full `npm test`: 62 suites / 443 tests, 442 passed; the 1 failure was `core/.../FilterChips.test.tsx` "single select replaces the value" (not touched by M1-11) — it failed once in the full run and once in an immediate solo rerun, then passed on the next solo run: looks flaky.
+- **No device/emulator**: nothing was run on a phone; no screenshots (gate M0-D).
+
+### Deviations from the card / docs
+- No "Clear" chip / count badge on `FilterChips`: Active is on by default, so the count would always read 1. "Clear all filters" lives on the no-results state.
+- Page test replaces `@shopify/flash-list` with `FlatList` (the package is ESM and not in `transformIgnorePatterns`; I did not edit shared jest config) and stubs reanimated + the sheet internals.
+- "Age" shows months under one year ("8m").
+
+### Questions for the architect
+- Should `transformIgnorePatterns` include `@shopify/flash-list` so later page tests can use the real list?
+
+---
+## Rework M1-11 #1 — 2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-11-patients-list-118fe2 · Status: review (unchanged)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Stale duplicate-phone answer survived a successful register | `useQuickRegister` also invalidates `['patients','check-phone']`; the sheet clears `blurredPhone` in its `onCreated` path. Test: duplicate shown → register → retype the same phone → notice gone. |
+| 2 | Failed `fetchNextPage` showed "Could not refresh" and retried with `refetch()` | Footer "Could not load more" + Retry → `fetchNextPage()` on `isFetchNextPageError`; the banner now only for `isRefetchError`; `onEndReached` no longer auto-retries after a page error. Test added (rows stay, retry fetches page 2 only). |
+| 3 | Refresh control spun on background refetches | Local `pulling` state set in `onRefresh`, cleared when that refetch settles. |
+| 4 | (optional) blank skeleton on a new search | `placeholderData: keepPreviousData` in `usePatientsInfinite`. |
+
+FlashList in jest: kept the FlatList stand-in (real FlashList is ESM and needs native layout; not fighting shared jest config). The mock now records `onEndReached` so the paging test can drive it.
+Touched M1-11b files as asked: `hooks/useQuickRegister.ts`, `hooks/usePatientsInfinite.ts`.
+Verification: typecheck clean, eslint 0 errors, fences pass, patients tests green (page suite 16). Full `npm test`: 62 suites / 445 tests all green (the earlier FilterChips flake did not recur). No device.
