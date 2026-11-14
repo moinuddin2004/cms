@@ -77,6 +77,23 @@ jest.mock('@/core/components', () => {
           ) : null}
         </View>
       ) : null,
+    ConfirmDialog: (p: {
+      open: boolean;
+      title: string;
+      confirmLabel: string;
+      onConfirm: () => void | Promise<void>;
+    }) =>
+      p.open ? (
+        <View>
+          <Text>{p.title}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`confirm ${p.confirmLabel}`}
+            onPress={() => void p.onConfirm()}>
+            <Text>{p.confirmLabel}</Text>
+          </Pressable>
+        </View>
+      ) : null,
     ActionSheet: (p: { open: boolean; actions: { label: string; onPress: () => void }[] }) =>
       p.open ? (
         <View>
@@ -97,10 +114,15 @@ jest.mock('@/staff/features/access', () => ({
 
 const mockPush = jest.fn();
 let mockSnapshot: SessionSnapshot | undefined;
-let mockQueryError = false;
+let mockQueryError: unknown = false;
 const mockRefetch = jest.fn().mockResolvedValue(undefined);
 jest.mock('../hooks/useMySession', () => ({
-  useMySession: () => ({ data: mockSnapshot, isError: mockQueryError, refetch: mockRefetch }),
+  useMySession: () => ({
+    data: mockSnapshot,
+    isError: !!mockQueryError,
+    error: mockQueryError || null,
+    refetch: mockRefetch,
+  }),
 }));
 
 const mockActions = {
@@ -288,15 +310,14 @@ describe('DoctorQueueView — current patient card', () => {
     }
   });
 
-  it('a waiting row is locked while a mutation on it is pending', async () => {
+  it('every row menu is locked while a mutation on any row is pending', async () => {
     mockPerms = ['queue.doctor.own'];
     mockActions.busyEntryIds = new Set(['w1']);
     await render(<DoctorQueueView />);
     expect(screen.getByRole('button', { name: 'Actions for A-W1' })).toBeDisabled();
-    // (the row's own Pressable is inert, so check the button's state, not its ancestors)
     expect(
       screen.getByRole('button', { name: 'Actions for A-W2' }).props.accessibilityState,
-    ).toMatchObject({ disabled: false });
+    ).toMatchObject({ disabled: true });
   });
 });
 
@@ -335,20 +356,24 @@ describe('DoctorQueueView — reason sheet', () => {
     );
   });
 
-  it('Abort asks first and sends the reason', async () => {
+  it('Abort needs a confirmation after the sheet: nothing is sent until confirmed', async () => {
     mockSnapshot = snapshot('open', [entry('c1', 'in_consultation')]);
     await render(<DoctorQueueView />);
     await press('Abort');
     expect(screen.getAllByText('Abort consultation')).toHaveLength(2); // title + submit
-    expect(mockActions.abort).not.toHaveBeenCalled();
     await fireEvent.changeText(screen.getByLabelText('Reason'), 'Patient left');
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'submit Abort consultation' })).toBeEnabled(),
     );
     await press('submit Abort consultation');
+
+    expect(await screen.findByText('Abort consultation?')).toBeOnTheScreen();
+    expect(mockActions.abort).not.toHaveBeenCalled();
+
+    await press('confirm Abort consultation');
     await waitFor(() =>
       expect(mockActions.abort).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'c1' }),
+        expect.objectContaining({ id: 'c1', version: 4 }),
         'Patient left',
       ),
     );
@@ -395,5 +420,35 @@ describe('DoctorQueueView — reason sheet', () => {
         'Urgent for family',
       ),
     );
+  });
+});
+
+describe('DoctorQueueView — one action at a time', () => {
+  it('Call next and the row menus are locked while any entry action is pending', async () => {
+    mockActions.busyEntryIds = new Set(['w1']);
+    await render(<DoctorQueueView />);
+    expect(screen.getByRole('button', { name: 'Call next' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Actions for A-W2' }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+  });
+
+  it('Call next and the row menus are locked while a session action is pending', async () => {
+    mockActions.sessionBusy = true;
+    await render(<DoctorQueueView />);
+    expect(screen.getByRole('button', { name: 'Call next' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Actions for A-W1' }).props.accessibilityState,
+    ).toMatchObject({ disabled: true });
+  });
+});
+
+describe('DoctorQueueView — no doctor profile', () => {
+  it('NOT_FOUND shows an explanation, not a retry', async () => {
+    mockSnapshot = undefined;
+    mockQueryError = { response: { status: 404, data: { error: { code: 'NOT_FOUND' } } } };
+    await render(<DoctorQueueView />);
+    expect(screen.getByText('You are not set up as a doctor at this location.')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Try again' })).toBeNull();
   });
 });

@@ -26,6 +26,14 @@ function pendingEntryId(m: { isPending: boolean; variables?: { entryId: string }
   return m.isPending && m.variables ? m.variables.entryId : null;
 }
 
+/** Tells a screen reader which patient was just called (docs/05 §8). */
+function announceCalled(entry: EntryView) {
+  const who = entry.patient?.fullName;
+  AccessibilityInfo.announceForAccessibility(
+    who ? `Called ${entry.token}, ${who}` : `Called ${entry.token}`,
+  );
+}
+
 /**
  * Every doctor-screen action in one place. Entry actions take the entry as
  * shown (its `version` goes out as `If-Match`). `busyEntryIds` lists the
@@ -85,10 +93,7 @@ export function useDoctorQueueActions() {
         const result = await callNext.mutateAsync({ sessionId });
         if (result.entry) {
           hapticSuccess();
-          const who = result.entry.patient?.fullName;
-          AccessibilityInfo.announceForAccessibility(
-            who ? `Called ${result.entry.token}, ${who}` : `Called ${result.entry.token}`,
-          );
+          announceCalled(result.entry);
         }
       } catch {
         hapticWarning();
@@ -106,7 +111,10 @@ export function useDoctorQueueActions() {
     abort: (e: EntryView, reason: string | undefined) =>
       settle(() => abort.mutateAsync({ entryId: e.id, version: e.version, reason })),
     select: (e: EntryView, reason: string | undefined) =>
-      settle(() => select.mutateAsync({ entryId: e.id, version: e.version, reason })),
+      settle(async () => {
+        const result = await select.mutateAsync({ entryId: e.id, version: e.version, reason });
+        announceCalled(result.entry);
+      }),
   };
 }
 

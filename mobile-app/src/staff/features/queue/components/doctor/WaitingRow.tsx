@@ -14,12 +14,14 @@ export interface WaitingRowProps {
   /** The snapshot's `now`, so waiting times do not depend on the phone clock. */
   now: string;
   busy: boolean;
+  /** Another action is running (any entry or the session): the menu is inert, no spinner. */
+  locked?: boolean;
   /** Opens the row menu ("Call this patient"). Offered only when the entry allows `select`. */
   onMenu: (entry: EntryView) => void;
 }
 
 /** One waiting patient (also used, without the menu, for on-hold / skipped rows). */
-export function WaitingRow({ entry, session, now, busy, onMenu }: WaitingRowProps) {
+export function WaitingRow({ entry, session, now, busy, locked = false, onMenu }: WaitingRowProps) {
   const actions = useEntryActions(entry, session, 'doctor');
   const canMutate = useCanMutate();
   const name = entry.patient?.fullName ?? 'Walk-in patient';
@@ -46,7 +48,7 @@ export function WaitingRow({ entry, session, now, busy, onMenu }: WaitingRowProp
             <IconButton
               icon={MoreHorizontal}
               accessibilityLabel={`Actions for ${entry.token}`}
-              disabled={busy || !canMutate}
+              disabled={busy || locked || !canMutate}
               loading={busy}
               onPress={() => onMenu(entry)}
             />

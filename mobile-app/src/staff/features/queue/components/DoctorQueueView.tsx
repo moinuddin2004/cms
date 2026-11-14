@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { EllipsisVertical, Stethoscope } from 'lucide-react-native';
+import { EllipsisVertical, Stethoscope, UserX } from 'lucide-react-native';
 import { useState } from 'react';
 import { View } from 'react-native';
 
 import {
   ActionSheet,
+  ConfirmDialog,
+  EmptyState,
   ErrorState,
   IconButton,
   LoadingSkeleton,
@@ -17,6 +19,7 @@ import { RealtimeConnectionPill } from '@/staff/lib/realtime-connection-pill';
 
 import { useMySession } from '../hooks/useMySession';
 import type { EntryActionId } from '../lib/entry-actions';
+import { queueErrorCode } from '../lib/queue-errors';
 import type { EntryView } from '../types/queue.types';
 import { DoctorQueueList, waitingEntries } from './doctor/DoctorQueueList';
 import { ReasonSheet, type ReasonRequest } from './doctor/ReasonSheet';
@@ -44,9 +47,24 @@ export function DoctorQueueView() {
   const [rowMenu, setRowMenu] = useState<EntryView | null>(null);
   const [sessionMenu, setSessionMenu] = useState(false);
   const [target, setTarget] = useState<ReasonTarget | null>(null);
+  // Abort asks twice: the reason sheet, then this confirmation (nothing is sent before it).
+  const [abortConfirm, setAbortConfirm] = useState<{ entryId: string; reason?: string } | null>(
+    null,
+  );
 
   const snapshot = query.data;
   if (!snapshot) {
+    // No doctor profile at this location: nothing to retry, so explain instead.
+    if (query.isError && queueErrorCode(query.error) === 'NOT_FOUND') {
+      return (
+        <EmptyState
+          icon={UserX}
+          title="You are not set up as a doctor at this location."
+          description="Ask your clinic owner to add you as a doctor here."
+          className="flex-1 justify-center"
+        />
+      );
+    }
     if (query.isError)
       return <ErrorState onRetry={() => void query.refetch()} className="flex-1 justify-center" />;
     return <LoadingSkeleton />;
@@ -57,6 +75,8 @@ export function DoctorQueueView() {
   const current =
     snapshot.entries.find((e) => e.status === 'called' || e.status === 'in_consultation') ?? null;
   const waiting = waitingEntries(snapshot);
+  // One action at a time: Call next and the row menus wait for any running mutation.
+  const locked = actions.sessionBusy || actions.busyEntryIds.size > 0;
 
   const refresh = async () => {
     setRefreshing(true);
@@ -103,6 +123,7 @@ export function DoctorQueueView() {
   };
 
   const callThisPatient = (entry: EntryView) => {
+    if (locked) return;
     // Jumping the suggested order is the case worth a reason (docs/06 S-02a).
     const jumps = snapshot.suggestion
       ? snapshot.suggestion.entryId !== entry.id
@@ -142,8 +163,11 @@ export function DoctorQueueView() {
           title: 'Abort consultation',
           description: 'This ends the visit without completing it. It cannot be undone.',
           submitLabel: 'Abort consultation',
-          onSubmit: (reason) =>
-            gone || !entry ? Promise.resolve(true) : actions.abort(entry, reason),
+          destructive: true,
+          onSubmit: (reason) => {
+            if (entry && !gone) setAbortConfirm({ entryId: entry.id, reason });
+            return Promise.resolve(true);
+          },
         };
       case 'select':
         return {
@@ -250,7 +274,7 @@ export function DoctorQueueView() {
           <OfflineAwareButton
             label="Call next"
             className="min-h-12"
-            disabled={session.status !== 'open' || actions.sessionBusy}
+            disabled={session.status !== 'open' || locked}
             accessibilityState={{ busy: actions.sessionBusy }}
             onPress={() => void actions.callNext(session.id)}
           />
@@ -287,6 +311,22 @@ export function DoctorQueueView() {
         ]}
       />
       <ReasonSheet request={request} onClose={() => setTarget(null)} />
+      <ConfirmDialog
+        open={abortConfirm !== null}
+        onClose={() => setAbortConfirm(null)}
+        title="Abort consultation?"
+        description="This ends the visit without completing it. It cannot be undone."
+        confirmLabel="Abort consultation"
+        cancelLabel="Keep consultation"
+        destructive
+        onConfirm={async () => {
+          // The entry as it is now on screen (version for If-Match); gone = nothing left to abort.
+          const entry = entryById(abortConfirm?.entryId);
+          if (entry && !(await actions.abort(entry, abortConfirm?.reason))) {
+            throw new Error('abort failed'); // keeps the dialog open for a retry
+          }
+        }}
+      />
     </View>
   );
 }

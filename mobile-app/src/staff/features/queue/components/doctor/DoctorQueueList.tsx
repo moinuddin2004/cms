@@ -12,6 +12,7 @@ import type { EntryView, SessionSnapshot } from '../../types/queue.types';
 import { suggestionReasonLabel } from './doctor-labels';
 import { CurrentPatientCard } from './CurrentPatientCard';
 import { PausedBanner } from './SessionPanels';
+import { useTickingNow } from './useTickingNow';
 import { WaitingRow } from './WaitingRow';
 
 export interface DoctorQueueListProps {
@@ -42,6 +43,8 @@ export function DoctorQueueList(props: DoctorQueueListProps) {
   const { snapshot, current, busyEntryIds, sessionBusy, topBar, onRowMenu } = props;
   const { session } = snapshot;
   const [holdOpen, setHoldOpen] = useState(false);
+  const now = useTickingNow(snapshot.now);
+  const locked = sessionBusy || busyEntryIds.size > 0;
   const waiting = waitingEntries(snapshot);
   const parked = snapshot.entries.filter((e) => e.status === 'on_hold' || e.status === 'skipped');
   const suggested = snapshot.suggestion
@@ -98,8 +101,9 @@ export function DoctorQueueList(props: DoctorQueueListProps) {
                     <WaitingRow
                       entry={entry}
                       session={session}
-                      now={snapshot.now}
+                      now={now}
                       busy={busyEntryIds.has(entry.id)}
+                      locked={locked}
                       onMenu={onRowMenu}
                     />
                   </View>
@@ -120,8 +124,9 @@ export function DoctorQueueList(props: DoctorQueueListProps) {
         <WaitingRow
           entry={item}
           session={session}
-          now={snapshot.now}
+          now={now}
           busy={busyEntryIds.has(item.id)}
+          locked={locked}
           onMenu={onRowMenu}
         />
       )}

@@ -16,10 +16,12 @@ jest.mock('expo-haptics', () => ({
 const mockCallNext = jest.fn();
 const mockComplete = jest.fn();
 const mockSendForTest = jest.fn();
+const mockSelect = jest.fn();
 jest.mock('../../api/queue.api', () => ({
   callNext: (...a: unknown[]) => mockCallNext(...a),
   completeEntry: (...a: unknown[]) => mockComplete(...a),
   sendForTest: (...a: unknown[]) => mockSendForTest(...a),
+  selectEntry: (...a: unknown[]) => mockSelect(...a),
 }));
 
 const entry = { id: 'e1', version: 7, token: 'A-007' } as EntryView;
@@ -69,6 +71,26 @@ describe('useDoctorQueueActions', () => {
     expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith(
       'Called A-008, Sara K.',
     );
+  });
+
+  it('announces the patient after a successful out-of-order select', async () => {
+    mockSelect.mockResolvedValue({
+      entry: { token: 'A-009', patient: { fullName: 'Umar' } },
+      reason: 'MANUAL_SELECT',
+      suggestedEntryId: null,
+      eventSeq: 5,
+    });
+    const { result } = await renderHook(() => useDoctorQueueActions(), { wrapper });
+
+    await act(async () => {
+      await result.current.select(entry, 'family');
+    });
+
+    expect(mockSelect).toHaveBeenCalledWith(
+      { entryId: 'e1', version: 7, reason: 'family' },
+      expect.objectContaining({ ifMatch: 7 }),
+    );
+    expect(AccessibilityInfo.announceForAccessibility).toHaveBeenCalledWith('Called A-009, Umar');
   });
 
   it('locks the entry while one of its actions is pending and sends If-Match from the entry on screen', async () => {

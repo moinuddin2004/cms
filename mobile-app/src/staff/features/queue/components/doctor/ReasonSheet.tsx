@@ -16,6 +16,8 @@ export interface ReasonRequest {
   fieldLabel: string;
   required: boolean;
   submitLabel: string;
+  /** Destructive submit button (abort). */
+  destructive?: boolean;
   onSubmit: (reason: string | undefined) => Promise<boolean>;
 }
 
@@ -53,6 +55,7 @@ function ReasonSheetBody({ request, open, onClose }: InnerProps) {
       }}
       submit={{
         label: request.submitLabel,
+        destructive: request.destructive,
         disabled: !canSubmit,
         pending: isSubmitting,
         onPress: () => void form.handleSubmit(),
