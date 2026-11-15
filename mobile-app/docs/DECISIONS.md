@@ -44,6 +44,8 @@
 
 | A-17 | `GET /patients/check-phone` stays `{ exists }`; quick register shows "A patient with this phone already exists" + a Search action (no patient name/Open link) | Avoids a backend change and leaking a name to anyone with `patients.view` before they search |
 | A-18 | Gated data hooks return a tagged state `{ access: 'loading' \| 'denied' } \| { access: 'allowed', query }` | Screens must tell loading from denied (M1-11b review) |
+| A-19 | Patient reads per clinic status: a clinic that was **never approved** (`approval_status` pending/rejected) shows no links or records in the patient app; a **suspended** clinic's links stay readable but frozen (records shown, a `clinicStatus: 'suspended'` flag, no new claims/links) | The data belongs to the patient; an unapproved clinic may be fake (M2-03 review question) |
+| A-20 | Native Google sign-in on mobile (staff M1-17, patient later) uses `@react-native-google-signin/google-signin` (config plugin, dev build); the backend verifies the ID token against the web + Android + iOS client IDs | One library for both spaces; the session confirms against SDK 58 docs and the user installs the package |
 
 ## Open (user to decide — build with the default meanwhile)
 
@@ -69,4 +71,5 @@
 | Date | Change |
 | --- | --- |
 | 2026-11-11 | Initial log created with the doc set |
+| 2026-11-15 | A-19 (suspended/unapproved clinic reads), A-20 (native Google library) by the architect; user: start all parallel work without asking |
 | 2026-11-11 | User: staff cards (M1-02 onward) may start without the device gate M0-D; device checks accumulate in M0-D and must pass before the staff pilot (Gate A) |
