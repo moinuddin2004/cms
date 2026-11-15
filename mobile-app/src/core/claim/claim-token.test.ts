@@ -1,15 +1,14 @@
-import { buildClaimLink, isClaimToken, parseClaimParam } from './claim-token';
-import { usePendingClaimStore } from './usePendingClaimStore';
-
-jest.mock('expo-linking', () => ({ createURL: (p: string) => `clinicapp-dev://${p}` }));
+import { isClaimToken, parseClaimParam } from './claim-token';
+import { PENDING_CLAIM_MAX_AGE_MS, usePendingClaimStore } from './usePendingClaimStore';
 
 const TOKEN = 'a'.repeat(43);
 
 describe('claim token', () => {
-  it('accepts a 43-char base64url token only', () => {
+  it('accepts exactly 43 base64url chars', () => {
     expect(isClaimToken(TOKEN)).toBe(true);
-    expect(isClaimToken('short')).toBe(false);
-    expect(isClaimToken(`${TOKEN}!`)).toBe(false);
+    expect(isClaimToken('a'.repeat(42))).toBe(false);
+    expect(isClaimToken('a'.repeat(44))).toBe(false);
+    expect(isClaimToken(`${'a'.repeat(42)}!`)).toBe(false);
     expect(isClaimToken(undefined)).toBe(false);
   });
 
@@ -17,15 +16,24 @@ describe('claim token', () => {
     expect(parseClaimParam([TOKEN, 'x'])).toBe(TOKEN);
     expect(parseClaimParam('nope')).toBeNull();
   });
+});
 
-  it('builds the deep link', () => {
-    expect(buildClaimLink(TOKEN)).toBe(`clinicapp-dev://claim/${TOKEN}`);
-  });
+describe('pending claim store', () => {
+  afterEach(() => usePendingClaimStore.getState().clear());
 
-  it('holds and clears the pending token', () => {
+  it('holds and clears the token', () => {
     usePendingClaimStore.getState().set(TOKEN);
     expect(usePendingClaimStore.getState().token).toBe(TOKEN);
     usePendingClaimStore.getState().clear();
+    expect(usePendingClaimStore.getState().token).toBeNull();
+  });
+
+  it('keeps a fresh token and drops one older than 15 minutes', () => {
+    const s = usePendingClaimStore.getState();
+    s.set(TOKEN, 1_000);
+    expect(s.dropIfStale(1_000 + PENDING_CLAIM_MAX_AGE_MS)).toBe(true);
+    expect(usePendingClaimStore.getState().token).toBe(TOKEN);
+    expect(s.dropIfStale(1_001 + PENDING_CLAIM_MAX_AGE_MS)).toBe(false);
     expect(usePendingClaimStore.getState().token).toBeNull();
   });
 });

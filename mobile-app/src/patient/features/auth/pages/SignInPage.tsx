@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
-import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
+import { freshPendingToken, usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { FieldWrapper } from '@/core/components/forms/FieldWrapper';
 import { fieldError } from '@/core/components/forms/fieldError';
 import { FormInput } from '@/core/components/forms/FormInput';
@@ -26,7 +26,7 @@ function GoogleSignInSlot() {
 export function SignInPage() {
   const { t } = useT();
   const { form, globalError } = useSignInForm();
-  const hasPendingClaim = usePendingClaimStore((s) => s.token !== null);
+  const hasPendingClaim = usePendingClaimStore((s) => freshPendingToken(s) !== null);
 
   return (
     <KeyboardAwareScrollView

@@ -1,6 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 
-import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
+import { freshPendingToken, usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 
 /**
  * The signed-in patient stack. Tabs, realtime and push registration join in
@@ -9,7 +9,7 @@ import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
  * when it is done. The `<Stack>` always renders.
  */
 export function PatientMainLayout() {
-  const hasPendingClaim = usePendingClaimStore((s) => s.token !== null);
+  const hasPendingClaim = usePendingClaimStore((s) => freshPendingToken(s) !== null);
 
   return (
     <>

@@ -6,7 +6,7 @@ import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
 import { createClaimToken, fetchAppLink, revokeAppLink } from '../api/app-link.api';
 import { appLinkKeys } from '../api/app-link.keys';
-import type { ClaimTokenResult } from '../types/app-link.types';
+import type { IssuedClaim } from '../types/app-link.types';
 
 const POLL_MS = 5000;
 
@@ -31,7 +31,7 @@ export function useAppLink(patientId: string) {
 export function useCreateClaimToken(patientId: string) {
   const queryClient = useQueryClient();
   const { orgId, locationId } = useTenantKey(patientId);
-  return useMutation<ClaimTokenResult, unknown, void>({
+  return useMutation<IssuedClaim, unknown, void>({
     mutationFn: () => createClaimToken(patientId),
     gcTime: 0,
     onSuccess: () =>

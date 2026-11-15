@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
-import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
+import { freshPendingToken, usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { ErrorState, LoadingSkeleton } from '@/core/components';
 import { FieldWrapper } from '@/core/components/forms/FieldWrapper';
 import { fieldError } from '@/core/components/forms/fieldError';
@@ -78,11 +78,12 @@ interface ConfirmFormProps {
   preview: ClaimPreview;
   onLinked: (r: AcceptClaimResult) => void;
   onLeave: () => void;
+  onTerminalError: (key: MessageKey) => void;
 }
 
-function ConfirmForm({ token, preview, onLinked, onLeave }: ConfirmFormProps) {
+function ConfirmForm({ token, preview, onLinked, onLeave, onTerminalError }: ConfirmFormProps) {
   const { t } = useT();
-  const { form, globalError } = useClaimForm(token, preview.isMinor, onLinked, onLeave);
+  const { form, globalError } = useClaimForm(token, preview.isMinor, onLinked, onTerminalError);
   const age = ageText(preview.ageBand);
   const options = preview.isMinor ? OPTIONS.filter((o) => o.value !== 'self') : OPTIONS;
 
@@ -214,13 +215,17 @@ function ConfirmForm({ token, preview, onLinked, onLeave }: ConfirmFormProps) {
 /** P-01 confirm page: preview the clinic record, ask whose it is, accept (docs/06). */
 export function ClaimConfirmPage() {
   const { t } = useT();
-  const token = usePendingClaimStore((s) => s.token);
+  const token = usePendingClaimStore((s) => freshPendingToken(s));
   const leave = useLeave();
   const preview = useClaimPreview(token);
   const [done, setDone] = useState<AcceptClaimResult | null>(null);
+  const [failure, setFailure] = useState<MessageKey | null>(null);
 
   // Keep showing the success screen after the token is cleared by `leave`.
   if (done) return <Done clinic={done.link.clinic.name} onDone={leave} />;
+
+  // A terminal accept error: explain it; the token is dropped only when the patient taps Close.
+  if (failure) return <Failure messageKey={failure} onLeave={leave} />;
 
   if (!token) return <Failure messageKey="claim.errors.invalid" onLeave={leave} />;
 
@@ -246,9 +251,20 @@ export function ClaimConfirmPage() {
           retryLabel={t('common.retry')}
           onRetry={() => void preview.refetch()}
         />
+        <Button variant="ghost" size="lg" className="min-h-11 self-center" onPress={leave}>
+          <Text>{t('claim.confirm.cancel')}</Text>
+        </Button>
       </View>
     );
   }
 
-  return <ConfirmForm token={token} preview={preview.data} onLinked={setDone} onLeave={leave} />;
+  return (
+    <ConfirmForm
+      token={token}
+      preview={preview.data}
+      onLinked={setDone}
+      onLeave={leave}
+      onTerminalError={setFailure}
+    />
+  );
 }

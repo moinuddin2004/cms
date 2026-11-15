@@ -16,3 +16,8 @@ export interface ClaimTokenResult {
   url: string;
   expiresAt: string;
 }
+
+/** The result plus the phone-clock deadline worked out from the server's time (see `countdown.ts`). */
+export interface IssuedClaim extends ClaimTokenResult {
+  deadlineMs: number;
+}

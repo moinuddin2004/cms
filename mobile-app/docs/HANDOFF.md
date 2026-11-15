@@ -2750,3 +2750,22 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 4. Replace the notification icon with the brand's white-on-transparent glyph when it exists.
 
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
+
+---
+## Rework M2-07 + M2-15 #1 — 2026-11-15
+Branch: claude/m2-07-claim-flow-b5aeae · Status stays: review (merged `mobile/develop` first)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Terminal accept error landed on home | `useClaimForm` hands the `MessageKey` to the page (`onTerminalError(key)`); the page shows the Failure state translated at render and drops the token only when the patient taps Close. Tests: hook (all 4 terminal codes, recoverable error, success) + page. |
+| 2 | Patient trapped on a recoverable preview error | "Not now" next to Retry → `leave` (clears token, goes home). Page test. |
+| 3 | Pending token age | Store keeps `{ token, savedAt }`; `freshPendingToken` selector ignores/drops it after 15 min (`dropIfStale`). Tests. |
+| 4 | Token format | exactly `^[A-Za-z0-9_-]{43}$`. |
+| 5 | Countdown clock drift | `deadlineFromResponse`: server `expiresAt` minus the server `Date` response header, counted from receipt (capped at 15 min; falls back to 15 min without a header). Tests with a wildly wrong phone clock. |
+| 6 | QR content + share | QR encodes `claim.url` (https `/c/<token>`); "Share link" uses RN `Share` with the same URL (label says "Share link" because the sheet is the OS one, WhatsApp is one target); `selectable` removed. `buildClaimLink` and its expo-linking use were deleted. |
+| 7 | `text-white` | `text-destructive-foreground`. |
+| 8 | Device check | **On device: confirm `(patient)/(main)/claim/confirm` resolves as a static route and does not get swallowed by root `claim/[token]` (a token is never "confirm", but check both paths), including cold-start deep link.** |
+
+Note: the app only opens from the https link once M2-14 (web landing + association) exists; until then scanning the QR opens the browser page.
+
+Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok · full jest 116 suites / 834 tests ✓ · `CI=1 npx expo start --offline` run. No device.

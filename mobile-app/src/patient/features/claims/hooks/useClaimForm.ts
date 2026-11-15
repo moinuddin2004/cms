@@ -2,7 +2,7 @@ import { useForm } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { t } from '@/core/i18n';
+import { t, type MessageKey } from '@/core/i18n';
 
 import { acceptClaim } from '../api/claims.api';
 import { claimErrorInfo } from '../lib/claim-errors';
@@ -24,7 +24,8 @@ export function useClaimForm(
   token: string,
   isMinor: boolean,
   onLinked: (result: AcceptClaimResult) => void,
-  onTerminalError: () => void,
+  /** The token can never work: the page shows this message (by key) and keeps the token until the patient closes it. */
+  onTerminalError: (messageKey: MessageKey) => void,
 ) {
   const queryClient = useQueryClient();
   const [globalError, setGlobalError] = useState('');
@@ -46,7 +47,7 @@ export function useClaimForm(
       } catch (err) {
         const info = claimErrorInfo(err);
         setGlobalError(t(info.key));
-        if (info.terminal) onTerminalError();
+        if (info.terminal) onTerminalError(info.key);
       }
     },
   });

@@ -1,8 +1,7 @@
-import { CircleCheck, Link2Off, QrCode as QrIcon, RefreshCw } from 'lucide-react-native';
+import { CircleCheck, Link2Off, QrCode as QrIcon, RefreshCw, Share2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Share, View } from 'react-native';
 
-import { buildClaimLink } from '@/core/claim/claim-token';
 import {
   ConfirmDialog,
   ErrorState,
@@ -19,7 +18,7 @@ import { formatDate } from '@/staff/lib/datetime';
 
 import { useAppLink, useCreateClaimToken, useRevokeAppLink } from '../hooks/useAppLink';
 import { formatCountdown, secondsLeft } from '../lib/countdown';
-import type { ClaimTokenResult } from '../types/app-link.types';
+import type { IssuedClaim } from '../types/app-link.types';
 
 /** Ticks once a second; `now` is state so the countdown re-renders. */
 function useNow(active: boolean) {
@@ -43,15 +42,20 @@ export function AppLinkPage({ patientId }: { patientId: string }) {
   const status = useAppLink(patientId);
   const create = useCreateClaimToken(patientId);
   const revoke = useRevokeAppLink(patientId);
-  const [issued, setClaim] = useState<ClaimTokenResult | null>(null);
+  const [issued, setClaim] = useState<IssuedClaim | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState(false);
 
   const linked = status.data?.status === 'active';
   // Once the patient has claimed it the QR is no longer useful: drop the secret.
   const claim = linked ? null : issued;
   const now = useNow(claim !== null);
-  const remaining = claim ? secondsLeft(claim.expiresAt, now) : 0;
+  const remaining = claim ? secondsLeft(claim.deadlineMs, now) : 0;
   const expired = claim !== null && remaining === 0;
+
+  const share = () => {
+    // The built-in share sheet (WhatsApp is one of its targets); it carries the link, never patient data.
+    void Share.share({ message: claim?.url ?? '' }).catch(() => undefined);
+  };
 
   const generate = () => {
     create.mutate(undefined, { onSuccess: (result) => setClaim(result) });
@@ -104,7 +108,7 @@ export function AppLinkPage({ patientId }: { patientId: string }) {
             disabled={revoke.isPending}
             accessibilityState={{ busy: revoke.isPending, disabled: revoke.isPending }}
             onPress={() => setConfirmRevoke(true)}>
-            <Icon as={Link2Off} className="size-5 text-white" />
+            <Icon as={Link2Off} className="size-5 text-destructive-foreground" />
             <Text>Revoke link</Text>
           </Button>
         </View>
@@ -113,7 +117,7 @@ export function AppLinkPage({ patientId }: { patientId: string }) {
           {claim && !expired ? (
             <View className="border-border bg-card items-center gap-3 rounded-lg border p-4">
               <QrCode
-                value={buildClaimLink(claim.token)}
+                value={claim.url}
                 accessibilityLabel="QR code to link the patient app"
               />
               <Text variant="h3">
@@ -122,6 +126,10 @@ export function AppLinkPage({ patientId }: { patientId: string }) {
               <Text variant="muted" className="text-center">
                 Ask the patient to scan with their phone camera. The code works once.
               </Text>
+              <Button variant="outline" className="min-h-11 self-stretch" onPress={share}>
+                <Icon as={Share2} className="size-5" />
+                <Text>Share link</Text>
+              </Button>
             </View>
           ) : (
             <View className="border-border bg-card items-center gap-2 rounded-lg border p-6">

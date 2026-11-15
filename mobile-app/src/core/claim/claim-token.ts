@@ -1,12 +1,10 @@
-import { createURL } from 'expo-linking';
-
 /**
- * A claim token is 32 random bytes as base64url (43 chars, docs/07 §4.1). The
- * format check only rejects obvious junk before any request; the server is the
- * judge of validity. The token is a bearer secret: never log it, never put it
- * in prefs, analytics or error text (docs/03).
+ * A claim token is exactly 32 random bytes as base64url — 43 chars, the backend's
+ * `CLAIM_TOKEN_PATTERN` (docs/03, docs/07 §4.1). The check only rejects junk
+ * before any request; the server judges validity. The token is a bearer secret:
+ * never log it, never put it in prefs, analytics or error text.
  */
-const TOKEN_FORMAT = /^[A-Za-z0-9_-]{32,128}$/;
+const TOKEN_FORMAT = /^[A-Za-z0-9_-]{43}$/;
 
 export function isClaimToken(value: unknown): value is string {
   return typeof value === 'string' && TOKEN_FORMAT.test(value);
@@ -16,9 +14,4 @@ export function isClaimToken(value: unknown): value is string {
 export function parseClaimParam(param: string | string[] | undefined): string | null {
   const value = Array.isArray(param) ? param[0] : param;
   return isClaimToken(value) ? value : null;
-}
-
-/** The link a QR code carries: opens this app's `claim/[token]` route (works for every build variant's scheme). */
-export function buildClaimLink(token: string): string {
-  return createURL(`claim/${token}`);
 }

@@ -27,7 +27,7 @@ export function QrCode({ value, size = 220, accessibilityLabel, className }: QrC
       accessibilityLabel={accessibilityLabel}
       style={{ width: size, minHeight: size }}
       className={cn('bg-muted items-center justify-center rounded-lg p-3', className)}>
-      <Text selectable className="text-center font-mono text-xs">
+      <Text className="text-center font-mono text-xs">
         {value}
       </Text>
     </View>
