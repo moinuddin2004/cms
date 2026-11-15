@@ -315,14 +315,16 @@ interface LocationRef { id: string; name: string; timezone: string; phone: strin
 | --- | --- | --- | --- |
 | GET `/patient-api/me` | — | `{ id, fullName, email, createdAt }` | M2-02 |
 | PATCH `/patient-api/me` | `{ fullName }` | same | M2-02 |
-| DELETE `/patient-api/me` | `{ confirm: 'DELETE' }` | `{ deleted: true }` — revokes sessions, links (status revoked), deletes profiles/schedules/dose events/devices; keeps `patient_access_log` (account id kept, PII removed) | M2-11 |
+| DELETE `/patient-api/me` | `{ confirm: 'DELETE' }` | `{ deleted: true }` — as built, see §6.5 | M2-11 |
 | GET `/patient-api/claims/:token` | — | `{ clinic: ClinicRef, location: { name }, maskedName, ageBand, isMinor, alreadyLinkedToYou }` | M2-04 |
 | POST `/patient-api/claims/:token/accept` | `{ relation, profileId? , newProfileName? ≤150, confirm: true }` | `{ link, profile }` | M2-04 |
-| GET `/patient-api/profiles` | — | `Profile[]` `{ id, relation, fullName, dob, gender, isSelf, links: { id, clinic, location, linkedAt }[] }` | M2-10 |
-| PATCH `/patient-api/profiles/:id` | `{ fullName?, dob?, gender? }` | `Profile` | M2-10 |
-| GET `/patient-api/links` | — | `{ id, profileId, clinic, location, status, linkedAt, linkMethod, linkedByLabel }[]` | M2-11 |
+| GET `/patient-api/profiles` | — | `Profile[]` `{ id, relation, fullName, dob, gender, isSelf, links: { id, clinic, location, status, linkedAt }[] }` | M2-10 |
+| POST `/patient-api/profiles` | `{ relation: child / parent / spouse / other, fullName ≤150, dob?, gender? }` | `Profile` (201) | M2-10 |
+| PATCH `/patient-api/profiles/:id` | `{ relation?, fullName?, dob?, gender? }` (`null` clears dob / gender) | `Profile` | M2-10 |
+| DELETE `/patient-api/profiles/:id` | — | `{ removed: true }` | M2-10 |
+| GET `/patient-api/links` | — | `{ id, profileId, clinic, location, status: active / frozen / revoked, linkedAt, linkMethod, linkedByLabel, revokedAt, revokedBy }[]` | M2-11 |
 | DELETE `/patient-api/links/:id` | — | `{ revoked: true }` | M2-11 |
-| GET `/patient-api/links/:id/history` | — | `{ at, action, label }[]` (linked, unlinked, revoked by clinic) | M2-11 |
+| GET `/patient-api/links/:id/history` | — | `{ at, action: linked / unlinked_by_you / revoked_by_clinic / revoked_by_system, label }[]` newest first | M2-11 |
 | GET `/patient-api/appointments` | `from?` (UTC), `to?`, `profileId?` | `{ id, profileId, clinic, location, doctorName, startTime, endTime, status, type, patientConfirmedAt, canConfirm }[]` | M2-08 |
 | POST `/patient-api/appointments/:id/confirm` | — | appointment | M3-08 |
 | GET `/patient-api/visits` | `profileId?`, `page`, `limit` | paged `{ id, profileId, clinic, location, date (YYYY-MM-DD), doctorName, followUpDate, diagnosis? , treatments?: string[] }` | M2-08 |
@@ -374,6 +376,13 @@ interface MedicationSchedule {
 - `GET /patient-api/billing/summary`: clinics with `show_billing` off are absent; cancelled invoices are never shown or counted; per-invoice `status` is `paid | partial | unpaid | overdue` (overdue on the invoice's location day); each invoice also has `profileId`; at most 50 newest invoices **per clinic** (one query per clinic), totals cover all. `*Minor` = decimal amount × 100.
 - `profileId` filters (query) must be one of the account's profiles, otherwise `404 NOT_FOUND`. `:id` not visible through the account's links → `404 NOT_FOUND`.
 - Each successful list/detail read writes `patient_access_log` (`view_list` one row per distinct clinic patient, `view_detail` with `resource_id`); the write is best effort.
+
+### 6.5 Profiles, links and account deletion as built (M2-10, M2-11)
+
+- **Profiles.** `GET` lists self first then oldest first; links are active + frozen only and a clinic that was never approved is hidden (A-19). `POST`: `relation` ∈ child/parent/spouse/other (`self` is created by sign-up or the first claim), `dob` a real past `YYYY-MM-DD`, at most 20 profiles per account (`409 TOO_MANY_PROFILES`). `PATCH`: omitted = unchanged, `null` clears `dob`/`gender`; the self profile cannot change relation (`400 SELF_RELATION_FIXED`). `DELETE`: not self (`400 CANNOT_REMOVE_SELF`), not while the profile has an active/frozen link (`409 PROFILE_HAS_LINKS`: unlink first). A profile id that is not the account's → `404 NOT_FOUND`. Profile data is the patient's own; it never touches the clinic record.
+- **Links.** `GET /links` returns live links first, then revoked ones (history, max 200); each has `location` (the patient's primary location, else the main branch), `revokedAt`, `revokedBy` (`patient`/`clinic`/`system`). `DELETE /links/:id` is the patient-side revoke: allowed for a frozen link and when the clinic switched the app off; in one transaction it sets `revoked_by_type='patient'`, writes `patient_access_log` (`unlink`), a clinic-visible `audit_logs` row (`patient_app_link`) and the `patient.link_revoked` realtime event. A link that is not the account's, or already revoked → `404`. `GET /links/:id/history` is derived from the link row.
+- **Delete account** (`DELETE /me`, rate limit 5 / 15 min, body `{ confirm: 'DELETE' }` exactly): one transaction — revoke every active/frozen link as in an unlink (reason `account_deleted`), delete the profiles (links cascade), **delete `patient_account_identities`** and the email's login codes, revoke all sessions, null the IP of the consent rows (rows stay), soft-delete the account (`status='deleted'`, name/phone/email stripped) and write a platform audit row (ids only). `patient_access_log` keeps the account id. Signing up again with the same email or Google account creates a brand-new account. Irreversible. Reminder / dose tables (M3) hang off profiles and will cascade.
+- Mobile: Family P-04 `(patient)/(main)/(tabs)/family.tsx` + `profiles/[profileId].tsx`; Linked clinics P-08 `clinics/index.tsx`; Delete account P-09 `account/delete.tsx`.
 
 ### 6.3 Public visit page — `GET /visit/:token/state` (`@Public`, rate-limited, M3-05)
 

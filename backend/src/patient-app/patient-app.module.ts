@@ -9,6 +9,11 @@ import { PatientProfile } from './entities/patient-profile.entity';
 import { PatientRecordLink } from './entities/patient-record-link.entity';
 import { PatientLinksModule } from 'src/patient-links/patient-links.module';
 import { ClaimsController } from './claims.controller';
+import { PatientAccountService } from './account/patient-account.service';
+import { PatientAccountLinksController } from './links/patient-links.controller';
+import { PatientAccountLinksService } from './links/patient-account-links.service';
+import { PatientProfilesController } from './profiles/patient-profiles.controller';
+import { PatientProfilesService } from './profiles/patient-profiles.service';
 import { PatientJwtGuard } from './guards/patient-jwt.guard';
 import { PatientLinkGuard } from './guards/patient-link.guard';
 import { PatientMeController } from './me.controller';
@@ -19,7 +24,7 @@ import { PatientReadsController } from './reads/patient-reads.controller';
 import { PatientReadsService } from './reads/patient-reads.service';
 import './patient-app.settings';
 
-/** Patient-space API: `/patient-api/me` (M2-02), `/patient-api/claims` (M2-04), record reads (M2-08). */
+/** Patient-space API: `/patient-api/me` (M2-02, delete M2-11), claims (M2-04), reads (M2-08), profiles (M2-10), links (M2-11). */
 @Module({
   imports: [
     FeatureFlagsModule,
@@ -33,9 +38,18 @@ import './patient-app.settings';
       PatientAccessLog,
     ]),
   ],
-  controllers: [PatientMeController, PatientReadsController, ClaimsController],
+  controllers: [
+    PatientMeController,
+    PatientReadsController,
+    ClaimsController,
+    PatientProfilesController,
+    PatientAccountLinksController,
+  ],
   providers: [
     PatientMeService,
+    PatientAccountService,
+    PatientAccountLinksService,
+    PatientProfilesService,
     PatientJwtGuard,
     PatientLinkGuard,
     PatientClinicsService,
