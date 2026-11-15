@@ -6,10 +6,12 @@ import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { dropSession } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
+import { unregisterThisDevice } from '@/staff/features/devices';
 import { logout } from '../api/auth.api';
 import { useSignOut } from './useSignOut';
 
 jest.mock('../api/auth.api', () => ({ logout: jest.fn() }));
+jest.mock('@/staff/features/devices', () => ({ unregisterThisDevice: jest.fn() }));
 jest.mock('@/staff/lib/api', () => ({
   beginStaffSignOut: jest.fn(async () => undefined),
   dropSession: jest.fn(),
@@ -40,6 +42,10 @@ describe('useSignOut', () => {
     });
 
     expect(dropSession).toHaveBeenCalled();
+    // Pushes stop while the access token is still valid: before the session is dropped.
+    expect((unregisterThisDevice as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+      (dropSession as jest.Mock).mock.invocationCallOrder[0],
+    );
     expect(wipeStaffPersistedCache).toHaveBeenCalledTimes(1);
     // The wipe (which seals the persister) must run BEFORE the in-memory clear.
     expect(clearSpy).toHaveBeenCalledTimes(1);

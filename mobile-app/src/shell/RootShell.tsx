@@ -4,9 +4,11 @@ import { Platform } from 'react-native';
 
 import { isBelow } from '@/core/app-version';
 import { createNotificationChannels } from '@/core/notifications/channels';
+import { installForegroundHandler } from '@/core/notifications/foreground';
 import { useSpaceStore } from '@/core/space/useSpaceStore';
 
 import { fetchMinVersion } from './min-version';
+import { useNotificationTaps } from './notification-router';
 import { RootProviders } from './RootProviders';
 import { UpdateRequiredPage } from './UpdateRequiredPage';
 
@@ -34,9 +36,11 @@ function checkMinVersion(): ReturnType<typeof fetchMinVersion> {
  */
 export function RootShell() {
   const activeSpace = useSpaceStore((s) => s.activeSpace);
+  useNotificationTaps();
   const [updateRequired, setUpdateRequired] = useState<{ message?: string } | null>(null);
 
   useEffect(() => {
+    installForegroundHandler();
     void createNotificationChannels();
   }, []);
 

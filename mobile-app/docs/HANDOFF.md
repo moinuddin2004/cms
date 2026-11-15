@@ -2456,6 +2456,39 @@ Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
 
 ---
+## M1-05 — Mobile push registration and tap routing  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M1-05-push (from mobile/develop)   Status set to: review
+
+### Done
+- `core/notifications`: `permissions.ts` (`getPermissionState` never prompts, `requestPermission` shows the OS prompt), `push-token.ts` (`getExpoPushToken` → null on simulator / not granted / no EAS project id / Expo unreachable; `projectId` from `extra.eas.projectId`), `push-data.ts` (`parsePushData`, the typed `data` contract), `foreground.ts` (queue events → banner + sound, everything else list only), `tap-events.ts` (`subscribeToPushTaps`: warm listener + cold `getLastNotificationResponseAsync`, de-duplicated per notification id, cold response cleared after use).
+- `staff/features/devices`: `POST/DELETE /me/devices` (checked against `backend/src/devices`: `DELETE` carries `{ expoPushToken }` in the body, `appVersion` required ≤ 20, `deviceLabel` ≤ 80), `registerThisDevice` / `unregisterThisDevice` (registered token kept in SecureStore `staff.pushToken` so sign-out can delete it offline-token-free), `usePushRegistration` + `PushRegistration` (granted → register on every mount; undetermined → explanation sheet "Get alerts when patients arrive" ONCE (pref `staff.push.asked`) → OS prompt → register; denied → quiet), `decidePushRoute` (pure), `usePushRouteStore` + `PushRoutePrompt`.
+- Tap routing: `shell/notification-router.ts` (`createNotificationRouter` + `useNotificationTaps`, mounted in `RootShell`) → staff signed in → `switchSpace('staff')` if needed → `handleStaffNotificationRoute(data)` (exported from `@/staff`) parks the tap in a store; `PushRoutePrompt` (in `StaffMainLayout`) acts when the session is `signedIn`: same location → `router.navigate(resolveStaffLink(route) ?? /today)`; other location the user can open → "Switch to <clinic – location>?" then switch + navigate; unknown/blocked place → dropped. Taps older than 2 min are dropped. Staff not signed in → opens sign-in, tap dropped (never replayed for the next user).
+- Sign-out: `useSignOut` calls `unregisterThisDevice()` first (access token still valid), best effort.
+
+### Files
+- Created: `core/notifications/{permissions,push-token,push-data,foreground,tap-events}.ts` + `notifications.test.ts`; `staff/features/devices/**` (api, lib, store, hooks, components, index + tests); `shell/notification-router.ts` + test.
+- Modified: `RootShell.tsx` (install foreground handler, `useNotificationTaps()`), `staff/index.ts` (+ `handleStaffNotificationRoute`, `isStaffSignedIn`), `StaffMainLayout.tsx` (mount `PushRegistration`, `PushRoutePrompt`), `useSignOut.ts` (+ test), `core/storage/prefs.ts` (+ `staff.push.asked` key), `jest.setup.ts` (expo-notifications mock gained `getLastNotificationResponseAsync`, `clearLastNotificationResponseAsync`, `DEFAULT_ACTION_IDENTIFIER`).
+
+### Install commands for the user
+none (`expo-notifications`, `expo-device`, `expo-application` were already installed).
+
+### Verification
+- typecheck clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 97 suites / 743 tests green (`-i --forceExit`).
+- NO DEVICE: foreground / background / killed-app recordings and "signed-out phone gets no push" wait on gate M0-D (needs a dev build + EAS `projectId` + FCM/APNs keys).
+
+### Acceptance criteria
+- [x] unit tests: permission state, register/unregister, warm + cold tap routing, route map
+- [ ] device recordings (gate M0-D)
+
+### Deviations / notes for review
+- SDK 58 has `getLastNotificationResponseAsync` (the card says `getLastNotificationResponse`); the async one is used, plus `clearLastNotificationResponseAsync`.
+- `PushRoutePrompt` deep-imports `more/hooks/useSwitchLocation` (same precedent as `NotificationsPage`; it is not in the `more` barrel).
+- `useSignOut` deep-imports `devices/lib/device-registration` (not the barrel) to avoid an import cycle auth → devices → more → auth.
+- Registering with a different user on the same phone moves the token server-side (07 §4.2); an offline sign-out leaves the old row until that happens or Expo reports the token dead.
+- Device label is the phone MODEL (`Device.modelName`), never the owner's device name.
+- Patient pushes are ignored by the router until M3-07 (patient registers its own token then).
+
+---
 ## M1-17 — Staff Google sign-in (BE + MOB)  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m1-17-staff-google-3ed844 (from mobile/develop)   Status set to: review
 
@@ -2697,3 +2730,23 @@ New tests: claim token/link/store, claim error mapping (all codes), claim form s
 
 ### Needs a device
 Scanning the QR with the phone camera and the app opening on `claim/<token>` (cold start and warm); sign-in detour (email code) resuming at the confirm page; keyboard on the name field; the staff QR once the library is installed; both spaces on one phone (staff creates, patient space accepts).
+
+## Rework M1-05 #1 — 2026-11-15
+Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.ts/.test.tsx` and HANDOFF resolved) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Cold tap overwritten by StaffTabs' first-tab jump | `decidePushRoute` waits until `useAccess().status === 'ready'` (`accessReady` in its context). `usePushRouteStore` has a `handled` flag (set by `consume()` when the tap navigates or asks); `StaffTabs` calls `takePushRouteHandled()` once access is ready and skips `router.replace(first tab)` when a tap is pending or was handled. Test `StaffTabs.push.test.tsx` mounts both together (tap wins; without a tap the tabs still open on Queue). |
+| 2 | Sign-out can freeze | `DELETE /me/devices` has a 4 s timeout and is skipped when `isOnlineNow()` is false (token kept for the next sign-out). Tests for the offline skip + retry. |
+| 3 | Deprecated async APIs | `tap-events.ts` uses sync `getLastNotificationResponse()` / `clearLastNotificationResponse()` (try/catch for no native module); `jest.setup.ts` mock updated. |
+| 4 | Other clinic without `locationId` dropped | Switch prompt now targets that clinic's primary / first location. Test. |
+| 5 | Barrels | `useSignOut` imports `unregisterThisDevice` from `@/staff/features/devices`; `useSwitchLocation` is exported from the `more` barrel and used by `PushRoutePrompt`. `src/staff/index.ts` takes the two handlers from `devices/lib/handle-staff-notification-route` (not the barrel) so the real `@/staff` barrel stays free of UI/native imports (space-isolation test loads it). |
+| 6 | Setup | `expo-notifications` config plugin added to `app.config.ts` (icon = `android-icon-monochrome.png` placeholder, colour = platform blue); no new package. |
+
+### User steps before a real push token exists (gate M0-D)
+1. Create the EAS project (`eas init`) and put its id in `EAS_PROJECT_ID` in `app.config.ts` (empty now → `getExpoPushToken()` returns null, no registration).
+2. FCM: create a Firebase project, add the Android app, upload the FCM V1 service-account key to EAS (`eas credentials`); add `google-services.json` per the Expo push setup. iOS needs APNs keys via EAS.
+3. Rebuild the dev build (the config plugin changes native config).
+4. Replace the notification icon with the brand's white-on-transparent glyph when it exists.
+
+Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
