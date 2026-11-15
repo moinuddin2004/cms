@@ -1,3 +1,4 @@
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -27,17 +28,23 @@ function readSegment(): QueueSegment {
  * and the board (M1-09) can be built in parallel.
  */
 export function QueueTabPage() {
+  const router = useRouter();
   const { can } = useAccess();
   const canDoctor = can('queue.doctor.own');
   const canBoard = can('queue.board.view');
   const [segment, setSegment] = useState<QueueSegment>(readSegment);
 
+  // A link (notification / push) may name the segment; it wins over the saved choice.
+  const { segment: linked } = useLocalSearchParams<{ segment?: string }>();
+  const requested: QueueSegment | null = linked === 'doctor' || linked === 'board' ? linked : null;
+
   const both = canDoctor && canBoard;
-  const active: QueueSegment = both ? segment : canBoard ? 'board' : 'doctor';
+  const active: QueueSegment = both ? (requested ?? segment) : canBoard ? 'board' : 'doctor';
 
   const onChange = (value: string) => {
     const next: QueueSegment = value === 'board' ? 'board' : 'doctor';
     setSegment(next);
+    router.setParams({ segment: next });
     setPref('staff.queue.segment', next);
   };
 

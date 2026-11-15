@@ -1,17 +1,19 @@
+import { useRouter } from 'expo-router';
 import { Bell } from 'lucide-react-native';
 import { View } from 'react-native';
 
 import { IconButton } from '@/core/components';
 import { Text } from '@/core/ui/text';
 
-export interface NotificationBellProps {
-  /** Unread notifications. M1-13 wires the real count; 0 until then. */
+import { useUnreadCount } from '../hooks/useNotifications';
+
+export interface NotificationBellButtonProps {
   count?: number;
   onPress?: () => void;
 }
 
-/** Header bell with an unread badge. Icon-only, so it carries its own label (docs/04 §14). */
-export function NotificationBell({ count = 0, onPress }: NotificationBellProps) {
+/** Presentational bell: badge hidden at 0, "99+" cap. Icon-only, so it carries its own label (docs/04 §14). */
+export function NotificationBellButton({ count = 0, onPress }: NotificationBellButtonProps) {
   return (
     <View>
       <IconButton
@@ -30,5 +32,17 @@ export function NotificationBell({ count = 0, onPress }: NotificationBellProps) 
         </View>
       ) : null}
     </View>
+  );
+}
+
+/**
+ * Header bell wired to the unread count (realtime `notification.new` invalidates it) and the
+ * inbox screen. A failed count shows no badge rather than a wrong one.
+ */
+export function NotificationBell() {
+  const router = useRouter();
+  const { data } = useUnreadCount();
+  return (
+    <NotificationBellButton count={data ?? 0} onPress={() => router.push('/notifications')} />
   );
 }
