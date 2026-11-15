@@ -77,6 +77,9 @@ jest.mock(
       getAllScheduledNotificationsAsync: jest.fn(async () => Array.from(scheduled.values())),
       addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
       addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+      getLastNotificationResponseAsync: jest.fn(async () => null),
+      clearLastNotificationResponseAsync: jest.fn(async () => undefined),
+      DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
       AndroidImportance: { DEFAULT: 3, HIGH: 4, MAX: 5 },
     };
   },

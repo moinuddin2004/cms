@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { switchSpace } from '@/core/space/switch-space';
+import { unregisterThisDevice } from '@/staff/features/devices/lib/device-registration';
 import { dropSession } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
@@ -11,6 +12,8 @@ export function useSignOut() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // Stop pushes to this phone while the access token is still valid (best effort, never throws).
+      await unregisterThisDevice();
       try {
         await logout();
       } catch {

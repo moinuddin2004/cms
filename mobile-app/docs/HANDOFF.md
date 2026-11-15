@@ -2454,3 +2454,36 @@ Branch: `mobile/M1-15-today-ui` · Status stays: review
 Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
+
+---
+## M1-05 — Mobile push registration and tap routing  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M1-05-push (from mobile/develop)   Status set to: review
+
+### Done
+- `core/notifications`: `permissions.ts` (`getPermissionState` never prompts, `requestPermission` shows the OS prompt), `push-token.ts` (`getExpoPushToken` → null on simulator / not granted / no EAS project id / Expo unreachable; `projectId` from `extra.eas.projectId`), `push-data.ts` (`parsePushData`, the typed `data` contract), `foreground.ts` (queue events → banner + sound, everything else list only), `tap-events.ts` (`subscribeToPushTaps`: warm listener + cold `getLastNotificationResponseAsync`, de-duplicated per notification id, cold response cleared after use).
+- `staff/features/devices`: `POST/DELETE /me/devices` (checked against `backend/src/devices`: `DELETE` carries `{ expoPushToken }` in the body, `appVersion` required ≤ 20, `deviceLabel` ≤ 80), `registerThisDevice` / `unregisterThisDevice` (registered token kept in SecureStore `staff.pushToken` so sign-out can delete it offline-token-free), `usePushRegistration` + `PushRegistration` (granted → register on every mount; undetermined → explanation sheet "Get alerts when patients arrive" ONCE (pref `staff.push.asked`) → OS prompt → register; denied → quiet), `decidePushRoute` (pure), `usePushRouteStore` + `PushRoutePrompt`.
+- Tap routing: `shell/notification-router.ts` (`createNotificationRouter` + `useNotificationTaps`, mounted in `RootShell`) → staff signed in → `switchSpace('staff')` if needed → `handleStaffNotificationRoute(data)` (exported from `@/staff`) parks the tap in a store; `PushRoutePrompt` (in `StaffMainLayout`) acts when the session is `signedIn`: same location → `router.navigate(resolveStaffLink(route) ?? /today)`; other location the user can open → "Switch to <clinic – location>?" then switch + navigate; unknown/blocked place → dropped. Taps older than 2 min are dropped. Staff not signed in → opens sign-in, tap dropped (never replayed for the next user).
+- Sign-out: `useSignOut` calls `unregisterThisDevice()` first (access token still valid), best effort.
+
+### Files
+- Created: `core/notifications/{permissions,push-token,push-data,foreground,tap-events}.ts` + `notifications.test.ts`; `staff/features/devices/**` (api, lib, store, hooks, components, index + tests); `shell/notification-router.ts` + test.
+- Modified: `RootShell.tsx` (install foreground handler, `useNotificationTaps()`), `staff/index.ts` (+ `handleStaffNotificationRoute`, `isStaffSignedIn`), `StaffMainLayout.tsx` (mount `PushRegistration`, `PushRoutePrompt`), `useSignOut.ts` (+ test), `core/storage/prefs.ts` (+ `staff.push.asked` key), `jest.setup.ts` (expo-notifications mock gained `getLastNotificationResponseAsync`, `clearLastNotificationResponseAsync`, `DEFAULT_ACTION_IDENTIFIER`).
+
+### Install commands for the user
+none (`expo-notifications`, `expo-device`, `expo-application` were already installed).
+
+### Verification
+- typecheck clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 97 suites / 743 tests green (`-i --forceExit`).
+- NO DEVICE: foreground / background / killed-app recordings and "signed-out phone gets no push" wait on gate M0-D (needs a dev build + EAS `projectId` + FCM/APNs keys).
+
+### Acceptance criteria
+- [x] unit tests: permission state, register/unregister, warm + cold tap routing, route map
+- [ ] device recordings (gate M0-D)
+
+### Deviations / notes for review
+- SDK 58 has `getLastNotificationResponseAsync` (the card says `getLastNotificationResponse`); the async one is used, plus `clearLastNotificationResponseAsync`.
+- `PushRoutePrompt` deep-imports `more/hooks/useSwitchLocation` (same precedent as `NotificationsPage`; it is not in the `more` barrel).
+- `useSignOut` deep-imports `devices/lib/device-registration` (not the barrel) to avoid an import cycle auth → devices → more → auth.
+- Registering with a different user on the same phone moves the token server-side (07 §4.2); an offline sign-out leaves the old row until that happens or Expo reports the token dead.
+- Device label is the phone MODEL (`Device.modelName`), never the owner's device name.
+- Patient pushes are ignored by the router until M3-07 (patient registers its own token then).

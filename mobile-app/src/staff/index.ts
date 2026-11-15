@@ -3,3 +3,4 @@
  * shell may import this barrel — never a deep `@/staff/...` path.
  */
 export { staffQueryClient } from '@/staff/lib/query-client';
+export { handleStaffNotificationRoute, isStaffSignedIn } from '@/staff/features/devices';
