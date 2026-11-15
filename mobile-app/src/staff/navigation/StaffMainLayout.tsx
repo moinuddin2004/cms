@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 
 import { AccessProvider } from '@/staff/features/access';
+import { PushRegistration, PushRoutePrompt } from '@/staff/features/devices';
 import { BrandTheme } from '@/staff/features/theme';
 import { StaffRealtimeProvider } from '@/staff/lib/realtime-provider';
 
@@ -15,6 +16,8 @@ export function StaffMainLayout() {
     <AccessProvider>
       <StaffRealtimeProvider>
         <BrandTheme />
+        <PushRegistration />
+        <PushRoutePrompt />
         <Stack screenOptions={{ headerShown: false }} />
       </StaffRealtimeProvider>
     </AccessProvider>
