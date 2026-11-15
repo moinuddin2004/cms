@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FeatureFlagsModule } from 'src/feature-flags/feature-flags.module';
 import { PatientAccount } from 'src/patient-auth/entities/patient-account.entity';
+import { PrescriptionsModule } from 'src/prescriptions/prescriptions.module';
 import { PatientAccessLog } from './entities/patient-access-log.entity';
 import { PatientAccountConsent } from './entities/patient-account-consent.entity';
 import { PatientProfile } from './entities/patient-profile.entity';
@@ -20,6 +21,7 @@ import './patient-app.settings';
 @Module({
   imports: [
     FeatureFlagsModule,
+    PrescriptionsModule,
     TypeOrmModule.forFeature([
       PatientAccount,
       PatientProfile,

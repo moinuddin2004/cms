@@ -80,7 +80,6 @@ export interface PatientPrescriptionMedicineDto {
 
 export interface PatientPrescriptionDetailDto extends PatientPrescriptionDto {
   medicines: PatientPrescriptionMedicineDto[];
-  pdfUrl: string | null;
 }
 
 export type PatientInvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';

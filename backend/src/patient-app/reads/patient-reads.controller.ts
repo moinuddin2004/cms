@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { PatientContext, PatientCtx } from '../context/patient-context';
 import { PatientApi } from '../decorators/patient-api.decorator';
@@ -45,6 +46,23 @@ export class PatientReadsController {
     @Param('id') id: string,
   ) {
     return ResponseWrapper.success(await this.reads.prescription(ctx, id));
+  }
+
+  /** PDF streamed through the API; no storage URL is ever returned. */
+  @Get('prescriptions/:id/pdf')
+  async prescriptionPdf(
+    @PatientCtx() ctx: PatientContext,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, fileName } = await this.reads.prescriptionPdf(ctx, id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': String(buffer.length),
+      'Cache-Control': 'private, no-store',
+    });
+    res.end(buffer);
   }
 
   @Get('billing/summary')

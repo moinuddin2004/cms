@@ -159,7 +159,7 @@ describe('patient read DTOs expose only allow-listed fields', () => {
   };
 
   it('prescription list item', () => {
-    const dto = mapPrescription(rxRow, 'prof-1', clinic);
+    const dto = mapPrescription(rxRow, 'prof-1', clinic, true);
     expect(sorted(dto)).toEqual(
       [
         'clinic',
@@ -176,9 +176,8 @@ describe('patient read DTOs expose only allow-listed fields', () => {
     expect(dto.medicinesCount).toBe(2);
     expect(dto.hasPdf).toBe(true);
     expect(dto.issuedAt).toBe('2026-11-10T08:00:00.000Z');
-    expect(
-      mapPrescription({ ...rxRow, pdfUrl: null }, 'p', clinic).hasPdf,
-    ).toBe(false);
+    expect(mapPrescription(rxRow, 'p', clinic, false).hasPdf).toBe(false);
+    expect(JSON.stringify(dto)).not.toContain('files/rx-1');
   });
 
   it('prescription detail medicines', () => {
@@ -201,8 +200,11 @@ describe('patient read DTOs expose only allow-listed fields', () => {
       ],
       'prof-1',
       clinic,
+      true,
     );
-    expect(dto.pdfUrl).toBe('https://files/rx-1.pdf');
+    // a stored public URL on the row must never reach the app
+    expect(dto).not.toHaveProperty('pdfUrl');
+    expect(JSON.stringify(dto)).not.toContain('files/rx-1');
     expect(dto.medicines).toEqual([
       {
         name: 'Amoxicillin',
@@ -230,6 +232,7 @@ describe('patient read DTOs expose only allow-listed fields', () => {
       totalAmount: '1500.50',
       paidAmount: 500,
       balanceDue: '1000.50',
+      locationTimezone: 'Asia/Karachi',
     };
     const dto = mapInvoice(row, 'prof-1', '2026-11-10');
     expect(dto).toEqual({

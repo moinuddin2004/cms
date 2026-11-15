@@ -106,13 +106,14 @@ export interface PrescriptionRow extends LocationRow {
   number: string;
   signedAt: Date | string;
   medicinesCount: number | string;
-  pdfUrl: string | null;
 }
 
 export function mapPrescription(
   row: PrescriptionRow,
   profileId: string,
   clinic: ClinicRefDto,
+  /** The PDF prints diagnosis/vitals: only when `show_diagnosis` is on. */
+  hasPdf: boolean,
 ): PatientPrescriptionDto {
   return {
     id: row.id,
@@ -123,7 +124,7 @@ export function mapPrescription(
     number: row.number,
     issuedAt: iso(row.signedAt)!,
     medicinesCount: Number(row.medicinesCount),
-    hasPdf: !!row.pdfUrl,
+    hasPdf,
   };
 }
 
@@ -162,11 +163,11 @@ export function mapPrescriptionDetail(
   medicines: MedicineRow[],
   profileId: string,
   clinic: ClinicRefDto,
+  hasPdf: boolean,
 ): PatientPrescriptionDetailDto {
   return {
-    ...mapPrescription(row, profileId, clinic),
+    ...mapPrescription(row, profileId, clinic, hasPdf),
     medicines: medicines.map(mapMedicine),
-    pdfUrl: row.pdfUrl ?? null,
   };
 }
 
@@ -178,6 +179,7 @@ export interface InvoiceRow {
   totalAmount: number | string;
   paidAmount: number | string;
   balanceDue: number | string;
+  locationTimezone: string;
 }
 
 export function invoiceStatusFor(

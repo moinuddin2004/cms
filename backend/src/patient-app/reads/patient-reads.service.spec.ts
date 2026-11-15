@@ -3,6 +3,7 @@ import type { DataSource } from 'typeorm';
 import type { ClockService } from 'src/common/clock/clock.service';
 import type { SettingsRegistryService } from 'src/settings-registry/settings-registry.service';
 import type { PatientContext } from '../context/patient-context';
+import type { PrescriptionPdfService } from 'src/prescriptions/services/prescription-pdf.service';
 import { PatientAccessLogService } from './patient-access-log.service';
 import { PatientClinicsService } from './patient-clinics.service';
 import { PatientReadsService } from './patient-reads.service';
@@ -53,7 +54,11 @@ class FakeQb {
   expressionMap = { mainAlias: { name: 'x' } };
   constructor(private readonly results: Record<string, Result>) {}
   select = () => this;
-  innerJoin = () => this;
+  joins: string[] = [];
+  innerJoin = (_t: string, _a: string, cond: string) => {
+    this.joins.push(cond);
+    return this;
+  };
   leftJoin = () => this;
   orderBy = () => this;
   addOrderBy = () => this;
@@ -95,22 +100,26 @@ function build(results: Record<string, Result> = {}) {
         'theme.logo_url': null,
         'theme.brand_color': '#112233',
         'patient_app.show_billing': c.organizationId !== ORG_SUSPENDED,
-        'patient_app.show_diagnosis': true,
+        'patient_app.show_diagnosis': c.organizationId !== ORG_SUSPENDED,
       }),
   } as unknown as SettingsRegistryService;
   const insert = jest.fn().mockResolvedValue(undefined);
   const accessLog = new PatientAccessLogService({
     insert,
   } as never);
-  const clock = { today: () => '2026-11-15' } as unknown as ClockService;
+  const today = jest.fn(() => '2026-11-15');
+  const clock = { today } as unknown as ClockService;
+  const generatePdfBuffer = jest.fn().mockResolvedValue(Buffer.from('%PDF-1'));
+  const pdfs = { generatePdfBuffer } as unknown as PrescriptionPdfService;
   const clinics = new PatientClinicsService(dataSource, settings);
   const service = new PatientReadsService(
     dataSource,
     clinics,
     accessLog,
     clock,
+    pdfs,
   );
-  return { service, qbs, insert, clinics };
+  return { service, qbs, insert, clinics, generatePdfBuffer, today };
 }
 
 function org(
@@ -259,7 +268,8 @@ describe('PatientReadsService', () => {
       const dto = await service.prescription(ctx, UUID);
       expect(dto.profileId).toBe('prof-1');
       expect(dto.medicines[0].frequencyTiming).toEqual([]);
-      expect(dto.hasPdf).toBe(false);
+      expect(dto.hasPdf).toBe(true);
+      expect(dto).not.toHaveProperty('pdfUrl');
       expect(insert).toHaveBeenCalledWith([
         {
           profileId: 'prof-1',
@@ -341,8 +351,10 @@ describe('PatientReadsService', () => {
     it('returns per-clinic summary', async () => {
       const { service } = build({
         invoices: {
+          one: { n: '1', total: '100.00', paid: '40.00', balance: '60.00' },
           many: [
             {
+              locationTimezone: 'Asia/Karachi',
               organizationId: ORG_OK,
               patientId: 'pat-1',
               id: 'i1',
@@ -352,9 +364,6 @@ describe('PatientReadsService', () => {
               totalAmount: '100.00',
               paidAmount: '40.00',
               balanceDue: '60.00',
-              total: '100.00',
-              paid: '40.00',
-              balance: '60.00',
             },
           ],
         },
@@ -369,6 +378,120 @@ describe('PatientReadsService', () => {
       });
       expect(out[0].invoices[0].status).toBe('partial');
       expect(out[0].clinic.clinicStatus).toBe('active');
+    });
+  });
+
+  describe('rework 1', () => {
+    it('visits are only completed consultations (queue entry completed)', async () => {
+      const { service, qbs } = build({
+        patient_encounters: { one: { n: '0' }, many: [] },
+      });
+      await service.visits(ctx, {});
+      expect(
+        qbs.every((q) =>
+          q.joins.some((j) => j.includes("qe.status = 'completed'")),
+        ),
+      ).toBe(true);
+    });
+
+    const rxRow = (org: string, patient: string) => ({
+      ...loc,
+      id: UUID,
+      organizationId: org,
+      patientId: patient,
+      number: 'RX/9',
+      signedAt: '2026-11-10T08:00:00Z',
+      medicinesCount: '0',
+      doctorName: null,
+    });
+
+    it('pdf: streams a rendered buffer, logs a download, no URL involved', async () => {
+      const { service, insert, generatePdfBuffer } = build({
+        prescriptions: { one: rxRow(ORG_OK, 'pat-1') },
+      });
+      const out = await service.prescriptionPdf(ctx, UUID);
+      expect(out.buffer.toString()).toBe('%PDF-1');
+      expect(out.fileName).toBe('prescription-RX9.pdf');
+      expect(generatePdfBuffer).toHaveBeenCalledWith(UUID, ORG_OK);
+      expect(insert.mock.calls[0][0][0]).toMatchObject({
+        action: 'download',
+        resourceType: 'prescription',
+        resourceId: UUID,
+      });
+    });
+
+    it('pdf: 404 when the clinic has show_diagnosis off; detail has hasPdf false', async () => {
+      const { service, generatePdfBuffer } = build({
+        prescriptions: { one: rxRow(ORG_SUSPENDED, 'pat-3') },
+        prescription_medicines: { many: [] },
+      });
+      await expect(service.prescriptionPdf(ctx, UUID)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(generatePdfBuffer).not.toHaveBeenCalled();
+      const detail = await service.prescription(ctx, UUID);
+      expect(detail.hasPdf).toBe(false);
+    });
+
+    it('pdf: 404 for an id outside the scope or malformed', async () => {
+      const { service } = build();
+      await expect(service.prescriptionPdf(ctx, UUID)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      await expect(service.prescriptionPdf(ctx, 'x')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it('a profileId filter labels rows with that profile directly', async () => {
+      const shared: PatientContext = {
+        ...ctx,
+        links: [
+          link('l1', 'prof-1', ORG_OK, 'pat-1'),
+          link('l4', 'prof-2', ORG_OK, 'pat-1'),
+        ],
+      };
+      const row = {
+        ...loc,
+        id: 'a1',
+        organizationId: ORG_OK,
+        patientId: 'pat-1',
+        startTime: '2026-12-01T09:00:00Z',
+        endTime: '2026-12-01T09:30:00Z',
+        status: 'scheduled',
+        type: 'consultation',
+        doctorName: null,
+      };
+      const { service } = build({ appointments: { many: [row] } });
+      const filtered = await service.appointments(shared, {
+        profileId: 'prof-2',
+      });
+      expect(filtered[0].profileId).toBe('prof-2');
+    });
+
+    it('overdue uses the invoice location clock', async () => {
+      const { service, today } = build({
+        invoices: {
+          one: { n: '1', total: '10.00', paid: '0.00', balance: '10.00' },
+          many: [
+            {
+              locationTimezone: 'Pacific/Kiritimati',
+              organizationId: ORG_OK,
+              patientId: 'pat-1',
+              id: 'i1',
+              invoiceNumber: 'INV-1',
+              issuedAt: '2026-11-01T00:00:00Z',
+              dueDate: '2026-11-14',
+              totalAmount: '10.00',
+              paidAmount: '0.00',
+              balanceDue: '10.00',
+            },
+          ],
+        },
+      });
+      const out = await service.billingSummary(ctx, {});
+      expect(today).toHaveBeenCalledWith('Pacific/Kiritimati');
+      expect(out[0].invoices[0].status).toBe('overdue');
     });
   });
 

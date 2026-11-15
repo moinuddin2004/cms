@@ -2488,3 +2488,20 @@ Branch: claude/m2-08-patient-reads-d759cf (from mobile/develop)   Status set to:
 
 ### Questions for architect
 - "Suspended" = `organizations.is_active = false` — confirm that is the intended flag.
+
+---
+## Rework M2-08 #1 — 2026-11-15
+Branch: `claude/m2-08-patient-reads-d759cf` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | PDF URL public + prints diagnosis | `pdfUrl` removed from the detail DTO (and from the SQL select). `hasPdf` = clinic `show_diagnosis` on. New `GET /patient-api/prescriptions/:id/pdf`: same scoped lookup (`findPrescription`), 404 when `show_diagnosis` is off, access-log `download`, then `PrescriptionPdfService.generatePdfBuffer` streamed through the API with `private, no-store` (the stored row has only the public URL, not the storage key, so a signed URL was not possible; rendering per request avoids any reusable link). `PrescriptionPdfService` is now exported from `PrescriptionsModule` (one-line change) and `PatientAppModule` imports that module. DTO tests assert no `pdfUrl` even when the row carries one. |
+| 2 | Unfinished visits | Visits `INNER JOIN queue_entries ... AND status = 'completed'`. Signal chosen: the queue entry's `completed` status (set by the doctor's Complete action); encounters have no completion column. Spec asserts the join condition on both visit queries. |
+| 3 | Global 400-invoice cap | One totals query + one list query (limit 50) per clinic, in parallel. |
+| 4 | Overdue timezone | Invoice rows select `l.timezone`; `clock.today(thatTimezone)` per invoice. Spec checks the tz passed. |
+| 5 | `page` max | `@Max(10000)`. |
+| 6 | Profile label | With a `profileId` filter rows are labelled with that id directly (spec with two profiles on one patient). |
+
+Verification: see the final lines below. Still NOT run: SQL against Postgres (no local DB); the PDF endpoint was not exercised end to end (no real renderer in unit specs; the service is mocked).
+
+Verification (rework 1): `tsc --noEmit` no errors under `src/` (the 4 pre-existing non-src errors remain) - jest `src/patient-app` + `src/prescriptions`: 11 suites / 134 tests green - full backend unit suite: 103 suites / 1070 tests green.

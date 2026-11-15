@@ -7,7 +7,7 @@ export interface AccessLogEntry {
   profileId: string | null;
   organizationId: string;
   patientId: string;
-  action: 'view_list' | 'view_detail';
+  action: 'view_list' | 'view_detail' | 'download';
   resourceType: 'appointment' | 'visit' | 'prescription' | 'invoice';
   resourceId: string | null;
 }

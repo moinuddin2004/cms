@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, SelectQueryBuilder } from 'typeorm';
+import { PrescriptionPdfService } from 'src/prescriptions/services/prescription-pdf.service';
 import { ClockService } from 'src/common/clock/clock.service';
 import { toMinor } from 'src/billing/common/money';
 import {
@@ -30,7 +31,11 @@ import type {
   PatientPrescriptionDto,
   PatientVisitDto,
 } from './patient-reads.types';
-import { canSeeBilling, PRESCRIPTION_VISIBLE_STATUSES } from './visibility';
+import {
+  canSeeBilling,
+  canSeeDiagnosis,
+  PRESCRIPTION_VISIBLE_STATUSES,
+} from './visibility';
 
 interface Scoped {
   organizationId: string;
@@ -47,7 +52,6 @@ const LOCATION_COLUMNS = [
 
 const MAX_APPOINTMENTS = 300;
 const MAX_INVOICES_PER_CLINIC = 50;
-const MAX_INVOICES_FETCHED = 400;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -67,11 +71,17 @@ export class PatientReadsService {
     private readonly clinics: PatientClinicsService,
     private readonly accessLog: PatientAccessLogService,
     private readonly clock: ClockService,
+    private readonly pdfs: PrescriptionPdfService,
   ) {}
 
   // ── helpers ────────────────────────────────────────────────────────
 
-  private profileLookup(ctx: PatientContext) {
+  /**
+   * (org, patient) -> profile id. With an explicit `profileId` filter every
+   * row belongs to that profile, so it labels rows directly.
+   */
+  private profileLookup(ctx: PatientContext, forcedProfileId?: string) {
+    if (forcedProfileId !== undefined) return () => forcedProfileId;
     const map = new Map<string, string>();
     for (const l of ctx.links) {
       const key = `${l.organizationId}:${l.patientId}`;
@@ -145,7 +155,7 @@ export class PatientReadsService {
       .limit(MAX_APPOINTMENTS)
       .getRawMany<AppointmentRow & Scoped>();
 
-    const profileOf = this.profileLookup(scope.ctx);
+    const profileOf = this.profileLookup(scope.ctx, q.profileId);
     const out = rows.flatMap((r) => {
       const profileId = profileOf(r);
       const clinic = scope.clinics.get(r.organizationId)?.ref;
@@ -172,7 +182,11 @@ export class PatientReadsService {
       .from('patient_encounters', 'e')
       .innerJoin('locations', 'l', 'l.id = e.location_id')
       .leftJoin('appointments', 'ap', 'ap.id = e.appointment_id')
-      .leftJoin('queue_entries', 'qe', 'qe.id = e.queue_entry_id')
+      .innerJoin(
+        'queue_entries',
+        'qe',
+        `qe.id = e.queue_entry_id AND qe.status = 'completed'`,
+      )
       .leftJoin('queue_sessions', 'qs', 'qs.id = qe.queue_session_id')
       .leftJoin(
         'employees',
@@ -217,7 +231,7 @@ export class PatientReadsService {
       .limit(limit)
       .getRawMany<VisitRow & Scoped>();
 
-    const profileOf = this.profileLookup(scope.ctx);
+    const profileOf = this.profileLookup(scope.ctx, q.profileId);
     const data = rows.flatMap((r) => {
       const info = scope.clinics.get(r.organizationId);
       const profileId = profileOf(r);
@@ -260,7 +274,6 @@ export class PatientReadsService {
     'p.patient_id AS "patientId"',
     'p.prescription_number AS "number"',
     'p.signed_at AS "signedAt"',
-    'p.pdf_url AS "pdfUrl"',
     '(SELECT COUNT(*) FROM prescription_medicines m WHERE m.prescription_id = p.id) AS "medicinesCount"',
     'd.full_name AS "doctorName"',
     ...LOCATION_COLUMNS,
@@ -288,11 +301,13 @@ export class PatientReadsService {
       .limit(limit)
       .getRawMany<PrescriptionRow & Scoped>();
 
-    const profileOf = this.profileLookup(scope.ctx);
+    const profileOf = this.profileLookup(scope.ctx, q.profileId);
     const data = rows.flatMap((r) => {
-      const clinic = scope.clinics.get(r.organizationId)?.ref;
       const profileId = profileOf(r);
-      return clinic && profileId ? [mapPrescription(r, profileId, clinic)] : [];
+      const info = scope.clinics.get(r.organizationId);
+      return info && profileId
+        ? [mapPrescription(r, profileId, info.ref, info.showDiagnosis)]
+        : [];
     });
     await this.accessLog.record(
       ctx.accountId,
@@ -308,10 +323,8 @@ export class PatientReadsService {
     return this.paged(data, total, page, limit);
   }
 
-  async prescription(
-    ctx: PatientContext,
-    id: string,
-  ): Promise<PatientPrescriptionDetailDto> {
+  /** The scoped lookup shared by the detail and PDF endpoints. */
+  private async findPrescription(ctx: PatientContext, id: string) {
     if (!UUID_RE.test(id)) throw notFound();
     const scope = await this.clinics.visibleScope(ctx);
     const row = await this.prescriptionsBase(scope)
@@ -319,8 +332,16 @@ export class PatientReadsService {
       .andWhere('p.id = :id', { id })
       .getRawOne<PrescriptionRow & Scoped>();
     const profileId = row ? this.profileLookup(scope.ctx)(row) : undefined;
-    const clinic = row ? scope.clinics.get(row.organizationId)?.ref : undefined;
-    if (!row || !profileId || !clinic) throw notFound();
+    const info = row ? scope.clinics.get(row.organizationId) : undefined;
+    if (!row || !profileId || !info) throw notFound();
+    return { row, profileId, info };
+  }
+
+  async prescription(
+    ctx: PatientContext,
+    id: string,
+  ): Promise<PatientPrescriptionDetailDto> {
+    const { row, profileId, info } = await this.findPrescription(ctx, id);
 
     const medicines = await this.qb()
       .select([
@@ -350,7 +371,42 @@ export class PatientReadsService {
         resourceId: id,
       },
     ]);
-    return mapPrescriptionDetail(row, medicines, profileId, clinic);
+    return mapPrescriptionDetail(
+      row,
+      medicines,
+      profileId,
+      info.ref,
+      info.showDiagnosis,
+    );
+  }
+
+  /**
+   * The prescription PDF prints diagnosis, complaint and vitals, so it is
+   * only served when the clinic shows diagnosis to patients. The stored
+   * public file URL is never exposed: the PDF is rendered per request and
+   * streamed through the API (no reusable link).
+   */
+  async prescriptionPdf(
+    ctx: PatientContext,
+    id: string,
+  ): Promise<{ buffer: Buffer; fileName: string }> {
+    const { row, profileId, info } = await this.findPrescription(ctx, id);
+    if (!canSeeDiagnosis(info)) throw notFound();
+    const buffer = await this.pdfs.generatePdfBuffer(id, row.organizationId);
+    await this.accessLog.record(ctx.accountId, [
+      {
+        profileId,
+        organizationId: row.organizationId,
+        patientId: row.patientId,
+        action: 'download',
+        resourceType: 'prescription',
+        resourceId: id,
+      },
+    ]);
+    return {
+      buffer,
+      fileName: `prescription-${row.number.replace(/[^A-Za-z0-9_-]/g, '')}.pdf`,
+    };
   }
 
   // ── billing ────────────────────────────────────────────────────────
@@ -363,72 +419,81 @@ export class PatientReadsService {
     const scope = this.clinics.narrow(full, canSeeBilling);
     if (scope.clinics.size === 0) return [];
 
-    const base = () => {
-      const qb = this.qb()
-        .from('invoices', 'i')
-        .andWhere(`i.status = 'ISSUED'`);
-      linkedPatientWhere(qb, scope.ctx, { alias: 'i', profileId: q.profileId });
-      return qb;
-    };
-
-    const totals = await base()
-      .select([
-        'i.organization_id AS "organizationId"',
-        'COALESCE(SUM(i.total_amount), 0) AS "total"',
-        'COALESCE(SUM(i.paid_amount), 0) AS "paid"',
-        'COALESCE(SUM(i.balance_due), 0) AS "balance"',
-      ])
-      .groupBy('i.organization_id')
-      .getRawMany<{
-        organizationId: string;
-        total: string;
-        paid: string;
-        balance: string;
-      }>();
-
-    const invoices = await base()
-      .select([
-        'i.id AS "id"',
-        'i.organization_id AS "organizationId"',
-        'i.patient_id AS "patientId"',
-        'i.invoice_number AS "invoiceNumber"',
-        'i.issued_at AS "issuedAt"',
-        'i.due_date::text AS "dueDate"',
-        'i.total_amount AS "totalAmount"',
-        'i.paid_amount AS "paidAmount"',
-        'i.balance_due AS "balanceDue"',
-      ])
-      .orderBy('i.issued_at', 'DESC')
-      .addOrderBy('i.id', 'DESC')
-      .limit(MAX_INVOICES_FETCHED)
-      .getRawMany<InvoiceRow & Scoped>();
-
-    const profileOf = this.profileLookup(scope.ctx);
-    const out: PatientBillingClinicDto[] = [];
-    for (const t of totals) {
-      const info = scope.clinics.get(t.organizationId);
-      if (!info) continue;
-      const today = this.clock.today(info.timezone);
-      const mine = invoices
-        .filter((r) => r.organizationId === t.organizationId)
-        .slice(0, MAX_INVOICES_PER_CLINIC);
-      out.push({
-        clinic: info.ref,
-        currency: info.currency,
-        billedMinor: toMinor(t.total),
-        paidMinor: toMinor(t.paid),
-        balanceMinor: toMinor(t.balance),
-        invoices: mine.flatMap((r) => {
-          const profileId = profileOf(r);
-          return profileId ? [mapInvoice(r, profileId, today)] : [];
-        }),
-      });
-    }
+    const profileOf = this.profileLookup(scope.ctx, q.profileId);
+    const logged: (Scoped & { id: string })[] = [];
+    const perClinic = await Promise.all(
+      [...scope.clinics].map(async ([orgId, info]) => {
+        const one = {
+          ...scope.ctx,
+          links: scope.ctx.links.filter((l) => l.organizationId === orgId),
+        };
+        const base = () => {
+          const qb = this.qb()
+            .from('invoices', 'i')
+            .innerJoin('locations', 'l', 'l.id = i.location_id')
+            .andWhere(`i.status = 'ISSUED'`);
+          linkedPatientWhere(qb, one, { alias: 'i', profileId: q.profileId });
+          return qb;
+        };
+        const totals = await base()
+          .select([
+            'COUNT(*) AS "n"',
+            'COALESCE(SUM(i.total_amount), 0) AS "total"',
+            'COALESCE(SUM(i.paid_amount), 0) AS "paid"',
+            'COALESCE(SUM(i.balance_due), 0) AS "balance"',
+          ])
+          .getRawOne<{
+            n: string;
+            total: string;
+            paid: string;
+            balance: string;
+          }>();
+        if (!totals || Number(totals.n) === 0) return null;
+        const rows = (
+          await base()
+            .select([
+              'i.id AS "id"',
+              'i.organization_id AS "organizationId"',
+              'i.patient_id AS "patientId"',
+              'i.invoice_number AS "invoiceNumber"',
+              'i.issued_at AS "issuedAt"',
+              'i.due_date::text AS "dueDate"',
+              'i.total_amount AS "totalAmount"',
+              'i.paid_amount AS "paidAmount"',
+              'i.balance_due AS "balanceDue"',
+              'l.timezone AS "locationTimezone"',
+            ])
+            .orderBy('i.issued_at', 'DESC')
+            .addOrderBy('i.id', 'DESC')
+            .limit(MAX_INVOICES_PER_CLINIC)
+            .getRawMany<InvoiceRow & Scoped>()
+        ).filter((r) => r.organizationId === orgId);
+        logged.push(...rows);
+        const dto: PatientBillingClinicDto = {
+          clinic: info.ref,
+          currency: info.currency,
+          billedMinor: toMinor(totals.total),
+          paidMinor: toMinor(totals.paid),
+          balanceMinor: toMinor(totals.balance),
+          invoices: rows.flatMap((r) => {
+            const profileId = profileOf(r);
+            // overdue is judged on the invoice location clock
+            return profileId
+              ? [mapInvoice(r, profileId, this.clock.today(r.locationTimezone))]
+              : [];
+          }),
+        };
+        return dto;
+      }),
+    );
+    const out = perClinic.filter(
+      (c): c is PatientBillingClinicDto => c !== null,
+    );
     out.sort((a, b) => a.clinic.name.localeCompare(b.clinic.name));
 
     await this.accessLog.record(
       ctx.accountId,
-      invoices.map((r) => ({
+      logged.map((r) => ({
         profileId: profileOf(r) ?? null,
         organizationId: r.organizationId,
         patientId: r.patientId,
