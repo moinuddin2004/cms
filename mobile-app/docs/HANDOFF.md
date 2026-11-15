@@ -2454,3 +2454,40 @@ Branch: `mobile/M1-15-today-ui` · Status stays: review
 Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
+
+---
+## M2-04 — Patient links + claim API  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-04-patient-links-46d50e (from mobile/develop)   Status set to: review (when finished)
+
+### Plan (written before coding)
+**Endpoints** (module `src/patient-links/`)
+- Staff (`@PatientInScope('patientId')`): `POST /patients/:patientId/app-link/claim-token` (`@Can('patients.app_link.manage')`) → `{ token, url, expiresAt }`; `GET /patients/:patientId/app-link` (`@Can('patients.view')`) → status; `DELETE /patients/:patientId/app-link` (`@Can('patients.app_link.manage')`, body `{ reason? ≤200 }`) → `{ revoked: true }`.
+- Patient (`@PatientApi()`): `GET /patient-api/claims/:token` (preview, read-only) and `POST /patient-api/claims/:token/accept` `{ relation, profileId?, newProfileName?, confirm: true }` → `{ link, profile }`.
+**Token:** 32 random bytes, base64url (43 chars); only sha256 hex stored in `patient_claim_tokens.token_hash`. Valid 30 min (`CLAIM_TOKEN_TTL_MINUTES`), single use (`used_at`), a new token sets `invalidated_at` on older unused ones of the same patient. Raw token is returned only by the create call and never logged/audited. Unknown / used / invalidated / expired → one error `404 CLAIM_INVALID`.
+**Tables:** no schema change (all four tables exist from M2-01): `patient_claim_tokens`, `patient_record_links`, `patient_profiles`, `patient_account_consents` (kind `link`), `patient_access_log` (action `link`/`unlink`), `audit_logs` (entity `patient_app_link`, subject = patient), `outbox`.
+**Rules:** A-19: org `approval_status` ≠ approved → claim/preview = `CLAIM_INVALID`; org `is_active=false` (suspended) → `403 CLINIC_SUSPENDED` for create/preview/accept (revoke still allowed); feature `patient_app` off → `403 PATIENT_APP_DISABLED`. Accept runs in one transaction (token row `FOR UPDATE`); one active link per clinic patient (partial unique index) → `409 ALREADY_LINKED`; same account re-scanning its own link is idempotent.
+**Events:** `patient.record_linked` / `patient.link_revoked` are written as a realtime outbox row to topic `patient:<accountId>` (`{ type: 'feed.changed', kinds: ['links'], event, linkId }`, 07 §7) in the same transaction. The patient push/email delivery itself is not built (patient audience has no channel yet — M3-07), so the notification catalog is untouched.
+**Rate limits:** claim preview/accept 30 / 15 min per IP; staff token creation 30 / 10 min per IP.
+
+### Done
+- `src/patient-links/`: `claim-token.ts` (token/hash/mask/age-band helpers), `ClaimEligibilityService` (A-19 + `patient_app` feature), `PatientLinksService` + `PatientLinksController` (staff create / status / revoke), `ClaimsService` (preview + accept in one transaction, token row `FOR UPDATE`), `patient-link-events.ts` (outbox rows). `src/patient-app/claims.controller.ts` (`@PatientApi`, so the fence spec stays true). `PatientAppModule` imports `PatientLinksModule`.
+- Contract details and error codes: 07 §4.1 / §6.2 / §8 (updated).
+
+### Files
+Created: everything under `src/patient-links/` except the two M2-01 files (module rewritten), `src/patient-app/claims.controller.ts`, `test/patient/patient-claims.int-spec.ts`, 2 unit specs. Modified: `patient-app.module.ts`, `app.module.ts` (comment), docs 07 / PROGRESS / HANDOFF. No schema, no catalog change (so no `access:export`).
+
+### Install commands for the user
+none.
+
+### Verification
+- `tsc --noEmit`: clean for all new/changed files (pre-existing errors only: `nestjs-cli/` templates, `test/labs/access.int-spec.ts`).
+- ESLint on the new files: clean (with prettier `endOfLine: auto`; the checkout's CRLF working copies make every file fail the default rule, not related to this card).
+- Jest (`-i`; workers cannot spawn here): `src/patient-links` + `src/patient-app` 8 suites / 76 tests green. Full backend unit suite (`jest -i`): 102 suites / 1032 tests green.
+- **NOT RUN: `test/patient/patient-claims.int-spec.ts`** — no local Postgres in this environment (it compiles and lints). First real run belongs on a disposable DB (`npm run test:int:patient`). It exercises: create → preview (masked) → accept → status → single-use → revoke → re-link; newest-token-wins; expiry; dependent profile + `NAME_REQUIRED`; `ALREADY_LINKED` race; A-19 pending/suspended; cross-clinic patient 404. Staff side is driven through the controller methods (guards not exercised).
+
+### Deviations / decisions to review
+- Patient push/email for `patient.record_linked` / `link_revoked` is NOT built (no patient channel; catalog + its spec untouched). Events go to the realtime outbox only → M3-07.
+- Token TTL 30 min is my choice (card gave none).
+- `LocationRef.whatsapp` is always `null` (locations have no WhatsApp column).
+- Clinic logo/brand colour are read from `config_values` (`theme.*`), default brand `#2563eb`.
+- Patient-side audit row uses actor side `system` with `userId: null` (ids of account/profile in `changes.after`).
