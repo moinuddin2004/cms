@@ -12,6 +12,7 @@ export { TokenBadge, type TokenBadgeProps } from './data-display/TokenBadge';
 export { Avatar, type AvatarProps } from './data-display/Avatar';
 export { AVATAR_TINTS, avatarTintIndex, initialsOf } from './data-display/avatar-tint';
 export { StatTile, type StatTileProps } from './data-display/StatTile';
+export { QrCode, type QrCodeProps } from './data-display/QrCode';
 export * from './data-display/status-tones';
 
 export { EmptyState } from './feedback/EmptyState';
@@ -31,5 +32,6 @@ export { FilterChips, type FilterChipsProps, type FilterChipOption } from './for
 export { SegmentedControl, type SegmentedControlProps, type Segment } from './forms/SegmentedControl';
 
 export { FormSheet, type FormSheetProps } from './overlays/FormSheet';
+export { ReadOnlySheet, type ReadOnlySheetProps } from './overlays/ReadOnlySheet';
 export { ActionSheet, type ActionSheetProps, type SheetAction } from './overlays/ActionSheet';
 export { ConfirmDialog, type ConfirmDialogProps } from './overlays/ConfirmDialog';

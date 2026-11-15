@@ -16,10 +16,12 @@ import { registerThisDevice } from '../lib/device-registration';
  */
 export function usePushRegistration() {
   const userId = useStaffAuthStore((s) => s.user?.uuid ?? null);
+  const offlineSnapshot = useStaffAuthStore((s) => s.offlineSnapshot);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    // Saved-data mode has no session: register when it recovers (flag is a dep).
+    if (!userId || offlineSnapshot) return;
     let live = true;
     void (async () => {
       const state = await getPermissionState();
@@ -33,7 +35,7 @@ export function usePushRegistration() {
     return () => {
       live = false;
     };
-  }, [userId]);
+  }, [userId, offlineSnapshot]);
 
   const dismiss = useCallback(() => {
     setPref('staff.push.asked', '1');

@@ -46,14 +46,36 @@ export function telUrl(phone: string | null | undefined): string | null {
   return `tel:${raw.startsWith('+') ? '+' : ''}${digits}`;
 }
 
+/** Calling code by the clinic's currency (the app has no clinic country field yet). */
+const DIAL_CODE_BY_CURRENCY: Record<string, string> = {
+  PKR: '92',
+  INR: '91',
+  BDT: '880',
+  AED: '971',
+  SAR: '966',
+  GBP: '44',
+  USD: '1',
+};
+
+/** Calling code (digits, no `+`) for a currency code, or `undefined` when unknown. */
+export const dialCodeForCurrency = (currency: string | null | undefined): string | undefined =>
+  currency ? DIAL_CODE_BY_CURRENCY[currency.toUpperCase()] : undefined;
+
 /**
- * `https://wa.me/<digits>` (international format, digits only). A leading `00`
- * international prefix is dropped; a local number (`03…`) is passed as is, so
- * WhatsApp may not resolve it — clinics store `whatsappNumber` with the country code.
+ * `https://wa.me/<digits>` (international format, digits only). A leading `+` or `00`
+ * marks an international number and is kept as is; a national number with a trunk `0`
+ * (`0300…`) gets the clinic's `countryCode` ("92") in place of the `0`. Without a
+ * country code a local number is passed through unchanged.
  */
-export function whatsappUrl(phone: string | null | undefined): string | null {
-  const digits = (phone ?? '').replace(/\D/g, '').replace(/^00/, '');
-  return digits ? `https://wa.me/${digits}` : null;
+export function whatsappUrl(phone: string | null | undefined, countryCode?: string): string | null {
+  const raw = (phone ?? '').trim();
+  let digits = raw.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('00')) digits = digits.slice(2);
+  else if (!raw.startsWith('+') && countryCode && digits.startsWith('0')) {
+    digits = countryCode + digits.slice(1);
+  }
+  return `https://wa.me/${digits}`;
 }
 
 /** A number the user may display: the number to contact on WhatsApp (own WhatsApp number first). */

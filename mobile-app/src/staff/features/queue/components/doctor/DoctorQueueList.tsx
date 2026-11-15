@@ -12,7 +12,7 @@ import type { EntryView, SessionSnapshot } from '../../types/queue.types';
 import { suggestionReasonLabel } from './doctor-labels';
 import { CurrentPatientCard } from './CurrentPatientCard';
 import { PausedBanner } from './SessionPanels';
-import { useTickingNow } from './useTickingNow';
+import { useTickingNow } from '../../hooks/useTickingNow';
 import { WaitingRow } from './WaitingRow';
 
 export interface DoctorQueueListProps {

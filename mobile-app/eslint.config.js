@@ -103,7 +103,7 @@ module.exports = defineConfig([
     rules: { 'no-restricted-imports': APP_STAFF_FENCE },
   },
   {
-    files: ['src/app/(patient)/**', 'src/app/claim/**'],
+    files: ['src/app/(patient)/**', 'src/app/claim/**', 'src/app/c/**'],
     rules: { 'no-restricted-imports': APP_PATIENT_FENCE },
   },
   {

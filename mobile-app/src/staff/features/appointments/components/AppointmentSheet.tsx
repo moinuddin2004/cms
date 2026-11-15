@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
-import { APPOINTMENT_STATUS_TONES, FormSheet, StatusBadge, TokenBadge } from '@/core/components';
+import { APPOINTMENT_STATUS_TONES, ReadOnlySheet, StatusBadge, TokenBadge } from '@/core/components';
 import { Text } from '@/core/ui/text';
 import { formatDate, formatTime } from '@/staff/lib/datetime';
 
@@ -10,14 +10,6 @@ import { typeLabel } from '../lib/schedule-view';
 import type { AppointmentListItem } from '../types/appointments.types';
 
 import { doctorLabel } from './ScheduleRow';
-
-// FormSheet requires these strings, but the sheet is read-only (never dirty), so they cannot show.
-const DISCARD = {
-  title: 'Discard changes?',
-  description: 'There is nothing to save here.',
-  confirmLabel: 'Discard',
-  cancelLabel: 'Keep',
-};
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -62,12 +54,11 @@ export function AppointmentSheet({
   const cancelReason = detail?.cancelReason?.trim();
 
   return (
-    <FormSheet
+    <ReadOnlySheet
       open={open && row !== null}
       onClose={onClose}
       title="Appointment"
       closeLabel="Close appointment"
-      discard={DISCARD}
       submit={
         open && row && allowCheckIn
           ? {
@@ -115,6 +106,6 @@ export function AppointmentSheet({
           ) : null}
         </>
       ) : null}
-    </FormSheet>
+    </ReadOnlySheet>
   );
 }

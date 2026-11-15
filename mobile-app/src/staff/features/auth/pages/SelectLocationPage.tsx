@@ -46,7 +46,7 @@ export function SelectLocationPage() {
               <Button
                 key={loc.id}
                 variant="outline"
-                className="h-12 justify-start"
+                className="min-h-12 justify-start"
                 disabled={pick.isPending}
                 onPress={() => pick.mutate({ orgId: org.id, locationId: loc.id })}>
                 <Text>{loc.name}</Text>
