@@ -2865,3 +2865,34 @@ npx expo install expo-file-system expo-sharing
 Planned flow: "Share PDF" button on prescription detail only when `hasPdf` → `patientApi.get('/patient-api/prescriptions/:id/pdf', { responseType: 'arraybuffer' })` (bearer header, no token in a URL) → write to the cache directory (`expo-file-system`) → share (`expo-sharing`, mime `application/pdf`) → delete the file afterwards (also on failure); pending state on the button, toast without any PHI on failure.
 
 Verification: mobile typecheck (after `CI=1 npx expo start --offline`) clean · lint 0 errors · `lint:fences` ok · full jest 124 suites: all pass except two timing-sensitive failures on the first run (SearchBar debounce under machine load — passes alone; my own retry test fixed for the new upcoming fallback and re-run green) · backend `jest src/patient-app` 9 suites / 114 tests green.
+
+---
+## M2-05 + M2-14 — Web: Link app dialog, public landing pages  ·  2026-11-15  ·  Sonnet 5.5
+Branch: claude/m2-05-web-link-cca268   Commit(s): see git log   Status set to: review
+
+### Done
+- **M2-05**: "Link app" button in `PatientDetailHeader` (only with `can('patients.app_link.manage')`) opens `AppLinkDialog`: status (`GET /patients/:id/app-link`, polled every 5 s while open + manual refresh), QR of `url` from `POST .../claim-token`, countdown from the server's `expiresAt` (+ clinic-clock time), regenerate, revoke via `ConfirmDialog` (`DELETE`). Token lives only in mutation state; reset on close / when linked. Errors mapped: ALREADY_LINKED, CLINIC_SUSPENDED, PATIENT_APP_DISABLED.
+- QR uses the existing in-house encoder (`@/features/lab-orders` `QrCode`) — no new package.
+- **M2-14**: public routes `/c/$token` (validates 43-char base64url shape, "Open the app" -> `clinicapp://claim/<token>` deep link, store buttons) and `/v/$token` (visit state). Both added to `OPEN_PATHS` in `__root.tsx` (no auth redirects, no dashboard shell); `no-referrer` meta while mounted; token is never logged or sent anywhere except the deep link (and, for `/v/`, the documented endpoint path).
+- `/v/$token` is built against docs/07 §6.3 `GET /visit/:token/state`; that endpoint does **not exist yet** (M3-05) so the page shows "coming soon" on any failure.
+
+### Files
+- Created: `features/patients/{services/appLink.api.ts,hooks/useAppLink.ts,components/AppLinkDialog.tsx}`, `features/public-links/**`, `routes/c.$token.tsx`, `routes/v.$token.tsx`
+- Modified: `PatientDetailHeader.tsx`, `routes/__root.tsx`, `routeTree.gen.ts` (regenerated)
+
+### Install commands for the user
+none
+
+### Open items / for the architect
+- Missing backend: `GET /visit/:token/state` (M3-05).
+- Store buttons read `VITE_PLAY_STORE_URL`, `VITE_APP_STORE_URL` (unset -> "coming soon" text); deep-link scheme `VITE_APP_SCHEME` (default `clinicapp`; dev/preview variants use `clinicapp-dev`/`-preview`). Universal/App Links (so `/c/` opens the app directly) need `assetlinks.json` / apple-app-site-association on the web host — O-01 dependent.
+- Backend `url` uses `FRONTEND_URL`; set it to the web host that serves `/c/`.
+- Not browser-tested against a live backend; QR scan not device-tested.
+
+### Rework 1 (2026-11-16)
+- Merged `mobile/develop`. Public routes: `head` meta `noindex, nofollow` + `no-referrer` (PublicShell effect removed). `/v/` uses `lib/publicApi.ts` (bare axios, no auth/tenant headers, no 401 redirect; test `publicApi.test.ts`). Visit page: 404 -> "coming soon", 400/410 -> invalid/expired, other -> error + retry; visit tokens only length/charset checked. Claim countdown offsets by the server clock from the response `Date` header (0 if the browser can't read it — backend would need `Access-Control-Expose-Headers: Date`). `web-app/.env.example` documents `VITE_APP_SCHEME` (`clinicapp-dev` / `clinicapp-preview` / `clinicapp`), `VITE_PLAY_STORE_URL`, `VITE_APP_STORE_URL`.
+- Full `npm run test` after rework: 383 passed / 5 failed, all in files this branch does not touch: `DataTable.test.tsx` (paginates client-side rows), `builders.acceptance.test.tsx` (THEME-15 blue/indigo count), `notification-realtime.test.tsx` (2), `patient-messages.test.tsx` (1). Not run separately on plain `mobile/develop`; none of these files or their imports changed here. Build ok, eslint clean on touched files.
+
+### Verification
+- `npm run build` ok · eslint clean on touched files · `npm run test`: 382 passed / 5 failed — all in files this card did not touch (DataTable pagination text, builders THEME-15 blue-token count, notifications, roles escalation); same family as the existing fix-5-failing-web-app-tests task. tsc has no errors in touched files.
+
