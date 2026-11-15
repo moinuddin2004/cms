@@ -11,3 +11,7 @@ export const PLAY_STORE_URL =
   (import.meta.env.VITE_PLAY_STORE_URL as string | undefined) || ''
 export const APP_STORE_URL =
   (import.meta.env.VITE_APP_STORE_URL as string | undefined) || ''
+
+/** Visit tokens have no fixed format yet: only a sane length/charset check. */
+export const isVisitTokenShape = (token: string) =>
+  /^[A-Za-z0-9_-]{8,128}$/.test(token)

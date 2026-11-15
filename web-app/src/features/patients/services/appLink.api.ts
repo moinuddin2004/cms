@@ -16,6 +16,7 @@ export interface ClaimToken {
   token: string
   url: string
   expiresAt: string
+  clockOffsetMs: number
 }
 
 export async function fetchAppLink(patientId: string): Promise<AppLinkStatus> {
@@ -23,9 +24,18 @@ export async function fetchAppLink(patientId: string): Promise<AppLinkStatus> {
   return data.data
 }
 
+/**
+ * `clockOffsetMs` = server clock − this PC's clock, from the response `Date`
+ * header (0 when the browser can't read it), so the countdown is not skewed
+ * by a wrong PC clock.
+ */
 export async function createClaimToken(patientId: string): Promise<ClaimToken> {
-  const { data } = await api.post(`/patients/${patientId}/app-link/claim-token`)
-  return data.data
+  const res = await api.post(`/patients/${patientId}/app-link/claim-token`)
+  const serverNow = Date.parse(String(res.headers.date ?? ''))
+  return {
+    ...res.data.data,
+    clockOffsetMs: Number.isNaN(serverNow) ? 0 : serverNow - Date.now(),
+  }
 }
 
 export async function revokeAppLink(

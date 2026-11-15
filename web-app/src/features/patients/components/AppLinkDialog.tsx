@@ -22,7 +22,7 @@ import {
 } from '../hooks/useAppLink'
 
 /** Seconds left until `expiresAt` (the server's instant), ticking every second. */
-function useCountdown(expiresAt: string | undefined) {
+function useCountdown(expiresAt: string | undefined, clockOffsetMs: number) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (!expiresAt) return
@@ -31,7 +31,11 @@ function useCountdown(expiresAt: string | undefined) {
     return () => window.clearInterval(id)
   }, [expiresAt])
   if (!expiresAt) return 0
-  return Math.max(0, Math.floor((new Date(expiresAt).getTime() - now) / 1000))
+  const serverNow = now + clockOffsetMs
+  return Math.max(
+    0,
+    Math.floor((new Date(expiresAt).getTime() - serverNow) / 1000),
+  )
 }
 
 const mmss = (s: number) =>
@@ -57,7 +61,7 @@ export function AppLinkDialog({
   const [confirmRevoke, setConfirmRevoke] = useState(false)
 
   const claim = create.data
-  const remaining = useCountdown(claim?.expiresAt)
+  const remaining = useCountdown(claim?.expiresAt, claim?.clockOffsetMs ?? 0)
   const expired = !!claim && remaining === 0
   const linked = status.data?.status === 'active'
   const { reset } = create

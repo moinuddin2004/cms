@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { Hourglass } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSkeleton } from '@/components/feedback/LoadingSkeleton'
 import { formatTime } from '@/lib/datetime'
 import { PublicShell } from '../components/PublicShell'
 import { fetchVisitState } from '../services/visit.api'
-import { isTokenShape } from '../utils/links'
+import { isVisitTokenShape } from '../utils/links'
 
 /**
  * `/v/$token` — live visit state (queue position), no personal data. Built
@@ -13,7 +14,7 @@ import { isTokenShape } from '../utils/links'
  * shows a "coming soon" state.
  */
 export function VisitStatePage({ token }: { token: string }) {
-  const valid = isTokenShape(token)
+  const valid = isVisitTokenShape(token)
   const state = useQuery({
     queryKey: ['visit-state', token],
     queryFn: () => fetchVisitState(token),
@@ -37,6 +38,41 @@ export function VisitStatePage({ token }: { token: string }) {
     return (
       <PublicShell>
         <LoadingSkeleton variant="detail" />
+      </PublicShell>
+    )
+  }
+
+  const status = isAxiosError(state.error)
+    ? state.error.response?.status
+    : undefined
+
+  if (!state.data && (status === 400 || status === 410)) {
+    return (
+      <PublicShell>
+        <h1 className="text-lg font-semibold">
+          This link is invalid or expired
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Ask the clinic for your visit link again.
+        </p>
+      </PublicShell>
+    )
+  }
+
+  if (!state.data && status !== 404) {
+    return (
+      <PublicShell>
+        <h1 className="text-lg font-semibold">Couldn&apos;t load your visit</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Check your connection and try again.
+        </p>
+        <Button
+          className="mt-4"
+          onClick={() => void state.refetch()}
+          disabled={state.isFetching}
+        >
+          Retry
+        </Button>
       </PublicShell>
     )
   }
