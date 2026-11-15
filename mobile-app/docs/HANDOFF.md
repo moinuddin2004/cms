@@ -2303,3 +2303,40 @@ Branch: `claude/m1-09-board-745a66` · Commit: b7df3af · Status stays: review
 | 5 | Vanished entry fails silently | Mark urgent, transfer and cancel on an entry that left the lane toast "This patient is no longer in the queue."; urgent also closes the sheet. Test: `EntryActionsHost.test.tsx`. |
 
 Verification: `npm run typecheck` ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓ · full jest 67 suites / 474 tests ✓ (`--forceExit`). No device.
+---
+## M1-12 — Patient summary (S-05)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-12-patient-summary-c4f480 (from mobile/develop)   Commit(s): feat(mobile): M1-12 …   Status set to: review
+
+### Done
+- `PatientDetailPage` (same props): uuid-validated route param (invalid or API 404 → ErrorState "Not found"), loading / error+retry, pull-to-refresh, header (name; `MR · age · gender · blood group`), alert strip from `patientAlerts`, `SegmentedControl` with Overview / Visits always and Rx / Chart only when the gated hook is `allowed` (never while `loading`).
+- Overview: phone, guardian, medical history, today's queue entry (from `usePatientQueueVisits`, serviceDate = clinic today, not finished), latest vitals (hidden when denied). Visits: queue visits + clinical history (history hidden when denied). Rx: list (hook order: finalized/amended first) + read-only detail in `FormSheet`. Chart: latest chart as a list of findings (current jsonb model + legacy strings, "planned" marked), no drawing.
+- ⋯ `ActionSheet`: Call (`tel:` digits only), WhatsApp (`https://wa.me/<digits>`, `whatsappNumber` first), Copy MR no. (explicit, toast). Failed `openURL` → generic toast (no number in it).
+- Id pushed into `useRecentPatientsStore` only after a valid patient loaded (ids only, memory).
+- Every block has loading / empty / error(retry); denied blocks render nothing.
+
+### Files
+- Modified: `staff/features/patients/pages/PatientDetailPage.tsx`
+- Created: `patients/components/detail/{DetailBlock,AlertStrip,OverviewSegment,VisitsSegment,RxSegment,ChartSegment}.tsx`, `patients/lib/{patient-detail,copy-text}.ts`, tests `lib/patient-detail.test.ts`, `pages/PatientDetailPage.test.tsx`
+- Docs: PROGRESS row, this entry. Barrel untouched (no new exports needed).
+
+### Install commands for the user
+none left. `expo-clipboard ~58.0.4` was added by the team lead/user for this card (package.json + lockfile committed here); `lib/copy-text.ts` now uses `Clipboard.setStringAsync` (false on failure → toast "Could not copy"). Native module → needs a new dev build.
+
+### Verification
+- `npm test` → 63 suites / 467 tests, all green (after the clipboard change; `copy-text.test.ts` added). `npm run typecheck` clean. ESLint on `src`: 0 errors (existing warnings only; my new axios warning fixed). `npm run lint:fences` all PASS.
+- **No device / emulator here:** no screenshots; visual and 44 pt checks are by code only.
+
+### Acceptance criteria
+- [x] User without `patients.clinical.view` sees Overview + Visits only (test: rx/chart denied → only those two tabs; vitals and history blocks absent, no error)
+- [ ] Screenshots of each segment (needs a device)
+
+### Deviations / notes
+- Lists are plain mapped Views inside the screen's scroll (first page only: visits full list, Rx first 20, history all encounters), not FlashList — nesting a FlashList in a ScrollView is worse; revisit if histories get long.
+- WhatsApp: a local number (`03…`) is sent as is; wa.me needs country code, so it only resolves when `whatsappNumber`/phone is stored in international form.
+- Rx detail uses `FormSheet` (no submit, dummy discard strings) since core has no read-only sheet.
+- Tests stub reanimated, bottom-sheet and both overlays (native runtime) — same approach as `FormSheet.test.tsx`.
+- "Link app (M2-15)" menu item not added (later card).
+
+### Questions for the architect
+- None.
+
