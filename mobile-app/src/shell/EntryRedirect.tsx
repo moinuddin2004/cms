@@ -11,6 +11,6 @@ export function EntryRedirect() {
   const activeSpace = useSpaceStore((s) => s.activeSpace);
 
   if (activeSpace === 'staff') return <Redirect href="/login" />;
-  if (activeSpace === 'patient') return <Redirect href="/(patient)" />;
+  if (activeSpace === 'patient') return <Redirect href="/sign-in" />;
   return <Redirect href="/welcome" />;
 }

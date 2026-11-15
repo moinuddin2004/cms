@@ -1,3 +1,4 @@
+import { REFRESH_TOKEN_KEYS } from '@/core/space/session-keys';
 import { createSecureItem } from '@/core/storage/secure-store';
 
 /**
@@ -8,7 +9,7 @@ import { createSecureItem } from '@/core/storage/secure-store';
  * The key is unchanged (`auth.refreshToken`), so sessions from before the
  * core/staff split keep working.
  */
-const refreshToken = createSecureItem('auth.refreshToken');
+const refreshToken = createSecureItem(REFRESH_TOKEN_KEYS.staff);
 
 export const getRefreshToken = refreshToken.get;
 export const setRefreshToken = refreshToken.set;

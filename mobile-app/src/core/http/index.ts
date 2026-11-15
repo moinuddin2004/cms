@@ -3,3 +3,11 @@ export { isRetryable, newIdempotencyKey, retryDelayMs } from './idempotency';
 export { useIdempotentMutation } from './idempotent-mutation';
 export type { IdempotencyContext } from './idempotent-mutation';
 export { useCanMutate } from './use-can-mutate';
+export {
+  API_TIMEOUT_MS,
+  NATIVE_HEADERS,
+  createApiClient,
+  createSingleFlight,
+  extractErrorCode,
+  type ApiClientOptions,
+} from './create-api-client';

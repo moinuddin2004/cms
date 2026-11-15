@@ -2457,7 +2457,7 @@ Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `
 
 ---
 ## M2-06 — Patient space foundation  ·  2026-11-15  ·  Claude Sonnet 5.5
-Branch: claude/m2-06-patient-space-982123   Status set to: in-progress
+Branch: claude/m2-06-patient-space-982123   Status set to: review
 
 ### Plan (written before coding)
 1. `core/http/create-api-client.ts`: `createApiClient` (request hook, 403 hook, 401 → refresh → retry once) + `createSingleFlight`; staff `api.ts` rebuilt on it, behaviour and `api.test.ts` unchanged. `extractErrorCode` shared.
@@ -2466,3 +2466,39 @@ Branch: claude/m2-06-patient-space-982123   Status set to: in-progress
 4. Patient: `lib/api.ts` (factory; NO tenant headers, `x-patient-refresh-token`, single-flight `refreshSession`), `lib/session.ts`, `store/usePatientAuthStore`, `lib/persist-cache` wipe (patient only), `resolve-patient-route`, `useRestorePatientSession`, `PatientProviders` (own QueryClient + persist), `PatientLayout` guards, sign-in + verify-code screens (TanStack Form + Zod, `/patient-auth/email/start|verify`), name step when `needsName` (PATCH `/patient-api/me`), sign-out (wipe patient only), Google slot hidden.
 5. Staff: `StaffLayout` skips restore when already `signedIn` (M0-04 MUST); staff sign-out returns to patient space when it has a session; patient home has "switch to clinic staff".
 6. Tests: single-flight refresh (parallel 401s + restore racing a 401), restore states, sign-out wipe isolation, space switching, route resolver, i18n, factory.
+
+### Done
+- `core/http/create-api-client.ts`: `createApiClient` (request hook, 403 hook, 401 → one refresh → retry once), `createSingleFlight`, `extractErrorCode`. Staff `lib/api.ts` rebuilt on it; behaviour and `api.test.ts` unchanged and green.
+- `core/i18n` (A-21): typed `en`/`ur` catalogs (`ur` copies English with `// TODO(ur)` where untranslated), `t`, `useT`, `setLocale` (prefs `patient.language`), `isRtl`. Tests: lookup, interpolation, fallback to `en`, override, key parity.
+- `core/space`: `session-keys.ts`, `leaveSpaceAfterSignOut`, `hasSavedSession`. Signing out of a space goes to the other space when its refresh token is still in SecureStore, else welcome — no cross-space import.
+- Patient space: `lib/api.ts` (`patientApi`, NO tenant headers, `x-patient-refresh-token`, **single-flight** `refreshSession` shared by restore and the 401 interceptor; 401/403 on refresh = wipe patient cache + drop token; network error = keep session, never auto-retry), `session.ts`, `usePatientAuthStore`, `persist*` (empty allow-list, wipe seals persisters), `patientQueryClient`, `PatientProviders`, `resolvePatientRoute`, `PatientLayout` guards (offline / sign-in / verify-code / name / main), `useRestorePatientSession` (skips when already `signedIn`).
+- P-00: `SignInPage` → `POST /patient-auth/email/start`; the pending email lives in the store (never in a URL), the guard then shows `VerifyCodePage` (`email/verify`, terms/privacy `1.0`, 60 s resend, generic wrong-code message); `NamePage` when `needsName` (`PATCH /patient-api/me`). Google slot is an empty component (A-20).
+- Patient home (`PatientPlaceholderPage`): signed-in-as, **Switch to clinic staff**, **Sign out** (confirm → `signOutPatient`: server logout best effort, drop token, wipe patient encrypted cache + key, clear patient queries, leave space).
+- MUST 2: `useRestoreStaffSession` returns early when `signedIn` (StaffLayout calls it); tested. Staff sign-out now uses `leaveSpaceAfterSignOut('staff')`.
+- Routes: `(patient)/{sign-in,verify-code,name,offline}.tsx`, `(patient)/(main)/{_layout,index}.tsx`; `EntryRedirect` sends patient to `/sign-in` (guards pick the screen).
+
+### Files
+- Created: `src/core/http/create-api-client{,.test}.ts`, `src/core/i18n/*`, `src/core/space/{session-keys,switch-space.test}.ts`, `src/patient/{lib,store,providers,features/auth,navigation/{PatientMainLayout,resolve-patient-route}}/…`, `src/app/(patient)/{sign-in,verify-code,name,offline}.tsx`, `src/app/(patient)/(main)/_layout.tsx`, `src/shell/space-isolation.test.ts`, `src/staff/features/auth/hooks/useRestoreStaffSession.test.ts`.
+- Modified: `src/staff/lib/{api,session}.ts`, staff `useSignOut{,.test}`, `useRestoreStaffSession`, `core/http/index.ts`, `core/space/switch-space.ts`, patient `index.ts`/layout/placeholder, `EntryRedirect`, DECISIONS (A-21), PROGRESS.
+- Moved: `src/app/(patient)/index.tsx` → `(patient)/(main)/index.tsx`.
+
+### Install commands for the user
+none (i18n is in-house, A-21).
+
+### Verification
+- `tsc --noEmit` clean · eslint 0 errors (3 pre-existing warnings: `api-error.ts`, `skeleton.tsx`, `useToday.test.tsx`) · `lint:fences` ok · full jest 99 suites / 736 tests green (`-i --forceExit`).
+- Tests added: patient single-flight (parallel 401s, restore racing a 401, rotated token reuse, reject = sign-out, network error keeps session, no refresh on `/patient-auth/*`, no tenant headers), restore states (patient + staff skip), route resolver, factory, i18n, space switching, sign-out isolation (patient wiped; staff token/cache/queries intact; lands in staff or welcome).
+- NO DEVICE: sign-in/verify/name screens, split-view of both spaces, `oneTimeCode` autofill, keyboard behaviour — wait on gate M0-D.
+
+### Acceptance criteria
+- [x] sign-out of patient wipes only patient data (isolation test)
+- [x] both spaces signed in at once (separate stores, tokens, caches; switching never signs out)
+- [ ] on-device check (gate M0-D)
+
+### Deviations / notes for the architect
+- Code input is one styled input (not 6 boxes) — visual boxes can follow.
+- Added a `name` route (`needsName` step); docs/02 route tree has no such screen yet.
+- Resolver also returns `verify-code` from `awaitingCode` (pending email in memory), so no router call is needed to move between the two auth screens.
+- Known server-side limit: a refresh whose response is lost (timeout after the server rotated) leaves the old token stored; the next refresh then looks like replay and the backend revokes the session. Needs a short server grace window or client-side retry design — not solved here.
+- `LINK_REVOKED` only invalidates `['links']` (no links query exists yet). Push-device unregister joins sign-out with M3-07.
+- Shell test mocks `PatientLayout` (Jest cannot load the router/native runtime); `patient/index.ts` also exports `signOutPatient` and `patientQueryClient` for the shell.

@@ -1,6 +1,12 @@
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { type AxiosError } from 'axios';
 
 import { env } from '@/core/env';
+import {
+  API_TIMEOUT_MS,
+  NATIVE_HEADERS,
+  createApiClient,
+  createSingleFlight,
+} from '@/core/http/create-api-client';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 import { clearRefreshToken, getRefreshToken, setRefreshToken } from '@/staff/lib/session';
 import {
@@ -18,26 +24,30 @@ const CLINIC_GATE_CODES = new Set<string>([
   'GOOGLE_DOMAIN_NOT_ALLOWED',
 ]);
 
-/**
- * Tells the API this is the native app: it then returns the refresh token in
- * the body and reads it from `x-refresh-token` (no cookies on mobile).
- */
-const NATIVE_HEADERS = { 'x-client-type': 'mobile' } as const;
-
 /** The staff space's axios client: staff JWT + org/location headers. */
-export const staffApi = axios.create({
-  baseURL: env.apiUrl,
-  timeout: 15_000,
-  headers: { 'Content-Type': 'application/json', ...NATIVE_HEADERS },
-});
-
-// ==================== REQUEST: token + tenant context ====================
-staffApi.interceptors.request.use((config) => {
-  const s = useStaffAuthStore.getState();
-  if (s.accessToken) config.headers.Authorization = `Bearer ${s.accessToken}`;
-  if (s.activeOrganizationId) config.headers['x-organization-id'] = s.activeOrganizationId;
-  if (s.activeLocationId) config.headers['x-location-id'] = s.activeLocationId;
-  return config;
+export const staffApi = createApiClient({
+  onRequest: (config) => {
+    const s = useStaffAuthStore.getState();
+    if (s.accessToken) config.headers.Authorization = `Bearer ${s.accessToken}`;
+    if (s.activeOrganizationId) config.headers['x-organization-id'] = s.activeOrganizationId;
+    if (s.activeLocationId) config.headers['x-location-id'] = s.activeLocationId;
+  },
+  // Lazy: `refreshSession` is declared below.
+  refreshSession: () => refreshSession(),
+  noRefreshUrls: ['/auth/refresh', '/auth/login'],
+  onForbidden: (error, code) => {
+    const body = error.response?.data as { message?: unknown } | undefined;
+    const s = useStaffAuthStore.getState();
+    if (code === 'EMAIL_NOT_VERIFIED') s.setEmailVerificationRequired(true);
+    if (code && CLINIC_GATE_CODES.has(code)) {
+      if (s.activeOrganizationId && !s.isSuperAdmin) {
+        s.setClinicBlock(s.activeOrganizationId, {
+          code: code as SignInBlockCode,
+          message: typeof body?.message === 'string' ? body.message : '',
+        });
+      }
+    }
+  },
 });
 
 // ==================== SESSION STORAGE ====================
@@ -59,16 +69,9 @@ export async function dropSession(): Promise<void> {
  * there is none or the server rejected it. Throws on a network failure, so
  * callers can tell "signed out" from "offline".
  */
-let refreshInFlight: Promise<SessionPayload | null> | null = null;
-
-export function refreshSession(): Promise<SessionPayload | null> {
-  // One refresh at a time: the server rotates the token on every call, so two
-  // parallel refreshes would invalidate each other.
-  refreshInFlight ??= doRefresh().finally(() => {
-    refreshInFlight = null;
-  });
-  return refreshInFlight;
-}
+// One refresh at a time: the server rotates the token on every call, so two
+// parallel refreshes would invalidate each other.
+export const refreshSession: () => Promise<SessionPayload | null> = createSingleFlight(doRefresh);
 
 async function doRefresh(): Promise<SessionPayload | null> {
   const stored = await getRefreshToken();
@@ -78,7 +81,7 @@ async function doRefresh(): Promise<SessionPayload | null> {
     const res = await axios.post(
       `${env.apiUrl}/auth/refresh`,
       {},
-      { headers: { ...NATIVE_HEADERS, 'x-refresh-token': stored }, timeout: 15_000 },
+      { headers: { ...NATIVE_HEADERS, 'x-refresh-token': stored }, timeout: API_TIMEOUT_MS },
     );
     const payload = res.data.data as SessionPayload;
     await persistSession(payload);
@@ -99,50 +102,3 @@ async function doRefresh(): Promise<SessionPayload | null> {
     throw err;
   }
 }
-
-// ==================== RESPONSE: gate codes + auto-refresh ====================
-type Retryable = InternalAxiosRequestConfig & { _retry?: boolean };
-
-staffApi.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
-    const original = error.config as Retryable | undefined;
-
-    if (error.response?.status === 403) {
-      const body = error.response.data as
-        | { code?: unknown; message?: unknown; error?: { code?: unknown } | null }
-        | undefined;
-      // The API's exception filter nests the thrown object under `error`.
-      const code = body?.code ?? body?.error?.code;
-      const s = useStaffAuthStore.getState();
-      if (code === 'EMAIL_NOT_VERIFIED') s.setEmailVerificationRequired(true);
-      if (typeof code === 'string' && CLINIC_GATE_CODES.has(code)) {
-        if (s.activeOrganizationId && !s.isSuperAdmin) {
-          s.setClinicBlock(s.activeOrganizationId, {
-            code: code as SignInBlockCode,
-            message: typeof body?.message === 'string' ? body.message : '',
-          });
-        }
-      }
-    }
-
-    if (error.response?.status !== 401 || !original) return Promise.reject(error);
-
-    const url = original.url ?? '';
-    if (url.includes('/auth/refresh') || url.includes('/auth/login') || original._retry) {
-      return Promise.reject(error);
-    }
-    original._retry = true;
-
-    let session: SessionPayload | null;
-    try {
-      session = await refreshSession();
-    } catch {
-      return Promise.reject(error); // offline: keep the session, let the caller retry
-    }
-    if (!session) return Promise.reject(error); // refreshSession already signed out
-
-    original.headers.Authorization = `Bearer ${session.accessToken}`;
-    return staffApi(original);
-  },
-);

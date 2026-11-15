@@ -46,6 +46,7 @@
 | A-18 | Gated data hooks return a tagged state `{ access: 'loading' \| 'denied' } \| { access: 'allowed', query }` | Screens must tell loading from denied (M1-11b review) |
 | A-19 | Patient reads per clinic status: a clinic that was **never approved** (`approval_status` pending/rejected) shows no links or records in the patient app; a **suspended** clinic's links stay readable but frozen (records shown, a `clinicStatus: 'suspended'` flag, no new claims/links) | The data belongs to the patient; an unapproved clinic may be fake (M2-03 review question) |
 | A-20 | Native Google sign-in on mobile (staff M1-17, patient later) uses `@react-native-google-signin/google-signin` (config plugin, dev build); the backend verifies the ID token against the web + Android + iOS client IDs | One library for both spaces; the session confirms against SDK 58 docs and the user installs the package |
+| A-21 | Patient i18n is in-house (`src/core/i18n`: typed `en`/`ur` catalogs, `t(key, params)` with `{name}`, locale from expo-localization + prefs override, RTL flag, `useT()`), API shaped like i18next. Adopt i18next later only if plurals/ICU are needed | No new dependency now; a swap stays a small change because call sites use `t('a.b.c')` |
 
 ## Open (user to decide — build with the default meanwhile)
 

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { switchSpace } from '@/core/space/switch-space';
+import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { dropSession } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
@@ -25,10 +25,9 @@ export function useSignOut() {
         // still sign out; the cache is keyed to this user and busts on next login
       }
       queryClient.clear();
-      // The patient space does not exist yet, so signing out always returns to
-      // the welcome picker (docs/02 §4; M2-06 switches to the other space when
-      // it is signed in).
-      switchSpace(null);
+      // Back to the patient space if it still has a session, else the welcome
+      // picker (docs/02 4). The patient session and cache are never touched.
+      await leaveSpaceAfterSignOut('staff');
     },
   });
 }
