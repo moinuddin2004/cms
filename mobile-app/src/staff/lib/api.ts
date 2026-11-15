@@ -129,7 +129,12 @@ staffApi.interceptors.response.use(
     if (error.response?.status !== 401 || !original) return Promise.reject(error);
 
     const url = original.url ?? '';
-    if (url.includes('/auth/refresh') || url.includes('/auth/login') || original._retry) {
+    if (
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/login') ||
+      url.includes('/auth/google') ||
+      original._retry
+    ) {
       return Promise.reject(error);
     }
     original._retry = true;

@@ -90,7 +90,7 @@ describe('useGoogleSignIn', () => {
     expect(persistSession).not.toHaveBeenCalled();
   });
 
-  it('shows the server message when the clinic policy refuses (403)', async () => {
+  it('shows the server message when the sign-in call is refused (403)', async () => {
     const { result } = await setup();
     await waitFor(() => expect(result.current.available).toBe(true));
     (getGoogleIdToken as jest.Mock).mockResolvedValue('t');
