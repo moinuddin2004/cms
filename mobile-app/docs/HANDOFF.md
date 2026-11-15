@@ -2303,3 +2303,33 @@ Branch: `claude/m1-09-board-745a66` · Commit: b7df3af · Status stays: review
 | 5 | Vanished entry fails silently | Mark urgent, transfer and cancel on an entry that left the lane toast "This patient is no longer in the queue."; urgent also closes the sheet. Test: `EntryActionsHost.test.tsx`. |
 
 Verification: `npm run typecheck` ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓ · full jest 67 suites / 474 tests ✓ (`--forceExit`). No device.
+
+---
+## M1-15 — Today snapshot (UI), screen S-01  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M1-15-today-ui (from mobile/develop)   Status set to: review
+
+### Done
+- `pages/TodayPage.tsx` (route `today.tsx` renders it): header "Today" + clinic-clock date · active location + bell; blocks from `visibleTodayBlocks` only: stats tiles (appointments, waiting now, avg wait), collections tiles (collected + unpaid invoices, or outstanding when the daily summary answered), Doctors now (row -> Queue tab), Next appointments (All -> Schedule). Pull to refresh refetches every allowed block.
+- `components/BlockShell.tsx`: each block has its own skeleton / error + retry; denied renders nothing. No visible block -> "Nothing to show here" empty state.
+- Money: `formatCurrency` on the DECIMAL amounts (no minor-unit division). `lib/today-format.ts`: avg wait and doctor summary text.
+- No old dashboard feature exists in mobile-app, so nothing to delete.
+
+### Files
+- Created: `components/{BlockShell,TodayBlocks}.tsx`, `pages/TodayPage.tsx` + test, `lib/today-format.ts`. Modified: route `today.tsx`, `index.ts` (one export). No core component added.
+
+### Install commands for the user
+none.
+
+### Verification
+- eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 81 suites / 622 tests green (`-i --forceExit`).
+- `npm run typecheck`: only `src/app/_layout.tsx` `@/global.css` TS2882 remains (not from this card; the uniwind-generated declaration is absent in this checkout).
+- NO DEVICE: owner/receptionist/doctor screenshots wait on gate M0-D.
+
+### Acceptance criteria
+- [x] right blocks per permission set (component tests for owner, receptionist, doctor)
+- [ ] screenshots on device (gate M0-D)
+
+### Deviations from the card / docs
+- **Location switcher in the header is NOT built**: `SwitchLocationSheet` / `useSwitchLocation` live in `features/more` (not exported, outside my file ownership). The header shows the active location name in the subtitle; switching stays under More. Suggest exporting a `LocationSwitcherButton` from `more` and adding it to this header as a follow-up.
+- Doctor row tap opens the Queue tab, not that doctor's lane (the queue tab has no lane param yet).
+- Tests mock the core kit (Screen etc.), since Jest has no native runtime.

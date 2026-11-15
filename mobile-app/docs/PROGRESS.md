@@ -50,7 +50,7 @@
 | M1-14a | Appointments data layer | MOB | S | M1-06 | done (in develop) | | | |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | done | Sonnet session | 2026-11-15 | rework-1; device check waits M0-D |
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | done | Sonnet session | 2026-11-15 | approved |
-| M1-15 | Today snapshot (UI) | MOB | M | M1-15a | ready (UI phase) | | | |
+| M1-15 | Today snapshot (UI) | MOB | M | M1-15a | review | Sonnet session | 2026-11-15 | |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
 | M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
 | M2-01 | Patient identity tables + entities | BE | M | M0-09 | done (in develop) | mobile/M2-01-patient-identity | DeepSeek Flash | 2026-11-11 |
