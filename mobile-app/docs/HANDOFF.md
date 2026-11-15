@@ -2769,3 +2769,6 @@ Branch: claude/m2-07-claim-flow-b5aeae · Status stays: review (merged `mobile/d
 Note: the app only opens from the https link once M2-14 (web landing + association) exists; until then scanning the QR opens the browser page.
 
 Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok · full jest 116 suites / 834 tests ✓ · `CI=1 npx expo start --offline` run. No device.
+
+### Addendum — real QR (after rework 1)
+`react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
