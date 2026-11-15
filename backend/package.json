@@ -31,6 +31,7 @@
     "test:int:acceptance": "jest --config ./test/jest-int-acceptance.json --runInBand --forceExit",
     "access:export": "ts-node scripts/export-access-catalog.ts",
     "seed": "ts-node -r tsconfig-paths/register --transpile-only database/seed/run.ts",
+    "seed:demo": "ts-node -r tsconfig-paths/register --transpile-only database/seed/demo-store-review.ts",
     "seed:check": "ts-node -r tsconfig-paths/register --transpile-only database/seed/check.ts"
   },
   "dependencies": {

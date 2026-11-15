@@ -128,6 +128,34 @@ Still open: the real app identity (O-01), store listings, signing credentials, t
 deletion page (M4) and the privacy policy. The placeholder package name cannot be uploaded to Play,
 so do not submit before O-01 is decided.
 
+## 6b. Demo accounts for store review (M4-03)
+
+Play needs working logins (Play Console, App content, App access). Seed a fictional clinic on the **review/staging API database** (never run automatically, never part of startup):
+
+```powershell
+cd backend
+$env:DEMO_STAFF_PASSWORD = "<a strong password, 12+ chars>"
+$env:DEMO_PATIENT_EMAIL  = "<a mailbox you control>"
+npm run seed:demo -- --allow-demo-seed
+```
+
+| Variable | Meaning |
+| --- | --- |
+| `DEMO_STAFF_PASSWORD` | Required. Shared password of the staff logins. Never the dev seed password. |
+| `DEMO_PATIENT_EMAIL` | Required. The demo patient account signs in with an **emailed 6-digit code**, so this mailbox must be yours. |
+| `DEMO_STAFF_EMAIL_DOMAIN` | Optional, default `demo-clinic.example`. Staff logins: `owner@`, `doctor@`, `reception@` on that domain. |
+
+Guards: needs `--allow-demo-seed` (or `ALLOW_DEMO_SEED=1`). With `NODE_ENV=production` it also needs `--allow-demo-seed-in-production` (or `ALLOW_DEMO_SEED_IN_PRODUCTION=1`). Safe to re-run: it creates only what is missing. It prints no secrets. SMTP and Redis are switched off during the run, so nothing is sent.
+
+It creates one approved clinic ("Demo Family Clinic") with one location, a doctor and a receptionist, 5 fictional patients (`Demo Patient One` …), appointments, one queue entry, one finalized prescription, and a patient-app account already linked to "Demo Patient One". The script was unit-tested for its guards and type-checked; it has **not been executed** against a database yet (dry-run it on a scratch database first).
+
+**Reviewer limitation:** patient sign-in uses an emailed code and a Play reviewer cannot read your mailbox. Options: put in the App access notes that you will give the code on request, or add a review-only fixed code (a backend auth change, not done here, owner decision).
+
+## 6c. Legal texts and the deletion URL (M4-04)
+
+DRAFT texts are in `mobile-app/docs/legal/` (privacy policy, terms, account deletion, Play Data safety inputs). A lawyer must review them and every `[PLACEHOLDER]` must be replaced. Public web pages: `<web>/privacy`, `<web>/terms`, `<web>/delete-account`. After editing the Markdown run `node mobile-app/docs/legal/build-web-content.mjs` and commit the regenerated file. Enter `<web>/privacy` and `<web>/delete-account` in Play Console.
+
+
 ## 7. Pre-flight checks
 
 ```powershell

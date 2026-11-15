@@ -65,7 +65,9 @@
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
-| M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
+| M4-03 | Demo clinic seed + demo accounts | BE | S | — | review | Sonnet session | 2026-11-16 | `npm run seed:demo`; guards unit-tested, seed not executed |
+| M4-04 | Privacy, terms, Data safety, deletion URL | ALL | M | — | review | Sonnet session | 2026-11-16 | DRAFT legal text; `/privacy` `/terms` `/delete-account` |
+| M4-01, M4-02, M4-05, M4-06 | Release | — | — | see 10 | spec | | | |
 
 ## Gates
 

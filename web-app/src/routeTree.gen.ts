@@ -15,6 +15,7 @@ import { Route as ClinicAccessRouteImport } from './routes/clinic-access'
 import { Route as ClinicOverviewRouteImport } from './routes/clinic-overview'
 import { Route as ConfirmEmailRouteImport } from './routes/confirm-email'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as DeleteAccountRouteImport } from './routes/delete-account'
 import { Route as DesktopGoogleRouteImport } from './routes/desktop-google'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FinanceRouteImport } from './routes/finance'
@@ -38,6 +39,7 @@ import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PlanTemplatesRouteImport } from './routes/plan-templates'
 import { Route as PrescriptionPresetsRouteImport } from './routes/prescription-presets'
 import { Route as PrescriptionTemplatesRouteImport } from './routes/prescription-templates'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SelectLocationRouteImport } from './routes/select-location'
@@ -45,6 +47,7 @@ import { Route as SessionsRouteImport } from './routes/sessions'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SubscriptionsRouteImport } from './routes/subscriptions'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AdminFeaturesRouteImport } from './routes/admin.features'
@@ -157,6 +160,11 @@ const ConfirmEmailRoute = ConfirmEmailRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeleteAccountRoute = DeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesktopGoogleRoute = DesktopGoogleRouteImport.update({
@@ -274,6 +282,11 @@ const PrescriptionTemplatesRoute = PrescriptionTemplatesRouteImport.update({
   path: '/prescription-templates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
@@ -307,6 +320,11 @@ const SetupRoute = SetupRouteImport.update({
 const SubscriptionsRoute = SubscriptionsRouteImport.update({
   id: '/subscriptions',
   path: '/subscriptions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -740,6 +758,7 @@ export interface FileRoutesByFullPath {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -763,6 +782,7 @@ export interface FileRoutesByFullPath {
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
@@ -770,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRouteWithChildren
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/terms': typeof TermsRoute
   '/users': typeof UsersRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -861,6 +882,7 @@ export interface FileRoutesByTo {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -884,12 +906,14 @@ export interface FileRoutesByTo {
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
   '/sessions': typeof SessionsRoute
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/terms': typeof TermsRoute
   '/users': typeof UsersRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -982,6 +1006,7 @@ export interface FileRoutesById {
   '/clinic-overview': typeof ClinicOverviewRoute
   '/confirm-email': typeof ConfirmEmailRoute
   '/dashboard': typeof DashboardRoute
+  '/delete-account': typeof DeleteAccountRoute
   '/desktop-google': typeof DesktopGoogleRoute
   '/expenses': typeof ExpensesRoute
   '/finance': typeof FinanceRoute
@@ -1005,6 +1030,7 @@ export interface FileRoutesById {
   '/plan-templates': typeof PlanTemplatesRoute
   '/prescription-presets': typeof PrescriptionPresetsRoute
   '/prescription-templates': typeof PrescriptionTemplatesRoute
+  '/privacy': typeof PrivacyRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/select-location': typeof SelectLocationRoute
@@ -1012,6 +1038,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRouteWithChildren
   '/setup': typeof SetupRoute
   '/subscriptions': typeof SubscriptionsRoute
+  '/terms': typeof TermsRoute
   '/users': typeof UsersRoute
   '/verify-email': typeof VerifyEmailRoute
   '/admin/features': typeof AdminFeaturesRoute
@@ -1105,6 +1132,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/delete-account'
     | '/desktop-google'
     | '/expenses'
     | '/finance'
@@ -1128,6 +1156,7 @@ export interface FileRouteTypes {
     | '/plan-templates'
     | '/prescription-presets'
     | '/prescription-templates'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/select-location'
@@ -1135,6 +1164,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/subscriptions'
+    | '/terms'
     | '/users'
     | '/verify-email'
     | '/admin/features'
@@ -1226,6 +1256,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/delete-account'
     | '/desktop-google'
     | '/expenses'
     | '/finance'
@@ -1249,12 +1280,14 @@ export interface FileRouteTypes {
     | '/plan-templates'
     | '/prescription-presets'
     | '/prescription-templates'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/select-location'
     | '/sessions'
     | '/setup'
     | '/subscriptions'
+    | '/terms'
     | '/users'
     | '/verify-email'
     | '/admin/features'
@@ -1346,6 +1379,7 @@ export interface FileRouteTypes {
     | '/clinic-overview'
     | '/confirm-email'
     | '/dashboard'
+    | '/delete-account'
     | '/desktop-google'
     | '/expenses'
     | '/finance'
@@ -1369,6 +1403,7 @@ export interface FileRouteTypes {
     | '/plan-templates'
     | '/prescription-presets'
     | '/prescription-templates'
+    | '/privacy'
     | '/register'
     | '/reset-password'
     | '/select-location'
@@ -1376,6 +1411,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/setup'
     | '/subscriptions'
+    | '/terms'
     | '/users'
     | '/verify-email'
     | '/admin/features'
@@ -1468,6 +1504,7 @@ export interface RootRouteChildren {
   ClinicOverviewRoute: typeof ClinicOverviewRoute
   ConfirmEmailRoute: typeof ConfirmEmailRoute
   DashboardRoute: typeof DashboardRoute
+  DeleteAccountRoute: typeof DeleteAccountRoute
   DesktopGoogleRoute: typeof DesktopGoogleRoute
   ExpensesRoute: typeof ExpensesRoute
   FinanceRoute: typeof FinanceRoute
@@ -1491,6 +1528,7 @@ export interface RootRouteChildren {
   PlanTemplatesRoute: typeof PlanTemplatesRoute
   PrescriptionPresetsRoute: typeof PrescriptionPresetsRoute
   PrescriptionTemplatesRoute: typeof PrescriptionTemplatesRoute
+  PrivacyRoute: typeof PrivacyRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SelectLocationRoute: typeof SelectLocationRoute
@@ -1498,6 +1536,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRouteWithChildren
   SetupRoute: typeof SetupRoute
   SubscriptionsRoute: typeof SubscriptionsRoute
+  TermsRoute: typeof TermsRoute
   UsersRoute: typeof UsersRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
   AdminFeaturesRoute: typeof AdminFeaturesRoute
@@ -1599,6 +1638,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/delete-account': {
+      id: '/delete-account'
+      path: '/delete-account'
+      fullPath: '/delete-account'
+      preLoaderRoute: typeof DeleteAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desktop-google': {
@@ -1762,6 +1808,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrescriptionTemplatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
@@ -1809,6 +1862,13 @@ declare module '@tanstack/react-router' {
       path: '/subscriptions'
       fullPath: '/subscriptions'
       preLoaderRoute: typeof SubscriptionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -2464,6 +2524,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClinicOverviewRoute: ClinicOverviewRoute,
   ConfirmEmailRoute: ConfirmEmailRoute,
   DashboardRoute: DashboardRoute,
+  DeleteAccountRoute: DeleteAccountRoute,
   DesktopGoogleRoute: DesktopGoogleRoute,
   ExpensesRoute: ExpensesRoute,
   FinanceRoute: FinanceRoute,
@@ -2487,6 +2548,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlanTemplatesRoute: PlanTemplatesRoute,
   PrescriptionPresetsRoute: PrescriptionPresetsRoute,
   PrescriptionTemplatesRoute: PrescriptionTemplatesRoute,
+  PrivacyRoute: PrivacyRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SelectLocationRoute: SelectLocationRoute,
@@ -2494,6 +2556,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRouteWithChildren,
   SetupRoute: SetupRoute,
   SubscriptionsRoute: SubscriptionsRoute,
+  TermsRoute: TermsRoute,
   UsersRoute: UsersRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   AdminFeaturesRoute: AdminFeaturesRoute,

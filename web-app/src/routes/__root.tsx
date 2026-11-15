@@ -43,6 +43,9 @@ const OPEN_PATHS = [
   '/lab-link/',
   '/verify-email',
   '/join/',
+  '/privacy', // legal pages: public, for the store listing (M4-04)
+  '/terms',
+  '/delete-account',
   '/lab-email/', // a lab confirms its contact address (often no login)
   '/desktop-google', // browser half of desktop Google sign-in (no session here)
 ]
