@@ -172,7 +172,10 @@ describe('TodayPage', () => {
   it('doctor row opens the Queue tab, All opens Schedule', async () => {
     await render(<TodayPage />);
     await fireEvent.press(screen.getByText('Dr. Sana A-012 · 4 waiting'));
-    expect(mockNavigate).toHaveBeenCalledWith('/queue');
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/queue',
+      params: { segment: 'board', doctorId: expect.any(String) },
+    });
     await fireEvent.press(screen.getByText('Next appointments'));
     expect(mockNavigate).toHaveBeenCalledWith('/schedule');
   });

@@ -78,7 +78,7 @@ export function SearchBar({
         returnKeyType="search"
         autoCapitalize="none"
         autoCorrect={false}
-        className="h-11 ps-10 pe-11"
+        className="min-h-11 ps-10 pe-11"
       />
       {text.length > 0 ? (
         <View className="absolute end-0">

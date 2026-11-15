@@ -1,4 +1,4 @@
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 import { env } from '@/core/env';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
@@ -37,6 +37,12 @@ staffApi.interceptors.request.use((config) => {
   if (s.accessToken) config.headers.Authorization = `Bearer ${s.accessToken}`;
   if (s.activeOrganizationId) config.headers['x-organization-id'] = s.activeOrganizationId;
   if (s.activeLocationId) config.headers['x-location-id'] = s.activeLocationId;
+  // Opened on saved data (M1-06b): read-only, so nothing may change server data from here.
+  if (s.offlineSnapshot && (config.method ?? 'get').toLowerCase() !== 'get') {
+    return Promise.reject(
+      new AxiosError('Saved data is read-only', 'ERR_NETWORK', config),
+    );
+  }
   return config;
 });
 

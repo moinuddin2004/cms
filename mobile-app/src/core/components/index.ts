@@ -31,5 +31,6 @@ export { FilterChips, type FilterChipsProps, type FilterChipOption } from './for
 export { SegmentedControl, type SegmentedControlProps, type Segment } from './forms/SegmentedControl';
 
 export { FormSheet, type FormSheetProps } from './overlays/FormSheet';
+export { ReadOnlySheet, type ReadOnlySheetProps } from './overlays/ReadOnlySheet';
 export { ActionSheet, type ActionSheetProps, type SheetAction } from './overlays/ActionSheet';
 export { ConfirmDialog, type ConfirmDialogProps } from './overlays/ConfirmDialog';

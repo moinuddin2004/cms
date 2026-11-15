@@ -2537,3 +2537,29 @@ Branch: `claude/m2-08-patient-reads-d759cf` · Status stays: review
 Verification: see the final lines below. Still NOT run: SQL against Postgres (no local DB); the PDF endpoint was not exercised end to end (no real renderer in unit specs; the service is mocked).
 
 Verification (rework 1): `tsc --noEmit` no errors under `src/` (the 4 pre-existing non-src errors remain) - jest `src/patient-app` + `src/prescriptions`: 11 suites / 134 tests green - full backend unit suite: 103 suites / 1070 tests green.
+
+---
+## M1-16 + M1-06b — Staff hardening pass (code half) and offline cold start  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): see git log   Status set to: review
+
+### Done
+- All carried-over nits except the Jest open handle (see below): patient-detail pull-to-refresh invalidates children + queue visits; Rx "Showing latest N of TOTAL"; WhatsApp country code (from clinic currency); `ReadOnlySheet` in core used by RxSegment / TicketSheet / AppointmentSheet; `QueueTabPage` tests; Mark-all disabled logic; board waiting minutes tick (`useTickingNow` moved to `queue/hooks`); `formatMoney` 0-or-2 decimals; Queue tab `doctorId` param + Today doctor row passes it.
+- Gate checklist walked in code: fixed fixed-height controls that clip at 1.3x (`FormInput`, `SearchBar`, `SelectLocationPage`, reason textarea). Everything else (tokens, logical classes, labels, states, PHI, permissions) was already clean. Details in `docs/reviews/M1-16/report.md`.
+- M1-06b: identity hint parsed from the persisted client buster in the ENCRYPTED staff cache (`staff/lib/offline-hint.ts`); loaded only after a network-error restore (no response), never after 401/403 or 5xx; Offline page shows "Open saved data"; snapshot mode (`offlineSnapshot`, no token) refuses non-GET locally and clears on the next real session.
+
+### Files
+- Created: `core/components/overlays/ReadOnlySheet.tsx`, `staff/lib/offline-hint.ts`, tests (`QueueTabPage`, `format`, `offline-hint`, `useRestoreStaffSession`), `docs/reviews/M1-16/report.md`.
+- Modified: patient detail page/Rx/lib, notifications page, board lane list, Today page, Queue tab, `staff/lib/api.ts`, staff auth store, `OfflinePage`, `useRestoreStaffSession` (in `staff/features/auth`, the M1-17 session was already merged), core inputs.
+- Moved: `useTickingNow` (+ test) to `queue/hooks`.
+
+### Install commands for the user
+none
+
+### Verification
+- `tsc --noEmit` clean · `expo lint` 0 errors (5 pre-existing warnings) · `lint:fences` ok · full jest 97 suites / 730 tests green.
+- NOT done: Jest "worker failed to exit" (cause not found; see report section 4); everything needing a device (list in report section 5).
+
+### Deviations / notes
+- Dial code comes from the clinic currency because no country field exists; a backend country/dial code would be better.
+- Snapshot mode lacks the org/location objects (timezone, currency) so it falls back to phone timezone / PKR until the next login.
+

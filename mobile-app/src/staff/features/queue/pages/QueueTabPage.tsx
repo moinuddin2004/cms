@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { Screen, ScreenHeader, SegmentedControl } from '@/core/components';
@@ -7,6 +7,7 @@ import { getPref, setPref } from '@/core/storage/prefs';
 import { useAccess } from '@/staff/features/access';
 import { NotificationBell } from '@/staff/features/notifications';
 
+import { useBoardUiStore } from '../components/board/useBoardUiStore';
 import { BoardView } from '../components/BoardView';
 import { DoctorQueueView } from '../components/DoctorQueueView';
 
@@ -16,6 +17,8 @@ const SEGMENTS = [
   { value: 'doctor', label: 'My queue' },
   { value: 'board', label: 'Board' },
 ];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function readSegment(): QueueSegment {
   return getPref('staff.queue.segment') === 'board' ? 'board' : 'doctor';
@@ -35,8 +38,17 @@ export function QueueTabPage() {
   const [segment, setSegment] = useState<QueueSegment>(readSegment);
 
   // A link (notification / push) may name the segment; it wins over the saved choice.
-  const { segment: linked } = useLocalSearchParams<{ segment?: string }>();
+  const { segment: linked, doctorId } = useLocalSearchParams<{
+    segment?: string;
+    doctorId?: string;
+  }>();
   const requested: QueueSegment | null = linked === 'doctor' || linked === 'board' ? linked : null;
+
+  // A `doctorId` param (Today's doctor row) opens that doctor's lane on the board.
+  const selectDoctor = useBoardUiStore((s) => s.selectDoctor);
+  useEffect(() => {
+    if (typeof doctorId === 'string' && UUID_RE.test(doctorId)) selectDoctor(doctorId);
+  }, [doctorId, selectDoctor]);
 
   const both = canDoctor && canBoard;
   const active: QueueSegment = both ? (requested ?? segment) : canBoard ? 'board' : 'doctor';

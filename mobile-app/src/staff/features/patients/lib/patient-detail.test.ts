@@ -9,6 +9,7 @@ import {
   visibleSegments,
   vitalsParts,
   whatsappUrl,
+  dialCodeForCurrency,
 } from './patient-detail';
 
 describe('isPatientId', () => {
@@ -59,6 +60,13 @@ describe('contact links', () => {
     expect(whatsappUrl('+92 300-1234567')).toBe('https://wa.me/923001234567');
     expect(whatsappUrl('00923001234567')).toBe('https://wa.me/923001234567');
     expect(whatsappUrl('abc')).toBeNull();
+    // national numbers get the clinic country code, international ones are untouched
+    expect(whatsappUrl('0300-1234567', '92')).toBe('https://wa.me/923001234567');
+    expect(whatsappUrl('+92 300 1234567', '92')).toBe('https://wa.me/923001234567');
+    expect(whatsappUrl('0092 300 1234567', '92')).toBe('https://wa.me/923001234567');
+    expect(whatsappUrl('0300-1234567')).toBe('https://wa.me/03001234567');
+    expect(dialCodeForCurrency('pkr')).toBe('92');
+    expect(dialCodeForCurrency('XXX')).toBeUndefined();
     expect(whatsappUrl(undefined)).toBeNull();
   });
 });

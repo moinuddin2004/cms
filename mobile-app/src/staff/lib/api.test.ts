@@ -128,4 +128,22 @@ describe('staff api single-flight refresh', () => {
     expect(wipeStaffPersistedCache).toHaveBeenCalledTimes(1);
     expect(await getRefreshToken()).toBeNull();
   });
+
+  it('refuses writes locally while open on saved data (M1-06b)', async () => {
+    const adapter = jest.fn(async (config: InternalAxiosRequestConfig) =>
+      authorizedResponse(config, { ok: true }),
+    );
+    staffApi.defaults.adapter = adapter;
+    useStaffAuthStore.getState().openSavedData({ userId: 'u1', orgId: 'o1', locationId: 'l1' });
+    try {
+      await expect(staffApi.post('/queue/entries', {})).rejects.toMatchObject({
+        code: 'ERR_NETWORK',
+      });
+      expect(adapter).not.toHaveBeenCalled();
+      await expect(staffApi.get('/queue/board')).resolves.toBeDefined();
+      expect(adapter).toHaveBeenCalledTimes(1);
+    } finally {
+      useStaffAuthStore.getState().clearAuth();
+    }
+  });
 });
