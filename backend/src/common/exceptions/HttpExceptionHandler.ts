@@ -65,9 +65,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 }
 
 /** Token-in-path routes: never write the token into logs. */
-function maskTokens(url: string | undefined): string | undefined {
-  return url?.replace(
-    /(\/(?:lab-link|join-invites|join)\/)[^/?#]+/g,
-    '$1***',
-  );
+export function maskTokens(url: string | undefined): string | undefined {
+  return url
+    ?.replace(
+      /(\/(?:lab-link|join-invites|join|patient-api\/claims)\/)[^/?#]+/g,
+      '$1***',
+    )
+    .replace(/^(\/(?:c|v)\/)[^/?#]+/, '$1***');
 }

@@ -15,6 +15,7 @@ const org = (id: string, locs: string[], signInBlock = null): Organization =>
 
 const ctx = (over: Partial<PushRouteContext> = {}): PushRouteContext => ({
   status: 'signedIn',
+  accessReady: true,
   organizations: [org('o1', ['l1', 'l2']), org('o2', ['l3'])],
   activeOrganizationId: 'o1',
   activeLocationId: 'l1',
@@ -54,6 +55,18 @@ describe('decidePushRoute — session and location', () => {
     expect(decidePushRoute(push(), ctx({ status: 'restoring' }))).toEqual({ kind: 'wait' });
     expect(decidePushRoute(push(), ctx({ status: 'unreachable' }))).toEqual({ kind: 'wait' });
     expect(decidePushRoute(push(), ctx({ activeLocationId: null }))).toEqual({ kind: 'wait' });
+  });
+
+  it('waits until access is ready', () => {
+    expect(decidePushRoute(push(), ctx({ accessReady: false }))).toEqual({ kind: 'wait' });
+  });
+
+  it('a push for another clinic without a location offers its primary or first location', () => {
+    expect(decidePushRoute(push({ organizationId: 'o2', locationId: null }), ctx())).toMatchObject({
+      kind: 'switch',
+      organizationId: 'o2',
+      locationId: 'l3',
+    });
   });
 
   it('ignores a signed-out user and non-staff pushes', () => {

@@ -2,7 +2,8 @@ import { useRouter, type Href } from 'expo-router';
 import { useEffect } from 'react';
 
 import { ConfirmDialog } from '@/core/components';
-import { useSwitchLocation } from '@/staff/features/more/hooks/useSwitchLocation';
+import { useAccess } from '@/staff/features/access';
+import { useSwitchLocation } from '@/staff/features/more';
 import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
 
 import { decidePushRoute } from '../lib/push-route';
@@ -18,6 +19,7 @@ export function PushRoutePrompt() {
   const switchLocation = useSwitchLocation();
   const pending = usePushRouteStore((s) => s.pending);
   const ask = usePushRouteStore((s) => s.ask);
+  const accessReady = useAccess().status === 'ready';
   const status = useStaffAuthStore((s) => s.status);
   const organizations = useStaffAuthStore((s) => s.accessibleOrganizations);
   const activeOrganizationId = useStaffAuthStore((s) => s.activeOrganizationId);
@@ -25,25 +27,30 @@ export function PushRoutePrompt() {
 
   useEffect(() => {
     if (!pending) return;
-    const { clear, setAsk } = usePushRouteStore.getState();
+    const { clear, consume, setAsk } = usePushRouteStore.getState();
     if (!isFresh(pending)) {
       clear();
       return;
     }
     const decision = decidePushRoute(pending.data, {
       status,
+      accessReady,
       organizations,
       activeOrganizationId,
       activeLocationId,
     });
     if (decision.kind === 'wait') return;
-    clear();
+    if (decision.kind === 'ignore') {
+      clear();
+      return;
+    }
+    consume();
     if (decision.kind === 'navigate') {
       router.navigate(decision.route as Href);
     } else if (decision.kind === 'switch') {
       setAsk(decision);
     }
-  }, [pending, status, organizations, activeOrganizationId, activeLocationId, router]);
+  }, [pending, status, accessReady, organizations, activeOrganizationId, activeLocationId, router]);
 
   const confirm = async () => {
     if (!ask) return;

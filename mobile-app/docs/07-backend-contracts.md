@@ -228,6 +228,20 @@ Money fields here are **decimal amounts** (not minor). Format with `formatMoney(
 Issuing a new token invalidates older unused tokens for the same patient. Patient must be in the
 caller's scope (`@PatientInScope`). Feature `patient_app` must be active.
 
+**As built (M2-04):** token = 32 random bytes base64url (43 chars), only its sha256 is stored, valid
+**15 min**, single use. Audit rows are ids only (never the token). Revoke is allowed for a suspended
+clinic; create is not.
+
+| Error | When |
+| --- | --- |
+| `409 ALREADY_LINKED` | create: the patient already has an active/frozen link |
+| `403 CLINIC_SUSPENDED` | create: org `is_active = false` (A-19) |
+| `403 CLINIC_NOT_APPROVED` | create: org approval is not `approved` |
+| `403 PATIENT_APP_DISABLED` | feature `patient_app` off |
+| `404 NOT_LINKED` | revoke: no active/frozen link |
+
+`DELETE` also invalidates pending tokens and writes `patient_access_log` (`unlink`).
+
 ### 4.2 Devices (push) — module `src/devices/` (M1-04)
 
 | Method + path | Access | Body | Response |
@@ -323,6 +337,17 @@ interface LocationRef { id: string; name: string; timezone: string; phone: strin
 | POST `/patient-api/devices` | `{ expoPushToken, platform, deviceLabel?, appVersion }` | `{ id }` | M3-07 |
 | DELETE `/patient-api/devices` | `{ expoPushToken }` | `{ deleted }` | M3-07 |
 
+**Claims as built (M2-04)** — rate limit 30 / 15 min per IP on both routes.
+`link = { id, profileId, clinic: ClinicRef, location: LocationRef | null, status: 'active', linkedAt, linkMethod: 'staff_qr', linkedByLabel: 'Clinic QR' }`,
+`profile = { id, relation, fullName, dob, gender, isSelf }`. `maskedName` = first name + initials (`Ali R. K.`; one word → `A***`);
+`ageBand` is `0-12 | 13-17 | 18-39 | 40-59 | 60+ | null`. Profile choice: `profileId` (must be the account's and match `relation`,
+else `404 NOT_FOUND` / `400 RELATION_MISMATCH`); no `profileId` + `self` → the account's self profile (created if missing);
+no `profileId` + another relation → new profile, `newProfileName` required (`400 NAME_REQUIRED`). Accept stores a
+`patient_account_consents` row (`kind='link'`, version `1.0`), a `patient_access_log` row (`link`) and an audit row.
+Errors: `404 CLAIM_INVALID` (unknown / malformed / used / invalidated / expired token, and a clinic never approved: one
+code, no enumeration), `403 CLINIC_SUSPENDED`, `403 PATIENT_APP_DISABLED`, `409 ALREADY_LINKED` (clinic patient held by another
+account). Accepting a link the same account already holds is idempotent.
+
 ```ts
 interface MedicationSchedule {
   id: string; profileId: string; source: 'prescription' | 'manual';
@@ -337,6 +362,18 @@ interface MedicationSchedule {
   instructions: string | null; instructionsUrdu: string | null; updatedAt: string;
 }
 ```
+
+### 6.4 Read endpoints as built (M2-08) — notes
+
+- `ClinicRef` returned by these endpoints also carries `clinicStatus: 'active' | 'suspended'` (A-19) and `brandColor` may be `null`. A clinic that was never approved (pending/rejected) returns **no** records; a suspended clinic (`organizations.is_active = false`) stays readable with `clinicStatus: 'suspended'`.
+- Every record carries `location.timezone` (IANA); show instants on that clock. `visits[].date` is already the `YYYY-MM-DD` on the location's clock. `location.whatsapp` is always `null` for now (no column).
+- `GET /patient-api/appointments`: newest first, at most 300 rows, not paginated. `patientConfirmedAt` is `null` and `canConfirm` is `false` until M3-08.
+- `GET /patient-api/visits`: only **completed** consultations (the linked queue entry has `status = 'completed'`); an in-progress visit is never shown. `diagnosis` and `treatments` are **omitted** (keys absent) for clinics with `patient_app.show_diagnosis` off. `page` max 10000, `limit` max 50.
+- `GET /patient-api/prescriptions[/:id]`: only `FINALIZED`/`AMENDED` with `signed_at`; `issuedAt` = `signed_at`. **No `pdfUrl`** (the stored file is public and prints diagnosis/vitals). `hasPdf` = the clinic has `show_diagnosis` on.
+- `GET /patient-api/prescriptions/:id/pdf`: same scoped lookup as the detail; `404 NOT_FOUND` when out of scope or the clinic has `show_diagnosis` off; renders the PDF per request and streams it (`application/pdf`, `attachment`, `Cache-Control: private, no-store`) — no URL is ever handed out. Writes an access-log `download` row.
+- `GET /patient-api/billing/summary`: clinics with `show_billing` off are absent; cancelled invoices are never shown or counted; per-invoice `status` is `paid | partial | unpaid | overdue` (overdue on the invoice's location day); each invoice also has `profileId`; at most 50 newest invoices **per clinic** (one query per clinic), totals cover all. `*Minor` = decimal amount × 100.
+- `profileId` filters (query) must be one of the account's profiles, otherwise `404 NOT_FOUND`. `:id` not visible through the account's links → `404 NOT_FOUND`.
+- Each successful list/detail read writes `patient_access_log` (`view_list` one row per distinct clinic patient, `view_detail` with `resource_id`); the write is best effort.
 
 ### 6.3 Public visit page — `GET /visit/:token/state` (`@Public`, rate-limited, M3-05)
 
@@ -384,3 +421,7 @@ New events (seed `src/notifications/seeds/notification-events.seed.ts`):
 | `prescription.issued` | patient | push | "New prescription" / "From {clinic_name}" | M3-07 |
 | `patient.record_linked` | patient | push (+ email) | "Record linked" / "{clinic_name} linked a record to your account" | M2-04 |
 | `patient.link_revoked` | patient | push | "Record unlinked" / "{clinic_name} removed a link" | M2-04 |
+
+**M2-04 status:** both link events are published as a realtime outbox row (`topic = patient:<accountId>`, payload
+`{ type: 'feed.changed', kinds: ['links'], event, linkId }`, ids only) in the link/revoke transaction (`patient-links/patient-link-events.ts`).
+The push/email delivery rows above are **not built**: the notification catalog has no patient channel yet (`CHANNELS_BY_AUDIENCE.patient = []`), so they land with M3-07.

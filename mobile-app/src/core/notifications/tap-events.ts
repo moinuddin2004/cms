@@ -1,8 +1,8 @@
 import {
   addNotificationResponseReceivedListener,
-  clearLastNotificationResponseAsync,
+  clearLastNotificationResponse,
   DEFAULT_ACTION_IDENTIFIER,
-  getLastNotificationResponseAsync,
+  getLastNotificationResponse,
   type NotificationResponse,
 } from 'expo-notifications';
 
@@ -34,14 +34,16 @@ export function subscribeToPushTaps(onTap: (data: PushData) => void): () => void
     if (live) handle(r);
   });
 
-  void getLastNotificationResponseAsync()
-    .then(async (response) => {
-      if (!live || !response) return;
-      handle(response);
-      // So a later restart of the JS runtime does not replay the same tap.
-      await clearLastNotificationResponseAsync();
-    })
-    .catch(() => undefined);
+  // Cold start: the tap that launched the app. Cleared after use so a JS restart cannot replay it.
+  try {
+    const launch = getLastNotificationResponse();
+    if (launch) {
+      handle(launch);
+      clearLastNotificationResponse();
+    }
+  } catch {
+    // no native module (Expo Go / web): nothing to replay
+  }
 
   return () => {
     live = false;

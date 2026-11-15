@@ -5,6 +5,8 @@ import { registerThisDevice, unregisterThisDevice } from './device-registration'
 
 jest.mock('@/core/notifications/push-token', () => ({ getExpoPushToken: jest.fn() }));
 jest.mock('../api/devices.api', () => ({ registerDevice: jest.fn(), unregisterDevice: jest.fn() }));
+let mockOnline = true;
+jest.mock('@/core/network', () => ({ isOnlineNow: () => mockOnline }));
 jest.mock('expo-device', () => ({ isDevice: true, modelName: 'Pixel 9' }));
 
 // In-memory keychain
@@ -61,6 +63,17 @@ describe('unregisterThisDevice', () => {
     await registerThisDevice();
     await unregisterThisDevice();
     expect(unregisterDevice).toHaveBeenCalledWith('ExponentPushToken[abc]');
+    await unregisterThisDevice();
+    expect(unregisterDevice).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips the call offline and keeps the token for the next sign-out', async () => {
+    token.mockResolvedValue('ExponentPushToken[abc]');
+    await registerThisDevice();
+    mockOnline = false;
+    await unregisterThisDevice();
+    expect(unregisterDevice).not.toHaveBeenCalled();
+    mockOnline = true;
     await unregisterThisDevice();
     expect(unregisterDevice).toHaveBeenCalledTimes(1);
   });

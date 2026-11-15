@@ -3,3 +3,5 @@
  * shell may import this barrel — never a deep `@/patient/...` path.
  */
 export { PatientLayout } from '@/patient/navigation/PatientLayout';
+export { signOutPatient } from '@/patient/features/auth/lib/sign-out';
+export { patientQueryClient } from '@/patient/lib/query-client';

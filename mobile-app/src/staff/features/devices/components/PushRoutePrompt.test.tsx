@@ -11,7 +11,11 @@ const mockNavigate = jest.fn();
 const mockMutateAsync = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('expo-router', () => ({ useRouter: () => ({ navigate: mockNavigate }) }));
-jest.mock('@/staff/features/more/hooks/useSwitchLocation', () => ({
+let mockAccessStatus = 'ready';
+jest.mock('@/staff/features/access', () => ({
+  useAccess: () => ({ status: mockAccessStatus }),
+}));
+jest.mock('@/staff/features/more', () => ({
   useSwitchLocation: () => ({ mutateAsync: mockMutateAsync }),
 }));
 jest.mock('@/staff/lib/session', () => ({ getRefreshToken: jest.fn() }));
@@ -78,7 +82,8 @@ function signIn() {
 describe('PushRoutePrompt', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    usePushRouteStore.setState({ pending: null, ask: null });
+    usePushRouteStore.setState({ pending: null, ask: null, handled: false });
+    mockAccessStatus = 'ready';
     signIn();
   });
 

@@ -7,6 +7,8 @@ export const DEFAULT_PUSH_ROUTE: StaffRoute = { pathname: '/today' };
 
 export interface PushRouteContext {
   status: SessionStatus;
+  /** `/me/access` answered: screens and tabs know what this user may open. */
+  accessReady: boolean;
   organizations: Organization[];
   activeOrganizationId: string | null;
   activeLocationId: string | null;
@@ -35,13 +37,24 @@ export type PushRouteDecision =
 export function decidePushRoute(data: PushData, ctx: PushRouteContext): PushRouteDecision {
   if (data.space !== 'staff') return { kind: 'ignore' };
   if (ctx.status === 'signedOut') return { kind: 'ignore' };
-  if (ctx.status !== 'signedIn' || !ctx.activeOrganizationId || !ctx.activeLocationId) {
+  if (
+    ctx.status !== 'signedIn' ||
+    !ctx.accessReady ||
+    !ctx.activeOrganizationId ||
+    !ctx.activeLocationId
+  ) {
     return { kind: 'wait' };
   }
 
   const route = resolveStaffLink(data.route) ?? DEFAULT_PUSH_ROUTE;
   const orgId = data.organizationId ?? ctx.activeOrganizationId;
-  const locationId = data.locationId ?? ctx.activeLocationId;
+  // A push for another clinic without a location lands on that clinic's primary / first location.
+  const named = ctx.organizations.find((o) => o.id === orgId);
+  const locationId =
+    data.locationId ??
+    (orgId === ctx.activeOrganizationId
+      ? ctx.activeLocationId
+      : (named?.locations.find((l) => l.isPrimary) ?? named?.locations[0])?.id ?? null);
   if (orgId === ctx.activeOrganizationId && locationId === ctx.activeLocationId) {
     return { kind: 'navigate', route };
   }

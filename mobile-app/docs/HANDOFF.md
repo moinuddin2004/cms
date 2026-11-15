@@ -2487,3 +2487,235 @@ none (`expo-notifications`, `expo-device`, `expo-application` were already insta
 - Registering with a different user on the same phone moves the token server-side (07 §4.2); an offline sign-out leaves the old row until that happens or Expo reports the token dead.
 - Device label is the phone MODEL (`Device.modelName`), never the owner's device name.
 - Patient pushes are ignored by the router until M3-07 (patient registers its own token then).
+
+---
+## M1-17 — Staff Google sign-in (BE + MOB)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-17-staff-google-3ed844 (from mobile/develop)   Status set to: review
+
+### Done
+- **Backend:** `GoogleIdentityService.clientAudiences` (web + `GOOGLE_ANDROID_CLIENT_ID` + `GOOGLE_IOS_CLIENT_ID`; `patientAudiences` now returns it). Staff `POST /auth/google` (`GoogleAuthService.signIn`) verifies against that list. Everything else unchanged: `verify()` without audiences stays web-only (register, join-request, link, desktop hand-off), Workspace/"Google only"/gate rules and the no-account outcome are untouched. Native refresh token already works: `issueLogin` returns `refreshToken` in the body for `x-client-type: mobile` (no Origin). Specs: `google-auth.service.spec.ts` (audiences, signed_in, no_account never creates a user), identity spec (audience list).
+- **Mobile:** `src/core/auth/google.ts` adapter (`isNativeGoogleAvailable()`, `getGoogleIdToken(webClientId, iosClientId?)` → token or null on cancel). The library is `require`d lazily inside try/catch, so the app builds/runs before the package is installed and the button simply stays hidden. `useGoogleSignIn` (staff auth feature): shown only when the library is present AND `GET /auth/google/config` says enabled; `POST /auth/google`; `signed_in` → `persistSession` (root guards go to location selection); `no_account` → "Register your clinic on the web, or ask your clinic owner for an invite link."; `link_required` → server message; an error from the call itself (e.g. 403, 503 not configured) → the server message through `apiErrorMessage`. Clinic sign-in policy (Google only / disabled / domain / pending) is enforced at location selection via `signInBlock`, not as a 403 from `POST /auth/google`. "Continue with Google" outline button on `LoginPage`. Tokens unchanged: access in memory, refresh in SecureStore via `persistSession`.
+- `env.googleIosClientId` reads `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (public id, optional on Android-only builds).
+
+### Install commands for the user
+```
+cd mobile-app
+npx expo install @react-native-google-signin/google-signin
+```
+Then add this to `plugins` in `app.config.ts` (NOT added: the config plugin needs the package at prebuild, and `iosUrlScheme` is required when not using Firebase):
+```
+['@react-native-google-signin/google-signin', { iosUrlScheme: 'com.googleusercontent.apps.<IOS_CLIENT_ID_PREFIX>' }]
+```
+Then a new development build (`npx expo run:android` / `run:ios`; not Expo Go). No `google-services.json` is needed (no Firebase). Source: library's Expo setup + "original" API docs (`configure({ webClientId, iosClientId })`, `signIn()` → `{ type: 'success' | 'cancelled', data.idToken }`).
+
+### Needs the user (Google Cloud console + env)
+1. Create an **Android** OAuth client (package `com.placeholder.clinicapp[.dev|.preview]`, SHA-1 of the debug/EAS keystore) and an **iOS** OAuth client (bundle id). Android needs no id in the app; iOS id goes in `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` and the plugin's `iosUrlScheme`.
+2. Backend env: `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` (and the existing `GOOGLE_CLIENT_ID` web id; the app uses it as `webClientId`, so tokens are minted for it).
+3. Device test (gate M0-D): Google-only clinic sign-in, no-account message, cancel, a clinic whose policy blocks Google shows its `signInBlock` message at location selection.
+
+### Verification
+See the report: backend specs, build and mobile typecheck/lint/fences/jest results.
+
+### Deviations
+- App config plugin left in HANDOFF (see above). Link/unlink and register/join stay web-only.
+
+
+---
+## M2-08 — Patient read services (BE)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-08-patient-reads-d759cf (from mobile/develop)   Status set to: in-progress
+
+### Plan (written before coding)
+1. Module `src/patient-app/reads/` inside `PatientAppModule`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService`, pure mappers + DTO interfaces, `PatientAccessLogService`.
+2. Scope: `PatientClinicsService.visibleContext(ctx)` loads the clinics of the account's links (name, approval, is_active, currency, theme logo/brand, `patient_app.show_*`). Approved clinics only (A-19: pending/rejected → no records); `is_active = false` → kept, `clinicStatus: 'suspended'`. The result is a *filtered* `PatientContext`; every query then goes through `linkedPatientWhere()` with it (no id from URL/query is trusted; `profileId` goes through `assertProfile`).
+3. Visibility rules (07 §3) live in pure functions (`visibility.ts`): prescriptions = FINALIZED/AMENDED + `signed_at`; billing only when the clinic's `show_billing`; diagnosis/treatments only when `show_diagnosis`; cancelled invoices never shown.
+4. DTOs are explicit-allowlist mappers from narrow raw rows (SQL selects only the needed columns); snapshot specs prove no extra keys.
+5. Times: instants as UTC ISO; visit `date` computed in SQL with `AT TIME ZONE locations.timezone`; each record carries `location.timezone`. Money: decimal columns → `*Minor` via `toMinor`.
+6. Access log (`patient_access_log`, table already exists from M2-01 → no schema change): `view_list` per distinct (org, patient) in the result, `view_detail` with resource id; best effort, never fails a read, no PHI in logs.
+7. Specs: visibility tables, clinic status, mappers + snapshots, service (mocked query builders), controller metadata; int spec written (not run unless disposable local Postgres).
+
+### Done (M2-08)
+- `backend/src/patient-app/reads/`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService` (clinic status + `patient_app.show_billing/show_diagnosis` per org), `PatientAccessLogService`, pure `visibility.ts` + `patient-reads.mappers.ts`, query DTOs. Registered in `PatientAppModule`.
+- Scope: every query uses `linkedPatientWhere()` over the visible context (approved clinics only). A-19: pending/rejected clinic = nothing; `organizations.is_active = false` = readable with `clinicStatus: 'suspended'`. `profileId` goes through `assertProfile` (404); unknown/unlinked ids → 404 `NOT_FOUND`.
+- Visibility (07 §3): prescriptions FINALIZED/AMENDED + `signed_at`; billing only for `show_billing` clinics, cancelled invoices never; `diagnosis`/`treatments` keys absent when `show_diagnosis` is off. Money → `*Minor`; visit date on the location's clock in SQL.
+- Access log: `view_list` (one row per distinct clinic patient) / `view_detail` (resource id); best effort, warning carries no ids. No schema change (table from M2-01).
+- 07 §6.4 documents the as-built behaviour.
+
+### Verification
+- jest `src/patient-app`: 9 suites / 108 tests green (incl. DTO allow-list tests with polluted rows, visibility tables, clinic-status, scoping with a recording query-builder double). Full backend unit suite: 103 suites / 1064 tests green.
+- `tsc --noEmit`: 4 errors, none in `src/` and none from this card (`nestjs-cli/` templates need mongoose; `test/labs/access.int-spec.ts` type mismatch). `nest build` not run separately.
+- NOT RUN: the SQL against Postgres — no local Postgres here, no integration spec written. The raw selects/joins (`AT TIME ZONE`, `json_agg`, `COALESCE(ap.doctor_id, qs.doctor_id)`) are unproven; run a smoke on a disposable local DB before relying on them.
+
+### Deviations / notes
+- `canConfirm: false`, `patientConfirmedAt: null` until M3-08 (no column). `location.whatsapp: null` (no column).
+- `ClinicRef` gained `clinicStatus`; invoices gained `profileId`.
+- Visit `doctorName` = appointment doctor, else the queue session's doctor (encounters have no doctor column).
+- Did not touch `src/patient-links` or `PatientLinkGuard` (A-19 filtering is in the read layer). A later card may move it into the guard.
+
+### Questions for architect
+- "Suspended" = `organizations.is_active = false` — confirm that is the intended flag.
+
+---
+## Rework M2-08 #1 — 2026-11-15
+Branch: `claude/m2-08-patient-reads-d759cf` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | PDF URL public + prints diagnosis | `pdfUrl` removed from the detail DTO (and from the SQL select). `hasPdf` = clinic `show_diagnosis` on. New `GET /patient-api/prescriptions/:id/pdf`: same scoped lookup (`findPrescription`), 404 when `show_diagnosis` is off, access-log `download`, then `PrescriptionPdfService.generatePdfBuffer` streamed through the API with `private, no-store` (the stored row has only the public URL, not the storage key, so a signed URL was not possible; rendering per request avoids any reusable link). `PrescriptionPdfService` is now exported from `PrescriptionsModule` (one-line change) and `PatientAppModule` imports that module. DTO tests assert no `pdfUrl` even when the row carries one. |
+| 2 | Unfinished visits | Visits `INNER JOIN queue_entries ... AND status = 'completed'`. Signal chosen: the queue entry's `completed` status (set by the doctor's Complete action); encounters have no completion column. Spec asserts the join condition on both visit queries. |
+| 3 | Global 400-invoice cap | One totals query + one list query (limit 50) per clinic, in parallel. |
+| 4 | Overdue timezone | Invoice rows select `l.timezone`; `clock.today(thatTimezone)` per invoice. Spec checks the tz passed. |
+| 5 | `page` max | `@Max(10000)`. |
+| 6 | Profile label | With a `profileId` filter rows are labelled with that id directly (spec with two profiles on one patient). |
+
+Verification: see the final lines below. Still NOT run: SQL against Postgres (no local DB); the PDF endpoint was not exercised end to end (no real renderer in unit specs; the service is mocked).
+
+Verification (rework 1): `tsc --noEmit` no errors under `src/` (the 4 pre-existing non-src errors remain) - jest `src/patient-app` + `src/prescriptions`: 11 suites / 134 tests green - full backend unit suite: 103 suites / 1070 tests green.
+
+---
+## Rework M1-17 #1 — 2026-11-15
+Branch: `claude/m1-17-staff-google-3ed844` (on mobile/develop) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Config says disabled but native ids accept tokens | `GoogleAuthService.signIn` throws 503 "Google sign-in is not configured on this server." when `GOOGLE_CLIENT_ID` (the web id, the on/off switch) is unset, before any verification, even with Android/iOS ids set. Spec added. |
+| 2 | `/auth/google` 401 triggered auto-refresh | `staff/lib/api.ts` skips refresh/retry for `/auth/google` like `/auth/login`. Test in `api.test.ts`. |
+| 3 | Wording | HANDOFF text and the hook test name now say clinic sign-in policy is enforced at location selection via `signInBlock`, not as a 403 from `POST /auth/google`. |
+
+Verification: backend build ✓ · `jest src/auth` 7 suites / 42 tests ✓ · mobile typecheck clean · lint 0 errors (4 old warnings) · `lint:fences` ✓ · full jest 93 suites / 707 tests ✓. No device.
+
+---
+## M2-04 — Patient links + claim API  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-04-patient-links-46d50e (from mobile/develop)   Status set to: review (when finished)
+
+### Plan (written before coding)
+**Endpoints** (module `src/patient-links/`)
+- Staff (`@PatientInScope('patientId')`): `POST /patients/:patientId/app-link/claim-token` (`@Can('patients.app_link.manage')`) → `{ token, url, expiresAt }`; `GET /patients/:patientId/app-link` (`@Can('patients.view')`) → status; `DELETE /patients/:patientId/app-link` (`@Can('patients.app_link.manage')`, body `{ reason? ≤200 }`) → `{ revoked: true }`.
+- Patient (`@PatientApi()`): `GET /patient-api/claims/:token` (preview, read-only) and `POST /patient-api/claims/:token/accept` `{ relation, profileId?, newProfileName?, confirm: true }` → `{ link, profile }`.
+**Token:** 32 random bytes, base64url (43 chars); only sha256 hex stored in `patient_claim_tokens.token_hash`. Valid 30 min (`CLAIM_TOKEN_TTL_MINUTES`), single use (`used_at`), a new token sets `invalidated_at` on older unused ones of the same patient. Raw token is returned only by the create call and never logged/audited. Unknown / used / invalidated / expired → one error `404 CLAIM_INVALID`.
+**Tables:** no schema change (all four tables exist from M2-01): `patient_claim_tokens`, `patient_record_links`, `patient_profiles`, `patient_account_consents` (kind `link`), `patient_access_log` (action `link`/`unlink`), `audit_logs` (entity `patient_app_link`, subject = patient), `outbox`.
+**Rules:** A-19: org `approval_status` ≠ approved → claim/preview = `CLAIM_INVALID`; org `is_active=false` (suspended) → `403 CLINIC_SUSPENDED` for create/preview/accept (revoke still allowed); feature `patient_app` off → `403 PATIENT_APP_DISABLED`. Accept runs in one transaction (token row `FOR UPDATE`); one active link per clinic patient (partial unique index) → `409 ALREADY_LINKED`; same account re-scanning its own link is idempotent.
+**Events:** `patient.record_linked` / `patient.link_revoked` are written as a realtime outbox row to topic `patient:<accountId>` (`{ type: 'feed.changed', kinds: ['links'], event, linkId }`, 07 §7) in the same transaction. The patient push/email delivery itself is not built (patient audience has no channel yet — M3-07), so the notification catalog is untouched.
+**Rate limits:** claim preview/accept 30 / 15 min per IP; staff token creation 30 / 10 min per IP.
+
+### Done
+- `src/patient-links/`: `claim-token.ts` (token/hash/mask/age-band helpers), `ClaimEligibilityService` (A-19 + `patient_app` feature), `PatientLinksService` + `PatientLinksController` (staff create / status / revoke), `ClaimsService` (preview + accept in one transaction, token row `FOR UPDATE`), `patient-link-events.ts` (outbox rows). `src/patient-app/claims.controller.ts` (`@PatientApi`, so the fence spec stays true). `PatientAppModule` imports `PatientLinksModule`.
+- Contract details and error codes: 07 §4.1 / §6.2 / §8 (updated).
+
+### Files
+Created: everything under `src/patient-links/` except the two M2-01 files (module rewritten), `src/patient-app/claims.controller.ts`, `test/patient/patient-claims.int-spec.ts`, 2 unit specs. Modified: `patient-app.module.ts`, `app.module.ts` (comment), docs 07 / PROGRESS / HANDOFF. No schema, no catalog change (so no `access:export`).
+
+### Install commands for the user
+none.
+
+### Verification
+- `tsc --noEmit`: clean for all new/changed files (pre-existing errors only: `nestjs-cli/` templates, `test/labs/access.int-spec.ts`).
+- ESLint on the new files: clean (with prettier `endOfLine: auto`; the checkout's CRLF working copies make every file fail the default rule, not related to this card).
+- Jest (`-i`; workers cannot spawn here): `src/patient-links` + `src/patient-app` 8 suites / 76 tests green. Full backend unit suite (`jest -i`): 102 suites / 1032 tests green.
+- **NOT RUN: `test/patient/patient-claims.int-spec.ts`** — no local Postgres in this environment (it compiles and lints). First real run belongs on a disposable DB (`npm run test:int:patient`). It exercises: create → preview (masked) → accept → status → single-use → revoke → re-link; newest-token-wins; expiry; dependent profile + `NAME_REQUIRED`; `ALREADY_LINKED` race; A-19 pending/suspended; cross-clinic patient 404. Staff side is driven through the controller methods (guards not exercised).
+
+### Deviations / decisions to review
+- Patient push/email for `patient.record_linked` / `link_revoked` is NOT built (no patient channel; catalog + its spec untouched). Events go to the realtime outbox only → M3-07.
+- Token TTL 30 min is my choice (card gave none).
+- `LocationRef.whatsapp` is always `null` (locations have no WhatsApp column).
+- Clinic logo/brand colour are read from `config_values` (`theme.*`), default brand `#2563eb`.
+- Patient-side audit row uses actor side `system` with `userId: null` (ids of account/profile in `changes.after`).
+
+---
+## Rework M2-04 #1 — 2026-11-15
+Branch: claude/m2-04-patient-links-46d50e · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | `dob` came back as a JS Date | Every dob the claim code reads is cast `::text` (claim lookup `p.dob::text AS patient_dob`; profile selects and `RETURNING` use `dob::text AS dob`). `claims.service.spec.ts`: text dob → `ageBand '18-39'`; asserts the cast is in the SQL; a Date-typed row would not band (documents the failure). Int-spec expectations (`18-39`, `0-12`) unchanged. |
+| 2 | TTL | `CLAIM_TOKEN_TTL_MINUTES = 15`; docs/07 says 15 min. (The plan section above says 30; superseded.) |
+| 3 | Tokens in logs | `maskTokens` (now exported) also masks `/patient-api/claims/<token>[/accept]` and `/c/<token>`, `/v/<token>`; `mask-tokens.spec.ts`. The handler logs `maskTokens(request.url)` for every status, so 403/409 on the claim routes log the masked path. |
+| 4 | Revoke with `patient_app` off | The M2-03 context does NOT hide links when the feature is off: `PatientLinkGuard` keeps active/frozen links and only sets `patientAppEnabled=false` (read-only for the patient). On the staff side `patients.app_link.manage` belongs to feature `patient_app`, so `AccessResolver` drops it while the feature is inactive and `@Can` refuses revoke (403) — the clinic must re-enable the feature first. **Left as is**: a revoke that bypasses the feature needs an access-layer exception (a permission not tied to the feature, or a resolver carve-out) which is outside this card. Follow-up for the architect: decide whether `patients.app_link.manage` revoke should survive a disabled feature. |
+| 5 | Re-accept status | Idempotent re-accept returns the existing link's real status (`active` or `frozen`). |
+| 6 | `createdByUserId ?? ''` | `createClaimToken` throws 401 when the actor has no user id. |
+| 7 | Patient row lock | `createClaimToken` locks the patient row (`SELECT … FOR UPDATE`, also checks org / active / not deleted) before invalidating old tokens. |
+
+Verification: tsc clean for changed files · changed specs green · full backend unit suite (`jest -i`): 104 suites / 1038 tests green · int spec still NOT RUN (no local Postgres).
+
+---
+## M2-06 — Patient space foundation  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-06-patient-space-982123   Status set to: review
+
+### Plan (written before coding)
+1. `core/http/create-api-client.ts`: `createApiClient` (request hook, 403 hook, 401 → refresh → retry once) + `createSingleFlight`; staff `api.ts` rebuilt on it, behaviour and `api.test.ts` unchanged. `extractErrorCode` shared.
+2. `core/i18n` (team-lead decision, DECISIONS A-21): typed `en`/`ur` catalogs, `t(key, params)`, locale from expo-localization + prefs override, RTL flag, `useT()`.
+3. `core/space`: refresh-token key constants, `leaveSpaceAfterSignOut(current)` (go to the other space when it has a stored session, else welcome). No cross-space import.
+4. Patient: `lib/api.ts` (factory; NO tenant headers, `x-patient-refresh-token`, single-flight `refreshSession`), `lib/session.ts`, `store/usePatientAuthStore`, `lib/persist-cache` wipe (patient only), `resolve-patient-route`, `useRestorePatientSession`, `PatientProviders` (own QueryClient + persist), `PatientLayout` guards, sign-in + verify-code screens (TanStack Form + Zod, `/patient-auth/email/start|verify`), name step when `needsName` (PATCH `/patient-api/me`), sign-out (wipe patient only), Google slot hidden.
+5. Staff: `StaffLayout` skips restore when already `signedIn` (M0-04 MUST); staff sign-out returns to patient space when it has a session; patient home has "switch to clinic staff".
+6. Tests: single-flight refresh (parallel 401s + restore racing a 401), restore states, sign-out wipe isolation, space switching, route resolver, i18n, factory.
+
+### Done
+- `core/http/create-api-client.ts`: `createApiClient` (request hook, 403 hook, 401 → one refresh → retry once), `createSingleFlight`, `extractErrorCode`. Staff `lib/api.ts` rebuilt on it; behaviour and `api.test.ts` unchanged and green.
+- `core/i18n` (A-21): typed `en`/`ur` catalogs (`ur` copies English with `// TODO(ur)` where untranslated), `t`, `useT`, `setLocale` (prefs `patient.language`), `isRtl`. Tests: lookup, interpolation, fallback to `en`, override, key parity.
+- `core/space`: `session-keys.ts`, `leaveSpaceAfterSignOut`, `hasSavedSession`. Signing out of a space goes to the other space when its refresh token is still in SecureStore, else welcome — no cross-space import.
+- Patient space: `lib/api.ts` (`patientApi`, NO tenant headers, `x-patient-refresh-token`, **single-flight** `refreshSession` shared by restore and the 401 interceptor; 401/403 on refresh = wipe patient cache + drop token; network error = keep session, never auto-retry), `session.ts`, `usePatientAuthStore`, `persist*` (empty allow-list, wipe seals persisters), `patientQueryClient`, `PatientProviders`, `resolvePatientRoute`, `PatientLayout` guards (offline / sign-in / verify-code / name / main), `useRestorePatientSession` (skips when already `signedIn`).
+- P-00: `SignInPage` → `POST /patient-auth/email/start`; the pending email lives in the store (never in a URL), the guard then shows `VerifyCodePage` (`email/verify`, terms/privacy `1.0`, 60 s resend, generic wrong-code message); `NamePage` when `needsName` (`PATCH /patient-api/me`). Google slot is an empty component (A-20).
+- Patient home (`PatientPlaceholderPage`): signed-in-as, **Switch to clinic staff**, **Sign out** (confirm → `signOutPatient`: server logout best effort, drop token, wipe patient encrypted cache + key, clear patient queries, leave space).
+- MUST 2: `useRestoreStaffSession` returns early when `signedIn` (StaffLayout calls it); tested. Staff sign-out now uses `leaveSpaceAfterSignOut('staff')`.
+- Routes: `(patient)/{sign-in,verify-code,name,offline}.tsx`, `(patient)/(main)/{_layout,index}.tsx`; `EntryRedirect` sends patient to `/sign-in` (guards pick the screen).
+
+### Files
+- Created: `src/core/http/create-api-client{,.test}.ts`, `src/core/i18n/*`, `src/core/space/{session-keys,switch-space.test}.ts`, `src/patient/{lib,store,providers,features/auth,navigation/{PatientMainLayout,resolve-patient-route}}/…`, `src/app/(patient)/{sign-in,verify-code,name,offline}.tsx`, `src/app/(patient)/(main)/_layout.tsx`, `src/shell/space-isolation.test.ts`, `src/staff/features/auth/hooks/useRestoreStaffSession.test.ts`.
+- Modified: `src/staff/lib/{api,session}.ts`, staff `useSignOut{,.test}`, `useRestoreStaffSession`, `core/http/index.ts`, `core/space/switch-space.ts`, patient `index.ts`/layout/placeholder, `EntryRedirect`, DECISIONS (A-21), PROGRESS.
+- Moved: `src/app/(patient)/index.tsx` → `(patient)/(main)/index.tsx`.
+
+### Install commands for the user
+none (i18n is in-house, A-21).
+
+### Verification
+- `tsc --noEmit` clean · eslint 0 errors (3 pre-existing warnings: `api-error.ts`, `skeleton.tsx`, `useToday.test.tsx`) · `lint:fences` ok · full jest 99 suites / 736 tests green (`-i --forceExit`).
+- Tests added: patient single-flight (parallel 401s, restore racing a 401, rotated token reuse, reject = sign-out, network error keeps session, no refresh on `/patient-auth/*`, no tenant headers), restore states (patient + staff skip), route resolver, factory, i18n, space switching, sign-out isolation (patient wiped; staff token/cache/queries intact; lands in staff or welcome).
+- NO DEVICE: sign-in/verify/name screens, split-view of both spaces, `oneTimeCode` autofill, keyboard behaviour — wait on gate M0-D.
+
+### Acceptance criteria
+- [x] sign-out of patient wipes only patient data (isolation test)
+- [x] both spaces signed in at once (separate stores, tokens, caches; switching never signs out)
+- [ ] on-device check (gate M0-D)
+
+### Deviations / notes for the architect
+- Code input is one styled input (not 6 boxes) — visual boxes can follow.
+- Added a `name` route (`needsName` step); docs/02 route tree has no such screen yet.
+- Resolver also returns `verify-code` from `awaitingCode` (pending email in memory), so no router call is needed to move between the two auth screens.
+- Known server-side limit: a refresh whose response is lost (timeout after the server rotated) leaves the old token stored; the next refresh then looks like replay and the backend revokes the session. Needs a short server grace window or client-side retry design — not solved here.
+- `LINK_REVOKED` only invalidates `['links']` (no links query exists yet). Push-device unregister joins sign-out with M3-07.
+- Shell test mocks `PatientLayout` (Jest cannot load the router/native runtime); `patient/index.ts` also exports `signOutPatient` and `patientQueryClient` for the shell.
+
+---
+## Rework M2-06 #1 — 2026-11-15
+Branch: `claude/m2-06-patient-space-982123` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Sign-out races a refresh in flight | `core/http` `createRefreshCoordinator` (per-space session generation + `signingOut` flag): `beginSignOut()` invalidates and WAITS for the refresh in flight, `endSignOut()` after the local drop. `doRefresh` checks `guard.isCurrent()` before storing; a stale result is discarded and the freshly rotated token is revoked on the server (`/patient-auth/logout`, `/auth/logout`). Wired into `signOutPatient` and staff `useSignOut` (order: begin → server logout → dropSession → end). Tests for BOTH spaces: refresh in flight → sign-out → refresh resolves → signed out, SecureStore empty, rotated token revoked; a refresh started between begin and end is discarded; refresh works again after. |
+| 2 | `LINK_REVOKED` not a backend code | Replaced by `PATIENT_APP_DISABLED` (403 for frozen links / clinic app off, `patient-context.ts`); revoked links answer 404 `NOT_FOUND`, which needs no special handling. |
+| 3 | Cache handle after wipe | `PatientProviders` drops the handle when the account becomes null after having been set, and reopens (fresh key + instance) when the next `accountId` arrives; the cache key is never re-created while signed out. |
+| 4 | OfflinePage | "Switch to staff" (only when a staff session is saved) and "Sign out" next to Retry; Retry label is now translated. |
+| 5 | Nits | `t('home.greeting', { name })` (en + ur); email trimmed in the Zod schema (`z.string().trim().pipe(z.email())`). |
+| 6 | Note for M0-D | Both spaces have an `/offline` route (`(staff)/offline`, `(patient)/offline`): check the device run for a duplicate-route warning. |
+
+Verification: `tsc --noEmit` clean · eslint 0 errors (pre-existing warnings only) · `lint:fences` ok · full jest 101 suites / 741 tests green (`-i --forceExit`). No device.
+
+---
+## Rework M1-05 #1 — 2026-11-15
+Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.ts/.test.tsx` and HANDOFF resolved) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Cold tap overwritten by StaffTabs' first-tab jump | `decidePushRoute` waits until `useAccess().status === 'ready'` (`accessReady` in its context). `usePushRouteStore` has a `handled` flag (set by `consume()` when the tap navigates or asks); `StaffTabs` calls `takePushRouteHandled()` once access is ready and skips `router.replace(first tab)` when a tap is pending or was handled. Test `StaffTabs.push.test.tsx` mounts both together (tap wins; without a tap the tabs still open on Queue). |
+| 2 | Sign-out can freeze | `DELETE /me/devices` has a 4 s timeout and is skipped when `isOnlineNow()` is false (token kept for the next sign-out). Tests for the offline skip + retry. |
+| 3 | Deprecated async APIs | `tap-events.ts` uses sync `getLastNotificationResponse()` / `clearLastNotificationResponse()` (try/catch for no native module); `jest.setup.ts` mock updated. |
+| 4 | Other clinic without `locationId` dropped | Switch prompt now targets that clinic's primary / first location. Test. |
+| 5 | Barrels | `useSignOut` imports `unregisterThisDevice` from `@/staff/features/devices`; `useSwitchLocation` is exported from the `more` barrel and used by `PushRoutePrompt`. `src/staff/index.ts` takes the two handlers from `devices/lib/handle-staff-notification-route` (not the barrel) so the real `@/staff` barrel stays free of UI/native imports (space-isolation test loads it). |
+| 6 | Setup | `expo-notifications` config plugin added to `app.config.ts` (icon = `android-icon-monochrome.png` placeholder, colour = platform blue); no new package. |
+
+### User steps before a real push token exists (gate M0-D)
+1. Create the EAS project (`eas init`) and put its id in `EAS_PROJECT_ID` in `app.config.ts` (empty now → `getExpoPushToken()` returns null, no registration).
+2. FCM: create a Firebase project, add the Android app, upload the FCM V1 service-account key to EAS (`eas credentials`); add `google-services.json` per the Expo push setup. iOS needs APNs keys via EAS.
+3. Rebuild the dev build (the config plugin changes native config).
+4. Replace the notification icon with the brand's white-on-transparent glyph when it exists.
+
+Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.

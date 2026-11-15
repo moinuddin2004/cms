@@ -2,20 +2,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import { switchSpace } from '@/core/space/switch-space';
+import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { dropSession } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
-import { unregisterThisDevice } from '@/staff/features/devices/lib/device-registration';
+import { unregisterThisDevice } from '@/staff/features/devices';
 import { logout } from '../api/auth.api';
 import { useSignOut } from './useSignOut';
 
 jest.mock('../api/auth.api', () => ({ logout: jest.fn() }));
-jest.mock('@/staff/features/devices/lib/device-registration', () => ({
-  unregisterThisDevice: jest.fn(),
+jest.mock('@/staff/features/devices', () => ({ unregisterThisDevice: jest.fn() }));
+jest.mock('@/staff/lib/api', () => ({
+  beginStaffSignOut: jest.fn(async () => undefined),
+  dropSession: jest.fn(),
+  endStaffSignOut: jest.fn(),
 }));
-jest.mock('@/staff/lib/api', () => ({ dropSession: jest.fn() }));
-jest.mock('@/core/space/switch-space', () => ({ switchSpace: jest.fn() }));
+jest.mock('@/core/space/switch-space', () => ({ leaveSpaceAfterSignOut: jest.fn() }));
 jest.mock('@/staff/lib/persist-cache', () => ({ wipeStaffPersistedCache: jest.fn() }));
 
 async function setup() {
@@ -51,7 +53,7 @@ describe('useSignOut', () => {
       clearSpy.mock.invocationCallOrder[0],
     );
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
-    expect(switchSpace).toHaveBeenCalledWith(null);
+    expect(leaveSpaceAfterSignOut).toHaveBeenCalledWith('staff');
   });
 
   it('still signs out when the wipe fails', async () => {
@@ -60,6 +62,6 @@ describe('useSignOut', () => {
     await act(async () => {
       await result.current.mutateAsync();
     });
-    expect(switchSpace).toHaveBeenCalledWith(null);
+    expect(leaveSpaceAfterSignOut).toHaveBeenCalledWith('staff');
   });
 });

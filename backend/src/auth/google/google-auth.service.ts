@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
@@ -109,7 +110,18 @@ export class GoogleAuthService {
     req: Request,
     res: Response,
   ): Promise<GoogleSignInResult> {
-    const g = await this.identity.verify(dto.credential);
+    // GOOGLE_CLIENT_ID (the web id) is the on/off switch, as `GET /auth/google/config`
+    // reports; native ids alone must not turn staff Google sign-in on.
+    if (!this.identity.clientId) {
+      throw new ServiceUnavailableException(
+        'Google sign-in is not configured on this server.',
+      );
+    }
+    // Web, Android and iOS client ids: the mobile app signs in natively.
+    const g = await this.identity.verify(
+      dto.credential,
+      this.identity.clientAudiences,
+    );
     const resolved = await this.resolveUser(g, req);
 
     if (resolved.kind === 'link_required') {

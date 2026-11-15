@@ -144,12 +144,12 @@ describe('subscribeToPushTaps', () => {
   });
 
   it('cold: handles the launching tap once and clears it', async () => {
-    N.getLastNotificationResponseAsync.mockResolvedValueOnce(response('c', '/queue') as never);
+    N.getLastNotificationResponse.mockReturnValueOnce(response('c', '/queue') as never);
     const onTap = jest.fn();
     subscribeToPushTaps(onTap);
     await new Promise((r) => setImmediate(r));
     expect(onTap).toHaveBeenCalledTimes(1);
-    expect(N.clearLastNotificationResponseAsync).toHaveBeenCalled();
+    expect(N.clearLastNotificationResponse).toHaveBeenCalled();
   });
 
   it('delivers one notification once even if listener and cold start both report it', async () => {
@@ -158,7 +158,7 @@ describe('subscribeToPushTaps', () => {
       listener = l;
       return { remove: jest.fn() };
     }) as never);
-    N.getLastNotificationResponseAsync.mockResolvedValueOnce(response('d', '/queue') as never);
+    N.getLastNotificationResponse.mockReturnValueOnce(response('d', '/queue') as never);
     const onTap = jest.fn();
     subscribeToPushTaps(onTap);
     listener(response('d', '/queue'));

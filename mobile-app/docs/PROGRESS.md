@@ -52,12 +52,15 @@
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | done | Sonnet session | 2026-11-15 | approved |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | done | Sonnet session | 2026-11-15 | rework-1 |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
-| M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
+| M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-01 | Patient identity tables + entities | BE | M | M0-09 | done (in develop) | mobile/M2-01-patient-identity | DeepSeek Flash | 2026-11-11 |
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |
 | M2-02b | Patient Google sign-in | BE | S | M2-02 | done | Sonnet session | 2026-11-15 | rework-1 (link-conflict hardening) |
 | M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | done (in develop) | | | |
+| M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
+| M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
+| M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |

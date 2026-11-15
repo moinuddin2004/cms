@@ -1,3 +1,4 @@
+import { isOnlineNow } from '@/core/network';
 import { getExpoPushToken } from '@/core/notifications/push-token';
 import { createSecureItem } from '@/core/storage/secure-store';
 
@@ -36,7 +37,8 @@ export async function registerThisDevice(): Promise<boolean> {
 export async function unregisterThisDevice(): Promise<void> {
   try {
     const token = await registeredToken.get();
-    if (!token) return;
+    // Offline: skip (the call would only wait for its timeout); the token stays for a later sign-out.
+    if (!token || !isOnlineNow()) return;
     await unregisterDevice(token);
     await registeredToken.clear();
   } catch {

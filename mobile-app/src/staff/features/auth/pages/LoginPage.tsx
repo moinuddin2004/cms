@@ -11,10 +11,13 @@ import { Icon } from '@/core/ui/icon';
 import { Switch } from '@/core/ui/switch';
 import { Text } from '@/core/ui/text';
 
+import { useGoogleSignIn } from '../hooks/useGoogleSignIn';
 import { useLoginForm } from '../hooks/useLoginForm';
 
 export function LoginPage() {
-  const { form, globalError } = useLoginForm();
+  const { form, globalError: formError } = useLoginForm();
+  const google = useGoogleSignIn();
+  const globalError = formError || google.error;
 
   return (
     <KeyboardAwareScrollView
@@ -100,6 +103,12 @@ export function LoginPage() {
           </Button>
         )}
       </form.Subscribe>
+
+      {google.available ? (
+        <Button variant="outline" disabled={google.pending} onPress={() => void google.signIn()}>
+          <Text>{google.pending ? 'Signing in…' : 'Continue with Google'}</Text>
+        </Button>
+      ) : null}
     </KeyboardAwareScrollView>
   );
 }

@@ -35,7 +35,11 @@ export class GoogleIdentityService {
     return this.config.get<string>('GOOGLE_CLIENT_ID')?.trim() || null;
   }
 
-  get patientAudiences(): string[] {
+  /**
+   * Every client id an ID token may be issued to: the web client plus the
+   * native Android / iOS clients. Used by native sign-in (staff + patient).
+   */
+  get clientAudiences(): string[] {
     return [
       this.config.get<string>('GOOGLE_CLIENT_ID'),
       this.config.get<string>('GOOGLE_ANDROID_CLIENT_ID'),
@@ -44,6 +48,10 @@ export class GoogleIdentityService {
       const trimmed = audience?.trim();
       return trimmed ? [trimmed] : [];
     });
+  }
+
+  get patientAudiences(): string[] {
+    return this.clientAudiences;
   }
 
   async verify(

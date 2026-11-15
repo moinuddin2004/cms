@@ -12,6 +12,7 @@ import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { useCSSVariable } from 'uniwind';
 
+import { takePushRouteHandled } from '@/staff/features/devices';
 import { AccessErrorBanner, useAccess } from '@/staff/features/access';
 
 import { initialTab, STAFF_TABS, visibleTabs, type StaffTabName } from './tab-access';
@@ -61,6 +62,8 @@ export function StaffTabs() {
   useEffect(() => {
     if (access.status !== 'ready' || placed.current) return;
     placed.current = true;
+    // A tapped push owns the landing screen: never jump to the first tab over it.
+    if (takePushRouteHandled()) return;
     const first = initialTab(access.can);
     if (first !== 'more') router.replace(HREFS[first]);
   }, [access.status, access.can, router]);

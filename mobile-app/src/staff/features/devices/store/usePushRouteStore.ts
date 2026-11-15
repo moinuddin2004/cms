@@ -21,11 +21,15 @@ export interface PendingSwitch {
 
 interface PushRouteState {
   pending: PendingTap | null;
+  /** A tap was acted on this launch; StaffTabs reads it once to skip its first-tab placement. */
+  handled: boolean;
   ask: PendingSwitch | null;
   setAsk: (ask: PendingSwitch | null) => void;
   /** Remember a tapped push until the signed-in staff layout can act on it. */
   setPending: (data: PushData, now?: number) => void;
   clear: () => void;
+  /** Drop the pending tap AND remember it was acted on (navigated or asked). */
+  consume: () => void;
 }
 
 /**
@@ -35,12 +39,24 @@ interface PushRouteState {
  */
 export const usePushRouteStore = create<PushRouteState>()((set) => ({
   pending: null,
+  handled: false,
   ask: null,
   setAsk: (ask) => set({ ask }),
   setPending: (data, now = Date.now()) => set({ pending: { data, at: now } }),
   clear: () => set({ pending: null }),
+  consume: () => set({ pending: null, handled: true }),
 }));
 
 export function isFresh(tap: PendingTap, now = Date.now()): boolean {
   return now - tap.at <= PENDING_TAP_MAX_AGE_MS;
+}
+
+/**
+ * For StaffTabs, once access is ready: true when a push route is waiting or was just handled, so the
+ * tabs must not jump to the first allowed tab over it. Resets the handled flag (one read per launch).
+ */
+export function takePushRouteHandled(): boolean {
+  const { pending, handled } = usePushRouteStore.getState();
+  if (handled) usePushRouteStore.setState({ handled: false });
+  return handled || pending !== null;
 }
