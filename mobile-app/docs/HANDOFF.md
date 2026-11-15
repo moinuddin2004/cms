@@ -2454,3 +2454,15 @@ Branch: `mobile/M1-15-today-ui` · Status stays: review
 Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
+
+---
+## M2-06 — Patient space foundation  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-06-patient-space-982123   Status set to: in-progress
+
+### Plan (written before coding)
+1. `core/http/create-api-client.ts`: `createApiClient` (request hook, 403 hook, 401 → refresh → retry once) + `createSingleFlight`; staff `api.ts` rebuilt on it, behaviour and `api.test.ts` unchanged. `extractErrorCode` shared.
+2. `core/i18n` (team-lead decision, DECISIONS A-21): typed `en`/`ur` catalogs, `t(key, params)`, locale from expo-localization + prefs override, RTL flag, `useT()`.
+3. `core/space`: refresh-token key constants, `leaveSpaceAfterSignOut(current)` (go to the other space when it has a stored session, else welcome). No cross-space import.
+4. Patient: `lib/api.ts` (factory; NO tenant headers, `x-patient-refresh-token`, single-flight `refreshSession`), `lib/session.ts`, `store/usePatientAuthStore`, `lib/persist-cache` wipe (patient only), `resolve-patient-route`, `useRestorePatientSession`, `PatientProviders` (own QueryClient + persist), `PatientLayout` guards, sign-in + verify-code screens (TanStack Form + Zod, `/patient-auth/email/start|verify`), name step when `needsName` (PATCH `/patient-api/me`), sign-out (wipe patient only), Google slot hidden.
+5. Staff: `StaffLayout` skips restore when already `signedIn` (M0-04 MUST); staff sign-out returns to patient space when it has a session; patient home has "switch to clinic staff".
+6. Tests: single-flight refresh (parallel 401s + restore racing a 401), restore states, sign-out wipe isolation, space switching, route resolver, i18n, factory.
