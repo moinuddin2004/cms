@@ -228,6 +228,20 @@ Money fields here are **decimal amounts** (not minor). Format with `formatMoney(
 Issuing a new token invalidates older unused tokens for the same patient. Patient must be in the
 caller's scope (`@PatientInScope`). Feature `patient_app` must be active.
 
+**As built (M2-04):** token = 32 random bytes base64url (43 chars), only its sha256 is stored, valid
+**15 min**, single use. Audit rows are ids only (never the token). Revoke is allowed for a suspended
+clinic; create is not.
+
+| Error | When |
+| --- | --- |
+| `409 ALREADY_LINKED` | create: the patient already has an active/frozen link |
+| `403 CLINIC_SUSPENDED` | create: org `is_active = false` (A-19) |
+| `403 CLINIC_NOT_APPROVED` | create: org approval is not `approved` |
+| `403 PATIENT_APP_DISABLED` | feature `patient_app` off |
+| `404 NOT_LINKED` | revoke: no active/frozen link |
+
+`DELETE` also invalidates pending tokens and writes `patient_access_log` (`unlink`).
+
 ### 4.2 Devices (push) — module `src/devices/` (M1-04)
 
 | Method + path | Access | Body | Response |
@@ -323,6 +337,17 @@ interface LocationRef { id: string; name: string; timezone: string; phone: strin
 | POST `/patient-api/devices` | `{ expoPushToken, platform, deviceLabel?, appVersion }` | `{ id }` | M3-07 |
 | DELETE `/patient-api/devices` | `{ expoPushToken }` | `{ deleted }` | M3-07 |
 
+**Claims as built (M2-04)** — rate limit 30 / 15 min per IP on both routes.
+`link = { id, profileId, clinic: ClinicRef, location: LocationRef | null, status: 'active', linkedAt, linkMethod: 'staff_qr', linkedByLabel: 'Clinic QR' }`,
+`profile = { id, relation, fullName, dob, gender, isSelf }`. `maskedName` = first name + initials (`Ali R. K.`; one word → `A***`);
+`ageBand` is `0-12 | 13-17 | 18-39 | 40-59 | 60+ | null`. Profile choice: `profileId` (must be the account's and match `relation`,
+else `404 NOT_FOUND` / `400 RELATION_MISMATCH`); no `profileId` + `self` → the account's self profile (created if missing);
+no `profileId` + another relation → new profile, `newProfileName` required (`400 NAME_REQUIRED`). Accept stores a
+`patient_account_consents` row (`kind='link'`, version `1.0`), a `patient_access_log` row (`link`) and an audit row.
+Errors: `404 CLAIM_INVALID` (unknown / malformed / used / invalidated / expired token, and a clinic never approved: one
+code, no enumeration), `403 CLINIC_SUSPENDED`, `403 PATIENT_APP_DISABLED`, `409 ALREADY_LINKED` (clinic patient held by another
+account). Accepting a link the same account already holds is idempotent.
+
 ```ts
 interface MedicationSchedule {
   id: string; profileId: string; source: 'prescription' | 'manual';
@@ -396,3 +421,7 @@ New events (seed `src/notifications/seeds/notification-events.seed.ts`):
 | `prescription.issued` | patient | push | "New prescription" / "From {clinic_name}" | M3-07 |
 | `patient.record_linked` | patient | push (+ email) | "Record linked" / "{clinic_name} linked a record to your account" | M2-04 |
 | `patient.link_revoked` | patient | push | "Record unlinked" / "{clinic_name} removed a link" | M2-04 |
+
+**M2-04 status:** both link events are published as a realtime outbox row (`topic = patient:<accountId>`, payload
+`{ type: 'feed.changed', kinds: ['links'], event, linkId }`, ids only) in the link/revoke transaction (`patient-links/patient-link-events.ts`).
+The push/email delivery rows above are **not built**: the notification catalog has no patient channel yet (`CHANNELS_BY_AUDIENCE.patient = []`), so they land with M3-07.
