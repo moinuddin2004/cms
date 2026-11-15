@@ -6,7 +6,10 @@ import { t } from '@/core/i18n';
 // language the user has now.
 
 export const signInSchema = z.object({
-  email: z.email({ error: () => t('auth.signIn.invalidEmail') }),
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email({ error: () => t('auth.signIn.invalidEmail') })),
 });
 export type SignInFormValues = z.input<typeof signInSchema>;
 

@@ -10,7 +10,11 @@ import { logout } from '../api/auth.api';
 import { useSignOut } from './useSignOut';
 
 jest.mock('../api/auth.api', () => ({ logout: jest.fn() }));
-jest.mock('@/staff/lib/api', () => ({ dropSession: jest.fn() }));
+jest.mock('@/staff/lib/api', () => ({
+  beginStaffSignOut: jest.fn(async () => undefined),
+  dropSession: jest.fn(),
+  endStaffSignOut: jest.fn(),
+}));
 jest.mock('@/core/space/switch-space', () => ({ leaveSpaceAfterSignOut: jest.fn() }));
 jest.mock('@/staff/lib/persist-cache', () => ({ wipeStaffPersistedCache: jest.fn() }));
 

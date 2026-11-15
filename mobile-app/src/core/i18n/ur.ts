@@ -58,6 +58,7 @@ export const ur: Messages = {
   },
   home: {
     title: 'خوش آمدید',
+    greeting: 'خوش آمدید، {name}',
     signedInAs: 'Signed in as {email}', // TODO(ur)
     placeholder: 'Your records, medicines and clinic visits will live here.', // TODO(ur)
     switchToStaff: 'Switch to clinic staff', // TODO(ur)

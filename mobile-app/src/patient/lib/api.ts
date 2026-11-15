@@ -5,7 +5,8 @@ import {
   API_TIMEOUT_MS,
   NATIVE_HEADERS,
   createApiClient,
-  createSingleFlight,
+  createRefreshCoordinator,
+  type RefreshGuard,
 } from '@/core/http/create-api-client';
 import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
 import { patientQueryClient } from '@/patient/lib/query-client';
@@ -29,8 +30,8 @@ export const patientApi = createApiClient({
   noRefreshUrls: ['/patient-auth/'],
   onForbidden: (_error: AxiosError, code) => {
     if (code === 'ACCOUNT_DISABLED') void forceSignOut();
-    // A link was revoked / frozen: whatever we know about links is stale.
-    if (code === 'LINK_REVOKED') void patientQueryClient.invalidateQueries({ queryKey: ['links'] });
+    // A link was frozen / its clinic switched the app off (revoked links answer 404): link data is stale.
+    if (code === 'PATIENT_APP_DISABLED') void patientQueryClient.invalidateQueries({ queryKey: ['links'] });
   },
 });
 
@@ -69,10 +70,35 @@ async function forceSignOut(): Promise<void> {
  * old one as theft — it revokes the whole session (M2-02 review #8). Never
  * retry this call with the same stored token on your own.
  */
-export const refreshSession: () => Promise<PatientSessionPayload | null> =
-  createSingleFlight(doRefresh);
+const refreshCoordinator = createRefreshCoordinator<PatientSessionPayload>(doRefresh);
+export const refreshSession = refreshCoordinator.refresh;
 
-async function doRefresh(): Promise<PatientSessionPayload | null> {
+/**
+ * Sign-out protocol (M2-06 rework): `await beginPatientSignOut()` BEFORE the
+ * server logout (it waits for a refresh in flight and makes its result stale),
+ * then drop the session, then `endPatientSignOut()`. Without it a refresh that
+ * finishes after the sign-out would write the session back.
+ */
+export const beginPatientSignOut = refreshCoordinator.beginSignOut;
+export const endPatientSignOut = refreshCoordinator.endSignOut;
+
+/** Revoke a freshly rotated token that a stale refresh must not keep (best effort). */
+async function revokeDiscarded(token: string): Promise<void> {
+  try {
+    await axios.post(
+      `${env.apiUrl}/patient-auth/logout`,
+      {},
+      {
+        headers: { ...NATIVE_HEADERS, 'x-patient-refresh-token': token },
+        timeout: API_TIMEOUT_MS,
+      },
+    );
+  } catch {
+    // the session expires on its own
+  }
+}
+
+async function doRefresh(guard: RefreshGuard): Promise<PatientSessionPayload | null> {
   const stored = await getRefreshToken();
   if (!stored) return null;
   try {
@@ -86,9 +112,15 @@ async function doRefresh(): Promise<PatientSessionPayload | null> {
       },
     );
     const payload = res.data.data as PatientSessionPayload;
+    if (!guard.isCurrent()) {
+      // Signed out while this was in flight: keep nothing, revoke the new token.
+      await revokeDiscarded(payload.refreshToken);
+      return null;
+    }
     await persistSession(payload);
     return payload;
   } catch (err) {
+    if (!guard.isCurrent()) return null;
     const status = (err as AxiosError).response?.status;
     // 401/403 = the session is gone. Anything else (no response, 5xx) = try later.
     if (status === 401 || status === 403) {

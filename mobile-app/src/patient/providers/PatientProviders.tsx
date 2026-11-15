@@ -1,5 +1,5 @@
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { MMKV } from 'react-native-mmkv';
 
 import { currentVersion } from '@/core/app-version';
@@ -32,7 +32,16 @@ export function PatientProviders({
   const accountId = usePatientAuthStore((s) => s.account?.id ?? null);
 
   const [cache, setCache] = useState<MMKV | null>(null);
+  const hadAccount = useRef(false);
   useEffect(() => {
+    // After a sign-out wipe the old handle points at a deleted instance: drop it
+    // and open a fresh one only when the next account arrives (never re-create
+    // the cache key while signed out).
+    if (accountId) hadAccount.current = true;
+    else if (hadAccount.current) {
+      setCache(null);
+      return;
+    }
     let live = true;
     openSecureCache('patient')
       .then((opened) => {
@@ -45,9 +54,9 @@ export function PatientProviders({
     return () => {
       live = false;
     };
-    // Opens once per mount.
+    // `onCacheSettled` is a stable callback from the layout.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [accountId]);
 
   const buster = patientPersistBuster({ appVersion: currentVersion, accountId });
   const persistKey = cache && buster ? buster : 'idle';

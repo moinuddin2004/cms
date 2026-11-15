@@ -57,6 +57,7 @@ export const en = {
   },
   home: {
     title: 'Welcome',
+    greeting: 'Welcome, {name}',
     signedInAs: 'Signed in as {email}',
     placeholder: 'Your records, medicines and clinic visits will live here.',
     switchToStaff: 'Switch to clinic staff',

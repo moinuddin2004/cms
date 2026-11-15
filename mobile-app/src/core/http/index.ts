@@ -7,7 +7,10 @@ export {
   API_TIMEOUT_MS,
   NATIVE_HEADERS,
   createApiClient,
+  createRefreshCoordinator,
   createSingleFlight,
   extractErrorCode,
   type ApiClientOptions,
+  type RefreshCoordinator,
+  type RefreshGuard,
 } from './create-api-client';

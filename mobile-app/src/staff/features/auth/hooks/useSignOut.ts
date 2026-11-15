@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
-import { dropSession } from '@/staff/lib/api';
+import { beginStaffSignOut, dropSession, endStaffSignOut } from '@/staff/lib/api';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 
 import { logout } from '../api/auth.api';
@@ -11,12 +11,16 @@ export function useSignOut() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
+      // Stops a refresh in flight from writing the session back, and waits for it
+      // so the stored token is the newest one when we revoke it.
+      await beginStaffSignOut();
       try {
         await logout();
       } catch {
         // offline or already expired â€” still sign out locally
       }
       await dropSession();
+      endStaffSignOut();
       // Encrypted offline cache first (persisted client + file + key, docs/03 §2.5):
       // it also stops late writes, so clearing the in-memory cache cannot re-save it.
       try {

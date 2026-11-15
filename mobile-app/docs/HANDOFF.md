@@ -2502,3 +2502,18 @@ none (i18n is in-house, A-21).
 - Known server-side limit: a refresh whose response is lost (timeout after the server rotated) leaves the old token stored; the next refresh then looks like replay and the backend revokes the session. Needs a short server grace window or client-side retry design — not solved here.
 - `LINK_REVOKED` only invalidates `['links']` (no links query exists yet). Push-device unregister joins sign-out with M3-07.
 - Shell test mocks `PatientLayout` (Jest cannot load the router/native runtime); `patient/index.ts` also exports `signOutPatient` and `patientQueryClient` for the shell.
+
+---
+## Rework M2-06 #1 — 2026-11-15
+Branch: `claude/m2-06-patient-space-982123` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Sign-out races a refresh in flight | `core/http` `createRefreshCoordinator` (per-space session generation + `signingOut` flag): `beginSignOut()` invalidates and WAITS for the refresh in flight, `endSignOut()` after the local drop. `doRefresh` checks `guard.isCurrent()` before storing; a stale result is discarded and the freshly rotated token is revoked on the server (`/patient-auth/logout`, `/auth/logout`). Wired into `signOutPatient` and staff `useSignOut` (order: begin → server logout → dropSession → end). Tests for BOTH spaces: refresh in flight → sign-out → refresh resolves → signed out, SecureStore empty, rotated token revoked; a refresh started between begin and end is discarded; refresh works again after. |
+| 2 | `LINK_REVOKED` not a backend code | Replaced by `PATIENT_APP_DISABLED` (403 for frozen links / clinic app off, `patient-context.ts`); revoked links answer 404 `NOT_FOUND`, which needs no special handling. |
+| 3 | Cache handle after wipe | `PatientProviders` drops the handle when the account becomes null after having been set, and reopens (fresh key + instance) when the next `accountId` arrives; the cache key is never re-created while signed out. |
+| 4 | OfflinePage | "Switch to staff" (only when a staff session is saved) and "Sign out" next to Retry; Retry label is now translated. |
+| 5 | Nits | `t('home.greeting', { name })` (en + ur); email trimmed in the Zod schema (`z.string().trim().pipe(z.email())`). |
+| 6 | Note for M0-D | Both spaces have an `/offline` route (`(staff)/offline`, `(patient)/offline`): check the device run for a duplicate-route warning. |
+
+Verification: `tsc --noEmit` clean · eslint 0 errors (pre-existing warnings only) · `lint:fences` ok · full jest 101 suites / 741 tests green (`-i --forceExit`). No device.

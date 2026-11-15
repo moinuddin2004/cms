@@ -29,7 +29,7 @@ export function PatientPlaceholderPage() {
         <Icon as={HeartPulse} className="text-muted-foreground size-6" />
       </View>
       <Text variant="h3" className="text-center">
-        {name ? `${t('home.title')}, ${name}` : t('home.title')}
+        {name ? t('home.greeting', { name }) : t('home.title')}
       </Text>
       <Text variant="muted" className="text-center">
         {t('home.placeholder')}

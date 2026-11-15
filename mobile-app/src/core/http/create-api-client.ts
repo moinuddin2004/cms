@@ -108,3 +108,68 @@ export function createApiClient(options: ApiClientOptions): AxiosInstance {
 
   return client;
 }
+
+export interface RefreshGuard {
+  /** False once a sign-out started after this refresh began: its result must be discarded. */
+  isCurrent: () => boolean;
+}
+
+export interface RefreshCoordinator<T> {
+  /** Single-flight refresh (shared by restore and the 401 interceptor). */
+  refresh: () => Promise<T | null>;
+  /**
+   * Call FIRST when signing out: invalidates every refresh already running or
+   * about to start, then waits for the running one to finish, so nothing can
+   * write a session back after the sign-out and the stored refresh token is the
+   * newest one when you revoke it.
+   */
+  beginSignOut: () => Promise<void>;
+  /** Call after the local session is dropped: refreshes that started in between are stale too. */
+  endSignOut: () => void;
+}
+
+/**
+ * Per-space refresh with a session generation. `run` receives a guard and MUST
+ * check `guard.isCurrent()` after the network call and BEFORE storing anything;
+ * when stale it discards the result (and revokes the freshly rotated token).
+ */
+export function createRefreshCoordinator<T>(
+  run: (guard: RefreshGuard) => Promise<T | null>,
+): RefreshCoordinator<T> {
+  let generation = 0;
+  let signingOut = false;
+  const refresh = createSingleFlight(() => {
+    const started = generation;
+    return run({ isCurrent: () => generation === started && !signingOut });
+  });
+  let inFlight: Promise<unknown> | null = null;
+  const tracked = () => {
+    const p = refresh();
+    inFlight = p;
+    void p.then(
+      () => {
+        if (inFlight === p) inFlight = null;
+      },
+      () => {
+        if (inFlight === p) inFlight = null;
+      },
+    );
+    return p;
+  };
+  return {
+    refresh: tracked,
+    beginSignOut: async () => {
+      generation += 1;
+      signingOut = true;
+      try {
+        await inFlight;
+      } catch {
+        // a failed refresh is fine: we are signing out anyway
+      }
+    },
+    endSignOut: () => {
+      generation += 1;
+      signingOut = false;
+    },
+  };
+}

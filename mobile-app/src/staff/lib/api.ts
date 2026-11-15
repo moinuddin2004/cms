@@ -5,7 +5,8 @@ import {
   API_TIMEOUT_MS,
   NATIVE_HEADERS,
   createApiClient,
-  createSingleFlight,
+  createRefreshCoordinator,
+  type RefreshGuard,
 } from '@/core/http/create-api-client';
 import { wipeStaffPersistedCache } from '@/staff/lib/persist-cache';
 import { clearRefreshToken, getRefreshToken, setRefreshToken } from '@/staff/lib/session';
@@ -71,9 +72,33 @@ export async function dropSession(): Promise<void> {
  */
 // One refresh at a time: the server rotates the token on every call, so two
 // parallel refreshes would invalidate each other.
-export const refreshSession: () => Promise<SessionPayload | null> = createSingleFlight(doRefresh);
+const refreshCoordinator = createRefreshCoordinator<SessionPayload>(doRefresh);
+export const refreshSession = refreshCoordinator.refresh;
 
-async function doRefresh(): Promise<SessionPayload | null> {
+/**
+ * Sign-out protocol (M2-06 rework): `await beginStaffSignOut()` BEFORE the
+ * server logout (it waits for a refresh in flight and makes its result stale),
+ * then drop the session, then `endStaffSignOut()`. Without it a refresh that
+ * finishes after the sign-out would write the session back.
+ */
+export const beginStaffSignOut = refreshCoordinator.beginSignOut;
+export const endStaffSignOut = refreshCoordinator.endSignOut;
+
+/** Revoke a freshly rotated token that a stale refresh must not keep (best effort). */
+async function revokeDiscarded(token: string | undefined): Promise<void> {
+  if (!token) return;
+  try {
+    await axios.post(
+      `${env.apiUrl}/auth/logout`,
+      {},
+      { headers: { ...NATIVE_HEADERS, 'x-refresh-token': token }, timeout: API_TIMEOUT_MS },
+    );
+  } catch {
+    // the session expires on its own
+  }
+}
+
+async function doRefresh(guard: RefreshGuard): Promise<SessionPayload | null> {
   const stored = await getRefreshToken();
   if (!stored) return null;
   try {
@@ -84,9 +109,15 @@ async function doRefresh(): Promise<SessionPayload | null> {
       { headers: { ...NATIVE_HEADERS, 'x-refresh-token': stored }, timeout: API_TIMEOUT_MS },
     );
     const payload = res.data.data as SessionPayload;
+    if (!guard.isCurrent()) {
+      // Signed out while this was in flight: keep nothing, revoke the new token.
+      await revokeDiscarded(payload.refreshToken);
+      return null;
+    }
     await persistSession(payload);
     return payload;
   } catch (err) {
+    if (!guard.isCurrent()) return null;
     const status = (err as AxiosError).response?.status;
     // 401/403 = the session is gone. Anything else (no response, 5xx) = try later.
     if (status === 401 || status === 403) {

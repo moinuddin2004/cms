@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
-import { dropSession } from '@/patient/lib/api';
+import { beginPatientSignOut, dropSession, endPatientSignOut } from '@/patient/lib/api';
 import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
 
 import { logout } from '../api/auth.api';
@@ -16,12 +16,16 @@ import { logout } from '../api/auth.api';
  * Unregistering the push device joins here with M3-07.
  */
 export async function signOutPatient(queryClient: QueryClient): Promise<void> {
+  // Stops a refresh in flight from writing the session back, and waits for it so
+  // the stored token is the newest one when we revoke it.
+  await beginPatientSignOut();
   try {
     await logout();
   } catch {
     // offline or already expired — still sign out locally
   }
   await dropSession();
+  endPatientSignOut();
   // The wipe seals the persister, so it must run BEFORE the in-memory clear.
   try {
     await wipePatientPersistedCache();
