@@ -60,6 +60,7 @@
 | M2-03 | Patient link guard + isolation tests | BE | M | M2-02 | done (in develop) | | | |
 | M2-08 | Patient read services | BE | L | M2-03 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-04 | Patient links + claim API | BE | M | M2-03 | done | Sonnet session | 2026-11-15 | rework-1; int spec not run (no local Postgres) |
+| M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |

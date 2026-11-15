@@ -7,11 +7,15 @@ import { useStaffAuthStore } from '@/staff/store/useStaffAuthStore';
  * Silently sign in again with the refresh token in SecureStore.
  * No token or a rejected one → signed out. No connection → `unreachable`,
  * so the user keeps their session and can retry instead of being logged out.
+ * Does nothing when the session is already `signedIn` (M0-04 review).
  */
 export function useRestoreStaffSession() {
   const setStatus = useStaffAuthStore((s) => s.setStatus);
 
   return useCallback(async () => {
+    // Already signed in (the user switched to the patient space and back):
+    // restoring again would flash the splash and rotate the token for nothing.
+    if (useStaffAuthStore.getState().status === 'signedIn') return;
     setStatus('restoring');
     try {
       const session = await refreshSession();
