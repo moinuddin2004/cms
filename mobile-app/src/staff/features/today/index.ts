@@ -11,3 +11,4 @@ export type { GatedQuery } from './hooks/gated-query';
 export { visibleTodayBlocks } from './lib/today-blocks';
 export type { TodayBlockId } from './lib/today-blocks';
 export type * from './types/today.types';
+export { TodayPage } from './pages/TodayPage';

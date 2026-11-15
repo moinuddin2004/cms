@@ -2411,3 +2411,46 @@ Branch: `claude/upbeat-hopper-2688e6` · Status stays: review
 
 Skipped: count on the Arrivals row (optional; would need the arrivals query on the board).
 Verification: typecheck ✓ · lint 0 errors · lint:fences ✓ · full jest green. No device.
+
+---
+## M1-15 — Today snapshot (UI), screen S-01  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: mobile/M1-15-today-ui (from mobile/develop)   Status set to: review
+
+### Done
+- `pages/TodayPage.tsx` (route `today.tsx` renders it): header "Today" + clinic-clock date · active location + bell; blocks from `visibleTodayBlocks` only: stats tiles (appointments, waiting now, avg wait), collections tiles (collected + unpaid invoices, or outstanding when the daily summary answered), Doctors now (row -> Queue tab), Next appointments (All -> Schedule). Pull to refresh refetches every allowed block.
+- `components/BlockShell.tsx`: each block has its own skeleton / error + retry; denied renders nothing. No visible block -> "Nothing to show here" empty state.
+- Money: `formatCurrency` on the DECIMAL amounts (no minor-unit division). `lib/today-format.ts`: avg wait and doctor summary text.
+- No old dashboard feature exists in mobile-app, so nothing to delete.
+
+### Files
+- Created: `components/{BlockShell,TodayBlocks}.tsx`, `pages/TodayPage.tsx` + test, `lib/today-format.ts`. Modified: route `today.tsx`, `index.ts` (one export). No core component added.
+
+### Install commands for the user
+none.
+
+### Verification
+- eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 81 suites / 622 tests green (`-i --forceExit`).
+- NO DEVICE: owner/receptionist/doctor screenshots wait on gate M0-D.
+
+### Acceptance criteria
+- [x] right blocks per permission set (component tests for owner, receptionist, doctor)
+- [ ] screenshots on device (gate M0-D)
+
+### Deviations from the card / docs
+- Location switcher: see Rework #1 below.
+- Doctor row tap opens the Queue tab, not that doctor's lane (the queue tab has no lane param yet).
+- Tests mock the core kit (Screen etc.), since Jest has no native runtime.
+
+---
+## Rework M1-15 #1 — 2026-11-15
+Branch: `mobile/M1-15-today-ui` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Location switcher required | Added `LocationSwitcherButton` in `features/more/components` (reuses `SwitchLocationSheet` + `useSwitchLocation`), exported from `more/index.ts` (approved exception). Rendered in TodayPage header actions before the bell; "Switch location" label, `IconButton` 44pt; hidden with fewer than 2 places. Tests: shown with 2 locations, hidden with 1. |
+| 2 | Neutral empty copy | "There is no clinic overview available for your account." (no tab names). |
+| 3 | typecheck | The earlier note was wrong: `uniwind-types.d.ts` is present; the missing file was the gitignored, Expo-generated `expo-env.d.ts`. Generated with `CI=1 npx expo start --offline`; `tsc` now clean. |
+
+Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
+
+Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.

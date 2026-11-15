@@ -1,5 +1,5 @@
-import { TabPlaceholderPage } from '@/staff/navigation';
+import { TodayPage } from '@/staff/features/today';
 
 export default function TodayRoute() {
-  return <TabPlaceholderPage tab="today" />;
+  return <TodayPage />;
 }
