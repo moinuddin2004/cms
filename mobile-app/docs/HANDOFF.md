@@ -2486,3 +2486,54 @@ See the report: backend specs, build and mobile typecheck/lint/fences/jest resul
 ### Deviations
 - App config plugin left in HANDOFF (see above). Link/unlink and register/join stay web-only.
 
+
+---
+## M2-08 — Patient read services (BE)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-08-patient-reads-d759cf (from mobile/develop)   Status set to: in-progress
+
+### Plan (written before coding)
+1. Module `src/patient-app/reads/` inside `PatientAppModule`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService`, pure mappers + DTO interfaces, `PatientAccessLogService`.
+2. Scope: `PatientClinicsService.visibleContext(ctx)` loads the clinics of the account's links (name, approval, is_active, currency, theme logo/brand, `patient_app.show_*`). Approved clinics only (A-19: pending/rejected → no records); `is_active = false` → kept, `clinicStatus: 'suspended'`. The result is a *filtered* `PatientContext`; every query then goes through `linkedPatientWhere()` with it (no id from URL/query is trusted; `profileId` goes through `assertProfile`).
+3. Visibility rules (07 §3) live in pure functions (`visibility.ts`): prescriptions = FINALIZED/AMENDED + `signed_at`; billing only when the clinic's `show_billing`; diagnosis/treatments only when `show_diagnosis`; cancelled invoices never shown.
+4. DTOs are explicit-allowlist mappers from narrow raw rows (SQL selects only the needed columns); snapshot specs prove no extra keys.
+5. Times: instants as UTC ISO; visit `date` computed in SQL with `AT TIME ZONE locations.timezone`; each record carries `location.timezone`. Money: decimal columns → `*Minor` via `toMinor`.
+6. Access log (`patient_access_log`, table already exists from M2-01 → no schema change): `view_list` per distinct (org, patient) in the result, `view_detail` with resource id; best effort, never fails a read, no PHI in logs.
+7. Specs: visibility tables, clinic status, mappers + snapshots, service (mocked query builders), controller metadata; int spec written (not run unless disposable local Postgres).
+
+### Done (M2-08)
+- `backend/src/patient-app/reads/`: `PatientReadsController` (`GET /patient-api/appointments | visits | prescriptions | prescriptions/:id | billing/summary`), `PatientReadsService`, `PatientClinicsService` (clinic status + `patient_app.show_billing/show_diagnosis` per org), `PatientAccessLogService`, pure `visibility.ts` + `patient-reads.mappers.ts`, query DTOs. Registered in `PatientAppModule`.
+- Scope: every query uses `linkedPatientWhere()` over the visible context (approved clinics only). A-19: pending/rejected clinic = nothing; `organizations.is_active = false` = readable with `clinicStatus: 'suspended'`. `profileId` goes through `assertProfile` (404); unknown/unlinked ids → 404 `NOT_FOUND`.
+- Visibility (07 §3): prescriptions FINALIZED/AMENDED + `signed_at`; billing only for `show_billing` clinics, cancelled invoices never; `diagnosis`/`treatments` keys absent when `show_diagnosis` is off. Money → `*Minor`; visit date on the location's clock in SQL.
+- Access log: `view_list` (one row per distinct clinic patient) / `view_detail` (resource id); best effort, warning carries no ids. No schema change (table from M2-01).
+- 07 §6.4 documents the as-built behaviour.
+
+### Verification
+- jest `src/patient-app`: 9 suites / 108 tests green (incl. DTO allow-list tests with polluted rows, visibility tables, clinic-status, scoping with a recording query-builder double). Full backend unit suite: 103 suites / 1064 tests green.
+- `tsc --noEmit`: 4 errors, none in `src/` and none from this card (`nestjs-cli/` templates need mongoose; `test/labs/access.int-spec.ts` type mismatch). `nest build` not run separately.
+- NOT RUN: the SQL against Postgres — no local Postgres here, no integration spec written. The raw selects/joins (`AT TIME ZONE`, `json_agg`, `COALESCE(ap.doctor_id, qs.doctor_id)`) are unproven; run a smoke on a disposable local DB before relying on them.
+
+### Deviations / notes
+- `canConfirm: false`, `patientConfirmedAt: null` until M3-08 (no column). `location.whatsapp: null` (no column).
+- `ClinicRef` gained `clinicStatus`; invoices gained `profileId`.
+- Visit `doctorName` = appointment doctor, else the queue session's doctor (encounters have no doctor column).
+- Did not touch `src/patient-links` or `PatientLinkGuard` (A-19 filtering is in the read layer). A later card may move it into the guard.
+
+### Questions for architect
+- "Suspended" = `organizations.is_active = false` — confirm that is the intended flag.
+
+---
+## Rework M2-08 #1 — 2026-11-15
+Branch: `claude/m2-08-patient-reads-d759cf` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | PDF URL public + prints diagnosis | `pdfUrl` removed from the detail DTO (and from the SQL select). `hasPdf` = clinic `show_diagnosis` on. New `GET /patient-api/prescriptions/:id/pdf`: same scoped lookup (`findPrescription`), 404 when `show_diagnosis` is off, access-log `download`, then `PrescriptionPdfService.generatePdfBuffer` streamed through the API with `private, no-store` (the stored row has only the public URL, not the storage key, so a signed URL was not possible; rendering per request avoids any reusable link). `PrescriptionPdfService` is now exported from `PrescriptionsModule` (one-line change) and `PatientAppModule` imports that module. DTO tests assert no `pdfUrl` even when the row carries one. |
+| 2 | Unfinished visits | Visits `INNER JOIN queue_entries ... AND status = 'completed'`. Signal chosen: the queue entry's `completed` status (set by the doctor's Complete action); encounters have no completion column. Spec asserts the join condition on both visit queries. |
+| 3 | Global 400-invoice cap | One totals query + one list query (limit 50) per clinic, in parallel. |
+| 4 | Overdue timezone | Invoice rows select `l.timezone`; `clock.today(thatTimezone)` per invoice. Spec checks the tz passed. |
+| 5 | `page` max | `@Max(10000)`. |
+| 6 | Profile label | With a `profileId` filter rows are labelled with that id directly (spec with two profiles on one patient). |
+
+Verification: see the final lines below. Still NOT run: SQL against Postgres (no local DB); the PDF endpoint was not exercised end to end (no real renderer in unit specs; the service is mocked).
+
+Verification (rework 1): `tsc --noEmit` no errors under `src/` (the 4 pre-existing non-src errors remain) - jest `src/patient-app` + `src/prescriptions`: 11 suites / 134 tests green - full backend unit suite: 103 suites / 1070 tests green.

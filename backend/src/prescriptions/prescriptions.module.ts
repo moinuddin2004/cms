@@ -55,6 +55,10 @@ import { StorageModule } from 'src/common/storage/storage.module';
     PrescriptionPdfService,
     PrescriptionHistoryService,
   ],
-  exports: [PrescriptionService, MedicineDirectoryService],
+  exports: [
+    PrescriptionService,
+    PrescriptionPdfService,
+    MedicineDirectoryService,
+  ],
 })
 export class PrescriptionsModule {}
