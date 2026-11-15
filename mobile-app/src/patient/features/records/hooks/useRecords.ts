@@ -22,11 +22,37 @@ export function useRecordAppointments(profileId: string | null = null) {
   });
 }
 
-/** Look one appointment up from the list (there is no single-appointment endpoint). */
+/** Appointments starting from now: small, and the only appointments kept in the offline cache. */
+export function useRecordUpcomingAppointments(profileId: string | null = null) {
+  const accountId = useAccountId();
+  return useQuery({
+    queryKey: recordKeys.appointmentsUpcoming(accountId, profileId),
+    queryFn: () => fetchAppointments(profileId, new Date().toISOString()),
+    enabled: !!accountId,
+  });
+}
+
+/**
+ * What the Appointments segment shows: the full list (past included, online
+ * only), falling back to the cached upcoming ones while it is not available.
+ */
+export function useRecordAppointmentList(profileId: string | null = null) {
+  const all = useRecordAppointments(profileId);
+  const upcoming = useRecordUpcomingAppointments(profileId);
+  const data = all.data ?? upcoming.data;
+  return {
+    data,
+    isLoading: all.isPending && upcoming.isPending,
+    isError: all.isError && !upcoming.data,
+    refetch: () => Promise.all([all.refetch(), upcoming.refetch()]),
+  };
+}
+
+/** Look one appointment up from the lists (there is no single-appointment endpoint). */
 export function useRecordAppointment(id: string) {
-  const query = useRecordAppointments(null);
-  const appointment = useMemo(() => query.data?.find((a) => a.id === id) ?? null, [query.data, id]);
-  return { ...query, appointment };
+  const list = useRecordAppointmentList(null);
+  const appointment = useMemo(() => list.data?.find((a) => a.id === id) ?? null, [list.data, id]);
+  return { ...list, appointment };
 }
 
 export function useRecordVisits(profileId: string | null = null) {

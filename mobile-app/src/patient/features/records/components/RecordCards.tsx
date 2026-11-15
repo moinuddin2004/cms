@@ -122,14 +122,11 @@ export function PrescriptionCard({
   );
 }
 
-/** Invoices carry no location, so the date is the UTC calendar day of the issue instant. */
-const billDate = (issuedAt: string) => formatRecordDate(issuedAt.slice(0, 10));
-
 export function BillCard({ row }: { row: BillRow }) {
   const { t } = useT();
   const { invoice, clinic, currency } = row;
   const title = t('records.bill.number', { number: invoice.number });
-  const date = billDate(invoice.issuedAt);
+  const date = formatIssuedDate(invoice.issuedAt, invoice);
   const total = formatMinor(invoice.totalMinor, currency);
   return (
     <RecordCard accessibilityLabel={[title, date, clinic.name, total].join(', ')}>

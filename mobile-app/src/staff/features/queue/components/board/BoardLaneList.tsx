@@ -7,6 +7,7 @@ import { ListRow, SectionHeader } from '@/core/components';
 import { Icon } from '@/core/ui/icon';
 import { Text } from '@/core/ui/text';
 
+import { useTickingNow } from '../../hooks/useTickingNow';
 import type { EntryView } from '../../types/queue.types';
 import { BoardEntryRow } from './BoardEntryRow';
 import type { OpenLane } from './board-model';
@@ -39,6 +40,8 @@ export function BoardLaneList({
   onOpenActions,
   onBackFromTest,
 }: BoardLaneListProps) {
+  // Waiting minutes keep counting between refetches (re-based on each snapshot).
+  const now = useTickingNow(nowIso);
   const listRef = useRef<FlashListRef<LaneItem>>(null);
 
   // A fresh walk-in: bring its row into view.
@@ -52,6 +55,7 @@ export function BoardLaneList({
     <FlashList
       ref={listRef}
       data={items}
+      extraData={now}
       keyExtractor={(item) => item.key}
       getItemType={(item) => item.type}
       refreshing={refreshing}
@@ -92,7 +96,7 @@ export function BoardLaneList({
               <BoardEntryRow
                 entry={item.entry}
                 session={lane.snapshot.session}
-                nowIso={nowIso}
+                nowIso={now}
                 pending={pendingEntryId === item.entry.id}
                 highlighted={focusEntryId === item.entry.id}
                 onOpenActions={onOpenActions}

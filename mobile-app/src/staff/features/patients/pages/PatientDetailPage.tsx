@@ -1,5 +1,7 @@
 import { isAxiosError } from 'axios';
-import { Copy, MessageCircle, MoreHorizontal, Phone } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { Copy, MessageCircle, MoreHorizontal, Phone, Smartphone } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { toast } from 'sonner-native';
@@ -14,6 +16,9 @@ import {
   SegmentedControl,
   type SheetAction,
 } from '@/core/components';
+import { queueKeys } from '@/staff/features/queue';
+import { useCurrency } from '@/staff/lib/currency';
+import { useAccess } from '@/staff/features/access';
 import { todayYmd } from '@/staff/lib/datetime';
 
 import { AlertStrip } from '../components/detail/AlertStrip';
@@ -27,6 +32,7 @@ import { usePatientPrescriptions } from '../hooks/usePatientPrescriptions';
 import { copyText } from '../lib/copy-text';
 import { patientAlerts } from '../lib/patient-alerts';
 import {
+  dialCodeForCurrency,
   isPatientId,
   patientSubtitle,
   telUrl,
@@ -69,6 +75,11 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
   const rx = usePatientPrescriptions(validId);
   const chart = useLatestTeethChart(validId);
   const pushRecent = useRecentPatientsStore((s) => s.push);
+  const queryClient = useQueryClient();
+  const currency = useCurrency();
+  const [pulling, setPulling] = useState(false);
+  const router = useRouter();
+  const { can } = useAccess();
 
   const [segment, setSegment] = useState<PatientSegment>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -82,6 +93,25 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
   const active = segments.includes(segment) ? segment : 'overview';
 
   const alerts = useMemo(() => (patient.data ? patientAlerts(patient.data) : []), [patient.data]);
+
+  // Pull-to-refresh reloads the whole summary: the patient, every cached child
+  // query (history, vitals, Rx, chart) and this patient's queue visits.
+  const refreshAll = () => {
+    setPulling(true);
+    void Promise.allSettled([
+      patient.refetch(),
+      queryClient.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'patients' &&
+          q.queryKey[1] !== 'list' &&
+          q.queryKey[1] !== 'detail' && // refetched above
+
+          q.queryKey[1] !== 'check-phone' &&
+          q.queryKey.includes(patientId),
+      }),
+      queryClient.invalidateQueries({ queryKey: queueKeys.patientVisits(patientId) }),
+    ]).finally(() => setPulling(false));
+  };
 
   if (!validId || (patient.isError && isNotFound(patient.error))) {
     return (
@@ -113,10 +143,17 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
 
   const p = patient.data;
   const tel = telUrl(p.phone);
-  const wa = whatsappUrl(whatsappTarget(p));
+  const wa = whatsappUrl(whatsappTarget(p), dialCodeForCurrency(currency));
   const actions: SheetAction[] = [];
   if (tel) actions.push({ label: 'Call', icon: Phone, onPress: () => void openUrl(tel) });
   if (wa) actions.push({ label: 'WhatsApp', icon: MessageCircle, onPress: () => void openUrl(wa) });
+  if (can('patients.app_link.manage')) {
+    actions.push({
+      label: 'Link app',
+      icon: Smartphone,
+      onPress: () => router.push({ pathname: '/app-link/[patientId]', params: { patientId: p.id } }),
+    });
+  }
   actions.push({
     label: 'Copy MR no.',
     icon: Copy,
@@ -130,8 +167,8 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
   return (
     <Screen
       scroll
-      refreshing={patient.isRefetching}
-      onRefresh={() => void patient.refetch()}
+      refreshing={pulling}
+      onRefresh={refreshAll}
       header={
         <>
           <ScreenHeader

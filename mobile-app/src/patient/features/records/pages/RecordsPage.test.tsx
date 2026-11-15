@@ -113,7 +113,11 @@ describe('RecordsPage', () => {
   });
 
   it('shows an error with retry', async () => {
-    mockAppointments.mockRejectedValueOnce(new Error('x')).mockResolvedValue([appt()]);
+    // the full list and the upcoming list both fail once, then succeed on retry
+    mockAppointments
+      .mockRejectedValueOnce(new Error('x'))
+      .mockRejectedValueOnce(new Error('x'))
+      .mockResolvedValue([appt()]);
     await renderPage();
     fireEvent.press(await screen.findByText('Try again'));
     expect(await screen.findByText('with Dr Sana')).toBeTruthy();
@@ -146,5 +150,12 @@ describe('RecordsPage', () => {
     await renderPage();
     fireEvent.press(await screen.findByText('Tue, 3 Nov · 4:30 PM'));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/appointments/[id]', params: { id: 'a1' } });
+  });
+  it('falls back to the cached upcoming appointments when the full list fails', async () => {
+    mockAppointments.mockImplementation((_profile: unknown, from?: string) =>
+      from ? Promise.resolve([appt()]) : Promise.reject(new Error('offline')),
+    );
+    await renderPage();
+    expect(await screen.findByText('with Dr Sana')).toBeTruthy();
   });
 });

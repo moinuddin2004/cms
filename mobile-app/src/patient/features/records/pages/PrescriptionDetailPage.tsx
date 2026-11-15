@@ -6,7 +6,7 @@ import { Text } from '@/core/ui/text';
 
 import { ClinicChip } from '../components/ClinicChip';
 import { useRecordPrescription } from '../hooks/useRecords';
-import { formatIssuedDate } from '../lib/records-format';
+import { formatIssuedDate, timingKey } from '../lib/records-format';
 import type { PrescriptionMedicine } from '../types/records.types';
 
 const MEALS = new Set(['BEFORE_MEAL', 'AFTER_MEAL', 'WITH_MEAL', 'EMPTY_STOMACH', 'NONE']);
@@ -19,7 +19,7 @@ function MedicineCard({ m }: { m: PrescriptionMedicine }) {
   const lines: [string, string | null][] = [
     [t('records.prescription.dose'), m.dosage],
     [t('records.prescription.howOften'), m.frequency],
-    [t('records.prescription.when'), [...m.frequencyTiming, meal].filter(Boolean).join(' · ') || null],
+    [t('records.prescription.when'), [...m.frequencyTiming.map((tag) => (timingKey(tag) ? t(timingKey(tag)!) : tag)), meal].filter(Boolean).join(' · ') || null],
     [t('records.prescription.howLong'), m.duration],
   ];
   return (
@@ -52,10 +52,10 @@ function MedicineCard({ m }: { m: PrescriptionMedicine }) {
  */
 export function PrescriptionDetailPage({ id }: { id: string }) {
   const { t } = useT();
-  const { data, isLoading, isError, refetch } = useRecordPrescription(id);
+  const { data, isPending, isError, refetch } = useRecordPrescription(id);
   const header = <ScreenHeader title={t('records.prescription.title')} back backLabel={t('common.back')} />;
 
-  if (isLoading) return <Screen header={header}><LoadingSkeleton rows={4} /></Screen>;
+  if (isPending) return <Screen header={header}><LoadingSkeleton rows={4} /></Screen>;
   if (isError || !data) {
     return (
       <Screen header={header}>

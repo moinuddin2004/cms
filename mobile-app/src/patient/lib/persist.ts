@@ -11,8 +11,8 @@ export const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000;
  * root here together with the query.
  */
 const PERSISTABLE_ROOTS: ReadonlySet<string> = new Set<string>([
-  // M2-09: upcoming appointments + prescription list (docs/02 sec. 9). Visits, details and bills are online-only.
-  'records-appointments',
+  // M2-09: UPCOMING appointments + prescription list (docs/02 sec. 9). Past appointments, visits, details and bills are online-only.
+  'records-appointments-upcoming',
   'records-prescriptions',
 ]);
 

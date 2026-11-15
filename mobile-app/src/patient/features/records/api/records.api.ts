@@ -18,9 +18,12 @@ const params = (profileId: string | null, extra: Record<string, unknown> = {}) =
 });
 
 /** `GET /patient-api/appointments` — newest first, max 300, not paged. */
-export async function fetchAppointments(profileId: string | null): Promise<PatientAppointment[]> {
+export async function fetchAppointments(
+  profileId: string | null,
+  from?: string,
+): Promise<PatientAppointment[]> {
   const res = await patientApi.get<ApiResponse<PatientAppointment[]>>('/patient-api/appointments', {
-    params: params(profileId),
+    params: params(profileId, from ? { from } : {}),
   });
   return res.data.data;
 }

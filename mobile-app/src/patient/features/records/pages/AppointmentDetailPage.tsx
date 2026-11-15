@@ -18,7 +18,7 @@ import { Text } from '@/core/ui/text';
 import { ClinicChip } from '../components/ClinicChip';
 import { useAppointmentStatusLabel } from '../components/RecordCards';
 import { useRecordAppointment } from '../hooks/useRecords';
-import { appointmentTone, formatRecordTime } from '../lib/records-format';
+import { appointmentTone, appointmentTypeKey, formatRecordTime } from '../lib/records-format';
 
 async function open(url: string, failed: string) {
   try {
@@ -81,7 +81,16 @@ export function AppointmentDetailPage({ id }: { id: string }) {
           label={statusLabel(appointment.status)}
         />
       </View>
-      {appointment.type ? <Row label={t('records.appointment.type')} value={appointment.type} /> : null}
+      {appointment.type ? (
+        <Row
+          label={t('records.appointment.type')}
+          value={
+            appointmentTypeKey(appointment.type)
+              ? t(appointmentTypeKey(appointment.type)!)
+              : appointment.type
+          }
+        />
+      ) : null}
 
       {location.phone ? (
         <Button size="lg" onPress={() => void open(`tel:${location.phone}`, failed)}>

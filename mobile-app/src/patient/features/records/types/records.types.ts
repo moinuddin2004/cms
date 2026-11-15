@@ -80,6 +80,8 @@ export interface PatientInvoice {
   profileId: string;
   number: string;
   issuedAt: string;
+  /** IANA zone of the invoice's location. */
+  timezone: string;
   totalMinor: number;
   paidMinor: number;
   balanceMinor: number;

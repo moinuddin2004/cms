@@ -93,6 +93,7 @@ export const ur: Messages = {
     error: "We couldn't load your records", // TODO(ur)
     errorBody: 'Check your connection and try again.', // TODO(ur)
     openFailed: 'Could not open this link', // TODO(ur)
+    moreFailed: "We couldn't load more", // TODO(ur)
     clinicPaused: 'This clinic is paused', // TODO(ur)
     clinicPausedBody: 'You can still read your records. New bookings are not available.', // TODO(ur)
     with: '{name} کے ساتھ',
@@ -111,6 +112,14 @@ export const ur: Messages = {
       overdue: 'Overdue', // TODO(ur)
     },
     appointment: {
+      types: {
+        consultation: 'Consultation', // TODO(ur)
+        follow_up: 'Follow-up', // TODO(ur)
+        treatment: 'Treatment', // TODO(ur)
+        checkup: 'Check-up', // TODO(ur)
+        emergency: 'Emergency', // TODO(ur)
+        cleaning: 'Cleaning', // TODO(ur)
+      },
       title: 'اپائنٹمنٹ',
       notFound: 'We could not find this appointment', // TODO(ur)
       when: 'When', // TODO(ur)
@@ -127,6 +136,13 @@ export const ur: Messages = {
       treatments: 'Treatments', // TODO(ur)
     },
     prescription: {
+      timing: {
+        morning: 'Morning', // TODO(ur)
+        afternoon: 'Afternoon', // TODO(ur)
+        evening: 'Evening', // TODO(ur)
+        night: 'Night', // TODO(ur)
+        sos: 'Only if needed', // TODO(ur)
+      },
       title: 'نسخہ',
       notFound: 'We could not find this prescription', // TODO(ur)
       medicines: '{count} medicines', // TODO(ur)
@@ -151,6 +167,52 @@ export const ur: Messages = {
       paid: 'ادا شدہ',
       balance: 'Balance', // TODO(ur)
       number: 'Bill {number}', // TODO(ur)
+    },
+  },
+  // TODO(ur): translate the claim strings
+  claim: {
+    signInHint: 'Sign in to link your record.',
+    invalid: {
+      title: "This link doesn't work",
+      body: 'The code is not valid. Ask the reception for a new one.',
+      action: 'Close',
+    },
+    confirm: {
+      title: 'Link your record',
+      loading: 'Checking your code…',
+      record: 'Record: {name}',
+      recordAge: 'Record: {name}, {age}',
+      whose: 'Whose record is this?',
+      relSelf: 'Me',
+      relChild: 'My child',
+      relParent: 'My parent',
+      relOther: 'Someone else I care for',
+      nameLabel: 'Name of this person',
+      namePlaceholder: 'Full name',
+      nameRequired: "Please enter this person's name",
+      consent: "I confirm I may view this person's records",
+      consentRequired: 'Please confirm to continue',
+      submit: 'Link record',
+      submitting: 'Linking…',
+      cancel: 'Not now',
+      alreadyYours: 'This record is already linked to your account.',
+    },
+    success: {
+      title: 'All set',
+      body: "Linked. You'll now see visits and medicines from {clinic}.",
+      done: 'Continue',
+    },
+    errors: {
+      invalid: 'This code has expired or was already used. Ask the reception for a new one.',
+      suspended: "This clinic can't link records right now. Please ask the clinic to help.",
+      appDisabled: "This clinic hasn't turned on the patient app yet. Please ask the reception.",
+      alreadyLinked:
+        'This record is already linked to another account. Ask the reception if you think this is a mistake.',
+      nameRequired: "Please enter this person's name.",
+      relationMismatch: 'That choice does not match your saved family members. Please pick again.',
+      rateLimited: 'Too many tries. Please wait a few minutes and try again.',
+      network: 'No connection. Check your internet and try again.',
+      generic: "We couldn't link the record. Please try again.",
     },
   },
   offline: {

@@ -31,6 +31,18 @@ describe('usePushRegistration', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it('saved-data mode: waits, then registers when the session recovers', async () => {
+    state.mockResolvedValue('granted');
+    useStaffAuthStore.setState({ offlineSnapshot: true });
+    await renderHook(() => usePushRegistration());
+    await act(async () => {});
+    expect(registerThisDevice).not.toHaveBeenCalled();
+    await act(async () => {
+      useStaffAuthStore.setState({ offlineSnapshot: false });
+    });
+    await waitFor(() => expect(registerThisDevice).toHaveBeenCalledTimes(1));
+  });
+
   it('undetermined: shows our sheet, not the OS prompt, until the user agrees', async () => {
     state.mockResolvedValue('undetermined');
     const { result } = await renderHook(() => usePushRegistration());

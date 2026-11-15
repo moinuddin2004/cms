@@ -5,6 +5,8 @@ import { View } from 'react-native';
 
 import { EmptyState, ErrorState, LoadingSkeleton, Spinner } from '@/core/components';
 import { useT } from '@/core/i18n';
+import { Button } from '@/core/ui/button';
+import { Text } from '@/core/ui/text';
 
 export interface RecordsListProps<T> {
   items: T[];
@@ -21,6 +23,9 @@ export interface RecordsListProps<T> {
   keyOf: (item: T) => string;
   onEndReached?: () => void;
   loadingMore?: boolean;
+  /** Loading the next page failed: show a retry footer instead of retrying on scroll. */
+  nextPageFailed?: boolean;
+  onRetryNextPage?: () => void;
 }
 
 /** One segment's list with all four states: loading, empty, error (retry), no results. */
@@ -38,6 +43,8 @@ export function RecordsList<T>({
   keyOf,
   onEndReached,
   loadingMore,
+  nextPageFailed,
+  onRetryNextPage,
 }: RecordsListProps<T>) {
   const { t } = useT();
   // Only a user pull spins the control, not background refetches.
@@ -82,7 +89,18 @@ export function RecordsList<T>({
       }}
       onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
-      ListFooterComponent={loadingMore ? <Spinner /> : null}
+      ListFooterComponent={
+        nextPageFailed ? (
+          <View className="items-center gap-2 py-4">
+            <Text variant="muted">{t('records.moreFailed')}</Text>
+            <Button variant="outline" onPress={onRetryNextPage}>
+              <Text>{t('common.retry')}</Text>
+            </Button>
+          </View>
+        ) : loadingMore ? (
+          <Spinner />
+        ) : null
+      }
     />
   );
 }

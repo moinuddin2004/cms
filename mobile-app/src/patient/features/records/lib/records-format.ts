@@ -1,3 +1,4 @@
+import type { MessageKey } from '@/core/i18n';
 import { formatInZone } from '@/core/datetime';
 import { formatMoney } from '@/core/money/format';
 import {
@@ -30,6 +31,24 @@ export const formatMinor = (minor: number, currency: string) => formatMoney(mino
 export function appointmentTone(status: string): StatusTone {
   return (APPOINTMENT_STATUS_TONES as Record<string, { tone: StatusTone } | undefined>)[status]?.tone ?? 'neutral';
 }
+
+const APPOINTMENT_TYPES = new Set([
+  'consultation',
+  'follow_up',
+  'treatment',
+  'checkup',
+  'emergency',
+  'cleaning',
+]);
+const TIMING_TAGS = new Set(['morning', 'afternoon', 'evening', 'night', 'sos']);
+
+/** Translation key for a backend appointment type, or null for an unknown code. */
+export const appointmentTypeKey = (type: string) =>
+  APPOINTMENT_TYPES.has(type) ? (`records.appointment.types.${type}` as MessageKey) : null;
+
+/** Translation key for a backend dose-timing tag, or null for an unknown one. */
+export const timingKey = (tag: string) =>
+  TIMING_TAGS.has(tag) ? (`records.prescription.timing.${tag}` as MessageKey) : null;
 
 export const INVOICE_TONES: Record<InvoiceStatus, StatusTone> = {
   paid: 'success',

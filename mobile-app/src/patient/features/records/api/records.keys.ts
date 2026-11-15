@@ -7,6 +7,9 @@ type Id = string | null;
 
 export const recordKeys = {
   appointments: (accountId: Id, profileId: Id) => ['records-appointments', accountId, profileId] as const,
+  /** Upcoming only — the one appointments query kept in the offline cache (docs/02 §9). */
+  appointmentsUpcoming: (accountId: Id, profileId: Id) =>
+    ['records-appointments-upcoming', accountId, profileId] as const,
   visits: (accountId: Id, profileId: Id) => ['records-visits', accountId, profileId] as const,
   prescriptions: (accountId: Id, profileId: Id) =>
     ['records-prescriptions', accountId, profileId] as const,

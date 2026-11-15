@@ -8,7 +8,7 @@ import { useT } from '@/core/i18n';
 import { AppointmentCard, BillCard, PrescriptionCard, VisitCard } from '../components/RecordCards';
 import { RecordsList } from '../components/RecordsList';
 import {
-  useRecordAppointments,
+  useRecordAppointmentList,
   useRecordBilling,
   useRecordPrescriptions,
   useRecordVisits,
@@ -28,7 +28,7 @@ export function RecordsPage() {
   const [segment, setSegment] = useState<RecordSegment>('appointments');
   const [search, setSearch] = useState('');
 
-  const appointments = useRecordAppointments();
+  const appointments = useRecordAppointmentList();
   const visits = useRecordVisits();
   const prescriptions = useRecordPrescriptions();
   const billing = useRecordBilling();
@@ -129,6 +129,8 @@ export function RecordsPage() {
           isError={visits.isError}
           onRetry={() => void visits.refetch()}
           onRefresh={() => visits.refetch()}
+          nextPageFailed={visits.isFetchNextPageError}
+          onRetryNextPage={() => void visits.fetchNextPage()}
           emptyTitle={t('records.empty.visits')}
           emptyBody={t('records.empty.visitsBody')}
           filtered={filtered}
@@ -136,7 +138,7 @@ export function RecordsPage() {
           keyOf={(v) => v.id}
           renderItem={(v) => <VisitCard item={v} />}
           onEndReached={() => {
-            if (visits.hasNextPage && !visits.isFetchingNextPage) void visits.fetchNextPage();
+            if (visits.hasNextPage && !visits.isFetchingNextPage && !visits.isFetchNextPageError) void visits.fetchNextPage();
           }}
           loadingMore={visits.isFetchingNextPage}
         />
@@ -149,6 +151,8 @@ export function RecordsPage() {
           isError={prescriptions.isError}
           onRetry={() => void prescriptions.refetch()}
           onRefresh={() => prescriptions.refetch()}
+          nextPageFailed={prescriptions.isFetchNextPageError}
+          onRetryNextPage={() => void prescriptions.fetchNextPage()}
           emptyTitle={t('records.empty.prescriptions')}
           emptyBody={t('records.empty.prescriptionsBody')}
           filtered={filtered}
@@ -161,7 +165,11 @@ export function RecordsPage() {
             />
           )}
           onEndReached={() => {
-            if (prescriptions.hasNextPage && !prescriptions.isFetchingNextPage)
+            if (
+              prescriptions.hasNextPage &&
+              !prescriptions.isFetchingNextPage &&
+              !prescriptions.isFetchNextPageError
+            )
               void prescriptions.fetchNextPage();
           }}
           loadingMore={prescriptions.isFetchingNextPage}

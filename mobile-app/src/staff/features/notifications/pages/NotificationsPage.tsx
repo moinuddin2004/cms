@@ -56,6 +56,10 @@ export function NotificationsPage() {
   const orgNames = useMemo(() => orgNameMap(organizations), [organizations]);
   const items = useMemo(() => query.data?.pages.flatMap((p) => p.data) ?? [], [query.data]);
 
+  // Disabled only when we KNOW nothing is unread: a loading or failed count must not lock the button.
+  const nothingUnread =
+    unread.data === 0 || (unread.data === undefined && items.length > 0 && items.every((n) => n.readAt !== null));
+
   const go = (route: StaffRoute) => router.navigate(route as Href);
 
   const open = (item: NotificationItem) => {
@@ -152,7 +156,7 @@ export function NotificationsPage() {
               icon={CheckCheck}
               accessibilityLabel="Mark all as read"
               loading={markAll.isPending}
-              disabled={(unread.data ?? 0) === 0}
+              disabled={nothingUnread}
               onPress={() => markAll.mutate()}
             />
           }

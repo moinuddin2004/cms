@@ -1,6 +1,7 @@
-import axios, { type AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 
 import { env } from '@/core/env';
+import { READ_ONLY_OFFLINE } from '@/core/http/api-error';
 import {
   API_TIMEOUT_MS,
   NATIVE_HEADERS,
@@ -32,6 +33,11 @@ export const staffApi = createApiClient({
     if (s.accessToken) config.headers.Authorization = `Bearer ${s.accessToken}`;
     if (s.activeOrganizationId) config.headers['x-organization-id'] = s.activeOrganizationId;
     if (s.activeLocationId) config.headers['x-location-id'] = s.activeLocationId;
+    // Opened on saved data (M1-06b): read-only. Throwing here rejects before anything is sent;
+    // the distinct code is never retried (see `isRetryable`).
+    if (s.offlineSnapshot && (config.method ?? 'get').toLowerCase() !== 'get') {
+      throw new AxiosError('Saved data is read-only', READ_ONLY_OFFLINE, config);
+    }
   },
   // Lazy: `refreshSession` is declared below.
   refreshSession: () => refreshSession(),

@@ -5,6 +5,8 @@ import type { BillingClinic, ClinicRef } from '../types/records.types';
 import { clinicAccent, isClinicPaused } from './clinic';
 import {
   appointmentTone,
+  appointmentTypeKey,
+  timingKey,
   formatIssuedDate,
   formatMinor,
   formatRecordDate,
@@ -41,8 +43,17 @@ describe('record times use the clinic clock', () => {
   });
 });
 
+describe('code labels', () => {
+  it('maps known backend codes and leaves unknown ones to the caller', () => {
+    expect(appointmentTypeKey('follow_up')).toBe('records.appointment.types.follow_up');
+    expect(appointmentTypeKey('weird')).toBeNull();
+    expect(timingKey('sos')).toBe('records.prescription.timing.sos');
+    expect(timingKey('noon-ish')).toBeNull();
+  });
+});
+
 describe('money', () => {
-  it('converts minor units', () => expect(formatMinor(250050, 'PKR')).toBe('PKR 2,500.5'));
+  it('converts minor units', () => expect(formatMinor(250050, 'PKR')).toBe('PKR 2,500.50'));
 });
 
 describe('clinic helpers', () => {
@@ -64,6 +75,7 @@ describe('lists', () => {
       profileId: 'p',
       number: id,
       issuedAt,
+      timezone: 'Asia/Karachi',
       totalMinor: 1,
       paidMinor: 0,
       balanceMinor: 1,
@@ -91,9 +103,10 @@ describe('cache keys', () => {
     expect(recordKeys.appointments('acc', null)).toContain('acc');
     expect(recordKeys.prescription('acc', 'x')).toContain('acc');
   });
-  it('persist only appointments and the prescription list', () => {
-    expect(isPersistableKey(recordKeys.appointments('a', null))).toBe(true);
+  it('persist only upcoming appointments and the prescription list', () => {
+    expect(isPersistableKey(recordKeys.appointmentsUpcoming('a', null))).toBe(true);
     expect(isPersistableKey(recordKeys.prescriptions('a', null))).toBe(true);
+    expect(isPersistableKey(recordKeys.appointments('a', null))).toBe(false);
     expect(isPersistableKey(recordKeys.visits('a', null))).toBe(false);
     expect(isPersistableKey(recordKeys.billing('a', null))).toBe(false);
     expect(isPersistableKey(recordKeys.prescription('a', 'x'))).toBe(false);
