@@ -1,11 +1,13 @@
+import * as Clipboard from 'expo-clipboard';
+
 /**
- * Explicit "Copy" actions (docs/03 §2.9: PHI is never copied automatically).
- *
- * `expo-clipboard` is not in the lockfile yet and packages may not be added from
- * a card (see HANDOFF M1-12): until the architect runs `npx expo install expo-clipboard`,
- * this reports "unavailable" and the caller shows an honest toast. After the install
- * the body becomes `await Clipboard.setStringAsync(text); return true;`.
+ * Explicit "Copy" actions only (docs/03 §2.9: PHI is never copied automatically).
+ * Returns whether the text reached the clipboard; never throws, never logs the text.
  */
-export async function copyText(_text: string): Promise<boolean> {
-  return false;
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    return await Clipboard.setStringAsync(text);
+  } catch {
+    return false;
+  }
 }

@@ -250,7 +250,7 @@ describe('PatientDetailPage', () => {
       await render(<PatientDetailPage patientId={ID} />);
       await openMenu();
       await fireEvent.press(screen.getByText('Copy MR no.'));
-      await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Copy is not available in this build'));
+      await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Could not copy'));
     });
   });
 });

@@ -122,7 +122,7 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
     icon: Copy,
     onPress: () => {
       void copyText(p.patientNumber).then((ok) =>
-        toast(ok ? 'MR number copied' : 'Copy is not available in this build'),
+        toast(ok ? 'MR number copied' : 'Could not copy'),
       );
     },
   });

@@ -1995,10 +1995,10 @@ Branch: claude/m1-12-patient-summary-c4f480 (from mobile/develop)   Commit(s): f
 - Docs: PROGRESS row, this entry. Barrel untouched (no new exports needed).
 
 ### Install commands for the user
-`npx expo install expo-clipboard` — **needed for Copy MR no.** It is not in the lockfile, so `lib/copy-text.ts` currently returns `false` and the action toasts "Copy is not available in this build". After the install replace its body with `await Clipboard.setStringAsync(text); return true;` (one function, tests already mock it). Native module → new dev build.
+none left. `expo-clipboard ~58.0.4` was added by the team lead/user for this card (package.json + lockfile committed here); `lib/copy-text.ts` now uses `Clipboard.setStringAsync` (false on failure → toast "Could not copy"). Native module → needs a new dev build.
 
 ### Verification
-- `npm test` → 62 suites; all pass (465 tests; one run showed a failure that was my own sed mistake in the test, fixed; patients folder re-run: 10 suites / 139 tests green). `npm run typecheck` clean. ESLint on `src`: 0 errors (existing warnings only; my new axios warning fixed). `npm run lint:fences` all PASS.
+- `npm test` → 63 suites / 467 tests, all green (after the clipboard change; `copy-text.test.ts` added). `npm run typecheck` clean. ESLint on `src`: 0 errors (existing warnings only; my new axios warning fixed). `npm run lint:fences` all PASS.
 - **No device / emulator here:** no screenshots; visual and 44 pt checks are by code only.
 
 ### Acceptance criteria
@@ -2013,5 +2013,5 @@ Branch: claude/m1-12-patient-summary-c4f480 (from mobile/develop)   Commit(s): f
 - "Link app (M2-15)" menu item not added (later card).
 
 ### Questions for the architect
-- OK to add `expo-clipboard` (see above), or should Copy use another mechanism?
+- None.
 
