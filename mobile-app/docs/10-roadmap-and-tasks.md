@@ -772,6 +772,16 @@ Write `docs/reviews/M1-16/report.md` with numbers.
 
 **Acceptance:** all gate items checked or listed as known issues with severity.
 
+**Carried-over review nits (fix in this pass):**
+- M1-12 `PatientDetailPage` pull-to-refresh refetches only the patient: also invalidate this patient's `patientKeys` children and `queueKeys.patientVisits(id)`.
+- M1-12 `RxSegment` shows the first 20 prescriptions with no hint: add a "Showing latest 20" footer.
+- M1-12 `patient-detail.ts` `whatsappUrl` sends local `03…` numbers to wa.me unchanged: prefix the clinic country code.
+- M1-12 `RxSegment` / M1-09 `TicketSheet` / M1-14 `AppointmentSheet` abuse `FormSheet` with dummy discard text for read-only sheets: add a read-only sheet in `core/components` and switch them.
+- M1-13 `QueueTabPage` has no test that `?segment=board` overrides a saved `doctor` choice: add one.
+- M1-13 `NotificationsPage.tsx:157` Mark-all is disabled while the unread count loads/fails: use `unread.data === 0` or loaded unread rows.
+- M1-08 waiting minutes freeze between refetches: tick a local offset from `snapshot.now` each minute.
+- Jest "worker failed to exit gracefully": find the open handle (`--detectOpenHandles`) and fix it.
+
 ---
 
 ### M1-17 — Staff Google sign-in (optional for pilot)

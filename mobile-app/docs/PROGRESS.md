@@ -46,7 +46,7 @@
 | M1-11 | Patients list + quick register (UI) | MOB | M | M1-01, M1-02, M1-11b | done | Sonnet session | 2026-11-15 | rework-1; device check waits M0-D |
 | M1-12 | Patient summary | MOB | M | M1-11 | done | Sonnet session | 2026-11-15 | approved; nits → M1-16 |
 | M1-13a | Notifications api, hooks, link router | MOB | S | M1-03 | done | Sonnet session | 2026-11-15 | approved; nits → M1-13 |
-| M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | done | Sonnet session | 2026-11-15 | rework-1 |
+| M1-13 | Notifications inbox + bell (UI) | MOB | S | M1-02, M1-13a | done | Sonnet session | 2026-11-15 | approved; nits → M1-16 |
 | M1-14a | Appointments data layer | MOB | S | M1-06 | done (in develop) | | | |
 | M1-14 | Schedule tab (UI) | MOB | M | M1-07, M1-14a | done | Sonnet session | 2026-11-15 | rework-1; device check waits M0-D |
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | done | Sonnet session | 2026-11-15 | approved |
