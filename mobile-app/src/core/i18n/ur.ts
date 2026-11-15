@@ -65,6 +65,94 @@ export const ur: Messages = {
     signOutTitle: 'سائن آؤٹ کریں؟',
     signOutBody: 'You will need a new code to sign in again on this phone.', // TODO(ur)
   },
+  records: {
+    title: 'ریکارڈ',
+    tab: 'ریکارڈ',
+    homeTab: 'ہوم',
+    search: 'Search clinic or doctor', // TODO(ur)
+    clearSearch: 'Clear search', // TODO(ur)
+    segments: {
+      appointments: 'اپائنٹمنٹس',
+      visits: 'وزٹس',
+      prescriptions: 'نسخے',
+      bills: 'بل',
+    },
+    empty: {
+      appointments: 'No appointments yet', // TODO(ur)
+      appointmentsBody: 'Appointments from your linked clinics will show up here.', // TODO(ur)
+      visits: 'No visits yet', // TODO(ur)
+      visitsBody: 'Completed visits from your linked clinics will show up here.', // TODO(ur)
+      prescriptions: 'No prescriptions yet', // TODO(ur)
+      prescriptionsBody: 'Prescriptions from your doctors will show up here.', // TODO(ur)
+      bills: 'No bills yet', // TODO(ur)
+      billsBody: 'Bills from your linked clinics will show up here.', // TODO(ur)
+    },
+    noResults: 'Nothing matches your search', // TODO(ur)
+    noResultsBody: 'Try a different word or clear the search.', // TODO(ur)
+    clearAll: 'Clear search', // TODO(ur)
+    error: "We couldn't load your records", // TODO(ur)
+    errorBody: 'Check your connection and try again.', // TODO(ur)
+    openFailed: 'Could not open this link', // TODO(ur)
+    clinicPaused: 'This clinic is paused', // TODO(ur)
+    clinicPausedBody: 'You can still read your records. New bookings are not available.', // TODO(ur)
+    with: '{name} کے ساتھ',
+    status: {
+      scheduled: 'طے شدہ',
+      confirmed: 'تصدیق شدہ',
+      checked_in: 'پہنچ گئے',
+      completed: 'مکمل',
+      cancelled: 'منسوخ',
+      no_show: 'Missed', // TODO(ur)
+    },
+    invoice: {
+      paid: 'ادا شدہ',
+      partial: 'Part paid', // TODO(ur)
+      unpaid: 'Unpaid', // TODO(ur)
+      overdue: 'Overdue', // TODO(ur)
+    },
+    appointment: {
+      title: 'اپائنٹمنٹ',
+      notFound: 'We could not find this appointment', // TODO(ur)
+      when: 'When', // TODO(ur)
+      clinic: 'کلینک',
+      doctor: 'ڈاکٹر',
+      status: 'Status', // TODO(ur)
+      type: 'Type', // TODO(ur)
+      callClinic: 'Call clinic', // TODO(ur)
+      directions: 'Directions', // TODO(ur)
+    },
+    visit: {
+      followUp: 'Follow-up on {date}', // TODO(ur)
+      diagnosis: 'Diagnosis', // TODO(ur)
+      treatments: 'Treatments', // TODO(ur)
+    },
+    prescription: {
+      title: 'نسخہ',
+      notFound: 'We could not find this prescription', // TODO(ur)
+      medicines: '{count} medicines', // TODO(ur)
+      medicine: '1 medicine', // TODO(ur)
+      doctor: 'ڈاکٹر',
+      date: 'Date', // TODO(ur)
+      dose: 'Dose', // TODO(ur)
+      howOften: 'How often', // TODO(ur)
+      when: 'When', // TODO(ur)
+      howLong: 'For how long', // TODO(ur)
+      instructions: 'Instructions', // TODO(ur)
+      meal: {
+        BEFORE_MEAL: 'Before food', // TODO(ur)
+        AFTER_MEAL: 'After food', // TODO(ur)
+        WITH_MEAL: 'With food', // TODO(ur)
+        EMPTY_STOMACH: 'On an empty stomach', // TODO(ur)
+        NONE: 'Any time', // TODO(ur)
+      },
+    },
+    bill: {
+      total: 'Total', // TODO(ur)
+      paid: 'ادا شدہ',
+      balance: 'Balance', // TODO(ur)
+      number: 'Bill {number}', // TODO(ur)
+    },
+  },
   offline: {
     title: 'آپ آف لائن ہیں',
     body: "We couldn't reach the server. Your session is safe — check your connection and try again.", // TODO(ur)

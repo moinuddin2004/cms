@@ -2719,3 +2719,34 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 4. Replace the notification icon with the brand's white-on-transparent glyph when it exists.
 
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
+
+---
+## M2-09 — Patient Records tab  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-09-records-ff83ad (from mobile/develop)   Status set to: review
+
+### Done
+- Data layer `src/patient/features/records/{api,hooks,types,lib}`: `/patient-api/appointments` (not paged, max 300), `visits` and `prescriptions` (paged, limit 20, infinite query), `prescriptions/:id`, `billing/summary`; checked against `backend/src/patient-app/reads/*` (query `profileId`, `from`, `to`, `page`, `limit`). All keys carry the account id (`['records-<kind>', accountId, profileId]`). Only `records-appointments` and `records-prescriptions` are persisted (encrypted patient cache, `patient/lib/persist.ts`); visits, details and bills are online-only.
+- P-03 `RecordsPage`: segments Appointments · Visits · Prescriptions · Bills (Bills hidden once billing is known to be empty), debounced search over clinic / place / doctor / diagnosis / number, each segment with loading skeleton, empty, error + retry, no-results (search active) and pull-to-refresh. Clinic chip on every record (accent stripe from `brandColor`, only if valid hex; a calm "This clinic is paused" chip for `clinicStatus: 'suspended'`, record still readable, A-19).
+- Detail screens: `appointments/[id]` (time on the record's clock, clinic, doctor, status, Call clinic via `tel:`, Directions via maps search link — only when the location has phone / address) and `prescriptions/[id]` (medicines with Urdu name / instructions, dose, how often, timing + meal relation, duration).
+- Times: instants through `formatInZone(v, location.timezone, …)`, visit / follow-up dates as calendar dates; money as `*Minor / 100` with the clinic currency.
+- i18n: `records.*` in `en` + `ur` (`TODO(ur)` where untranslated).
+- Routes (zero logic): `(patient)/(main)/(tabs)/records.tsx`, `prescriptions/[id].tsx`, `appointments/[id].tsx`. **The patient tab layout did not exist**, so I created a minimal `PatientTabs` (Home + Records) at `(main)/(tabs)/_layout.tsx` and moved the placeholder home to `(main)/(tabs)/index.tsx` (git mv). M2-10 / M2-07 add their tabs / screens to `PatientTabs` (`patient/navigation/PatientTabs.tsx`).
+
+### NOT done — needs the user / a later card
+1. **Prescription PDF (share / open):** needs packages that are not installed. Install, then add a "Share PDF" button (only when `hasPdf`) that downloads `GET /patient-api/prescriptions/:id/pdf` with the bearer header (no token in a URL) to the cache directory and shares it:
+   ```bash
+   npx expo install expo-file-system expo-sharing
+   ```
+2. **Profile filter chips:** the hooks already take `profileId`, but the profiles list endpoint and `profiles` feature belong to M2-10; the chip row joins once that exists (pass the selected id into the `useRecord*` hooks).
+3. Appointment **Confirm** button: `canConfirm` is always false until M3-08.
+4. Prescription search by medicine name (docs/06): the list DTO has only `medicinesCount`, so search runs over clinic / doctor / number. Needs medicine names in the list DTO if wanted.
+
+### Deviations / notes for the architect
+- Invoices carry no timezone: the bill date is the UTC calendar day of `issuedAt` (could be one day off near midnight). A `timezone` on `PatientInvoiceDto` would fix it.
+- Appointment detail reads from the appointments list cache (no single-appointment endpoint).
+- Clinic accent colour is applied through `style` from the API value (validated `#rrggbb`); all other colours are theme tokens.
+- Files touched outside the feature: `core/i18n/{en,ur}.ts`, `patient/lib/persist.ts` (two roots), `patient/navigation/{index,PatientTabs}`, `app/(patient)/(main)/*`.
+
+### Verification
+typecheck clean · lint 0 errors (3 old warnings) · `lint:fences` ok · jest: new `records-format.test.ts` (11) + `RecordsPage.test.tsx` (7: loading→data on clinic clock + chip, empty, error→retry, no-results, paused clinic, Bills hidden, detail navigation). No device.
+
