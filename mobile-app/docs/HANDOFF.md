@@ -2303,3 +2303,31 @@ Branch: `claude/m1-09-board-745a66` · Commit: b7df3af · Status stays: review
 | 5 | Vanished entry fails silently | Mark urgent, transfer and cancel on an entry that left the lane toast "This patient is no longer in the queue."; urgent also closes the sheet. Test: `EntryActionsHost.test.tsx`. |
 
 Verification: `npm run typecheck` ✓ · eslint `src` 0 errors (3 old warnings) · `npm run lint:fences` ✓ · full jest 67 suites / 474 tests ✓ (`--forceExit`). No device.
+
+---
+## M1-10 — Arrivals check-in (S-03) and close session — 2026-11-15
+Branch: `claude/upbeat-hopper-2688e6` (based on `mobile/develop` 1ab8e4f) · Status: review
+
+### What was built
+- **Arrivals screen** `ArrivalsPage` (route `(staff)/(main)/queue/arrivals.tsx`): today's `scheduled|confirmed` bookings without a queue entry (`useArrivals`, earliest first), row = clinic-clock time, patient, doctor · type, **[Check in]** and a triangle icon button "check in as urgent" (reason sheet, reuses `UrgentReasonSheet` with `title` / `submitLabel` props). `LATE_LIMIT_EXCEEDED` → existing `LateWalkInDialog` → convert-to-walk-in; the urgent reason is kept for the convert. Loading / empty / error (+ stale banner) states; offline disables the buttons.
+- **Board**: Arrivals row un-hidden for `queue.checkin` and pushes `/queue/arrivals` (TODO(M1-10) removed).
+- **Close session** (doctor view, S-02a): session menu → "Close session" (`queue.doctor.own`, destructive; toast "Finish the current patient first." while someone is with the doctor) → `CloseSessionSheet`: per leftover (waiting / skipped / on hold) cancel or transfer + doctor chips (own doctor excluded, list from `GET /appointments/doctors`). Backend rule mirrored: only waiting patients can transfer, skipped / on-hold are cancelled without a tap; no other doctor → all cancel. Submit stays disabled until every CURRENT leftover is decided; the body is built from live leftovers. TanStack Form + `closeSessionSchema` as validators; one Idempotency-Key per tap (`useCloseSession`); failure keeps the sheet and choices.
+
+### Deviations
+- `ArrivalsPage` lives in `features/appointments` (not `queue`): it needs `useArrivals` / `useCheckInFlow`, and appointments already imports the queue barrel — placing it in queue would create an import cycle. The route imports it from the appointments barrel.
+- `useCheckInFlow.start(id, urgentReason?)` gained an optional reason (backward compatible; the convert reuses it).
+- The close sheet's doctor list uses its own `useDoctorChoices` (queue key `['queue-doctors', org, loc]`, outside `queue.all`) for the same reason (queue cannot import appointments).
+- `UrgentReasonSheet` exported from the queue barrel; `DoctorQueueView.test.tsx` got sonner + `useDoctorChoices` mocks.
+
+### Files
+- New: `appointments/{pages/ArrivalsPage(.test),components/ArrivalRow}`, `queue/{components/doctor/CloseSessionSheet(.test),hooks/useCloseSessionForm,hooks/useDoctorChoices,lib/close-decisions(.test),schemas/close-session.schema}`, route `arrivals.tsx`.
+- Modified: `BoardView(.test)`, `DoctorQueueView(.test)`, `useDoctorQueueActions`, `UrgentReasonSheet`, queue `api/types/keys/index`, appointments `index`, `useCheckInFlow`.
+
+### Install commands
+none.
+
+### Verification
+typecheck ✓ · `expo lint` 0 errors (4 old warnings, none in touched files) · lint:fences ✓ · full jest 83 suites green. NO DEVICE: screenshots / two-phone check wait on gate M0-D.
+
+### Acceptance
+- [x] late check-in converts (dialog flow, tested via flow mock) · [x] closing with 3 leftovers sends 3 decisions (sheet + lib tests) · [x] errors mapped via `queueErrorMessage`

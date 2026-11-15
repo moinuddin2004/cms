@@ -290,10 +290,11 @@ describe('BoardView', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/queue/walk-in', params: { doctorId: 'd1' } });
   });
 
-  it('hides the Arrivals row until the arrivals screen exists (M1-10)', async () => {
+  it('shows the Arrivals row with queue.checkin and opens the arrivals route', async () => {
     setBoard([lane('d1', [], [])]);
     await render(<BoardView />);
-    expect(screen.queryByText('Arrivals')).toBeNull();
+    await fireEvent.press(screen.getByText('Arrivals'));
+    expect(mockPush).toHaveBeenCalledWith('/queue/arrivals');
   });
 
   it('without queue.checkin there is no [+] chip to open a lane', async () => {

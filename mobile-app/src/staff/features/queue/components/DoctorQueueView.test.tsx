@@ -7,6 +7,10 @@ import { DoctorQueueView } from './DoctorQueueView';
 // ─── Native / provider stand-ins ────────────────────────────────
 
 // Native runtimes the core kit imports at load time (the sheets themselves are replaced below).
+jest.mock('../hooks/useDoctorChoices', () => ({
+  useDoctorChoices: () => ({ data: [], isPending: false, isError: false }),
+}));
+jest.mock('sonner-native', () => ({ toast: Object.assign(jest.fn(), { error: jest.fn() }) }));
 jest.mock('react-native-keyboard-controller', () => {
   const { ScrollView } = jest.requireActual('react-native');
   return { KeyboardAwareScrollView: ScrollView };

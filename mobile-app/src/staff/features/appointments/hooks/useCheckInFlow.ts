@@ -24,15 +24,16 @@ export function useCheckInFlow(onDone: () => void) {
   const queryClient = useQueryClient();
   const checkIn = useCheckIn();
   const convertToWalkIn = useConvertToWalkIn();
-  const [lateFor, setLateFor] = useState<string | null>(null);
+  // The booking that was too late, with the urgent reason typed for it (kept for the convert).
+  const [lateFor, setLateFor] = useState<{ id: string; urgentReason?: string } | null>(null);
 
   const refreshAppointments = () =>
     queryClient.invalidateQueries({ queryKey: appointmentKeys.all });
 
-  const start = (appointmentId: string) => {
+  const start = (appointmentId: string, urgentReason?: string) => {
     if (checkIn.isPending) return;
     checkIn.mutate(
-      { appointmentId },
+      { appointmentId, urgentReason },
       {
         onSuccess: (result) => {
           void refreshAppointments();
@@ -41,7 +42,7 @@ export function useCheckInFlow(onDone: () => void) {
         },
         onError: (err) => {
           // Other errors were toasted by the queue hook; the dialog code is ours.
-          if (queueErrorCode(err) === 'LATE_LIMIT_EXCEEDED') setLateFor(appointmentId);
+          if (queueErrorCode(err) === 'LATE_LIMIT_EXCEEDED') setLateFor({ id: appointmentId, urgentReason });
           else if (isDialogError(err)) toast.error(queueErrorMessage(err));
           else if (shouldRefetch(err)) void refreshAppointments();
         },
@@ -53,7 +54,10 @@ export function useCheckInFlow(onDone: () => void) {
   const convert = async () => {
     if (!lateFor) return;
     try {
-      const result = await convertToWalkIn.mutateAsync({ appointmentId: lateFor });
+      const result = await convertToWalkIn.mutateAsync({
+        appointmentId: lateFor.id,
+        urgentReason: lateFor.urgentReason,
+      });
       void refreshAppointments();
       toast.success(`Added as walk-in · Token ${result.token}`);
       setLateFor(null);

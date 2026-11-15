@@ -250,3 +250,9 @@ export interface MutationOptions extends IdemOptions {
   /** The `entry.version` the screen is looking at. */
   ifMatch?: number;
 }
+
+/** A doctor at the location, from `GET /appointments/doctors` (transfer target when closing). */
+export interface DoctorChoice {
+  id: string;
+  fullName: string;
+}

@@ -12,13 +12,14 @@ import {
 } from '../../hooks/useEntryMutations';
 import {
   useCallNext,
+  useCloseSession,
   usePauseSession,
   useResumeSession,
   useSetSessionMode,
   useStartSession,
 } from '../../hooks/useSessionMutations';
 import { shouldRefetch } from '../../lib/queue-errors';
-import type { EntryView } from '../../types/queue.types';
+import type { CloseDecision, EntryView } from '../../types/queue.types';
 import { hapticSuccess, hapticWarning } from './haptics';
 
 /** The entry a pending mutation runs on, if any. */
@@ -47,6 +48,7 @@ export function useDoctorQueueActions() {
   const start = useStartSession();
   const pause = usePauseSession();
   const resume = useResumeSession();
+  const close = useCloseSession();
   const mode = useSetSessionMode();
   const callNext = useCallNext();
   const select = useSelectEntry();
@@ -64,7 +66,12 @@ export function useDoctorQueueActions() {
       .filter((id): id is string => id !== null),
   );
   const sessionBusy =
-    start.isPending || pause.isPending || resume.isPending || mode.isPending || callNext.isPending;
+    start.isPending ||
+    pause.isPending ||
+    resume.isPending ||
+    close.isPending ||
+    mode.isPending ||
+    callNext.isPending;
 
   /** Run a mutation; resolves true when the caller may close its sheet. */
   async function settle(run: () => Promise<unknown>): Promise<boolean> {
@@ -86,6 +93,12 @@ export function useDoctorQueueActions() {
     resumeSession: (sessionId: string) => fire(() => resume.mutateAsync({ sessionId })),
     pauseSession: (sessionId: string, reason: string | undefined) =>
       settle(() => pause.mutateAsync({ sessionId, reason: reason ?? '' })),
+    /** Rejects on a plain failure so the close sheet stays open with the choices kept. */
+    closeSession: async (sessionId: string, decisions: CloseDecision[]) => {
+      if (!(await settle(() => close.mutateAsync({ sessionId, decisions })))) {
+        throw new Error('close failed');
+      }
+    },
     setSmartOrder: (sessionId: string, smartQueueEnabled: boolean) =>
       fire(() => mode.mutateAsync({ sessionId, smartQueueEnabled })),
     callNext: async (sessionId: string) => {

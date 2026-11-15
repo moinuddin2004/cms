@@ -115,8 +115,8 @@ export function BoardView() {
   }
 
   const groups = groupLane(lane.snapshot);
-  // TODO(M1-10): show the Arrivals row (pass `canWalkIn`) once the arrivals screen exists.
-  const items = buildLaneItems(lane.snapshot.session, groups, false);
+  // Arrivals check in through `queue.checkin`, the same permission as a walk-in.
+  const items = buildLaneItems(lane.snapshot.session, groups, canWalkIn);
   const doctors = data.lanes.map((l) => l.doctor);
 
   return (
@@ -143,6 +143,7 @@ export function BoardView() {
         focusEntryId={focusEntryId}
         refreshing={board.isRefetching}
         onRefresh={() => void board.refetch()}
+        onOpenArrivals={() => router.push('/queue/arrivals')}
         onOpenActions={(entry) => openActions(entry.id)}
         onBackFromTest={(entry) => void actions.backFromTest(entry).catch(() => undefined)}
       />
