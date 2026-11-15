@@ -63,7 +63,6 @@
 | M2-06 | Patient space foundation | MOB | L | M2-02, M0-04 | done | Sonnet session | 2026-11-15 | rework-1 (sign-out generation guard in core client, both spaces) |
 | M2-07 | Claim flow P-01 | MOB | M | M2-04, M2-06 | done | Sonnet session | 2026-11-15 | rework-1 |
 | M2-15 | Staff "Link app" QR screen (S-09) | MOB | S | M2-04, M1-12 | done | Sonnet session (with M2-07) | 2026-11-15 | rework-1 |
-| M2-15 | Staff Link app QR S-09 | MOB | S | M2-04, M1-12 | review | Sonnet session | 2026-11-15 | QR drawn as text until react-native-qrcode-svg is installed (see HANDOFF) |
 | M2-04 … M2-16 (rest) | Patient core | — | — | see 10 | spec | | | |
 | M3-01 … M3-09 | Patient hook | — | — | see 10 | spec | | | |
 | M4-01 … M4-06 | Release | — | — | see 10 | spec | | | |
