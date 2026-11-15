@@ -2719,3 +2719,30 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 4. Replace the notification icon with the brand's white-on-transparent glyph when it exists.
 
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
+
+---
+## M2-05 + M2-14 — Web: Link app dialog, public landing pages  ·  2026-11-15  ·  Sonnet 5.5
+Branch: claude/m2-05-web-link-cca268   Commit(s): see git log   Status set to: review
+
+### Done
+- **M2-05**: "Link app" button in `PatientDetailHeader` (only with `can('patients.app_link.manage')`) opens `AppLinkDialog`: status (`GET /patients/:id/app-link`, polled every 5 s while open + manual refresh), QR of `url` from `POST .../claim-token`, countdown from the server's `expiresAt` (+ clinic-clock time), regenerate, revoke via `ConfirmDialog` (`DELETE`). Token lives only in mutation state; reset on close / when linked. Errors mapped: ALREADY_LINKED, CLINIC_SUSPENDED, PATIENT_APP_DISABLED.
+- QR uses the existing in-house encoder (`@/features/lab-orders` `QrCode`) — no new package.
+- **M2-14**: public routes `/c/$token` (validates 43-char base64url shape, "Open the app" -> `clinicapp://claim/<token>` deep link, store buttons) and `/v/$token` (visit state). Both added to `OPEN_PATHS` in `__root.tsx` (no auth redirects, no dashboard shell); `no-referrer` meta while mounted; token is never logged or sent anywhere except the deep link (and, for `/v/`, the documented endpoint path).
+- `/v/$token` is built against docs/07 §6.3 `GET /visit/:token/state`; that endpoint does **not exist yet** (M3-05) so the page shows "coming soon" on any failure.
+
+### Files
+- Created: `features/patients/{services/appLink.api.ts,hooks/useAppLink.ts,components/AppLinkDialog.tsx}`, `features/public-links/**`, `routes/c.$token.tsx`, `routes/v.$token.tsx`
+- Modified: `PatientDetailHeader.tsx`, `routes/__root.tsx`, `routeTree.gen.ts` (regenerated)
+
+### Install commands for the user
+none
+
+### Open items / for the architect
+- Missing backend: `GET /visit/:token/state` (M3-05).
+- Store buttons read `VITE_PLAY_STORE_URL`, `VITE_APP_STORE_URL` (unset -> "coming soon" text); deep-link scheme `VITE_APP_SCHEME` (default `clinicapp`; dev/preview variants use `clinicapp-dev`/`-preview`). Universal/App Links (so `/c/` opens the app directly) need `assetlinks.json` / apple-app-site-association on the web host — O-01 dependent.
+- Backend `url` uses `FRONTEND_URL`; set it to the web host that serves `/c/`.
+- Not browser-tested against a live backend; QR scan not device-tested.
+
+### Verification
+- `npm run build` ok · eslint clean on touched files · `npm run test`: 382 passed / 5 failed — all in files this card did not touch (DataTable pagination text, builders THEME-15 blue-token count, notifications, roles escalation); same family as the existing fix-5-failing-web-app-tests task. tsc has no errors in touched files.
+
