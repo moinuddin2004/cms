@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { EmptyState, Screen, ScreenHeader } from '@/core/components';
 import { AccessErrorState, useAccess, type PermissionKey } from '@/staff/features/access';
+import { LocationSwitcherButton } from '@/staff/features/more';
 import { NotificationBell } from '@/staff/features/notifications';
 import { useClinicToday } from '@/staff/lib/clinic-today';
 import { formatInClinic } from '@/staff/lib/datetime';
@@ -70,7 +71,12 @@ export function TodayPage() {
           title="Today"
           subtitle={subtitle}
           back={false}
-          actions={<NotificationBell />}
+          actions={
+            <>
+              <LocationSwitcherButton />
+              <NotificationBell />
+            </>
+          }
         />
       }
       contentClassName="gap-4 pb-6">
@@ -79,7 +85,7 @@ export function TodayPage() {
         <EmptyState
           icon={LayoutDashboard}
           title="Nothing to show here"
-          description="Your role has no clinic overview. Use the Queue and Patients tabs."
+          description="There is no clinic overview available for your account."
         />
       ) : null}
       {show.has('stats') ? (

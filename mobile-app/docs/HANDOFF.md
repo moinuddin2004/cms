@@ -2322,7 +2322,6 @@ none.
 
 ### Verification
 - eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 81 suites / 622 tests green (`-i --forceExit`).
-- `npm run typecheck`: only `src/app/_layout.tsx` `@/global.css` TS2882 remains (not from this card; the uniwind-generated declaration is absent in this checkout).
 - NO DEVICE: owner/receptionist/doctor screenshots wait on gate M0-D.
 
 ### Acceptance criteria
@@ -2330,6 +2329,20 @@ none.
 - [ ] screenshots on device (gate M0-D)
 
 ### Deviations from the card / docs
-- **Location switcher in the header is NOT built**: `SwitchLocationSheet` / `useSwitchLocation` live in `features/more` (not exported, outside my file ownership). The header shows the active location name in the subtitle; switching stays under More. Suggest exporting a `LocationSwitcherButton` from `more` and adding it to this header as a follow-up.
+- Location switcher: see Rework #1 below.
 - Doctor row tap opens the Queue tab, not that doctor's lane (the queue tab has no lane param yet).
 - Tests mock the core kit (Screen etc.), since Jest has no native runtime.
+
+---
+## Rework M1-15 #1 — 2026-11-15
+Branch: `mobile/M1-15-today-ui` · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Location switcher required | Added `LocationSwitcherButton` in `features/more/components` (reuses `SwitchLocationSheet` + `useSwitchLocation`), exported from `more/index.ts` (approved exception). Rendered in TodayPage header actions before the bell; "Switch location" label, `IconButton` 44pt; hidden with fewer than 2 places. Tests: shown with 2 locations, hidden with 1. |
+| 2 | Neutral empty copy | "There is no clinic overview available for your account." (no tab names). |
+| 3 | typecheck | The earlier note was wrong: `uniwind-types.d.ts` is present; the missing file was the gitignored, Expo-generated `expo-env.d.ts`. Generated with `CI=1 npx expo start --offline`; `tsc` now clean. |
+
+Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
+
+Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.

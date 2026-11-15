@@ -34,6 +34,7 @@ jest.mock('@/staff/features/access', () => ({
   }),
   AccessErrorState: () => null,
 }));
+jest.mock('@/staff/features/more', () => ({ LocationSwitcherButton: () => null }));
 jest.mock('@/staff/features/notifications', () => ({ NotificationBell: () => null }));
 jest.mock('@/staff/lib/clinic-today', () => ({ useClinicToday: () => '2026-11-15' }));
 jest.mock('@/staff/lib/currency', () => ({
