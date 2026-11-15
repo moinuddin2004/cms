@@ -76,7 +76,7 @@ function ReasonSheetBody({ request, open, onClose }: InnerProps) {
               placeholder={request.required ? undefined : 'Optional'}
               invalid={!!fieldError(field)}
               accessibilityLabel={request.fieldLabel}
-              className="h-24 py-2"
+              className="min-h-24 py-2"
             />
           </FieldWrapper>
         )}

@@ -8,7 +8,7 @@ import { cn } from '@/core/utils';
 
 // Same look as `core/ui/input` (which must not be edited), native only.
 const SHEET_INPUT_CLASS =
-  'dark:bg-input/30 border-input bg-background text-foreground flex h-10 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 text-base leading-5 shadow-sm shadow-black/5 placeholder:text-muted-foreground/50';
+  'dark:bg-input/30 border-input bg-background text-foreground flex min-h-11 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 text-base leading-5 shadow-sm shadow-black/5 placeholder:text-muted-foreground/50';
 
 const SheetInput = withUniwind(BottomSheetTextInput);
 

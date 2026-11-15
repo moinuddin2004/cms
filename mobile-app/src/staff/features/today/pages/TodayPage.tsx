@@ -103,7 +103,13 @@ export function TodayPage() {
       ) : null}
       {show.has('doctors') ? (
         <BlockShell gated={doctors} skeleton={SKELETONS.rows} errorTitle="Could not load doctors">
-          {(d) => <DoctorsNowList doctors={d} onOpen={() => router.navigate('/queue')} />}
+          {(d) => <DoctorsNowList doctors={d} onOpen={(doctorId) =>
+                  router.navigate(
+                    can('queue.board.view')
+                      ? { pathname: '/queue', params: { segment: 'board', doctorId, lane: String(Date.now()) } }
+                      : '/queue',
+                  )
+                } />}
         </BlockShell>
       ) : null}
       {show.has('next') ? (
