@@ -6,6 +6,8 @@
 import { isAxiosError, isCancel } from 'axios';
 import { randomUUID } from 'expo-crypto';
 
+import { READ_ONLY_OFFLINE } from './api-error';
+
 export const MAX_RETRIES = 3;
 
 export function newIdempotencyKey(): string {
@@ -14,7 +16,7 @@ export function newIdempotencyKey(): string {
 
 export function isRetryable(err: unknown): boolean {
   if (!isAxiosError(err)) return false;
-  if (isCancel(err)) return false;
+  if (isCancel(err) || err.code === READ_ONLY_OFFLINE) return false;
   if (!err.response) return true;
   const data = err.response.data as { error?: { code?: unknown } } | undefined;
   return err.response.status === 503 && data?.error?.code === 'LOCK_TIMEOUT';

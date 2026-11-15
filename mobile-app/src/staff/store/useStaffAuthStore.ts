@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { setReadOnlyOffline } from '@/core/network';
+
 export type AccessSource = 'super_admin' | 'owner' | 'employee';
 
 export type SignInBlockCode =
@@ -222,3 +224,6 @@ export function needsLocationSelection(
     !s.activeLocationId
   );
 }
+
+// Core's `useCanMutate` reads this flag without importing the space.
+useStaffAuthStore.subscribe((s) => setReadOnlyOffline(s.offlineSnapshot));

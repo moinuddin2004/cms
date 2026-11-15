@@ -68,6 +68,16 @@ describe('useRestoreStaffSession offline hint (M1-06b)', () => {
     expect(useStaffAuthStore.getState().offlineHint).toBeNull();
   });
 
+  it('retries the refresh when open on saved data, but not on a normal signed-in session', async () => {
+    (refreshSession as jest.Mock).mockResolvedValue({ ok: true });
+    useStaffAuthStore.setState({ status: 'signedIn', offlineSnapshot: false });
+    await restore();
+    expect(refreshSession).not.toHaveBeenCalled();
+    useStaffAuthStore.getState().openSavedData(HINT);
+    await restore();
+    expect(refreshSession).toHaveBeenCalledTimes(1);
+  });
+
   it('openSavedData opens the saved identity read-only without a token', async () => {
     useStaffAuthStore.getState().openSavedData(HINT);
     const s = useStaffAuthStore.getState();

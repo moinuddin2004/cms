@@ -131,7 +131,7 @@ import { EmployeeOrgLocationAssignment } from './employees/entities/employee-org
     DevicesModule, // /me/devices — staff push tokens (M1-04)
     PatientAuthModule, // patient identity entities only (M2-01)
     PatientAppModule, // patient profile/link/consent/access-log entities only (M2-01)
-    PatientLinksModule, // claim-token entity only (M2-01)
+    PatientLinksModule, // app link: claim tokens, staff endpoints, claim service (M2-04)
     AccessModule, // permission catalog, AccessResolver, /me/access (global)
     SettingsRegistryModule,
     SearchModule, // global quick search (Ctrl+K)

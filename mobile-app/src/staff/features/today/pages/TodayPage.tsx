@@ -106,7 +106,7 @@ export function TodayPage() {
           {(d) => <DoctorsNowList doctors={d} onOpen={(doctorId) =>
                   router.navigate(
                     can('queue.board.view')
-                      ? { pathname: '/queue', params: { segment: 'board', doctorId } }
+                      ? { pathname: '/queue', params: { segment: 'board', doctorId, lane: String(Date.now()) } }
                       : '/queue',
                   )
                 } />}

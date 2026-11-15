@@ -21,7 +21,9 @@ export function googleOutcomeMessage(result: GoogleSignInResult): string | null 
  * "Continue with Google" for the staff sign-in screen. The button shows only when this build
  * has the native library AND the server says Google sign-in is on. A signed-in result is stored
  * like a password login; the root layout's guards then route to location selection. A clinic
- * policy refusal (403) surfaces the server's message.
+ * Clinic sign-in policy (Google required / disabled / domain) is NOT answered here: it is
+ * enforced at location selection via `signInBlock`. Any 403 from the call itself shows the
+ * server's message.
  */
 export function useGoogleSignIn() {
   const [clientId, setClientId] = useState<string | null>(null);

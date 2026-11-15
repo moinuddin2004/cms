@@ -173,6 +173,7 @@ describe('PatientDetailPage', () => {
     const predicate = calls.find((a) => a.predicate)?.predicate as (q: { queryKey: unknown[] }) => boolean;
     expect(predicate({ queryKey: ['patients', 'vitals', 'o', 'l', ID] })).toBe(true);
     expect(predicate({ queryKey: ['patients', 'prescriptions', 'o', 'l', ID, 1] })).toBe(true);
+    expect(predicate({ queryKey: ['patients', 'detail', 'o', 'l', ID] })).toBe(false);
     expect(predicate({ queryKey: ['patients', 'list', 'o', 'l', { search: ID }] })).toBe(false);
     expect(predicate({ queryKey: ['patients', 'vitals', 'o', 'l', 'other'] })).toBe(false);
     expect(calls).toContainEqual({ queryKey: ['queue', 'patient-visits', ID] });

@@ -12,12 +12,18 @@ const isNetworkError = (err: unknown) => isAxiosError(err) && !err.response;
  * Silently sign in again with the refresh token in SecureStore.
  * No token or a rejected one → signed out. No connection → `unreachable`,
  * so the user keeps their session and can retry instead of being logged out.
+ * Does nothing when the session is already `signedIn` (M0-04 review).
  */
 export function useRestoreStaffSession() {
   const setStatus = useStaffAuthStore((s) => s.setStatus);
   const setOfflineHint = useStaffAuthStore((s) => s.setOfflineHint);
 
   return useCallback(async () => {
+    // Already signed in (the user switched to the patient space and back):
+    // restoring again would flash the splash and rotate the token for nothing.
+    // Opened on saved data (signedIn without a token) still needs a real refresh.
+    const now = useStaffAuthStore.getState();
+    if (now.status === 'signedIn' && !now.offlineSnapshot) return;
     setStatus('restoring');
     setOfflineHint(null);
     try {

@@ -100,6 +100,8 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
         predicate: (q) =>
           q.queryKey[0] === 'patients' &&
           q.queryKey[1] !== 'list' &&
+          q.queryKey[1] !== 'detail' && // refetched above
+
           q.queryKey[1] !== 'check-phone' &&
           q.queryKey.includes(patientId),
       }),

@@ -90,6 +90,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     'expo-secure-store',
     'expo-localization',
+    [
+      'expo-notifications',
+      {
+        // Android status-bar icon: Android wants a white-on-transparent glyph, so this is a
+        // placeholder until the brand icon exists (the platform colour keeps it recognisable).
+        icon: './assets/images/android-icon-monochrome.png',
+        color: '#208AEF',
+      },
+    ],
   ],
   // Runtime version policy for OTA updates (docs/02 §11): one runtime per
   // store-facing version, so `expo-updates` only serves compatible bundles.

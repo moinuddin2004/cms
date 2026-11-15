@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { GoogleAuthService } from './google-auth.service';
 
@@ -10,7 +11,7 @@ const identityClaims = {
   hd: 'clinic.test',
 };
 
-function harness(opts: { linkedUserId?: string } = {}) {
+function harness(opts: { linkedUserId?: string; clientId?: string | null } = {}) {
   const user = {
     uuid: 'user-1',
     email: identityClaims.email,
@@ -36,6 +37,7 @@ function harness(opts: { linkedUserId?: string } = {}) {
     ),
   };
   const identity = {
+    clientId: opts.clientId === undefined ? 'web' : opts.clientId,
     clientAudiences: ['web', 'android', 'ios'],
     verify: jest.fn().mockResolvedValue(identityClaims),
   };
@@ -73,6 +75,14 @@ describe('GoogleAuthService.signIn (staff, web + native)', () => {
       'android',
       'ios',
     ]);
+  });
+
+  it('refuses with 503 when the web client id (the on/off switch) is unset, even with native ids', async () => {
+    const h = harness({ linkedUserId: 'user-1', clientId: null });
+    await expect(
+      h.service.signIn({ credential: 'tok' }, req, res),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(h.identity.verify).not.toHaveBeenCalled();
   });
 
   it('signs a linked account in through the shared login path', async () => {

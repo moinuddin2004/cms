@@ -38,9 +38,10 @@ export function QueueTabPage() {
   const [segment, setSegment] = useState<QueueSegment>(readSegment);
 
   // A link (notification / push) may name the segment; it wins over the saved choice.
-  const { segment: linked, doctorId } = useLocalSearchParams<{
+  const { segment: linked, doctorId, lane } = useLocalSearchParams<{
     segment?: string;
     doctorId?: string;
+    lane?: string;
   }>();
   const requested: QueueSegment | null = linked === 'doctor' || linked === 'board' ? linked : null;
 
@@ -48,7 +49,7 @@ export function QueueTabPage() {
   const selectDoctor = useBoardUiStore((s) => s.selectDoctor);
   useEffect(() => {
     if (typeof doctorId === 'string' && UUID_RE.test(doctorId)) selectDoctor(doctorId);
-  }, [doctorId, selectDoctor]);
+  }, [doctorId, lane, selectDoctor]);
 
   const both = canDoctor && canBoard;
   const active: QueueSegment = both ? (requested ?? segment) : canBoard ? 'board' : 'doctor';
