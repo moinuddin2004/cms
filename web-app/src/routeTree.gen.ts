@@ -57,6 +57,7 @@ import { Route as BillingIndexRouteImport } from './routes/billing.index'
 import { Route as BillingActivityRouteImport } from './routes/billing.activity'
 import { Route as BillingDoctorEarningsRouteImport } from './routes/billing.doctor-earnings'
 import { Route as BillingDoctorRevenueRouteImport } from './routes/billing.doctor-revenue'
+import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as ConsultationEncounterIdRouteImport } from './routes/consultation.$encounterId'
 import { Route as DisplayLocationIdRouteImport } from './routes/display.$locationId'
 import { Route as EmployeesIndexRouteImport } from './routes/employees/index'
@@ -114,6 +115,7 @@ import { Route as StudioIndexRouteImport } from './routes/studio.index'
 import { Route as StudioFormsRouteImport } from './routes/studio.forms'
 import { Route as StudioStagesRouteImport } from './routes/studio.stages'
 import { Route as StudioWorkflowsRouteImport } from './routes/studio.workflows'
+import { Route as VTokenRouteImport } from './routes/v.$token'
 import { Route as AdminRolesIndexRouteImport } from './routes/admin.roles.index'
 import { Route as AdminRolesRoleIdRouteImport } from './routes/admin.roles.$roleId'
 import { Route as EmployeesEmployeeIdIndexRouteImport } from './routes/employees/$employeeId.index'
@@ -370,6 +372,11 @@ const BillingDoctorEarningsRoute = BillingDoctorEarningsRouteImport.update({
 const BillingDoctorRevenueRoute = BillingDoctorRevenueRouteImport.update({
   id: '/billing/doctor-revenue',
   path: '/billing/doctor-revenue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CTokenRoute = CTokenRouteImport.update({
+  id: '/c/$token',
+  path: '/c/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsultationEncounterIdRoute = ConsultationEncounterIdRouteImport.update({
@@ -662,6 +669,11 @@ const StudioWorkflowsRoute = StudioWorkflowsRouteImport.update({
   path: '/studio/workflows',
   getParentRoute: () => rootRouteImport,
 } as any)
+const VTokenRoute = VTokenRouteImport.update({
+  id: '/v/$token',
+  path: '/v/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRolesIndexRoute = AdminRolesIndexRouteImport.update({
   id: '/admin/roles/',
   path: '/admin/roles/',
@@ -799,6 +811,7 @@ export interface FileRoutesByFullPath {
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
+  '/c/$token': typeof CTokenRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -848,6 +861,7 @@ export interface FileRoutesByFullPath {
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
+  '/v/$token': typeof VTokenRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
@@ -922,6 +936,7 @@ export interface FileRoutesByTo {
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
+  '/c/$token': typeof CTokenRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -971,6 +986,7 @@ export interface FileRoutesByTo {
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
+  '/v/$token': typeof VTokenRoute
   '/billing': typeof BillingIndexRoute
   '/employees': typeof EmployeesIndexRoute
   '/invoices': typeof InvoicesIndexRoute
@@ -1047,6 +1063,7 @@ export interface FileRoutesById {
   '/billing/activity': typeof BillingActivityRoute
   '/billing/doctor-earnings': typeof BillingDoctorEarningsRoute
   '/billing/doctor-revenue': typeof BillingDoctorRevenueRoute
+  '/c/$token': typeof CTokenRoute
   '/consultation/$encounterId': typeof ConsultationEncounterIdRoute
   '/display/$locationId': typeof DisplayLocationIdRoute
   '/employees/create': typeof EmployeesCreateRoute
@@ -1096,6 +1113,7 @@ export interface FileRoutesById {
   '/studio/forms': typeof StudioFormsRoute
   '/studio/stages': typeof StudioStagesRoute
   '/studio/workflows': typeof StudioWorkflowsRoute
+  '/v/$token': typeof VTokenRoute
   '/billing/': typeof BillingIndexRoute
   '/employees/': typeof EmployeesIndexRoute
   '/invoices/': typeof InvoicesIndexRoute
@@ -1173,6 +1191,7 @@ export interface FileRouteTypes {
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
+    | '/c/$token'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -1222,6 +1241,7 @@ export interface FileRouteTypes {
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
+    | '/v/$token'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
@@ -1296,6 +1316,7 @@ export interface FileRouteTypes {
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
+    | '/c/$token'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -1345,6 +1366,7 @@ export interface FileRouteTypes {
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
+    | '/v/$token'
     | '/billing'
     | '/employees'
     | '/invoices'
@@ -1420,6 +1442,7 @@ export interface FileRouteTypes {
     | '/billing/activity'
     | '/billing/doctor-earnings'
     | '/billing/doctor-revenue'
+    | '/c/$token'
     | '/consultation/$encounterId'
     | '/display/$locationId'
     | '/employees/create'
@@ -1469,6 +1492,7 @@ export interface FileRouteTypes {
     | '/studio/forms'
     | '/studio/stages'
     | '/studio/workflows'
+    | '/v/$token'
     | '/billing/'
     | '/employees/'
     | '/invoices/'
@@ -1545,6 +1569,7 @@ export interface RootRouteChildren {
   BillingActivityRoute: typeof BillingActivityRoute
   BillingDoctorEarningsRoute: typeof BillingDoctorEarningsRoute
   BillingDoctorRevenueRoute: typeof BillingDoctorRevenueRoute
+  CTokenRoute: typeof CTokenRoute
   ConsultationEncounterIdRoute: typeof ConsultationEncounterIdRoute
   DisplayLocationIdRoute: typeof DisplayLocationIdRoute
   EmployeesCreateRoute: typeof EmployeesCreateRoute
@@ -1573,6 +1598,7 @@ export interface RootRouteChildren {
   StudioFormsRoute: typeof StudioFormsRoute
   StudioStagesRoute: typeof StudioStagesRoute
   StudioWorkflowsRoute: typeof StudioWorkflowsRoute
+  VTokenRoute: typeof VTokenRoute
   BillingIndexRoute: typeof BillingIndexRoute
   EmployeesIndexRoute: typeof EmployeesIndexRoute
   InvoicesIndexRoute: typeof InvoicesIndexRoute
@@ -1932,6 +1958,13 @@ declare module '@tanstack/react-router' {
       path: '/billing/doctor-revenue'
       fullPath: '/billing/doctor-revenue'
       preLoaderRoute: typeof BillingDoctorRevenueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/c/$token': {
+      id: '/c/$token'
+      path: '/c/$token'
+      fullPath: '/c/$token'
+      preLoaderRoute: typeof CTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/consultation/$encounterId': {
@@ -2333,6 +2366,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioWorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/v/$token': {
+      id: '/v/$token'
+      path: '/v/$token'
+      fullPath: '/v/$token'
+      preLoaderRoute: typeof VTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/roles/': {
       id: '/admin/roles/'
       path: '/admin/roles'
@@ -2565,6 +2605,7 @@ const rootRouteChildren: RootRouteChildren = {
   BillingActivityRoute: BillingActivityRoute,
   BillingDoctorEarningsRoute: BillingDoctorEarningsRoute,
   BillingDoctorRevenueRoute: BillingDoctorRevenueRoute,
+  CTokenRoute: CTokenRoute,
   ConsultationEncounterIdRoute: ConsultationEncounterIdRoute,
   DisplayLocationIdRoute: DisplayLocationIdRoute,
   EmployeesCreateRoute: EmployeesCreateRoute,
@@ -2593,6 +2634,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudioFormsRoute: StudioFormsRoute,
   StudioStagesRoute: StudioStagesRoute,
   StudioWorkflowsRoute: StudioWorkflowsRoute,
+  VTokenRoute: VTokenRoute,
   BillingIndexRoute: BillingIndexRoute,
   EmployeesIndexRoute: EmployeesIndexRoute,
   InvoicesIndexRoute: InvoicesIndexRoute,

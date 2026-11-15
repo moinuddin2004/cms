@@ -2720,6 +2720,37 @@ Branch: `mobile/M1-05-push` (merged `mobile/develop`; conflicts in `useSignOut.t
 
 Verification: typecheck clean · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 110 suites / 808 tests green. No device.
 
+---
+## M2-09 — Patient Records tab  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-09-records-ff83ad (from mobile/develop)   Status set to: review
+
+### Done
+- Data layer `src/patient/features/records/{api,hooks,types,lib}`: `/patient-api/appointments` (not paged, max 300), `visits` and `prescriptions` (paged, limit 20, infinite query), `prescriptions/:id`, `billing/summary`; checked against `backend/src/patient-app/reads/*` (query `profileId`, `from`, `to`, `page`, `limit`). All keys carry the account id (`['records-<kind>', accountId, profileId]`). Only `records-appointments` and `records-prescriptions` are persisted (encrypted patient cache, `patient/lib/persist.ts`); visits, details and bills are online-only.
+- P-03 `RecordsPage`: segments Appointments · Visits · Prescriptions · Bills (Bills hidden once billing is known to be empty), debounced search over clinic / place / doctor / diagnosis / number, each segment with loading skeleton, empty, error + retry, no-results (search active) and pull-to-refresh. Clinic chip on every record (accent stripe from `brandColor`, only if valid hex; a calm "This clinic is paused" chip for `clinicStatus: 'suspended'`, record still readable, A-19).
+- Detail screens: `appointments/[id]` (time on the record's clock, clinic, doctor, status, Call clinic via `tel:`, Directions via maps search link — only when the location has phone / address) and `prescriptions/[id]` (medicines with Urdu name / instructions, dose, how often, timing + meal relation, duration).
+- Times: instants through `formatInZone(v, location.timezone, …)`, visit / follow-up dates as calendar dates; money as `*Minor / 100` with the clinic currency.
+- i18n: `records.*` in `en` + `ur` (`TODO(ur)` where untranslated).
+- Routes (zero logic): `(patient)/(main)/(tabs)/records.tsx`, `prescriptions/[id].tsx`, `appointments/[id].tsx`. **The patient tab layout did not exist**, so I created a minimal `PatientTabs` (Home + Records) at `(main)/(tabs)/_layout.tsx` and moved the placeholder home to `(main)/(tabs)/index.tsx` (git mv). M2-10 / M2-07 add their tabs / screens to `PatientTabs` (`patient/navigation/PatientTabs.tsx`).
+
+### NOT done — needs the user / a later card
+1. **Prescription PDF (share / open):** needs packages that are not installed. Install, then add a "Share PDF" button (only when `hasPdf`) that downloads `GET /patient-api/prescriptions/:id/pdf` with the bearer header (no token in a URL) to the cache directory and shares it:
+   ```bash
+   npx expo install expo-file-system expo-sharing
+   ```
+2. **Profile filter chips:** the hooks already take `profileId`, but the profiles list endpoint and `profiles` feature belong to M2-10; the chip row joins once that exists (pass the selected id into the `useRecord*` hooks).
+3. Appointment **Confirm** button: `canConfirm` is always false until M3-08.
+4. Prescription search by medicine name (docs/06): the list DTO has only `medicinesCount`, so search runs over clinic / doctor / number. Needs medicine names in the list DTO if wanted.
+
+### Deviations / notes for the architect
+- Invoices carry no timezone: the bill date is the UTC calendar day of `issuedAt` (could be one day off near midnight). A `timezone` on `PatientInvoiceDto` would fix it.
+- Appointment detail reads from the appointments list cache (no single-appointment endpoint).
+- Clinic accent colour is applied through `style` from the API value (validated `#rrggbb`); all other colours are theme tokens.
+- Files touched outside the feature: `core/i18n/{en,ur}.ts`, `patient/lib/persist.ts` (two roots), `patient/navigation/{index,PatientTabs}`, `app/(patient)/(main)/*`.
+
+### Verification
+typecheck clean · lint 0 errors (3 old warnings) · `lint:fences` ok · jest: new `records-format.test.ts` (11) + `RecordsPage.test.tsx` (7: loading→data on clinic clock + chip, empty, error→retry, no-results, paused clinic, Bills hidden, detail navigation). No device.
+
+
 ## M1-16 + M1-06b — Staff hardening pass (code half) and offline cold start  ·  2026-11-15  ·  Claude Sonnet 5.5
 Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): see git log   Status set to: review
 
@@ -2836,3 +2867,55 @@ backend `npm run build` ✓ · `jest src/demo-seed` 7/7 ✓ · seed script `tsc 
 2. The seed runs against the DB `bootSeedApp` resolves (`SEED_DATABASE_URL` or `DATABASE_URL`). Dry-run it on a scratch DB first; best-effort steps (appointments, queue, prescription) log "skipped" instead of failing.
 3. Data safety rows for product events (M2-13) and crash reporting (M4-05) are conditional and marked in the doc.
 4. `/c/` and `/v/` open paths from M2-14 are not in this branch; the three new paths are added next to the existing ones.
+---
+## Rework M2-09 #1 — 2026-11-16
+Branch: `claude/m2-09-records-ff83ad` (merged `mobile/develop`; conflicts in HANDOFF, PROGRESS, `core/i18n/{en,ur}.ts` resolved by keeping both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Raw backend codes shown | `records.appointment.types.*` (consultation, follow_up, treatment, checkup, emergency, cleaning) and `records.prescription.timing.*` (morning, afternoon, evening, night, sos) in en + ur (`TODO(ur)`); `appointmentTypeKey` / `timingKey` in `lib/records-format.ts`; the raw value is the fallback for an unknown code. Test. |
+| 2 | Offline cache scope | New query `records-appointments-upcoming` (`GET /appointments?from=<now>`), the ONLY appointments root in `PERSISTABLE_ROOTS`; the full list (`records-appointments`, past included) stays in memory. The segment shows the full list, falling back to the cached upcoming ones when it fails (`useRecordAppointmentList`). Tests: key persistence + fallback page test. |
+| 3 | Bill date on the clinic clock | Backend: `PatientInvoiceDto.timezone` (`mapInvoice` uses the already-selected `l.timezone`), mapper spec updated, docs/07 §6.3/§6.4 updated. Mobile: `BillCard` uses `formatIssuedDate(issuedAt, invoice)` (zone of the invoice) — no more `.slice(0,10)`. |
+| 4 | Next-page error | `RecordsList` takes `nextPageFailed` / `onRetryNextPage`: footer "We couldn't load more" + Try again; scroll no longer re-triggers a failed page. |
+| 5 | Loading vs not-found | Prescription detail uses `isPending`; appointment detail's loading state is `all.isPending && upcoming.isPending`, so a disabled query shows the skeleton. |
+| 6 | PDF (deferred) | see below |
+| — | `formatMoney` change after merge | Re-checked: whole amounts show no decimals, fractional show two (`PKR 2,500.50`); my money test updated. |
+
+### PDF — still deferred (needs a package)
+```bash
+npx expo install expo-file-system expo-sharing
+```
+Planned flow: "Share PDF" button on prescription detail only when `hasPdf` → `patientApi.get('/patient-api/prescriptions/:id/pdf', { responseType: 'arraybuffer' })` (bearer header, no token in a URL) → write to the cache directory (`expo-file-system`) → share (`expo-sharing`, mime `application/pdf`) → delete the file afterwards (also on failure); pending state on the button, toast without any PHI on failure.
+
+Verification: mobile typecheck (after `CI=1 npx expo start --offline`) clean · lint 0 errors · `lint:fences` ok · full jest 124 suites: all pass except two timing-sensitive failures on the first run (SearchBar debounce under machine load — passes alone; my own retry test fixed for the new upcoming fallback and re-run green) · backend `jest src/patient-app` 9 suites / 114 tests green.
+
+---
+## M2-05 + M2-14 — Web: Link app dialog, public landing pages  ·  2026-11-15  ·  Sonnet 5.5
+Branch: claude/m2-05-web-link-cca268   Commit(s): see git log   Status set to: review
+
+### Done
+- **M2-05**: "Link app" button in `PatientDetailHeader` (only with `can('patients.app_link.manage')`) opens `AppLinkDialog`: status (`GET /patients/:id/app-link`, polled every 5 s while open + manual refresh), QR of `url` from `POST .../claim-token`, countdown from the server's `expiresAt` (+ clinic-clock time), regenerate, revoke via `ConfirmDialog` (`DELETE`). Token lives only in mutation state; reset on close / when linked. Errors mapped: ALREADY_LINKED, CLINIC_SUSPENDED, PATIENT_APP_DISABLED.
+- QR uses the existing in-house encoder (`@/features/lab-orders` `QrCode`) — no new package.
+- **M2-14**: public routes `/c/$token` (validates 43-char base64url shape, "Open the app" -> `clinicapp://claim/<token>` deep link, store buttons) and `/v/$token` (visit state). Both added to `OPEN_PATHS` in `__root.tsx` (no auth redirects, no dashboard shell); `no-referrer` meta while mounted; token is never logged or sent anywhere except the deep link (and, for `/v/`, the documented endpoint path).
+- `/v/$token` is built against docs/07 §6.3 `GET /visit/:token/state`; that endpoint does **not exist yet** (M3-05) so the page shows "coming soon" on any failure.
+
+### Files
+- Created: `features/patients/{services/appLink.api.ts,hooks/useAppLink.ts,components/AppLinkDialog.tsx}`, `features/public-links/**`, `routes/c.$token.tsx`, `routes/v.$token.tsx`
+- Modified: `PatientDetailHeader.tsx`, `routes/__root.tsx`, `routeTree.gen.ts` (regenerated)
+
+### Install commands for the user
+none
+
+### Open items / for the architect
+- Missing backend: `GET /visit/:token/state` (M3-05).
+- Store buttons read `VITE_PLAY_STORE_URL`, `VITE_APP_STORE_URL` (unset -> "coming soon" text); deep-link scheme `VITE_APP_SCHEME` (default `clinicapp`; dev/preview variants use `clinicapp-dev`/`-preview`). Universal/App Links (so `/c/` opens the app directly) need `assetlinks.json` / apple-app-site-association on the web host — O-01 dependent.
+- Backend `url` uses `FRONTEND_URL`; set it to the web host that serves `/c/`.
+- Not browser-tested against a live backend; QR scan not device-tested.
+
+### Rework 1 (2026-11-16)
+- Merged `mobile/develop`. Public routes: `head` meta `noindex, nofollow` + `no-referrer` (PublicShell effect removed). `/v/` uses `lib/publicApi.ts` (bare axios, no auth/tenant headers, no 401 redirect; test `publicApi.test.ts`). Visit page: 404 -> "coming soon", 400/410 -> invalid/expired, other -> error + retry; visit tokens only length/charset checked. Claim countdown offsets by the server clock from the response `Date` header (0 if the browser can't read it — backend would need `Access-Control-Expose-Headers: Date`). `web-app/.env.example` documents `VITE_APP_SCHEME` (`clinicapp-dev` / `clinicapp-preview` / `clinicapp`), `VITE_PLAY_STORE_URL`, `VITE_APP_STORE_URL`.
+- Full `npm run test` after rework: 383 passed / 5 failed, all in files this branch does not touch: `DataTable.test.tsx` (paginates client-side rows), `builders.acceptance.test.tsx` (THEME-15 blue/indigo count), `notification-realtime.test.tsx` (2), `patient-messages.test.tsx` (1). Not run separately on plain `mobile/develop`; none of these files or their imports changed here. Build ok, eslint clean on touched files.
+
+### Verification
+- `npm run build` ok · eslint clean on touched files · `npm run test`: 382 passed / 5 failed — all in files this card did not touch (DataTable pagination text, builders THEME-15 blue-token count, notifications, roles escalation); same family as the existing fix-5-failing-web-app-tests task. tsc has no errors in touched files.
+
