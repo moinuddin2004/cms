@@ -63,6 +63,21 @@ describe('staff api single-flight refresh', () => {
     jest.restoreAllMocks();
   });
 
+  it('does not refresh or retry a 401 from /auth/google (sign-in call, like /auth/login)', async () => {
+    const post = jest.spyOn(axios, 'post');
+    let calls = 0;
+    staffApi.defaults.adapter = async (config) => {
+      calls += 1;
+      throw unauthorized(config);
+    };
+
+    await expect(staffApi.post('/auth/google', { credential: 'x' })).rejects.toMatchObject({
+      response: { status: 401 },
+    });
+    expect(calls).toBe(1);
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it('refreshes once for two parallel 401s and retries both requests', async () => {
     let refreshCalls = 0;
     let resolveRefresh!: (response: AxiosResponse) => void;
