@@ -22,6 +22,9 @@ import {
 /** An account manages a family, not a clinic: a sane ceiling stops abuse. */
 export const MAX_PROFILES_PER_ACCOUNT = 20;
 
+/** Replaces the name of a soft-deleted profile (`full_name` is NOT NULL). */
+export const REMOVED_PROFILE_NAME = 'Removed profile';
+
 interface ProfileRow {
   id: string;
   relation: PatientProfileRelation;
@@ -50,7 +53,7 @@ export class PatientProfilesService {
       sqlRows<ProfileRow>(
         this.dataSource,
         `SELECT ${PROFILE_COLUMNS} FROM patient_profiles
-          WHERE account_id = $1
+          WHERE account_id = $1 AND deleted_at IS NULL
           ORDER BY (relation = 'self') DESC, created_at ASC`,
         [ctx.accountId],
       ),
@@ -64,14 +67,20 @@ export class PatientProfilesService {
     dto: CreateProfileDto,
   ): Promise<PatientProfileDto> {
     const row = await this.dataSource.transaction(async (m) => {
-      // Serialise concurrent creates of one account so the cap cannot be raced.
-      await m.query(
-        `SELECT id FROM patient_accounts WHERE id = $1 FOR UPDATE`,
+      // Serialise with a concurrent account deletion (it locks this row first)
+      // and with other creates, so the cap cannot be raced; a deleted account
+      // gets nothing.
+      const lockedAccount = await sqlRows<{ id: string }>(
+        m,
+        `SELECT id FROM patient_accounts
+          WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
         [ctx.accountId],
       );
+      if (lockedAccount.length === 0) throw notFound();
       const [{ n }] = await sqlRows<{ n: number }>(
         m,
-        `SELECT count(*)::int AS n FROM patient_profiles WHERE account_id = $1`,
+        `SELECT count(*)::int AS n FROM patient_profiles
+          WHERE account_id = $1 AND deleted_at IS NULL`,
         [ctx.accountId],
       );
       if (n >= MAX_PROFILES_PER_ACCOUNT) {
@@ -131,7 +140,7 @@ export class PatientProfilesService {
       const res = await sqlRows<ProfileRow>(
         this.dataSource,
         `UPDATE patient_profiles SET ${sets.join(', ')}, updated_at = now()
-          WHERE id = $1 AND account_id = $2
+          WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL
           RETURNING ${PROFILE_COLUMNS}`,
         params,
       );
@@ -144,9 +153,10 @@ export class PatientProfilesService {
   }
 
   /**
-   * Remove a family member. Your own profile stays; a profile that still has a
-   * clinic link must be unlinked first (so the clinic audit trail of the
-   * unlink exists), then it can go.
+   * Remove a family member (soft delete, A-22). Your own profile stays; a
+   * profile that still has a clinic link must be unlinked first (so the clinic
+   * audit trail of the unlink exists), then it can go. Its revoked link rows
+   * are kept.
    */
   async remove(
     ctx: PatientContext,
@@ -164,7 +174,7 @@ export class PatientProfilesService {
       const locked = await sqlRows<{ id: string }>(
         m,
         `SELECT id FROM patient_profiles
-          WHERE id = $1 AND account_id = $2 FOR UPDATE`,
+          WHERE id = $1 AND account_id = $2 AND deleted_at IS NULL FOR UPDATE`,
         [profileId, ctx.accountId],
       );
       if (locked.length === 0) throw notFound();
@@ -180,9 +190,14 @@ export class PatientProfilesService {
           message: 'Unlink this family member from their clinics first',
         });
       }
+      // Soft delete (A-22): the revoked links of this profile stay as the
+      // clinic's history; the person's data goes.
       await m.query(
-        `DELETE FROM patient_profiles WHERE id = $1 AND account_id = $2`,
-        [profileId, ctx.accountId],
+        `UPDATE patient_profiles
+            SET deleted_at = now(), full_name = $3, dob = NULL, gender = NULL,
+                private_reminders = false, updated_at = now()
+          WHERE id = $1 AND account_id = $2`,
+        [profileId, ctx.accountId, REMOVED_PROFILE_NAME],
       );
     });
     return { removed: true };

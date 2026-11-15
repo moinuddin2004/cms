@@ -189,12 +189,26 @@ describe('PatientAccountService.deleteAccount', () => {
     expect(at(`INSERT INTO patient_access_log`)).toBeGreaterThan(-1);
     expect(at('pg_notify')).toBeGreaterThan(-1);
     // links are revoked (with audit) BEFORE the profiles are deleted
-    expect(at('DELETE FROM patient_profiles')).toBeGreaterThan(
+    // profiles are soft-deleted (A-22): link rows survive, the person's data goes
+    const profiles = all[at('UPDATE patient_profiles')];
+    expect(at('UPDATE patient_profiles')).toBeGreaterThan(
       at('UPDATE patient_record_links'),
     );
+    expect(profiles).toContain('deleted_at = now()');
+    expect(profiles).toContain('dob = NULL');
+    expect(profiles).toContain('gender = NULL');
+    expect(all.some((s) => s.includes('DELETE FROM patient_profiles'))).toBe(
+      false,
+    );
+    expect(
+      all.some((s) => s.includes('DELETE FROM patient_record_links')),
+    ).toBe(false);
     expect(at('DELETE FROM patient_account_identities')).toBeGreaterThan(-1);
     expect(at('DELETE FROM patient_login_codes')).toBeGreaterThan(-1);
-    expect(all[at('UPDATE patient_sessions')]).toContain('revoked_at = now()');
+    const sessions = all[at('UPDATE patient_sessions')];
+    expect(sessions).toContain('revoked_at = COALESCE(revoked_at, now())');
+    expect(sessions).toContain('ip = NULL');
+    expect(sessions).toContain('device_label = NULL');
     const acct = all[at('UPDATE patient_accounts')];
     expect(acct).toContain(`status = 'deleted'`);
     expect(acct).toContain('full_name = NULL');
@@ -228,5 +242,55 @@ describe('PatientAccountService.deleteAccount', () => {
     });
     expect(sqls).toHaveLength(1);
     expect(audit.record).not.toHaveBeenCalled();
+  });
+});
+
+describe('PatientProfilesService transactions (A-22)', () => {
+  function make(answer: (sql: string) => unknown[]) {
+    const sqls: string[] = [];
+    const manager = {
+      query: jest.fn((sql: string) => {
+        sqls.push(sql.replace(/\s+/g, ' '));
+        return answer(sql);
+      }),
+    };
+    const dataSource = {
+      transaction: (fn: (m: unknown) => unknown) => fn(manager),
+    };
+    return {
+      service: new PatientProfilesService(
+        dataSource as never,
+        { list: jest.fn().mockResolvedValue([]) } as never,
+      ),
+      sqls,
+    };
+  }
+
+  it('create locks a live account; a deleted account gets a 404 and no insert', async () => {
+    const { service, sqls } = make(() => []);
+    await expect(
+      service.create(ctx(), { relation: 'child', fullName: 'Z' }),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(sqls).toHaveLength(1);
+    expect(sqls[0]).toContain('FROM patient_accounts');
+    expect(sqls[0]).toContain('deleted_at IS NULL FOR UPDATE');
+  });
+
+  it('remove soft-deletes the profile: UPDATE with the data stripped, never DELETE', async () => {
+    const { service, sqls } = make((sql) =>
+      sql.includes('FOR UPDATE')
+        ? [{ id: CHILD }]
+        : sql.includes('count(*)')
+          ? [{ n: 0 }]
+          : [],
+    );
+    await expect(service.remove(ctx(), CHILD)).resolves.toEqual({
+      removed: true,
+    });
+    const update = sqls.find((s) => s.startsWith('UPDATE patient_profiles'))!;
+    expect(update).toContain('deleted_at = now()');
+    expect(update).toContain('dob = NULL');
+    expect(update).toContain('gender = NULL');
+    expect(sqls.some((s) => s.includes('DELETE FROM'))).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { FormSheet, ListRow, StatusBadge, type StatusTone } from '@/core/components';
+import { ListRow, ReadOnlySheet, StatusBadge, type StatusTone } from '@/core/components';
 import { Text } from '@/core/ui/text';
 import { formatDate } from '@/staff/lib/datetime';
 
@@ -71,15 +71,19 @@ export function RxSegment({ rx }: { rx: GatedQuery<PrescriptionPage> }) {
             />
           ))}
         </View>
+        {(query.data?.total ?? 0) > rows.length ? (
+          <Text variant="muted" className="pt-2 text-center">
+            {`Showing latest ${rows.length} of ${query.data?.total}`}
+          </Text>
+        ) : null}
       </QueryBlock>
-      <FormSheet
+      <ReadOnlySheet
         open={selected !== null}
         onClose={() => setSelected(null)}
         title={selected?.prescriptionNumber ?? 'Prescription'}
-        closeLabel="Close"
-        discard={{ title: '', description: '', confirmLabel: '', cancelLabel: '' }}>
+        closeLabel="Close">
         {selected ? <PrescriptionDetail rx={selected} /> : null}
-      </FormSheet>
+      </ReadOnlySheet>
     </DetailBlock>
   );
 }

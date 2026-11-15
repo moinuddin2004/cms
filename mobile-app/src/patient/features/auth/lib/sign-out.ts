@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+import { usePendingClaimStore } from '@/core/claim/usePendingClaimStore';
 import { leaveSpaceAfterSignOut } from '@/core/space/switch-space';
 import { beginPatientSignOut, dropSession, endPatientSignOut } from '@/patient/lib/api';
 import { wipePatientPersistedCache } from '@/patient/lib/persist-cache';
@@ -32,6 +33,7 @@ export async function signOutPatient(queryClient: QueryClient): Promise<void> {
   } catch {
     // still sign out; the cache is keyed to this account and busts on next sign-in
   }
+  usePendingClaimStore.getState().clear(); // a claim token never outlives the account it was opened for
   await queryClient.cancelQueries();
   queryClient.clear();
   await leaveSpaceAfterSignOut('patient');

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { setReadOnlyOffline } from '@/core/network';
+
 export type AccessSource = 'super_admin' | 'owner' | 'employee';
 
 export type SignInBlockCode =
@@ -71,8 +73,19 @@ export interface SessionPayload {
   activeLocationId: string | null;
 }
 
+/** The saved cache's owner, offered after a NETWORK-failed restore only (M1-06b). */
+export interface OfflineHint {
+  userId: string;
+  orgId: string;
+  locationId: string;
+}
+
 interface AuthState {
   status: SessionStatus;
+  /** Set only when the restore failed with a network error and an encrypted cache exists. */
+  offlineHint: OfflineHint | null;
+  /** Open on saved data only: no access token, writes are refused locally. */
+  offlineSnapshot: boolean;
   user: User | null;
   /** Memory only — never persisted. */
   accessToken: string | null;
@@ -88,6 +101,8 @@ interface AuthState {
 
   setSession: (data: SessionPayload) => void;
   setStatus: (status: SessionStatus) => void;
+  setOfflineHint: (hint: OfflineHint | null) => void;
+  openSavedData: (hint: OfflineHint) => void;
   setLocationContext: (orgId: string, locationId: string) => void;
   setClinicBlock: (orgId: string, block: SignInBlock) => void;
   setEmailVerificationRequired: (required: boolean) => void;
@@ -106,6 +121,8 @@ const signedOutState = {
   activeOrganizationId: null,
   activeLocationId: null,
   emailVerificationRequired: false,
+  offlineHint: null,
+  offlineSnapshot: false,
 } satisfies Partial<AuthState>;
 
 /**
@@ -119,6 +136,8 @@ export const useStaffAuthStore = create<AuthState>()((set) => ({
   setSession: (d) =>
     set({
       status: 'signedIn',
+      offlineHint: null,
+      offlineSnapshot: false,
       user: {
         uuid: d.user.uuid || d.user.userUuid || '',
         email: d.user.email,
@@ -139,6 +158,22 @@ export const useStaffAuthStore = create<AuthState>()((set) => ({
     }),
 
   setStatus: (status) => set({ status }),
+
+  setOfflineHint: (offlineHint) => set({ offlineHint }),
+
+  // Identity comes from the encrypted cache; there is no token, so everything shown is the saved copy.
+  openSavedData: (hint) =>
+    set({
+      status: 'signedIn',
+      offlineHint: null,
+      offlineSnapshot: true,
+      user: { uuid: hint.userId, email: '', name: '', globalRole: null },
+      accessToken: null,
+      activeOrganizationId: hint.orgId,
+      activeLocationId: hint.locationId,
+      requiresOrgSelection: false,
+      requiresLocationSelection: false,
+    }),
 
   setLocationContext: (orgId, locationId) =>
     set({
@@ -189,3 +224,6 @@ export function needsLocationSelection(
     !s.activeLocationId
   );
 }
+
+// Core's `useCanMutate` reads this flag without importing the space.
+useStaffAuthStore.subscribe((s) => setReadOnlyOffline(s.offlineSnapshot));

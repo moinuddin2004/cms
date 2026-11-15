@@ -45,7 +45,28 @@ jest.mock('../hooks/usePatientPrescriptions', () => ({ usePatientPrescriptions: 
 jest.mock('../hooks/useLatestTeethChart', () => ({ useLatestTeethChart: () => mockChart }));
 jest.mock('../hooks/usePatientHistory', () => ({ usePatientHistory: () => mockHistory }));
 jest.mock('../hooks/usePatientVitals', () => ({ usePatientVitals: () => mockVitals }));
+const mockInvalidate = jest.fn();
+let mockScreen: { onRefresh?: () => void } = {};
+// Keeps the real Screen but exposes its pull-to-refresh handler (RefreshControl is not reachable in Jest).
+jest.mock('@/core/components/layout/Screen', () => {
+  const actual = jest.requireActual<typeof import('@/core/components/layout/Screen')>(
+    '@/core/components/layout/Screen',
+  );
+  const R = jest.requireActual<typeof import('react')>('react');
+  return {
+    ...actual,
+    Screen: (props: { onRefresh?: () => void }) => {
+      mockScreen = props;
+      return R.createElement(actual.Screen, props as never);
+    },
+  };
+});
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: () => ({ invalidateQueries: mockInvalidate }),
+}));
 jest.mock('@/staff/features/queue', () => ({
+  queueKeys: { patientVisits: (id: string) => ['queue', 'patient-visits', id] },
   usePatientQueueVisits: () => ({ isPending: false, isError: false, data: [], refetch: jest.fn() }),
 }));
 jest.mock('../lib/copy-text', () => ({ copyText: (t: string) => mockCopy(t) }));
@@ -139,6 +160,23 @@ describe('PatientDetailPage', () => {
     expect(screen.getByText(/P-00034 · \d+y · Male · O\+/)).toBeTruthy();
     expect(screen.getByLabelText('Allergies: Penicillin, Latex')).toBeTruthy();
     expect(screen.getByLabelText('Blacklisted: Missed visits')).toBeTruthy();
+  });
+
+  it('pull-to-refresh reloads the patient, its child queries and its queue visits', async () => {
+    const refetch = jest.fn().mockResolvedValue(undefined);
+    mockPatient = { ...mockPatient, refetch };
+    mockInvalidate.mockResolvedValue(undefined);
+    await render(<PatientDetailPage patientId={ID} />);
+    await waitFor(() => mockScreen.onRefresh?.());
+    expect(refetch).toHaveBeenCalled();
+    const calls = mockInvalidate.mock.calls.map(([arg]) => arg);
+    const predicate = calls.find((a) => a.predicate)?.predicate as (q: { queryKey: unknown[] }) => boolean;
+    expect(predicate({ queryKey: ['patients', 'vitals', 'o', 'l', ID] })).toBe(true);
+    expect(predicate({ queryKey: ['patients', 'prescriptions', 'o', 'l', ID, 1] })).toBe(true);
+    expect(predicate({ queryKey: ['patients', 'detail', 'o', 'l', ID] })).toBe(false);
+    expect(predicate({ queryKey: ['patients', 'list', 'o', 'l', { search: ID }] })).toBe(false);
+    expect(predicate({ queryKey: ['patients', 'vitals', 'o', 'l', 'other'] })).toBe(false);
+    expect(calls).toContainEqual({ queryKey: ['queue', 'patient-visits', ID] });
   });
 
   it('records the patient id in the recent store', async () => {

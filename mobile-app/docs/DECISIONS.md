@@ -47,6 +47,7 @@
 | A-19 | Patient reads per clinic status: a clinic that was **never approved** (`approval_status` pending/rejected) shows no links or records in the patient app; a **suspended** clinic's links stay readable but frozen (records shown, a `clinicStatus: 'suspended'` flag, no new claims/links) | The data belongs to the patient; an unapproved clinic may be fake (M2-03 review question) |
 | A-20 | Native Google sign-in on mobile (staff M1-17, patient later) uses `@react-native-google-signin/google-signin` (config plugin, dev build); the backend verifies the ID token against the web + Android + iOS client IDs | One library for both spaces; the session confirms against SDK 58 docs and the user installs the package |
 | A-21 | Patient i18n is in-house (`src/core/i18n`: typed `en`/`ur` catalogs, `t(key, params)` with `{name}`, locale from expo-localization + prefs override, RTL flag, `useT()`), API shaped like i18next. Adopt i18next later only if plurals/ICU are needed | No new dependency now; a swap stays a small change because call sites use `t('a.b.c')` |
+| A-22 | Patient deletion keeps the clinic's link history: `patient_record_links` rows (status revoked, `revoked_by_*`, reason) are never deleted. Deleting a family member or the account **soft-deletes** `patient_profiles` (`deleted_at`; name → placeholder, dob / gender → null; every profile query excludes them). Account delete also strips the account row, deletes `patient_account_identities` and login codes, revokes sessions and nulls their `ip` / `device_label`. Patient-side revokes are audited with actor side `system` (the enum has no `patient` side); the account id is in the audit `after` | The clinic's audit trail of who unlinked what must outlive the patient's data; the patient's personal data must not (M2-10 review) |
 
 ## Open (user to decide — build with the default meanwhile)
 
@@ -73,4 +74,5 @@
 | --- | --- |
 | 2026-11-11 | Initial log created with the doc set |
 | 2026-11-15 | A-19 (suspended/unapproved clinic reads), A-20 (native Google library) by the architect; user: start all parallel work without asking |
+| 2026-11-16 | A-22 (patient deletion keeps revoked link rows; profiles soft-deleted) by the architect |
 | 2026-11-11 | User: staff cards (M1-02 onward) may start without the device gate M0-D; device checks accumulate in M0-D and must pass before the staff pilot (Gate A) |

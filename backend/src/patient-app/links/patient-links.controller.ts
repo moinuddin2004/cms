@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { RateLimit } from 'src/auth/guards/rate-limiter.guard';
 import { ResponseWrapper } from 'src/common/dtos/ResponseWrapper';
 import { PatientContext, PatientCtx } from '../context/patient-context';
 import { PatientApi } from '../decorators/patient-api.decorator';
@@ -27,6 +28,7 @@ export class PatientAccountLinksController {
 
   @Delete(':id')
   @HttpCode(200)
+  @RateLimit({ maxAttempts: 30, windowSeconds: 15 * 60 })
   async unlink(
     @PatientCtx() ctx: PatientContext,
     @Param('id', ParseUUIDPipe) id: string,

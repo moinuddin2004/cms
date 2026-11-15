@@ -9,6 +9,7 @@ import {
   LockedLink,
   revokeLinkByPatient,
 } from '../links/patient-account-links.service';
+import { REMOVED_PROFILE_NAME } from '../profiles/patient-profiles.service';
 
 export const ACCOUNT_AUDIT_ENTITY = 'patient_account';
 export const ACCOUNT_DELETED_REASON = 'account_deleted';
@@ -19,8 +20,9 @@ export const ACCOUNT_DELETED_REASON = 'account_deleted';
  * 1. lock the account (a second delete finds nothing → 404);
  * 2. revoke every active/frozen link as the patient (audit + access log +
  *    realtime event per clinic link, same as an unlink);
- * 3. delete the profiles (and with them the link rows, reminders, dose history
- *    once those tables exist — they cascade from the profile);
+ * 3. soft-delete the profiles (name / dob / gender stripped) — the revoked link
+ *    rows stay as the clinic's history (A-22); reminders and dose history
+ *    (M3) are deleted with them;
  * 4. delete the sign-in identities and pending login codes, so signing up again
  *    with the same email / Google account is a brand-new account (M2-02 review #5);
  * 5. revoke every session;
@@ -70,9 +72,15 @@ export class PatientAccountService {
         );
       }
 
-      await m.query(`DELETE FROM patient_profiles WHERE account_id = $1`, [
-        ctx.accountId,
-      ]);
+      // Soft delete (A-22): the revoked link rows (who revoked, when, why) are
+      // the clinic's history and stay; every personal field of the profiles goes.
+      await m.query(
+        `UPDATE patient_profiles
+            SET deleted_at = now(), full_name = $2, dob = NULL, gender = NULL,
+                private_reminders = false, updated_at = now()
+          WHERE account_id = $1 AND deleted_at IS NULL`,
+        [ctx.accountId, REMOVED_PROFILE_NAME],
+      );
       await m.query(
         `DELETE FROM patient_account_identities WHERE account_id = $1`,
         [ctx.accountId],
@@ -81,8 +89,9 @@ export class PatientAccountService {
         account.email.toLowerCase(),
       ]);
       await m.query(
-        `UPDATE patient_sessions SET revoked_at = now()
-          WHERE account_id = $1 AND revoked_at IS NULL`,
+        `UPDATE patient_sessions
+            SET revoked_at = COALESCE(revoked_at, now()), ip = NULL, device_label = NULL
+          WHERE account_id = $1`,
         [ctx.accountId],
       );
       // Consent rows are the legal record; only the IP goes.

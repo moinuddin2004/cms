@@ -1925,6 +1925,7 @@ CREATE TABLE patient_profiles (
   dob         date,
   gender      varchar(10),
   private_reminders boolean NOT NULL DEFAULT false,
+  deleted_at  timestamptz,                   -- soft delete (A-22): PII stripped, link history kept
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT fk_patient_profiles_account_id FOREIGN KEY (account_id) REFERENCES patient_accounts (id) ON DELETE CASCADE,

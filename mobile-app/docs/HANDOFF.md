@@ -2758,6 +2758,18 @@ Branch: `claude/m2-10-family-clinics-5e4548` (worktree branch off `mobile/develo
 - Backend modified: `src/patient-app/me.controller.ts`, `src/patient-app/patient-app.module.ts`, `src/patient-auth/patient-auth.controller.spec.ts` (me controller now has 3 handlers).
 - Mobile created: the three feature folders, `src/patient/lib/clinic-types.ts`, 4 route files under `src/app/(patient)/(main)/`.
 - Mobile modified: `src/core/i18n/{en,ur}.ts` (blocks `relation`, `gender`, `family`, `clinics`, `account`, inserted before `offline`), `src/patient/navigation/PatientPlaceholderPage.tsx` (entry buttons).
+## M1-16 + M1-06b — Staff hardening pass (code half) and offline cold start  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-16-staff-hardening-8f8db8 (from mobile/develop)   Commit(s): see git log   Status set to: review
+
+### Done
+- All carried-over nits except the Jest open handle (see below): patient-detail pull-to-refresh invalidates children + queue visits; Rx "Showing latest N of TOTAL"; WhatsApp country code (from clinic currency); `ReadOnlySheet` in core used by RxSegment / TicketSheet / AppointmentSheet; `QueueTabPage` tests; Mark-all disabled logic; board waiting minutes tick (`useTickingNow` moved to `queue/hooks`); `formatMoney` 0-or-2 decimals; Queue tab `doctorId` param + Today doctor row passes it.
+- Gate checklist walked in code: fixed fixed-height controls that clip at 1.3x (`FormInput`, `SearchBar`, `SelectLocationPage`, reason textarea). Everything else (tokens, logical classes, labels, states, PHI, permissions) was already clean. Details in `docs/reviews/M1-16/report.md`.
+- M1-06b: identity hint parsed from the persisted client buster in the ENCRYPTED staff cache (`staff/lib/offline-hint.ts`); loaded only after a network-error restore (no response), never after 401/403 or 5xx; Offline page shows "Open saved data"; snapshot mode (`offlineSnapshot`, no token) refuses non-GET locally and clears on the next real session.
+
+### Files
+- Created: `core/components/overlays/ReadOnlySheet.tsx`, `staff/lib/offline-hint.ts`, tests (`QueueTabPage`, `format`, `offline-hint`, `useRestoreStaffSession`), `docs/reviews/M1-16/report.md`.
+- Modified: patient detail page/Rx/lib, notifications page, board lane list, Today page, Queue tab, `staff/lib/api.ts`, staff auth store, `OfflinePage`, `useRestoreStaffSession` (in `staff/features/auth`, the M1-17 session was already merged), core inputs.
+- Moved: `useTickingNow` (+ test) to `queue/hooks`.
 
 ### Install commands for the user
 none
@@ -2780,3 +2792,98 @@ none
 - Unlink invalidates the whole patient query cache (records of that clinic may be cached under keys owned by M2-09).
 - Prettier was never run on files I did not write (I had to revert an accidental `prettier --write src/patient-app`); my new backend files are prettier-clean.
 - Root-level scratch logs `.be-build.log` / `.be-jest.log` from the backend run were deleted before commit.
+- `tsc --noEmit` clean · `expo lint` 0 errors (5 pre-existing warnings) · `lint:fences` ok · full jest 97 suites / 730 tests green.
+- NOT done: Jest "worker failed to exit" (cause not found; see report section 4); everything needing a device (list in report section 5).
+
+### Deviations / notes
+- Dial code comes from the clinic currency because no country field exists; a backend country/dial code would be better.
+- Snapshot mode lacks the org/location objects (timezone, currency) so it falls back to phone timezone / PKR until the next login.
+
+
+---
+## Rework M1-16 #1 — 2026-11-15
+Branch: `claude/m1-16-staff-hardening-8f8db8` (merged mobile/develop) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | api.ts after develop's `createApiClient` | Took develop's file; the read-only guard now lives in `onRequest` and throws (nothing is sent). `/auth/google` in `noRefreshUrls` and the sign-out generation guard kept. `api.test.ts` "refuses writes locally" kept (now expects `READ_ONLY_OFFLINE`). |
+| 2 | Restore early-return | `signedIn && !offlineSnapshot`, so saved-data mode retries the refresh. Test added. |
+| 3 | Push registration | `usePushRegistration` skips while `offlineSnapshot`, flag in the effect deps. Test added. |
+| 4 | Saved-data writes | Distinct code `READ_ONLY_OFFLINE` (core `api-error.ts`), never retried by `isRetryable`, message "Saved data is read-only."; `useCanMutate` is false while on saved data (core flag `core/network/read-only.ts`, set by a store subscription). Tests in `core/http/read-only.test.ts`. |
+| 5 | Lane re-select | Queue tab effect also depends on a `lane` nonce param; the Today row sends `lane: String(Date.now())`. |
+| 6 | Nits | eslint --fix applied; pull-to-refresh no longer invalidates the `detail` key (it is refetched directly); test asserts it. |
+
+Verification: tsc clean · lint 0 errors (4 warnings) · lint:fences ok · full jest 115 suites / 836 tests green.
+---
+## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
+
+### Done
+- **Deep link**: `src/app/claim/[token].tsx` (and `c/[token].tsx` for the web link shape) → `ClaimLinkPage` (patient feature): token shape check → `usePendingClaimStore` (`core/claim`, memory only) → `switchSpace('patient')` → `/`. Bad token → kind "doesn't work" screen. `buildClaimLink(token)` (`core/claim`) = `Linking.createURL('claim/<token>')`, the same scheme for every build variant.
+- **Sign-in detour**: patient layout guards unchanged; sign-in page shows "Sign in to link your record." while a token is pending; `PatientMainLayout` redirects to `/claim/confirm` while a token is pending. Sign-out clears the token.
+- **Confirm page (P-01)** `features/claims`: preview (`GET /patient-api/claims/:token`, no retry, no cache), relation choice (Me hidden for minors), name for dependents, consent switch, accept → "Linked. You'll now see visits and medicines from <clinic>" → home. Error codes → `claim.errors.*` via `claimErrorInfo` (CLAIM_INVALID, CLINIC_SUSPENDED, PATIENT_APP_DISABLED, ALREADY_LINKED = terminal, token dropped; NAME_REQUIRED, RELATION_MISMATCH, 429, offline, other = stay and retry). Strings in `en`/`ur` (ur copies English, TODO).
+- **Staff S-09** `staff/features/app-link`: route `(staff)/(main)/app-link/[patientId]`, gated `patients.app_link.manage`; status polled every 5 s; Generate QR → QR + m:ss countdown (15 min) + regenerate; linked state shows masked email + since + Revoke (ConfirmDialog, destructive). The raw token lives only in component state. S-05 only gained the "Link app" menu entry (needs the permission).
+- `core/components/QrCode` added and exported.
+- eslint fence: `src/app/c/**` added next to `src/app/claim/**` (patient route fence).
+
+### INSTALL NEEDED (user runs)
+No QR library is installed (only `react-native-svg`). Until then `QrCode` shows the link as text. Run:
+```
+npx expo install react-native-qrcode-svg
+```
+then in `src/core/components/data-display/QrCode.tsx` replace the text body with `<QRCode value={value} size={size} />` (keep the wrapper `View` for the label).
+
+### Decisions to review
+- The QR encodes the app deep link (`clinicapp[-dev|-preview]://claim/<token>`), NOT the backend `url` (`FRONTEND_URL/c/<token>`): no web landing page / universal-link association exists yet, so a camera scan of the web URL would open a browser. Phone camera → installed app works with the custom scheme. Switch to `claim.url` once the landing page exists (the `c/[token]` route is ready for it). "Share via WhatsApp" from docs/06 is not built for the same reason.
+- Pending token is memory only (not SecureStore): a killed app asks for a new QR (15 min TTL).
+- Existing-profile picker not built: `GET /patient-api/profiles` is M2-10. "Me" uses the account's self profile; other relations create a new profile from the typed name.
+- Sign-in hint does not name the clinic (preview needs a signed-in patient).
+
+### Verification
+`tsc --noEmit` clean (only the pre-existing generated `global.css` message appears before `expo start` generates it; clean after) · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 107 suites / 770 tests green · `CI=1 npx expo start --offline` ran to generate route types.
+New tests: claim token/link/store, claim error mapping (all codes), claim form schema, countdown.
+
+### Needs a device
+Scanning the QR with the phone camera and the app opening on `claim/<token>` (cold start and warm); sign-in detour (email code) resuming at the confirm page; keyboard on the name field; the staff QR once the library is installed; both spaces on one phone (staff creates, patient space accepts).
+
+
+---
+## Rework M2-07 + M2-15 #1 — 2026-11-15
+Branch: claude/m2-07-claim-flow-b5aeae · Status stays: review (merged `mobile/develop` first)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Terminal accept error landed on home | `useClaimForm` hands the `MessageKey` to the page (`onTerminalError(key)`); the page shows the Failure state translated at render and drops the token only when the patient taps Close. Tests: hook (all 4 terminal codes, recoverable error, success) + page. |
+| 2 | Patient trapped on a recoverable preview error | "Not now" next to Retry → `leave` (clears token, goes home). Page test. |
+| 3 | Pending token age | Store keeps `{ token, savedAt }`; `freshPendingToken` selector ignores/drops it after 15 min (`dropIfStale`). Tests. |
+| 4 | Token format | exactly `^[A-Za-z0-9_-]{43}$`. |
+| 5 | Countdown clock drift | `deadlineFromResponse`: server `expiresAt` minus the server `Date` response header, counted from receipt (capped at 15 min; falls back to 15 min without a header). Tests with a wildly wrong phone clock. |
+| 6 | QR content + share | QR encodes `claim.url` (https `/c/<token>`); "Share link" uses RN `Share` with the same URL (label says "Share link" because the sheet is the OS one, WhatsApp is one target); `selectable` removed. `buildClaimLink` and its expo-linking use were deleted. |
+| 7 | `text-white` | `text-destructive-foreground`. |
+| 8 | Device check | **On device: confirm `(patient)/(main)/claim/confirm` resolves as a static route and does not get swallowed by root `claim/[token]` (a token is never "confirm", but check both paths), including cold-start deep link.** |
+
+Note: the app only opens from the https link once M2-14 (web landing + association) exists; until then scanning the QR opens the browser page.
+
+Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok · full jest 116 suites / 834 tests ✓ · `CI=1 npx expo start --offline` run. No device.
+
+### Addendum — real QR (after rework 1)
+`react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
+
+---
+## Rework M2-10 + M2-11 #1 — 2026-11-16
+Branch: `claude/m2-10-family-clinics-5e4548` (merged `mobile/develop`; conflicts in `HANDOFF.md`, `PROGRESS.md`, `core/i18n/en.ts`, `ur.ts` resolved by keeping both sides) · Status stays: review
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Keep the clinic's link history | `patient_profiles.deleted_at` added (entity + `schema/02_tables.sql` + `changes/2026-11-15_patient_profiles_soft_delete.sql` + doc 08). Removing a family profile and deleting an account now **soft-delete** profiles (`deleted_at = now()`, name → `'Removed profile'`, dob / gender / `private_reminders` cleared); `patient_record_links` rows (revoked, `revoked_by_*`, reason) are never deleted. Every profile read/write excludes deleted rows: `PatientLinkGuard`, profiles list/count/update/remove, claim accept (existing-profile + self lookups), account links list / unlink / history. Doc 07 §6.5 and DECISIONS **A-22** updated. Unit specs assert UPDATE-not-DELETE and the stripped columns; the int spec (not run) asserts the stripped rows and that the revoked link row survives. |
+| 2 | Concurrency with delete | Create-profile and claim accept both lock the account (`SELECT … FROM patient_accounts WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`) and answer 404 when no row. Specs for both (create on a deleted account inserts nothing; accept stops before touching profiles / links). Lock order: accept = claim token → account → link; delete = account → links; create = account. No cycle. |
+| 3 | Session PII | Account delete sets `revoked_at = COALESCE(revoked_at, now()), ip = NULL, device_label = NULL` on all the account's sessions; spec asserts it. |
+| 4 | Unlink audit actor | The `ActorSide` enum has no patient side, so the audit rows keep `SYSTEM` (as M2-04's claim accept does); the account id is in `after.revokedBy` / the access log. Recorded in A-22 and doc 07. |
+| 5 | Rate limit | `DELETE /patient-api/links/:id` has `@RateLimit` 30 / 15 min (same as claims). |
+| 6 | Delete retry | `deleteWithRetry` (`features/account/lib`): a network error is retried once; a 401 / 404 on the retry counts as success so the wipe still runs; any other failure (or a 401 / 404 on the FIRST call) is thrown and nothing local is touched. Table tests. |
+
+Also fixed while merging: the merge dropped the closing braces of my `account.delete` block in `en.ts` / `ur.ts` (placed before develop's `claim` block).
+
+Install commands: none.
+
+Verification: see the commit message / report (backend build, changed specs, full backend unit suite; mobile typecheck after `CI=1 npx expo start --offline`, lint, `lint:fences`, full jest). The int spec was still not run (no local Postgres).

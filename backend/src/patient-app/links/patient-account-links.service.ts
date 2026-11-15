@@ -88,6 +88,7 @@ export class PatientAccountLinksService {
               loc.phone AS loc_phone, loc.address AS loc_address
          FROM patient_record_links l
          JOIN patient_profiles p ON p.id = l.profile_id AND p.account_id = $1
+                              AND p.deleted_at IS NULL
          JOIN patients pt ON pt.id = l.patient_id
          LEFT JOIN LATERAL (
            SELECT x.id, x.name, x.timezone, x.phone, x.address
@@ -164,6 +165,7 @@ export class PatientAccountLinksService {
         `SELECT l.id, l.profile_id, l.organization_id, l.patient_id, l.status
            FROM patient_record_links l
            JOIN patient_profiles p ON p.id = l.profile_id AND p.account_id = $2
+                              AND p.deleted_at IS NULL
           WHERE l.id = $1 AND l.status IN ('active', 'frozen')
           FOR UPDATE OF l`,
         [linkId, ctx.accountId],
@@ -196,6 +198,7 @@ export class PatientAccountLinksService {
               l.revoked_at, l.revoked_by_type
          FROM patient_record_links l
          JOIN patient_profiles p ON p.id = l.profile_id AND p.account_id = $2
+                              AND p.deleted_at IS NULL
         WHERE l.id = $1`,
       [linkId, ctx.accountId],
     );

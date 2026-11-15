@@ -2,8 +2,8 @@ import { View } from 'react-native';
 
 import {
   ErrorState,
-  FormSheet,
   LoadingSkeleton,
+  ReadOnlySheet,
   QUEUE_STATUS_TONES,
   StatusBadge,
   TokenBadge,
@@ -43,13 +43,12 @@ function TicketBody({ entryId }: { entryId: string }) {
 /** The patient's queue ticket: token, status and people ahead (`GET entries/:id/ticket`). */
 export function TicketSheet({ entryId, onClose }: TicketSheetProps) {
   return (
-    <FormSheet
+    <ReadOnlySheet
       open={entryId !== null}
       onClose={onClose}
       title="Ticket"
-      closeLabel="Close"
-      discard={{ title: '', description: '', confirmLabel: '', cancelLabel: '' }}>
+      closeLabel="Close">
       {entryId ? <TicketBody entryId={entryId} /> : null}
-    </FormSheet>
+    </ReadOnlySheet>
   );
 }

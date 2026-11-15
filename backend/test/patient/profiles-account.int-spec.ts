@@ -441,9 +441,23 @@ describe('patient profiles + links + account deletion (int)', () => {
     expect(
       await q(`SELECT 1 FROM patient_account_identities WHERE account_id = $1`),
     ).toHaveLength(0);
+    // profiles are soft-deleted with their data stripped; the revoked link rows stay
     expect(
-      await q(`SELECT 1 FROM patient_profiles WHERE account_id = $1`),
+      await q(
+        `SELECT 1 FROM patient_profiles WHERE account_id = $1 AND deleted_at IS NULL`,
+      ),
     ).toHaveLength(0);
+    const stripped = await q(
+      `SELECT full_name, dob, gender FROM patient_profiles WHERE account_id = $1`,
+    );
+    expect(stripped.length).toBeGreaterThan(0);
+    expect(JSON.stringify(stripped)).not.toContain('Zain');
+    expect(
+      await q(
+        `SELECT 1 FROM patient_record_links l JOIN patient_profiles p ON p.id = l.profile_id
+          WHERE p.account_id = $1 AND l.status = 'revoked' AND l.revoked_by_type = 'patient'`,
+      ),
+    ).toHaveLength(1);
     expect(
       await q(
         `SELECT 1 FROM patient_sessions WHERE account_id = $1 AND revoked_at IS NULL`,

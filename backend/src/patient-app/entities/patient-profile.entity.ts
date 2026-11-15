@@ -57,6 +57,14 @@ export class PatientProfile {
   @Column({ name: 'private_reminders', type: 'boolean', default: false })
   privateReminders: boolean;
 
+  /**
+   * Soft delete (A-22): a removed family profile / a deleted account keeps its
+   * row so the clinic's link history (`patient_record_links`) survives. Name,
+   * dob and gender are stripped; every profile query excludes these rows.
+   */
+  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true })
+  deletedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
