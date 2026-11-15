@@ -2454,3 +2454,35 @@ Branch: `mobile/M1-15-today-ui` · Status stays: review
 Follow-up (accepted as-is): the doctor row opens `/queue` without a lane param; the queue tab has no lane param yet.
 
 Verification: `npm run typecheck` clean · eslint 0 errors (4 old warnings) · `lint:fences` ok · full jest 82 suites / 624 tests green. No device.
+
+---
+## M1-17 — Staff Google sign-in (BE + MOB)  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m1-17-staff-google-3ed844 (from mobile/develop)   Status set to: review
+
+### Done
+- **Backend:** `GoogleIdentityService.clientAudiences` (web + `GOOGLE_ANDROID_CLIENT_ID` + `GOOGLE_IOS_CLIENT_ID`; `patientAudiences` now returns it). Staff `POST /auth/google` (`GoogleAuthService.signIn`) verifies against that list. Everything else unchanged: `verify()` without audiences stays web-only (register, join-request, link, desktop hand-off), Workspace/"Google only"/gate rules and the no-account outcome are untouched. Native refresh token already works: `issueLogin` returns `refreshToken` in the body for `x-client-type: mobile` (no Origin). Specs: `google-auth.service.spec.ts` (audiences, signed_in, no_account never creates a user), identity spec (audience list).
+- **Mobile:** `src/core/auth/google.ts` adapter (`isNativeGoogleAvailable()`, `getGoogleIdToken(webClientId, iosClientId?)` → token or null on cancel). The library is `require`d lazily inside try/catch, so the app builds/runs before the package is installed and the button simply stays hidden. `useGoogleSignIn` (staff auth feature): shown only when the library is present AND `GET /auth/google/config` says enabled; `POST /auth/google`; `signed_in` → `persistSession` (root guards go to location selection); `no_account` → "Register your clinic on the web, or ask your clinic owner for an invite link."; `link_required` → server message; 403 gate refusals (Google required/disabled/domain, pending) → the server message through `apiErrorMessage`. "Continue with Google" outline button on `LoginPage`. Tokens unchanged: access in memory, refresh in SecureStore via `persistSession`.
+- `env.googleIosClientId` reads `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (public id, optional on Android-only builds).
+
+### Install commands for the user
+```
+cd mobile-app
+npx expo install @react-native-google-signin/google-signin
+```
+Then add this to `plugins` in `app.config.ts` (NOT added: the config plugin needs the package at prebuild, and `iosUrlScheme` is required when not using Firebase):
+```
+['@react-native-google-signin/google-signin', { iosUrlScheme: 'com.googleusercontent.apps.<IOS_CLIENT_ID_PREFIX>' }]
+```
+Then a new development build (`npx expo run:android` / `run:ios`; not Expo Go). No `google-services.json` is needed (no Firebase). Source: library's Expo setup + "original" API docs (`configure({ webClientId, iosClientId })`, `signIn()` → `{ type: 'success' | 'cancelled', data.idToken }`).
+
+### Needs the user (Google Cloud console + env)
+1. Create an **Android** OAuth client (package `com.placeholder.clinicapp[.dev|.preview]`, SHA-1 of the debug/EAS keystore) and an **iOS** OAuth client (bundle id). Android needs no id in the app; iOS id goes in `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` and the plugin's `iosUrlScheme`.
+2. Backend env: `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID` (and the existing `GOOGLE_CLIENT_ID` web id; the app uses it as `webClientId`, so tokens are minted for it).
+3. Device test (gate M0-D): Google-only clinic sign-in, no-account message, cancel, refused-by-policy message.
+
+### Verification
+See the report: backend specs, build and mobile typecheck/lint/fences/jest results.
+
+### Deviations
+- App config plugin left in HANDOFF (see above). Link/unlink and register/join stay web-only.
+

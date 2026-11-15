@@ -21,4 +21,6 @@ function resolveApiUrl(): string {
 
 export const env = {
   apiUrl: resolveApiUrl(),
+  /** iOS OAuth client id for native Google sign-in (public value); empty on Android-only builds. */
+  googleIosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim() ?? '',
 } as const;

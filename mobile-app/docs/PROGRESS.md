@@ -52,7 +52,7 @@
 | M1-15a | Today snapshot data | MOB | S | M1-14a, M1-07 | done | Sonnet session | 2026-11-15 | approved |
 | M1-15 | Today snapshot (UI) | MOB | M | M1-15a | done | Sonnet session | 2026-11-15 | rework-1 |
 | M1-16 | Staff hardening pass | MOB | M | M1-08..15 | ready | | | |
-| M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | spec | | | |
+| M1-17 | Staff Google sign-in (optional) | MOB+BE | M | M1-02 | review | Sonnet session | 2026-11-15 | needs package install + Google client ids |
 | M2-01 | Patient identity tables + entities | BE | M | M0-09 | done (in develop) | mobile/M2-01-patient-identity | DeepSeek Flash | 2026-11-11 |
 | M2-12 | patient_app feature, permissions, settings | BE | S | M0-09 | done (in develop) | mobile/M2-12-patient-app-keys | DeepSeek Flash | 2026-11-11 |
 | M2-02 | Patient auth: email code, sessions, JWT, guard | BE | L | M2-01 | done (in develop) | mobile/M2-02-patient-auth | | 2026-11-11 |

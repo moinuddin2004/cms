@@ -109,7 +109,11 @@ export class GoogleAuthService {
     req: Request,
     res: Response,
   ): Promise<GoogleSignInResult> {
-    const g = await this.identity.verify(dto.credential);
+    // Web, Android and iOS client ids: the mobile app signs in natively.
+    const g = await this.identity.verify(
+      dto.credential,
+      this.identity.clientAudiences,
+    );
     const resolved = await this.resolveUser(g, req);
 
     if (resolved.kind === 'link_required') {

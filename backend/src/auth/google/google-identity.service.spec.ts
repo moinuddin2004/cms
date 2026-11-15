@@ -59,6 +59,18 @@ describe('GoogleIdentityService', () => {
     });
   });
 
+  it('exposes the web, Android and iOS client ids as the native audience list', () => {
+    const identity = new GoogleIdentityService(
+      new ConfigService({
+        GOOGLE_CLIENT_ID: ' web ',
+        GOOGLE_ANDROID_CLIENT_ID: 'android',
+        GOOGLE_IOS_CLIENT_ID: 'ios',
+      }),
+    );
+    expect(identity.clientAudiences).toEqual(['web', 'android', 'ios']);
+    expect(identity.patientAudiences).toEqual(identity.clientAudiences);
+  });
+
   it('exposes rawName only when Google sent a name claim', async () => {
     const identity = new GoogleIdentityService(
       new ConfigService({ GOOGLE_CLIENT_ID: 'web' }),

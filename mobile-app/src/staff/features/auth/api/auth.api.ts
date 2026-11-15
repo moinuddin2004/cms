@@ -9,6 +9,29 @@ export async function login(values: LoginFormValues): Promise<SessionPayload> {
   return data.data;
 }
 
+export interface GoogleConfig {
+  enabled: boolean;
+  /** The server's OAuth web client id (the audience native ID tokens are minted for). */
+  clientId: string | null;
+}
+
+/** Is Google sign-in set up on this server? */
+export async function fetchGoogleConfig(): Promise<GoogleConfig> {
+  const { data } = await staffApi.get('/auth/google/config');
+  return data.data;
+}
+
+/** Result of `POST /auth/google` (always 200; the clinic gate answers 403 with its own message). */
+export type GoogleSignInResult =
+  | { outcome: 'signed_in'; session: SessionPayload }
+  | { outcome: 'no_account' }
+  | { outcome: 'link_required'; message: string };
+
+export async function googleSignIn(credential: string): Promise<GoogleSignInResult> {
+  const { data } = await staffApi.post('/auth/google', { credential, rememberMe: true });
+  return data.data;
+}
+
 /** Pick the clinic + location after login. */
 export async function selectLocation(organizationId: string, locationId: string) {
   const { data } = await staffApi.post('/auth/select-location', { organizationId, locationId });
