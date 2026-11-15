@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios';
-import { Copy, MessageCircle, MoreHorizontal, Phone } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { Copy, MessageCircle, MoreHorizontal, Phone, Smartphone } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, View } from 'react-native';
 import { toast } from 'sonner-native';
@@ -17,6 +18,7 @@ import {
 } from '@/core/components';
 import { queueKeys } from '@/staff/features/queue';
 import { useCurrency } from '@/staff/lib/currency';
+import { useAccess } from '@/staff/features/access';
 import { todayYmd } from '@/staff/lib/datetime';
 
 import { AlertStrip } from '../components/detail/AlertStrip';
@@ -76,6 +78,8 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
   const queryClient = useQueryClient();
   const currency = useCurrency();
   const [pulling, setPulling] = useState(false);
+  const router = useRouter();
+  const { can } = useAccess();
 
   const [segment, setSegment] = useState<PatientSegment>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -143,6 +147,13 @@ export function PatientDetailPage({ patientId }: PatientDetailPageProps) {
   const actions: SheetAction[] = [];
   if (tel) actions.push({ label: 'Call', icon: Phone, onPress: () => void openUrl(tel) });
   if (wa) actions.push({ label: 'WhatsApp', icon: MessageCircle, onPress: () => void openUrl(wa) });
+  if (can('patients.app_link.manage')) {
+    actions.push({
+      label: 'Link app',
+      icon: Smartphone,
+      onPress: () => router.push({ pathname: '/app-link/[patientId]', params: { patientId: p.id } }),
+    });
+  }
   actions.push({
     label: 'Copy MR no.',
     icon: Copy,

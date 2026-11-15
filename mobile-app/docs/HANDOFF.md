@@ -2759,3 +2759,56 @@ Branch: `claude/m1-16-staff-hardening-8f8db8` (merged mobile/develop) · Status 
 | 6 | Nits | eslint --fix applied; pull-to-refresh no longer invalidates the `detail` key (it is refetched directly); test asserts it. |
 
 Verification: tsc clean · lint 0 errors (4 warnings) · lint:fences ok · full jest 115 suites / 836 tests green.
+## M2-07 + M2-15 — Claim flow (patient) and staff "Link app" QR  ·  2026-11-15  ·  Claude Sonnet 5.5
+Branch: claude/m2-07-claim-flow-b5aeae (from mobile/develop)   Status set to: review (both rows)
+
+### Done
+- **Deep link**: `src/app/claim/[token].tsx` (and `c/[token].tsx` for the web link shape) → `ClaimLinkPage` (patient feature): token shape check → `usePendingClaimStore` (`core/claim`, memory only) → `switchSpace('patient')` → `/`. Bad token → kind "doesn't work" screen. `buildClaimLink(token)` (`core/claim`) = `Linking.createURL('claim/<token>')`, the same scheme for every build variant.
+- **Sign-in detour**: patient layout guards unchanged; sign-in page shows "Sign in to link your record." while a token is pending; `PatientMainLayout` redirects to `/claim/confirm` while a token is pending. Sign-out clears the token.
+- **Confirm page (P-01)** `features/claims`: preview (`GET /patient-api/claims/:token`, no retry, no cache), relation choice (Me hidden for minors), name for dependents, consent switch, accept → "Linked. You'll now see visits and medicines from <clinic>" → home. Error codes → `claim.errors.*` via `claimErrorInfo` (CLAIM_INVALID, CLINIC_SUSPENDED, PATIENT_APP_DISABLED, ALREADY_LINKED = terminal, token dropped; NAME_REQUIRED, RELATION_MISMATCH, 429, offline, other = stay and retry). Strings in `en`/`ur` (ur copies English, TODO).
+- **Staff S-09** `staff/features/app-link`: route `(staff)/(main)/app-link/[patientId]`, gated `patients.app_link.manage`; status polled every 5 s; Generate QR → QR + m:ss countdown (15 min) + regenerate; linked state shows masked email + since + Revoke (ConfirmDialog, destructive). The raw token lives only in component state. S-05 only gained the "Link app" menu entry (needs the permission).
+- `core/components/QrCode` added and exported.
+- eslint fence: `src/app/c/**` added next to `src/app/claim/**` (patient route fence).
+
+### INSTALL NEEDED (user runs)
+No QR library is installed (only `react-native-svg`). Until then `QrCode` shows the link as text. Run:
+```
+npx expo install react-native-qrcode-svg
+```
+then in `src/core/components/data-display/QrCode.tsx` replace the text body with `<QRCode value={value} size={size} />` (keep the wrapper `View` for the label).
+
+### Decisions to review
+- The QR encodes the app deep link (`clinicapp[-dev|-preview]://claim/<token>`), NOT the backend `url` (`FRONTEND_URL/c/<token>`): no web landing page / universal-link association exists yet, so a camera scan of the web URL would open a browser. Phone camera → installed app works with the custom scheme. Switch to `claim.url` once the landing page exists (the `c/[token]` route is ready for it). "Share via WhatsApp" from docs/06 is not built for the same reason.
+- Pending token is memory only (not SecureStore): a killed app asks for a new QR (15 min TTL).
+- Existing-profile picker not built: `GET /patient-api/profiles` is M2-10. "Me" uses the account's self profile; other relations create a new profile from the typed name.
+- Sign-in hint does not name the clinic (preview needs a signed-in patient).
+
+### Verification
+`tsc --noEmit` clean (only the pre-existing generated `global.css` message appears before `expo start` generates it; clean after) · eslint 0 errors (3 old warnings) · `lint:fences` ok · full jest 107 suites / 770 tests green · `CI=1 npx expo start --offline` ran to generate route types.
+New tests: claim token/link/store, claim error mapping (all codes), claim form schema, countdown.
+
+### Needs a device
+Scanning the QR with the phone camera and the app opening on `claim/<token>` (cold start and warm); sign-in detour (email code) resuming at the confirm page; keyboard on the name field; the staff QR once the library is installed; both spaces on one phone (staff creates, patient space accepts).
+
+
+---
+## Rework M2-07 + M2-15 #1 — 2026-11-15
+Branch: claude/m2-07-claim-flow-b5aeae · Status stays: review (merged `mobile/develop` first)
+
+| # | Finding | What I did |
+| --- | --- | --- |
+| 1 | Terminal accept error landed on home | `useClaimForm` hands the `MessageKey` to the page (`onTerminalError(key)`); the page shows the Failure state translated at render and drops the token only when the patient taps Close. Tests: hook (all 4 terminal codes, recoverable error, success) + page. |
+| 2 | Patient trapped on a recoverable preview error | "Not now" next to Retry → `leave` (clears token, goes home). Page test. |
+| 3 | Pending token age | Store keeps `{ token, savedAt }`; `freshPendingToken` selector ignores/drops it after 15 min (`dropIfStale`). Tests. |
+| 4 | Token format | exactly `^[A-Za-z0-9_-]{43}$`. |
+| 5 | Countdown clock drift | `deadlineFromResponse`: server `expiresAt` minus the server `Date` response header, counted from receipt (capped at 15 min; falls back to 15 min without a header). Tests with a wildly wrong phone clock. |
+| 6 | QR content + share | QR encodes `claim.url` (https `/c/<token>`); "Share link" uses RN `Share` with the same URL (label says "Share link" because the sheet is the OS one, WhatsApp is one target); `selectable` removed. `buildClaimLink` and its expo-linking use were deleted. |
+| 7 | `text-white` | `text-destructive-foreground`. |
+| 8 | Device check | **On device: confirm `(patient)/(main)/claim/confirm` resolves as a static route and does not get swallowed by root `claim/[token]` (a token is never "confirm", but check both paths), including cold-start deep link.** |
+
+Note: the app only opens from the https link once M2-14 (web landing + association) exists; until then scanning the QR opens the browser page.
+
+Verification: tsc clean · lint 0 errors (3 old warnings) · `lint:fences` ok · full jest 116 suites / 834 tests ✓ · `CI=1 npx expo start --offline` run. No device.
+
+### Addendum — real QR (after rework 1)
+`react-native-qrcode-svg` (installed by the user, on mobile/develop) now renders the code in `core/components/QrCode` (black on white, quiet zone; the text fallback shows only if encoding fails). It encodes `claim.url`. The install note in the first M2-07 entry is obsolete. Tests: `QrCode.test.tsx` (renders for the value; falls back on error). Note for the lead: this worktree's own `node_modules` did not contain the package, so I copied `react-native-qrcode-svg`, `qrcode`, `text-encoding` and `dijkstrajs` from the main checkout's `node_modules` (untracked; no package.json/lockfile change by me).
