@@ -99,6 +99,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: '#208AEF',
       },
     ],
+    // Native Google sign-in (A-20). Android needs no plugin options; iOS needs the reversed
+    // iOS client id as a URL scheme, so the plugin is added only once that is configured.
+    ...(process.env.GOOGLE_IOS_URL_SCHEME
+      ? [
+          [
+            '@react-native-google-signin/google-signin',
+            { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME },
+          ] as [string, { iosUrlScheme: string }],
+        ]
+      : []),
   ],
   // Runtime version policy for OTA updates (docs/02 §11): one runtime per
   // store-facing version, so `expo-updates` only serves compatible bundles.
